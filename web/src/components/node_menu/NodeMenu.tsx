@@ -35,22 +35,25 @@ const treeStyles = (theme: any) =>
       position: "absolute",
       overflow: "hidden",
       zIndex: 1300,
-      border: `2px solid ${theme.palette.c_gray1}`,
-      borderRadius: ".6em",
-      outline: `2px solid ${theme.palette.c_gray4}`,
+      border: `1px solid ${theme.palette.c_gray3}`,
+      borderRadius: "12px",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
       backgroundColor: theme.palette.c_gray1
     },
     ".draggable-header": {
-      borderRadius: "8px 8px 0 0",
+      borderRadius: "12px 12px 0 0",
       backgroundColor: theme.palette.c_gray2,
       width: "100%",
-      minHeight: "30px",
+      minHeight: "40px",
       cursor: "grab",
       userSelect: "none",
+      display: "flex",
+      alignItems: "center",
       h4: {
         margin: "0",
-        padding: "0.3em 0 0 1.25em",
+        padding: "0 0 0 1.25em",
         fontSize: theme.fontSizeNormal,
+        fontWeight: 500,
         color: theme.palette.c_gray6
       }
     },
@@ -77,15 +80,23 @@ const treeStyles = (theme: any) =>
       margin: 0,
       padding: ".5em 1em 0 .7em",
       ".search-input-container": {
-        minWidth: "240px"
+        minWidth: "170px"
       }
     },
     ".close-button": {
       position: "absolute",
-      top: "-2px",
-      right: "5px",
+      top: "8px",
+      right: "8px",
       zIndex: 150,
-      color: ThemeNodetool.palette.c_gray4
+      color: theme.palette.c_gray5,
+      width: "28px",
+      height: "28px",
+      padding: "2px",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: "rgba(0, 0, 0, 0.04)",
+        color: theme.palette.c_gray6
+      }
     },
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",

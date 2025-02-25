@@ -564,7 +564,9 @@ export const createNodeStore = (
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ) => {
             if (typeof nodesOrCallback === "function") {
-              set({ nodes: nodesOrCallback(get().nodes) });
+              set((state) => ({
+                nodes: nodesOrCallback(state.nodes)
+              }));
             } else {
               set({ nodes: nodesOrCallback });
             }

@@ -111,6 +111,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       const workflow = get().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
+      console.log("data", data);
       if (workflow) {
         get().readMessage(workflow, data);
       }

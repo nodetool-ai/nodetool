@@ -5,8 +5,6 @@
 // - Managing open workflows and associated node stores.
 // - Persisting the current workflow and list of open workflows in localStorage.
 // - Handling API calls to create, retrieve, copy, update, and delete workflows.
-// - Setting up WebSocket connections to listen for real-time workflow updates.
-// - Presenting notifications on workflow changes.
 // -----------------------------------------------
 
 import { createContext, useContext, useState, useEffect } from "react";
@@ -361,8 +359,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             body: {
               name: workflow.name,
               description: workflow.description,
-              thumbnail: workflow.thumbnail,
-              thumbnail_url: workflow.thumbnail_url,
+              tags: workflow.tags,
               access: "public",
               graph: workflow.graph
             }

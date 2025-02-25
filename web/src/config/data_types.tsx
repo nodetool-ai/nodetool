@@ -72,8 +72,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   str,
   tensor,
   text,
-  thread,
-  thread_message,
+  message: thread_message,
   union,
   video,
   database,
@@ -370,20 +369,9 @@ let DATA_TYPES: DataType[] = [
     icon: "ModelTraining"
   },
   {
-    value: "thread",
-    label: "Thread",
-    description: "LLM Message Thread",
-    color: solarizedColors.cyan,
-    textColor: "#fff",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Message"
-  },
-  {
-    value: "thread_message",
-    label: "Thread Message",
-    description: "A single message within an LLM Thread",
+    value: "message",
+    label: "Message",
+    description: "A Chat Message",
     color: solarizedColors.blue,
     textColor: "#fff",
     name: "",
