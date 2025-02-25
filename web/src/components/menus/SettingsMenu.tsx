@@ -31,13 +31,18 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 
 export const settingsStyles = (theme: any): any =>
   css({
+    ".MuiBackdrop-root": {
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backdropFilter: "blur(5px)"
+    },
     ".MuiPaper-root": {
-      backgroundColor: "black",
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backdropFilter: "blur(10px)",
+      border: `1px solid ${theme.palette.c_gray2}`,
       borderRadius: ".5em",
       maxWidth: "1000px",
       overflow: "hidden",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
       fontSize: theme.fontSizeNormal
     },
     ".settings-tabs": {
@@ -76,15 +81,19 @@ export const settingsStyles = (theme: any): any =>
       padding: ".5em 1em"
     },
     ".top": {
-      height: "40px",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
       display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
       alignItems: "center",
-      padding: "0 1em",
+      padding: "0em 1em",
+      borderBottom: `1px solid ${theme.palette.c_gray2}`,
       h2: {
-        padding: "0 0 0 0.5em",
+        marginTop: "0",
+        marginBottom: "0.5em",
+        padding: "0",
         color: theme.palette.c_white,
         fontSize: theme.fontSizeBigger,
+        lineHeight: "1.5",
         fontWeight: "500"
       }
     },
@@ -124,12 +133,13 @@ export const settingsStyles = (theme: any): any =>
       }
     },
     ".settings-section": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: "rgba(30, 30, 30, 0.4)",
+      backdropFilter: "blur(5px)",
       borderRadius: "8px",
       padding: "1.2em",
       margin: "1.5em 0 1.5em 0",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      border: `1px solid ${theme.palette.c_gray3}`,
+      boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
+      border: `1px solid ${theme.palette.c_gray2}`,
       width: "100%",
       display: "flex",
       flexDirection: "column",
@@ -219,18 +229,19 @@ export const settingsStyles = (theme: any): any =>
       fontSize: theme.fontSizeNormal,
       padding: "0.4em 0.6em",
       marginTop: "0",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "rgba(30, 30, 30, 0.6)",
       borderRadius: "8px",
       transition: "background-color 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: "rgba(40, 40, 40, 0.8)"
       }
     },
     ".MuiSwitch-root": {
       margin: "0"
     },
     ".secrets": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "rgba(30, 30, 30, 0.6)",
+      backdropFilter: "blur(5px)",
       color: theme.palette.c_white,
       fontSize: theme.fontSizeBig,
       marginTop: ".8em",
@@ -407,10 +418,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
           vertical: "center",
           horizontal: "center"
         }}
+        BackdropProps={{
+          sx: { backdropFilter: "blur(5px)" }
+        }}
       >
         <div className="top">
-          <CloseButton onClick={handleClose} />
           <Typography variant="h2">Settings</Typography>
+          <CloseButton onClick={handleClose} />
         </div>
 
         <div className="settings-menu">
