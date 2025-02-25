@@ -456,26 +456,6 @@ async def create_anthropic_completion(
         Chunk | ToolCall: Either a content chunk or a tool call request.
     """
 
-    def convert_message(message: Message) -> MessageParam:
-        if message.role == "tool":
-            return {
-                "role": "tool",
-                "content": {
-                    "type": "tool_result",
-                    "tool_use_id": message.tool_call_id,
-                    "content": [{"type": "text", "text": str(message.content)}],
-                    "is_error": False,
-                },  # type: ignore
-            }
-        elif message.role == "system":
-            return {
-                "type": "text",
-                "text": message.content,
-                "cache_control": {"type": "ephemeral"},
-            }  # type: ignore
-        else:
-            return {"role": message.role, "content": message.content}  # type: ignore
-
     def convert_tool(tool: Tool) -> ToolParam:
         return {
             "name": tool.name,
@@ -504,7 +484,6 @@ async def create_anthropic_completion(
         messages=anthropic_messages,
         system=system_message,
         tools=anthropic_tools,
-        max_tokens=kwargs.get("max_tokens", 4096),
         **kwargs,
     ) as stream:
         current_tool_call = None
