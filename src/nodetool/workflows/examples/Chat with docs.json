@@ -1,12 +1,13 @@
 {
-  "id": "2d8a5a8ee41611efabc80000754e3f7a",
+  "id": "8567b56cf3c511efa735000044b725cd",
   "access": "public",
-  "created_at": "2025-02-09T16:05:36.369972",
-  "updated_at": "2025-02-09T16:05:36.369980",
+  "created_at": "2025-02-25T23:12:46.570073",
+  "updated_at": "2025-02-25T23:12:46.570077",
   "name": "Chat with Docs",
-  "description": "Chat with your documents",
+  "description": "An intelligent document retrieval and question-answering system that leverages vector search and local LLMs to provide accurate, context-aware responses based on your document collection.",
   "tags": [
-    "chat"
+    "chat",
+    "rag"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -36,14 +37,13 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
             "y": 215
           },
           "zIndex": 0,
           "width": 197,
-          "title": "Get user chat message.",
+          "title": "Capture user query or question for document search",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -57,14 +57,13 @@
           "name": "answer"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1181,
             "y": 244
           },
           "zIndex": 0,
           "width": 275,
-          "title": "Send result back to chat.",
+          "title": "Return comprehensive answer to user's query",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -94,14 +93,13 @@
           "keep_alive": 300
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 856,
             "y": 210
           },
           "zIndex": 0,
           "width": 295,
-          "title": "Run local LLM to generate answer.",
+          "title": "Generate contextual response using local LLM with retrieved information",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -114,14 +112,13 @@
           "template": "You are an expert assistant answering a user question based on retrieved documents. \nYour response must be accurate, well-structured, and grounded in the provided sources.\n\n### User Question:\n{{ text }}\n\n### Relevant Information from Retrieved Documents\nThese snippets can be incomplete or out of context. Ignore information that is not relevant.\n{% for doc in documents %}\n=====================\n**Document {{ loop.index }}\n** {{ doc }}\n{% endfor %}\n\n### **Instructions for Answering:**\n1. Analyze the user question carefully.\n2. Extract key insights from the retrieved documents.\n3. If multiple documents provide different perspectives, synthesize the most relevant and accurate information.\n4. If the documents lack sufficient information, state what is missing instead of guessing.\n5. Present the answer in a clear, concise, and structured manner."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 490,
             "y": 50
           },
           "zIndex": 0,
           "width": 336,
-          "title": "Insert document snippets into the prompt.",
+          "title": "Construct comprehensive prompt with retrieved context and query",
           "selectable": true
         },
         "dynamic_properties": {
@@ -143,14 +140,13 @@
           "min_keyword_length": 3
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 307,
             "y": 61
           },
           "zIndex": 0,
           "width": 153,
-          "title": "Retrieve relevant documents from vector storage.",
+          "title": "Perform hybrid vector and keyword search for relevant document chunks",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -165,7 +161,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Chat with Docs",
+                  "text": "Retrieval-Augmented Generation (RAG) for Document Q&A",
                   "bold": "B",
                   "size": "+"
                 }
@@ -183,7 +179,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "This workflow is designed to answer user questions accurately and efficiently using a hybrid search and a local LLM. "
+                  "text": "This workflow implements a sophisticated RAG (Retrieval-Augmented Generation) system that enables natural language conversations with your document collection. It combines semantic search with local LLM inference to provide accurate, contextually relevant answers."
                 }
               ]
             },
@@ -273,7 +269,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 30,
             "y": -236
@@ -287,36 +282,6 @@
       }
     ],
     "edges": [
-      {
-        "id": "2ed9715d-87c8-4399-92e6-1a404e26b0a6",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "collection",
-        "ui_properties": {
-          "className": "chroma_collection"
-        }
-      },
-      {
-        "id": "770944b1-b3c4-4fbd-9490-58dd32f8bf02",
-        "source": "cf57ce8c-cb13-4b38-bd6a-33bd10c952f1",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "embedding_function",
-        "ui_properties": {
-          "className": "chroma_embedding_function"
-        }
-      },
-      {
-        "id": "2978e001-be09-4d68-ab8d-d25396e20181",
-        "source": "5",
-        "sourceHandle": "text",
-        "target": "3",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
       {
         "id": "770948",
         "source": "5",
@@ -360,5 +325,6 @@
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }

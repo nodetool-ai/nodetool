@@ -1,11 +1,14 @@
 {
-  "id": "7f866a0ee09611ef84e6000001a715a4",
+  "id": "601f0f48f3c611ef828d0000081e6c6c",
   "access": "public",
-  "created_at": "2025-02-01T13:58:46.959384",
-  "updated_at": "2025-02-01T13:58:46.959397",
+  "created_at": "2025-02-25T23:19:01.562673",
+  "updated_at": "2025-02-25T23:19:01.562677",
   "name": "Daily Digest using Gemini",
   "description": "Summarize daily emails and newsletters using Gemini AI",
-  "tags": null,
+  "tags": [
+    "agents",
+    "email"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -15,7 +18,6 @@
         "parent_id": null,
         "type": "google.mail.GmailSearch",
         "data": {
-          "email_address": "matti.georgi@gmail.com",
           "search_query": "",
           "max_results": 50,
           "date_filter": "SINCE_ONE_DAY"
@@ -23,11 +25,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 3,
-            "y": 423
+            "x": 55,
+            "y": 535
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Fetch Recent Emails",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -43,11 +46,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1110,
-            "y": 368
+            "x": 1144,
+            "y": 512
           },
           "zIndex": 0,
           "width": 588,
+          "title": "Email Digest Output",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -62,11 +66,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 540,
-            "y": 473
+            "x": 592,
+            "y": 585
           },
           "zIndex": 0,
           "width": 200,
+          "title": "Combine Email Content",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -81,11 +86,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 439,
-            "y": 647
+            "x": 492,
+            "y": 778
           },
           "zIndex": 0,
           "width": 401,
+          "title": "Digest Format Instructions",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -100,11 +106,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 233,
-            "y": 464
+            "x": 285,
+            "y": 576
           },
           "zIndex": 0,
           "width": 176,
+          "title": "Format Email Data",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -139,11 +146,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 900,
-            "y": 374
+            "x": 952,
+            "y": 352
           },
           "zIndex": 0,
           "width": 162,
+          "title": "Generate Digest with Gemini",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -244,7 +252,7 @@
                   "bold": true
                 },
                 {
-                  "text": ": Specifies the "
+                  "text": ": Specifies the prompt instructions for Gemini AI"
                 }
               ]
             },
@@ -314,6 +322,7 @@
           "zIndex": 0,
           "width": 893,
           "height": 299,
+          "title": "Workflow Documentation",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -373,5 +382,6 @@
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }
