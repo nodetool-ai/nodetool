@@ -1,3 +1,18 @@
+/**
+ * NodeMenuStore
+ *
+ * This module manages the state and behavior of the node selection menu in the application.
+ * It handles:
+ * - Opening/closing the node menu
+ * - Node searching and filtering
+ * - Type-based filtering
+ * - Path/namespace navigation
+ * - Node documentation display
+ * - Connection direction for node linking
+ *
+ * The store uses Zustand for state management and Fuse.js for fuzzy searching.
+ */
+
 import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
@@ -342,17 +357,51 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       get().performSearch(get().searchTerm);
     },
 
+    /**
+     * Performs a search for nodes based on the current search criteria
+     *
+     * This function:
+     * 1. Validates the search request against the current search ID
+     * 2. Retrieves metadata and filters out nodes without required API keys
+     * 3. Applies type filtering based on selected input/output types
+     * 4. Performs fuzzy search using Fuse.js when a search term is provided
+     * 5. Filters results based on the selected namespace path
+     * 6. Sorts and groups results for display
+     * 7. Updates the highlighted namespaces in the UI
+     *
+     * @param term - The search term to use
+     * @param searchId - Optional ID to cancel outdated searches
+     */
     performSearch: (term: string, searchId?: number) => {
       // If a searchId is provided and it doesn't match current, cancel the search
       if (searchId !== undefined && searchId !== get().currentSearchId) {
         return;
       }
 
+      // Get all required state variables at the beginning
+      const store = get();
       const metadata = useMetadataStore.getState().metadata;
       const secrets = useRemoteSettingsStore.getState().secrets;
+      const searchTerm = store.searchTerm;
+      const selectedInputType = store.selectedInputType;
+      const selectedOutputType = store.selectedOutputType;
+      const selectedPath = store.selectedPath;
+      const selectedPathString = selectedPath.join(".");
+      const hasTypeFilters = selectedInputType || selectedOutputType;
+      const hasSearchTerm = term.trim().length > 0;
 
       if (Object.keys(metadata).length === 0) {
         set({ searchResults: [], highlightedNamespaces: [] });
+        return;
+      }
+
+      // Early exit if no search criteria
+      if (!hasSearchTerm && !selectedPathString && !hasTypeFilters) {
+        set({
+          searchResults: [],
+          groupedSearchResults: []
+        });
+        store.updateHighlightedNamespaces([]);
         return;
       }
 
@@ -361,7 +410,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         if (node.namespace === "default") return false;
 
         // Only filter by API keys during search or type filtering
-        if (shouldFilterByApiKey(term, get())) {
+        if (shouldFilterByApiKey(term, store)) {
           if (isNodeApiKeyMissing(node, secrets)) {
             return false;
           }
@@ -373,8 +422,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Filter by type
       const typeFilteredMetadata = filterDataByType(
         filteredMetadata,
-        get().selectedInputType as TypeName,
-        get().selectedOutputType as TypeName
+        selectedInputType as TypeName,
+        selectedOutputType as TypeName
       );
 
       // Get nodes that match the search term
@@ -402,26 +451,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Store all search matches
       set({ allSearchMatches: searchMatchedNodes });
 
-      // Get nodes in the selected path
-      const selectedPathString = get().selectedPath.join(".");
-
-      // Show results if we have a search term or type filters
-      const hasTypeFilters =
-        get().selectedInputType || get().selectedOutputType;
-      const hasSearchTerm = term.trim().length > 0;
-
-      if (!hasSearchTerm && !selectedPathString && !hasTypeFilters) {
-        set({
-          searchResults: [],
-          groupedSearchResults: []
-        });
-        get().updateHighlightedNamespaces([]);
-        return;
-      }
-
-      // If we have a search term or type filters, show all matching results
+      // Determine which results to show based on search criteria
+      let filteredResults;
       if (hasSearchTerm || hasTypeFilters) {
-        const filteredResults = selectedPathString
+        // With search term or type filters, show matching results filtered by path
+        filteredResults = selectedPathString
           ? searchMatchedNodes.filter((node) => {
               if (!selectedPathString.includes(".")) {
                 return node.namespace.startsWith(selectedPathString);
@@ -434,16 +468,40 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
               );
             })
           : searchMatchedNodes;
+      } else {
+        // Without search term, show nodes for selected path only
+        filteredResults = typeFilteredMetadata.filter((node) => {
+          if (!selectedPathString.includes(".")) {
+            return node.namespace.startsWith(selectedPathString);
+          }
+          return (
+            node.namespace === selectedPathString ||
+            (node.namespace.startsWith(selectedPathString + ".") &&
+              node.namespace.split(".").length ===
+                selectedPathString.split(".").length + 1)
+          );
+        });
+      }
 
-        const groupedResults = selectedPathString
+      // Sort results
+      const sortedResults = filteredResults.sort((a, b) => {
+        const namespaceComparison = a.namespace.localeCompare(b.namespace);
+        return namespaceComparison !== 0
+          ? namespaceComparison
+          : a.title.localeCompare(b.title);
+      });
+
+      // Create grouped results
+      const groupedResults =
+        selectedPathString && !hasSearchTerm
           ? [
               {
                 title: selectedPathString,
-                nodes: filteredResults
+                nodes: sortedResults
               }
             ]
           : performGroupedSearch(
-              filteredResults.map((node) => {
+              sortedResults.map((node) => {
                 const { description, tags, useCases } = formatNodeDocumentation(
                   node.description
                 );
@@ -460,41 +518,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
               term
             );
 
-        set({
-          searchResults: filteredResults,
-          groupedSearchResults: groupedResults
-        });
-
-        get().updateHighlightedNamespaces(searchMatchedNodes);
-        return;
-      }
-
-      // Show nodes for selected path only
-      const nodesInPath = typeFilteredMetadata.filter((node) => {
-        if (!selectedPathString.includes(".")) {
-          return node.namespace.startsWith(selectedPathString);
-        }
-        const matches =
-          node.namespace === selectedPathString ||
-          (node.namespace.startsWith(selectedPathString + ".") &&
-            node.namespace.split(".").length ===
-              selectedPathString.split(".").length + 1);
-        return matches;
-      });
-
-      const allResults = [
-        {
-          title: selectedPathString,
-          nodes: nodesInPath
-        }
-      ];
-
       set({
-        searchResults: nodesInPath,
-        groupedSearchResults: allResults
+        searchResults: sortedResults,
+        groupedSearchResults: groupedResults
       });
 
-      get().updateHighlightedNamespaces(nodesInPath);
+      store.updateHighlightedNamespaces(searchMatchedNodes);
     },
 
     searchResults: [],
