@@ -41,6 +41,14 @@ const EditableTitle = memo(function EditableTitle({
     updateNodeData(nodeId, { title: "" });
   }, [nodeId, updateNodeData]);
 
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      updateNodeData(nodeId, { title: e.currentTarget.value });
+      setIsEditing(false);
+    },
+    [nodeId, updateNodeData]
+  );
+
   return (
     <div className="title-container" onDoubleClick={handleDoubleClick}>
       {isEditing ? (
@@ -49,7 +57,7 @@ const EditableTitle = memo(function EditableTitle({
           autoFocus
           onKeyDown={handleKeyDown}
           onInput={handleInput}
-          onBlur={() => setIsEditing(false)}
+          onBlur={handleBlur}
           style={{ overflow: "hidden", resize: "none" }}
         />
       ) : (
