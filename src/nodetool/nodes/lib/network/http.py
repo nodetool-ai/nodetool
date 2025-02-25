@@ -30,10 +30,6 @@ class HTTPBaseNode(BaseNode):
         default="",
         description="The URL to make the request to.",
     )
-    headers: dict[str, str] = Field(
-        default={},
-        description="Optional headers to include in the request.",
-    )
     auth: str | None = Field(default=None, description="Authentication credentials.")
 
     @classmethod
@@ -42,9 +38,12 @@ class HTTPBaseNode(BaseNode):
 
     def get_request_kwargs(self):
         return {
-            "headers": self.headers,
             "auth": self.auth,
         }
+
+    @classmethod
+    def get_basic_fields(cls):
+        return ["url"]
 
 
 class GetRequest(HTTPBaseNode):
@@ -444,10 +443,6 @@ class DownloadFiles(BaseNode):
         default="downloads",
         description="Local folder path where files will be saved.",
     )
-    headers: dict[str, str] = Field(
-        default={},
-        description="Optional headers to include in the request.",
-    )
     auth: str | None = Field(default=None, description="Authentication credentials.")
 
     @classmethod
@@ -456,7 +451,6 @@ class DownloadFiles(BaseNode):
 
     def get_request_kwargs(self):
         return {
-            "headers": self.headers,
             "auth": self.auth,
         }
 
@@ -575,12 +569,12 @@ class JSONPostRequest(HTTPBaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> dict:
-        headers = self.headers.copy()
-        headers["Content-Type"] = "application/json"
         res = await context.http_post(
             self.url,
             json=self.data,
-            headers=headers,
+            headers={
+                "Content-Type": "application/json",
+            },
             auth=self.auth,
         )
         return res.json()

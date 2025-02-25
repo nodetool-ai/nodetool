@@ -979,6 +979,29 @@
         "max": null
       },
       {
+        "name": "messages",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "message",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Messages",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
         "name": "image",
         "type": {
           "type": "image",
@@ -92551,36 +92574,6 @@
         "max": null
       },
       {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "auth",
         "type": {
           "type": "union",
@@ -92627,9 +92620,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -92652,36 +92643,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -92747,10 +92708,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -92773,36 +92731,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -92868,10 +92796,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -92898,36 +92823,6 @@
         "max": null
       },
       {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "auth",
         "type": {
           "type": "union",
@@ -92974,9 +92869,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93003,36 +92896,6 @@
         "max": null
       },
       {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "auth",
         "type": {
           "type": "union",
@@ -93094,9 +92957,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93308,36 +93169,6 @@
         "max": null
       },
       {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
-        "min": null,
-        "max": null
-      },
-      {
         "name": "auth",
         "type": {
           "type": "union",
@@ -93384,9 +93215,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93409,36 +93238,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -93489,9 +93288,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93514,36 +93311,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -93624,10 +93391,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93650,36 +93414,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -93776,11 +93510,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "urls",
-      "max_concurrent_requests"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -93826,36 +93556,6 @@
         "default": "downloads",
         "title": "Output Folder",
         "description": "Local folder path where files will be saved.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -93950,7 +93650,6 @@
     "basic_fields": [
       "urls",
       "output_folder",
-      "headers",
       "auth",
       "max_concurrent_downloads"
     ],
@@ -93975,36 +93674,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -94070,10 +93739,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -94096,36 +93762,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -94191,10 +93827,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -94217,36 +93850,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -94312,10 +93915,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth",
-      "data"
+      "url"
     ],
     "is_dynamic": false
   },
@@ -94338,36 +93938,6 @@
         "default": "",
         "title": "Url",
         "description": "The URL to make the request to.",
-        "min": null,
-        "max": null
-      },
-      {
-        "name": "headers",
-        "type": {
-          "type": "dict",
-          "optional": false,
-          "values": null,
-          "type_args": [
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            },
-            {
-              "type": "str",
-              "optional": false,
-              "values": null,
-              "type_args": [],
-              "type_name": null
-            }
-          ],
-          "type_name": null
-        },
-        "default": {},
-        "title": "Headers",
-        "description": "Optional headers to include in the request.",
         "min": null,
         "max": null
       },
@@ -94418,9 +93988,7 @@
     "the_model_info": {},
     "recommended_models": [],
     "basic_fields": [
-      "url",
-      "headers",
-      "auth"
+      "url"
     ],
     "is_dynamic": false
   },
