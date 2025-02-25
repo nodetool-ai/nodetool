@@ -1,17 +1,16 @@
 {
-  "id": "image-chat",
+  "id": "e06f0132f36f11efaa3d000032c2c8d7",
   "access": "public",
-  "created_at": "2025-01-19T18:30:58.409812",
-  "updated_at": "2025-01-19T18:30:58.409835",
+  "created_at": "2025-02-25T13:10:31.516246",
+  "updated_at": "2025-02-25T13:10:31.516256",
   "name": "Image Chat",
-  "description": "Generate images from natural language descriptions using chat interface",
+  "description": "Generate high-quality images from natural language descriptions using an AI-powered chat interface. This workflow uses a language model to optimize your text prompts for Stable Diffusion image generation.",
   "tags": [
-    "chat",
     "image",
-    "start"
+    "chat"
   ],
   "thumbnail": null,
-  "thumbnail_url": "/examples/chatbot.png",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -41,10 +40,11 @@
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 52
+            "y": 50
           },
           "zIndex": 0,
           "width": 187,
+          "title": "Receive User Input",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -79,12 +79,14 @@
           "upscaler": "None"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 705,
-            "y": 50
+            "y": 57
           },
           "zIndex": 0,
           "width": 250,
+          "title": "Generate Image with Stable Diffusion",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -99,12 +101,14 @@
           "description": ""
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 985,
-            "y": 104
+            "y": 108
           },
           "zIndex": 0,
           "width": 187,
+          "title": "Display Generated Image",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -114,13 +118,13 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Chatbot",
+          "headline": "Image Chat Assistant",
           "comment": [
             {
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use the workflow chat on bottom right of the screen to create images."
+                  "text": "This workflow converts natural language descriptions into optimized image generation prompts and renders them using Stable Diffusion."
                 }
               ]
             },
@@ -128,7 +132,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": ""
+                  "text": "How to use:"
                 }
               ]
             },
@@ -136,21 +140,44 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "You can also test the chat app via \"Run App\""
+                  "text": "1. Use the workflow chat panel in the bottom right to describe the image you want"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "2. The LLM will convert your description into an optimized Stable Diffusion prompt"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "3. The generated image will appear in the chat"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "You can also test the complete application via the \"Run App\" button."
                 }
               ]
             }
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 52,
             "y": -130
           },
           "zIndex": 0,
           "width": 404,
-          "height": 117,
+          "height": 200,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -178,12 +205,14 @@
           "keep_alive": 300
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 516,
-            "y": 59
+            "y": 66
           },
           "zIndex": 0,
           "width": 159,
+          "title": "Optimize Prompt with LLM",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -196,12 +225,14 @@
           "template": "Based on the user prompt {user},\nwrite a detailed image generation prompt for\nStable Diffusion with these elements:\n- Subject\n- Medium\n- Style\n- Resolution\n- Color\n- Lighting"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 297,
-            "y": 142
+            "y": 146
           },
           "zIndex": 0,
           "width": 159,
+          "title": "Structure Prompt Request",
           "selectable": true
         },
         "dynamic_properties": {
@@ -263,5 +294,6 @@
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }

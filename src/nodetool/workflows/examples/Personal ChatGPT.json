@@ -1,0 +1,207 @@
+{
+  "id": "946163e2f39311efba5300004d87aa80",
+  "access": "public",
+  "created_at": "2025-02-25T17:15:34.906712",
+  "updated_at": "2025-02-25T17:15:34.906714",
+  "name": "Personal ChatGPT",
+  "description": "A simple chat interface powered by OpenAI's models. This workflow allows you to have conversations with an AI assistant using your OpenAI API key.",
+  "tags": [
+    "chat",
+    "openai"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "31166785-0aa5-48f8-9c89-a99ff85239a8",
+        "parent_id": null,
+        "type": "openai.text.OpenAIText",
+        "data": {
+          "model": {
+            "type": "openai_model",
+            "id": "o3-mini",
+            "object": "",
+            "created": 0,
+            "owned_by": ""
+          },
+          "system": "You are a friendly assistant.",
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "max_tokens": 4096,
+          "top_p": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 244,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 163,
+          "title": "OpenAI Text Generation",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "ba3dfaa1-9448-4427-bcbe-f3c2cae28247",
+        "parent_id": null,
+        "type": "nodetool.input.ChatInput",
+        "data": {
+          "name": "chat",
+          "description": "",
+          "value": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 87
+          },
+          "zIndex": 0,
+          "width": 134,
+          "title": "User Chat Input",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "99e9c862-2604-4383-90cc-a4d18cd25642",
+        "parent_id": null,
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "response",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 437,
+            "y": 128
+          },
+          "zIndex": 0,
+          "width": 306,
+          "title": "AI Response Output",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "48bc643b-f6a7-4069-b7e4-fb6943a68a71",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Personal ChatGPT",
+                  "bold": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "This workflow creates a simple chat interface with OpenAI's models."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "How to use:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "1. Type your message in the chat input"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "2. The AI will respond based on the conversation history"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "3. You can attach images for multimodal capabilities"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 79,
+            "y": -171
+          },
+          "zIndex": 0,
+          "width": 603,
+          "height": 177,
+          "title": "Workflow Documentation",
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5a5f0807-e57b-4699-854b-7f76652b5acd",
+        "source": "ba3dfaa1-9448-4427-bcbe-f3c2cae28247",
+        "sourceHandle": "history",
+        "target": "31166785-0aa5-48f8-9c89-a99ff85239a8",
+        "targetHandle": "messages",
+        "ui_properties": null
+      },
+      {
+        "id": "21d997d1-8fa6-405e-a41a-f888c08dd1f1",
+        "source": "ba3dfaa1-9448-4427-bcbe-f3c2cae28247",
+        "sourceHandle": "text",
+        "target": "31166785-0aa5-48f8-9c89-a99ff85239a8",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "fb5f5017-9674-4692-8f9e-0660ee475599",
+        "source": "ba3dfaa1-9448-4427-bcbe-f3c2cae28247",
+        "sourceHandle": "image",
+        "target": "31166785-0aa5-48f8-9c89-a99ff85239a8",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "82dd69b7-5a54-48ad-8cd1-83dc78f6e7f8",
+        "source": "31166785-0aa5-48f8-9c89-a99ff85239a8",
+        "sourceHandle": "output",
+        "target": "99e9c862-2604-4383-90cc-a4d18cd25642",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null
+}

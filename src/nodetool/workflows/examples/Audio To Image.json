@@ -4,7 +4,7 @@
   "created_at": "2025-02-05T15:50:13.803221",
   "updated_at": "2025-02-05T15:50:13.803234",
   "name": "Audio To Image",
-  "description": "Generate images from spoken descriptions using speech recognition",
+  "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
   "tags": [
     "huggingface",
     "multimodal",

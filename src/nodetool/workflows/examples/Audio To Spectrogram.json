@@ -1,16 +1,17 @@
 {
-  "id": "audio_to_spectrogram",
+  "id": "9bda96d6f37311efa68200006808988f",
   "access": "public",
-  "created_at": "2025-01-25T23:47:01.592778",
-  "updated_at": "2025-01-25T23:47:01.592790",
+  "created_at": "2025-02-25T14:55:45.210188",
+  "updated_at": "2025-02-25T14:55:45.210193",
   "name": "Audio To Spectrogram",
-  "description": "Ceate a spectrogram from an audio file and use creative upscaling, then hang it on your wall.",
+  "description": "Create a spectrogram from an audio file and use creative upscaling to transform it into wall-worthy art.",
   "tags": [
+    "audio",
     "multimodal",
     "start"
   ],
   "thumbnail": null,
-  "thumbnail_url": "/examples/audio_to_spectrogram.jpg",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -25,6 +26,7 @@
           },
           "zIndex": 0,
           "width": 108,
+          "title": "Convert Array to Image",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -40,7 +42,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Turn an audio file into a spetrogram, then turn it into art."
+                  "text": "Turn an audio file into a spectrogram, then transform it into art."
                 }
               ]
             },
@@ -72,7 +74,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "- The specrogram gets upscaled and refined into a city skyline"
+                  "text": "- The spectrogram gets upscaled and refined into a city skyline"
                 }
               ]
             },
@@ -130,7 +132,6 @@
           "detail_level": 0.95
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 690,
             "y": 50
@@ -155,14 +156,13 @@
           "fmax": 8000
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 238,
             "y": 111
           },
           "zIndex": 0,
           "width": 160,
-          "title": "Turn the audoi file into a Spectrogram",
+          "title": "Turn the audio file into a Spectrogram",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -188,6 +188,7 @@
           },
           "zIndex": 0,
           "width": 158,
+          "title": "Upload Audio File",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -207,6 +208,7 @@
           },
           "zIndex": 0,
           "width": 94,
+          "title": "Resize for AI",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -243,16 +245,6 @@
         }
       },
       {
-        "id": "4889859f-e029-4ca5-8e67-8d1b219791c1",
-        "source": "31",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "array",
-        "ui_properties": {
-          "className": "np_array"
-        }
-      },
-      {
         "id": "e73c9d8d-331c-4378-a41c-c37405e66445",
         "source": "33",
         "sourceHandle": "output",
@@ -281,9 +273,18 @@
         "ui_properties": {
           "className": "image"
         }
+      },
+      {
+        "id": "32ef220e-570c-410d-9181-e3ca2fbdf5d3",
+        "source": "31",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "values",
+        "ui_properties": null
       }
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }
