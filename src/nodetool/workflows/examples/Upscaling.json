@@ -1,10 +1,10 @@
 {
-  "id": "upscaling",
+  "id": "dfff77a8f38911ef919400004a056799",
   "access": "public",
-  "created_at": "2025-01-18T09:01:27.271253",
-  "updated_at": "2025-01-18T09:01:27.271270",
+  "created_at": "2025-02-25T16:05:10.524464",
+  "updated_at": "2025-02-25T16:05:10.524471",
   "name": "Upscaling",
-  "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
+  "description": "Upscale low-resolution images to higher quality using RealESRGAN, a powerful AI model that enhances details and clarity without artifacts.",
   "tags": [
     "image",
     "start"
@@ -23,7 +23,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use Real ESR GAN for Upscaling."
+                  "text": "This workflow uses RealESRGAN to upscale images to higher resolution while preserving and enhancing details."
                 }
               ]
             },
@@ -31,7 +31,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": ""
+                  "text": "The x2 model doubles the resolution of your input image with improved quality."
                 }
               ]
             },
@@ -39,12 +39,13 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Use \"RUN APP\" to start the mini-app. "
+                  "text": "Click \"RUN APP\" to start the mini-app and upload your image for upscaling."
                 }
               ]
             }
           ],
-          "headline": "Upscaling"
+          "headline": "Upscaling",
+          "title": "Workflow Description"
         },
         "ui_properties": {
           "position": {
@@ -68,7 +69,8 @@
             "type": "hf.real_esrgan",
             "repo_id": "ai-forever/Real-ESRGAN",
             "path": "RealESRGAN_x2.pth"
-          }
+          },
+          "title": "RealESRGAN Upscaler"
         },
         "ui_properties": {
           "position": {
@@ -87,21 +89,23 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "image",
-          "description": "The image to be upscale",
+          "description": "The image to be upscaled",
           "value": {
             "type": "image",
             "uri": "",
             "asset_id": null,
             "data": null
-          }
+          },
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
             "y": 91
           },
           "zIndex": 0,
           "width": 159,
+          "title": "Input Image",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -112,7 +116,7 @@
         "type": "nodetool.output.ImageOutput",
         "data": {
           "name": "image",
-          "description": ""
+          "description": "The upscaled image with enhanced resolution and details",
         },
         "ui_properties": {
           "position": {
@@ -121,6 +125,7 @@
           },
           "zIndex": 0,
           "width": 159,
+          "title": "Upscaled Output",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -150,5 +155,6 @@
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }

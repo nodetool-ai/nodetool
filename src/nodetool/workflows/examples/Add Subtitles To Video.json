@@ -4,8 +4,11 @@
   "created_at": "2025-01-09T13:08:49.505580",
   "updated_at": "2025-01-09T13:08:49.505598",
   "name": "Add Subtitles To Video",
-  "description": "Automatically transcribe and add subtitles to videos using Whisper",
-  "tags": ["start", "video"],
+  "description": "This workflow automatically transcribes speech in videos and adds subtitles. It extracts audio from the input video, uses OpenAI's Whisper model to generate word-level timestamps and transcriptions, and then renders the subtitles back onto the original video. Perfect for creating accessible content, adding captions to social media videos, or transcribing presentations.",
+  "tags": [
+    "start",
+    "video"
+  ],
   "thumbnail": null,
   "thumbnail_url": "/examples/add_subtitles_to_video.jpg",
   "graph": {

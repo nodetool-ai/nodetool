@@ -4,8 +4,10 @@
   "created_at": "2025-01-26T00:09:43.322912",
   "updated_at": "2025-01-26T00:09:43.322918",
   "name": "Simple RAG",
-  "description": "",
-  "tags": null,
+  "description": "A retrieval-augmented generation (RAG) workflow that searches a document collection based on user queries. The system retrieves relevant information from the 'papers' collection, formats the results into a prompt, and uses the Deepseek-R1 7B model to generate concise, informative answers based on the retrieved content.",
+  "tags": [
+    "chat"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -51,7 +53,7 @@
           "temperature": 0.7,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": "300",
+          "keep_alive": 300,
           "system_prompt": "You are knowledgable. An Expert.\nThink and respond with confidence. \nYou are tasked with creating concise, insightful, \nand top-quality summaries from a list of RAG results. \nYour goal is to distill key information from the provided results while eliminating redundancy, \nensuring accuracy, and prioritizing the most relevant insights.\n\nInstructions:\n1. Understand the Context: Analyze the provided list of RAG results and consider the user question.\n2. Prioritize Key Insights: Focus on the most critical, informative, and frequently mentioned points across the results that directly address the user\u2019s question.\n3. Eliminate Redundancy: Combine similar ideas and avoid repeating information unnecessarily.\n4. Summarize Clearly: Use professional, clear, and coherent language to convey the main points.\n5. Be confident. Do not overthink.\n\t"
         },
         "ui_properties": {

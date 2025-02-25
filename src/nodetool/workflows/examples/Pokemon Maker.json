@@ -4,7 +4,7 @@
   "created_at": "2025-02-05T16:44:53.359401",
   "updated_at": "2025-02-05T16:44:53.359419",
   "name": "Pokemon Maker",
-  "description": "Generate imaginative Pokémon using Stable Diffusion",
+  "description": "Create unique and imaginative Pokémon with detailed descriptions and visually stunning images using AI. Input animal inspirations and get custom Pokémon with types, abilities, and personalities.",
   "tags": [
     "stable diffusion",
     "start"
@@ -78,7 +78,7 @@
           "temperature": 1,
           "top_k": 50,
           "top_p": 0.95,
-          "keep_alive": "300",
+          "keep_alive": 300,
           "columns": {
             "type": "record_type",
             "columns": [
@@ -122,7 +122,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "Generates a list of Pokemons.",
+          "title": "AI Pokémon Generator",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -165,7 +165,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "Generates the Pokemon image.",
+          "title": "Pokémon Image Creator",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -175,13 +175,13 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Create Fanstasy Animals",
+          "headline": "Pokémon Creator Workflow",
           "comment": [
             {
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Pokemon Maker\t",
+                  "text": "Pokémon Maker",
                   "bold": true,
                   "size": "+"
                 }
@@ -191,7 +191,7 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": ""
+                  "text": "This workflow generates custom Pokémon with detailed descriptions and images based on real animal inspirations."
                 }
               ]
             },
@@ -202,11 +202,11 @@
                   "text": "1.\t"
                 },
                 {
-                  "text": "String Input: ",
+                  "text": "Animal Input: ",
                   "bold": true
                 },
                 {
-                  "text": "You type a list of animals (e.g., lion, eagle, dragon, bear) to inspire the creation of fantasy Pok\u00e9mon."
+                  "text": "Enter a list of animals (e.g., lion, eagle, dragon, bear) to inspire your custom Pokémon creations."
                 }
               ]
             },
@@ -217,11 +217,11 @@
                   "text": "2.\t"
                 },
                 {
-                  "text": "Format Text:  ",
+                  "text": "AI Generation: ",
                   "bold": true
                 },
                 {
-                  "text": "A text template is set up to structure the Pok\u00e9mon generation process. It asks the system to create Pok\u00e9mon based on the animals entered by the user, focusing on appearance, abilities, and personality."
+                  "text": "The system creates detailed Pokémon profiles including typing, abilities, signature moves, appearance, and personality traits."
                 }
               ]
             },
@@ -232,11 +232,11 @@
                   "text": "3.\t"
                 },
                 {
-                  "text": "Data Generator: ",
+                  "text": "Visual Creation: ",
                   "bold": true
                 },
                 {
-                  "text": "The formatted prompt is sent to an AI model, which generates detailed descriptions for the Pok\u00e9mon, including their names, appearances, abilities, and personalities."
+                  "text": "Each Pokémon description is transformed into a high-quality image using Stable Diffusion."
                 }
               ]
             },
@@ -247,56 +247,11 @@
                   "text": "4.\t"
                 },
                 {
-                  "text": "Loop for Processing: ",
+                  "text": "Complete Package: ",
                   "bold": true
                 },
                 {
-                  "text": "Each Pok\u00e9mon generated is processed one by one through a looping mechanism."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "5.\t"
-                },
-                {
-                  "text": "Template Formatting: ",
-                  "bold": true
-                },
-                {
-                  "text": "The Pok\u00e9mon details are formatted into a description template."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "6.\t"
-                },
-                {
-                  "text": "Stable Diffusion: ",
-                  "bold": true
-                },
-                {
-                  "text": "The Pok\u00e9mon description is sent to a model, which generates an image based on the text description."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "7.\t"
-                },
-                {
-                  "text": "Display Outputs: ",
-                  "bold": true
-                },
-                {
-                  "text": "The Pok\u00e9mon description (text) and image are displayed to the user through designated output components."
+                  "text": "View your custom Pokémon with both text descriptions and matching images."
                 }
               ]
             },
@@ -312,7 +267,55 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "This workflow transforms user inputs (animal inspirations) into creative outputs (fantasy Pok\u00e9mon with descriptions and images)."
+                  "text": "How It Works:"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "• The workflow uses an LLM to generate creative Pokémon concepts based on your animal inspirations"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "• Each Pokémon is processed individually through a loop"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "• Descriptions are formatted into prompts for image generation"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "• Stable Diffusion creates visually appealing Pokémon images that match the descriptions"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Perfect for Pokémon fans, game designers, artists, or anyone who wants to explore creative creature design!"
                 }
               ]
             }
@@ -347,7 +350,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "Display the image to the user.",
+          "title": "Pokémon Image Display",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -366,7 +369,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "Image Prompt",
+          "title": "Pokémon Image Prompt Builder",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -385,7 +388,7 @@
           },
           "zIndex": 0,
           "width": 351,
-          "title": "Write a prompt for the LLM to invent fantasy animals.",
+          "title": "Pokémon Generation Prompt",
           "selectable": true
         },
         "dynamic_properties": {
@@ -409,7 +412,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "User input for animals to get inspiration from.",
+          "title": "Animal Inspiration Input",
           "selectable": true
         },
         "dynamic_properties": {}
@@ -429,7 +432,7 @@
           },
           "zIndex": 0,
           "width": 134,
-          "title": "Display the description",
+          "title": "Pokémon Description Display",
           "selectable": true
         },
         "dynamic_properties": {}

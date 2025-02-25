@@ -1,8 +1,8 @@
 {
-  "id": "6d7da02edfb611ef81ce0000625e477b",
+  "id": "5d2e4a22f33211ef9a370000764c777a",
   "access": "public",
-  "created_at": "2025-01-31T22:24:26.250783",
-  "updated_at": "2025-01-31T22:24:26.251509",
+  "created_at": "2025-02-25T12:44:59.018051",
+  "updated_at": "2025-02-25T12:44:59.018056",
   "name": "Categorize Mails",
   "description": "Automatically categorize and organize emails using AI",
   "tags": null,
@@ -17,12 +17,12 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 505,
-            "y": 282
+            "x": 475,
+            "y": 597
           },
           "zIndex": -10,
-          "width": 1047,
-          "height": 823,
+          "width": 1227,
+          "height": 615,
           "selectable": false
         },
         "dynamic_properties": {}
@@ -34,8 +34,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 306
+            "x": 160,
+            "y": 391
           },
           "zIndex": 0,
           "width": 117,
@@ -67,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 454,
-            "y": 100
+            "x": 564,
+            "y": 296
           },
           "zIndex": 0,
           "width": 197,
@@ -83,50 +83,11 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 227,
-            "y": 260
+            "x": 337,
+            "y": 351
           },
           "zIndex": 0,
           "width": 197,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "20",
-        "parent_id": null,
-        "type": "google.mail.GmailSearch",
-        "data": {
-          "email_address": "your_email@gmail.com",
-          "search_query": "",
-          "max_results": 5
-        },
-        "ui_properties": {
-          "position": {
-            "x": 248,
-            "y": 630
-          },
-          "zIndex": 0,
-          "width": 197,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "22",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2025-01-20"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 505,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 318,
-          "height": 182,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -138,30 +99,11 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 877,
-            "y": 636
+            "x": 1017,
+            "y": 142
           },
           "zIndex": 0,
           "width": 120,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "24",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "any_output_2025-01-21"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1582,
-            "y": 479
-          },
-          "zIndex": 0,
-          "width": 1005,
-          "height": 430,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -173,8 +115,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 711,
-            "y": 541
+            "x": 821,
+            "y": 100
           },
           "zIndex": 0,
           "width": 136,
@@ -196,7 +138,7 @@
         "ui_properties": {
           "position": {
             "x": 50,
-            "y": 776
+            "y": 50
           },
           "zIndex": 0,
           "width": 395,
@@ -214,7 +156,7 @@
         "ui_properties": {
           "position": {
             "x": 85.5,
-            "y": 178
+            "y": 1061
           },
           "zIndex": 0,
           "width": 324,
@@ -229,8 +171,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 485.3333333333333,
-            "y": 585
+            "x": 595.3333333333334,
+            "y": 50
           },
           "zIndex": 0,
           "width": 150,
@@ -245,8 +187,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 711,
-            "y": 50
+            "x": 821,
+            "y": 451
           },
           "zIndex": 0,
           "width": 133,
@@ -374,14 +316,78 @@
           "comment_color": "#fdf6e3"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 880,
-            "y": 26
+            "x": 639,
+            "y": 228
           },
           "zIndex": 0,
           "width": 674,
           "height": 223,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "f389d0e5-7a41-46ef-acae-6e14ffd89aed",
+        "parent_id": null,
+        "type": "google.mail.GmailSearch",
+        "data": {
+          "from_address": "",
+          "to_address": "",
+          "subject": "",
+          "body": "",
+          "date_filter": "SINCE_ONE_HOUR",
+          "keywords": "",
+          "folder": "INBOX",
+          "text": "",
+          "max_results": 50
+        },
+        "ui_properties": {
+          "position": {
+            "x": 307,
+            "y": 788
+          },
+          "zIndex": 0,
+          "width": 138,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "ee123977-dff6-48f6-949f-10b59bdff6bf",
+        "parent_id": null,
+        "type": "nodetool.output.ListOutput",
+        "data": {
+          "name": "emails",
+          "description": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1792,
+            "y": 629
+          },
+          "zIndex": 0,
+          "width": 355,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "2ece4d78-d503-41bb-932a-b6ea5bd964a8",
+        "parent_id": "12",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "dict_output_2025-02-25"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1017,
+            "y": 216
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -436,36 +442,6 @@
         "targetHandle": "category",
         "ui_properties": {
           "className": "str"
-        }
-      },
-      {
-        "id": "90178",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "24",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "08465db1-1dfd-4199-bf47-14c0a6b3610c",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "8467",
-        "source": "20",
-        "sourceHandle": "output",
-        "target": "22",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "list"
         }
       },
       {
@@ -527,9 +503,36 @@
         "ui_properties": {
           "className": "any"
         }
+      },
+      {
+        "id": "849b778c-a8c0-4757-bed9-2700f2cb8bc3",
+        "source": "f389d0e5-7a41-46ef-acae-6e14ffd89aed",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "5acac1d5-9561-476e-b762-fa4979074f22",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "ee123977-dff6-48f6-949f-10b59bdff6bf",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "012580d2-f2b9-49a5-90e7-aa36a2cbaa9d",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "2ece4d78-d503-41bb-932a-b6ea5bd964a8",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dict"
+        }
       }
     ]
   },
   "input_schema": null,
-  "output_schema": null
+  "output_schema": null,
+  "settings": null
 }
