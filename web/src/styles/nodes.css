@@ -457,3 +457,7 @@
   width: 100%;
   overflow-x: scroll;
 }
+
+.context-menu .MuiPaper-root {
+  border-radius: 5px;
+}
