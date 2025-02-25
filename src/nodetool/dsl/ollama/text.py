@@ -75,7 +75,7 @@ class Ollama(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='The temperature to use for the model.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
 
     @classmethod
     def get_node_type(cls): return "ollama.text.Ollama"

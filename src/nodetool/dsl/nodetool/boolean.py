@@ -57,7 +57,7 @@ class ConditionalSwitch(GraphNode):
     - Implement decision points in workflows
     """
 
-    condition: bool | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The condition to check')
+    condition: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='The condition to check')
     if_true: Any | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The value to return if the condition is true')
     if_false: Any | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The value to return if the condition is false')
 
