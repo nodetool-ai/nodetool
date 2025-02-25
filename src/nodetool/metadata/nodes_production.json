@@ -96149,6 +96149,29 @@
         "max": null
       },
       {
+        "name": "messages",
+        "type": {
+          "type": "list",
+          "optional": false,
+          "values": null,
+          "type_args": [
+            {
+              "type": "message",
+              "optional": false,
+              "values": null,
+              "type_args": [],
+              "type_name": null
+            }
+          ],
+          "type_name": null
+        },
+        "default": [],
+        "title": "Messages",
+        "description": null,
+        "min": null,
+        "max": null
+      },
+      {
         "name": "image",
         "type": {
           "type": "image",
@@ -122224,7 +122247,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,
@@ -122385,7 +122408,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,
@@ -122596,7 +122619,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,
@@ -122773,7 +122796,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,
@@ -123642,7 +123665,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": "300",
+        "default": 300,
         "title": "Keep Alive",
         "description": "The number of seconds to keep the model alive.",
         "min": null,
@@ -123805,7 +123828,7 @@
           "type_args": [],
           "type_name": null
         },
-        "default": null,
+        "default": "",
         "title": "Text",
         "description": "General text to search for anywhere in the email",
         "min": null,
