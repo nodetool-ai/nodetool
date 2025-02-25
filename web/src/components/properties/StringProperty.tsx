@@ -38,11 +38,14 @@ const StringProperty = ({
   );
 
   const showTextEditor =
-    nodeType === "nodetool.constant.String" ||
-    (nodeType === "nodetool.input.StringInput" && property.name == "value") ||
-    (nodeType === "nodetool.text.FormatText" && property.name === "template") ||
-    (nodeType === "nodetool.text.Template" && property.name === "string") ||
-    (nodeType === "nodetool.list.MapTemplate" && property.name === "template");
+    !isConnected &&
+    (nodeType === "nodetool.constant.String" ||
+      (nodeType === "nodetool.input.StringInput" && property.name == "value") ||
+      (nodeType === "nodetool.text.FormatText" &&
+        property.name === "template") ||
+      (nodeType === "nodetool.text.Template" && property.name === "string") ||
+      (nodeType === "nodetool.list.MapTemplate" &&
+        property.name === "template"));
 
   if (showTextEditor) {
     return (
