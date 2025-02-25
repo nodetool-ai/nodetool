@@ -10,6 +10,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { InputLabel, MenuItem, Select, Button, Tooltip } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface TypeFilterProps {
   selectedInputType: string;
@@ -24,7 +25,12 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   selectedOutputType,
   setSelectedOutputType
 }) => {
-  const nodeTypes = DATA_TYPES;
+  const isComfyEnabled = useSettingsStore(
+    (state) => state.settings.enableComfy
+  );
+  const nodeTypes = isComfyEnabled
+    ? DATA_TYPES
+    : DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
   const [isVisible, setIsVisible] = useState(false);
 
   const handleFilterToggle = () => {

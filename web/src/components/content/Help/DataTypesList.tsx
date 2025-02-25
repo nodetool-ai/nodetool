@@ -4,13 +4,15 @@ import { css } from "@emotion/react";
 import { useState } from "react";
 import { Typography, Button, Divider } from "@mui/material";
 import { DATA_TYPES, IconForType } from "../../../config/data_types";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const DataTypesList = () => {
-  const [filterValue, setFilterValue] = useState("");
-
-  const filteredDataTypes = DATA_TYPES.filter((type: any) =>
-    type.value.toLowerCase().includes(filterValue.toLowerCase())
+  const isComfyEnabled = useSettingsStore(
+    (state) => state.settings.enableComfy
   );
+  const types = isComfyEnabled
+    ? DATA_TYPES
+    : DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
 
   const styles = (theme: any) =>
     css({
@@ -45,7 +47,7 @@ const DataTypesList = () => {
         className="datatype-list"
         style={{ height: "100%", overflowY: "auto" }}
       >
-        {filteredDataTypes.map((type) => (
+        {types.map((type) => (
           <div
             key={type.value}
             className="help-item datatype"
