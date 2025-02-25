@@ -8,7 +8,6 @@ import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppHeaderActions from "../panels/AppHeaderActions";
 import { Workflow } from "../../stores/ApiTypes";
-import { createPortal } from "react-dom";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -18,7 +17,6 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
-import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 const styles = (theme: any) =>
   css({
@@ -36,6 +34,7 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray0,
       alignItems: "center",
       position: "relative",
+      // "-webkit-app-region": "drag",
       padding: "0"
     },
     "& .tabs": {

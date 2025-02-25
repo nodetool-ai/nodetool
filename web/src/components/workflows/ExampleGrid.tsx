@@ -61,7 +61,8 @@ const styles = (theme: any) =>
       cursor: "pointer",
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      height: "auto"
     },
     ".workflow h4": {
       marginTop: "8px",
@@ -75,7 +76,26 @@ const styles = (theme: any) =>
       WebkitBoxOrient: "vertical",
       WebkitLineClamp: 3,
       overflow: "hidden",
-      width: "100%"
+      width: "100%",
+      transition: "all 0.3s ease",
+      position: "relative",
+      maxHeight: "4.5em",
+      transform: "translateY(0)",
+      opacity: 1
+    },
+    ".workflow:hover .description": {
+      WebkitLineClamp: "unset",
+      maxHeight: "none",
+      overflow: "visible",
+      zIndex: 10,
+      backgroundColor: theme.palette.background.paper,
+      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+      padding: "4px",
+      borderRadius: "4px",
+      marginTop: "-4px",
+      transform: "translateY(2px)",
+      opacity: 1,
+      transition: "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
     },
     ".loading-indicator": {
       display: "flex",
@@ -91,7 +111,6 @@ const styles = (theme: any) =>
       overflow: "hidden",
       position: "relative",
       background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.c_gray1}22)`
-      // border: `1px solid ${theme.palette.divider}`
     },
     ".image-wrapper:hover": {
       animation: "sciFiPulse 2s infinite",
