@@ -22,6 +22,7 @@ import useMetadataStore from "./MetadataStore";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { formatNodeDocumentation } from "./formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions } from "./fuseOptions";
+import { useSettingsStore } from "./SettingsStore";
 
 export interface SplitNodeDescription {
   description: string;
@@ -105,8 +106,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
   const isNodeApiKeyMissing = (node: NodeMetadata, secrets: any) => {
     const rootNamespace = node.namespace.split(".")[0];
+    const isComfyEnabled = useSettingsStore.getState().settings.enableComfy;
 
     switch (rootNamespace) {
+      case "comfy":
+        return !isComfyEnabled;
       case "openai":
         return !secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "";
       case "replicate":
