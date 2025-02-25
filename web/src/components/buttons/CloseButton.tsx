@@ -14,8 +14,8 @@ const styles = (theme: any) =>
   css({
     button: {
       position: "absolute",
-      top: "1em",
-      right: "1em",
+      top: "0.5em",
+      right: "0.5em",
       color: theme.palette.c_gray5
     },
     "button:hover": {

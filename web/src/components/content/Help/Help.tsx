@@ -17,8 +17,8 @@ const helpStyles = (theme: any) =>
   css({
     "&": {
       backgroundColor: "#222",
-      padding: "2em",
-      borderRadius: ".2em",
+      padding: "0em 1em",
+      borderRadius: "1em",
       position: "fixed",
       width: "70vw",
       minWidth: "600px",
@@ -27,7 +27,9 @@ const helpStyles = (theme: any) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      border: "2px solid" + theme.palette.c_gray3
+      border: "2px solid" + theme.palette.c_gray3,
+      overflow: "auto",
+      fontSize: theme.fontSizeNormal
     },
     ".help": {
       display: "flex",
@@ -40,12 +42,35 @@ const helpStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "space-between",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      marginBottom: "0.5em",
+      padding: "0em 1em",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`
     },
     ".content": {
-      height: "100%"
+      height: "100%",
+      padding: "0em 1em"
     },
     ".help-tabs": {
+      margin: "0 1em 1em 1em",
+      paddingTop: "0",
+      lineHeight: "1.5",
+      "& .MuiTabs-indicator": {
+        backgroundColor: theme.palette.c_hl1,
+        height: "3px",
+        borderRadius: "1.5px"
+      },
+      "& .MuiTab-root": {
+        color: theme.palette.c_gray5,
+        transition: "color 0.2s ease",
+        paddingBottom: "0em",
+        "&.Mui-selected": {
+          color: theme.palette.c_white
+        },
+        "&:hover": {
+          color: theme.palette.c_white
+        }
+      },
       button: {
         alignItems: "flex-start",
         textAlign: "left",
@@ -55,18 +80,32 @@ const helpStyles = (theme: any) =>
       }
     },
     ".tabpanel": {
-      height: "100%"
+      height: "100%",
+      padding: "1em 0",
+      fontSize: theme.fontSizeNormal
     },
     ".tabpanel-content": {
       height: "90%",
-      overflowY: "auto"
+      overflowY: "auto",
+      "&::-webkit-scrollbar": {
+        width: "8px"
+      },
+      "&::-webkit-scrollbar-track": {
+        background: theme.palette.c_gray1
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.palette.c_gray3,
+        borderRadius: "4px"
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        background: theme.palette.c_gray4
+      }
     },
     ".help-item": {
       marginBottom: "0.5em",
       paddingBottom: "0.5em",
       display: "flex",
       alignItems: "center",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
       gap: "1rem",
       p: {
         minWidth: "240px",
@@ -74,10 +113,14 @@ const helpStyles = (theme: any) =>
       },
       button: {
         marginTop: "2px",
+        color: theme.palette.c_gray5,
         border: `1px solid ${theme.palette.c_gray3}`,
         padding: "1px 6px",
         textAlign: "left",
         lineHeight: "1.3em",
+        minWidth: "unset",
+        fontSize: "0.85em",
+        height: "auto",
         "&.no-border": {
           border: "0"
         }
@@ -93,7 +136,13 @@ const helpStyles = (theme: any) =>
 function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
-    <div role="tabpanel" className="tabpanel" hidden={value !== index}>
+    <div
+      role="tabpanel"
+      className="tabpanel"
+      hidden={value !== index}
+      id={`help-tabpanel-${index}`}
+      aria-labelledby={`help-tab-${index}`}
+    >
       {value === index && <Box className="tabpanel-content">{children}</Box>}
     </div>
   );
@@ -110,15 +159,20 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
       <CloseButton onClick={handleClose} />
       <div className="help">
         <div className="top">
-          <Typography variant="h4">Help</Typography>
-          <Tabs className="help-tabs" value={helpIndex} onChange={handleChange}>
-            <Tab label="Controls & Shortcuts" />
-            <Tab label="DataTypes" />
-          </Tabs>
+          <Typography variant="h2">Help</Typography>
         </div>
+        <Tabs
+          className="help-tabs"
+          value={helpIndex}
+          onChange={handleChange}
+          aria-label="help tabs"
+        >
+          <Tab label="Controls & Shortcuts" id="help-tab-0" />
+          <Tab label="DataTypes" id="help-tab-1" />
+        </Tabs>
         <div className="content">
           <TabPanel value={helpIndex} index={0}>
-            <Typography variant="h1" color="#999">
+            <Typography variant="h2" color="#999">
               Nodes
             </Typography>
             <Typography variant="h5" color="#999">
@@ -243,7 +297,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button>ESC</Button>
             </div>
 
-            <Typography variant="h1" color="#999">
+            <Typography variant="h2" color="#999">
               Workflows
             </Typography>
             <Typography className="explanation">
@@ -262,7 +316,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button>ESC</Button>
             </div>
 
-            <Typography variant="h1" color="#999">
+            <Typography variant="h2" color="#999">
               Command Menu
             </Typography>
             <Typography className="explanation">
