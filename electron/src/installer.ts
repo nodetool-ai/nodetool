@@ -336,6 +336,7 @@ async function unpackTarGzEnvironment(
  */
 async function installCondaEnvironment(): Promise<void> {
   try {
+    logMessage("Prompting for install location");
     const customEnvPath = await promptForInstallLocation();
     emitBootMessage("Setting up Python environment...");
     logMessage(`Setting up Python environment at: ${customEnvPath}`);

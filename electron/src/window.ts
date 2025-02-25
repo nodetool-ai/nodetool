@@ -17,20 +17,18 @@ function createWindow(): BrowserWindow {
 
   // Create new window
   const window = new BrowserWindow({
-    autoHideMenuBar: true,
     width: 1500,
     height: 1000,
-    frame: false,
+    // frame: true,
     titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: false,
       devTools: true,
       webSecurity: true,
     },
-    show: false,
+    // show: false,
   });
 
   // set window background color
@@ -53,11 +51,6 @@ function createWindow(): BrowserWindow {
     }
   });
 
-  // Show window when ready
-  window.once("ready-to-show", () => {
-    window.show();
-  });
-
   // Handle window close
   window.on("close", (event) => {
     if (!isAppQuitting) {
@@ -69,6 +62,7 @@ function createWindow(): BrowserWindow {
 
   initializePermissionHandlers();
   setMainWindow(window);
+
   return window;
 }
 

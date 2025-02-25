@@ -301,11 +301,14 @@ ul li {
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: #1a1a1a;
-  border-radius: 12px;
+  background: rgba(24, 28, 28, 0.85);
+  border-radius: 16px;
   padding: 32px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(118, 229, 184, 0.3);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 2;
 }
 
 #install-location-prompt .prompt-content {
@@ -346,13 +349,14 @@ ul li {
 .info-details li {
   margin: 4px 0;
   line-height: 1.6;
-  color: #bbb;
+  color: #ddd;
   list-style-type: none;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 35, 35, 0.7);
   padding: 8px;
   border-radius: 8px;
+  border: 1px solid rgba(118, 229, 184, 0.1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .info-details li svg {
@@ -361,64 +365,87 @@ ul li {
 
 .info-details li:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 0 10px rgba(118, 229, 184, 0.1);
+  border-color: rgba(118, 229, 184, 0.3);
+  background: rgba(40, 45, 45, 0.7);
 }
 
 .info-note {
-  background: linear-gradient(
-    to right,
-    rgba(42, 42, 42, 0.5),
-    rgba(48, 48, 48, 0.5)
-  );
+  background: rgba(30, 35, 35, 0.7);
   padding: 16px;
   border-radius: 12px;
   margin: 24px 0;
-  color: #aaa;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(118, 229, 184, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 15px rgba(118, 229, 184, 0.05);
 }
 
 .location-options {
   display: flex;
-  flex-direction: row;
   gap: 12px;
   width: 100%;
+  flex-direction: row-reverse;
 }
+
 .location-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 18px;
-  color: #fff;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   width: 100%;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.location-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.location-button.default-location {
-  background: rgba(144, 238, 144, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 24px;
   color: #fff;
 }
 
-.location-button.custom-location {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+.location-button.default-location {
+  background: linear-gradient(
+    135deg,
+    rgba(76, 175, 80, 0.2) 0%,
+    rgba(76, 175, 80, 0.1) 100%
+  );
+  border: 2px solid rgba(76, 175, 80, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.location-button.default-location:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(76, 175, 80, 0.3) 0%,
+    rgba(76, 175, 80, 0.2) 100%
+  );
+  border-color: rgba(76, 175, 80, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+}
+
+.location-button.custom-location {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  transition: color 0.3s ease;
+}
+
+.location-button.custom-location:hover {
+  background: transparent;
+  color: rgba(94, 158, 255, 1);
+  transform: none;
+  box-shadow: none;
+}
+
 .location-button span:first-child {
   font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 18px;
+  margin-bottom: 12px;
+  font-size: 20px;
   text-align: left;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .location-button span:last-child {
@@ -426,25 +453,74 @@ ul li {
   color: #aaa;
   text-align: left;
 }
+
+.location-button.default-location::after {
+  content: "→";
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.location-button.default-location:hover::after {
+  opacity: 1;
+  right: 20px;
+}
+
 .package-selection {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .package-card {
-  background: #1a1a1a;
+  background: rgba(30, 35, 35, 0.7);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
 .package-card.base {
-  border: 2px solid #4a9eff;
-  background: rgba(74, 158, 255, 0.1);
+  border: 1px solid rgba(118, 229, 184, 0.4);
+  background: rgba(40, 45, 45, 0.7);
+}
+
+.package-card.optional {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.package-option {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(30, 35, 35, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.package-option:hover {
+  background: rgba(40, 45, 45, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(118, 229, 184, 0.1);
+  border-color: rgba(118, 229, 184, 0.3);
 }
 
 .package-header {
@@ -457,108 +533,94 @@ ul li {
 .package-header h4 {
   margin: 0;
   font-size: 1.1rem;
-  color: #fff;
+  color: #e5e5e5;
 }
 
 .required-badge {
-  background: #4a9eff;
-  color: white;
+  background: #76e5b8;
+  color: #111;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(118, 229, 184, 0.3);
 }
 
-.package-option {
-  display: flex;
-  gap: 1.5rem;
-  padding: 1.25rem;
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 0.75rem;
+.size-tag {
+  font-size: 0.8rem;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.package-option:hover {
-  background: #252525;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.package-content {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 2rem;
-}
-
-.package-info {
+.package-card ul {
+  margin: 0;
+  padding: 0;
   flex: 1;
 }
 
-.checkbox-wrapper {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  padding-top: 4px;
-}
-
-.checkbox-wrapper input[type="checkbox"] {
-  opacity: 0;
-  position: absolute;
+.package-card li {
+  margin: 0;
+  padding: 0;
+  color: #bbb;
 }
 
 .custom-checkbox {
   width: 20px;
   height: 20px;
-  border: 2px solid #4a9eff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 4px;
   display: inline-block;
   position: relative;
   transition: all 0.2s;
-  background: rgba(74, 158, 255, 0.1);
-}
-
-.custom-checkbox::after {
-  content: "";
-  position: absolute;
-  display: none;
-  left: 6px;
-  top: 2px;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  background: rgba(30, 35, 35, 0.5);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
 input[type="checkbox"]:checked + .custom-checkbox {
-  background: #4a9eff;
+  background: #5e9eff;
+  border-color: transparent;
 }
 
-input[type="checkbox"]:checked + .custom-checkbox::after {
-  display: block;
+.size-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #999;
 }
 
-.size-tag {
-  font-size: 0.8rem;
-  color: #888;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+#environment-info h3 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(94, 158, 255, 0.3);
+  margin-bottom: 1.5rem;
 }
 
-.package-card ul {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-  flex: 1;
+.location-button.default-location {
+  background: rgba(50, 70, 100, 0.8);
+  border: 1px solid rgba(94, 158, 255, 0.4);
+  color: #fff;
+  animation: subtlePulse 3s infinite;
 }
 
-.package-card li {
-  margin: 0.5rem 0;
-  color: #bbb;
+.location-button.default-location:hover {
+  background: rgba(50, 70, 100, 0.9);
+  border-color: rgba(94, 158, 255, 0.6);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), 0 0 25px rgba(94, 158, 255, 0.3);
+}
+
+@keyframes subtlePulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), 0 0 15px rgba(76, 175, 80, 0.2);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), 0 0 25px rgba(76, 175, 80, 0.3);
+  }
 }
 
 /* Add these new styles */
@@ -596,5 +658,49 @@ body.server-starting {
   to {
     transform: translateX(-100vw) translateY(-100px);
     opacity: 0;
+  }
+}
+
+/* Add a subtle glow effect to focused elements */
+.location-button:focus,
+.package-option:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(118, 229, 184, 0.5);
+}
+
+/* Add modern background pattern */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0.15;
+  pointer-events: none;
+  background: linear-gradient(
+        45deg,
+        transparent 48%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 52%
+      )
+      0 0 / 20px 20px,
+    linear-gradient(
+        -45deg,
+        transparent 48%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 52%
+      )
+      0 0 / 20px 20px;
+  animation: patternMove 60s linear infinite;
+}
+
+@keyframes patternMove {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 40px;
   }
 }

@@ -67,9 +67,10 @@ async function checkPythonEnvironment(): Promise<void> {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
 
-  logMessage(`Python environment installed: ${hasCondaEnv}`);
-
-  if (!hasCondaEnv) {
+  if (hasCondaEnv) {
+    logMessage(`Python environment found`);
+  } else {
+    emitBootMessage("Python environment not found");
     await installCondaEnvironment();
   }
 }
@@ -97,8 +98,6 @@ async function initialize(): Promise<void> {
 
     // Check if conda environment is installed
     await checkPythonEnvironment();
-
-    // Check if conda update is pending
     await updateCondaEnvironment();
 
     await initializeBackendServer();
@@ -176,10 +175,6 @@ app.on("ready", async () => {
   await initializeIpcHandlers();
   await checkMediaPermissions();
 
-  await buildMenu();
-  await createTray();
-
-  // Wait for window to be ready before initializing
   // Check for --run argument or environment variable
   const runIndex = process.argv.indexOf("--run");
   if (runIndex > -1 && process.argv[runIndex + 1]) {
@@ -197,7 +192,12 @@ app.on("ready", async () => {
   }
 
   mainWindow = createWindow();
-  mainWindow.once("ready-to-show", async () => {
+  mainWindow.on("ready-to-show", async () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+    // Build menu after the main window is created
+    await buildMenu();
+    await createTray();
     await initialize();
   });
 });
