@@ -116,13 +116,13 @@
     </div>
     <div id="install-location-prompt" style="display: none">
       <div id="environment-info">
-        <h3>NodeTool Setup</h3>
+        <h2>NodeTool Setup</h2>
 
         <div class="info-details">
           <p>Choose what you'd like to install:</p>
 
           <div class="package-selection">
-            <!-- Base Package - Always included -->
+            <!-- Base Package -->
             <div class="package-card base">
               <div class="package-header">
                 <h4>📦 Base Package</h4>
@@ -141,14 +141,10 @@
 
             <!-- Optional Packages -->
             <div class="package-card optional">
+              <!-- AI Package -->
               <label class="package-option">
                 <div class="checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    name="ai-package"
-                    onchange="updateTotalSize()"
-                  />
-                  <span class="custom-checkbox"></span>
+                  <input type="checkbox" name="ai-package" />
                 </div>
                 <div class="package-content">
                   <div class="package-info">
@@ -157,22 +153,18 @@
                       <span class="size-tag">~3.2GB</span>
                     </div>
                     <ul>
-                      <li>PyTorch + CUDA</li>
-                      <li>Hugging Face & Diffusers</li>
-                      <li>Stable Diffusion (ComfyUI)</li>
+                      <li>PyTorch</li>
+                      <li>HuggingFace</li>
+                      <li>ComfyUI</li>
                     </ul>
                   </div>
                 </div>
               </label>
 
+              <!-- Data Science Package -->
               <label class="package-option">
                 <div class="checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    name="data-science"
-                    onchange="updateTotalSize()"
-                  />
-                  <span class="custom-checkbox"></span>
+                  <input type="checkbox" name="data-science" />
                 </div>
                 <div class="package-content">
                   <div class="package-info">
@@ -181,8 +173,8 @@
                       <span class="size-tag">~600MB</span>
                     </div>
                     <ul>
-                      <li>Scikit-learn & SciPy</li>
-                      <li>Statistical Analysis Tools</li>
+                      <li>Scikit-learn</li>
+                      <li>Statismodels</li>
                     </ul>
                   </div>
                 </div>
@@ -195,11 +187,11 @@
           <p>Where would you like to install NodeTool?</p>
           <div class="location-options">
             <button class="location-button default-location">
-              <span>📁 Recommended Location</span>
+              <span>📁 Install to Default Location</span>
               <span class="location-path"></span>
             </button>
             <button class="location-button custom-location">
-              <span>🔍 Choose Different Location</span>
+              <span>🔍 Install to Custom Location</span>
             </button>
           </div>
         </div>
