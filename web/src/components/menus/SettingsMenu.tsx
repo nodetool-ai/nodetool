@@ -25,36 +25,45 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isProduction } from "../../stores/ApiClient";
+import { isLocalhost, isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 export const settingsStyles = (theme: any): any =>
   css({
     ".MuiPaper-root": {
-      backgroundColor: theme.palette.c_gray0,
-      border: `2px solid ${theme.palette.c_gray0}`,
-      borderRadius: ".2em",
+      backgroundColor: "black",
+      border: `1px solid ${theme.palette.c_gray3}`,
+      borderRadius: ".5em",
       maxWidth: "1000px",
-      height: "90vh",
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+      fontSize: theme.fontSizeNormal
     },
     ".settings-tabs": {
-      marginBottom: ".5em",
-      paddingTop: ".5em",
+      marginBottom: "1em",
+      paddingTop: "0em",
+      lineHeight: "1.5",
       "& .MuiTabs-indicator": {
-        backgroundColor: theme.palette.c_hl1
+        backgroundColor: theme.palette.c_hl1,
+        height: "3px",
+        borderRadius: "1.5px"
       },
       "& .MuiTab-root": {
-        fontSize: theme.fontSizeBig,
         color: theme.palette.c_gray5,
+        transition: "color 0.2s ease",
+        paddingBottom: "0em",
         "&.Mui-selected": {
+          color: theme.palette.c_white
+        },
+        "&:hover": {
           color: theme.palette.c_white
         }
       }
     },
     ".tab-panel": {
-      padding: "1em 0"
+      padding: "1em 0",
+      fontSize: theme.fontSizeNormal
     },
 
     ".settings": {
@@ -62,28 +71,22 @@ export const settingsStyles = (theme: any): any =>
       flexDirection: "column",
       alignItems: "flex-start",
       gap: "1em",
-      backgroundColor: theme.palette.c_gray0,
       width: "100%",
       height: "100%",
       padding: ".5em 1em"
     },
     ".top": {
       height: "40px",
-      borderBottom: "1px solid" + theme.palette.c_gray0,
-      backgroundColor: "transparent",
-      h2: {
-        padding: "0 1em 0 1em",
-        color: theme.palette.c_white
-      }
-    },
-    ".bottom": {
-      height: "40px",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
       display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-end",
-      padding: "0.25em 1.5em",
-      borderTop: "1px solid" + theme.palette.c_gray0
+      alignItems: "center",
+      padding: "0 1em",
+      h2: {
+        padding: "0 0 0 0.5em",
+        color: theme.palette.c_white,
+        fontSize: theme.fontSizeBigger,
+        fontWeight: "500"
+      }
     },
     ".settings-menu": {
       position: "relative",
@@ -93,35 +96,59 @@ export const settingsStyles = (theme: any): any =>
       width: "70vw",
       minWidth: "400px",
       maxWidth: "1000px",
-      paddingRight: ".4em"
+      paddingRight: ".4em",
+      fontSize: theme.fontSizeNormal
     },
     ".sticky-header": {
       position: "sticky",
       top: 0,
       zIndex: 100,
-      backgroundColor: theme.palette.c_gray0,
       padding: "0 2em"
     },
     ".settings-content": {
       flex: 1,
       overflowY: "auto",
-      padding: "0 2em 2em 2em"
+      padding: "0 2em 2em 2em",
+      "&::-webkit-scrollbar": {
+        width: "8px"
+      },
+      "&::-webkit-scrollbar-track": {
+        background: theme.palette.c_gray1
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.palette.c_gray3,
+        borderRadius: "4px"
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        background: theme.palette.c_gray4
+      }
     },
-    ".settings-item": {
-      background: theme.palette.c_gray2,
-      margin: "0 0 1.5em 0",
-      padding: ".5em .5em 1em .5em",
-      borderRadius: ".2em",
+    ".settings-section": {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      borderRadius: "8px",
+      padding: "1.2em",
+      margin: "1.5em 0 1.5em 0",
       boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-      border: "none",
+      border: `1px solid ${theme.palette.c_gray3}`,
       width: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: ".5em",
-      "&:hover": {
-        boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+      gap: ".8em"
+    },
+    ".settings-item": {
+      padding: "1em 0",
+      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      "&:last-child": {
+        borderBottom: "none",
+        paddingBottom: "0"
       },
+      "&:first-child": {
+        paddingTop: "0"
+      },
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      gap: ".8em",
       ".MuiFormControl-root": {
         width: "100%",
         minWidth: "unset",
@@ -130,23 +157,28 @@ export const settingsStyles = (theme: any): any =>
         "& .MuiInputLabel-root": {
           position: "relative",
           transform: "none",
-          marginBottom: "8px"
+          marginBottom: "8px",
+          fontWeight: "500",
+          color: theme.palette.c_white,
+          fontSize: theme.fontSizeNormal
         },
         "& .MuiInputBase-root": {
           maxWidth: "34em",
           backgroundColor: theme.palette.c_gray1,
-          borderRadius: ".2em",
+          borderRadius: ".3em",
           margin: "0",
-          padding: ".2em 1em",
+          padding: ".3em 1em",
+          transition: "background-color 0.2s ease",
+          fontSize: theme.fontSizeNormal,
           "&::before": {
             content: "none"
           }
         }
       },
       label: {
-        color: theme.palette.c_gray6,
+        color: theme.palette.c_white,
         fontSize: theme.fontSizeBig,
-        fontWeight: "300",
+        fontWeight: "500",
         padding: ".5em 0 .25em 0"
       },
       ".description": {
@@ -154,25 +186,26 @@ export const settingsStyles = (theme: any): any =>
         fontSize: theme.fontSizeNormal,
         margin: "0",
         padding: "0 1em 0 0.5em",
-        lineHeight: "1.5",
+        lineHeight: "1.6",
         a: {
           color: theme.palette.c_hl1,
           backgroundColor: theme.palette.c_gray1,
-          padding: ".2em 1em",
-          borderRadius: ".2em",
+          padding: ".3em 1em",
+          borderRadius: ".3em",
           marginTop: ".5em",
           display: "inline-block",
           textDecoration: "none",
-          transition: "color 0.2s ease",
-          "&:hover": {
-            color: theme.palette.c_white
-          }
+          transition: "all 0.2s ease"
         }
       },
       ul: {
         margin: ".5em 0 0",
-        padding: "0 0 0 1em",
-        listStyleType: "square"
+        padding: "0 0 0 1.2em",
+        listStyleType: "square",
+        li: {
+          margin: "0.3em 0",
+          color: theme.palette.c_gray6
+        }
       }
     },
 
@@ -184,38 +217,73 @@ export const settingsStyles = (theme: any): any =>
 
     ".MuiSelect-select": {
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em",
-      marginTop: "0 ",
+      padding: "0.4em 0.6em",
+      marginTop: "0",
       backgroundColor: theme.palette.c_gray1,
-      borderRadius: "8px"
+      borderRadius: "8px",
+      transition: "background-color 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
     },
     ".MuiSwitch-root": {
       margin: "0"
     },
     ".secrets": {
-      backgroundColor: theme.palette.c_white,
-      color: theme.palette.c_black,
+      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.c_white,
       fontSize: theme.fontSizeBig,
-      marginTop: ".5em",
-      padding: ".5em",
-      borderRadius: ".2em",
+      marginTop: ".8em",
+      padding: ".8em 1em",
+      borderRadius: ".3em",
       display: "flex",
       alignItems: "center",
-      gap: "0.5em"
+      gap: "0.8em",
+      border: `1px solid ${theme.palette.c_warning}`,
+      boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
     },
 
     h2: {
       fontSize: theme.fontSizeHuge,
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_white,
       margin: "0.5em 0 0.25em 0",
-      padding: "0"
+      padding: "0",
+      fontWeight: "500"
     },
     h3: {
       fontSize: theme.fontSizeBigger,
-      margin: "2em 0 0.25em 0",
+      margin: "2em 0 0.5em 0",
       padding: "0.5em 0 0",
       fontWeight: "500",
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      paddingBottom: "0.3em"
+    },
+
+    ".settings-button": {
+      transition: "transform 0.2s ease",
+      "&:hover": {
+        transform: "rotate(30deg)"
+      }
+    },
+
+    "button.MuiButton-root": {
+      borderRadius: ".3em",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        transform: "translateY(-2px)",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+      }
+    },
+
+    ".MuiTypography-root": {
+      fontSize: theme.fontSizeNormal
+    },
+    ".MuiMenuItem-root": {
+      fontSize: theme.fontSizeNormal
+    },
+    ".MuiButton-root": {
+      fontSize: theme.fontSizeNormal
     }
   });
 
@@ -362,195 +430,207 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
             <TabPanel value={settingsTab} index={0}>
               <Typography variant="h3">Editor</Typography>
 
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
-                  <Switch
-                    checked={!!settings.showWelcomeOnStartup}
-                    onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
-                    inputProps={{ "aria-label": id }}
-                  />
-                </FormControl>
-                <Typography className="description">
-                  Show the welcome screen when starting the application.
-                </Typography>
-              </div>
-
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Enable Comfy</InputLabel>
-                  <Switch
-                    checked={!!settings.enableComfy}
-                    onChange={(e) => setEnableComfy(e.target.checked)}
-                    inputProps={{ "aria-label": id }}
-                  />
-                </FormControl>
-                <Typography className="description">
-                  Enable Comfy integration.
-                </Typography>
-              </div>
-
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
-                  <Switch
-                    sx={{
-                      "&.MuiSwitch-root": {
-                        margin: "16px 0 0"
+              <div className="settings-section">
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+                    <Switch
+                      checked={!!settings.showWelcomeOnStartup}
+                      onChange={(e) =>
+                        setShowWelcomeOnStartup(e.target.checked)
                       }
-                    }}
-                    checked={!!settings.selectNodesOnDrag}
-                    onChange={(e) =>
-                      setSelectNodesOnDrag(e.target.checked ?? false)
-                    }
-                    inputProps={{ "aria-label": id }}
-                  />
-                </FormControl>
-                <Typography className="description">
-                  Select nodes when dragging.
-                </Typography>
-              </div>
-
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Pan Controls</InputLabel>
-                  <Select
-                    id={id}
-                    labelId={id}
-                    value={settings.panControls}
-                    variant="standard"
-                    onChange={(e) => setPanControls(e.target.value)}
-                  >
-                    <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                    <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <div className="description">
-                  <Typography>
-                    Move the canvas by dragging with the left or right mouse
-                    button.
+                      inputProps={{ "aria-label": id }}
+                    />
+                  </FormControl>
+                  <Typography className="description">
+                    Show the welcome screen when starting the application.
                   </Typography>
-                  <Typography>
-                    With RightMouseButton selected, you can also pan with:
+                </div>
+
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Enable Comfy</InputLabel>
+                    <Switch
+                      checked={!!settings.enableComfy}
+                      onChange={(e) => setEnableComfy(e.target.checked)}
+                      inputProps={{ "aria-label": id }}
+                    />
+                  </FormControl>
+                  <Typography className="description">
+                    Enable Comfy integration.
                   </Typography>
-                  <ul>
-                    <li>Space + LeftClick</li>
-                    <li>Middle Mouse Button</li>
-                  </ul>
+                </div>
+
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
+                    <Switch
+                      sx={{
+                        "&.MuiSwitch-root": {
+                          margin: "16px 0 0"
+                        }
+                      }}
+                      checked={!!settings.selectNodesOnDrag}
+                      onChange={(e) =>
+                        setSelectNodesOnDrag(e.target.checked ?? false)
+                      }
+                      inputProps={{ "aria-label": id }}
+                    />
+                  </FormControl>
+                  <Typography className="description">
+                    Select nodes when dragging.
+                  </Typography>
                 </div>
               </div>
 
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
-                  <Select
-                    id={id}
-                    labelId={id}
-                    value={settings.selectionMode}
+              <div className="settings-section">
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Pan Controls</InputLabel>
+                    <Select
+                      id={id}
+                      labelId={id}
+                      value={settings.panControls}
+                      variant="standard"
+                      onChange={(e) => setPanControls(e.target.value)}
+                    >
+                      <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
+                      <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <div className="description">
+                    <Typography>
+                      Move the canvas by dragging with the left or right mouse
+                      button.
+                    </Typography>
+                    <Typography>
+                      With RightMouseButton selected, you can also pan with:
+                    </Typography>
+                    <ul>
+                      <li>Space + LeftClick</li>
+                      <li>Middle Mouse Button</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
+                    <Select
+                      id={id}
+                      labelId={id}
+                      value={settings.selectionMode}
+                      variant="standard"
+                      onChange={(e) => setSelectionMode(e.target.value)}
+                    >
+                      <MenuItem value={"full"}>Full</MenuItem>
+                      <MenuItem value={"partial"}>Partial</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography className="description">
+                    When drawing a selection box for node selections:
+                    <br />
+                    <b>Full:</b> nodes have to be fully enclosed.
+                    <br />
+                    <b>Partial:</b> intersecting nodes will be selected.
+                  </Typography>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <div className="settings-item">
+                  <TextField
+                    type="number"
+                    autoComplete="off"
+                    inputProps={{
+                      min: 1,
+                      max: 100,
+                      onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                        e.currentTarget.select();
+                      }
+                    }}
+                    id="grid-snap-input"
+                    label="Grid Snap Precision"
+                    value={settings.gridSnap}
+                    onChange={(e) => setGridSnap(Number(e.target.value))}
                     variant="standard"
-                    onChange={(e) => setSelectionMode(e.target.value)}
-                  >
-                    <MenuItem value={"full"}>Full</MenuItem>
-                    <MenuItem value={"partial"}>Partial</MenuItem>
-                  </Select>
-                </FormControl>
-                <Typography className="description">
-                  When drawing a selection box for node selections:
-                  <br />
-                  <b>Full:</b> nodes have to be fully enclosed.
-                  <br />
-                  <b>Partial:</b> intersecting nodes will be selected.
-                </Typography>
-              </div>
+                  />
+                  <Typography className="description">
+                    Snap precision for moving nodes on the canvas.
+                  </Typography>
+                </div>
 
-              <div className="settings-item">
-                <TextField
-                  type="number"
-                  autoComplete="off"
-                  inputProps={{
-                    min: 1,
-                    max: 100,
-                    onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                      e.currentTarget.select();
-                    }
-                  }}
-                  id="grid-snap-input"
-                  label="Grid Snap Precision"
-                  value={settings.gridSnap}
-                  onChange={(e) => setGridSnap(Number(e.target.value))}
-                  variant="standard"
-                />
-                <Typography className="description">
-                  Snap precision for moving nodes on the canvas.
-                </Typography>
-              </div>
-
-              <div className="settings-item">
-                <TextField
-                  type="number"
-                  autoComplete="off"
-                  inputProps={{
-                    min: 5,
-                    max: 30,
-                    onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                      e.currentTarget.select();
-                    }
-                  }}
-                  id="connection-snap-input"
-                  label="Connection Snap Range"
-                  value={settings.connectionSnap}
-                  onChange={(e) => setConnectionSnap(Number(e.target.value))}
-                  variant="standard"
-                />
-                <Typography className="description">
-                  Snap distance for connecting nodes.
-                </Typography>
+                <div className="settings-item">
+                  <TextField
+                    type="number"
+                    autoComplete="off"
+                    inputProps={{
+                      min: 5,
+                      max: 30,
+                      onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                        e.currentTarget.select();
+                      }
+                    }}
+                    id="connection-snap-input"
+                    label="Connection Snap Range"
+                    value={settings.connectionSnap}
+                    onChange={(e) => setConnectionSnap(Number(e.target.value))}
+                    variant="standard"
+                  />
+                  <Typography className="description">
+                    Snap distance for connecting nodes.
+                  </Typography>
+                </div>
               </div>
 
               <Typography variant="h3">Appearance</Typography>
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Time Format</InputLabel>
-                  <Select
-                    id={id}
-                    labelId={id}
-                    value={settings.timeFormat}
-                    variant="standard"
-                    onChange={(e) =>
-                      setTimeFormat(e.target.value === "12h" ? "12h" : "24h")
-                    }
-                  >
-                    <MenuItem value={"12h"}>12h</MenuItem>
-                    <MenuItem value={"24h"}>24h</MenuItem>
-                  </Select>
-                </FormControl>
-                <Typography className="description">
-                  Display time in 12h or 24h format.
-                </Typography>
-              </div>
+              <div className="settings-section">
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Time Format</InputLabel>
+                    <Select
+                      id={id}
+                      labelId={id}
+                      value={settings.timeFormat}
+                      variant="standard"
+                      onChange={(e) =>
+                        setTimeFormat(e.target.value === "12h" ? "12h" : "24h")
+                      }
+                    >
+                      <MenuItem value={"12h"}>12h</MenuItem>
+                      <MenuItem value={"24h"}>24h</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography className="description">
+                    Display time in 12h or 24h format.
+                  </Typography>
+                </div>
 
-              <div className="settings-item">
-                <FormControl>
-                  <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
-                  <Select
-                    id={id}
-                    labelId={id}
-                    value={settings.workflowLayout === "grid" ? "grid" : "list"}
-                    variant="standard"
-                    onChange={(e) =>
-                      setWorkflowLayout(
-                        e.target.value === "grid" ? "grid" : "list"
-                      )
-                    }
-                  >
-                    <MenuItem value={"grid"}>Grid</MenuItem>
-                    <MenuItem value={"list"}>List</MenuItem>
-                  </Select>
-                </FormControl>
-                <Typography className="description">
-                  Choose grid or list layout for the Workflow menu.
-                </Typography>
+                <div className="settings-item">
+                  <FormControl>
+                    <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
+                    <Select
+                      id={id}
+                      labelId={id}
+                      value={
+                        settings.workflowLayout === "grid" ? "grid" : "list"
+                      }
+                      variant="standard"
+                      onChange={(e) =>
+                        setWorkflowLayout(
+                          e.target.value === "grid" ? "grid" : "list"
+                        )
+                      }
+                    >
+                      <MenuItem value={"grid"}>Grid</MenuItem>
+                      <MenuItem value={"list"}>List</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography className="description">
+                    Choose grid or list layout for the Workflow menu.
+                  </Typography>
+                </div>
               </div>
 
               {user && user.auth_token && (
@@ -570,55 +650,49 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     >
                       API documentation on GitHub <br />
                     </a>
-                    <span style={{ color: ThemeNodetool.palette.c_gray5 }}>
-                      https://github.com/nodetool-ai/nodetool#using-the-workflow-api-
-                    </span>
                   </Typography>
-                  <div
-                    className="settings-item"
-                    style={{
-                      border: "1px solid" + ThemeNodetool.palette.c_warning,
-                      borderRight: "1px solid" + ThemeNodetool.palette.c_warning
-                    }}
-                  >
-                    {!isProduction && (
-                      <Typography>
-                        Copy the token and use it as a parameter in your
-                        request. <br />
-                      </Typography>
-                    )}
-                    {isProduction && (
-                      <>
-                        <FormControl>
-                          <InputLabel>Nodetool API Token</InputLabel>
-                        </FormControl>
-                        <div className="description">
-                          <Typography>
-                            This token is used to authenticate your account with
-                            the Nodetool API.
-                          </Typography>
-                          <div className="secrets">
-                            <WarningIcon sx={{ color: "#ff9800" }} />
-                            <Typography component="span">
-                              Keep this token secure and do not share it
-                              publicly
-                            </Typography>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <Tooltip title="Copy to clipboard">
-                    <Button
-                      style={{ margin: ".5em 0" }}
-                      size="small"
-                      variant="outlined"
-                      startIcon={<ContentCopyIcon />}
-                      onClick={copyAuthToken}
+                  {!isLocalhost && (
+                    <div
+                      className="settings-section"
+                      style={{
+                        border: "1px solid" + ThemeNodetool.palette.c_warning,
+                        borderRight:
+                          "1px solid" + ThemeNodetool.palette.c_warning
+                      }}
                     >
-                      Copy Token
-                    </Button>
-                  </Tooltip>
+                      {isProduction && (
+                        <>
+                          <FormControl>
+                            <InputLabel>Nodetool API Token</InputLabel>
+                          </FormControl>
+                          <div className="description">
+                            <Typography>
+                              This token is used to authenticate your account
+                              with the Nodetool API.
+                            </Typography>
+                            <div className="secrets">
+                              <WarningIcon sx={{ color: "#ff9800" }} />
+                              <Typography component="span">
+                                Keep this token secure and do not share it
+                                publicly
+                              </Typography>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      <Tooltip title="Copy to clipboard">
+                        <Button
+                          style={{ margin: ".5em 0" }}
+                          size="small"
+                          variant="outlined"
+                          startIcon={<ContentCopyIcon />}
+                          onClick={copyAuthToken}
+                        >
+                          Copy Token
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  )}
                 </>
               )}
             </TabPanel>
@@ -627,44 +701,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               {!isProduction && <RemoteSettingsMenu />}
             </TabPanel>
           </div>
-        </div>
-        <div className="bottom">
-          {user && (
-            <div>
-              <Typography
-                style={{
-                  display: "inline-block",
-                  margin: "0 10px 0 0",
-                  fontSize: "0.9em"
-                }}
-              >
-                {user.email}
-              </Typography>
-              {user.email && (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    signout();
-                    navigate("/login");
-                  }}
-                >
-                  Logout
-                </Button>
-              )}
-            </div>
-          )}
-          <Typography
-            variant="body2"
-            style={{
-              color: ThemeNodetool.palette.c_gray6,
-              marginTop: "2em",
-              fontSize: ThemeNodetool.fontSizeSmaller
-            }}
-          >
-            NODETOOL {VERSION}
-          </Typography>
         </div>
       </Menu>
     </div>
