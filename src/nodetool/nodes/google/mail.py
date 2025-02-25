@@ -20,22 +20,6 @@ import imaplib
 KEYWORD_SEPARATOR_REGEX = r"\s+|,|;"
 
 
-class DateFilter(Enum):
-    SINCE_ONE_HOUR = "SINCE_ONE_HOUR"
-    SINCE_ONE_DAY = "SINCE_ONE_DAY"
-    SINCE_ONE_WEEK = "SINCE_ONE_WEEK"
-    SINCE_ONE_MONTH = "SINCE_ONE_MONTH"
-    SINCE_ONE_YEAR = "SINCE_ONE_YEAR"
-
-
-class GmailFolder(Enum):
-    INBOX = "INBOX"
-    SENT_MAIL = "[Gmail]/Sent Mail"
-    DRAFTS = "[Gmail]/Drafts"
-    SPAM = "[Gmail]/Spam"
-    TRASH = "[Gmail]/Trash"
-
-
 def create_gmail_connection(email_address: str, app_password: str) -> IMAPConnection:
     """
     Creates a Gmail connection configuration.
@@ -64,31 +48,6 @@ def create_gmail_connection(email_address: str, app_password: str) -> IMAPConnec
     )
 
 
-def get_date_condition(date_filter: DateFilter) -> DateSearchCondition:
-    """
-    Creates a DateSearchCondition based on the specified DateFilter.
-
-    Args:
-        date_filter: The DateFilter enum value to convert
-
-    Returns:
-        DateSearchCondition configured for the specified filter
-    """
-    date_deltas = {
-        DateFilter.SINCE_ONE_HOUR: timedelta(hours=1),
-        DateFilter.SINCE_ONE_DAY: timedelta(days=1),
-        DateFilter.SINCE_ONE_WEEK: timedelta(weeks=1),
-        DateFilter.SINCE_ONE_MONTH: timedelta(days=30),
-        DateFilter.SINCE_ONE_YEAR: timedelta(days=365),
-    }
-
-    delta = date_deltas[date_filter]
-    return DateSearchCondition(
-        criteria=DateCriteria.SINCE,
-        date=Datetime.from_datetime(datetime.now() - delta),
-    )
-
-
 class GmailSearch(BaseNode):
     """
     Searches Gmail using Gmail-specific search operators.
@@ -99,6 +58,20 @@ class GmailSearch(BaseNode):
     - Retrieve emails from a specific sender
     - Filter emails by subject, sender, or date
     """
+
+    class DateFilter(Enum):
+        SINCE_ONE_HOUR = "SINCE_ONE_HOUR"
+        SINCE_ONE_DAY = "SINCE_ONE_DAY"
+        SINCE_ONE_WEEK = "SINCE_ONE_WEEK"
+        SINCE_ONE_MONTH = "SINCE_ONE_MONTH"
+        SINCE_ONE_YEAR = "SINCE_ONE_YEAR"
+
+    class GmailFolder(Enum):
+        INBOX = "INBOX"
+        SENT_MAIL = "[Gmail]/Sent Mail"
+        DRAFTS = "[Gmail]/Drafts"
+        SPAM = "[Gmail]/Spam"
+        TRASH = "[Gmail]/Trash"
 
     from_address: str = Field(
         default="",
@@ -129,7 +102,7 @@ class GmailSearch(BaseNode):
         description="Email folder to search in",
     )
     text: str = Field(
-        default=None,
+        default="",
         description="General text to search for anywhere in the email",
     )
     max_results: int = Field(
@@ -253,3 +226,28 @@ class AddLabel(BaseNode):
             return self.email
         finally:
             imap.logout()
+
+
+def get_date_condition(date_filter: GmailSearch.DateFilter) -> DateSearchCondition:
+    """
+    Creates a DateSearchCondition based on the specified DateFilter.
+
+    Args:
+        date_filter: The DateFilter enum value to convert
+
+    Returns:
+        DateSearchCondition configured for the specified filter
+    """
+    date_deltas = {
+        GmailSearch.DateFilter.SINCE_ONE_HOUR: timedelta(hours=1),
+        GmailSearch.DateFilter.SINCE_ONE_DAY: timedelta(days=1),
+        GmailSearch.DateFilter.SINCE_ONE_WEEK: timedelta(weeks=1),
+        GmailSearch.DateFilter.SINCE_ONE_MONTH: timedelta(days=30),
+        GmailSearch.DateFilter.SINCE_ONE_YEAR: timedelta(days=365),
+    }
+
+    delta = date_deltas[date_filter]
+    return DateSearchCondition(
+        criteria=DateCriteria.SINCE,
+        date=Datetime.from_datetime(datetime.now() - delta),
+    )

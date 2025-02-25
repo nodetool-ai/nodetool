@@ -41,7 +41,7 @@ class GmailSearch(GraphNode):
     date_filter: nodetool.nodes.google.mail.GmailSearch.DateFilter = Field(default=DateFilter.SINCE_ONE_DAY, description='Date filter to search for')
     keywords: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Custom keywords or labels to search for')
     folder: nodetool.nodes.google.mail.GmailSearch.GmailFolder = Field(default=GmailFolder.INBOX, description='Email folder to search in')
-    text: str | GraphNode | tuple[GraphNode, str] = Field(default=None, description='General text to search for anywhere in the email')
+    text: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='General text to search for anywhere in the email')
     max_results: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Maximum number of emails to return')
 
     @classmethod
