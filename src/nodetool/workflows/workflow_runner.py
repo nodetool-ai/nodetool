@@ -148,7 +148,6 @@ def get_available_vram():
 
 
 class Message(BaseModel):
-    sender: BaseNode
     target: BaseNode
     slot: str
 
@@ -387,6 +386,20 @@ class WorkflowRunner:
                 )
                 raise
 
+    def send_messages(
+        self, node: BaseNode, result: dict[str, Any], context: ProcessingContext
+    ):
+        context.set_result(node._id, result)
+        for key, value in result.items():
+            # find edge from node to key
+            edges = context.graph.find_edges(node.id, key)
+            for edge in edges:
+                target = context.graph.find_node(edge.target)
+                if target:
+                    self.messages.append(Message(target=target, slot=edge.targetHandle))
+                else:
+                    log.warning(f"Node {edge.target} not found")
+
     async def process_graph(
         self, context: ProcessingContext, graph: Graph, parent_id: str | None = None
     ):
@@ -414,15 +427,57 @@ class WorkflowRunner:
 
         await asyncio.gather(*[self.process_node(context, node, {}) for node in nodes])
 
+        # Track message processing attempts to detect infinite loops
+        message_attempts = {}
+        max_attempts = 100  # Prevent infinite loops
+
         while self.messages:
             message = self.messages.popleft()
             node = message.target
+            message_key = f"{node._id}:{message.slot}"
+
+            # Track attempts for this message
+            message_attempts[message_key] = message_attempts.get(message_key, 0) + 1
+
+            # Check for potential infinite loop
+            if message_attempts[message_key] > max_attempts:
+                log.error(
+                    f"Potential infinite loop detected for node {node.get_title()} ({node._id}), input {message.slot}"
+                )
+                context.post_message(
+                    NodeUpdate(
+                        node_id=node.id,
+                        node_name=node.get_title(),
+                        status="error",
+                        error=f"Potential infinite loop detected. Message for input '{message.slot}' was processed {max_attempts} times without making progress.",
+                    )
+                )
+                continue  # Skip this message to break the loop
+
+            # Get all required inputs for this node
             inputs = context.get_node_inputs(node.id)
 
-            # if all inputs have values, process the node
-            # if not, the node will be processed when all inputs are available
-            if all(inputs.values()):
+            # Check if all required inputs have values
+            required_inputs = {
+                edge.targetHandle for edge in graph.edges if edge.target == node.id
+            }
+            all_inputs_ready = all(
+                inputs.get(input_name) is not None for input_name in required_inputs
+            )
+
+            if all_inputs_ready:
+                # Reset attempt counter when we successfully process a node
+                for key in list(message_attempts.keys()):
+                    if key.startswith(f"{node._id}:"):
+                        message_attempts.pop(key)
+
                 await self.process_node(context, node, inputs)
+            else:
+                # Re-enqueue the message for later processing
+                log.debug(
+                    f"Not all inputs ready for node {node.get_title()} ({node._id}), re-enqueueing message"
+                )
+                self.messages.append(message)
 
     async def process_node(
         self,
@@ -559,13 +614,15 @@ class WorkflowRunner:
                         result = await node.convert_output(context, result)
                     finally:
                         release_gpu_lock()
-                        # try:
-                        #     await node.move_to_device("cpu")
-                        #     self.log_vram_usage(
-                        #         f"Node {node.get_title()} ({node._id}) VRAM after move to cpu"
-                        #     )
-                        # finally:
-                        #     release_gpu_lock()
+                        # Move to cpu after processing to avoid OOM
+                        if Environment.is_production():
+                            try:
+                                await node.move_to_device("cpu")
+                                self.log_vram_usage(
+                                    f"Node {node.get_title()} ({node._id}) VRAM after move to cpu"
+                                )
+                            finally:
+                                release_gpu_lock()
                 else:
                     result = await node.process(context)
                     result = await node.convert_output(context, result)
@@ -597,18 +654,7 @@ class WorkflowRunner:
             )
             raise
 
-        context.set_result(node._id, result)
-        for key, value in result.items():
-            # find edge from node to key
-            edges = context.graph.find_edges(node.id, key)
-            for edge in edges:
-                target = context.graph.find_node(edge.target)
-                if target:
-                    self.messages.append(
-                        Message(sender=node, target=target, slot=edge.targetHandle)
-                    )
-                else:
-                    log.warning(f"Node {edge.target} not found")
+        self.send_messages(node, result, context)
         log.info(
             f"{node.get_title()} ({node._id}) processing time: {datetime.now() - started_at}"
         )
@@ -626,7 +672,7 @@ class WorkflowRunner:
 
         result = await self.process_subgraph(context, group_node, group_inputs)
 
-        context.set_result(group_node._id, result)
+        self.send_messages(group_node, result, context)
 
     async def process_subgraph(
         self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
@@ -700,13 +746,25 @@ class WorkflowRunner:
                 log.warning("Multiple output nodes are not fully supported.")
 
         else:
-            # regular group nodes will execute children on top level
-            results = {}
+            # Process regular group nodes
+            sub_context = context.copy()
+
+            input = inputs.get("input", None)
+
+            # Set input values to input nodes
+            for input_node in input_nodes:
+                input_node._value = input
+
+            graph = Graph(nodes=child_nodes, edges=context.graph.edges)
+            await self.process_graph(sub_context, graph, parent_id=group_node._id)
+
+            # Collect results from output nodes
+            results = {node._id: node.input for node in output_nodes}
 
         if len(results) == 0:
             return {}
         else:
-            return {"output": results[output_nodes[0]._id]}
+            return {"output": results[output_nodes[0]._id] if output_nodes else None}
 
     def log_vram_usage(self, message=""):
         if TORCH_AVAILABLE and torch.cuda.is_available():

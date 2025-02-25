@@ -463,8 +463,6 @@ class BaseNode(BaseModel):
             This method handles type conversion for enums, lists, and objects with 'model_validate' method.
         """
         prop = self.find_property(name)
-        assert prop is not None, f"Property {name} not found"
-
         python_type = prop.type.get_python_type()
         type_args = prop.type.type_args
 
@@ -693,7 +691,9 @@ class BaseNode(BaseModel):
         elif name in self._dynamic_properties:
             return Property(name=name, type=TypeMetadata(type="any"))
         else:
-            raise ValueError(f"Property {name} does not exist")
+            raise ValueError(
+                f"Property {name} does not exist in {self.__class__.__name__}"
+            )
 
     @classmethod
     def find_output(cls, name: str) -> OutputSlot:
