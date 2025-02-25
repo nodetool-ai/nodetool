@@ -4,6 +4,7 @@ from typing import Mapping
 from ollama import ChatResponse
 from pydantic import Field, validator
 from nodetool.metadata.types import (
+    FunctionModel,
     ImageRef,
     LlamaModel,
     Message,
@@ -15,6 +16,7 @@ from nodetool.metadata.types import (
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.types import NodeProgress
+from nodetool.chat.chat import Chunk, generate_messages
 
 
 class Ollama(BaseNode):
@@ -113,63 +115,56 @@ class Ollama(BaseNode):
         if not self.messages and not self.prompt and not self.image.is_set():
             raise ValueError("Either messages, prompt, or image must be provided")
 
-        messages: list[Mapping[str, str | list[str]]] = [
-            {
-                "role": "system",
-                "content": self.system_prompt,
-            },
+        messages: list[Message] = [
+            Message(role="system", content=self.system_prompt),
         ]
 
         # Add existing messages if any
         if self.messages:
-            message_dicts = await asyncio.gather(
-                *[self.create_message(message, context) for message in self.messages]
-            )
-            messages.extend(message_dicts)
+            messages.extend(self.messages)
 
         # Add prompt and image as final message if provided
         if self.prompt or self.image.is_set():
-            user_message: dict[str, str | list[str]] = {
-                "role": "user",
-                "content": self.prompt,
-            }
+            content = []
             if self.image.is_set():
                 image_base64 = await context.image_to_base64(self.image)
-                user_message["images"] = [image_base64]
-            messages.append(user_message)
+                content.append(
+                    MessageImageContent(
+                        image=ImageRef(uri=f"data:image/jpeg;base64,{image_base64}")
+                    )
+                )
+            if self.prompt:
+                content.append(MessageTextContent(text=self.prompt))
 
-        parts = []
-        async for response in context.stream_prediction(
-            node_id=self._id,
-            provider=Provider.Ollama,
-            model=self.model.repo_id,
-            params={
-                "messages": messages,
-                "stream": True,
-                "options": {
-                    "temperature": self.temperature,
-                    "top_k": self.top_k,
-                    "top_p": self.top_p,
-                    "keep_alive": self.keep_alive,
-                    "num_ctx": self.context_window,
-                    "num_predict": self.num_predict,
-                },
+            messages.append(Message(role="user", content=content))
+
+        model = FunctionModel(name=self.model.repo_id, provider=Provider.Ollama)
+        result_content = ""
+
+        async for chunk in generate_messages(
+            messages=messages,
+            model=model,
+            options={
+                "num_predict": self.num_predict,
+                "top_p": self.top_p,
+                "temperature": self.temperature,
+                "top_k": self.top_k,
+                "keep_alive": self.keep_alive,
+                "num_ctx": self.context_window,
             },
         ):
-            assert isinstance(response, ChatResponse)
-            msg = response.message.content
-            if msg:
-                parts.append(msg)
+            if isinstance(chunk, Chunk):
                 context.post_message(
                     NodeProgress(
                         node_id=self._id,
                         progress=0,
                         total=0,
-                        chunk=msg,
+                        chunk=chunk.content,
                     )
                 )
+                result_content += chunk.content
 
-        return "".join(parts)
+        return result_content
 
 
 class EmbeddingAggregation(Enum):
