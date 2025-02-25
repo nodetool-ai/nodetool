@@ -48,6 +48,7 @@ class OpenAIText(GraphNode):
     model: OpenAIModel | GraphNode | tuple[GraphNode, str] = Field(default=OpenAIModel(type='openai_model', id='o3-mini', object='', created=0, owned_by=''), description=None)
     system: str | GraphNode | tuple[GraphNode, str] = Field(default='You are a friendly assistant.', description=None)
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
+    messages: list[Message] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description=None)
     presence_penalty: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
     frequency_penalty: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)

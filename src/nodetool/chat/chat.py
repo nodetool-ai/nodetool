@@ -632,7 +632,6 @@ async def create_ollama_completion(
 
     client = get_ollama_client()
 
-    print(ollama_messages)
     completion = await client.chat(
         model=model.name, messages=ollama_messages, stream=True, **kwargs
     )
