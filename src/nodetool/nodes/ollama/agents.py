@@ -116,7 +116,7 @@ class DataGenerator(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
     columns: RecordType = Field(
@@ -355,7 +355,7 @@ class SVGGenerator(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
 
@@ -1973,7 +1973,7 @@ class ChartGenerator(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
     columns: RecordType = Field(
@@ -2144,7 +2144,7 @@ class SchemaGenerator(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
 
@@ -2847,7 +2847,7 @@ class DataExtractor(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
     keep_alive: int = Field(
-        default="300",
+        default=300,
         description="The number of seconds to keep the model alive.",
     )
 

@@ -26,7 +26,7 @@ class ChartGenerator(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
     columns: RecordType | GraphNode | tuple[GraphNode, str] = Field(default=RecordType(type='record_type', columns=[]), description='The columns available in the data.')
 
     @classmethod
@@ -80,7 +80,7 @@ class DataExtractor(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.2, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
 
     @classmethod
     def get_node_type(cls): return "ollama.agents.DataExtractor"
@@ -104,7 +104,7 @@ class DataGenerator(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
     columns: RecordType | GraphNode | tuple[GraphNode, str] = Field(default=RecordType(type='record_type', columns=[]), description='The columns to use in the dataframe.')
 
     @classmethod
@@ -154,7 +154,7 @@ class SVGGenerator(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
 
     @classmethod
     def get_node_type(cls): return "ollama.agents.SVGGenerator"
@@ -180,7 +180,7 @@ class SchemaGenerator(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='The temperature to use for sampling.')
     top_k: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='The number of highest probability tokens to keep for top-k sampling.')
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=0.95, description='The cumulative probability cutoff for nucleus/top-p sampling.')
-    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default='300', description='The number of seconds to keep the model alive.')
+    keep_alive: int | GraphNode | tuple[GraphNode, str] = Field(default=300, description='The number of seconds to keep the model alive.')
 
     @classmethod
     def get_node_type(cls): return "ollama.agents.SchemaGenerator"
