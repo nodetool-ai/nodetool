@@ -297,32 +297,34 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
-      <Button
-        size="large"
-        className={`action-button run-stop-button run-workflow ${
-          isWorkflowRunning ? "running" : ""
-        }`}
-        onClick={handleRun}
-        disabled={isWorkflowRunning}
-        tabIndex={-1}
-      >
-        {state === "connecting" || state === "connected" ? (
-          <>
-            <span
-              className={`run-status ${
-                state === "connecting" ? "connecting-status" : ""
-              }`}
-            >
-              {state === "connecting" ? "Connecting" : "Connected"}
-            </span>
+      <span>
+        <Button
+          size="large"
+          className={`action-button run-stop-button run-workflow ${
+            isWorkflowRunning ? "running" : ""
+          }`}
+          onClick={handleRun}
+          disabled={isWorkflowRunning}
+          tabIndex={-1}
+        >
+          {state === "connecting" || state === "connected" ? (
+            <>
+              <span
+                className={`run-status ${
+                  state === "connecting" ? "connecting-status" : ""
+                }`}
+              >
+                {state === "connecting" ? "Connecting" : "Connected"}
+              </span>
+              <PlayArrow />
+            </>
+          ) : isWorkflowRunning ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
             <PlayArrow />
-          </>
-        ) : isWorkflowRunning ? (
-          <CircularProgress size={20} color="inherit" />
-        ) : (
-          <PlayArrow />
-        )}
-      </Button>
+          )}
+        </Button>
+      </span>
     </Tooltip>
   );
 });
