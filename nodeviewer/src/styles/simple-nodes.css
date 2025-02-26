@@ -1,0 +1,313 @@
+/* SIMPLE NODE STYLES */
+
+/**
+ * Simplified styles for nodes in the node editor
+ * without interactive functionality
+ */
+
+:root {
+  /* Colors */
+  --c-white: #ffffff;
+  --c-black: #000000;
+  --c-gray0: #111111;
+  --c-gray1: #1a1a1a;
+  --c-gray2: #2a2a2a;
+  --c-gray3: #333333;
+  --c-gray4: #444444;
+  --c-gray5: #555555;
+  --c-gray6: #666666;
+  --c-gray7: #777777;
+  --c-gray8: #888888;
+  --c-gray9: #999999;
+  --c-hl1: #3498db;
+  --c-warning: #e74c3c;
+
+  /* Node colors */
+  --c-node-bg: #2a2a2a;
+  --c-node-bg-group: #333333;
+  --c-node-header-bg: #3a3a3a;
+  --c-node-header-bg-group: #444444;
+  --c-node-menu: #222222;
+  --c-editor-bg-color: #1a1a1a;
+  --c-editor-grid-color: #333333;
+  --c-bg-comment: #f5f5f5;
+
+  /* Font sizes */
+  --font-size-smaller: 10px;
+  --font-size-small: 12px;
+  --font-size-normal: 14px;
+  --font-size-large: 16px;
+
+  /* Font families */
+  --font-family-1: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+/* General node */
+.simple-node {
+  font-size: var(--font-size-small);
+  width: auto;
+  cursor: default;
+  padding: 0;
+  border-radius: 0.3em;
+  background-color: var(--c-node-bg);
+  box-shadow: 0.1em 0.1em 0.4em 0px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-family-1);
+}
+
+/* Comment node */
+.comment-node {
+  font-size: var(--font-size-normal);
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  padding: 1em;
+  border-radius: 0.3em;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+  font-family: var(--font-family-1);
+  color: var(--c-black);
+  position: relative;
+  overflow: auto;
+}
+
+.comment-node:hover {
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.comment-node.selected {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.comment-node .comment-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.2em;
+}
+
+.comment-node.collapsed {
+  max-height: 60px;
+  overflow: hidden;
+}
+
+/* Node header */
+.simple-node .node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  min-height: 24px;
+  background-color: var(--c-node-header-bg);
+  color: var(--c-white);
+  margin: 0;
+  border-radius: 0.3em 0.3em 0 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.simple-node .node-header .node-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex-grow: 1;
+  text-align: left;
+  max-width: 170px;
+  word-wrap: break-word;
+  line-height: 1em;
+  color: var(--c-white);
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-normal);
+  /* font-feature-settings: "smcp"; */
+  padding: 0.5em 0 0.5em 0.7em;
+}
+
+/* Node content */
+.simple-node .node-content {
+  padding: 5px;
+  background-color: var(--c-node-bg);
+}
+
+/* Node property */
+.simple-node .node-property {
+  margin-bottom: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.simple-node .property-label {
+  font-size: var(--font-size-small);
+  color: var(--c-gray9);
+  padding: 0 5px;
+  font-weight: bold;
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.simple-node .property-value {
+  position: relative;
+  text-align: right;
+  flex: 1;
+  position: relative;
+  font-size: var(--font-size-small);
+  color: var(--c-gray9);
+  padding: 2px 5px;
+  overflow: auto;
+}
+
+/* Node footer */
+.simple-node .node-footer {
+  display: flex;
+  height: 18px;
+  align-items: center;
+  background: var(--c-node-header-bg);
+  border-radius: 0 0 0.3em 0.3em;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 4px 12px;
+  color: var(--c-gray5);
+  font-size: var(--font-size-smaller);
+  text-transform: uppercase;
+}
+
+/* React Flow wrapper */
+.simple-reactflow-wrapper {
+  width: 100%;
+  height: 100%;
+  background-color: var(--c-editor-bg-color);
+}
+
+/* Edge styles */
+.react-flow__edge-path {
+  stroke: var(--c-gray6);
+  stroke-width: 2;
+}
+
+/* Background styles */
+.react-flow__background {
+  background-color: var(--c-editor-bg-color);
+}
+
+/* Controls styles */
+.react-flow__controls {
+  background-color: var(--c-gray2);
+  border-radius: 4px;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background-color: var(--c-gray3);
+  border: none;
+  color: var(--c-white);
+}
+
+.react-flow__controls-button:hover {
+  background-color: var(--c-gray4);
+}
+
+/* MiniMap styles */
+.react-flow__minimap {
+  background-color: var(--c-gray2);
+  border-radius: 4px;
+}
+
+/* Container styles */
+.simple-flow-container {
+  width: 100%;
+  height: 100vh;
+  background-color: var(--c-editor-bg-color);
+}
+
+/* App container */
+.simple-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: var(--font-family-1);
+}
+
+.simple-app-header {
+  background-color: var(--c-gray2);
+  color: var(--c-white);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--c-gray4);
+}
+
+.simple-app-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.simple-app-content {
+  flex: 1;
+  position: relative;
+}
+
+/* Additional styles for SimpleBaseNode component */
+.node-property {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.additional-outputs {
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.additional-outputs-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.node-output {
+  position: relative;
+  margin-bottom: 5px;
+}
+
+.output-label {
+  font-size: var(--font-size-small);
+  color: var(--c-gray9);
+  padding: 0px 0px;
+  text-align: right;
+}
+
+/* Dynamic header and footer colors */
+.simple-node .node-header {
+  --header-bg-color: var(--c-node-header-bg);
+  background-color: var(--header-bg-color) !important;
+}
+
+.simple-node .node-footer {
+  --footer-bg-color: var(--c-node-header-bg);
+  background-color: var(--footer-bg-color) !important;
+}
+
+/* HANDLE */
+.react-flow__node .react-flow__handle {
+  width: var(--handle_width);
+  height: var(--handle_height);
+  background-color: var(--c_gray1);
+  border: 0;
+  border-radius: 0;
+  z-index: 999;
+}
+.react-flow__node .react-flow__handle-left {
+  transform-origin: right center;
+  left: -8px;
+  top: 7px;
+  height: 10px;
+  border-left: 2px solid var(--c_gray1);
+}
+.react-flow__node .react-flow__handle-right {
+  transform-origin: left center;
+  right: -13px;
+  top: 8px;
+  height: 10px;
+  border-right: 1px solid var(--c_gray1);
+}
