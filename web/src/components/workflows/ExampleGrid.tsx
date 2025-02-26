@@ -53,6 +53,7 @@ const styles = (theme: any) =>
       gap: "1.5em"
     },
     ".workflow": {
+      position: "relative",
       flexGrow: "1",
       flexShrink: "0",
       flexBasis: "200px",
@@ -62,11 +63,14 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      height: "auto"
+      height: "auto",
+      overflow: "visible"
     },
     ".workflow h4": {
       marginTop: "8px",
-      marginBottom: "4px"
+      marginBottom: "4px",
+      position: "relative",
+      zIndex: 2
     },
     ".workflow .description": {
       fontSize: "0.875rem",
@@ -77,25 +81,24 @@ const styles = (theme: any) =>
       WebkitLineClamp: 3,
       overflow: "hidden",
       width: "100%",
-      transition: "all 0.3s ease",
+      transition: "opacity 0.2s ease, transform 0.2s ease",
       position: "relative",
       maxHeight: "4.5em",
-      transform: "translateY(0)",
-      opacity: 1
+      marginBottom: "0.5em"
     },
     ".workflow:hover .description": {
       WebkitLineClamp: "unset",
-      maxHeight: "none",
-      overflow: "visible",
-      zIndex: 10,
-      backgroundColor: theme.palette.background.paper,
-      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-      padding: "4px",
+      position: "absolute",
+      zIndex: 1,
+      width: "100%",
+      backgroundColor: theme.palette.background.default,
+      padding: "0 0 1em 0",
       borderRadius: "4px",
-      marginTop: "-4px",
-      transform: "translateY(2px)",
-      opacity: 1,
-      transition: "all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+      maxHeight: "none",
+      height: "auto",
+      top: "100%",
+      transition: "opacity 0.3s ease, transform 0.3s ease",
+      color: "#fff"
     },
     ".loading-indicator": {
       display: "flex",
@@ -166,7 +169,7 @@ const styles = (theme: any) =>
       border: `1px solid ${theme.palette.c_gray2}`,
       "&:hover": {
         border: `1px solid ${theme.palette.c_hl1}`,
-        transform: "translateY(-2px)",
+        // transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
         color: theme.palette.common.white,
         animation: "glowPulse 1.5s infinite"
