@@ -10,7 +10,8 @@ import {
   Switch,
   FormControlLabel,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Fade
 } from "@mui/material";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
@@ -66,6 +67,36 @@ const styles = (theme: any) =>
       height: "auto",
       overflow: "visible"
     },
+    ".workflow.loading": {
+      cursor: "wait",
+      pointerEvents: "none" /* Disables all clicks */
+    },
+    ".loading-overlay": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      padding: "10px",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      zIndex: 10,
+      borderRadius: "4px",
+      backdropFilter: "blur(2px)",
+      boxShadow: `0 0 15px ${theme.palette.c_hl1}60`,
+      border: `1px solid ${theme.palette.c_hl1}80`
+    },
+    ".loading-text": {
+      color: theme.palette.c_hl1,
+      fontSize: "0.9rem",
+      marginTop: "12px",
+      textAlign: "center",
+      fontWeight: "bold",
+      textShadow: "0 1px 3px rgba(0,0,0,0.8)"
+    },
     ".workflow h4": {
       marginTop: "8px",
       marginBottom: "4px",
@@ -81,23 +112,26 @@ const styles = (theme: any) =>
       WebkitLineClamp: 3,
       overflow: "hidden",
       width: "100%",
-      transition: "opacity 0.2s ease, transform 0.2s ease",
       position: "relative",
       maxHeight: "4.5em",
-      marginBottom: "0.5em"
+      marginBottom: "0.5em",
+      backgroundColor: "transparent",
+      transition:
+        "color 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease"
     },
     ".workflow:hover .description": {
       WebkitLineClamp: "unset",
       position: "absolute",
       zIndex: 1,
-      width: "100%",
+      width: "calc(100% + 10px)",
       backgroundColor: theme.palette.background.default,
-      padding: "0 ",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
+      padding: "0 5px 1em 5px",
+      left: "-5px",
       borderRadius: "4px",
       maxHeight: "none",
       height: "auto",
       top: "100%",
-      transition: "opacity 0.3s ease, transform 0.3s ease",
       color: "#fff"
     },
     ".loading-indicator": {
@@ -271,6 +305,9 @@ const ExampleGrid = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
   const closePanel = usePanelStore((state) => state.closePanel);
+  const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     closePanel();
@@ -315,11 +352,26 @@ const ExampleGrid = () => {
 
   const onClickWorkflow = useCallback(
     async (workflow: Workflow) => {
-      const newWorkflow = await copyExampleWorkflow(workflow);
-      navigate("/editor/" + newWorkflow.id);
+      if (loadingWorkflowId) return; // Prevent multiple clicks
+
+      setLoadingWorkflowId(workflow.id);
+      try {
+        const newWorkflow = await copyExampleWorkflow(workflow);
+        navigate("/editor/" + newWorkflow.id);
+      } catch (error) {
+        console.error("Error copying workflow:", error);
+        setLoadingWorkflowId(null);
+      }
     },
-    [copyExampleWorkflow, navigate]
+    [copyExampleWorkflow, navigate, loadingWorkflowId]
   );
+
+  useEffect(() => {
+    return () => {
+      // Reset loading state when component unmounts (navigation occurs)
+      setLoadingWorkflowId(null);
+    };
+  }, []);
 
   const groupedWorkflows = useMemo(() => {
     if (!data) return {};
@@ -514,13 +566,24 @@ const ExampleGrid = () => {
           const matchedNodes = searchResult?.matches?.length
             ? searchResult.matches
             : [];
+          const isLoading = loadingWorkflowId === workflow.id;
 
           return (
             <Box
               key={workflow.id}
-              className="workflow"
+              className={`workflow ${isLoading ? "loading" : ""}`}
               onClick={() => onClickWorkflow(workflow)}
             >
+              {isLoading && (
+                <Fade in={true}>
+                  <Box className="loading-overlay">
+                    <CircularProgress size={40} color="secondary" />
+                    <Typography className="loading-text">
+                      Creating new workflow from example...
+                    </Typography>
+                  </Box>
+                </Fade>
+              )}
               <Box className="image-wrapper">
                 {workflow.thumbnail_url && (
                   <img
