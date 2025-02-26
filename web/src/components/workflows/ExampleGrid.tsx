@@ -49,8 +49,8 @@ const styles = (theme: any) =>
       flexWrap: "wrap",
       alignItems: "flex-start",
       overflowY: "auto",
-      padding: "15px",
-      gap: "1.5em"
+      padding: "15px 15px 100px 15px",
+      gap: ".5em"
     },
     ".workflow": {
       position: "relative",
@@ -92,7 +92,7 @@ const styles = (theme: any) =>
       zIndex: 1,
       width: "100%",
       backgroundColor: theme.palette.background.default,
-      padding: "0 0 1em 0",
+      padding: "0 ",
       borderRadius: "4px",
       maxHeight: "none",
       height: "auto",
