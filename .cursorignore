@@ -1,0 +1,14 @@
+build/
+dist/
+scripts/
+node_modules/
+docs/
+examples/
+src/comfy/
+src/comfy_custom_nodes/
+src/comfy_extras/
+src/RealESRGAN/
+electron/apps/build/
+electron/dist/
+electron/dist-web/
+electron/dist-electron/
