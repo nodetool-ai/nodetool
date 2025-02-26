@@ -73,6 +73,13 @@ const TabHeader = ({
       }`}
       onClick={() => onNavigate(workflow.id)}
       onDoubleClick={() => onDoubleClick(workflow.id)}
+      onMouseDown={(e) => {
+        // Middle mouse button (button 1)
+        if (e.button === 1) {
+          e.preventDefault();
+          onClose(workflow.id);
+        }
+      }}
       draggable={!isEditing}
       onDragStart={(e) => onDragStart(e, workflow.id)}
       onDragOver={handleDragOver}
