@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { encode, decode } from "@msgpack/msgpack";
-import { Message } from "../types/workflow";
+import { Message, ToolCall } from "../types/workflow";
 
 type ChatStatus =
   | "disconnected"
@@ -12,7 +12,7 @@ type ChatStatus =
 interface ChatState {
   status: ChatStatus;
   statusMessage: string;
-  messages: Message[];
+  messages: (Message | ToolCall)[];
   progress: { current: number; total: number };
   error: string | null;
   workflowId: string | null;
@@ -107,6 +107,16 @@ const useChatStore = create<ChatState>((set, get) => ({
         set({
           status: "loading",
           streamingMessage: get().streamingMessage + data.content,
+        });
+      } else if (data.type === "tool_call") {
+        set({
+          messages: [...get().messages, data.tool_call],
+        });
+      } else if (data.type === "tool_result") {
+        set({
+          messages: get().messages.map((message) =>
+            message.id === data.result.id ? data.result : message
+          ),
         });
       } else if (data.type === "node_progress") {
         if (data.chunk.length > 0) {

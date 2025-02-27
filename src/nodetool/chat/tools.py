@@ -342,8 +342,8 @@ class BrowserTool(Tool):
             "properties": {
                 "action": {
                     "type": "string",
-                    "description": "Action to perform: 'navigate', 'click', 'type', 'get_text', 'quit'",
-                    "enum": ["navigate", "click", "type", "get_text", "quit"],
+                    "description": "Action to perform: 'navigate', 'click', 'type', 'quit'",
+                    "enum": ["navigate", "click", "type", "quit"],
                 },
                 "url": {
                     "type": "string",
@@ -351,7 +351,7 @@ class BrowserTool(Tool):
                 },
                 "selector": {
                     "type": "string",
-                    "description": "CSS selector for the target element (for 'click', 'type', 'get_text' actions)",
+                    "description": "CSS selector for the target element (for 'click', 'type' actions)",
                 },
                 "text": {
                     "type": "string",
@@ -392,31 +392,43 @@ class BrowserTool(Tool):
                 if "url" not in params:
                     return {"error": "URL is required for navigate action"}
                 driver.get(params["url"])
-                return {"success": True, "url": params["url"]}
+                body = driver.find_element(By.TAG_NAME, "body")
+                return {"success": True, "url": params["url"], "body": body.text}
 
             elif action in ["click", "type", "get_text"]:
                 if "selector" not in params:
                     return {"error": "Selector is required for element actions"}
 
-                # Wait for element to be present
-                wait = WebDriverWait(driver, 10)
-                element = wait.until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, params["selector"])
+                try:
+                    # Wait for element to be present
+                    wait = WebDriverWait(driver, 10)
+                    elements = wait.until(
+                        EC.presence_of_all_elements_located(
+                            (By.CSS_SELECTOR, params["selector"])
+                        )
                     )
-                )
 
-                if action == "click":
-                    element.click()
-                    return {"success": True, "action": "click"}
-                elif action == "type":
-                    if "text" not in params:
-                        return {"error": "Text is required for type action"}
-                    element.clear()
-                    element.send_keys(params["text"])
-                    return {"success": True, "action": "type"}
-                elif action == "get_text":
-                    return {"text": element.text}
+                    if not elements:
+                        return {
+                            "error": f"No elements found matching selector: {params['selector']}"
+                        }
+
+                    if action == "click":
+                        elements[0].click()
+                        return {"success": True, "action": "click"}
+                    elif action == "type":
+                        if "text" not in params:
+                            return {"error": "Text is required for type action"}
+                        elements[0].clear()
+                        elements[0].send_keys(params["text"])
+                        return {"success": True, "action": "type"}
+                    elif action == "get_text":
+                        return {
+                            "text": [element.text for element in elements],
+                            "count": len(elements),
+                        }
+                except Exception as e:
+                    return {"error": f"Error interacting with element: {str(e)}"}
 
             return {"error": "Invalid action specified"}
 
@@ -965,7 +977,18 @@ def parse_email_message(msg_data: tuple) -> Dict[str, Any]:
 
     # Decode subject
     subject = decode_header(email_body["subject"])[0]
-    subject = subject[0].decode() if isinstance(subject[0], bytes) else str(subject[0])
+    if isinstance(subject[0], bytes):
+        # Try to decode with the specified charset, fall back to alternatives if that fails
+        charset = subject[1] or "utf-8"
+        try:
+            subject_text = subject[0].decode(charset)
+        except UnicodeDecodeError:
+            try:
+                subject_text = subject[0].decode("latin1")
+            except UnicodeDecodeError:
+                subject_text = subject[0].decode("utf-8", errors="replace")
+    else:
+        subject_text = str(subject[0])
 
     # Get body content
     body = ""
@@ -987,7 +1010,7 @@ def parse_email_message(msg_data: tuple) -> Dict[str, Any]:
 
     return {
         "id": msg_data[0][0].decode(),
-        "subject": subject,
+        "subject": subject_text,
         "from_address": email_body["from"],
         "to_address": email_body["to"],
         "date": email_body["date"],
