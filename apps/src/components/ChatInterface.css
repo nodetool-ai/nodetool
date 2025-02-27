@@ -1,10 +1,12 @@
 .chat-interface-container {
   background: transparent;
+  padding: 40px 10px 0 10px;
 }
 
 /* Chat interface semantic classes */
 .chat-container {
   display: flex;
+  padding: var(--chakra-space-4);
   background: transparent;
   flex-direction: column;
   height: 100%;
@@ -47,4 +49,75 @@
   border-radius: 5rem;
   margin: 1rem;
   width: calc(100% - 2rem);
+}
+
+/* Tool Call Styles */
+.tool-call-display {
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.tool-call-display:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tool-call-header {
+  display: flex;
+  align-items: center;
+}
+
+.tool-call-header::before {
+  content: "⚙️";
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.tool-call-section pre {
+  font-family: "Fira Code", monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.tool-call-section pre:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Animation for tool call expansion */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tool-call-content {
+  animation: slideDown 0.3s ease-out;
+}
+
+/* Status indicators */
+.tool-call-status {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-pending {
+  background-color: #f6ad55;
+}
+
+.status-completed {
+  background-color: #68d391;
+}
+
+.status-error {
+  background-color: #fc8181;
 }

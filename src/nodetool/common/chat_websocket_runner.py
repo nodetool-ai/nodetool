@@ -180,6 +180,8 @@ class ChatWebSocketRunner:
                         processing_context, chunk, selected_tools
                     )
 
+                    print(f"Tool result: {tool_result}")
+
                     # Add tool messages to unprocessed messages
                     unprocessed_messages.append(
                         Message(role="assistant", tool_calls=[chunk])

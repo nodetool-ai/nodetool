@@ -8,7 +8,7 @@ import "./ChatInterface.css";
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
 import { Button } from "./ui/button";
-import { MessageContent } from "../types/workflow";
+import { Message, MessageContent, ToolCall } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
@@ -50,6 +50,40 @@ const LoadingDots = styled.div`
       transform: scale(1);
     }
   }
+`;
+
+// New component to display tool calls
+const ToolCallDisplay = styled(Box)`
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-left: 3px solid #3182ce;
+`;
+
+const ToolCallHeader = styled(Flex)`
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const ToolCallName = styled(Text)`
+  font-weight: bold;
+  color: #3182ce;
+`;
+
+const ToolCallSection = styled(Box)`
+  margin-top: 8px;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+`;
+
+const ToolCallLabel = styled(Text)`
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #718096;
 `;
 
 const fileToData = async (file: File): Promise<Uint8Array> => {
@@ -165,105 +199,204 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     [key: string]: boolean;
   }>({});
 
-  const toggleThought = (messageIndex: number, thoughtIndex: number) => {
-    const key = `${messageIndex}-${thoughtIndex}`;
-    setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
+  // Add state for expanded tool calls
+  const [expandedToolCalls, setExpandedToolCalls] = useState<{
+    [key: string]: boolean;
+  }>({});
 
-    // Simulate loading time (remove this in production and replace with actual loading logic)
-    setTimeout(() => {
-      setExpandedThoughts((prev) => ({
-        ...prev,
-        [key]: !prev[key],
-      }));
-      setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
-    }, 500);
-  };
+  const toggleThought = useCallback(
+    (messageIndex: number, thoughtIndex: number) => {
+      const key = `${messageIndex}-${thoughtIndex}`;
+      setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
 
-  const renderMessageContent = (
-    content: MessageContent,
-    messageIndex: number,
-    contentIndex: number
-  ) => {
-    switch (content.type) {
-      case "text": {
-        const thoughtMatch = content.text?.match(
-          /<think>([\s\S]*?)(<\/think>|$)/s
-        );
-        if (thoughtMatch) {
-          const key = `${messageIndex}-${contentIndex}`;
-          const isExpanded = expandedThoughts[key];
-          const hasClosingTag = thoughtMatch[2] === "</think>";
-          const textBeforeThought = content.text.split("<think>")[0];
-          const textAfterThought = hasClosingTag
-            ? content.text.split("</think>").pop() || ""
-            : "";
+      // Simulate loading time (remove this in production and replace with actual loading logic)
+      setTimeout(() => {
+        setExpandedThoughts((prev) => ({
+          ...prev,
+          [key]: !prev[key],
+        }));
+        setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
+      }, 500);
+    },
+    []
+  );
 
-          return (
-            <>
-              {textBeforeThought && (
-                <ReactMarkdown>{textBeforeThought}</ReactMarkdown>
+  const toggleToolCall = useCallback((toolCallId: string) => {
+    setExpandedToolCalls((prev) => ({
+      ...prev,
+      [toolCallId]: !prev[toolCallId],
+    }));
+  }, []);
+  const renderToolCall = useCallback(
+    (toolCall: ToolCall) => {
+      return (
+        <ToolCallDisplay key={toolCall.id} className="tool-call-display">
+          <ToolCallHeader className="tool-call-header">
+            <ToolCallName>
+              <span
+                className={`tool-call-status ${toolCall.result ? "status-completed" : "status-pending"}`}
+              ></span>
+              {toolCall.name}
+            </ToolCallName>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => toggleToolCall(toolCall.id)}
+            >
+              {expandedToolCalls[toolCall.id] ? "Hide Details" : "Show Details"}
+            </Button>
+          </ToolCallHeader>
+
+          {expandedToolCalls[toolCall.id] && (
+            <div className="tool-call-content">
+              <ToolCallSection className="tool-call-section">
+                <ToolCallLabel>Arguments</ToolCallLabel>
+                <pre style={{ overflow: "auto", maxHeight: "200px" }}>
+                  {JSON.stringify(toolCall.args, null, 2)}
+                </pre>
+              </ToolCallSection>
+
+              {toolCall.result && Object.keys(toolCall.result).length > 0 && (
+                <ToolCallSection className="tool-call-section">
+                  <ToolCallLabel>Result</ToolCallLabel>
+                  <pre style={{ overflow: "auto", maxHeight: "200px" }}>
+                    {JSON.stringify(toolCall.result, null, 2)}
+                  </pre>
+                </ToolCallSection>
               )}
-              <Box>
-                <Button
-                  variant="outline"
-                  onClick={() => toggleThought(messageIndex, contentIndex)}
-                  _hover={{ textDecoration: "underline" }}
-                >
-                  {!hasClosingTag ? (
-                    <>
-                      Show thought
-                      <LoadingDots>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </LoadingDots>
-                    </>
-                  ) : (
-                    `${isExpanded ? "Hide thought" : "Show thought"}`
-                  )}
-                </Button>
-                {isExpanded && (
-                  <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
-                    <ReactMarkdown>{thoughtMatch[1]}</ReactMarkdown>
-                  </Box>
-                )}
-                {textAfterThought && (
-                  <ReactMarkdown>{textAfterThought}</ReactMarkdown>
-                )}
-              </Box>
-            </>
+            </div>
+          )}
+        </ToolCallDisplay>
+      );
+    },
+    [expandedToolCalls]
+  );
+
+  const renderMessageContent = useCallback(
+    (content: MessageContent, messageIndex: number, contentIndex: number) => {
+      switch (content.type) {
+        case "text": {
+          const thoughtMatch = content.text?.match(
+            /<think>([\s\S]*?)(<\/think>|$)/s
           );
+          if (thoughtMatch) {
+            const key = `${messageIndex}-${contentIndex}`;
+            const isExpanded = expandedThoughts[key];
+            const hasClosingTag = thoughtMatch[2] === "</think>";
+            const textBeforeThought = content.text.split("<think>")[0];
+            const textAfterThought = hasClosingTag
+              ? content.text.split("</think>").pop() || ""
+              : "";
+
+            return (
+              <>
+                {textBeforeThought && (
+                  <ReactMarkdown>{textBeforeThought}</ReactMarkdown>
+                )}
+                <Box>
+                  <Button
+                    variant="outline"
+                    onClick={() => toggleThought(messageIndex, contentIndex)}
+                    _hover={{ textDecoration: "underline" }}
+                  >
+                    {!hasClosingTag ? (
+                      <>
+                        Show thought
+                        <LoadingDots>
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </LoadingDots>
+                      </>
+                    ) : (
+                      `${isExpanded ? "Hide thought" : "Show thought"}`
+                    )}
+                  </Button>
+                  {isExpanded && (
+                    <Box ml={4} mt={2} p={2} bg="gray.700" borderRadius="md">
+                      <ReactMarkdown>{thoughtMatch[1]}</ReactMarkdown>
+                    </Box>
+                  )}
+                  {textAfterThought && (
+                    <ReactMarkdown>{textAfterThought}</ReactMarkdown>
+                  )}
+                </Box>
+              </>
+            );
+          }
+          return <ReactMarkdown>{content.text}</ReactMarkdown>;
         }
-        return <ReactMarkdown>{content.text}</ReactMarkdown>;
+        case "image_url":
+          return (
+            <div className="media-content">
+              <ImageDisplay
+                data={content.image.uri || (content.image.data as string)}
+              />
+            </div>
+          );
+        case "audio":
+          return (
+            <div className="media-content">
+              <AudioPlayer
+                data={content.audio.uri || (content.audio.data as string)}
+              />
+            </div>
+          );
+        case "video":
+          return (
+            <div className="media-content">
+              <VideoPlayer
+                data={content.video.uri || (content.video.data as string)}
+              />
+            </div>
+          );
+        default:
+          return null;
       }
-      case "image_url":
-        return (
-          <div className="media-content">
-            <ImageDisplay
-              data={content.image.uri || (content.image.data as string)}
-            />
-          </div>
-        );
-      case "audio":
-        return (
-          <div className="media-content">
-            <AudioPlayer
-              data={content.audio.uri || (content.audio.data as string)}
-            />
-          </div>
-        );
-      case "video":
-        return (
-          <div className="media-content">
-            <VideoPlayer
-              data={content.video.uri || (content.video.data as string)}
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+    },
+    [expandedThoughts]
+  );
+
+  const renderMessage = useCallback(
+    (msg: Message, index: number) => {
+      return (
+        <Box
+          key={index}
+          mb="4"
+          p="3"
+          borderRadius="md"
+          maxW="80%"
+          bg={
+            msg.role === "user"
+              ? "bg1"
+              : msg.role === "assistant"
+                ? "bg2"
+                : "transparent"
+          }
+          ml={msg.role === "user" ? "auto" : undefined}
+          mr={msg.role === "assistant" ? "auto" : undefined}
+          mx={msg.role === "system" ? "auto" : undefined}
+          opacity={msg.role === "system" ? 0.7 : 1}
+        >
+          {Array.isArray(msg.content)
+            ? msg.content.map((content, i) => (
+                <Box key={i} mt={i > 0 ? 2 : 0}>
+                  {renderMessageContent(content, index, i)}
+                </Box>
+              ))
+            : renderMessageContent(
+                {
+                  type: "text",
+                  text: msg.content as string,
+                },
+                index,
+                0
+              )}
+        </Box>
+      );
+    },
+    [renderMessageContent]
+  );
 
   const handleAudioChange = useCallback(
     async (audioRef: { type: "audio"; data: Uint8Array } | null) => {
@@ -293,41 +426,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     <Box h="100%">
       <Flex direction="column" h="calc(100% - 90px)" overflow="hidden">
         <Box flex="1" overflowY="auto">
-          {messages.map((msg, index) => (
-            <Box
-              key={index}
-              mb="4"
-              p="3"
-              borderRadius="md"
-              maxW="80%"
-              bg={
-                msg.role === "user"
-                  ? "bg1"
-                  : msg.role === "assistant"
-                    ? "bg2"
-                    : "transparent"
-              }
-              ml={msg.role === "user" ? "auto" : undefined}
-              mr={msg.role === "assistant" ? "auto" : undefined}
-              mx={msg.role === "system" ? "auto" : undefined}
-              opacity={msg.role === "system" ? 0.7 : 1}
-            >
-              {Array.isArray(msg.content)
-                ? msg.content.map((content, i) => (
-                    <Box key={i} mt={i > 0 ? 2 : 0}>
-                      {renderMessageContent(content, index, i)}
-                    </Box>
-                  ))
-                : renderMessageContent(
-                    {
-                      type: "text",
-                      text: msg.content as string,
-                    },
-                    index,
-                    0
-                  )}
-            </Box>
-          ))}
+          {messages.map((msg, index) => {
+            if (msg.type === "tool_call") {
+              return renderToolCall(msg as ToolCall);
+            }
+            return renderMessage(msg as Message, index);
+          })}
           {streamingMessage && (
             <Box mb="4" p="3" borderRadius="md" maxW="80%" bg="bg2" mr="auto">
               {renderMessageContent(

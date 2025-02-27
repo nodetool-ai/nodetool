@@ -129,6 +129,14 @@ export interface Message {
   created_at?: string | null;
 }
 
+export interface ToolCall {
+  type: string;
+  id: string;
+  name: string;
+  args: Record<string, any>;
+  result: Record<string, any>;
+}
+
 export interface ImageRef {
   type: "image";
   uri: string;
