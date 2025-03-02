@@ -57,7 +57,7 @@ async def create(
     user: User = Depends(current_user),
 ) -> Workflow:
     if workflow_request.graph:
-        workflow = Workflow.from_model(
+        workflow = from_model(
             WorkflowModel.create(
                 name=workflow_request.name,
                 description=workflow_request.description,
@@ -74,7 +74,7 @@ async def create(
             edges, nodes = read_graph(workflow_request.comfy_workflow)
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
-        workflow = Workflow.from_model(
+        workflow = from_model(
             WorkflowModel.create(
                 name=workflow_request.name,
                 description=workflow_request.description,
@@ -108,7 +108,7 @@ async def index(
         user_id=user.id, limit=limit, start_key=cursor, columns=column_list
     )
     return WorkflowList(
-        workflows=[Workflow.from_model(workflow) for workflow in workflows], next=cursor
+        workflows=[from_model(workflow) for workflow in workflows], next=cursor
     )
 
 
@@ -124,7 +124,7 @@ async def public(
         limit=limit, start_key=cursor, columns=column_list
     )
     return WorkflowList(
-        workflows=[Workflow.from_model(workflow) for workflow in workflows], next=cursor
+        workflows=[from_model(workflow) for workflow in workflows], next=cursor
     )
 
 
@@ -135,7 +135,7 @@ async def get_public_workflow(id: str) -> Workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     if workflow.access != "public":
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return Workflow.from_model(workflow)
+    return from_model(workflow)
 
 
 @router.get("/user/{user_id}")
@@ -150,7 +150,7 @@ async def user_workflows(
     workflows, cursor = WorkflowModel.paginate(
         user_id=user_id, limit=limit, start_key=cursor, columns=column_list
     )
-    workflows = [Workflow.from_model(workflow) for workflow in workflows]
+    workflows = [from_model(workflow) for workflow in workflows]
     return WorkflowList(workflows=workflows, next=cursor)
 
 
@@ -166,7 +166,7 @@ async def get_workflow(id: str, user: User = Depends(current_user)) -> Workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
     if workflow.access != "public" and workflow.user_id != user.id:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return Workflow.from_model(workflow)
+    return from_model(workflow)
 
 
 @router.put("/{id}")
@@ -193,7 +193,7 @@ async def update_workflow(
     workflow.settings = workflow_request.settings
     workflow.updated_at = datetime.now()
     workflow.save()
-    updated_workflow = Workflow.from_model(workflow)
+    updated_workflow = from_model(workflow)
 
     return updated_workflow
 

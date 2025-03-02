@@ -213,17 +213,8 @@ def recommended(
     namespace: str = typer.Argument(..., help="Namespace to download models for")
 ):
     """Download recommended models from Hugging Face"""
-    import nodetool.nodes.anthropic
-    import nodetool.nodes.chroma
-    import nodetool.nodes.comfy
-    import nodetool.nodes.huggingface
-    import nodetool.nodes.nodetool
-    import nodetool.nodes.openai
-    import nodetool.nodes.replicate
-    import nodetool.nodes.ollama
-
+    # RODO
     client = RunPodClient()
-    node_classes = get_registered_node_classes()
     models = {}
     for node_class in node_classes:
         if node_class.__module__.startswith(f"nodetool.nodes.{namespace}"):

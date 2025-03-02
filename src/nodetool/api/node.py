@@ -7,7 +7,7 @@ from nodetool.types.job import (
     JobUpdate,
 )
 from nodetool.types.prediction import Prediction
-from nodetool.metadata.node_metadata import NodeMetadata, load_node_metadata
+from nodetool.metadata.node_metadata import NodeMetadata
 from nodetool.metadata.types import (
     AssetRef,
     DocumentRef,
@@ -73,6 +73,7 @@ from nodetool.metadata.types import (
 from nodetool.workflows.base_node import get_node_class, get_registered_node_classes
 from nodetool.common.environment import Environment
 from nodetool.workflows.types import NodeProgress, NodeUpdate
+from nodetool.packages.registry import Registry
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/nodes", tags=["nodes"])
@@ -160,9 +161,15 @@ async def dummy() -> UnionType:
 @router.get("/metadata")
 async def metadata() -> list[NodeMetadata]:
     """
-    Returns a list of all node metadata.
+    Returns a list of installed nodes.
     """
-    return load_node_metadata()
+    registry = Registry()
+    installed_packages = registry.list_installed_packages()
+    nodes = []
+    for package in installed_packages:
+        if package.nodes:
+            nodes.extend(package.nodes)
+    return nodes
 
 
 @router.get("/replicate_status")
