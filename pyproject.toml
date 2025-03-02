@@ -8,160 +8,18 @@ version = "0.6.0"
 description = "Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
-packages = [
-  { include = "nodetool", from = "src" },
-  { include = "comfy", from = "src" },
-  { include = "comfy_custom_nodes", from = "src" },
-  { include = "comfy_extras", from = "src" },
-  { include = "RealESRGAN", from = "src" },
-  { include = "folder_paths.py", from = "src" },
-  { include = "latent_preview.py", from = "src" },
-  { include = "node_helpers.py", from = "src" },
-  { include = "nodes.py", from = "src" },
-]
+packages = [{ include = "nodetool", from = "src" }]
 package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
-# Core dependencies
 fastapi = "0.115.5"
-pydantic = "2.9.2"
 uvicorn = "0.32.0"
 python-multipart = "0.0.17"
 aiohttp = "3.11.2"
 websockets = "14.1"
+nodetool-core = { git = "https://github.com/nodetool-ai/nodetool-core.git", rev = "main" }
 
-# Utils dependencies
-black = "24.10.0"
-cryptography = "*"
-filelock = "3.16.1"
-importlib_metadata = "*"
-importlib-resources = "*"
-jsonschema = "*"
-psutil = "6.1.0"
-pynvml = "12.0.0"
-python-dateutil = "2.9.0.post0"
-pyyaml = "6.0.2"
-tqdm = "4.67.0"
-
-# AI dependencies
-anthropic = "0.39.0"
-huggingface_hub = "0.26.2"
-langchain-text-splitters = "0.3.4"
-llama-index = "0.12.13"
-llama-index-embeddings-ollama = "0.5.0"
-openai = "1.54.4"
-
-# Media dependencies
-av = "13.1.0"
-cairosvg = "2.7.1"
-ffmpeg-python = "0.2.0"
-imageio = "2.36.0"
-librosa = "0.10.2.post1"
-moviepy = "1.0.3"
-opencv-python-headless = "4.10.0.84"
-pedalboard = "0.9.16"
-pillow = "11.0.0"
-pydub = "0.25.1"
-
-# Document processing dependencies
-bs4 = "0.0.2"
-python-docx = "1.1.2"
-pdfplumber = "0.11.4"
-paddleocr = "*"
-paddlepaddle = "*"
-PyMuPDF = "1.25.2"
-pymupdf4llm = "0.0.17"
-pytesseract = "0.3.13"
-
-# Data dependencies
-numpy = "1.26.4"
-pandas = "2.2.3"
-matplotlib = "3.9.2"
-seaborn = "0.13.2"
-chromadb = "0.6.3"
-aiofiles = "24.1.0"
-annotated-types = "0.7.0"
-authlib = "1.3.2"
-boto3 = "1.35.63"
-click = "8.1.7"
-einops = "0.8.0"
-fal-client = "0.5.6"
-feedparser = "6.0.11"
-freezegun = "1.5.1"
-ftfy = "6.3.1"
-fvcore = "0.1.5.post20221221"
-httpx = "0.27.2"
-imapclient = "3.0.1"
-itsdangerous = "*"
-joblib = "*"
-jsonpath-ng = "*"
-jwt = "*"
-markitdown = "0.0.1a3"
-msgpack = "1.1.0"
-ollama = "0.4.7"
-omegaconf = "2.3.0"
-openapi-pydantic = "*"
-openpyxl = "3.1.5"
-plyer = "2.1.0"
-protobuf = "*"
-psycopg2-binary = "2.9.10"
-pypandoc = "1.14.0"
-pyperclip = "1.9.0"
-pymemcache = "4.0.0"
-pyngrok = "7.2.1"
-pyobjc = { version = "11.0.0", markers = "sys_platform == 'darwin'" }
-replicate = "1.0.3"
-respx = "0.21.1"
-runpod = "1.7.6"
-selenium = "4.26.1"
-setuptools = "75.1.0"
-svglib = "1.5.1"
-tiktoken = "0.8.0"
-trimesh = "3.21.1"
-websocket-client = "1.8.0"
-wheel = "0.44.0"
-yacs = "0.1.8"
-yapf = "0.40.2"
-zipp = "3.21.0"
-
-[tool.poetry.group.ai]
-optional = true
-
-[tool.poetry.group.ai.dependencies]
-accelerate = "1.1.1"
-datasets = "3.1.0"
-diffusers = { extras = ["torch"], version = "0.32.2" }
-google-generativeai = "0.8.3"
-onnxruntime = "1.20.0"
-peft = "0.13.2"
-sam2 = "0.4.1"
-safetensors = "0.4.5"
-sentence-transformers = "3.3.0"
-sentencepiece = "0.2.0"
-spandrel = "0.4.0"
-torch = "2.4.1"
-torchaudio = "2.4.1"
-torchvision = "0.19.1"
-transformers = "4.48.1"
-torchsde = "0.2.6"
-addict = "2.4.0"
-kornia = "0.7.4"
-open-clip-torch = "2.29.0"
-
-[tool.poetry.group.document_processing]
-optional = true
-
-[tool.poetry.group.document_processing.dependencies]
-paddlepaddle = "*"
-
-[tool.poetry.group.data_science.dependencies]
-scikit-learn = "1.5.2"
-scikit-image = "0.24.0"
-scipy = "1.14.1"
-statsmodels = "0.14.4"
-
-[tool.poetry.group.utils.dependencies]
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
 export-reqs = "scripts.export_requirements:export_requirements"

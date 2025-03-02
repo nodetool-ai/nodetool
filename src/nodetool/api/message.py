@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 
 from datetime import datetime
-from typing import AsyncGenerator, Optional
-from ollama import ChatResponse
+from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
 from nodetool.chat.help import create_help_answer
-from nodetool.chat.tools import Tool
 from nodetool.metadata.types import Message
 from nodetool.models.message import Message as MessageModel
 from nodetool.common.environment import Environment
 
 from nodetool.models.thread import Thread
-from nodetool.models.workflow import Workflow
 from nodetool.types.chat import MessageCreateRequest, MessageList
-import os
 
-from nodetool.workflows.processing_context import ProcessingContext
 
 from fastapi.responses import StreamingResponse
 import json

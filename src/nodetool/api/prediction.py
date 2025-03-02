@@ -22,6 +22,30 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
 
+def from_model(prediction: PredictionModel):
+    return Prediction(
+        id=prediction.id,
+        user_id=prediction.user_id,
+        node_id=prediction.node_id,
+        workflow_id=prediction.workflow_id,
+        provider=prediction.provider,
+        model=prediction.model,
+        status=prediction.status,
+        logs=prediction.logs,
+        error=prediction.error,
+        duration=prediction.duration,
+        created_at=(
+            prediction.created_at.isoformat() if prediction.created_at else None
+        ),
+        started_at=(
+            prediction.started_at.isoformat() if prediction.started_at else None
+        ),
+        completed_at=(
+            prediction.completed_at.isoformat() if prediction.completed_at else None
+        ),
+    )
+
+
 @router.get("/")
 async def index(
     cursor: Optional[str] = None,
@@ -40,7 +64,7 @@ async def index(
         start_key=cursor,
     )
 
-    predictions = [Prediction.from_model(p) for p in predictions]
+    predictions = [from_model(p) for p in predictions]
 
     return PredictionList(next=next_cursor, predictions=predictions)
 
@@ -50,7 +74,7 @@ async def get(id: str, user: User = Depends(current_user)) -> Prediction:
     pred = PredictionModel.find(user.id, id)
     if pred is None:
         raise HTTPException(status_code=404, detail="Prediction not found")
-    return Prediction.from_model(pred)
+    return from_model(pred)
 
 
 @router.post("/")
@@ -63,4 +87,4 @@ async def create(req: PredictionCreateRequest, user: User = Depends(current_user
         provider=req.provider.value,
         started_at=datetime.now(),
     )
-    return Prediction.from_model(prediction)
+    return from_model(prediction)

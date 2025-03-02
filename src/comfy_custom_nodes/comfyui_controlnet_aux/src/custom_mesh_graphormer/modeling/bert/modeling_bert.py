@@ -1,1 +1,0 @@
-from transformers.models.bert.modeling_bert import *

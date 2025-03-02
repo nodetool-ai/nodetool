@@ -27,6 +27,19 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 
+def from_model(job: JobModel):
+    return Job(
+        id=job.id,
+        job_type=job.job_type,
+        status=job.status,
+        workflow_id=job.workflow_id,
+        started_at=job.started_at.isoformat(),
+        finished_at=job.finished_at.isoformat() if job.finished_at else None,
+        error=job.error,
+        cost=job.cost,
+    )
+
+
 @router.get("/{id}")
 async def get(id: str, user: User = Depends(current_user)) -> Job:
     """
@@ -39,7 +52,7 @@ async def get(id: str, user: User = Depends(current_user)) -> Job:
         if job.user_id != user.id:
             raise HTTPException(status_code=403, detail="Forbidden")
         else:
-            return Job.from_model(job)
+            return from_model(job)
 
 
 @router.get("/")
@@ -59,7 +72,7 @@ async def index(
         user_id=user.id, workflow_id=workflow_id, limit=page_size, start_key=cursor
     )
 
-    return JobList(next=next_cursor, jobs=[Job.from_model(job) for job in jobs])
+    return JobList(next=next_cursor, jobs=[from_model(job) for job in jobs])
 
 
 @router.put("/{id}")
@@ -77,7 +90,7 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
             job.status = req.status
             job.error = req.error
             job.save()
-            return Job.from_model(job)
+            return from_model(job)
 
 
 @router.post("/")
