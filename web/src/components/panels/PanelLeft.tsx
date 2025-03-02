@@ -21,6 +21,9 @@ import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome";
 import { Fullscreen } from "@mui/icons-material";
+import NodeMenu from "../node_menu/NodeMenu";
+import PackageList from "../packages/PackageList";
+import { Extension } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
@@ -248,6 +251,20 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ChatIcon />
         </IconButton>
       </Tooltip>
+      <Tooltip
+        title="Packages"
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          className={`toolbar-button ${
+            activeView === "packages" ? "active" : ""
+          }`}
+          onClick={() => onViewChange("packages")}
+        >
+          <Extension />
+        </IconButton>
+      </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
       <Tooltip title="Close Panel" placement="right">
@@ -318,6 +335,19 @@ const PanelContent = memo(function PanelContent({
         >
           <h3>Collections</h3>
           <CollectionList />
+        </Box>
+      )}
+      {activeView === "packages" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto",
+            margin: "0 20px"
+          }}
+        >
+          <h3>Packages</h3>
+          <PackageList />
         </Box>
       )}
     </>
