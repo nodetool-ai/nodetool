@@ -17,10 +17,37 @@ import base64
 from nodetool.workflows.http_stream_runner import HTTPStreamRunner
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
-
+from nodetool.types.graph import Graph, get_input_schema, get_output_schema
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
+
+
+def find_thumbnail(workflow: WorkflowModel) -> str | None:
+    if workflow.thumbnail:
+        return Environment.get_asset_storage().get_url(workflow.thumbnail)
+    else:
+        return None
+
+
+def from_model(workflow: WorkflowModel):
+    api_graph = workflow.get_api_graph()
+
+    return Workflow(
+        id=workflow.id,
+        access=workflow.access,
+        created_at=workflow.created_at.isoformat(),
+        updated_at=workflow.updated_at.isoformat(),
+        name=workflow.name,
+        tags=workflow.tags,
+        description=workflow.description or "",
+        thumbnail=workflow.thumbnail or "",
+        thumbnail_url=find_thumbnail(workflow),
+        graph=api_graph,
+        input_schema=get_input_schema(api_graph),
+        output_schema=get_output_schema(api_graph),
+        settings=workflow.settings,
+    )
 
 
 @router.post("/")

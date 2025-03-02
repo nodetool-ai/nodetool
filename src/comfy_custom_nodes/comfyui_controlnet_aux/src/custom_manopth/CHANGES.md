@@ -1,1 +1,0 @@
-* Chumpy is removed

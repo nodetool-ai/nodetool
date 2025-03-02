@@ -41,12 +41,15 @@ def worker(
 ):
     """Serve the Nodetool API server."""
 
-    import comfy.cli_args
-    import comfy.model_management
-    import comfy.utils
-    from nodes import init_extra_nodes
+    try:
+        import comfy.cli_args  # type: ignore
+        import comfy.model_management  # type: ignore
+        import comfy.utils  # type: ignore
+        from nodes import init_extra_nodes  # type: ignore
 
-    comfy.cli_args.args.force_fp16 = force_fp16
+        comfy.cli_args.args.force_fp16 = force_fp16
+    except ImportError:
+        pass
 
     app = "nodetool.api.worker:app"
 
@@ -94,9 +97,13 @@ def serve(
 ):
     """Serve the Nodetool API server."""
 
-    import comfy.cli_args
+    try:
+        import comfy.cli_args  # type: ignore
 
-    comfy.cli_args.args.force_fp16 = force_fp16
+        comfy.cli_args.args.force_fp16 = force_fp16
+    except ImportError:
+        pass
+
     Environment.set_remote_auth(remote_auth)
 
     if worker_url:
@@ -115,67 +122,6 @@ def serve(
         if apps_folder:
             raise Exception("apps folder and reload are exclusive options")
         app = "nodetool.api.app:app"
-
-    vite_process = None
-
-    def cleanup(signum, frame):
-        if vite_process:
-            try:
-                log.info("Shutting down Vite development server...")
-                if os.name == "nt":  # Windows
-                    subprocess.run(
-                        ["taskkill", "/F", "/T", "/PID", str(vite_process.pid)]
-                    )
-                else:  # Unix
-                    os.killpg(os.getpgid(vite_process.pid), signal.SIGTERM)
-                vite_process.wait(timeout=5)  # Wait up to 5 seconds for clean shutdown
-            except Exception as e:
-                log.error(f"Error shutting down Vite server: {e}")
-                # Force kill if graceful shutdown fails
-                try:
-                    if os.name == "nt":
-                        subprocess.run(
-                            ["taskkill", "/F", "/T", "/PID", str(vite_process.pid)]
-                        )
-                    else:
-                        os.killpg(os.getpgid(vite_process.pid), signal.SIGKILL)
-                except:
-                    pass
-            sys.exit(0)
-
-    # Register signal handlers
-    signal.signal(signal.SIGINT, cleanup)
-    signal.signal(signal.SIGTERM, cleanup)
-
-    if with_ui:
-        web_dir = os.path.join(os.path.dirname(__file__), "..", "..", "web")
-        log.info(f"Starting Vite development server in {web_dir}")
-
-        # Determine the npm command based on OS
-        npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
-
-        # Add CREATE_NO_WINDOW flag on Windows to avoid the terminate prompt
-        creation_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
-
-        # Start process in its own process group
-        vite_process = subprocess.Popen(
-            [npm_cmd, "run", "start"],
-            cwd=web_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            bufsize=1,
-            universal_newlines=True,
-            preexec_fn=(None if os.name == "nt" else os.setsid),
-            creationflags=creation_flags,  # Add creation flags
-        )
-
-        # Start threads to log stdout and stderr
-        Thread(
-            target=log_stream, args=(vite_process.stdout, "Vite"), daemon=True
-        ).start()
-        Thread(
-            target=log_stream, args=(vite_process.stderr, "Vite Error"), daemon=True
-        ).start()
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 

@@ -17,6 +17,24 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
+def from_model(task: TaskModel):
+    return Task(
+        id=task.id,
+        user_id=task.user_id,
+        task_type=task.task_type,
+        thread_id=task.thread_id,
+        status=task.status,
+        name=task.name,
+        instructions=task.instructions,
+        dependencies=task.dependencies,
+        started_at=task.started_at.isoformat(),
+        finished_at=task.finished_at.isoformat() if task.finished_at else None,
+        error=task.error,
+        result=task.result,
+        cost=task.cost,
+    )
+
+
 @router.get("/")
 async def index(
     thread_id: str,

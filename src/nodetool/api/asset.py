@@ -30,6 +30,34 @@ from nodetool.common.media_utils import (
     get_video_duration,
 )
 
+
+def from_model(asset: AssetModel):
+    storage = Environment.get_asset_storage()
+    if asset.content_type != "folder":
+        get_url = storage.get_url(asset.file_name)
+    else:
+        get_url = None
+
+    if asset.has_thumbnail:
+        thumb_url = storage.get_url(asset.thumb_file_name)
+    else:
+        thumb_url = None
+
+    return Asset(
+        id=asset.id,
+        user_id=asset.user_id,
+        workflow_id=asset.workflow_id,
+        parent_id=asset.parent_id,
+        name=asset.name,
+        content_type=asset.content_type,
+        metadata=asset.metadata,
+        created_at=asset.created_at.isoformat(),
+        get_url=get_url,
+        thumb_url=thumb_url,
+        duration=asset.duration,
+    )
+
+
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/assets", tags=["assets"])
 
@@ -60,7 +88,7 @@ async def index(
         start_key=cursor,
     )
 
-    assets = [Asset.from_model(asset) for asset in assets]
+    assets = [from_model(asset) for asset in assets]
 
     return AssetList(next=next_cursor, assets=assets)
 
@@ -86,7 +114,7 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
     if asset is None:
         log.info("Asset not found: %s", id)
         raise HTTPException(status_code=404, detail="Asset not found")
-    return Asset.from_model(asset)
+    return from_model(asset)
 
 
 @router.put("/{id}")
@@ -115,7 +143,8 @@ async def update(
         await storage.upload(asset.file_name, BytesIO(req.data.encode("utf-8")))
 
     asset.save()
-    return Asset.from_model(asset)
+    return from_model(asset)
+
 
 @router.delete("/{id}")
 async def delete(id: str, user: User = Depends(current_user)):
@@ -138,13 +167,12 @@ async def delete(id: str, user: User = Depends(current_user)):
         log.exception(f"Asset deletion failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error deleting asset: {str(e)}")
 
+
 async def delete_folder(user_id: str, folder_id: str) -> List[str]:
     deleted_asset_ids = []
     try:
         assets, next_cursor = AssetModel.paginate(
-            user_id=user_id,
-            parent_id=folder_id,
-            limit=10000
+            user_id=user_id, parent_id=folder_id, limit=10000
         )
         # Delete children first
         for index, asset in enumerate(assets, 1):
@@ -154,7 +182,7 @@ async def delete_folder(user_id: str, folder_id: str) -> List[str]:
             else:
                 await delete_single_asset(asset)
                 deleted_asset_ids.append(asset.id)
-        
+
         # Delete folder
         folder = AssetModel.find(user_id, folder_id)
         if folder:
@@ -165,8 +193,11 @@ async def delete_folder(user_id: str, folder_id: str) -> List[str]:
         log.info(f"Total assets deleted: {len(deleted_asset_ids)}")
         return deleted_asset_ids
     except Exception as e:
-        log.exception(f"Error in delete_folder function for folder {folder_id}: {str(e)}")
+        log.exception(
+            f"Error in delete_folder function for folder {folder_id}: {str(e)}"
+        )
         raise
+
 
 async def delete_single_asset(asset: AssetModel):
     try:
@@ -181,8 +212,11 @@ async def delete_single_asset(asset: AssetModel):
         except Exception as e:
             log.warning(f"Error deleting file for asset {asset.id}: {e}")
     except Exception as e:
-        log.exception(f"Error in delete_single_asset function for asset {asset.id}: {str(e)}")
+        log.exception(
+            f"Error in delete_single_asset function for asset {asset.id}: {str(e)}"
+        )
         raise
+
 
 @router.post("/")
 async def create(
@@ -242,7 +276,7 @@ async def create(
             asset.delete()
         raise HTTPException(status_code=500, detail="Error uploading asset")
 
-    return Asset.from_model(asset)
+    return from_model(asset)
 
 
 @router.post("/download")
@@ -348,4 +382,3 @@ async def get_assets_recursive(folder_id: str, user: User = Depends(current_user
     """
     assets = AssetModel.get_assets_recursive(user.id, folder_id)
     return assets
-
