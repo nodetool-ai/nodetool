@@ -142,21 +142,6 @@ def load_example_jsons(directory):
     return examples
 
 
-def load_metadata_json():
-    """
-    Load and parse the nodes metadata JSON file.
-
-    Returns:
-        dict: Parsed JSON object or None if file cannot be read
-    """
-    try:
-        with open("src/nodetool/metadata/nodes.json", "r") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading nodes metadata: {e}")
-        return None
-
-
 def build_context_message(examples, nodes_metadata=None):
     """
     Build a context string from the provided example JSON objects and nodes metadata.
