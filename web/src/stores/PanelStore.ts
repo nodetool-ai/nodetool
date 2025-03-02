@@ -5,7 +5,12 @@
 
 import { create } from "zustand";
 
-export type LeftPanelView = "chat" | "assets" | "workflowGrid" | "collections";
+export type LeftPanelView =
+  | "chat"
+  | "assets"
+  | "workflowGrid"
+  | "collections"
+  | "packages";
 export type PanelView = LeftPanelView;
 
 interface PanelState {

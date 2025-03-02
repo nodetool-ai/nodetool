@@ -461,7 +461,7 @@ export interface paths {
         };
         /**
          * Metadata
-         * @description Returns a list of all node metadata.
+         * @description Returns a list of installed nodes.
          */
         get: operations["metadata_api_nodes_metadata_get"];
         put?: never;
@@ -917,6 +917,146 @@ export interface paths {
         put?: never;
         /** Index */
         post: operations["index_api_collections__name__index_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Available Packages
+         * @description List all available packages from the registry.
+         */
+        get: operations["list_available_packages_api_packages_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/installed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Installed Packages
+         * @description List all installed packages.
+         */
+        get: operations["list_installed_packages_api_packages_installed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/info/{repo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Package Info
+         * @description Get information about a package from the registry.
+         */
+        get: operations["get_package_info_api_packages_info__repo_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/metadata/{repo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Package Metadata
+         * @description Get metadata for an installed package.
+         */
+        get: operations["get_package_metadata_api_packages_metadata__repo_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Install Package
+         * @description Install a package from the registry.
+         */
+        post: operations["install_package_api_packages_install_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/{repo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Uninstall Package
+         * @description Uninstall a package.
+         */
+        delete: operations["uninstall_package_api_packages__repo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Update Package
+         * @description Update an installed package.
+         */
+        post: operations["update_package_api_packages_update_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2369,6 +2509,13 @@ export interface components {
             /** Error */
             error?: string | null;
         };
+        /** InstalledPackageListResponse */
+        InstalledPackageListResponse: {
+            /** Packages */
+            packages: components["schemas"]["PackageModel"][];
+            /** Count */
+            count: number;
+        };
         /** Job */
         Job: {
             /** Id */
@@ -2577,7 +2724,6 @@ export interface components {
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Created At */
             created_at?: string | null;
-            workflow?: components["schemas"]["Workflow-Input"] | null;
         };
         /** MessageDocumentContent */
         MessageDocumentContent: {
@@ -2934,6 +3080,90 @@ export interface components {
             stream: boolean;
         };
         /**
+         * PackageInfo
+         * @description Package information model for nodetool.
+         *     This is the model for the package index in the registry.
+         */
+        PackageInfo: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /**
+             * Repo Id
+             * @description Repository ID in the format <owner>/<project>
+             */
+            repo_id: string;
+            /**
+             * Namespaces
+             * @description Namespaces provided by this package
+             */
+            namespaces?: string[];
+        };
+        /** PackageInstallRequest */
+        PackageInstallRequest: {
+            /**
+             * Repo Id
+             * @description Repository ID in the format <owner>/<project>
+             */
+            repo_id: string;
+        };
+        /** PackageListResponse */
+        PackageListResponse: {
+            /** Packages */
+            packages: components["schemas"]["PackageInfo"][];
+            /** Count */
+            count: number;
+        };
+        /**
+         * PackageModel
+         * @description Metadata model for a node package.
+         */
+        PackageModel: {
+            /**
+             * Name
+             * @description Unique name of the package
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the package and its functionality
+             */
+            description: string;
+            /**
+             * Version
+             * @description Version of the package (semver format)
+             */
+            version: string;
+            /**
+             * Authors
+             * @description Authors of the package
+             */
+            authors: string[];
+            /**
+             * Namespaces
+             * @description Namespaces provided by this package
+             */
+            namespaces?: string[];
+            /**
+             * Repo Id
+             * @description Repository ID in the format <owner>/<project>
+             */
+            repo_id: string;
+            /**
+             * Nodes
+             * @description List of nodes provided by this package
+             */
+            nodes?: components["schemas"]["NodeMetadata"][] | null;
+        };
+        /** PackageResponse */
+        PackageResponse: {
+            /** Success */
+            success: boolean;
+            /** Message */
+            message: string;
+        };
+        /**
          * Prediction
          * @description A prediction made by a remote model.
          */
@@ -3015,6 +3245,19 @@ export interface components {
         /**
          * Property
          * @description Property of a node.
+         *
+         *     This class represents a property of a node with type information, constraints,
+         *     and metadata. It can be used to generate JSON schema and can be created from
+         *     a Pydantic field.
+         *
+         *     Attributes:
+         *         name: The name of the property
+         *         type: Type metadata for the property
+         *         default: Default value for the property, if any
+         *         title: Human-readable title for the property
+         *         description: Detailed description of the property
+         *         min: Minimum allowed value for numeric properties
+         *         max: Maximum allowed value for numeric properties
          */
         Property: {
             /** Name */
@@ -3048,7 +3291,23 @@ export interface components {
              */
             downloaded: boolean;
         };
-        /** RunJobRequest */
+        /**
+         * RunJobRequest
+         * @description A request model for running a workflow.
+         *
+         *     Attributes:
+         *         type: The type of request, always "run_job_request".
+         *         job_type: The type of job to run, defaults to "workflow".
+         *         params: Optional parameters for the job.
+         *         messages: Optional list of messages associated with the job.
+         *         workflow_id: The ID of the workflow to run.
+         *         user_id: The ID of the user making the request.
+         *         auth_token: Authentication token for the request.
+         *         api_url: Optional API URL to use for the job.
+         *         env: Optional environment variables for the job.
+         *         graph: Optional graph data for the job.
+         *         explicit_types: Whether to use explicit types, defaults to False.
+         */
         RunJobRequest: {
             /**
              * Type
@@ -3094,7 +3353,10 @@ export interface components {
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
-            /** Params */
+            /**
+             * Params
+             * @default {}
+             */
             params: Record<string, never>;
         };
         /**
@@ -3130,57 +3392,57 @@ export interface components {
         SecretsModel: {
             /**
              * Openai Api Key
-             * @description OpenAI API key
+             * @description OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services
              */
             OPENAI_API_KEY?: string | null;
             /**
              * Anthropic Api Key
-             * @description ANTHROPIC API key
+             * @description Anthropic API key for accessing Claude models and other Anthropic services
              */
             ANTHROPIC_API_KEY?: string | null;
             /**
              * Hf Token
-             * @description Hugging Face Token
+             * @description Hugging Face Token for accessing gated or private models on the Hugging Face Hub
              */
             HF_TOKEN?: string | null;
             /**
              * Replicate Api Token
-             * @description Replicate API Token
+             * @description Replicate API Token for running models on Replicate's cloud infrastructure
              */
             REPLICATE_API_TOKEN?: string | null;
             /**
              * Aime User
-             * @description Aime user
+             * @description Aime user credential for authentication with Aime services
              */
             AIME_USER?: string | null;
             /**
              * Aime Api Key
-             * @description Aime API key
+             * @description Aime API key for accessing Aime AI services
              */
             AIME_API_KEY?: string | null;
             /**
              * Google Mail User
-             * @description Google mail user
+             * @description Google mail user for email integration features
              */
             GOOGLE_MAIL_USER?: string | null;
             /**
              * Google App Password
-             * @description Google app password
+             * @description Google app password for secure authentication with Google services
              */
             GOOGLE_APP_PASSWORD?: string | null;
             /**
              * Gemini Api Key
-             * @description Gemini API key
+             * @description Gemini API key for accessing Google's Gemini AI models
              */
             GEMINI_API_KEY?: string | null;
             /**
              * Elevenlabs Api Key
-             * @description ElevenLabs API key
+             * @description ElevenLabs API key for high-quality text-to-speech services
              */
             ELEVENLABS_API_KEY?: string | null;
             /**
              * Fal Api Key
-             * @description FAL API key
+             * @description FAL API key for accessing FAL.ai's serverless AI infrastructure
              */
             FAL_API_KEY?: string | null;
         };
@@ -3188,17 +3450,17 @@ export interface components {
         SettingsModel: {
             /**
              * Font Path
-             * @description Location of font folder
+             * @description Location of font folder used by image processing nodes like RenderText. This should point to a directory containing TrueType (.ttf) or OpenType (.otf) fonts. If not specified, the system will use default fonts.
              */
             FONT_PATH?: string | null;
             /**
              * Comfy Folder
-             * @description Location of ComfyUI folder
+             * @description Location of ComfyUI folder for integration with ComfyUI models and workflows. Set this to use models from your existing ComfyUI installation. This allows nodetool to access and use models, checkpoints, and other resources from your ComfyUI setup without duplicating files.
              */
             COMFY_FOLDER?: string | null;
             /**
              * Chroma Path
-             * @description Location of ChromaDB folder
+             * @description Location of ChromaDB folder for vector database storage. ChromaDB is used to store and retrieve embeddings for semantic search and RAG applications. This can be any folder path - ChromaDB will create and manage the storage automatically. In Docker deployments, this path is mounted as a volume to persist data between container restarts.
              */
             CHROMA_PATH?: string | null;
         };
@@ -3501,55 +3763,7 @@ export interface components {
             format?: string | null;
         };
         /** Workflow */
-        "Workflow-Input": {
-            /** Id */
-            id: string;
-            /**
-             * User Id
-             * @default
-             */
-            user_id: string;
-            /**
-             * Access
-             * @default private
-             */
-            access: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at?: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at?: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /** Tags */
-            tags?: string[] | null;
-            /**
-             * Description
-             * @default
-             */
-            description: string | null;
-            /** Thumbnail */
-            thumbnail?: string | null;
-            /** Graph */
-            graph?: Record<string, never>;
-            /** Settings */
-            settings?: Record<string, never> | null;
-            /**
-             * Receive Clipboard
-             * @default false
-             */
-            receive_clipboard: boolean | null;
-        };
-        /** Workflow */
-        "Workflow-Output": {
+        Workflow: {
             /** Id */
             id: string;
             /** Access */
@@ -3583,7 +3797,7 @@ export interface components {
             /** Next */
             next: string | null;
             /** Workflows */
-            workflows: components["schemas"]["Workflow-Output"][];
+            workflows: components["schemas"]["Workflow"][];
         };
         /** WorkflowRef */
         WorkflowRef: {
@@ -4896,7 +5110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Workflow-Output"];
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
@@ -4960,7 +5174,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Workflow-Output"];
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
@@ -5050,7 +5264,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Workflow-Output"];
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
@@ -5089,7 +5303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Workflow-Output"];
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
@@ -5141,15 +5355,11 @@ export interface operations {
     save_example_workflow_api_workflows_examples__id__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -5163,7 +5373,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Workflow-Output"];
+                    "application/json": components["schemas"]["Workflow"];
                 };
             };
             /** @description Validation Error */
@@ -5955,6 +6165,249 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_available_packages_api_packages_available_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_installed_packages_api_packages_installed_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledPackageListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_info_api_packages_info__repo_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                repo_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageInfo"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_metadata_api_packages_metadata__repo_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                repo_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageModel"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    install_package_api_packages_install_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageInstallRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uninstall_package_api_packages__repo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                repo_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_package_api_packages_update_post: {
+        parameters: {
+            query: {
+                repo_id: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageResponse"];
                 };
             };
             /** @description Validation Error */
