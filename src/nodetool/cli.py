@@ -1,16 +1,9 @@
 import asyncio
-import threading
 import traceback
 import click
 from nodetool.api.server import create_app, run_uvicorn_server
-from nodetool.chat.help import index_documentation, index_examples
 from nodetool.common.environment import Environment
-import subprocess
-import os
-from threading import Thread
 from typing import IO
-import signal
-import sys
 
 # silence warnings on the command line
 import warnings
@@ -83,7 +76,6 @@ def log_stream(stream: IO[bytes], prefix: str):
     is_flag=True,
     help="Use single local user with id 1 for authentication. Will be ingnored on production.",
 )
-@click.option("--with-ui", is_flag=True, help="Start Vite development server for UI.")
 def serve(
     host: str,
     port: int,
@@ -93,7 +85,6 @@ def serve(
     remote_auth: bool = False,
     worker_url: str | None = None,
     apps_folder: str | None = None,
-    with_ui: bool = False,
 ):
     """Serve the Nodetool API server."""
 
@@ -165,5 +156,7 @@ cli.add_command(worker)
 cli.add_command(serve)
 cli.add_command(run)
 cli.add_command(chat)
+cli.add_command(packages)
+
 if __name__ == "__main__":
     cli()
