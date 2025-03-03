@@ -70,7 +70,8 @@ RUN apt-get update && \
 
 RUN pip3 install --upgrade pip
 
-COPY requirements /app/requirements
+COPY poetry.lock /app/poetry.lock
+COPY pyproject.toml /app/pyproject.toml
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -78,10 +79,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements.txt
-RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements_ai.txt
-RUN --mount=type=cache,target=/root/.cache pip install -r requirements/requirements_data_science.txt
-
+RUN poetry install
 RUN pip install ipython
 
 COPY src /app
