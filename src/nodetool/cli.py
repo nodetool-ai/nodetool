@@ -156,7 +156,6 @@ cli.add_command(worker)
 cli.add_command(serve)
 cli.add_command(run)
 cli.add_command(chat)
-cli.add_command(packages)
 
 if __name__ == "__main__":
     cli()
