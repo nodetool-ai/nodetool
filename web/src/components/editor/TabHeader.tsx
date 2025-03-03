@@ -66,7 +66,7 @@ const TabHeader = ({
     <div
       className={`tab ${isActive ? "active" : ""} ${
         dropTarget?.id === workflow.id
-          ? dropTarget.position === "left"
+          ? dropTarget?.position === "left"
             ? "drop-target"
             : "drop-target-right"
           : ""
