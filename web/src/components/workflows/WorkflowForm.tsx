@@ -253,7 +253,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     parts.push(pressedKey.length === 1 ? pressedKey.toUpperCase() : pressedKey);
 
     const shortcut = parts.join("+");
-    setLocalWorkflow((prev) => ({
+    setLocalWorkflow((prev: Workflow) => ({
       ...prev,
       settings: {
         ...(prev.settings || {}),
@@ -264,7 +264,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   };
 
   const clearShortcut = useCallback(() => {
-    setLocalWorkflow((prev) => ({
+    setLocalWorkflow((prev: Workflow) => ({
       ...prev,
       settings: {
         ...(prev.settings || {}),
@@ -380,7 +380,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               select
               value={localWorkflow.settings?.run_mode || "normal"}
               onChange={(e) =>
-                setLocalWorkflow((prev) => ({
+                setLocalWorkflow((prev: Workflow) => ({
                   ...prev,
                   settings: {
                     ...(prev.settings || {}),

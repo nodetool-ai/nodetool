@@ -83,7 +83,9 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const queryClient = useQueryClient();
   const uniqueTags = useMemo(() => {
     const tagSet = new Set<string>();
-    workflows.forEach((wf) => wf.tags?.forEach((tag) => tagSet.add(tag)));
+    workflows.forEach((wf) =>
+      wf.tags?.forEach((tag: string) => tagSet.add(tag))
+    );
     return Array.from(tagSet);
   }, [workflows]);
 
