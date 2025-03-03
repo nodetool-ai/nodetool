@@ -38,14 +38,14 @@ const styles = (theme: any) =>
   css({
     root: {
       width: "100%",
-      backgroundColor: theme.palette.c_black || "#000000"
+      backgroundColor: theme.palette.c_black
     },
     searchContainer: {
       padding: theme.spacing(2),
       display: "flex",
       alignItems: "center",
-      backgroundColor: theme.palette.c_black || "#000000",
-      color: theme.palette.c_white || "#FFFFFF"
+      backgroundColor: theme.palette.c_black,
+      color: theme.palette.c_white
     },
     searchInput: {
       marginLeft: theme.spacing(1),
@@ -55,21 +55,21 @@ const styles = (theme: any) =>
       maxHeight: "70vh",
       overflow: "auto",
       margin: "0 20px",
-      backgroundColor: theme.palette.c_black || "#000000"
+      backgroundColor: theme.palette.c_black
     },
     packageItem: {
       borderBottom: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.c_black || "#000000",
+      backgroundColor: theme.palette.c_black,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray0 || "#0E0E0E"
+        backgroundColor: theme.palette.c_gray0
       }
     },
     packageName: {
       fontWeight: "bold",
-      color: theme.palette.c_white || "#FFFFFF"
+      color: theme.palette.c_white
     },
     packageDescription: {
-      color: theme.palette.c_gray5 || "#BDBDBD"
+      color: theme.palette.c_gray5
     },
     chip: {
       margin: theme.spacing(0.5)
@@ -82,13 +82,13 @@ const styles = (theme: any) =>
       justifyContent: "center",
       alignItems: "center",
       padding: theme.spacing(4),
-      backgroundColor: theme.palette.c_black || "#000000",
-      color: theme.palette.c_white || "#FFFFFF"
+      backgroundColor: theme.palette.c_black,
+      color: theme.palette.c_white
     },
     errorContainer: {
       padding: theme.spacing(2),
       color: theme.palette.error.main,
-      backgroundColor: theme.palette.c_black || "#000000"
+      backgroundColor: theme.palette.c_black
     }
   });
 
@@ -231,31 +231,29 @@ const PackageList: React.FC = () => {
           size="small"
           sx={{
             "& .MuiOutlinedInput-root": {
-              backgroundColor: theme.palette.c_gray0 || "#0E0E0E",
-              color: theme.palette.c_white || "#FFFFFF",
+              backgroundColor: theme.palette.c_gray0,
+              color: theme.palette.c_white,
               "& fieldset": {
-                borderColor: theme.palette.c_gray2 || "#444444"
+                borderColor: theme.palette.c_gray2
               },
               "&:hover fieldset": {
-                borderColor: theme.palette.c_gray3 || "#6D6D6D"
+                borderColor: theme.palette.c_gray3
               }
             },
             "& .MuiInputLabel-root": {
-              color: theme.palette.c_gray4 || "#959595"
+              color: theme.palette.c_gray4
             }
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon
-                  sx={{ color: theme.palette.c_gray4 || "#959595" }}
-                />
+                <SearchIcon sx={{ color: theme.palette.c_gray4 }} />
               </InputAdornment>
             )
           }}
         />
       </Box>
-      <Divider sx={{ backgroundColor: theme.palette.c_gray2 || "#444444" }} />
+      <Divider sx={{ backgroundColor: theme.palette.c_gray2 }} />
 
       <Box className="listContainer">
         <List>
@@ -263,9 +261,7 @@ const PackageList: React.FC = () => {
             <ListItem>
               <ListItemText
                 primary={
-                  <Typography
-                    sx={{ color: theme.palette.c_white || "#FFFFFF" }}
-                  >
+                  <Typography sx={{ color: theme.palette.c_white }}>
                     No packages found
                   </Typography>
                 }
@@ -276,70 +272,78 @@ const PackageList: React.FC = () => {
               const isInstalled = isPackageInstalled(pkg.repo_id);
 
               return (
-                <ListItem key={pkg.repo_id} className="packageItem">
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center">
-                        <Typography
-                          className="packageName"
-                          sx={{ color: "white" }}
-                        >
-                          {pkg.name}
-                        </Typography>
-                        {isInstalled && (
-                          <Tooltip title="Installed">
-                            <CheckCircleIcon
-                              color="success"
-                              fontSize="small"
-                              style={{ marginLeft: 8 }}
-                            />
-                          </Tooltip>
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <>
-                        <Typography
-                          className="packageDescription"
-                          variant="body2"
-                          sx={{ color: theme.palette.c_gray5 || "#BDBDBD" }}
-                        >
-                          {pkg.description}
-                        </Typography>
+                <Tooltip title={pkg.description} key={pkg.repo_id}>
+                  <ListItem className="packageItem">
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center">
+                          <Typography
+                            className="packageName"
+                            sx={{ color: "white" }}
+                          >
+                            {pkg.name}
+                          </Typography>
+                          {isInstalled && (
+                            <Tooltip title="Installed">
+                              <CheckCircleIcon
+                                color="success"
+                                fontSize="small"
+                                style={{ marginLeft: 8 }}
+                              />
+                            </Tooltip>
+                          )}
+                        </Box>
+                      }
+                      secondary={
                         <Box mt={1}>
                           <Chip
                             key={pkg.repo_id}
-                            label={pkg.repo_id}
+                            label={
+                              <a
+                                href={"https://github.com/" + pkg.repo_id}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                css={{
+                                  color: theme.palette.c_gray5,
+                                  textDecoration: "none",
+                                  "&:hover": {
+                                    textDecoration: "underline"
+                                  }
+                                }}
+                              >
+                                {pkg.repo_id}
+                              </a>
+                            }
                             size="small"
                             className="chip"
                             sx={{
-                              backgroundColor:
-                                theme.palette.c_gray1 || "#242424",
-                              color: theme.palette.c_gray5 || "#BDBDBD"
+                              backgroundColor: theme.palette.c_gray1,
+                              color: theme.palette.c_gray5
                             }}
                           />
                         </Box>
-                      </>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <Button
-                      variant="outlined"
-                      color={isInstalled ? "secondary" : "primary"}
-                      size="small"
-                      className="installButton"
-                      onClick={() =>
-                        handlePackageAction(pkg.repo_id, isInstalled)
                       }
-                      startIcon={isInstalled ? null : <CloudDownloadIcon />}
-                      disabled={
-                        installMutation.isPending || uninstallMutation.isPending
-                      }
-                    >
-                      {isInstalled ? "Uninstall" : "Install"}
-                    </Button>
-                  </ListItemSecondaryAction>
-                </ListItem>
+                    />
+                    <ListItemSecondaryAction>
+                      <Button
+                        variant="outlined"
+                        color={isInstalled ? "secondary" : "primary"}
+                        size="small"
+                        className="installButton"
+                        onClick={() =>
+                          handlePackageAction(pkg.repo_id, isInstalled)
+                        }
+                        startIcon={isInstalled ? null : <CloudDownloadIcon />}
+                        disabled={
+                          installMutation.isPending ||
+                          uninstallMutation.isPending
+                        }
+                      >
+                        {isInstalled ? "Uninstall" : "Install"}
+                      </Button>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                </Tooltip>
               );
             })
           )}
