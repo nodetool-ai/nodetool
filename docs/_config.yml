@@ -1,0 +1,47 @@
+title: NodeTool Documentation
+description: Documentation for NodeTool
+theme: just-the-docs
+
+# Theme settings
+color_scheme: dark
+search_enabled: true
+
+# Navigation settings
+nav_external_links:
+  - title: NodeTool on GitHub
+    url: https://github.com/yourusername/nodetool-base
+    hide_icon: false
+
+aux_links:
+  "View on GitHub":
+    - "https://github.com/yourusername/nodetool-base"
+
+# Build settings
+markdown: kramdown
+plugins:
+  - jekyll-feed
+  - jekyll-remote-theme
+
+# Navigation Structure
+nav_sort: case_sensitive
+heading_anchors: true
+
+# Enable search
+search:
+  heading_level: 3
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Aux links for the upper right navigation
+aux_links_new_tab: true
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

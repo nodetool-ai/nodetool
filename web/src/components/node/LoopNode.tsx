@@ -184,14 +184,14 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [updateNode, props.id]);
 
   const nodeMetadata = getMetadata(props.type);
-  if (!nodeMetadata) {
-    throw new Error("No metadata for node type: " + props.type);
-  }
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
   );
 
+  if (!nodeMetadata) {
+    return <div>Missing node: {props.type}</div>;
+  }
   return (
     <div
       ref={nodeRef}

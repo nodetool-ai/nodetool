@@ -57,40 +57,6 @@ async def list_installed_packages(
     return InstalledPackageListResponse(packages=packages, count=len(packages))
 
 
-@router.get("/info/{repo_id}", response_model=Optional[PackageInfo])
-async def get_package_info(
-    repo_id: str, user: User = Depends(current_user)
-) -> Optional[PackageInfo]:
-    """Get information about a package from the registry."""
-    is_valid, error_msg = validate_repo_id(repo_id)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=error_msg)
-
-    package_info = registry.get_package_info(repo_id)
-    if package_info is None:
-        raise HTTPException(
-            status_code=404, detail=f"Package {repo_id} not found in registry"
-        )
-
-    return package_info
-
-
-@router.get("/metadata/{repo_id}", response_model=Optional[PackageModel])
-async def get_package_metadata(
-    repo_id: str, user: User = Depends(current_user)
-) -> Optional[PackageModel]:
-    """Get metadata for an installed package."""
-    is_valid, error_msg = validate_repo_id(repo_id)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=error_msg)
-
-    metadata = registry.get_package_metadata(repo_id)
-    if metadata is None:
-        raise HTTPException(status_code=404, detail=f"Package {repo_id} not installed")
-
-    return metadata
-
-
 @router.post("/install", response_model=PackageResponse)
 async def install_package(
     request: PackageInstallRequest, user: User = Depends(current_user)

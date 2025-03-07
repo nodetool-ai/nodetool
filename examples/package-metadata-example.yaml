@@ -1,0 +1,28 @@
+name: example-image-nodes
+description: A collection of image processing nodes for nodetool
+version: 1.0.0
+author: John Doe
+tags:
+  - image
+  - processing
+  - filters
+github_repo: https://github.com/johndoe/example-image-nodes
+pip_package: example-image-nodes
+nodes:
+  - title: ImageBlur
+    description: Apply Gaussian blur to an image
+    namespace: example_image_nodes.filters
+    node_type: ImageBlur
+  - title: ImageSharpen
+    description: Sharpen an image
+    namespace: example_image_nodes.filters
+    node_type: ImageSharpen
+  - title: ImageResize
+    description: Resize an image to specific dimensions
+    namespace: example_image_nodes.transforms
+    node_type: ImageResize
+dependencies:
+  - pillow>=9.0.0
+  - opencv-python>=4.5.0
+homepage: https://example.com/image-nodes
+license: MIT
