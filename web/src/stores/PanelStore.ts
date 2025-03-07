@@ -10,7 +10,7 @@ export type LeftPanelView =
   | "assets"
   | "workflowGrid"
   | "collections"
-  | "packages";
+  | "packs";
 export type PanelView = LeftPanelView;
 
 interface PanelState {

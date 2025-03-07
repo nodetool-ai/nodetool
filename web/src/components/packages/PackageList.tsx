@@ -22,14 +22,11 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import InfoIcon from "@mui/icons-material/Info";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { components } from "../../api";
 
 // Define types based on the API schema
-type PackageInfo = components["schemas"]["PackageInfo"];
-type PackageModel = components["schemas"]["PackageModel"];
 type PackageListResponse = components["schemas"]["PackageListResponse"];
 type InstalledPackageListResponse =
   components["schemas"]["InstalledPackageListResponse"];
@@ -195,7 +192,7 @@ const PackageList: React.FC = () => {
       >
         <CircularProgress />
         <Typography variant="body1" style={{ marginTop: 16 }}>
-          Loading packages...
+          Loading packs...
         </Typography>
       </Box>
     );
@@ -210,7 +207,7 @@ const PackageList: React.FC = () => {
         sx={{ backgroundColor: "black" }}
       >
         <Typography variant="h6" color="error">
-          Error loading packages
+          Error loading packs
         </Typography>
         <Typography variant="body1">
           {availableError ? String(availableError) : String(installedError)}
@@ -224,7 +221,7 @@ const PackageList: React.FC = () => {
       <Box className="searchContainer">
         <TextField
           className="searchInput"
-          placeholder="Search packages..."
+          placeholder="Search packs..."
           value={searchTerm}
           onChange={handleSearchChange}
           variant="outlined"
@@ -262,7 +259,7 @@ const PackageList: React.FC = () => {
               <ListItemText
                 primary={
                   <Typography sx={{ color: theme.palette.c_white }}>
-                    No packages found
+                    No packs found
                   </Typography>
                 }
               />

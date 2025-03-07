@@ -21,7 +21,6 @@ import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome";
 import { Fullscreen } from "@mui/icons-material";
-import NodeMenu from "../node_menu/NodeMenu";
 import PackageList from "../packages/PackageList";
 import { Extension } from "@mui/icons-material";
 
@@ -251,16 +250,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ChatIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title="Packages"
-        placement="right"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
+      <Tooltip title="Packs" placement="right" enterDelay={TOOLTIP_ENTER_DELAY}>
         <IconButton
-          className={`toolbar-button ${
-            activeView === "packages" ? "active" : ""
-          }`}
-          onClick={() => onViewChange("packages")}
+          className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
+          onClick={() => onViewChange("packs")}
         >
           <Extension />
         </IconButton>
@@ -337,7 +330,7 @@ const PanelContent = memo(function PanelContent({
           <CollectionList />
         </Box>
       )}
-      {activeView === "packages" && (
+      {activeView === "packs" && (
         <Box
           sx={{
             width: "100%",
@@ -346,7 +339,7 @@ const PanelContent = memo(function PanelContent({
             margin: "0 20px"
           }}
         >
-          <h3>Packages</h3>
+          <h3>Packs</h3>
           <PackageList />
         </Box>
       )}
