@@ -11,6 +11,8 @@ import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
+import { NodeInputs } from "../node/NodeInputs";
+import { NodeOutputs } from "../node/NodeOutputs";
 
 interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
@@ -43,50 +45,42 @@ const styles = (theme: any) =>
     }
   });
 
+const typeForValue = (value: any) => {
+  if (typeof value === "string") {
+    return { type: "string", optional: true, type_args: [] };
+  }
+  if (typeof value === "number") {
+    return { type: "number", optional: true, type_args: [] };
+  }
+  if (typeof value === "boolean") {
+    return { type: "boolean", optional: true, type_args: [] };
+  }
+  if (typeof value === "object" && value !== null) {
+    if (value.type) {
+      return { type: value.type, optional: true, type_args: [] };
+    }
+  }
+  if (Array.isArray(value)) {
+    return { type: "array", optional: true, type_args: [] };
+  }
+  return { type: "any", optional: true, type_args: [] };
+};
+
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
-  const [nodeType, setNodeType] = useState<string | null>(null);
-  const [nodeData, setNodeData] = useState<any>(null);
-  const [nodeTitle, setNodeTitle] = useState<string | null>(null);
-  const [hasParent, setHasParent] = useState<boolean>(false);
-  const [nodeNamespace, setNodeNamespace] = useState<string | null>(null);
-  // const getWorkflow = useWorkflowStore((state) => state.get);
-  const edges = useNodes((state) => state.getInputEdges(props.id));
-
-  // useEffect(() => {
-  //   if (props.data?.workflow_id) {
-  //     const fetchWorkflow = async () => {
-  //       const workflow = await getWorkflow(props.data.workflow_id);
-  //       if (workflow?.graph?.nodes) {
-  //         const node = workflow.graph.nodes.find((n) => n.id === props.id);
-  //         if (node) {
-  //           setNodeType(node.type || "");
-  //           setNodeData(node.data);
-  //           const parts = node.type?.split(".") || [];
-  //           const title = parts[parts.length - 1] || "";
-  //           const namespace = parts.slice(0, -1).join(".") || "";
-  //           setNodeTitle(title);
-  //           setNodeNamespace(namespace);
-  //           setHasParent(node.parent_id !== null);
-  //         }
-  //       }
-  //     };
-  //     fetchWorkflow();
-  //   }
-  // }, [props.id, props.data.workflow_id, getWorkflow]);
-
-  const relevantEdges = useMemo(() => {
-    return edges.filter((edge) => edge.target === props.id);
-  }, [edges, props.id]);
+  const nodeType = props.type;
+  const nodeData = props.data;
+  const nodeTitle = nodeType?.split(".").pop() || "";
+  const hasParent = props.parentId !== null;
+  const nodeNamespace = nodeType?.split(".").slice(0, -1).join(".") || "";
 
   const mockProperties = useMemo(() => {
-    return relevantEdges.map((edge) => ({
-      name: edge.targetHandle || "",
-      type: { type: "any", optional: true, type_args: [] },
-      description: `Input for ${edge.targetHandle}`,
-      default: null,
+    return Object.entries(nodeData.properties).map(([key, value]) => ({
+      name: key,
+      type: typeForValue(value),
+      default: value,
       optional: true
     }));
-  }, [relevantEdges]);
+  }, [nodeData.properties]);
 
   const mockMetadata: NodeMetadata = useMemo(
     () => ({
@@ -113,6 +107,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     }),
     [nodeTitle, nodeNamespace, nodeType, mockProperties]
   );
+  const basicFields = mockProperties
+    .slice(0, 2)
+    .map((property) => property.name);
 
   const className = useMemo(
     () =>
@@ -135,15 +132,16 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
           Missing Node
         </Typography>
       </Tooltip>
-      {/* {mockProperties.length > 0 && (
+      {mockProperties.length > 0 && (
         <NodeInputs
+          basicFields={basicFields}
           id={props.id}
           nodeType={nodeType || ""}
           properties={mockProperties}
           data={nodeData}
         />
-      )} */}
-      {/* <NodeOutputs id={props.id} outputs={mockMetadata.outputs} /> */}
+      )}
+      <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
       <NodeFooter
         nodeNamespace={nodeNamespace || ""}
         metadata={mockMetadata}
