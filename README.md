@@ -1,6 +1,6 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool - 🚀 AI Workflows Done Right!
+  NodeTool - 🚀 Build and Automate AI Workflows Locally
 </h1>
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
@@ -9,7 +9,7 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is your open-source, privacy-first, no-code playground for rapidly building and automating powerful AI workflows. Built specifically for hackers, data scientists, AI enthusiasts, and creative minds who love experimenting with LLMs, Stable Diffusion, and other local-first AI models. It's the ultimate AI toolkit you've been waiting for.
+NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating local AI workflows.
 
 ## 🚀 Why NodeTool?
 
