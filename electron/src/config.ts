@@ -18,9 +18,9 @@ const webPath: string = app.isPackaged
 const appsPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "apps")
   : path.join(__dirname, "..", "..", "apps", "dist");
-const requirementsPath: string = app.isPackaged
-  ? path.join(resourcesPath, "requirements")
-  : path.join(__dirname, "..", "..", "requirements");
+const pyprojectPath: string = app.isPackaged
+  ? resourcesPath
+  : path.join(__dirname, "..", "..");
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 
@@ -112,5 +112,5 @@ export {
   PID_FILE_PATH,
   webPath,
   appsPath,
-  requirementsPath,
+  pyprojectPath,
 };

@@ -164,97 +164,11 @@ class Build:
             except BuildError:
                 pass
 
-        self.initialize_conda_env()
-
         try:
             self.create_directory(self.BUILD_DIR)
         except BuildError as e:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
-
-    def build_conda_package(
-        self,
-        name: str,
-        recipe_dir: Path,
-        meta_yaml: dict[str, Any],
-        build_script: str | None = None,
-        source_path: Path | None = None,
-    ) -> None:
-        """Build a conda package given the package details."""
-        logger.info(f"Building conda package: {name}")
-
-        # Create recipe directory if it doesn't exist
-        self.create_directory(recipe_dir)
-
-        # Handle source path if provided
-        if source_path:
-            meta_yaml["source"] = {"path": str(source_path)}
-
-        # Write build script with Windows-specific handling
-        if build_script:
-            if self.platform == "windows":
-                script_file = "bld.bat"
-                build_script = build_script.replace("\n", "\r\n")
-            else:
-                script_file = "build.sh"
-
-            script_path = recipe_dir / script_file
-            with open(
-                script_path, "w", newline="\r\n" if self.platform == "windows" else "\n"
-            ) as f:
-                f.write(dedent(build_script))
-
-            if self.platform != "windows":
-                self.run_command(["chmod", "+x", str(script_path)])
-
-        # Write meta.yaml with explicit build requirements
-        meta_yaml.setdefault("requirements", {})
-        meta_yaml["requirements"].setdefault("build", [])
-        meta_yaml["requirements"]["build"].extend(
-            [f"python {self.python_version}", "conda-build", "conda-verify"]
-        )
-
-        meta_yaml_path = recipe_dir / "meta.yaml"
-        with open(
-            meta_yaml_path, "w", newline="\r\n" if self.platform == "windows" else "\n"
-        ) as f:
-            write_yaml_value(meta_yaml, f)
-
-        # Create channel directory
-        channel_dir = self.BUILD_DIR / "channel"
-        self.create_directory(channel_dir)
-
-        # Build the conda package
-        build_command = [
-            "conda-build",
-            "-c",
-            "conda-forge",
-            "--no-anaconda-upload",
-            "--override-channels",
-            str(recipe_dir).replace("\\", "/"),
-            "--output-folder",
-            str(channel_dir).replace("\\", "/"),
-            "--python",
-            self.python_version,
-        ]
-
-        self.run_command(build_command)
-        logger.info(f"Conda package '{name}' built successfully")
-
-    def initialize_conda_env(self) -> None:
-        """Initialize base conda environment with required packages."""
-        logger.info("Initializing conda base environment")
-
-        # Install necessary packages in base environment
-        self.run_command(
-            [
-                "conda",
-                "install",
-                "conda-build",
-                "conda-verify",
-                "--yes",
-            ]
-        )
 
     def get_version(self) -> str:
         """Get the version of the project."""
@@ -264,74 +178,6 @@ class Build:
                 return match.group(1)
             else:
                 raise BuildError("Version not found in pyproject.toml")
-
-    def upload(self) -> None:
-        """Create conda channel index and upload to S3 with locking mechanism."""
-        logger.info("Creating conda channel index")
-
-        # Download current channel
-        logger.info("Downloading existing channel")
-        channel_dir = self.BUILD_DIR / "channel"
-
-        self.run_command(
-            [
-                "aws",
-                "s3",
-                "sync",
-                "s3://nodetool-packages/",
-                str(channel_dir),
-            ],
-            ignore_error=True,
-        )
-
-        # Create platform-specific directories and move packages
-        platform_dirs = {
-            "linux": ["linux-64", "linux-aarch64"],
-            "darwin": ["osx-64", "osx-arm64"],
-            "windows": ["win-64"],
-            "noarch": ["noarch"],
-        }
-
-        for platform_dirs in platform_dirs.values():
-            for dir_name in platform_dirs:
-                self.create_directory(channel_dir / dir_name)
-
-        # Move packages to appropriate directories based on their platform/arch
-        for package in channel_dir.glob("*.tar.bz2"):
-            package_name = package.name
-            if "noarch" in package_name:
-                target_dir = channel_dir / "noarch"
-            else:
-                # Determine target directory based on platform and arch
-                if self.platform == "darwin":
-                    target_dir = channel_dir / f"osx-{self.arch}"
-                elif self.platform == "linux":
-                    arch_name = "aarch64" if self.arch == "arm64" else "64"
-                    target_dir = channel_dir / f"linux-{arch_name}"
-                else:  # windows
-                    target_dir = channel_dir / "win-64"
-
-            if package.parent != target_dir:
-                self.move_file(package, target_dir / package_name)
-
-        # Create channel index
-        self.run_command(["conda", "index", str(channel_dir)])
-
-        # Upload only new/modified files
-        logger.info("Uploading channel updates to S3")
-        self.run_command(
-            [
-                "aws",
-                "s3",
-                "sync",
-                str(channel_dir) + "/",
-                "s3://nodetool-packages/",
-                "--size-only",  # Only upload files that differ in size
-                "--exact-timestamps",  # Use exact timestamp comparison
-            ]
-        )
-
-        logger.info("Channel upload completed successfully")
 
     def pack(self) -> None:
         """Create a packed conda environment."""
@@ -380,26 +226,6 @@ class Build:
             ]
         )
 
-        # # Get correct path for pip executable
-        # pip_exe = "pip.exe" if self.platform == "windows" else "pip"
-        # scripts_dir = "Scripts" if self.platform == "windows" else "bin"
-
-        # # Install requirements directly in conda env
-        # pip_install_command = [
-        #     str(self.ENV_DIR / scripts_dir / pip_exe),
-        #     "install",
-        #     "-r",
-        #     str(PROJECT_ROOT / "requirements.txt"),
-        # ]
-
-        # # Add PyTorch CUDA index for non-Darwin platforms
-        # if self.platform != "darwin":
-        #     pip_install_command.extend(
-        #         ["--extra-index-url", "https://download.pytorch.org/whl/cu121"]
-        #     )
-
-        # self.run_command(pip_install_command)
-
         # Pack the environment
         ext = "zip" if self.platform == "windows" else "tar.gz"
         output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
@@ -415,40 +241,6 @@ class Build:
         )
 
         logger.info(f"Environment packed successfully to {output_name}")
-
-        # s3_endpoint_url = os.getenv("S3_PACKAGES_ENDPOINT_URL")
-        # assert s3_endpoint_url, "S3_PACKAGES_ENDPOINT_URL not set"
-        # # Upload the packed environment to S3
-        # logger.info(f"Uploading {output_name} to s3://nodetool-packages/")
-        # self.run_command(
-        #     [
-        #         "aws",
-        #         "s3",
-        #         "cp",
-        #         str(output_path),
-        #         "s3://nodetool-packages/",
-        #         "--endpoint-url",
-        #         s3_endpoint_url,
-        #     ]
-        # )
-
-        # Upload requirements.txt with version number to S3
-        # requirements_versioned_name = f"requirements-{version}.txt"
-        # requirements_versioned_path = self.BUILD_DIR / requirements_versioned_name
-        # shutil.copy(PROJECT_ROOT / "requirements.txt", requirements_versioned_path)
-
-        # logger.info(f"Uploading {requirements_versioned_name}")
-        # self.run_command(
-        #     [
-        #         "aws",
-        #         "s3",
-        #         "cp",
-        #         str(requirements_versioned_path),
-        #         "s3://nodetool-packages/",
-        #         "--endpoint-url",
-        #         s3_endpoint_url,
-        #     ]
-        # )
 
 
 def main() -> None:

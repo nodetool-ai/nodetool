@@ -38,11 +38,7 @@ import { setupAutoUpdater } from "./updater";
 import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
-import {
-  verifyApplicationPaths,
-  isCondaEnvironmentInstalled,
-  updateCondaEnvironment,
-} from "./python";
+import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { installCondaEnvironment } from "./installer";
 import { emitBootMessage } from "./events";
 import { createTray } from "./tray";
@@ -98,7 +94,6 @@ async function initialize(): Promise<void> {
 
     // Check if conda environment is installed
     await checkPythonEnvironment();
-    await updateCondaEnvironment();
 
     await initializeBackendServer();
     await setupWorkflowShortcuts();

@@ -1,12 +1,18 @@
 from pyngrok import ngrok
 import dotenv
-from nodetool.common.environment import Environment
+import os
 
 dotenv.load_dotenv()
 
+token = os.getenv("NGROK_TOKEN")
+
+if not token:
+    print("no token")
+    exit(0)
+
 # run ngrok to expose http port 8000 and return the public url
 # Optionally set your ngrok token if you haven't done so globally
-ngrok.set_auth_token(Environment.get_ngrok_token())
+ngrok.set_auth_token(token)
 
 # Establish a tunnel to port 8000 (HTTP by default)
 tunnel = ngrok.connect("localhost:8000")

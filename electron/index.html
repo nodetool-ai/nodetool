@@ -118,73 +118,12 @@
       <div id="environment-info">
         <h2>NodeTool Setup</h2>
 
-        <div class="info-details">
-          <p>Choose what you'd like to install:</p>
-
-          <div class="package-selection">
-            <!-- Base Package -->
-            <div class="package-card base">
-              <div class="package-header">
-                <h4>📦 Base Package</h4>
-                <span class="required-badge">Required</span>
-              </div>
-              <ul>
-                <li>Core AI Features (Ollama & External AI)</li>
-                <li>Media Processing (Audio, Video, Image)</li>
-                <li>Document Processing (PDF, DOCX, OCR)</li>
-              </ul>
-              <div class="size-info">
-                <span>Download: ~300MB</span>
-                <span>Install: ~2GB</span>
-              </div>
-            </div>
-
-            <!-- Optional Packages -->
-            <div class="package-card optional">
-              <!-- AI Package -->
-              <label class="package-option">
-                <div class="checkbox-wrapper">
-                  <input type="checkbox" name="ai-package" />
-                </div>
-                <div class="package-content">
-                  <div class="package-info">
-                    <div class="package-header">
-                      <h4>🧠 AI Package</h4>
-                      <span class="size-tag">~3.2GB</span>
-                    </div>
-                    <ul>
-                      <li>PyTorch</li>
-                      <li>HuggingFace</li>
-                      <li>ComfyUI</li>
-                    </ul>
-                  </div>
-                </div>
-              </label>
-
-              <!-- Data Science Package -->
-              <label class="package-option">
-                <div class="checkbox-wrapper">
-                  <input type="checkbox" name="data-science" />
-                </div>
-                <div class="package-content">
-                  <div class="package-info">
-                    <div class="package-header">
-                      <h4>📊 Data Science Package</h4>
-                      <span class="size-tag">~600MB</span>
-                    </div>
-                    <ul>
-                      <li>Scikit-learn</li>
-                      <li>Statismodels</li>
-                    </ul>
-                  </div>
-                </div>
-              </label>
-            </div>
+        <!-- Step 1: Install Location -->
+        <div id="step-location" class="setup-step active">
+          <div class="step-header">
+            <h3>Step 1: Choose Installation Location</h3>
+            <p>Where would you like to install NodeTool?</p>
           </div>
-        </div>
-
-        <div class="prompt-content">
-          <p>Where would you like to install NodeTool?</p>
           <div class="location-options">
             <button class="location-button default-location">
               <span>📁 Install to Default Location</span>
@@ -193,6 +132,229 @@
             <button class="location-button custom-location">
               <span>🔍 Install to Custom Location</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Package Selection -->
+        <div id="step-packages" class="setup-step">
+          <div class="step-header">
+            <h3>Step 2: Choose Packages</h3>
+            <p>Select the packages you'd like to install:</p>
+          </div>
+
+          <div class="package-selection">
+            <!-- Base Package -->
+            <div class="package-card base">
+              <div class="package-header">
+                <h4>📦 Base Package</h4>
+                <span class="required-badge">Required</span>
+              </div>
+            </div>
+
+            <!-- Optional Packages -->
+            <div class="package-grid">
+              <!-- AI & ML Package Group -->
+              <div class="package-group">
+                <h4>🤖 AI & Machine Learning</h4>
+                <div class="package-options">
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="huggingface" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>HuggingFace</h4>
+                        </div>
+                        <p>Text, Image, and Audio models from HuggingFace</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="comfy" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>ComfyUI</h4>
+                        </div>
+                        <p>Image and Video generation</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="ml" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Machine Learning</h4>
+                        </div>
+                        <p>
+                          Classification, Regression, and statistical models
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Cloud AI Services -->
+              <div class="package-group">
+                <h4>☁️ AI Services</h4>
+                <div class="package-options">
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="openai" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>OpenAI</h4>
+                        </div>
+                        <p>
+                          Integration with ChatGPT, DALL-E, and other OpenAI
+                          services
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="anthropic" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Anthropic</h4>
+                        </div>
+                        <p>Access to Claude and other Anthropic AI models</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="elevenlabs" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>ElevenLabs</h4>
+                        </div>
+                        <p>Advanced text-to-speech and voice cloning</p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Utilities -->
+              <div class="package-group">
+                <h4>🛠️ Utilities</h4>
+                <div class="package-options">
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="data" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Data Processing</h4>
+                        </div>
+                        <p>Tools for data manipulation and analysis</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="audio" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Audio Processing</h4>
+                        </div>
+                        <p>Audio manipulation and analysis tools</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="image" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Image Processing</h4>
+                        </div>
+                        <p>Image manipulation and analysis utilities</p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Integrations -->
+              <div class="package-group">
+                <h4>🔌 Integrations</h4>
+                <div class="package-options">
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="google" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Google</h4>
+                        </div>
+                        <p>Integration with Google services and APIs</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="apple" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Apple</h4>
+                        </div>
+                        <p>Automation for Apple products and services</p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="chroma" />
+                    </div>
+                    <div class="package-content">
+                      <div class="package-info">
+                        <div class="package-header">
+                          <h4>Chroma</h4>
+                        </div>
+                        <p>Vector database integration for AI applications</p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="navigation-buttons">
+            <button class="nav-button back">← Back</button>
+            <button class="nav-button next">Install →</button>
           </div>
         </div>
       </div>

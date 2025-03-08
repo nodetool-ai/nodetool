@@ -24,14 +24,8 @@ declare global {
       onInstallLocationPrompt: (
         callback: (data: { defaultPath: string }) => void
       ) => void;
-      selectDefaultInstallLocation: (modules: {
-        ai: boolean;
-        dataScience: boolean;
-      }) => Promise<void>;
-      selectCustomInstallLocation: (modules: {
-        ai: boolean;
-        dataScience: boolean;
-      }) => Promise<void>;
+      selectDefaultInstallLocation: (modules: PythonPackages) => Promise<void>;
+      selectCustomInstallLocation: (modules: PythonPackages) => Promise<void>;
       windowControls: {
         close: () => void;
         minimize: () => void;
@@ -197,10 +191,7 @@ export interface IpcEvents {
   [IpcChannels.MENU_EVENT]: MenuEventData;
 }
 
-export interface PythonPackages {
-  ai: boolean;
-  data_science: boolean;
-}
+export type PythonPackages = string[];
 
 export interface UpdateProgressData {
   componentName: string;
