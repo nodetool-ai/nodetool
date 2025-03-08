@@ -11,13 +11,6 @@ def update_version_in_file(
     file_path.write_text(updated_content)
 
 
-def update_version_in_pyproject(new_version: str):
-    pyproject_file = Path("pyproject.toml")
-    version_regex = r'version = ".*?"'
-    new_version_line = f'version = "{new_version}"'
-    update_version_in_file(pyproject_file, version_regex, new_version_line)
-
-
 def update_version_in_package_json(file_path: Path, new_version: str):
     version_regex = r'"version": ".*?"'
     new_version_line = f'"version": "{new_version}"'
@@ -54,11 +47,10 @@ def git_commit_and_tag(new_version: str):
 def main():
     new_version = input("Enter the new version: ").strip()
 
-    update_version_in_pyproject(new_version)
     update_version_in_constants_ts(new_version)
     update_version_in_package_json(Path("web/package.json"), new_version)
     update_version_in_package_json(Path("electron/package.json"), new_version)
-    update_version_in_package_json(Path("electron/apps/package.json"), new_version)
+    update_version_in_package_json(Path("apps/package.json"), new_version)
     git_commit_and_tag(new_version)
     print(f"Version {new_version} released successfully.")
 

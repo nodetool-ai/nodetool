@@ -9,15 +9,13 @@ import {
   getPythonPath,
   getProcessEnv,
   getUVPath,
-  requirementsPath,
+  pyprojectPath,
 } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
 import { IncomingMessage } from "http";
 import { downloadFromFile, getFileSizeFromUrl } from "./download";
-import { readSettings, updateSetting } from "./settings";
-import { PythonPackages } from "./types";
 
 /**
  * API Module for Electron-Server Communication
@@ -106,47 +104,32 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
 /**
  * Update the Python environment packages
  */
-async function updateCondaEnvironment(): Promise<void> {
+async function updateCondaEnvironment(packages: string[]): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
-    const settings = readSettings();
-    const { ai, data_science: dataScience }: PythonPackages =
-      settings.PYTHON_PACKAGES || {
-        ai: false,
-        data_science: false,
-      };
-
     const uvExecutable = getUVPath();
+    packages = ["nodetool-ai/nodetool-base", ...packages];
+    const githubRepos = packages.map((repoId) => {
+      return `git+https://github.com/${repoId}.git`;
+    });
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
       "--system",
-      "-r",
-      path.join(requirementsPath, "requirements.txt"),
+      ...githubRepos,
     ];
-
-    if (ai) {
-      installCommand.push(
-        "-r",
-        path.join(requirementsPath, "requirements_ai.txt")
-      );
-    }
-
-    if (dataScience) {
-      installCommand.push(
-        "-r",
-        path.join(requirementsPath, "requirements_data_science.txt")
-      );
-    }
 
     if (process.platform !== "darwin") {
       installCommand.push("--extra-index-url");
       installCommand.push("https://download.pytorch.org/whl/cu121");
     }
 
-    logMessage(`Running pip command: ${installCommand.join(" ")}`);
-    await runPipCommand(installCommand);
+    logMessage(`Poetry install ${pyprojectPath}`);
+    await runCommand(["poetry", "install", "--directory", pyprojectPath]);
+
+    logMessage(`Running command: ${installCommand.join(" ")}`);
+    await runCommand(installCommand);
 
     logMessage("Python packages update completed successfully");
   } catch (error: any) {
@@ -158,13 +141,13 @@ async function updateCondaEnvironment(): Promise<void> {
 /**
  * Helper function to run pip commands
  */
-async function runPipCommand(command: string[]): Promise<void> {
+async function runCommand(command: string[]): Promise<void> {
   const updateProcess = spawn(command[0], command.slice(1), {
     stdio: "pipe",
     env: getProcessEnv(),
   });
 
-  logMessage(`Running pip command: ${command.join(" ")}`);
+  logMessage(`Running command: ${command.join(" ")}`);
 
   updateProcess.stdout?.on("data", (data: Buffer) => {
     const message = data.toString().trim();
@@ -185,7 +168,7 @@ async function runPipCommand(command: string[]): Promise<void> {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Pip command failed with code ${code}`));
+        reject(new Error(`Command failed with code ${code}`));
       }
     });
 

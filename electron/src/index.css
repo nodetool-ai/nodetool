@@ -220,30 +220,39 @@ ul li {
 .progress-container {
   width: 100%;
   max-width: 600px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
 }
 
 .progress-label {
   display: flex;
   justify-content: space-between;
   padding: 0 0.5em;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   max-height: 200px;
   overflow-y: auto;
   font-size: 14px;
+  text-align: center;
 }
 
 .progress-eta {
   font-size: 12px;
   color: #888;
   text-transform: lowercase;
+  margin-top: 5px;
+  text-align: center;
 }
 
 .progress-bar {
   width: 100%;
-  height: 4px;
+  height: 6px;
   background-color: #333;
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .progress {
@@ -251,6 +260,7 @@ ul li {
   height: 100%;
   background-color: #4caf50;
   transition: width 0.3s ease;
+  border-radius: 3px;
 }
 
 #log-controls {
@@ -296,18 +306,14 @@ ul li {
   transform: translate(-50%, -50%);
   text-align: center;
   color: #eee;
-  width: 80%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+  width: 90%;
+  max-width: 1000px;
   background: rgba(24, 28, 28, 0.85);
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(118, 229, 184, 0.3);
   backdrop-filter: blur(12px);
-  position: relative;
   z-index: 2;
 }
 
@@ -356,7 +362,6 @@ ul li {
   border-radius: 8px;
   border: 1px solid rgba(118, 229, 184, 0.1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .info-details li svg {
@@ -364,7 +369,6 @@ ul li {
 }
 
 .info-details li:hover {
-  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 0 10px rgba(118, 229, 184, 0.1);
   border-color: rgba(118, 229, 184, 0.3);
   background: rgba(40, 45, 45, 0.7);
@@ -408,7 +412,6 @@ ul li {
   border: 2px solid rgba(76, 175, 80, 0.4);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(76, 175, 80, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .location-button.default-location:hover {
@@ -418,8 +421,8 @@ ul li {
     rgba(76, 175, 80, 0.2) 100%
   );
   border-color: rgba(76, 175, 80, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2);
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.2),
+    0 0 0 4px rgba(76, 175, 80, 0.1);
 }
 
 .location-button.custom-location {
@@ -427,14 +430,24 @@ ul li {
   border: none;
   box-shadow: none;
   padding-left: 0;
-  transition: color 0.3s ease;
+  position: relative;
 }
 
 .location-button.custom-location:hover {
   background: transparent;
   color: rgba(94, 158, 255, 1);
-  transform: none;
-  box-shadow: none;
+}
+
+.location-button.custom-location:hover::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 4px;
+  height: 70%;
+  background: rgba(94, 158, 255, 0.5);
+  transform: translateY(-50%);
+  border-radius: 2px;
 }
 
 .location-button span:first-child {
@@ -448,10 +461,18 @@ ul li {
   gap: 8px;
 }
 
+.location-button:hover span:first-child {
+  transform: translateX(4px);
+}
+
 .location-button span:last-child {
   font-size: 14px;
   color: #aaa;
   text-align: left;
+}
+
+.location-button:hover span:last-child {
+  color: #fff;
 }
 
 .location-button.default-location::after {
@@ -462,78 +483,122 @@ ul li {
   transform: translateY(-50%);
   font-size: 24px;
   opacity: 0;
-  transition: all 0.3s ease;
 }
 
 .location-button.default-location:hover::after {
   opacity: 1;
   right: 20px;
+  transform: translateY(-50%) translateX(4px);
 }
 
 .package-selection {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  max-width: 1200px;
+  gap: 1rem;
+  max-width: 800px;
   margin: 0 auto;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.package-selection::-webkit-scrollbar {
+  width: 8px;
+}
+
+.package-selection::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.package-selection::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.package-selection::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .package-card {
   background: rgba(30, 35, 35, 0.7);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
 }
 
 .package-card.base {
-  border: 1px solid rgba(118, 229, 184, 0.4);
-  background: rgba(40, 45, 45, 0.7);
+  padding: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .package-card.optional {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
   padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+}
+
+.package-group {
+  background: rgba(30, 35, 35, 0.7);
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.package-group h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #e5e5e5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.25rem;
+}
+
+.package-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .package-option {
-  flex: 1;
   display: flex;
-  gap: 1rem;
-  padding: 1.25rem;
-  background: rgba(30, 35, 35, 0.7);
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(40, 45, 45, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.package-option:hover {
-  background: rgba(40, 45, 45, 0.8);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(118, 229, 184, 0.1);
-  border-color: rgba(118, 229, 184, 0.3);
+  border-radius: 6px;
 }
 
 .package-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .package-header h4 {
   margin: 0;
-  font-size: 1.1rem;
-  color: #e5e5e5;
+  font-size: 0.95rem;
+  border: none;
+  padding: 0;
+}
+
+.package-info p {
+  margin: 0;
+  color: #bbb;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.size-tag {
+  font-size: 0.75rem;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .required-badge {
@@ -546,50 +611,43 @@ ul li {
   box-shadow: 0 2px 4px rgba(118, 229, 184, 0.3);
 }
 
-.size-tag {
-  font-size: 0.8rem;
-  color: #ddd;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.package-card ul {
-  margin: 0;
-  padding: 0;
-  flex: 1;
-}
-
-.package-card li {
-  margin: 0;
-  padding: 0;
-  color: #bbb;
-}
-
-.custom-checkbox {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  display: inline-block;
-  position: relative;
-  transition: all 0.2s;
-  background: rgba(30, 35, 35, 0.5);
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-}
-
-input[type="checkbox"]:checked + .custom-checkbox {
-  background: #5e9eff;
-  border-color: transparent;
-}
-
 .size-info {
   display: flex;
   justify-content: space-between;
   margin-top: 1rem;
   font-size: 0.85rem;
   color: #999;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: rgba(30, 35, 35, 0.5);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+input[type="checkbox"]:checked {
+  background: #76e5b8;
+  border-color: #76e5b8;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 #environment-info h3 {
@@ -703,4 +761,111 @@ body::before {
   to {
     background-position: 40px 40px;
   }
+}
+
+.setup-step {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.setup-step.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.step-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.step-header h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #76e5b8;
+}
+
+.step-header p {
+  color: #bbb;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.package-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.package-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.package-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.package-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.package-group {
+  background: rgba(30, 35, 35, 0.7);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: fit-content;
+}
+
+.package-card.base {
+  grid-column: 1 / -1;
+  margin-bottom: 1rem;
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding: 0 1rem;
+}
+
+.nav-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nav-button.next {
+  background: linear-gradient(135deg, #76e5b8 0%, #4caf50 100%);
+  border: none;
+}
+
+.nav-button.next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.nav-button.back {
+  background: transparent;
 }

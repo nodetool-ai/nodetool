@@ -329,9 +329,18 @@ function startIconAnimations(): void {
 
 window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
   const defaultLocationPath = document.querySelector(".location-path");
-  const sizeInfo = document.querySelector(".size-info");
+  const stepLocation = document.getElementById("step-location");
+  const stepPackages = document.getElementById("step-packages");
+  const backButton = document.querySelector(".nav-button.back");
+  const nextButton = document.querySelector(".nav-button.next");
 
-  if (!defaultLocationPath || !sizeInfo) {
+  if (
+    !defaultLocationPath ||
+    !stepLocation ||
+    !stepPackages ||
+    !backButton ||
+    !nextButton
+  ) {
     console.warn("Install location prompt elements not found");
     return;
   }
@@ -342,32 +351,79 @@ window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
 
   const defaultLocationButton = document.querySelector(".default-location");
   const customLocationButton = document.querySelector(".custom-location");
-  const modules = {
-    ai: document.querySelector('input[name="ai-package"]') as HTMLInputElement,
-    dataScience: document.querySelector(
-      'input[name="data-science"]'
-    ) as HTMLInputElement,
+
+  // Define mapping of checkbox names to repo IDs
+  const moduleMapping = {
+    huggingface: "nodetool-ai/nodetool-huggingface",
+    comfy: "nodetool-ai/nodetool-comfy",
+    ml: "nodetool-ai/nodetool-lib-ml",
+    openai: "nodetool-ai/nodetool-openai",
+    anthropic: "nodetool-ai/nodetool-anthropic",
+    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
+    data: "nodetool-ai/nodetool-lib-data",
+    audio: "nodetool-ai/nodetool-lib-audio",
+    image: "nodetool-ai/nodetool-lib-image",
+    google: "nodetool-ai/nodetool-google",
+    apple: "nodetool-ai/nodetool-apple",
+    chroma: "nodetool-ai/nodetool-chroma",
+  };
+
+  let selectedPath = defaultPath;
+
+  const getSelectedModules = () => {
+    const selectedRepoIds: string[] = [];
+
+    // Check each checkbox and add its corresponding repo ID if selected
+    Object.entries(moduleMapping).forEach(([checkboxName, repoId]) => {
+      const checkbox = document.querySelector(
+        `input[name="${checkboxName}"]`
+      ) as HTMLInputElement;
+      if (checkbox?.checked) {
+        selectedRepoIds.push(repoId);
+      }
+    });
+
+    return selectedRepoIds;
+  };
+
+  const goToPackageSelection = () => {
+    stepLocation.classList.remove("active");
+    stepPackages.classList.add("active");
+  };
+
+  const goToLocationSelection = () => {
+    stepPackages.classList.remove("active");
+    stepLocation.classList.add("active");
   };
 
   if (defaultLocationButton && customLocationButton) {
-    defaultLocationButton.addEventListener("click", async () => {
-      const selectedModules = {
-        ai: modules.ai?.checked || false,
-        dataScience: modules.dataScience?.checked || false,
-      };
-      await window.api.selectDefaultInstallLocation(selectedModules);
-      hideInstallLocationPrompt();
-      showBootMessage();
+    defaultLocationButton.addEventListener("click", () => {
+      selectedPath = defaultPath;
+      goToPackageSelection();
     });
 
     customLocationButton.addEventListener("click", async () => {
-      const selectedModules = {
-        ai: modules.ai?.checked || false,
-        dataScience: modules.dataScience?.checked || false,
-      };
-      await window.api.selectCustomInstallLocation(selectedModules);
-      hideInstallLocationPrompt();
-      showBootMessage();
+      try {
+        const selectedModules = getSelectedModules();
+        await window.api.selectCustomInstallLocation(selectedModules);
+        hideInstallLocationPrompt();
+        showBootMessage();
+      } catch (error) {
+        console.error("Error selecting custom location:", error);
+      }
     });
   }
+
+  backButton.addEventListener("click", goToLocationSelection);
+
+  nextButton.addEventListener("click", async () => {
+    const selectedModules = getSelectedModules();
+    if (selectedPath === defaultPath) {
+      await window.api.selectDefaultInstallLocation(selectedModules);
+    } else {
+      await window.api.selectCustomInstallLocation(selectedModules);
+    }
+    hideInstallLocationPrompt();
+    showBootMessage();
+  });
 });

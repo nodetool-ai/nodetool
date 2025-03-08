@@ -98,7 +98,7 @@ function calculateExtractETA(
  * @param destPath - The path to extract the conda environment to
  */
 async function runCondaUnpack(destPath: string): Promise<void> {
-  emitBootMessage("Running conda-unpack (may take a few minutes)...");
+  emitBootMessage("Running conda-unpack...");
   const unpackScript = getCondaUnpackPath();
 
   logMessage(`Conda-unpack script: ${unpackScript}`);
@@ -337,9 +337,9 @@ async function unpackTarGzEnvironment(
 async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
-    const customEnvPath = await promptForInstallLocation();
+    const { location, packages } = await promptForInstallLocation();
     emitBootMessage("Setting up Python environment...");
-    logMessage(`Setting up Python environment at: ${customEnvPath}`);
+    logMessage(`Setting up Python environment at: ${location}`);
 
     const environmentUrl = getCondaEnvUrl();
     const archivePath = path.join(os.tmpdir(), path.basename(environmentUrl));
@@ -362,19 +362,19 @@ async function installCondaEnvironment(): Promise<void> {
       }
     }
 
-    await fs.mkdir(customEnvPath, { recursive: true });
-    logMessage(`Unpacking Python environment to ${customEnvPath}`);
+    await fs.mkdir(location, { recursive: true });
+    logMessage(`Unpacking Python environment to ${location}`);
     emitBootMessage("Unpacking Python environment...");
     if (process.platform === "win32") {
-      await unpackPythonEnvironment(archivePath, customEnvPath);
+      await unpackPythonEnvironment(archivePath, location);
     } else {
-      await unpackTarGzEnvironment(archivePath, customEnvPath);
+      await unpackTarGzEnvironment(archivePath, location);
     }
 
     logMessage(`Removing downloaded archive: ${archivePath}`);
     await fs.unlink(archivePath);
 
-    await updateCondaEnvironment();
+    await updateCondaEnvironment(packages);
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
@@ -391,21 +391,26 @@ async function installCondaEnvironment(): Promise<void> {
  * Prompt for install location
  * @returns The path to the install location
  */
-async function promptForInstallLocation(): Promise<string> {
+async function promptForInstallLocation(): Promise<{
+  location: string;
+  packages: PythonPackages;
+}> {
   const downloadSize = getDownloadSize();
   const installedSize = getEnvironmentSize();
   const defaultLocation = getDefaultInstallLocation();
 
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<{
+    location: string;
+    packages: PythonPackages;
+  }>((resolve, reject) => {
     createIpcMainHandler(
       IpcChannels.SELECT_DEFAULT_LOCATION,
       async (_event, packages: PythonPackages) => {
         try {
-          await updateSettings({
+          updateSettings({
             CONDA_ENV: defaultLocation,
-            PYTHON_PACKAGES: packages,
           });
-          resolve(defaultLocation);
+          resolve({ location: defaultLocation, packages });
         } catch (error) {
           reject(error);
         }
@@ -429,11 +434,10 @@ async function promptForInstallLocation(): Promise<string> {
           }
 
           const selectedPath = path.join(filePaths[0], "nodetool-python");
-          await updateSettings({
+          updateSettings({
             CONDA_ENV: selectedPath,
-            PYTHON_MODULES: modules,
           });
-          resolve(selectedPath);
+          resolve({ location: selectedPath, packages: modules });
         } catch (error) {
           reject(error);
         }
