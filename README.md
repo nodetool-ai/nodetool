@@ -41,6 +41,10 @@ NodeTool is your open-source, privacy-first, no-code playground for rapidly buil
 
 ---
 
+![NodeTool](screen.png)
+
+---
+
 ## ⚙️ Quickstart Installation
 
 ### 1️⃣ Get It Running in Minutes!
@@ -95,52 +99,6 @@ NodeTool is your open-source, privacy-first, no-code playground for rapidly buil
 - 🚀 **Become a Contributor** → Help shape the future of local-first AI.
 
 ### Let's build amazing AI workflows together. ✨
-
-![NodeTool](screen.png)
-
-## Use Cases 🎨
-
-- 🤖 **Local LLM Deployment**
-
-  - Build privacy-focused chatbots using locally hosted models
-  - Create domain-specific assistants with your own data
-  - Deploy multiple LLMs for different tasks via ollama
-  - Build RAG applications with integrated ChromaDB support
-  - Fine-tune responses for your organization's needs
-
-- 🎨 **Automated Content Generation**
-
-  - Design image generation workflows with Stable Diffusion
-  - Create automated blog post and social media content pipelines
-  - Build video editing and audio processing workflows
-  - Automate thumbnail and banner creation for content
-
-- 🎯 **Personal AI Assistant**
-
-  - Design privacy-first scheduling and task management tools
-  - Create note-taking systems with local LLM processing
-  - Build custom reminder and notification workflows
-  - Develop personal knowledge management systems
-
-- 📊 **AI-Powered Data Processing**
-
-  - Analyze and summarize large document collections
-  - Extract insights from business reports and research papers
-  - Create automated data visualization workflows
-  - Build custom data extraction and processing pipelines
-
-- 🔧 **Workflow Automation**
-
-  - Design apps that streamline repetitive tasks with AI
-  - Create automated testing and QA workflows
-  - Build custom code review and documentation assistants
-  - Develop automated data validation systems
-
-- 🗣️ **Voice and Chat Interfaces**
-  - Build voice-enabled applications with Siri integration
-  - Create multi-modal chatbots with image and audio support
-  - Design conversational interfaces for specific domains
-  - Develop custom voice assistants using local models
 
 ## Features ✨
 
