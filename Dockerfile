@@ -69,10 +69,6 @@ RUN apt-get update && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 
 RUN pip3 install --upgrade pip
-
-COPY poetry.lock /app/poetry.lock
-COPY pyproject.toml /app/pyproject.toml
-
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Create and activate virtual environment
@@ -84,11 +80,9 @@ RUN pip install git+https://github.com/nodetool-ai/nodetool-base
 RUN pip install git+https://github.com/nodetool-ai/nodetool-aime
 RUN pip install git+https://github.com/nodetool-ai/nodetool-anthropic
 RUN pip install git+https://github.com/nodetool-ai/nodetool-chroma
-RUN pip install git+https://github.com/nodetool-ai/nodetool-comfy --extra-index-url https://download.pytorch.org/whl/cu121
 RUN pip install git+https://github.com/nodetool-ai/nodetool-elevenlabs
 RUN pip install git+https://github.com/nodetool-ai/nodetool-fal
 RUN pip install git+https://github.com/nodetool-ai/nodetool-google
-RUN pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu121
 RUN pip install git+https://github.com/nodetool-ai/nodetool-lib-audio
 RUN pip install git+https://github.com/nodetool-ai/nodetool-lib-data
 RUN pip install git+https://github.com/nodetool-ai/nodetool-lib-image
@@ -97,6 +91,9 @@ RUN pip install git+https://github.com/nodetool-ai/nodetool-lib-network
 RUN pip install git+https://github.com/nodetool-ai/nodetool-ollama
 RUN pip install git+https://github.com/nodetool-ai/nodetool-openai
 RUN pip install git+https://github.com/nodetool-ai/nodetool-replicate
+
+RUN pip install git+https://github.com/nodetool-ai/nodetool-comfy --extra-index-url https://download.pytorch.org/whl/cu121
+RUN pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu121
 
 COPY src /app
 COPY scripts /app/scripts

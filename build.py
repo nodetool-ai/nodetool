@@ -170,19 +170,9 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
-    def get_version(self) -> str:
-        """Get the version of the project."""
-        with open(PROJECT_ROOT / "pyproject.toml", "r") as f:
-            match = re.search(r'^version = "(.*)"$', f.read(), re.MULTILINE)
-            if match:
-                return match.group(1)
-            else:
-                raise BuildError("Version not found in pyproject.toml")
-
     def pack(self) -> None:
         """Create a packed conda environment."""
         logger.info("Packing conda environment")
-        version = self.get_version()
 
         # Install conda-pack
         self.run_command(["conda", "install", "conda-pack", "-y"])
@@ -228,7 +218,7 @@ class Build:
 
         # Pack the environment
         ext = "zip" if self.platform == "windows" else "tar.gz"
-        output_name = f"conda-env-{self.platform}-{self.arch}-{version}.{ext}"
+        output_name = f"conda-env-{self.platform}-{self.arch}.{ext}"
         output_path = self.BUILD_DIR / output_name
 
         self.remove_file(output_path)
