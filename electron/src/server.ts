@@ -318,7 +318,7 @@ async function initializeBackendServer(): Promise<void> {
  * @param timeout - Maximum time to wait in milliseconds (default: 30000)
  * @throws Error if server doesn't become available within timeout period
  */
-async function waitForServer(timeout: number = 30000): Promise<void> {
+async function waitForServer(timeout: number = 60000): Promise<void> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
     try {
