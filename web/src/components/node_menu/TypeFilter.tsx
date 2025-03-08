@@ -25,12 +25,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   selectedOutputType,
   setSelectedOutputType
 }) => {
-  const isComfyEnabled = useSettingsStore(
-    (state) => state.settings.enableComfy
-  );
-  const nodeTypes = isComfyEnabled
-    ? DATA_TYPES
-    : DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
+  const nodeTypes = DATA_TYPES;
   const [isVisible, setIsVisible] = useState(false);
 
   const handleFilterToggle = () => {

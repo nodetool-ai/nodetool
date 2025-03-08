@@ -7,12 +7,7 @@ import { DATA_TYPES, IconForType } from "../../../config/data_types";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const DataTypesList = () => {
-  const isComfyEnabled = useSettingsStore(
-    (state) => state.settings.enableComfy
-  );
-  const types = isComfyEnabled
-    ? DATA_TYPES
-    : DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
+  const types = DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
 
   const styles = (theme: any) =>
     css({

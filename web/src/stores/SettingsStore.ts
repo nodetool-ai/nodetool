@@ -3,7 +3,6 @@ import { persist } from "zustand/middleware";
 
 export interface Settings {
   gridSnap: number;
-  enableComfy: boolean;
   connectionSnap: number;
   panControls: string;
   selectionMode: string;
@@ -21,7 +20,6 @@ interface SettingsStore {
   settings: Settings;
   isMenuOpen: boolean;
   settingsTab: number;
-  setEnableComfy: (value: boolean) => void;
   setMenuOpen: (value: boolean, tab?: number) => void;
   setGridSnap: (value: number) => void;
   setConnectionSnap: (value: number) => void;
@@ -42,7 +40,6 @@ interface SettingsStore {
 export const defaultSettings: Settings = {
   gridSnap: 1,
   connectionSnap: 20,
-  enableComfy: false,
   panControls: "LMB",
   selectionMode: "partial",
   workflowLayout: "grid",
@@ -63,13 +60,6 @@ export const useSettingsStore = create<SettingsStore>()(
       settingsTab: 0,
       setMenuOpen: (value: boolean, tab?: number) =>
         set({ isMenuOpen: value, settingsTab: tab ?? 0 }),
-      setEnableComfy: (value: boolean) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            enableComfy: value
-          }
-        })),
       setGridSnap: (value: number) =>
         set((state) => ({
           settings: {
