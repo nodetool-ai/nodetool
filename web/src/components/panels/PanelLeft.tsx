@@ -250,7 +250,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ChatIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Packs" placement="right" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title="Packs (Key 5)" placement="right">
         <IconButton
           className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
           onClick={() => onViewChange("packs")}
@@ -361,6 +361,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["2"], () => handlePanelToggle("assets"), false);
   useCombo(["3"], () => handlePanelToggle("collections"), false);
   useCombo(["4"], () => handlePanelToggle("chat"), false);
+  useCombo(["5"], () => handlePanelToggle("packs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
