@@ -50,7 +50,7 @@ class Build:
     def __init__(
         self,
         clean_build: bool = False,
-        python_version: str = "3.11",
+        python_version: str = "3.10",
     ):
         """Initialize Build configuration."""
         platform = system().lower()

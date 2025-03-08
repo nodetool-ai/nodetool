@@ -43,7 +43,7 @@ const getCondaEnvPath = (): string => {
  */
 const getUVPath = (): string =>
   process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Scripts", "uv.exe")
+    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
     : path.join(getCondaEnvPath(), "bin", "uv");
 
 /**
@@ -83,19 +83,19 @@ const getProcessEnv = (): ProcessEnv => {
     PATH:
       process.platform === "win32"
         ? [
-            path.join(condaPath),
-            path.join(condaPath, "Library", "mingw-w64", "bin"),
-            path.join(condaPath, "Library", "usr", "bin"),
-            path.join(condaPath, "Library", "bin"),
-            path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
-            path.join(condaPath, "Scripts"),
-            process.env.PATH,
-          ].join(path.delimiter)
+          path.join(condaPath),
+          path.join(condaPath, "Library", "mingw-w64", "bin"),
+          path.join(condaPath, "Library", "usr", "bin"),
+          path.join(condaPath, "Library", "bin"),
+          path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
+          path.join(condaPath, "Scripts"),
+          process.env.PATH,
+        ].join(path.delimiter)
         : [
-            path.join(condaPath, "bin"),
-            path.join(condaPath, "lib"),
-            process.env.PATH,
-          ].join(path.delimiter),
+          path.join(condaPath, "bin"),
+          path.join(condaPath, "lib"),
+          process.env.PATH,
+        ].join(path.delimiter),
   };
 };
 

@@ -102,6 +102,7 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
 async function updateCondaEnvironment(packages: string[]): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
+
     const uvExecutable = getUVPath();
     packages = [
       "nodetool-ai/nodetool-core",
@@ -115,6 +116,8 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
       uvExecutable,
       "pip",
       "install",
+      "--index-strategy",
+      "unsafe-best-match",
       "--system",
       ...githubRepos,
     ];
@@ -268,9 +271,9 @@ function getDefaultInstallLocation(): string {
       return process.env.SUDO_USER
         ? path.join("/Library/Application Support/nodetool/conda_env")
         : path.join(
-            os.homedir(),
-            "Library/Application Support/nodetool/conda_env"
-          );
+          os.homedir(),
+          "Library/Application Support/nodetool/conda_env"
+        );
     case "linux":
       // Use /opt for all users, or ~/.local/share for current user
       return process.env.SUDO_USER
@@ -290,12 +293,12 @@ function getCondaEnvUrl(): string {
   let fileName: string;
 
   if (platform === "win32") {
-    fileName = `conda-env-windows-x64-${VERSION}.zip`;
+    fileName = `conda-env-windows-x64.zip`;
   } else if (platform === "darwin") {
     const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-    fileName = `conda-env-darwin-${archSuffix}-${VERSION}.tar.gz`;
+    fileName = `conda-env-darwin-${archSuffix}.tar.gz`;
   } else if (platform === "linux") {
-    fileName = `conda-env-linux-x64-${VERSION}.tar.gz`;
+    fileName = `conda-env-linux-x64.tar.gz`;
   } else {
     throw new Error("Unsupported platform");
   }
