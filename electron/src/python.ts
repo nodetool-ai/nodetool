@@ -5,12 +5,7 @@ import { app, dialog } from "electron";
 import * as https from "https";
 import * as path from "path";
 
-import {
-  getPythonPath,
-  getProcessEnv,
-  getUVPath,
-  pyprojectPath,
-} from "./config";
+import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
@@ -108,7 +103,11 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
     const uvExecutable = getUVPath();
-    packages = ["nodetool-ai/nodetool-base", ...packages];
+    packages = [
+      "nodetool-ai/nodetool-core",
+      "nodetool-ai/nodetool-base",
+      ...packages,
+    ];
     const githubRepos = packages.map((repoId) => {
       return `git+https://github.com/${repoId}.git`;
     });
@@ -124,9 +123,6 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
       installCommand.push("--extra-index-url");
       installCommand.push("https://download.pytorch.org/whl/cu121");
     }
-
-    logMessage(`Poetry install ${pyprojectPath}`);
-    await runCommand(["poetry", "install", "--directory", pyprojectPath]);
 
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);

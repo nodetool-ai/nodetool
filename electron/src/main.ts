@@ -53,9 +53,6 @@ import { createChatOverlayWindow } from "./chatWindow";
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
 
-app.commandLine.appendSwitch("enable-transparent-visuals");
-app.commandLine.appendSwitch("disable-gpu", "false");
-
 /**
  * Checks and sets up the Python Conda environment
  */

@@ -12,14 +12,6 @@
     ],
     "extraResources": [
         {
-            "from": "../pyproject.toml",
-            "to": "pyproject.toml"
-        },
-        {
-            "from": "../poetry.lock",
-            "to": "poetry.lock"
-        },
-        {
             "from": "../web/dist",
             "to": "web"
         },

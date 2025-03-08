@@ -354,18 +354,23 @@ window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
 
   // Define mapping of checkbox names to repo IDs
   const moduleMapping = {
-    huggingface: "nodetool-ai/nodetool-huggingface",
-    comfy: "nodetool-ai/nodetool-comfy",
-    ml: "nodetool-ai/nodetool-lib-ml",
-    openai: "nodetool-ai/nodetool-openai",
     anthropic: "nodetool-ai/nodetool-anthropic",
-    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
-    data: "nodetool-ai/nodetool-lib-data",
-    audio: "nodetool-ai/nodetool-lib-audio",
-    image: "nodetool-ai/nodetool-lib-image",
-    google: "nodetool-ai/nodetool-google",
     apple: "nodetool-ai/nodetool-apple",
+    audio: "nodetool-ai/nodetool-lib-audio",
     chroma: "nodetool-ai/nodetool-chroma",
+    comfy: "nodetool-ai/nodetool-comfy",
+    data: "nodetool-ai/nodetool-lib-data",
+    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
+    fal: "nodetool-ai/nodetool-fal",
+    file: "nodetool-ai/nodetool-lib-file",
+    google: "nodetool-ai/nodetool-google",
+    huggingface: "nodetool-ai/nodetool-huggingface",
+    image: "nodetool-ai/nodetool-lib-image",
+    ml: "nodetool-ai/nodetool-lib-ml",
+    network: "nodetool-ai/nodetool-lib-network",
+    ollama: "nodetool-ai/nodetool-ollama",
+    openai: "nodetool-ai/nodetool-openai",
+    replicate: "nodetool-ai/nodetool-replicate",
   };
 
   let selectedPath = defaultPath;

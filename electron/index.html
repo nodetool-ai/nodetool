@@ -25,38 +25,6 @@
     "
     />
     <title>Nodetool</title>
-    <style>
-      @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 200;
-        src: url("./assets/Inter-ExtraLight.woff2") format("woff2");
-      }
-      @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 400;
-        src: url("./assets/Inter-Regular.woff2") format("woff2");
-      }
-      @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 500;
-        src: url("./assets/Inter-Medium.woff2") format("woff2");
-      }
-      @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 600;
-        src: url("./assets/Inter-SemiBold.woff2") format("woff2");
-      }
-      @font-face {
-        font-family: "Inter";
-        font-style: normal;
-        font-weight: 700;
-        src: url("./assets/Inter-Bold.woff2") format("woff2");
-      }
-    </style>
     <link rel="stylesheet" href="src/index.css" />
   </head>
   <body>
@@ -116,8 +84,6 @@
     </div>
     <div id="install-location-prompt" style="display: none">
       <div id="environment-info">
-        <h2>NodeTool Setup</h2>
-
         <!-- Step 1: Install Location -->
         <div id="step-location" class="setup-step active">
           <div class="step-header">
@@ -143,15 +109,6 @@
           </div>
 
           <div class="package-selection">
-            <!-- Base Package -->
-            <div class="package-card base">
-              <div class="package-header">
-                <h4>📦 Base Package</h4>
-                <span class="required-badge">Required</span>
-              </div>
-            </div>
-
-            <!-- Optional Packages -->
             <div class="package-grid">
               <!-- AI & ML Package Group -->
               <div class="package-group">
@@ -161,44 +118,30 @@
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="huggingface" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>HuggingFace</h4>
-                        </div>
-                        <p>Text, Image, and Audio models from HuggingFace</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🤗 HuggingFace</h4>
                     </div>
+                    <p>Text, Image, and Audio models from HuggingFace</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="comfy" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>ComfyUI</h4>
-                        </div>
-                        <p>Image and Video generation</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🎨 ComfyUI</h4>
                     </div>
+                    <p>Generate images and videos with ComfyUI</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="ml" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Machine Learning</h4>
-                        </div>
-                        <p>
-                          Classification, Regression, and statistical models
-                        </p>
-                      </div>
+                    <div class="package-header">
+                      <h4>📊 Machine Learning</h4>
                     </div>
+                    <p>Classification, Regression, and statistical models</p>
                   </label>
                 </div>
               </div>
@@ -211,45 +154,63 @@
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="openai" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>OpenAI</h4>
-                        </div>
-                        <p>
-                          Integration with ChatGPT, DALL-E, and other OpenAI
-                          services
-                        </p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🧠 OpenAI</h4>
                     </div>
+                    <p>
+                      Integration with ChatGPT, DALL-E, and other OpenAI
+                      services
+                    </p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="anthropic" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Anthropic</h4>
-                        </div>
-                        <p>Access to Claude and other Anthropic AI models</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🔮 Anthropic</h4>
                     </div>
+                    <p>Access to Claude and other Anthropic AI models</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="elevenlabs" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>ElevenLabs</h4>
-                        </div>
-                        <p>Advanced text-to-speech and voice cloning</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🎤 ElevenLabs</h4>
                     </div>
+                    <p>Advanced text-to-speech and voice cloning</p>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="fal" />
+                    </div>
+                    <div class="package-header">
+                      <h4>⚡ FAL AI</h4>
+                    </div>
+                    <p>Run premium Image and Video models on Fal AI</p>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="ollama" />
+                    </div>
+                    <div class="package-header">
+                      <h4>🦙 Ollama</h4>
+                    </div>
+                    <p>Run local LLMs with Ollama integration</p>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="replicate" />
+                    </div>
+                    <div class="package-header">
+                      <h4>🔄 Replicate</h4>
+                    </div>
+                    <p>Access hundreds of AI models hosted on Replicate</p>
                   </label>
                 </div>
               </div>
@@ -260,44 +221,54 @@
                 <div class="package-options">
                   <label class="package-option">
                     <div class="checkbox-wrapper">
+                      <input type="checkbox" name="file" />
+                    </div>
+                    <div class="package-header">
+                      <h4>📄 Document Processing</h4>
+                    </div>
+                    <p>Convert, merge, and analyze PDFs, Excel, and more</p>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
                       <input type="checkbox" name="data" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Data Processing</h4>
-                        </div>
-                        <p>Tools for data manipulation and analysis</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>📈 Data Processing</h4>
                     </div>
+                    <p>
+                      Clean, transform, and analyze data with Pandas and Numpy
+                    </p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="audio" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Audio Processing</h4>
-                        </div>
-                        <p>Audio manipulation and analysis tools</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🔊 Audio Processing</h4>
                     </div>
+                    <p>Apply audio effects and analyze audio</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="image" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Image Processing</h4>
-                        </div>
-                        <p>Image manipulation and analysis utilities</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🖼️ Image Processing</h4>
                     </div>
+                    <p>Transform and draw images</p>
+                  </label>
+
+                  <label class="package-option">
+                    <div class="checkbox-wrapper">
+                      <input type="checkbox" name="network" />
+                    </div>
+                    <div class="package-header">
+                      <h4>🌐 Network</h4>
+                    </div>
+                    <p>Scrape websites and use web APIs</p>
                   </label>
                 </div>
               </div>
@@ -310,42 +281,30 @@
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="google" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Google</h4>
-                        </div>
-                        <p>Integration with Google services and APIs</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🔍 Google</h4>
                     </div>
+                    <p>Fetch GMail emails and use Gemini for AI</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="apple" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Apple</h4>
-                        </div>
-                        <p>Automation for Apple products and services</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🍎 Apple</h4>
                     </div>
+                    <p>Automation for Apple Notes, Calendar, and more</p>
                   </label>
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
                       <input type="checkbox" name="chroma" />
                     </div>
-                    <div class="package-content">
-                      <div class="package-info">
-                        <div class="package-header">
-                          <h4>Chroma</h4>
-                        </div>
-                        <p>Vector database integration for AI applications</p>
-                      </div>
+                    <div class="package-header">
+                      <h4>🧩 Chroma</h4>
                     </div>
+                    <p>Build your knowledge base with Chroma</p>
                   </label>
                 </div>
               </div>
@@ -398,5 +357,39 @@
       <div id="log"></div>
     </div>
     <script type="module" src="src/index.ts"></script>
+    <script>
+      // Add event listeners to highlight selected packages
+      document.addEventListener("DOMContentLoaded", () => {
+        const checkboxes = document.querySelectorAll(
+          '.package-option input[type="checkbox"]'
+        );
+
+        checkboxes.forEach((checkbox) => {
+          // Initialize any pre-checked boxes
+          if (checkbox.checked) {
+            const content = checkbox
+              .closest(".package-option")
+              .querySelector(".package-content");
+            content.style.backgroundColor = "rgba(74, 158, 255, 0.15)";
+            content.style.boxShadow = "0 0 0 2px rgba(74, 158, 255, 0.4)";
+          }
+
+          // Add change event listener
+          checkbox.addEventListener("change", (e) => {
+            const content = e.target
+              .closest(".package-option")
+              .querySelector(".package-content");
+
+            if (e.target.checked) {
+              content.style.backgroundColor = "rgba(74, 158, 255, 0.15)";
+              content.style.boxShadow = "0 0 0 2px rgba(74, 158, 255, 0.4)";
+            } else {
+              content.style.backgroundColor = "";
+              content.style.boxShadow = "";
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html>
