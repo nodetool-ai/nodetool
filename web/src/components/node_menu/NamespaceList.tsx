@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List, Tooltip, Typography } from "@mui/material";
+import { Box, List, Tooltip, Typography, Button } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
@@ -15,7 +15,8 @@ import {
 import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
 import useMetadataStore from "../../stores/MetadataStore";
-import { KeyboardArrowLeft } from "@mui/icons-material";
+import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
+import { usePanelStore } from "../../stores/PanelStore";
 
 type NamespaceTree = {
   [key: string]: {
@@ -49,9 +50,16 @@ const namespaceStyles = (theme: any) =>
       bottom: "0",
       minHeight: "30px",
       alignItems: "center",
-      flexDirection: "row",
+      flexDirection: "column",
       margin: "0 1em .5em ",
       justifyContent: "flex-end"
+    },
+    ".node-packs-info": {
+      textAlign: "right",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      width: "100%"
     },
     ".list-box": {
       display: "flex",
@@ -373,7 +381,6 @@ const namespaceStyles = (theme: any) =>
       backgroundColor: "transparent",
       border: "none",
       borderRadius: "0 4px 4px 0",
-      padding: "0",
       cursor: "pointer",
       color: theme.palette.c_white,
       display: "flex",
@@ -401,6 +408,12 @@ const NoSelectionContent = memo(function NoSelectionContent({
   selectedPathString: string;
   minSearchTermLength: number;
 }) {
+  const handleViewChange = usePanelStore((state) => state.handleViewChange);
+
+  const openPacksPanel = useCallback(() => {
+    handleViewChange("packs");
+  }, [handleViewChange]);
+
   return (
     <div className="no-selection">
       {searchTerm.length > minSearchTermLength ? (
@@ -453,6 +466,26 @@ const NoSelectionContent = memo(function NoSelectionContent({
           </ul>
         </div>
       )}
+      <div className="node-packs-info">
+        <Button
+          startIcon={<AddCircleOutline />}
+          size="small"
+          variant="outlined"
+          onClick={openPacksPanel}
+          style={{
+            marginTop: "0.5em",
+            marginBottom: "0.5em",
+            textTransform: "none",
+            lineHeight: "1.5",
+            borderColor: "#61dafb",
+            color: "#61dafb",
+            padding: "15px"
+          }}
+        >
+          Install additional node packs
+        </Button>
+      </div>
+
       <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
         Let us know what&apos;s missing
       </Typography>

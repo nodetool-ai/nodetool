@@ -340,11 +340,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setTimeFormat,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
-    setEnableComfy,
     settings
   } = useSettingsStore((state) => ({
     isMenuOpen: state.isMenuOpen,
-    setEnableComfy: state.setEnableComfy,
     settings: state.settings,
     setMenuOpen: state.setMenuOpen,
     settingsTab: state.settingsTab,
@@ -458,20 +456,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </FormControl>
                   <Typography className="description">
                     Show the welcome screen when starting the application.
-                  </Typography>
-                </div>
-
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Enable Comfy</InputLabel>
-                    <Switch
-                      checked={!!settings.enableComfy}
-                      onChange={(e) => setEnableComfy(e.target.checked)}
-                      inputProps={{ "aria-label": id }}
-                    />
-                  </FormControl>
-                  <Typography className="description">
-                    Enable Comfy integration.
                   </Typography>
                 </div>
 

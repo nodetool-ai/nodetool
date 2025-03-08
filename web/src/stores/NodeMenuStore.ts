@@ -100,47 +100,6 @@ type NodeMenuStore = {
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
-  const shouldFilterByApiKey = (term: string, store: NodeMenuStore) => {
-    return term.trim() || store.selectedInputType || store.selectedOutputType;
-  };
-
-  const isNodeApiKeyMissing = (node: NodeMetadata, secrets: any) => {
-    const rootNamespace = node.namespace.split(".")[0];
-    const isComfyEnabled = useSettingsStore.getState().settings.enableComfy;
-
-    switch (rootNamespace) {
-      case "comfy":
-        return !isComfyEnabled;
-      case "openai":
-        return !secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "";
-      case "replicate":
-        return (
-          !secrets.REPLICATE_API_TOKEN ||
-          secrets.REPLICATE_API_TOKEN.trim() === ""
-        );
-      case "anthropic":
-        return (
-          !secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY.trim() === ""
-        );
-      case "elevenlabs":
-        return (
-          !secrets.ELEVENLABS_API_KEY ||
-          secrets.ELEVENLABS_API_KEY.trim() === ""
-        );
-      case "fal":
-        return !secrets.FAL_API_KEY || secrets.FAL_API_KEY.trim() === "";
-      case "aime":
-        return (
-          !secrets.AIME_API_KEY ||
-          secrets.AIME_API_KEY.trim() === "" ||
-          !secrets.AIME_USER ||
-          secrets.AIME_USER.trim() === ""
-        );
-      default:
-        return false;
-    }
-  };
-
   const performGroupedSearch = (entries: any[], term: string) => {
     // Title matches
     const titleFuse = new Fuse(entries, {
@@ -366,7 +325,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
      *
      * This function:
      * 1. Validates the search request against the current search ID
-     * 2. Retrieves metadata and filters out nodes without required API keys
+     * 2. Retrieves metadata
      * 3. Applies type filtering based on selected input/output types
      * 4. Performs fuzzy search using Fuse.js when a search term is provided
      * 5. Filters results based on the selected namespace path
@@ -385,8 +344,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Get all required state variables at the beginning
       const store = get();
       const metadata = useMetadataStore.getState().metadata;
-      const secrets = useRemoteSettingsStore.getState().secrets;
-      const searchTerm = store.searchTerm;
       const selectedInputType = store.selectedInputType;
       const selectedOutputType = store.selectedOutputType;
       const selectedPath = store.selectedPath;
@@ -410,18 +367,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
 
       // Filter out nodes in the "default" namespace
-      const filteredMetadata = Object.values(metadata).filter((node) => {
-        if (node.namespace === "default") return false;
-
-        // Only filter by API keys during search or type filtering
-        if (shouldFilterByApiKey(term, store)) {
-          if (isNodeApiKeyMissing(node, secrets)) {
-            return false;
-          }
-        }
-
-        return true;
-      });
+      const filteredMetadata = Object.values(metadata).filter(
+        (node) => node.namespace !== "default"
+      );
 
       // Filter by type
       const typeFilteredMetadata = filterDataByType(
