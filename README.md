@@ -13,31 +13,30 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 
 ## 🚀 Why NodeTool?
 
-### 🔒 Privacy-First & 100% Local
+### 🔒 Privacy-First & Fully Local
 
-- **Run powerful AI models** directly on your machine—no cloud required.
-- Keep your data safe and private; **zero data leakage**.
-- Fully offline-capable—perfect for privacy-conscious creators and hackers.
+- **Run advanced AI models locally** without transmitting data to external servers.
+- Maintain **complete control and privacy** over your data—guaranteed zero data leakage.
+- Fully offline functionality ideal for developers, content creators, and anyone who prioritizes privacy and autonomy.
 
-### 🎨 Ultimate AI Creativity
+### 🎨 Fast AI Prototyping
 
-- Drag-and-drop workflow builder supporting **LLaMA, GPT variants, Stable Diffusion, ComfyUI, and more**.
-- Seamlessly integrate **text, images, audio, and video** in one intuitive interface.
-- Bring your ComfyUI workflows into NodeTool and push your Stable Diffusion creations even further.
+- Easily build AI workflows using a drag-and-drop interface, compatible with popular models including **LLaMA, DeepSeek, Stable Diffusion, ComfyUI, and others**.
+- Rapidly prototype and iterate workflows, enabling quick experimentation and refinement.
+- Integrate **text, images, audio, and video** seamlessly within one unified environment.
+- Import and extend existing ComfyUI workflows, maximizing the potential of your Stable Diffusion projects.
 
-### 💻 Deep System Integration
+### 💻 Comprehensive System Integration
 
-- Instantly accessible **global chat overlay** to run AI anywhere on your desktop.
-- Assign global shortcuts to Nodetool workflows
-- Access clipboard and screen directly
-- Automate daily tasks like email summarization, social media content, or even coding.
-- Control apps, files, and system tasks—all driven by custom AI workflows.
+- Quickly access AI capabilities via a convenient **global chat overlay** accessible throughout your desktop.
+- Set customizable global shortcuts to instantly trigger workflows, boosting productivity.
+- Automate daily tasks like email summaries, social media content generation, and coding support.
+- Direct control of applications, clipboard operations, and screen interactions using custom AI-driven workflows.
 
-### 🌩️ Premium Cloud Scalability (Optional)
+### 🌩️ Optional Cloud Providers
 
-- Easily deploy heavy AI workflows to **GPU-powered cloud instances** when you need extra horsepower.
-- Access cutting-edge AI models like large-scale video generation and high-end image synthesis.
-- Scale seamlessly from hobby projects to enterprise-grade applications.
+- Scale demanding AI tasks with optional GPU-powered AI providers.
+- Integrate with leading AI platforms, such as OpenAI, Anthropic, Replicate or Fal.AI
 
 ---
 
@@ -60,35 +59,53 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 
 ---
 
-## ✨ Cool Things You Can Do
+## Features ✨
 
-🎯 **Personal AI Assistant**
+NodeTool offers powerful, intuitive features to help you build, automate, and deploy AI workflows quickly and effortlessly:
 
-- Privacy-first scheduling and task management
-- Local LLM-powered note-taking systems
-- Custom reminders and notifications
-- Personal knowledge management solutions
+- **Visual Workflow Editor**: Easily design complex AI workflows with drag-and-drop simplicity—no coding necessary.
+- **Global Chat Overlay**: Instantly access and trigger AI workflows from anywhere on your desktop through a unified, always-ready chat interface.
+- **System Tray Integration**: Quickly launch workflows, assign global shortcuts, manage clipboard content, and monitor AI tasks seamlessly from your system tray.
+- **Ready-to-Use App Templates**: Jumpstart your projects using pre-built workflow templates tailored for popular AI use cases.
+- **Mini-App Builder**: Turn workflows into standalone desktop applications with just a few clicks.
+- **Chat Interface Builder**: Create personalized chatbot interfaces tailored specifically to your needs.
+- **Comprehensive AI Model Support**:
+  - Run local models via Ollama and HuggingFace
+  - Integrate cloud APIs including OpenAI, Anthropic, Replicate, and Fal.ai
+- **Advanced Vector Storage & RAG**:
+  - Built-in ChromaDB integration for storing and querying embeddings
+  - Effortlessly create Retrieval-Augmented Generation (RAG) workflows
+  - Index and query PDFs, documents, and other text sources
+  - Combine vector storage with any supported LLM for enhanced responses
+- **Multimodal AI Capabilities**: Seamlessly process text, images, audio, and video within a single workflow.
+- **Asset Management**: Easily import, manage, and reuse media assets across workflows.
+- **API Access**: Extend your workflows by integrating NodeTool with external applications and services via APIs.
+- **Custom Python Extensions**: Expand functionality with custom scripts and integrations using Python.
+- **Cross-Platform Compatibility**: Build and deploy your workflows seamlessly across Mac, Windows, and Linux.
 
-📊 **AI-Powered Data Processing**
+### System Tray Integration 🔗
 
-- Summarize and analyze large document collections
-- Extract insights from reports and research papers
-- Automated data visualization workflows
-- Custom data extraction and processing pipelines
+NodeTool's system tray integration keeps your AI tools at your fingertips:
 
-🔧 **Workflow Automation**
+- Quickly trigger workflows directly from your tray
+- Set up and use global keyboard shortcuts
+- Instantly access the global chat overlay
+- Transform clipboard content using AI workflows
+- Monitor the real-time status of workflows
 
-- Apps that streamline repetitive tasks with AI
-- Automated testing and QA workflows
-- Custom code review and documentation assistants
-- Automated data validation systems
+Integrate NodeTool effortlessly into your daily routine, ensuring your AI workflows are always just one click away.
 
-🗣️ **Voice and Chat Interfaces**
+## Cool Things You Can Do ✨
 
-- Voice-enabled apps with Siri integration
-- Multi-modal chatbots (image and audio support)
-- Domain-specific conversational interfaces
-- Custom voice assistants using local AI models
+Explore these practical examples to see how NodeTool can enhance your daily productivity:
+
+- **Daily Digest using Deepseek R1 📧📰**: Automatically searches your Gmail inbox for emails with '[AINews]' in the subject line from the past week and summarizes them using the Deepseek R1 7B model. This workflow extracts key details such as sender information, main topics, action items, and deadlines, combining them into a concise, categorized summary—ideal for efficiently staying updated on important AI news without sifting through multiple emails.
+
+- **Pokemon Maker 🐉✨**: Create unique and imaginative Pokemon with detailed descriptions and visually stunning images using AI. Input animal inspirations and get custom Pokemon complete with types, abilities, and personalities.
+
+- **Simple RAG 🔍📚**: A retrieval-augmented generation (RAG) workflow that searches a document collection based on user queries. The system retrieves relevant information from a ChromaDB collection, formats the results into a prompt, and uses the Deepseek-R1 7B model to generate concise, informative answers based on the retrieved content.
+
+- **Style Transfer 🎨🖼️**: Instantly transform your images into stunning artwork by applying styles from reference images. This workflow uses IP-Adapter to blend artistic elements while ControlNet maintains the original structure, making it perfect for generating creative variations of portraits, landscapes, and more.
 
 ---
 
@@ -99,53 +116,6 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 - 🚀 **Become a Contributor** → Help shape the future of local-first AI.
 
 ### Let's build amazing AI workflows together. ✨
-
-## Features ✨
-
-Key features for building AI applications:
-
-- **Visual Workflow Editor**: Design your app's logic visually—no coding required
-- **Global Chat Overlay**: Access all your AI tools and workflows from a single chat interface.
-- **System Tray Integration**: Access workflows and apps quickly
-- **App Templates**: Start with pre-built templates for common use cases
-- **Mini-App Builder**: Package workflows as standalone desktop applications
-- **Chat Interface Builder**: Create custom chatbot interfaces
-- **Comprehensive Model Support**:
-  - Local models via Ollama and HuggingFace
-  - Cloud APIs from OpenAI, Anthropic, Replicate, and Fal.ai
-- **Vector Storage & RAG**:
-  - Built-in ChromaDB integration for vector storage
-  - Create sophisticated RAG applications
-  - Index and query documents, PDFs, and other text sources
-  - Combine with any supported LLM for enhanced responses
-- **Asset Management**: Import and manage media assets within your apps
-- **Multimodal Support**: Build apps that handle text, images, audio, and video
-- **API Access**: Integrate your apps with other tools via API
-- **Custom Extensions**: Add new capabilities with Python
-- **Cross-Platform**: Deploy your apps on Mac, Windows, and Linux
-
-### System Tray Integration 🔗
-
-NodeTool lives in your system tray, providing instant access to all your AI tools and workflows:
-
-- Quick-launch any workflow or app from the tray menu
-- Configure and trigger global shortcuts
-- Access the global chat overlay
-- Transform clipboard content with AI
-- Monitor workflow status
-
-This system tray integration ensures your AI tools are always just a click or keystroke away, seamlessly integrating into your daily workflow.
-
-### Global Chat Overlay 💬
-
-A standout feature of NodeTool is the Global Chat Overlay, which serves as a unified entry point for all your AI tools and workflows. This chat interface allows you to:
-
-- Run powerful tools such as image generation, audio generation, and more
-- Access notes, documents, and other files
-- Trigger any workflow you've created
-- Engage in AI chats for natural language interactions
-
-The global chat overlay provides a seamless and intuitive way to access your custom AI solutions, making it easier than ever to integrate AI into your daily workflow.
 
 ## Quickstart 🚀
 
