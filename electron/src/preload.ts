@@ -129,4 +129,5 @@ contextBridge.exposeInMainWorld("api", {
     minimize: () => ipcRenderer.send(IpcChannels.WINDOW_MINIMIZE),
     maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
+  platform: process.platform,
 });

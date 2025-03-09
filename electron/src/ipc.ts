@@ -92,20 +92,40 @@ export function initializeIpcHandlers(): void {
   //   });
 
   // Window control handlers
-  createIpcMainHandler(IpcChannels.WINDOW_CLOSE, async () => {
-    BrowserWindow.getFocusedWindow()?.close();
+  ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
+    try {
+      const window = BrowserWindow.getFocusedWindow();
+      if (window) {
+        window.close();
+      }
+    } catch (error) {
+      logMessage(`Error in window close: ${error}`, "error");
+    }
   });
 
-  createIpcMainHandler(IpcChannels.WINDOW_MINIMIZE, async () => {
-    BrowserWindow.getFocusedWindow()?.minimize();
+  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event) => {
+    try {
+      const window = BrowserWindow.getFocusedWindow();
+      if (window) {
+        window.minimize();
+      }
+    } catch (error) {
+      logMessage(`Error in window minimize: ${error}`, "error");
+    }
   });
 
-  createIpcMainHandler(IpcChannels.WINDOW_MAXIMIZE, async () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win?.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win?.maximize();
+  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event) => {
+    try {
+      const window = BrowserWindow.getFocusedWindow();
+      if (window) {
+        if (window.isMaximized()) {
+          window.unmaximize();
+        } else {
+          window.maximize();
+        }
+      }
+    } catch (error) {
+      logMessage(`Error in window maximize: ${error}`, "error");
     }
   });
 

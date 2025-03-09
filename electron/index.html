@@ -26,8 +26,97 @@
     />
     <title>Nodetool</title>
     <link rel="stylesheet" href="src/index.css" />
+    <style>
+      /* Title bar container */
+      .title-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 32px;
+        background: #1a1a1a;
+        display: none; /* Hidden by default */
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100;
+        -webkit-app-region: drag;
+      }
+
+      /* Show title bar only on Windows */
+      body.platform-win32 .title-bar {
+        display: flex;
+      }
+
+      /* Window controls container */
+      .window-controls {
+        display: flex;
+        -webkit-app-region: no-drag;
+        height: 100%;
+      }
+
+      .window-control-button {
+        width: 46px;
+        height: 100%;
+        border: none;
+        background: transparent;
+        color: #fff;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        -webkit-app-region: no-drag;
+      }
+
+      .window-control-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      #close-button:hover {
+        background-color: #e81123;
+      }
+
+      /* Adjust main content to account for title bar */
+      body.platform-win32 #boot-message,
+      body.platform-win32 #install-location-prompt,
+      body.platform-win32 #log-container {
+        margin-top: 32px;
+      }
+    </style>
   </head>
   <body>
+    <script>
+      // Add platform class to body
+      document.body.classList.add('platform-' + window.api.platform);
+
+      // Initialize window controls
+      document.addEventListener('DOMContentLoaded', () => {
+        const minimizeBtn = document.querySelector('.window-control-button:nth-child(1)');
+        const maximizeBtn = document.querySelector('.window-control-button:nth-child(2)');
+        const closeBtn = document.querySelector('#close-button');
+
+        minimizeBtn.addEventListener('click', () => {
+          window.api.windowControls.minimize();
+        });
+
+        maximizeBtn.addEventListener('click', () => {
+          window.api.windowControls.maximize();
+        });
+
+        closeBtn.addEventListener('click', () => {
+          window.api.windowControls.close();
+        });
+      });
+    </script>
+    <div class="title-bar">
+      <div style="flex: 1"></div>
+      <div class="window-controls">
+        <button class="window-control-button">&#x2014;</button>
+        <button class="window-control-button">&#x2610;</button>
+        <button class="window-control-button" id="close-button">&#x2715;</button>
+      </div>
+    </div>
     <div id="boot-message">
       <svg
         class="nodetool-icon"
