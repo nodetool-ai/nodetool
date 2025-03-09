@@ -19,6 +19,10 @@ import { loadMetadata } from "../../serverState/useMetadata";
 import SearchIcon from "@mui/icons-material/Search";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 
+const humanizeType = (type: string) => {
+  return type.replace(/([A-Z])/g, " $1").trim();
+};
+
 interface PlaceholderNodeData extends Node<NodeData> {
   data: NodeData & {
     workflow_id?: string;
@@ -92,7 +96,7 @@ const typeForValue = (value: any) => {
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const nodeType = props.type;
   const nodeData = props.data;
-  const nodeTitle = nodeType?.split(".").pop() || "";
+  const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
   const nodeNamespace = nodeType?.split(".").slice(0, -1).join(".") || "";
   const queryClient = useQueryClient();
