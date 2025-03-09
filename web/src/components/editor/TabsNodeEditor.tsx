@@ -34,11 +34,12 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray0,
       alignItems: "center",
       position: "relative",
-      // "-webkit-app-region": "drag",
-      padding: "0"
+      padding: "0",
+      height: "32px",
+      "-webkit-app-region": "drag"
     },
     "& .tabs": {
-      width: "100%",
+      flex: 1,
       zIndex: 1000,
       display: "flex",
       flexWrap: "nowrap",
@@ -49,17 +50,18 @@ const styles = (theme: any) =>
       paddingLeft: "40px",
       paddingTop: "4px",
       whiteSpace: "nowrap",
-      maxWidth: "100%",
       scrollbarWidth: "none",
       msOverflowStyle: "none",
       backdropFilter: "blur(8px)",
       position: "relative",
+      "-webkit-app-region": "drag",
 
       "&::-webkit-scrollbar": {
         display: "none"
       }
     },
     "& .tab": {
+      "-webkit-app-region": "no-drag",
       padding: "4px 16px",
       height: "32px",
       display: "flex",
@@ -219,8 +221,67 @@ const styles = (theme: any) =>
       "& svg": {
         fontSize: "20px"
       }
+    },
+    "& .window-controls": {
+      display: "flex",
+      height: "32px",
+      "-webkit-app-region": "no-drag",
+      flexShrink: 0
+    },
+    "& .window-control-button": {
+      width: "46px",
+      height: "100%",
+      border: "none",
+      background: "transparent",
+      color: theme.palette.c_white,
+      fontSize: "14px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      transition: "background-color 0.2s",
+      outline: "none",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)"
+      }
+    },
+    "& .window-control-button#close-button:hover": {
+      backgroundColor: "#e81123"
     }
   });
+
+const WindowControls = () => {
+  const handleMinimize = () => window.api?.windowControls?.minimize();
+  const handleMaximize = () => window.api?.windowControls?.maximize();
+  const handleClose = () => window.api?.windowControls?.close();
+
+  return (
+    <div className="window-controls">
+      <button
+        className="window-control-button"
+        onClick={handleMinimize}
+        title="Minimize"
+      >
+        &#x2014;
+      </button>
+      <button
+        className="window-control-button"
+        onClick={handleMaximize}
+        title="Maximize"
+      >
+        &#x2610;
+      </button>
+      <button
+        className="window-control-button"
+        id="close-button"
+        onClick={handleClose}
+        title="Close"
+      >
+        &#x2715;
+      </button>
+    </div>
+  );
+};
 
 const TabsNodeEditor = () => {
   const { openWorkflows, currentWorkflowId, loadingStates } =
@@ -263,7 +324,10 @@ const TabsNodeEditor = () => {
       )}
       <ThemeProvider theme={ThemeNodes}>
         <div css={styles}>
-          <TabsBar workflows={workflows} />
+          <div className="tabs-container">
+            <TabsBar workflows={workflows} />
+            <WindowControls />
+          </div>
           <div className="editor-container" css={generateCSS}>
             {workflows.map((workflow) => {
               const isActive = currentWorkflowId === workflow.id;
