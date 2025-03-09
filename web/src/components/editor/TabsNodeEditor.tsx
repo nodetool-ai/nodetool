@@ -50,6 +50,7 @@ const styles = (theme: any) =>
       padding: "0 10px",
       paddingLeft: "40px",
       paddingTop: "4px",
+      paddingRight: "138px",
       whiteSpace: "nowrap",
       scrollbarWidth: "none",
       msOverflowStyle: "none",
@@ -213,6 +214,9 @@ const styles = (theme: any) =>
       padding: 0,
       marginLeft: "2px",
       transition: "all 0.1s ease-in-out",
+      "-webkit-app-region": "no-drag",
+      position: "relative",
+      zIndex: 1001,
 
       "&:hover": {
         color: theme.palette.c_gray6,
@@ -289,8 +293,7 @@ const TabsNodeEditor = () => {
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
       currentWorkflowId: state.currentWorkflowId,
-      loadingStates: state.loadingStates,
-      createNewWorkflow: state.createNew
+      loadingStates: state.loadingStates
     }));
   const workflows = useMemo(() => {
     const loadingWorkflows = Object.keys(loadingStates)
