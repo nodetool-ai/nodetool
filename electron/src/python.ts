@@ -227,34 +227,6 @@ async function getCondaEnvSize(): Promise<number> {
   }
 }
 
-/**
- * Get environment size based on platform
- */
-function getEnvironmentSize(): string {
-  switch (process.platform) {
-    case "darwin":
-      return "2.5 GB";
-    case "linux":
-      return "8 GB";
-    case "win32":
-      return "8 GB";
-    default:
-      return "unknown";
-  }
-}
-
-function getDownloadSize(): string {
-  switch (process.platform) {
-    case "darwin":
-      return "1 GB";
-    case "linux":
-      return "2 GB";
-    case "win32":
-      return "2 GB";
-    default:
-      return "unknown";
-  }
-}
 
 /**
  * Get the default installation location based on platform
@@ -313,7 +285,5 @@ export {
   downloadToString,
   getCondaEnvUrl,
   getCondaEnvSize,
-  getEnvironmentSize,
-  getDownloadSize,
   getDefaultInstallLocation,
 };

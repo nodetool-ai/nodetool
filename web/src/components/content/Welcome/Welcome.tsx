@@ -314,11 +314,11 @@ function TabPanel(props: TabPanelProps) {
 
 const recommendedModels: UnifiedModel[] = [
   {
-    id: "SG161222/Realistic_Vision_V6.0",
-    name: "Realistic Vision V6",
+    id: "SG161222/Realistic_Vision_V5.1_noVAE",
+    name: "Realistic Vision V5.1",
     type: "hf.stable_diffusion",
-    repo_id: "SG161222/Realistic_Vision_V6.0",
-    path: "Realistic_Vision_V6.0_fp16.safetensors"
+    repo_id: "SG161222/Realistic_Vision_V5.1_noVAE",
+    path: "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
   },
   {
     id: "ai-forever/Real-ESRGAN",

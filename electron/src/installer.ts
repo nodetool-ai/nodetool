@@ -11,7 +11,6 @@ import {
   updateCondaEnvironment,
 } from "./python";
 
-import { getEnvironmentSize, getDownloadSize } from "./python";
 import { logMessage } from "./logger";
 import path from "path";
 import { updateSettings } from "./settings";
@@ -24,7 +23,7 @@ import { spawn } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
 
-import { IpcChannels, PythonPackages } from "./types.d";
+import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
 /**
@@ -386,6 +385,25 @@ async function installCondaEnvironment(): Promise<void> {
     throw error;
   }
 }
+createIpcMainHandler(
+  IpcChannels.SELECT_CUSTOM_LOCATION,
+  async (_event) => {
+    const defaultLocation = getDefaultInstallLocation();
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      properties: ["openDirectory", "createDirectory"],
+      title: "Select the folder to install the Python environment to",
+      buttonLabel: "Select Folder",
+      defaultPath: defaultLocation,
+    });
+
+    if (canceled || !filePaths?.[0]) {
+      return null;
+    }
+
+    return path.join(filePaths[0], "nodetool-python");
+  }
+);
+
 
 /**
  * Prompt for install location
@@ -395,8 +413,6 @@ async function promptForInstallLocation(): Promise<{
   location: string;
   packages: PythonPackages;
 }> {
-  const downloadSize = getDownloadSize();
-  const installedSize = getEnvironmentSize();
   const defaultLocation = getDefaultInstallLocation();
 
   return new Promise<{
@@ -404,43 +420,13 @@ async function promptForInstallLocation(): Promise<{
     packages: PythonPackages;
   }>((resolve, reject) => {
     createIpcMainHandler(
-      IpcChannels.SELECT_DEFAULT_LOCATION,
-      async (_event, packages: PythonPackages) => {
-        try {
-          updateSettings({
-            CONDA_ENV: defaultLocation,
-          });
-          resolve({ location: defaultLocation, packages });
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
-
-    createIpcMainHandler(
-      IpcChannels.SELECT_CUSTOM_LOCATION,
-      async (_event, modules: PythonPackages) => {
-        try {
-          const { filePaths, canceled } = await dialog.showOpenDialog({
-            properties: ["openDirectory", "createDirectory"],
-            title: "Select Python Environment Location",
-            buttonLabel: "Select Folder",
-            defaultPath: defaultLocation,
-          });
-
-          if (canceled || !filePaths?.[0]) {
-            reject(new Error("No installation location selected"));
-            return;
-          }
-
-          const selectedPath = path.join(filePaths[0], "nodetool-python");
-          updateSettings({
-            CONDA_ENV: selectedPath,
-          });
-          resolve({ location: selectedPath, packages: modules });
-        } catch (error) {
-          reject(error);
-        }
+      IpcChannels.INSTALL_TO_LOCATION,
+      async (_event, { location, packages }: InstallToLocationData) => {
+        console.log("location", location);
+        updateSettings({
+          CONDA_ENV: location,
+        });
+        resolve({ location, packages });
       }
     );
 
@@ -453,8 +439,6 @@ async function promptForInstallLocation(): Promise<{
 
     mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
       defaultPath: defaultLocation,
-      downloadSize,
-      installedSize,
     });
   });
 }

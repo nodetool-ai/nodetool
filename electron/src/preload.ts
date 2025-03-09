@@ -92,10 +92,10 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
   clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
-  selectDefaultInstallLocation: (packages: PythonPackages) =>
-    ipcRenderer.invoke(IpcChannels.SELECT_DEFAULT_LOCATION, packages),
-  selectCustomInstallLocation: (packages: PythonPackages) =>
-    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION, packages),
+  installToLocation: (location: string, packages: PythonPackages) =>
+    ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
+  selectCustomInstallLocation: () =>
+    ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
   onCreateWorkflow: (workflow: Workflow) =>

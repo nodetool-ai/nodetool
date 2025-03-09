@@ -408,13 +408,10 @@ window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
     });
 
     customLocationButton.addEventListener("click", async () => {
-      try {
-        const selectedModules = getSelectedModules();
-        await window.api.selectCustomInstallLocation(selectedModules);
-        hideInstallLocationPrompt();
-        showBootMessage();
-      } catch (error) {
-        console.error("Error selecting custom location:", error);
+      const result = await window.api.selectCustomInstallLocation();
+      if (result) {
+        selectedPath = result;
+        goToPackageSelection();
       }
     });
   }
@@ -423,11 +420,7 @@ window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
 
   nextButton.addEventListener("click", async () => {
     const selectedModules = getSelectedModules();
-    if (selectedPath === defaultPath) {
-      await window.api.selectDefaultInstallLocation(selectedModules);
-    } else {
-      await window.api.selectCustomInstallLocation(selectedModules);
-    }
+    await window.api.installToLocation(selectedPath, selectedModules);
     hideInstallLocationPrompt();
     showBootMessage();
   });

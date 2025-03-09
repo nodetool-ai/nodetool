@@ -24,8 +24,11 @@ declare global {
       onInstallLocationPrompt: (
         callback: (data: { defaultPath: string }) => void
       ) => void;
-      selectDefaultInstallLocation: (modules: PythonPackages) => Promise<void>;
-      selectCustomInstallLocation: (modules: PythonPackages) => Promise<void>;
+      installToLocation: (
+        location: string,
+        packages: PythonPackages
+      ) => Promise<void>;
+      selectCustomInstallLocation: () => Promise<string | null>;
       windowControls: {
         close: () => void;
         minimize: () => void;
@@ -110,21 +113,21 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-    | "cut"
-    | "copy"
-    | "paste"
-    | "selectAll"
-    | "undo"
-    | "redo"
-    | "close"
-    | "fitView";
+  | "cut"
+  | "copy"
+  | "paste"
+  | "selectAll"
+  | "undo"
+  | "redo"
+  | "close"
+  | "fitView";
 }
 
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
   OPEN_LOG_FILE = "open-log-file",
-  SELECT_DEFAULT_LOCATION = "select-default-location",
+  INSTALL_TO_LOCATION = "install-to-location",
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   RUN_APP = "run-app",
   BOOT_MESSAGE = "boot-message",
@@ -145,12 +148,17 @@ export enum IpcChannels {
   ON_DELETE_WORKFLOW = "on-delete-workflow",
 }
 
+export interface InstallToLocationData {
+  location: string;
+  packages: PythonPackages;
+}
+
 // Request/Response types for each IPC channel
 export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
   [IpcChannels.OPEN_LOG_FILE]: void;
-  [IpcChannels.SELECT_DEFAULT_LOCATION]: PythonPackages;
-  [IpcChannels.SELECT_CUSTOM_LOCATION]: PythonPackages;
+  [IpcChannels.INSTALL_TO_LOCATION]: InstallToLocationData;
+  [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
@@ -165,8 +173,8 @@ export interface IpcRequest {
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
   [IpcChannels.OPEN_LOG_FILE]: void;
-  [IpcChannels.SELECT_DEFAULT_LOCATION]: void;
-  [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
+  [IpcChannels.INSTALL_TO_LOCATION]: void;
+  [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
@@ -186,8 +194,6 @@ export interface IpcEvents {
   [IpcChannels.UPDATE_PROGRESS]: UpdateProgressData;
   [IpcChannels.UPDATE_AVAILABLE]: UpdateInfo;
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
-  [IpcChannels.SELECT_INSTALL_LOCATION]: PythonPackages;
-  [IpcChannels.SELECT_CUSTOM_LOCATION]: PythonPackages;
   [IpcChannels.MENU_EVENT]: MenuEventData;
 }
 

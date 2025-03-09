@@ -334,7 +334,8 @@ ul li {
   left: 50%;
   transform: translate(-50%, -50%);
   color: #eee;
-  max-width: 1200px;
+  max-width: 1600px;
+  min-width: 1000px;
   background: rgba(24, 28, 28, 0.85);
   border-radius: 16px;
   padding: 32px;
@@ -422,7 +423,7 @@ ul li {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  width: 100%;
+  width: 400px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -522,12 +523,10 @@ ul li {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 90%;
-  width: 90%;
+  width: 100%;
   margin: 0 auto;
   max-height: 70vh;
   overflow-y: auto;
-  padding-right: 1rem;
 }
 
 .package-grid {
