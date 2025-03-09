@@ -36,6 +36,7 @@ const styles = (theme: any) =>
       position: "relative",
       padding: "0",
       height: "32px",
+      width: "100%",
       "-webkit-app-region": "drag"
     },
     "& .tabs": {
