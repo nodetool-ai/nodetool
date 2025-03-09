@@ -704,58 +704,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/tasks/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Index
-         * @description Returns all tasks for the current user, optionally filtered by status.
-         */
-        get: operations["index_api_tasks__get"];
-        put?: never;
-        /**
-         * Create
-         * @description Creates a new task.
-         */
-        post: operations["create_api_tasks__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get
-         * @description Returns the task with the given id.
-         */
-        get: operations["get_api_tasks__id__get"];
-        /**
-         * Update
-         * @description Updates the task with the given id.
-         */
-        put: operations["update_api_tasks__id__put"];
-        post?: never;
-        /**
-         * Delete
-         * @description Deletes the task with the given id.
-         */
-        delete: operations["delete_api_tasks__id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -943,6 +891,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/packages/nodes/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Nodes
+         * @description Search for nodes across all available packages.
+         *
+         *     Args:
+         *         query: Optional search string to filter nodes by name or description
+         *
+         *     Returns:
+         *         NodeSearchResponse: List of nodes matching the search query
+         */
+        get: operations["search_nodes_api_packages_nodes_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/packages/nodes/package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Package For Node
+         * @description Get the package that provides a specific node type.
+         *
+         *     Args:
+         *         node_type: The type identifier of the node
+         *
+         *     Returns:
+         *         PackageForNodeResponse: Information about the package providing the node
+         */
+        get: operations["get_package_for_node_api_packages_nodes_package_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/packages/installed": {
         parameters: {
             query?: never;
@@ -955,46 +955,6 @@ export interface paths {
          * @description List all installed packages.
          */
         get: operations["list_installed_packages_api_packages_installed_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/info/{repo_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Package Info
-         * @description Get information about a package from the registry.
-         */
-        get: operations["get_package_info_api_packages_info__repo_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/metadata/{repo_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Package Metadata
-         * @description Get metadata for an installed package.
-         */
-        get: operations["get_package_metadata_api_packages_metadata__repo_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2983,6 +2943,13 @@ export interface components {
              */
             id: string;
         };
+        /** NodeSearchResponse */
+        NodeSearchResponse: {
+            /** Nodes */
+            nodes: Record<string, never>[];
+            /** Count */
+            count: number;
+        };
         /** NodeUpdate */
         NodeUpdate: {
             /**
@@ -3079,6 +3046,15 @@ export interface components {
              */
             stream: boolean;
         };
+        /** PackageForNodeResponse */
+        PackageForNodeResponse: {
+            /** Node Type */
+            node_type: string;
+            /** Package */
+            package?: string | null;
+            /** Found */
+            found: boolean;
+        };
         /**
          * PackageInfo
          * @description Package information model for nodetool.
@@ -3149,12 +3125,17 @@ export interface components {
              * Repo Id
              * @description Repository ID in the format <owner>/<project>
              */
-            repo_id: string;
+            repo_id?: string | null;
             /**
              * Nodes
              * @description List of nodes provided by this package
              */
             nodes?: components["schemas"]["NodeMetadata"][] | null;
+            /**
+             * Git Hash
+             * @description Git commit hash of the package
+             */
+            git_hash?: string | null;
         };
         /** PackageResponse */
         PackageResponse: {
@@ -3516,107 +3497,6 @@ export interface components {
              * @description VRAM usage percentage
              */
             vram_percent?: number | null;
-        };
-        /** Task */
-        Task: {
-            /**
-             * Type
-             * @default task
-             * @constant
-             * @enum {string}
-             */
-            type: "task";
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-            /**
-             * Task Type
-             * @default
-             */
-            task_type: string;
-            /**
-             * User Id
-             * @default
-             */
-            user_id: string;
-            /**
-             * Thread Id
-             * @default
-             */
-            thread_id: string;
-            /**
-             * Status
-             * @default
-             */
-            status: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /**
-             * Instructions
-             * @default
-             */
-            instructions: string;
-            /**
-             * Dependencies
-             * @default []
-             */
-            dependencies: string[];
-            /**
-             * Started At
-             * @default
-             */
-            started_at: string;
-            /** Finished At */
-            finished_at?: string | null;
-            /** Error */
-            error?: string | null;
-            /** Result */
-            result?: string | null;
-            /** Cost */
-            cost?: number | null;
-        };
-        /** TaskCreateRequest */
-        TaskCreateRequest: {
-            /** Task Type */
-            task_type: string;
-            /** Thread Id */
-            thread_id: string;
-            /** Name */
-            name: string;
-            /** Instructions */
-            instructions: string;
-            /**
-             * Dependencies
-             * @default []
-             */
-            dependencies: string[];
-        };
-        /** TaskList */
-        TaskList: {
-            /** Next */
-            next: string | null;
-            /** Tasks */
-            tasks: components["schemas"]["Task"][];
-        };
-        /** TaskUpdateRequest */
-        TaskUpdateRequest: {
-            /** Status */
-            status?: string | null;
-            /** Error */
-            error?: string | null;
-            /** Result */
-            result?: string | null;
-            /** Cost */
-            cost?: number | null;
-            /** Started At */
-            started_at?: string | null;
-            /** Finished At */
-            finished_at?: string | null;
         };
         /**
          * TextRef
@@ -5560,189 +5440,6 @@ export interface operations {
             };
         };
     };
-    index_api_tasks__get: {
-        parameters: {
-            query: {
-                thread_id: string;
-                cursor?: string | null;
-                page_size?: number | null;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_api_tasks__post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TaskCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Task"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_api_tasks__id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Task"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_api_tasks__id__put: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TaskUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Task"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_api_tasks__id__delete: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_files_api_files_list_get: {
         parameters: {
             query?: {
@@ -6211,6 +5908,76 @@ export interface operations {
             };
         };
     };
+    search_nodes_api_packages_nodes_search_get: {
+        parameters: {
+            query?: {
+                query?: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_for_node_api_packages_nodes_package_get: {
+        parameters: {
+            query: {
+                node_type: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageForNodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_installed_packages_api_packages_installed_get: {
         parameters: {
             query?: never;
@@ -6231,76 +5998,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstalledPackageListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_package_info_api_packages_info__repo_id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                repo_id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageInfo"] | null;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_package_metadata_api_packages_metadata__repo_id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                repo_id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageModel"] | null;
                 };
             };
             /** @description Validation Error */
