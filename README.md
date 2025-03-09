@@ -15,28 +15,27 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 
 ### 🔒 Privacy-First & Fully Local
 
-- **Run advanced AI models locally** without transmitting data to external servers.
-- Maintain **complete control and privacy** over your data—guaranteed zero data leakage.
-- Fully offline functionality ideal for developers, content creators, and anyone who prioritizes privacy and autonomy.
+- **Run AI models locally with zero data transmission**
+- **Use in restricted environments**
+- **Process sensitive data locally**
 
 ### 🎨 Fast AI Prototyping
 
-- Easily build AI workflows using a drag-and-drop interface, compatible with popular models including **LLaMA, DeepSeek, Stable Diffusion, ComfyUI, and others**.
-- Rapidly prototype and iterate workflows, enabling quick experimentation and refinement.
-- Integrate **text, images, audio, and video** seamlessly within one unified environment.
-- Import and extend existing ComfyUI workflows, maximizing the potential of your Stable Diffusion projects.
+- **Fastest way to prototype AI workflows**
+- **Visual workflow editor, no coding required**
+- **Drag-and-drop LLMs, Diffusion Models, & more**
 
 ### 💻 Comprehensive System Integration
 
-- Quickly access AI capabilities via a convenient **global chat overlay** accessible throughout your desktop.
-- Set customizable global shortcuts to instantly trigger workflows, boosting productivity.
-- Automate daily tasks like email summaries, social media content generation, and coding support.
-- Direct control of applications, clipboard operations, and screen interactions using custom AI-driven workflows.
+- **Control apps, clipboard & browser with AI**
+- **Custom shortcuts to trigger AI workflows**
+- **Access your knowledge base and local files**
 
 ### 🌩️ Optional Cloud Providers
 
-- Scale demanding AI tasks with optional GPU-powered AI providers.
-- Integrate with leading AI platforms, such as OpenAI, Anthropic, Replicate or Fal.AI
+- **Scale with GPU-powered cloud providers**
+- **Connect to OpenAI, Anthropic, Replicate & Fal.AI**
+- **Hybrid workflows, only share what you need**
 
 ---
 
