@@ -38,8 +38,8 @@ const styles = (theme: any) =>
       overflowY: "auto",
       width: "100%",
       padding: "0",
-      top: "35px",
-      height: "calc(-35px + 100vh)"
+      top: "72px",
+      height: "calc(-72px + 100vh)"
     },
 
     ".panel-button": {
@@ -52,7 +52,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "75px",
+      top: "72px",
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
 
