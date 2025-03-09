@@ -37,6 +37,9 @@ function createWindow(): BrowserWindow {
   // Load the index.html
   window.loadFile(path.join("dist-web", "index.html"));
 
+  // DevTools
+  // window.webContents.openDevTools();
+
   window.webContents.on("before-input-event", (event, input) => {
     if (
       (input.control || input.meta) &&
