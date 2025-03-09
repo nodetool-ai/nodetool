@@ -15,8 +15,9 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => void;
       onUpdateWorkflow: (workflow: Workflow) => void;
       onDeleteWorkflow: (workflow: Workflow) => void;
+      windowControls: WindowControls;
+      platform: string;
     };
-    windowControls?: WindowControls;
     process: {
       type: string;
       platform: string;
