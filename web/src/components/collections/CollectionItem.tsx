@@ -4,7 +4,8 @@ import {
   IconButton,
   CircularProgress,
   LinearProgress,
-  Tooltip
+  Tooltip,
+  Button
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { CollectionResponse } from "../../stores/ApiTypes";
@@ -179,15 +180,15 @@ const CollectionItem = ({
             <IconButton
               edge="end"
               aria-label="delete"
+              sx={{ mt: -10 }}
               onClick={() => onDelete(collection.name)}
               disabled={deleteMutation.isPending}
-              sx={{ mt: 1 }}
             >
               {deleteMutation.isPending &&
               deleteMutation.variables === collection.name ? (
                 <CircularProgress size={20} />
               ) : (
-                <DeleteIcon />
+                <DeleteIcon sx={{ fontSize: "1rem" }} />
               )}
             </IconButton>
           </span>
@@ -259,6 +260,7 @@ const CollectionItem = ({
             {collection.metadata?.embedding_model}
           </Typography>
         </Tooltip>
+        <div style={{ flexGrow: 1 }} />
         {isEditingWorkflow ? (
           <WorkflowSelect
             onChange={onWorkflowChange(collection)}
@@ -274,8 +276,8 @@ const CollectionItem = ({
           />
         ) : (
           <Tooltip title="Click to change the ingestion workflow for this collection">
-            <Typography
-              variant="body2"
+            <Button
+              variant="text"
               sx={{
                 color: "text.secondary",
                 fontSize: "0.8em",
@@ -288,7 +290,7 @@ const CollectionItem = ({
               onClick={() => setIsEditingWorkflow(true)}
             >
               {collection.workflow_name || "No workflow"}
-            </Typography>
+            </Button>
           </Tooltip>
         )}
       </div>
