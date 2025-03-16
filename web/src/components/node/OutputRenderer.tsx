@@ -9,7 +9,14 @@ import React, {
 } from "react";
 import { css } from "@emotion/react";
 
-import { Asset, DataframeRef, Message, NPArray } from "../../stores/ApiTypes";
+import {
+  Asset,
+  DataframeRef,
+  Message,
+  NPArray,
+  Task,
+  TaskPlan
+} from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
@@ -19,11 +26,11 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
-import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import ArrayView from "./ArrayView"; // We'll create this component
+import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
@@ -310,6 +317,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           }
         }
         return <DictTable data={value} editable={false} data_type="string" />;
+      case "task_plan":
+        return <TaskPlanView data={value as TaskPlan} />;
       case "array":
         if (value.length > 0) {
           if (value[0] === undefined || value[0] === null) {
@@ -331,9 +340,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             }
             if (value[0].type === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
-            }
-            if (value[0].type === "task") {
-              return <TaskTable data={value} />;
             }
             if (["image", "audio", "video"].includes(value[0].type)) {
               return generateAssetGridContent(value, onDoubleClickAsset);
