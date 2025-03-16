@@ -20,6 +20,7 @@ import AssetProperty from "../properties/AssetProperty";
 import FolderProperty from "../properties/FolderProperty";
 import WorkflowProperty from "../properties/WorkflowProperty";
 import WorkflowListProperty from "../properties/WorkflowListProperty";
+import ToolsListProperty from "../properties/ToolsListProperty";
 import NonEditableProperty from "../properties/NonEditableProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
@@ -161,6 +162,8 @@ function handleListType(
     switch (type_args[0].type) {
       case "workflow":
         return WorkflowListProperty;
+      case "tool_name":
+        return ToolsListProperty;
     }
   }
   return ListProperty;
