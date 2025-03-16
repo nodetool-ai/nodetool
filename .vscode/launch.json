@@ -26,6 +26,20 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Debug: Chat",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "nodetool.cli",
+            "justMyCode": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+            },
+            "args": [
+                "chat",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Debug: Run Workflow",
             "type": "debugpy",
             "request": "launch",
