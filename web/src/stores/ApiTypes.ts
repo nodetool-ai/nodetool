@@ -59,7 +59,6 @@ export type NodeProgress = components["schemas"]["NodeProgress"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type OpenAIModel = components["schemas"]["OpenAIModel"];
-export type Task = components["schemas"]["Task"];
 export type CachedModel = components["schemas"]["CachedModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type ModelInfo = components["schemas"]["ModelInfo"];
@@ -97,3 +96,7 @@ export interface UnifiedModel {
   size_on_disk?: number;
   downloaded?: boolean;
 }
+
+export type Task = components["schemas"]["Task"];
+export type TaskPlan = components["schemas"]["TaskPlan"];
+export type SubTask = components["schemas"]["SubTask"];
