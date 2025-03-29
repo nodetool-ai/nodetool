@@ -1,13 +1,17 @@
 import { create } from "zustand";
+import { Task } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
+  tasks: Record<string, Task>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
   clearProgress: (workflowId: string) => void;
   setResult: (workflowId: string, nodeId: string, result: any) => void;
   getResult: (workflowId: string, nodeId: string) => any;
+  setTask: (workflowId: string, nodeId: string, task: Task) => void;
+  getTask: (workflowId: string, nodeId: string) => Task | undefined;
   setProgress: (
     workflowId: string,
     nodeId: string,
@@ -27,6 +31,21 @@ export const hashKey = (workflowId: string, nodeId: string) =>
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   progress: {},
+  tasks: {},
+  /**
+   * Set the task for a node.
+   * The task is stored in the tasks map.
+   */
+  setTask: (workflowId: string, nodeId: string, task: Task) => {
+    set({ tasks: { ...get().tasks, [hashKey(workflowId, nodeId)]: task } });
+  },
+  /**
+   * Get the task for a node.
+   * The task is stored in the tasks map.
+   */
+  getTask: (workflowId: string, nodeId: string) => {
+    return get().tasks[hashKey(workflowId, nodeId)];
+  },
   /**
    * Delete the result for a node.
    * The result is removed from the results map.
