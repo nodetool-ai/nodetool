@@ -118,7 +118,7 @@ export const Composer: React.FC<ComposerProps> = ({
 
   const tools = [
     { id: "search_email", icon: FaEnvelope, label: "Search Email" },
-    { id: "browser_control", icon: FaGlobe, label: "Browser Control" },
+    { id: "browser", icon: FaGlobe, label: "Browser" },
   ];
 
   const toggleTool = useCallback(

@@ -56,6 +56,7 @@ export type Video = components["schemas"]["VideoRef"];
 export type RunJobRequest = components["schemas"]["RunJobRequest"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
+export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type OpenAIModel = components["schemas"]["OpenAIModel"];

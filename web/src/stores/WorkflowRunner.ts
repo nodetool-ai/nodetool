@@ -11,7 +11,8 @@ import {
   JobUpdate,
   RunJobRequest,
   WorkflowAttributes,
-  Workflow
+  Workflow,
+  TaskUpdate
 } from "./ApiTypes";
 import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
@@ -55,7 +56,7 @@ export type WorkflowRunner = {
   notifications: Notification[];
   readMessage: (
     workflow: WorkflowAttributes,
-    data: JobUpdate | Prediction | NodeProgress | NodeUpdate
+    data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
   ) => void;
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
@@ -71,7 +72,12 @@ export type WorkflowRunner = {
   disconnect: () => void;
 };
 
-type MsgpackData = JobUpdate | Prediction | NodeProgress | NodeUpdate;
+type MsgpackData =
+  | JobUpdate
+  | Prediction
+  | NodeProgress
+  | NodeUpdate
+  | TaskUpdate;
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   socket: null,
@@ -150,7 +156,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
   readMessage: (
     workflow: WorkflowAttributes,
-    data: JobUpdate | Prediction | NodeProgress | NodeUpdate
+    data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
   ) => {
     try {
       handleUpdate(workflow, data);

@@ -5,7 +5,8 @@ import {
   NodeProgress,
   NodeUpdate,
   AssetRef,
-  Message
+  Message,
+  TaskUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useAssetStore } from "./AssetStore";
@@ -17,7 +18,7 @@ import useWorkflowRunner from "./WorkflowRunner";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
-  data: JobUpdate | Prediction | NodeProgress | NodeUpdate | Message
+  data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
 ) => {
   const runner = useWorkflowRunner.getState();
   const getAsset = useAssetStore.getState().get;
@@ -26,6 +27,16 @@ export const handleUpdate = (
   const setLogs = useLogsStore.getState().setLogs;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
+  const setTask = useResultsStore.getState().setTask;
+
+  if (data.type === "task_update") {
+    const task = data as TaskUpdate;
+    if (task.node_id) {
+      setTask(workflow.id, task.node_id, task.task);
+    } else {
+      devError("TaskUpdate has no node_id");
+    }
+  }
 
   if (data.type === "job_update") {
     const job = data as JobUpdate;

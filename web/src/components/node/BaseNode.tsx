@@ -34,6 +34,7 @@ import NodePropertyForm from "./NodePropertyForm";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import TaskView from "./TaskView";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -267,6 +268,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [metadata]
   );
 
+  const task = useResultsStore((state) => state.getTask(workflow_id, id));
+
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
 
@@ -322,6 +325,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
       {selected && resizer}
+      {task && <TaskView task={task} />}
       {meta.showFooter && (
         <NodeFooter
           nodeNamespace={meta.nodeNamespace}
