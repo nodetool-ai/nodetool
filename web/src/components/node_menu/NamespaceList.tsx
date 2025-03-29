@@ -38,7 +38,8 @@ const namespaceStyles = (theme: any) =>
       height: "60vh",
       display: "flex",
       flexDirection: "column",
-      marginTop: "20px"
+      marginTop: "20px",
+      overflow: "auto"
     },
     "& h4": {
       fontSize: "1em",
@@ -68,7 +69,8 @@ const namespaceStyles = (theme: any) =>
       margin: "0",
       width: "100%",
       flex: "1 1 auto",
-      minHeight: 0
+      minHeight: 0,
+      overflow: "auto"
     },
     ".namespace-list": {
       display: "flex",
@@ -78,11 +80,10 @@ const namespaceStyles = (theme: any) =>
       minWidth: "150px",
       maxWidth: "200px",
       width: "fit-content",
-      height: "fit-content",
+      height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "1em",
       paddingLeft: "1em",
-      // paddingBottom: "3em",
       marginRight: ".5em",
       boxShadow: "inset 0 0 4px rgba(0, 0, 0, 0.2)",
       borderRadius: "8px"
@@ -104,8 +105,6 @@ const namespaceStyles = (theme: any) =>
       }
     },
     ".node-list": {
-      // padding: "0 1em 1em .5em",
-      // marginRight: ".5em",
       height: "100%",
       maxHeight: "750px",
       width: "250px",
@@ -130,7 +129,6 @@ const namespaceStyles = (theme: any) =>
       animationDelay: ".5s",
       visibility: "hidden",
       overflow: "hidden"
-      // textWrap: "nowrap"
     },
     "@keyframes fadeIn": {
       from: {
@@ -300,11 +298,9 @@ const namespaceStyles = (theme: any) =>
     ".namespaces .list-item.disabled": {
       backgroundColor: "transparent",
       border: "none !important",
-      // borderLeft: `3px solid ${theme.palette.c_gray3}`,
       color: theme.palette.c_gray5,
       "&:hover": {
         backgroundColor: theme.palette.c_gray2
-        // borderLeft: `3px solid ${theme.palette.c_gray3}`
       }
     },
     ".list-item.firstDisabled": {
