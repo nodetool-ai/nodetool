@@ -116,6 +116,7 @@ jobs:
 
       - name: Build and Publish Electron
         shell: bash -l {0}
+          NODE_OPTIONS: "--max_old_space_size=4096"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
