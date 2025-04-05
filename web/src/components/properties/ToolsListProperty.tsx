@@ -1,6 +1,5 @@
 import { memo, useCallback } from "react";
-import { Select, OutlinedInput } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
+import { Autocomplete, Chip, TextField } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
@@ -41,7 +40,7 @@ const AVAILABLE_TOOLS = [
 
 const ToolsListProperty = (props: PropertyProps) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
-  const toolNames = props.value?.map((tool: any) => tool.name);
+  const toolNames = props.value?.map((tool: any) => tool.name) || [];
 
   const onChange = useCallback(
     (selectedToolNames: string[]) => {
@@ -59,21 +58,55 @@ const ToolsListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      <Select
+      <Autocomplete
         id={id}
         multiple
-        value={toolNames || []}
-        onChange={(e) => onChange(e.target.value as string[])}
-        className="mui-select nodrag"
-        input={<OutlinedInput id="select-multiple-tools" label="Tools" />}
-        renderValue={(selected) => (selected as string[]).join(", ")}
-      >
-        {AVAILABLE_TOOLS.map((toolName) => (
-          <MenuItem key={toolName} value={toolName}>
-            {toolName}
-          </MenuItem>
-        ))}
-      </Select>
+        freeSolo
+        size="small"
+        options={AVAILABLE_TOOLS}
+        value={toolNames}
+        sx={{
+          "& .MuiInputBase-root": {
+            padding: "2px 2px",
+            minHeight: "18px"
+          }
+        }}
+        onChange={(_, newValue) => onChange(newValue as string[])}
+        renderTags={(value: readonly string[], getTagProps) =>
+          value.map((option: string, index: number) => (
+            <Chip
+              variant="outlined"
+              size="small"
+              label={option}
+              {...getTagProps({ index })}
+              key={option}
+              sx={{
+                height: "20px",
+                "& .MuiChip-label": {
+                  fontSize: "0.75rem",
+                  padding: "0 6px"
+                }
+              }}
+            />
+          ))
+        }
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="outlined"
+            size="small"
+            placeholder={toolNames.length === 0 ? "Select tools..." : ""}
+            fullWidth
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                padding: "2px 4px",
+                minHeight: "32px"
+              }
+            }}
+          />
+        )}
+        className="nodrag"
+      />
     </>
   );
 };
