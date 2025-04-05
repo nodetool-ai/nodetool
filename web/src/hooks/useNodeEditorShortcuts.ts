@@ -344,7 +344,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
         );
       }
     },
-    [selectedNodes, reactFlow, nodeHistory]
+    [selectedNodes, setNodes]
   );
 
   // Add arrow key shortcuts

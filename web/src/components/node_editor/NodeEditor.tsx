@@ -24,6 +24,7 @@ import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
+import WorkflowGenerator from "../assistants/WorkflowGenerator";
 
 declare global {
   interface Window {
@@ -99,6 +100,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <>
               <WorkflowChat workflow_id="default" />
               <NodeMenu focusSearchInput={true} />
+              {/* <WorkflowGenerator /> */}
             </>
           )}
         </>

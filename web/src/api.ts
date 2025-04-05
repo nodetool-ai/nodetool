@@ -692,6 +692,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/create-smart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Smart Workflow
+         * @description Create a workflow automatically using AI based on a description.
+         *
+         *     This endpoint uses WorkflowPlanner to generate a workflow structure based on
+         *     natural language description provided in the request.
+         */
+        post: operations["create_smart_workflow_api_workflows_create_smart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/storage/{key}": {
         parameters: {
             query?: never;
@@ -2590,6 +2613,10 @@ export interface components {
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
+            /** Input Files */
+            input_files?: components["schemas"]["MessageFile"][] | null;
+            /** Output Files */
+            output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
         };
@@ -2635,6 +2662,10 @@ export interface components {
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
+            /** Input Files */
+            input_files?: components["schemas"]["MessageFile"][] | null;
+            /** Output Files */
+            output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
         };
@@ -2690,6 +2721,22 @@ export interface components {
              *       "uri": ""
              *     } */
             document: components["schemas"]["DocumentRef"];
+        };
+        /** MessageFile */
+        MessageFile: {
+            /**
+             * Type
+             * @default file
+             * @constant
+             */
+            type: "file";
+            /**
+             * Content
+             * Format: binary
+             */
+            content: string;
+            /** Mime Type */
+            mime_type: string;
         };
         /** MessageImageContent */
         MessageImageContent: {
@@ -3127,6 +3174,24 @@ export interface components {
             message: string;
         };
         /**
+         * PlotlyConfig
+         * @description Configuration for Plotly Express charts.
+         *     Captures essential visualization parameters while maintaining simplicity.
+         */
+        PlotlyConfig: {
+            /**
+             * Type
+             * @default plotly_config
+             * @constant
+             */
+            type: "plotly_config";
+            /**
+             * Config
+             * @default {}
+             */
+            config: Record<string, never>;
+        };
+        /**
          * Prediction
          * @description A prediction made by a remote model.
          */
@@ -3454,6 +3519,18 @@ export interface components {
             /** Rfilename */
             rfilename: string;
         };
+        /** SmartWorkflowCreateRequest */
+        SmartWorkflowCreateRequest: {
+            /** Prompt */
+            prompt: string;
+        };
+        /** SmartWorkflowResponse */
+        SmartWorkflowResponse: {
+            /** Nodes */
+            nodes: components["schemas"]["Node"][];
+            /** Edges */
+            edges: components["schemas"]["Edge"][];
+        };
         /**
          * SubTask
          * @description A subtask item with completion status, dependencies, and tools.
@@ -3507,9 +3584,15 @@ export interface components {
             output_type: string;
             /**
              * Output Schema
-             * @description The JSON schema of the output of the subtask
+             * @description The JSON schema of the output of the subtask, must be an object with properties of the output type
              */
-            output_schema?: unknown;
+            output_schema?: Record<string, never>;
+            /**
+             * Use Code Interpreter
+             * @description Whether to use a code interpreter for the subtask
+             * @default false
+             */
+            use_code_interpreter: boolean;
         };
         /** SystemStats */
         SystemStats: {
@@ -3680,6 +3763,22 @@ export interface components {
             args: Record<string, never>;
             /** Result */
             result?: unknown;
+        };
+        /**
+         * ToolCallUpdate
+         * @description A tool call from a provider.
+         */
+        ToolCallUpdate: {
+            /**
+             * Type
+             * @default tool_call_update
+             * @constant
+             */
+            type: "tool_call_update";
+            /** Name */
+            name: string;
+            /** Args */
+            args: Record<string, never>;
         };
         /**
          * TypeMetadata
@@ -4935,7 +5034,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["TaskUpdate"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | Record<string, never>;
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["TaskUpdate"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlotlyConfig"] | Record<string, never>;
                 };
             };
         };
@@ -5464,6 +5563,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_smart_workflow_api_workflows_create_smart_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmartWorkflowCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmartWorkflowResponse"];
                 };
             };
             /** @description Validation Error */
