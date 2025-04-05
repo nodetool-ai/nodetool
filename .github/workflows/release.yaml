@@ -97,6 +97,8 @@ jobs:
 
       - name: Build Web
         shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
         run: |
           cd web
           npm ci
@@ -104,6 +106,8 @@ jobs:
 
       - name: Build Apps
         shell: bash -l {0}
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
         run: |
           cd apps
           npm ci
