@@ -5,6 +5,8 @@ import {
   NodeProgress,
   NodeUpdate,
   Prediction,
+  TaskUpdate,
+  ToolCallUpdate,
   WorkflowAttributes
 } from "./ApiTypes";
 import { CHAT_URL } from "./ApiClient";
@@ -28,7 +30,14 @@ type WorkflowChatState = {
   resetMessages: () => void;
 };
 
-type MsgpackData = JobUpdate | Prediction | NodeProgress | NodeUpdate | Message;
+export type MsgpackData =
+  | JobUpdate
+  | Prediction
+  | NodeProgress
+  | NodeUpdate
+  | Message
+  | ToolCallUpdate
+  | TaskUpdate;
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,

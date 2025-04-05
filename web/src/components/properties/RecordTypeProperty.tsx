@@ -48,6 +48,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
   const onChangeColumns = useCallback(
     (columns: ColumnDef[]) => {
       onChange({
+        type: "record_type",
         ...value,
         columns
       });

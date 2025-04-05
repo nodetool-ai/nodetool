@@ -37,6 +37,7 @@ import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
+import StringListProperty from "../properties/StringListProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -164,6 +165,8 @@ function handleListType(
         return WorkflowListProperty;
       case "tool_name":
         return ToolsListProperty;
+      case "str":
+        return StringListProperty;
     }
   }
   return ListProperty;

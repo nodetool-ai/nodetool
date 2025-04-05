@@ -68,6 +68,7 @@ export type SecretsModel = components["schemas"]["SecretsModel"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
+export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
 export type SVGElement = components["schemas"]["SVGElement"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
 // a type that allows arbitrary members
@@ -101,3 +102,4 @@ export interface UnifiedModel {
 export type Task = components["schemas"]["Task"];
 export type TaskPlan = components["schemas"]["TaskPlan"];
 export type SubTask = components["schemas"]["SubTask"];
+export type PlotlyConfig = components["schemas"]["PlotlyConfig"];

@@ -11,7 +11,6 @@ import {
   JobUpdate,
   RunJobRequest,
   WorkflowAttributes,
-  Workflow,
   TaskUpdate
 } from "./ApiTypes";
 import { Omit } from "lodash";
@@ -54,10 +53,7 @@ export type WorkflowRunner = {
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
-  readMessage: (
-    workflow: WorkflowAttributes,
-    data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
-  ) => void;
+  readMessage: (workflow: WorkflowAttributes, data: MsgpackData) => void;
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
@@ -154,10 +150,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     }
   },
 
-  readMessage: (
-    workflow: WorkflowAttributes,
-    data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
-  ) => {
+  readMessage: (workflow: WorkflowAttributes, data: MsgpackData) => {
     try {
       handleUpdate(workflow, data);
     } catch (error) {

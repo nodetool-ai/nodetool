@@ -160,6 +160,7 @@ const root = ReactDOM.createRoot(
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  const { state } = useAuth();
 
   useEffect(() => {
     loadMetadata().then((data) => {
@@ -185,6 +186,11 @@ const AppWrapper = () => {
   if (status === "error") {
     return <div>Error loading metadata</div>;
   }
+
+  // Helper to navigate to the newly created workflow
+  const handleWorkflowCreated = (workflowId: string) => {
+    window.location.href = `/editor/${workflowId}`;
+  };
 
   return (
     <React.StrictMode>

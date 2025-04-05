@@ -8,6 +8,7 @@ import React, {
   createElement
 } from "react";
 import { css } from "@emotion/react";
+import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -15,7 +16,8 @@ import {
   Message,
   NPArray,
   Task,
-  TaskPlan
+  TaskPlan,
+  PlotlyConfig
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -120,10 +122,16 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
     style // Override style with converted object
   };
 
-  // Recursively render children
+  // Handle children differently based on type
   const children = [
-    // Add text content if present
-    value.content && value.content,
+    // Add text/SVG content if present
+    value.content &&
+      (typeof value.content === "string" &&
+      value.content.trim().startsWith("<") ? (
+        <div dangerouslySetInnerHTML={{ __html: value.content }} />
+      ) : (
+        value.content
+      )),
     // Render child SVG elements
     ...(value.children || []).map(renderSvgElement)
   ].filter(Boolean);
@@ -132,16 +140,34 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
 };
 
 const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
-  // Extract SVG document attributes
   const docAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     version: "1.1",
     width: "100%",
     height: "100%"
   };
-  const children = value.map(renderSvgElement);
 
-  // Render the root SVG element and its children
+  // Extract actual SVG content from nested structure
+  const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] => {
+    return elements.map((element) => {
+      if (element.content && typeof element.content === "string") {
+        // Extract the inner SVG content using regex
+        const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
+        if (match && match[1]) {
+          // Return just the inner content
+          return (
+            <g
+              key={element.name}
+              dangerouslySetInnerHTML={{ __html: match[1] }}
+            />
+          );
+        }
+      }
+      return renderSvgElement(element);
+    });
+  };
+
+  const children = extractSVGContent(value);
   return createElement("svg", docAttributes, ...children);
 };
 
@@ -273,7 +299,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     function renderArrayPreview(array: NPArray): React.ReactNode {
       return <ArrayView array={array} />;
     }
+
+    let config: PlotlyConfig | undefined;
     switch (type) {
+      case "plotly_config":
+        config = value as PlotlyConfig;
+        return (
+          <div style={{ width: "100%", height: "400px" }}>
+            <Plot
+              data={config.config.data}
+              layout={config.config.layout}
+              config={config.config.config}
+              frames={config.config.frames}
+              style={{ width: "100%", height: "100%" }}
+            />
+          </div>
+        );
       case "image":
         if (Array.isArray(value.data)) {
           return value.data.map((v: any, i: number) => (
@@ -391,7 +432,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
       case "svg_element":
-        return renderSVGDocument([value]);
+        return renderSVGDocument(value);
       case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (

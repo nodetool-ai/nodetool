@@ -6,7 +6,8 @@ import {
   NodeUpdate,
   AssetRef,
   Message,
-  TaskUpdate
+  TaskUpdate,
+  ToolCallUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useAssetStore } from "./AssetStore";
@@ -15,10 +16,11 @@ import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import { devError } from "../utils/DevLog";
 import useWorkflowRunner from "./WorkflowRunner";
+import { MsgpackData } from "./WorkflowChatStore";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
-  data: JobUpdate | Prediction | NodeProgress | NodeUpdate | TaskUpdate
+  data: MsgpackData
 ) => {
   const runner = useWorkflowRunner.getState();
   const getAsset = useAssetStore.getState().get;
