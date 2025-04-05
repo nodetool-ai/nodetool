@@ -28,6 +28,8 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useState } from "react";
+import SettingsSidebar from "./SettingsSidebar";
 
 export const settingsStyles = (theme: any): any =>
   css({
@@ -67,7 +69,7 @@ export const settingsStyles = (theme: any): any =>
       }
     },
     ".tab-panel": {
-      padding: "1em 0",
+      padding: "0",
       fontSize: theme.fontSizeNormal
     },
 
@@ -105,19 +107,64 @@ export const settingsStyles = (theme: any): any =>
       width: "70vw",
       minWidth: "400px",
       maxWidth: "1000px",
-      paddingRight: ".4em",
       fontSize: theme.fontSizeNormal
+    },
+    ".settings-container": {
+      display: "flex",
+      flexDirection: "row",
+      flex: 1,
+      overflow: "hidden"
+    },
+    ".settings-sidebar": {
+      width: "220px",
+      minWidth: "220px",
+      background: "rgba(0, 0, 0, 0.2)",
+      padding: "1.5em 0",
+      height: "calc(75vh - 48px)",
+      overflowY: "auto",
+      borderRight: `1px solid ${theme.palette.c_gray2}`
+    },
+    ".settings-sidebar-item": {
+      padding: "0.75em 1.5em",
+      cursor: "pointer",
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.c_white,
+      opacity: "0.7",
+      transition: "all 0.2s ease",
+      borderLeft: "3px solid transparent",
+      "&:hover": {
+        opacity: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
+      },
+      "&.active": {
+        opacity: 1,
+        borderLeftColor: theme.palette.c_hl1,
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
+      }
+    },
+    ".settings-sidebar-category": {
+      padding: "1em 1.5em 0.5em",
+      color: theme.palette.c_hl1,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: "500",
+      letterSpacing: "0.05em",
+      textTransform: "uppercase",
+      opacity: "0.8"
     },
     ".sticky-header": {
       position: "sticky",
       top: 0,
       zIndex: 100,
-      padding: "0 2em"
+      padding: "0 1em",
+      display: "block",
+      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      borderBottom: `1px solid ${theme.palette.c_gray2}`
     },
     ".settings-content": {
       flex: 1,
+      padding: "0 1em",
       overflowY: "auto",
-      padding: "0 2em 2em 2em",
+      maxHeight: "75vh",
       "&::-webkit-scrollbar": {
         width: "8px"
       },
@@ -356,6 +403,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup
   }));
 
+  const [activeSection, setActiveSection] = useState("editor");
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
   };
@@ -383,6 +432,35 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       });
     }
   };
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const generalSidebarSections = [
+    {
+      category: "General",
+      items: [
+        { id: "editor", label: "Editor" },
+        { id: "navigation", label: "Navigation" },
+        { id: "grid", label: "Grid & Connections" },
+        { id: "appearance", label: "Appearance" }
+      ]
+    }
+  ];
+
+  // Conditionally add API section if user has auth token
+  if (user && user.auth_token) {
+    generalSidebarSections.push({
+      category: "API",
+      items: [{ id: "api", label: "Nodetool API" }]
+    });
+  }
+
   return (
     <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -438,266 +516,293 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
             </Tabs>
           </div>
 
-          <div className="settings-content">
-            <TabPanel value={settingsTab} index={0}>
-              <Typography variant="h3">Editor</Typography>
+          <div className="settings-container">
+            {settingsTab === 0 && (
+              <SettingsSidebar
+                activeSection={activeSection}
+                sections={generalSidebarSections}
+                onSectionClick={scrollToSection}
+              />
+            )}
 
-              <div className="settings-section">
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
-                    <Switch
-                      checked={!!settings.showWelcomeOnStartup}
-                      onChange={(e) =>
-                        setShowWelcomeOnStartup(e.target.checked)
-                      }
-                      inputProps={{ "aria-label": id }}
-                    />
-                  </FormControl>
-                  <Typography className="description">
-                    Show the welcome screen when starting the application.
-                  </Typography>
-                </div>
+            <div className="settings-content">
+              <TabPanel value={settingsTab} index={0}>
+                <Typography variant="h3" id="editor">
+                  Editor
+                </Typography>
 
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
-                    <Switch
-                      sx={{
-                        "&.MuiSwitch-root": {
-                          margin: "16px 0 0"
+                <div className="settings-section">
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+                      <Switch
+                        checked={!!settings.showWelcomeOnStartup}
+                        onChange={(e) =>
+                          setShowWelcomeOnStartup(e.target.checked)
                         }
-                      }}
-                      checked={!!settings.selectNodesOnDrag}
-                      onChange={(e) =>
-                        setSelectNodesOnDrag(e.target.checked ?? false)
-                      }
-                      inputProps={{ "aria-label": id }}
-                    />
-                  </FormControl>
-                  <Typography className="description">
-                    Select nodes when dragging.
-                  </Typography>
-                </div>
-              </div>
-
-              <div className="settings-section">
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Pan Controls</InputLabel>
-                    <Select
-                      id={id}
-                      labelId={id}
-                      value={settings.panControls}
-                      variant="standard"
-                      onChange={(e) => setPanControls(e.target.value)}
-                    >
-                      <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                      <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <div className="description">
-                    <Typography>
-                      Move the canvas by dragging with the left or right mouse
-                      button.
+                        inputProps={{ "aria-label": id }}
+                      />
+                    </FormControl>
+                    <Typography className="description">
+                      Show the welcome screen when starting the application.
                     </Typography>
-                    <Typography>
-                      With RightMouseButton selected, you can also pan with:
+                  </div>
+
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
+                      <Switch
+                        sx={{
+                          "&.MuiSwitch-root": {
+                            margin: "16px 0 0"
+                          }
+                        }}
+                        checked={!!settings.selectNodesOnDrag}
+                        onChange={(e) =>
+                          setSelectNodesOnDrag(e.target.checked ?? false)
+                        }
+                        inputProps={{ "aria-label": id }}
+                      />
+                    </FormControl>
+                    <Typography className="description">
+                      Select nodes when dragging.
                     </Typography>
-                    <ul>
-                      <li>Space + LeftClick</li>
-                      <li>Middle Mouse Button</li>
-                    </ul>
                   </div>
                 </div>
 
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
-                    <Select
-                      id={id}
-                      labelId={id}
-                      value={settings.selectionMode}
-                      variant="standard"
-                      onChange={(e) => setSelectionMode(e.target.value)}
-                    >
-                      <MenuItem value={"full"}>Full</MenuItem>
-                      <MenuItem value={"partial"}>Partial</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography className="description">
-                    When drawing a selection box for node selections:
-                    <br />
-                    <b>Full:</b> nodes have to be fully enclosed.
-                    <br />
-                    <b>Partial:</b> intersecting nodes will be selected.
-                  </Typography>
-                </div>
-              </div>
+                <Typography variant="h3" id="navigation">
+                  Navigation
+                </Typography>
+                <div className="settings-section">
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Pan Controls</InputLabel>
+                      <Select
+                        id={id}
+                        labelId={id}
+                        value={settings.panControls}
+                        variant="standard"
+                        onChange={(e) => setPanControls(e.target.value)}
+                      >
+                        <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
+                        <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
+                      </Select>
+                    </FormControl>
 
-              <div className="settings-section">
-                <div className="settings-item">
-                  <TextField
-                    type="number"
-                    autoComplete="off"
-                    inputProps={{
-                      min: 1,
-                      max: 100,
-                      onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                        e.currentTarget.select();
-                      }
-                    }}
-                    id="grid-snap-input"
-                    label="Grid Snap Precision"
-                    value={settings.gridSnap}
-                    onChange={(e) => setGridSnap(Number(e.target.value))}
-                    variant="standard"
-                  />
-                  <Typography className="description">
-                    Snap precision for moving nodes on the canvas.
-                  </Typography>
-                </div>
-
-                <div className="settings-item">
-                  <TextField
-                    type="number"
-                    autoComplete="off"
-                    inputProps={{
-                      min: 5,
-                      max: 30,
-                      onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                        e.currentTarget.select();
-                      }
-                    }}
-                    id="connection-snap-input"
-                    label="Connection Snap Range"
-                    value={settings.connectionSnap}
-                    onChange={(e) => setConnectionSnap(Number(e.target.value))}
-                    variant="standard"
-                  />
-                  <Typography className="description">
-                    Snap distance for connecting nodes.
-                  </Typography>
-                </div>
-              </div>
-
-              <Typography variant="h3">Appearance</Typography>
-              <div className="settings-section">
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Time Format</InputLabel>
-                    <Select
-                      id={id}
-                      labelId={id}
-                      value={settings.timeFormat}
-                      variant="standard"
-                      onChange={(e) =>
-                        setTimeFormat(e.target.value === "12h" ? "12h" : "24h")
-                      }
-                    >
-                      <MenuItem value={"12h"}>12h</MenuItem>
-                      <MenuItem value={"24h"}>24h</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography className="description">
-                    Display time in 12h or 24h format.
-                  </Typography>
-                </div>
-
-                <div className="settings-item">
-                  <FormControl>
-                    <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
-                    <Select
-                      id={id}
-                      labelId={id}
-                      value={
-                        settings.workflowLayout === "grid" ? "grid" : "list"
-                      }
-                      variant="standard"
-                      onChange={(e) =>
-                        setWorkflowLayout(
-                          e.target.value === "grid" ? "grid" : "list"
-                        )
-                      }
-                    >
-                      <MenuItem value={"grid"}>Grid</MenuItem>
-                      <MenuItem value={"list"}>List</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography className="description">
-                    Choose grid or list layout for the Workflow menu.
-                  </Typography>
-                </div>
-              </div>
-
-              {user && user.auth_token && (
-                <>
-                  <Typography variant="h3">Nodetool API</Typography>
-                  <Typography
-                    className="explanation"
-                    sx={{ margin: "0 0 1em 0" }}
-                  >
-                    Use the Nodetool API to execute workflows programmatically.
-                    <br />
-                    <br />
-                    <a
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
-                    >
-                      API documentation on GitHub <br />
-                    </a>
-                  </Typography>
-                  {!isLocalhost && (
-                    <div
-                      className="settings-section"
-                      style={{
-                        border: "1px solid" + ThemeNodetool.palette.c_warning,
-                        borderRight:
-                          "1px solid" + ThemeNodetool.palette.c_warning
-                      }}
-                    >
-                      {isProduction && (
-                        <>
-                          <FormControl>
-                            <InputLabel>Nodetool API Token</InputLabel>
-                          </FormControl>
-                          <div className="description">
-                            <Typography>
-                              This token is used to authenticate your account
-                              with the Nodetool API.
-                            </Typography>
-                            <div className="secrets">
-                              <WarningIcon sx={{ color: "#ff9800" }} />
-                              <Typography component="span">
-                                Keep this token secure and do not share it
-                                publicly
-                              </Typography>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      <Tooltip title="Copy to clipboard">
-                        <Button
-                          style={{ margin: ".5em 0" }}
-                          size="small"
-                          variant="outlined"
-                          startIcon={<ContentCopyIcon />}
-                          onClick={copyAuthToken}
-                        >
-                          Copy Token
-                        </Button>
-                      </Tooltip>
+                    <div className="description">
+                      <Typography>
+                        Move the canvas by dragging with the left or right mouse
+                        button.
+                      </Typography>
+                      <Typography>
+                        With RightMouseButton selected, you can also pan with:
+                      </Typography>
+                      <ul>
+                        <li>Space + LeftClick</li>
+                        <li>Middle Mouse Button</li>
+                      </ul>
                     </div>
-                  )}
-                </>
-              )}
-            </TabPanel>
+                  </div>
 
-            <TabPanel value={settingsTab} index={1}>
-              {!isProduction && <RemoteSettingsMenu />}
-            </TabPanel>
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Node Selection Mode</InputLabel>
+                      <Select
+                        id={id}
+                        labelId={id}
+                        value={settings.selectionMode}
+                        variant="standard"
+                        onChange={(e) => setSelectionMode(e.target.value)}
+                      >
+                        <MenuItem value={"full"}>Full</MenuItem>
+                        <MenuItem value={"partial"}>Partial</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Typography className="description">
+                      When drawing a selection box for node selections:
+                      <br />
+                      <b>Full:</b> nodes have to be fully enclosed.
+                      <br />
+                      <b>Partial:</b> intersecting nodes will be selected.
+                    </Typography>
+                  </div>
+                </div>
+
+                <Typography variant="h3" id="grid">
+                  Grid & Connections
+                </Typography>
+                <div className="settings-section">
+                  <div className="settings-item">
+                    <TextField
+                      type="number"
+                      autoComplete="off"
+                      inputProps={{
+                        min: 1,
+                        max: 100,
+                        onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                          e.currentTarget.select();
+                        }
+                      }}
+                      id="grid-snap-input"
+                      label="Grid Snap Precision"
+                      value={settings.gridSnap}
+                      onChange={(e) => setGridSnap(Number(e.target.value))}
+                      variant="standard"
+                    />
+                    <Typography className="description">
+                      Snap precision for moving nodes on the canvas.
+                    </Typography>
+                  </div>
+
+                  <div className="settings-item">
+                    <TextField
+                      type="number"
+                      autoComplete="off"
+                      inputProps={{
+                        min: 5,
+                        max: 30,
+                        onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                          e.currentTarget.select();
+                        }
+                      }}
+                      id="connection-snap-input"
+                      label="Connection Snap Range"
+                      value={settings.connectionSnap}
+                      onChange={(e) =>
+                        setConnectionSnap(Number(e.target.value))
+                      }
+                      variant="standard"
+                    />
+                    <Typography className="description">
+                      Snap distance for connecting nodes.
+                    </Typography>
+                  </div>
+                </div>
+
+                <Typography variant="h3" id="appearance">
+                  Appearance
+                </Typography>
+                <div className="settings-section">
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Time Format</InputLabel>
+                      <Select
+                        id={id}
+                        labelId={id}
+                        value={settings.timeFormat}
+                        variant="standard"
+                        onChange={(e) =>
+                          setTimeFormat(
+                            e.target.value === "12h" ? "12h" : "24h"
+                          )
+                        }
+                      >
+                        <MenuItem value={"12h"}>12h</MenuItem>
+                        <MenuItem value={"24h"}>24h</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Typography className="description">
+                      Display time in 12h or 24h format.
+                    </Typography>
+                  </div>
+
+                  <div className="settings-item">
+                    <FormControl>
+                      <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
+                      <Select
+                        id={id}
+                        labelId={id}
+                        value={
+                          settings.workflowLayout === "grid" ? "grid" : "list"
+                        }
+                        variant="standard"
+                        onChange={(e) =>
+                          setWorkflowLayout(
+                            e.target.value === "grid" ? "grid" : "list"
+                          )
+                        }
+                      >
+                        <MenuItem value={"grid"}>Grid</MenuItem>
+                        <MenuItem value={"list"}>List</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Typography className="description">
+                      Choose grid or list layout for the Workflow menu.
+                    </Typography>
+                  </div>
+                </div>
+
+                {user && user.auth_token && (
+                  <>
+                    <Typography variant="h3" id="api">
+                      Nodetool API
+                    </Typography>
+                    <Typography
+                      className="explanation"
+                      sx={{ margin: "0 0 1em 0" }}
+                    >
+                      Use the Nodetool API to execute workflows
+                      programmatically.
+                      <br />
+                      <br />
+                      <a
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
+                      >
+                        API documentation on GitHub <br />
+                      </a>
+                    </Typography>
+                    {!isLocalhost && (
+                      <div
+                        className="settings-section"
+                        style={{
+                          border: "1px solid" + ThemeNodetool.palette.c_warning,
+                          borderRight:
+                            "1px solid" + ThemeNodetool.palette.c_warning
+                        }}
+                      >
+                        {isProduction && (
+                          <>
+                            <FormControl>
+                              <InputLabel>Nodetool API Token</InputLabel>
+                            </FormControl>
+                            <div className="description">
+                              <Typography>
+                                This token is used to authenticate your account
+                                with the Nodetool API.
+                              </Typography>
+                              <div className="secrets">
+                                <WarningIcon sx={{ color: "#ff9800" }} />
+                                <Typography component="span">
+                                  Keep this token secure and do not share it
+                                  publicly
+                                </Typography>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        <Tooltip title="Copy to clipboard">
+                          <Button
+                            style={{ margin: ".5em 0" }}
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ContentCopyIcon />}
+                            onClick={copyAuthToken}
+                          >
+                            Copy Token
+                          </Button>
+                        </Tooltip>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabPanel>
+
+              <TabPanel value={settingsTab} index={1}>
+                {!isProduction && <RemoteSettingsMenu />}
+              </TabPanel>
+            </div>
           </div>
         </div>
       </Menu>

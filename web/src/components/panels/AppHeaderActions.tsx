@@ -440,7 +440,7 @@ const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
             <AutoLayoutButton autoLayout={autoLayout} />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {!isLocalhost && <RunAsAppButton />}
+            {isLocalhost && <RunAsAppButton />}
           </>
         </div>
       )}

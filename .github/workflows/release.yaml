@@ -111,6 +111,7 @@ jobs:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: |
           cd apps
+          sudo -H pip install setuptools
           npm ci
           npm run build
 
@@ -130,6 +131,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd electron
+          sudo -H pip install setuptools
           npm ci
           npm run vite:build
           npx electron-builder --config electron-builder.json --publish always
