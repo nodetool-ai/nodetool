@@ -9,7 +9,8 @@ import {
   ListItemText,
   Checkbox,
   Box,
-  Collapse
+  Collapse,
+  CircularProgress
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -44,6 +45,15 @@ const styles = (theme: any) =>
       display: "flex",
       color: theme.palette.text.secondary,
       marginLeft: "2rem"
+    },
+    ".subtask-running": {
+      color: theme.palette.primary.main
+    },
+    ".running-indicator": {
+      display: "flex",
+      alignItems: "center",
+      marginLeft: "0.5rem",
+      color: theme.palette.primary.main
     }
   });
 
@@ -54,6 +64,7 @@ interface SubTaskViewProps {
 const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
   const [expanded, setExpanded] = React.useState(false);
   const hasDependencies = subtask.input_files.length > 0;
+  const isRunning = subtask.start_time > 0 && !subtask.completed;
 
   return (
     <div css={styles}>
@@ -64,12 +75,26 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
             primary={
               <Typography
                 variant="body1"
-                className={subtask.completed ? "subtask-completed" : ""}
+                className={
+                  subtask.completed
+                    ? "subtask-completed"
+                    : isRunning
+                    ? "subtask-running"
+                    : ""
+                }
               >
                 {subtask.content}
               </Typography>
             }
           />
+          {isRunning && (
+            <Box className="running-indicator">
+              <CircularProgress size={16} thickness={5} />
+              <Typography variant="caption" sx={{ ml: 0.5 }}>
+                Running
+              </Typography>
+            </Box>
+          )}
           {hasDependencies && (
             <Box
               ml={1}

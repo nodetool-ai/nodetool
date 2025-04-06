@@ -5,6 +5,7 @@ import { useWorkflowChat } from "./hooks/useWorkflowChat";
 import ChatContainer from "./chat/ChatContainer";
 import ChatControls from "./chat/ChatControls";
 import ChatContent from "./chat/ChatContent";
+import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 
 interface WorkflowChatProps {
   workflow_id: string;
@@ -16,7 +17,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
   isOpen = true
 }) => {
   const [isMinimized, setIsMinimized] = useState(true);
-  const { handleSendMessage, handleReset, hasChatInput } = useWorkflowChat(
+  const { handleSendMessage, handleReset, isChat } = useWorkflowChat(
     workflow_id,
     isMinimized
   );
@@ -25,7 +26,7 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({
     setIsMinimized((prev) => !prev);
   }, []);
 
-  if (!hasChatInput) {
+  if (!isChat) {
     return null;
   }
 

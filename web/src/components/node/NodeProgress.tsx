@@ -15,6 +15,7 @@ const NodeProgress = ({
   const progress = useResultsStore((state) =>
     state.getProgress(workflowId, id)
   );
+  const chunk = useResultsStore((state) => state.getChunk(workflowId, id));
   const [eta, setEta] = useState<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const chunkRef = useRef<HTMLDivElement>(null);
@@ -35,10 +36,10 @@ const NodeProgress = ({
   }, [progress]);
 
   useEffect(() => {
-    if (chunkRef.current && progress?.chunk) {
+    if (chunkRef.current && chunk) {
       chunkRef.current.scrollTop = chunkRef.current.scrollHeight;
     }
-  }, [progress?.chunk]);
+  }, [chunk]);
 
   if (!progress) {
     return null;
@@ -60,7 +61,7 @@ const NodeProgress = ({
         {progress.progress} / {progress.total}
         {eta && ` (eta ${eta}s)`}
       </Typography>
-      {progress.chunk && (
+      {chunk && (
         <div
           ref={chunkRef}
           style={{
@@ -70,7 +71,7 @@ const NodeProgress = ({
             overflowY: "scroll"
           }}
         >
-          <MarkdownRenderer content={progress.chunk} />
+          <MarkdownRenderer content={chunk} />
         </div>
       )}
     </div>

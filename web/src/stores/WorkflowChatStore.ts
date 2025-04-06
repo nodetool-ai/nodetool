@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import {
+  Chunk,
   JobUpdate,
   Message,
   NodeProgress,
@@ -21,8 +22,10 @@ type WorkflowChatState = {
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   messages: Message[];
   currentNodeName: string | null;
+  currentToolCall: ToolCallUpdate | null;
   progress: number;
   total: number;
+  chunks: string;
   error: string | null;
   connect: (workflow: WorkflowAttributes) => Promise<void>;
   disconnect: () => void;
@@ -37,12 +40,15 @@ export type MsgpackData =
   | NodeUpdate
   | Message
   | ToolCallUpdate
-  | TaskUpdate;
+  | TaskUpdate
+  | Chunk;
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,
   messages: [],
   currentNodeName: null,
+  currentToolCall: null,
+  chunks: "",
   workflow: null,
   status: "disconnected",
   error: null,
@@ -74,6 +80,8 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
+      console.log(data);
+
       if (data.type === "message") {
         set((state) => ({
           messages: [...state.messages, data as Message],
@@ -96,6 +104,8 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
               currentNodeName: null,
               progress: 0,
               total: 0,
+              currentToolCall: null,
+              chunks: "",
               status: "connected"
             });
           } else if (update.status === "failed") {
@@ -104,18 +114,31 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
               status: "error",
               currentNodeName: null,
               progress: 0,
-              total: 0
+              total: 0,
+              currentToolCall: null,
+              chunks: ""
             });
           }
         } else if (data.type === "node_update") {
           const update = data as NodeUpdate;
           set({ currentNodeName: update.node_name });
           if (update.status === "completed") {
-            set({ progress: 0, total: 0 });
+            set({ progress: 0, total: 0, currentToolCall: null, chunks: "" });
           }
         } else if (data.type === "node_progress") {
           const progress = data as NodeProgress;
-          set({ progress: progress.progress, total: progress.total });
+          set({
+            progress: progress.progress,
+            total: progress.total,
+            currentToolCall: null
+          });
+        } else if (data.type === "tool_call_update") {
+          const update = data as ToolCallUpdate;
+          set({ currentToolCall: update });
+        } else if (data.type === "chunk") {
+          const chunk = data as Chunk;
+          const currentChunk = get().chunks;
+          set({ chunks: currentChunk + chunk.content });
         }
       }
     };
