@@ -1,5 +1,5 @@
-<h1 style="display: inline;">
-  <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
+<h1 style="">
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" >
   NodeTool - 🚀 Build AI Workflows Locally
 </h1>
 
