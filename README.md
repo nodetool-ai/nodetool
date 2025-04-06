@@ -1,7 +1,9 @@
 <h1 style="">
   <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" >
-  NodeTool - 🚀 Build AI Workflows Locally
+  NodeTool - 🚀 AI Prototyping Platform
 </h1>
+
+Design and develop AI agent systems
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -15,9 +17,15 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 
 ### 🔒 Privacy-First & Fully Local
 
-- **Run AI models locally with zero data transmission**
-- **Use in restricted environments**
+- **Run all AI models locally** - LLMs, audio & video processing
+- **Complete privacy with zero data transmission**
 - **Process sensitive data locally**
+
+### 🤖 Advanced Agent Design
+
+- **Build multi-agent systems with visual workflows**
+- **Strategic planning and reasoning capabilities**
+- **Integrate tools like web browsing and file operations**
 
 ### 🎨 Fast AI Prototyping
 
@@ -34,8 +42,8 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 ### 🌩️ Optional Cloud Providers
 
 - **Scale with GPU-powered cloud providers**
-- **Connect to OpenAI, Anthropic, Replicate & Fal.AI**
-- **Hybrid workflows, only share what you need**
+- **Connect to OpenAI, Anthropic, Replicate & Fal.AI when needed**
+- **Create hybrid workflows, control what data is shared**
 
 ---
 
@@ -50,6 +58,8 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 - **Windows / Mac / Linux:** [Grab it here](https://nodetool.ai)
 - Launch the installer, run NodeTool, and get ready to create.
 
+**Note:** Requires Nvidia GPU or Apple Silicon M1+ and at least 20GB of free space for model downloads.
+
 ### 2️⃣ Create an AI Workflow Instantly
 
 - Open NodeTool and choose a **prebuilt template** or start fresh.
@@ -62,24 +72,40 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 
 NodeTool offers powerful, intuitive features to help you build, automate, and deploy AI workflows quickly and effortlessly:
 
-- **Visual Workflow Editor**: Easily design complex AI workflows with drag-and-drop simplicity—no coding necessary.
-- **Global Chat Overlay**: Instantly access and trigger AI workflows from anywhere on your desktop through a unified, always-ready chat interface.
+- **Visual Workflow Editor**: Design complex AI workflows visually with drag-and-drop simplicity—no coding required. Easily create, understand, and modify AI workflows with our intuitive interface.
+
+- **Local AI Models**: Run powerful open-source models from Hugging Face and Ollama directly on your hardware, ensuring complete privacy and offline capability.
+
 - **System Tray Integration**: Quickly launch workflows, assign global shortcuts, manage clipboard content, and monitor AI tasks seamlessly from your system tray.
+
+- **ComfyUI Integration**: Directly import and execute your existing ComfyUI workflows, enhancing your creative AI projects.
+
+- **Asset Management**: Effortlessly import, organize, and manage your images, audio, video, and other media assets within your AI workflows.
+
 - **Ready-to-Use App Templates**: Jumpstart your projects using pre-built workflow templates tailored for popular AI use cases.
+
 - **Mini-App Builder**: Turn workflows into standalone desktop applications with just a few clicks.
+
 - **Chat Interface Builder**: Create personalized chatbot interfaces tailored specifically to your needs.
+
 - **Comprehensive AI Model Support**:
+
   - Run local models via Ollama and HuggingFace
   - Integrate cloud APIs including OpenAI, Anthropic, Replicate, and Fal.ai
+
 - **Advanced Vector Storage & RAG**:
+
   - Built-in ChromaDB integration for storing and querying embeddings
   - Effortlessly create Retrieval-Augmented Generation (RAG) workflows
   - Index and query PDFs, documents, and other text sources
   - Combine vector storage with any supported LLM for enhanced responses
+
 - **Multimodal AI Capabilities**: Seamlessly process text, images, audio, and video within a single workflow.
-- **Asset Management**: Easily import, manage, and reuse media assets across workflows.
+
 - **API Access**: Extend your workflows by integrating NodeTool with external applications and services via APIs.
+
 - **Custom Python Extensions**: Expand functionality with custom scripts and integrations using Python.
+
 - **Cross-Platform Compatibility**: Build and deploy your workflows seamlessly across Mac, Windows, and Linux.
 
 ### System Tray Integration 🔗
