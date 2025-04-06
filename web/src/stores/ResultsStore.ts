@@ -4,6 +4,7 @@ import { Task } from "./ApiTypes";
 type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
+  chunks: Record<string, string>;
   tasks: Record<string, Task>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
@@ -12,17 +13,18 @@ type ResultsStore = {
   getResult: (workflowId: string, nodeId: string) => any;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
   getTask: (workflowId: string, nodeId: string) => Task | undefined;
+  addChunk: (workflowId: string, nodeId: string, chunk: string) => void;
+  getChunk: (workflowId: string, nodeId: string) => string | undefined;
   setProgress: (
     workflowId: string,
     nodeId: string,
     progress: number,
-    total: number,
-    chunk?: string
+    total: number
   ) => void;
   getProgress: (
     workflowId: string,
     nodeId: string
-  ) => { progress: number; total: number; chunk?: string } | undefined;
+  ) => { progress: number; total: number } | undefined;
 };
 
 export const hashKey = (workflowId: string, nodeId: string) =>
@@ -31,6 +33,7 @@ export const hashKey = (workflowId: string, nodeId: string) =>
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   progress: {},
+  chunks: {},
   tasks: {},
   /**
    * Set the task for a node.
@@ -149,6 +152,15 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const progress = get().progress;
     const key = hashKey(workflowId, nodeId);
     return progress[key];
+  },
+  addChunk: (workflowId: string, nodeId: string, chunk: string) => {
+    const key = hashKey(workflowId, nodeId);
+    const currentChunk = get().chunks[key] || "";
+    set({ chunks: { ...get().chunks, [key]: currentChunk + chunk } });
+  },
+  getChunk: (workflowId: string, nodeId: string) => {
+    const key = hashKey(workflowId, nodeId);
+    return get().chunks[key];
   }
 }));
 

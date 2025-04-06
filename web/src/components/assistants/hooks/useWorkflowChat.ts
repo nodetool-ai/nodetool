@@ -41,14 +41,9 @@ export const useWorkflowChat = (workflow_id: string, isMinimized: boolean) => {
     connect(workflow);
   }, [resetMessages, connect, workflow]);
 
-  const hasChatInput = useMemo(
-    () => nodes.some((node) => node.type === "nodetool.input.ChatInput"),
-    [nodes]
-  );
-
   return {
     handleSendMessage,
     handleReset,
-    hasChatInput
+    isChat: workflow.settings?.run_mode === "chat"
   };
 };

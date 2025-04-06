@@ -69,6 +69,7 @@ export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
+export type Chunk = components["schemas"]["Chunk"];
 export type SVGElement = components["schemas"]["SVGElement"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
 // a type that allows arbitrary members

@@ -162,9 +162,8 @@ export const createWorkflowRunner = () =>
             set({
               progress: { current: data.progress, total: data.total },
             });
-            if (data.chunk) {
-              set({ chunks: [...get().chunks, data.chunk] });
-            }
+          } else if (data.type === "chunk") {
+            set({ chunks: [...get().chunks, data.content] });
           } else if (data.type === "node_update") {
             if (data.error) {
               set({ state: "error" });

@@ -13,7 +13,8 @@ import {
   MessageImageContent,
   MessageTextContent,
   Message,
-  MessageContent
+  MessageContent,
+  ToolCallUpdate
 } from "../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 // utils
@@ -180,7 +181,7 @@ const styles = (theme: any) =>
     },
     ".node-status": {
       textAlign: "center",
-      color: theme.palette.c_gray3,
+      color: theme.palette.c_gray6,
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
     },
@@ -211,6 +212,13 @@ const pulse = keyframes`
   100% { transform: scale(0.8); opacity: 0.5; }
 `;
 
+// Add a new keyframes animation for text pulsing
+const textPulse = keyframes`
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+`;
+
 type ChatViewProps = {
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   currentNodeName: string | null;
@@ -218,6 +226,8 @@ type ChatViewProps = {
   total: number;
   messages: Array<Message>;
   sendMessage: (message: Message) => Promise<void>;
+  currentToolCall: ToolCallUpdate | null;
+  chunks: string;
 };
 export const Progress = ({
   progress,
@@ -272,7 +282,9 @@ const ChatView = ({
   progress,
   total,
   messages,
-  sendMessage
+  sendMessage,
+  currentToolCall,
+  chunks
 }: ChatViewProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
@@ -639,7 +651,7 @@ const ChatView = ({
         {messages.map((msg, index) => (
           <MessageView key={msg.id || `msg-${index}`} {...msg} />
         ))}
-        {status === "loading" && progress === 0 && (
+        {status === "loading" && progress === 0 && chunks.length === 0 && (
           <li key="loading-indicator">
             <LoadingIndicator />
           </li>
@@ -649,9 +661,35 @@ const ChatView = ({
             <Progress progress={progress} total={total} />
           </li>
         )}
-        {currentNodeName && (
+        {chunks.length > 0 && (
+          <li key="chunk-indicator">
+            <MarkdownRenderer content={chunks} />
+          </li>
+        )}
+        {currentNodeName && !currentToolCall && (
           <li key="node-status" className="node-status">
-            running {currentNodeName}...
+            running{" "}
+            <span
+              css={css`
+                display: inline;
+                animation: ${textPulse} 1.8s ease-in-out infinite;
+              `}
+            >
+              {currentNodeName}...
+            </span>
+          </li>
+        )}
+        {currentToolCall && (
+          <li key="tool-call-indicator" className="node-status">
+            running{" "}
+            <span
+              css={css`
+                display: inline;
+                animation: ${textPulse} 1.8s ease-in-out infinite;
+              `}
+            >
+              {currentToolCall.name}...
+            </span>
           </li>
         )}
       </ul>

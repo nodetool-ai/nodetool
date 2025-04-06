@@ -124,7 +124,7 @@ export interface Message {
   role: string;
   name: string;
   content?: string | MessageContent[] | null;
-  tool_calls?: any[] | null;
+  tool_calls?: ToolCall[] | null;
   tools?: string[] | null;
   created_at?: string | null;
 }

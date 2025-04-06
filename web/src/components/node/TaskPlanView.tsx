@@ -28,17 +28,6 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
     }
   }, [data]);
 
-  // Create a map of all subtasks for dependency lookup
-  const allSubtasks = useMemo(() => {
-    const map: Record<string, SubTask> = {};
-    tasks.forEach((task) => {
-      task.subtasks.forEach((subtask) => {
-        map[subtask.output_file] = subtask;
-      });
-    });
-    return map;
-  }, [tasks]);
-
   return (
     <div css={styles}>
       {title && (

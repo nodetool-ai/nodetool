@@ -95,8 +95,7 @@ export const handleUpdate = (
       workflow.id,
       progress.node_id,
       progress.progress,
-      progress.total,
-      progress.chunk || undefined
+      progress.total
     );
   }
 
