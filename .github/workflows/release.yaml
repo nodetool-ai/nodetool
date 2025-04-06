@@ -102,21 +102,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Configure Node.js to use Python 3.11
+      - name: Configure node-gyp Python path
+        shell: bash
         run: |
-          # Install required Python packages
-          python -m pip install --upgrade pip setuptools wheel
+          # Set both recommended environment variables for node-gyp
+          echo "npm_config_python=$(which python)" >> $GITHUB_ENV
+          echo "NODE_GYP_FORCE_PYTHON=$(which python)" >> $GITHUB_ENV
 
-          # Tell node-gyp to use this specific Python
-          # npm config set python $(which python)
-
-          # For extra safety on macOS
-          #if [ "$RUNNER_OS" == "macOS" ]; then
-            # Explicitly set PYTHON env var which some node packages look for
-            #echo "PYTHON=$(which python)" >> $GITHUB_ENV
-            # Also set npm's python config
-            #npm config set python $(which python)
-          #fi
+          # Windows-specific handling
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            PYTHON_PATH=$(which python)
+            echo "npm_config_python=$PYTHON_PATH" >> $GITHUB_ENV
+            echo "NODE_GYP_FORCE_PYTHON=$PYTHON_PATH" >> $GITHUB_ENV
+          fi
 
           # Verify Python path is correct
           echo "Using Python: $(which python)"
@@ -126,9 +124,12 @@ jobs:
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-          # Ensure node-gyp uses our Python 3.11
-          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
+          # Debug: Verify Python environment variables are correctly set
+          echo "DEBUG: npm_config_python = $npm_config_python"
+          echo "DEBUG: NODE_GYP_FORCE_PYTHON = $NODE_GYP_FORCE_PYTHON"
+          echo "DEBUG: which python = $(which python)"
+
           cd web
           npm ci
           npm run build
@@ -137,9 +138,12 @@ jobs:
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-          # Ensure node-gyp uses our Python 3.11
-          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
+          # Debug: Verify Python environment variables are correctly set
+          echo "DEBUG: npm_config_python = $npm_config_python"
+          echo "DEBUG: NODE_GYP_FORCE_PYTHON = $NODE_GYP_FORCE_PYTHON" 
+          echo "DEBUG: which python = $(which python)"
+
           cd apps
           npm ci
           npm run build
@@ -158,9 +162,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Ensure node-gyp uses our Python 3.11
-          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
+          # Debug: Verify Python environment variables are correctly set
+          echo "DEBUG: npm_config_python = $npm_config_python"
+          echo "DEBUG: NODE_GYP_FORCE_PYTHON = $NODE_GYP_FORCE_PYTHON"
+          echo "DEBUG: which python = $(which python)"
+
           cd electron
           npm ci
           npm run vite:build
