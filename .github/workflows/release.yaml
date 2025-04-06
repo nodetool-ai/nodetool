@@ -106,15 +106,15 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
 
           # Tell node-gyp to use this specific Python
-          npm config set python $(which python)
+          # npm config set python $(which python)
 
           # For extra safety on macOS
-          if [ "$RUNNER_OS" == "macOS" ]; then
+          #if [ "$RUNNER_OS" == "macOS" ]; then
             # Explicitly set PYTHON env var which some node packages look for
-            echo "PYTHON=$(which python)" >> $GITHUB_ENV
+            #echo "PYTHON=$(which python)" >> $GITHUB_ENV
             # Also set npm's python config
-            npm config set python $(which python)
-          fi
+            #npm config set python $(which python)
+          #fi
 
           # Verify Python path is correct
           echo "Using Python: $(which python)"
