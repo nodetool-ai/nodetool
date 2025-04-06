@@ -20,6 +20,12 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 - **Complete privacy with zero data transmission**
 - **Process sensitive data locally**
 
+### 🌩️ Cloud Providers
+
+- **Scale with GPU-powered cloud providers**
+- **Connect to OpenAI, Gemini, Anthropic, Replicate & Fal.AI when needed**
+- **Create hybrid workflows, control what data is shared**
+
 ### 🤖 Advanced Agent Design
 
 - **Build multi-agent systems with visual workflows**
@@ -37,12 +43,6 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 - **Control apps, clipboard & browser with AI**
 - **Custom shortcuts to trigger AI workflows**
 - **Access your knowledge base and local files**
-
-### 🌩️ Optional Cloud Providers
-
-- **Scale with GPU-powered cloud providers**
-- **Connect to OpenAI, Anthropic, Replicate & Fal.AI when needed**
-- **Create hybrid workflows, control what data is shared**
 
 ---
 
@@ -77,20 +77,18 @@ NodeTool offers powerful, intuitive features to help you build, automate, and de
 
 - **System Tray Integration**: Quickly launch workflows, assign global shortcuts, manage clipboard content, and monitor AI tasks seamlessly from your system tray.
 
-- **ComfyUI Integration**: Directly import and execute your existing ComfyUI workflows, enhancing your creative AI projects.
-
 - **Asset Management**: Effortlessly import, organize, and manage your images, audio, video, and other media assets within your AI workflows.
 
-- **Ready-to-Use App Templates**: Jumpstart your projects using pre-built workflow templates tailored for popular AI use cases.
+- **Ready-to-Use Templates**: Jumpstart your projects using pre-built workflow templates tailored for popular AI use cases.
 
 - **Mini-App Builder**: Turn workflows into standalone desktop applications with just a few clicks.
 
-- **Chat Interface Builder**: Create personalized chatbot interfaces tailored specifically to your needs.
+- **Chat Interface**: Create personalized chatbot interfaces tailored specifically to your needs.
 
 - **Comprehensive AI Model Support**:
 
   - Run local models via Ollama and HuggingFace
-  - Integrate cloud APIs including OpenAI, Anthropic, Replicate, and Fal.ai
+  - Integrate cloud APIs including OpenAI, Gemini, Anthropic, Replicate, and Fal.ai
 
 - **Advanced Vector Storage & RAG**:
 
@@ -119,11 +117,62 @@ NodeTool's system tray integration keeps your AI tools at your fingertips:
 
 Integrate NodeTool effortlessly into your daily routine, ensuring your AI workflows are always just one click away.
 
+## NodeTool Agent System 🤖
+
+Design sophisticated AI agents for complex tasks with NodeTool's agent framework:
+
+- **Strategic Task Planning**: Break down complex objectives into structured, executable plans
+- **Chain of Thought Reasoning**: Enable step-by-step problem solving with explicit reasoning
+- **Tool Integration**: Provide agents with capabilities like web browsing, file operations, and more
+- **Streaming Results**: Get live updates during the reasoning and execution process
+
+### Architecture Components
+
+The agent system consists of:
+
+1. **Agents**: Specialized problem-solvers with specific capabilities and objectives
+2. **Task Planner**: Creates structured, dependency-aware execution plans
+3. **Task Execution System**: Executes plans while managing resources and tracking progress
+4. **Chat Interfaces**: Both programmatic and CLI interfaces for interacting with agents
+5. **Tool System**: Extensible framework for providing agents with external capabilities
+
+### Example Agent Usage
+
+```python
+from nodetool.chat.agent import Agent
+from nodetool.chat.providers.anthropic import AnthropicProvider
+
+# Initialize a provider
+provider = get_provider(Provider.Anthropic)
+model = "claude-3-5-sonnet-20241022"
+
+# Create a retrieval agent
+retrieval_agent = Agent(
+    name="Researcher",
+    objective="Gather comprehensive information about quantum computing",
+    provider=provider,
+    model=model,
+    tools=[SearchTool(), BrowserTool()],
+)
+```
+
+### Available Agent Examples
+
+NodeTool includes several ready-to-use agent examples:
+
+- **Wikipedia-Style Research Agent**: Creates structured documentation through web research
+- **ChromaDB Research Agent**: Processes and indexes documents for semantic search
+- **Social Media Analysis Agents**: Track and analyze content from Twitter/X, Instagram, and Reddit
+- **Professional Research Tools**: LinkedIn job market analysis and advanced Google search
+- **Utility Agents**: Email processing and integrated web search capabilities
+
+See the [examples](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) directory for full implementations and more advanced use cases.
+
 ## Cool Things You Can Do ✨
 
 Explore these practical examples to see how NodeTool can enhance your daily productivity:
 
-- **Daily Digest using Deepseek R1 📧📰**: Automatically searches your Gmail inbox for emails with '[AINews]' in the subject line from the past week and summarizes them using the Deepseek R1 7B model. This workflow extracts key details such as sender information, main topics, action items, and deadlines, combining them into a concise, categorized summary—ideal for efficiently staying updated on important AI news without sifting through multiple emails.
+- **Daily Digest using LLMs 📧📰**: Automatically searches your Gmail inbox and summarizes them using LLMs. This workflow extracts key details such as sender information, main topics, action items, and deadlines, combining them into a concise, categorized summary—ideal for efficiently staying updated on important AI news without sifting through multiple emails.
 
 - **Pokemon Maker 🐉✨**: Create unique and imaginative Pokemon with detailed descriptions and visually stunning images using AI. Input animal inspirations and get custom Pokemon complete with types, abilities, and personalities.
 
@@ -144,20 +193,6 @@ Explore these practical examples to see how NodeTool can enhance your daily prod
 ## Quickstart 🚀
 
 Release 0.6 is available soon! Stay tuned.
-
-## Node Overview 🧩
-
-- **Anthropic** 🧠: Text-based AI tasks.
-- **Comfy** 🎨: Support for ComfyUI nodes for image processing.
-- **Chroma** 🌈: Vector database for embeddings.
-- **ElevenLabs** 🎤: Text-to-speech services.
-- **Fal** 🔊: AI for audio, image, text, and video.
-- **Google** 🔍: Access to Gemini Models and Gmail.
-- **HuggingFace** 🤗: AI for audio, image, text, and video.
-- **NodeTool Core** ⚙️: Core data and media processing functions.
-- **Ollama** 🦙: Run local language models.
-- **OpenAI** 🌐: AI for audio, image, and text tasks.
-- **Replicate** ☁️: AI for audio, image, text, and video in the cloud.
 
 ## Development Setup 🛠️
 
@@ -281,3 +316,74 @@ Got ideas, suggestions, or just want to say hi? We'd love to hear from you!
 - **GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
 - **Matthias Georgi**: matti@nodetool.ai
 - **David Bührer**: david@nodetool.ai
+
+## NodeTool Packs Registry 📦
+
+NodeTool's functionality can be extended through node packs - collections of specialized nodes that provide additional capabilities. The [NodeTool Packs Registry](https://github.com/nodetool-ai/nodetool-registry) manages the installation, distribution, and discovery of these packs.
+
+### For Users: Managing Packs 🔍
+
+The primary interface for managing packs is through the NodeTool UI, which provides a user-friendly way to:
+
+- Browse available node packs
+- Install/uninstall packs (using pip under the hood)
+- Update packs
+- View pack information and documentation
+
+### For Developers: Creating Node Packs 🛠️
+
+To create and share your own NodeTool packs:
+
+1. **Initialize a new pack**: Use the NodeTool CLI to create a new pack project
+
+   ```bash
+   nodetool init
+   # Follow prompts to set up your project (name must start with 'nodetool-')
+   ```
+
+2. **Develop your nodes**: Create custom node classes that extend BaseNode
+
+   ```python
+   from pydantic import Field
+   from nodetool.workflows.base_node import BaseNode
+
+   class MyNode(BaseNode):
+       """Example node implementation"""
+
+       prompt: str = Field(
+           default="Build me a website for my business.",
+           description="Input prompt for the node"
+       )
+
+       async def process(self, context: ProcessingContext) -> str:
+           # Your node implementation here
+           return "Node output"
+   ```
+
+3. **Generate metadata**: Run `nodetool scan` in your pack repository to create node metadata
+
+4. **Publish your pack**:
+   - Commit and publish your project to a GitHub repository
+   - Fork the [NodeTool Registry](https://github.com/nodetool-ai/nodetool-registry)
+   - Add your pack information to index.json
+   - Submit a pull request
+
+Check out the [NodeTool Registry repository](https://github.com/nodetool-ai/nodetool-registry) for more detailed instructions on creating, testing, and publishing your node packs.
+
+### Discovering Available Packs 🔎
+
+To see what packs are available:
+
+```bash
+nodetool list --available
+```
+
+### Installing Packs 📥
+
+You can install packs directly using pip:
+
+```bash
+pip install git+https://github.com/nodetool-ai/your-pack-name
+```
+
+Or use the NodeTool UI's pack management interface for a more visual experience.
