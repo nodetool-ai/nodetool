@@ -1,6 +1,5 @@
 <h1 style="">
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" >
-  NodeTool - 🚀 AI Prototyping Platform
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - AI Prototyping Platform
 </h1>
 
 Design and develop AI agent systems
