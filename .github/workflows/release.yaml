@@ -95,13 +95,39 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD"
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Configure Node.js to use Python 3.11
+        run: |
+          # Install required Python packages
+          python -m pip install --upgrade pip setuptools wheel
+
+          # Tell node-gyp to use this specific Python
+          npm config set python $(which python)
+
+          # For extra safety on macOS
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            # Explicitly set PYTHON env var which some node packages look for
+            echo "PYTHON=$(which python)" >> $GITHUB_ENV
+            # Also set npm's python config
+            npm config set python $(which python)
+          fi
+
+          # Verify Python path is correct
+          echo "Using Python: $(which python)"
+          python --version
+
       - name: Build Web
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
+          # Ensure node-gyp uses our Python 3.11
+          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
           cd web
-          sudo -H pip install setuptools
           npm ci
           npm run build
 
@@ -109,9 +135,10 @@ jobs:
         shell: bash -l {0}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
+          # Ensure node-gyp uses our Python 3.11
+          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
           cd apps
-          sudo -H pip install setuptools
           npm ci
           npm run build
 
@@ -129,9 +156,10 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Ensure node-gyp uses our Python 3.11
+          npm_config_python: ${{ env.PYTHON || 'python' }}
         run: |
           cd electron
-          sudo -H pip install setuptools
           npm ci
           npm run vite:build
           npx electron-builder --config electron-builder.json --publish always
