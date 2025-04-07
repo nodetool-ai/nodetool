@@ -68,10 +68,6 @@ NodeTool offers a comprehensive suite for building, automating, and deploying AI
 - **Custom Python Extensions:** Extend functionality with custom Python scripts and integrations.
 - **Cross-Platform:** Build and run workflows on Mac, Windows, and Linux.
 
-<!-- Removed the separate System Tray Integration section as it's now merged into the Features list -->
-
-// ... existing code ...
-
 ## 🤖 NodeTool Agent System
 
 Design sophisticated AI agents capable of handling complex, multi-step tasks using NodeTool's agent framework.
