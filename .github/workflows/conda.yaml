@@ -45,8 +45,8 @@ jobs:
             build/conda-env-*.tar.gz
             build/conda-env-*.zip
           # Important: Set these the same as electron-builder's defaults
-          draft: false
+          draft: true
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
