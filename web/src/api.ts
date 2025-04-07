@@ -1026,7 +1026,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/packages/{repo_id}": {
+    "/api/packages/uninstall": {
         parameters: {
             query?: never;
             header?: never;
@@ -1040,7 +1040,7 @@ export interface paths {
          * Uninstall Package
          * @description Uninstall a package.
          */
-        delete: operations["uninstall_package_api_packages__repo_id__delete"];
+        delete: operations["uninstall_package_api_packages_uninstall_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3193,6 +3193,14 @@ export interface components {
             success: boolean;
             /** Message */
             message: string;
+        };
+        /** PackageUninstallRequest */
+        PackageUninstallRequest: {
+            /**
+             * Repo Id
+             * @description Repository ID in the format <owner>/<project>
+             */
+            repo_id: string;
         };
         /**
          * PlotlyConfig
@@ -6374,20 +6382,22 @@ export interface operations {
             };
         };
     };
-    uninstall_package_api_packages__repo_id__delete: {
+    uninstall_package_api_packages_uninstall_delete: {
         parameters: {
             query?: never;
             header?: {
                 authorization?: string | null;
             };
-            path: {
-                repo_id: string;
-            };
+            path?: never;
             cookie?: {
                 auth_cookie?: string | null;
             };
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackageUninstallRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

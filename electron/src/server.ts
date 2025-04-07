@@ -4,7 +4,6 @@ import { logMessage } from "./logger";
 import {
   getPythonPath,
   getProcessEnv,
-  srcPath,
   PID_FILE_PATH,
   webPath,
   appsPath,
@@ -17,10 +16,9 @@ import net from "net";
 import { updateTrayMenu, createTray } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
+import { readSettings, updateSetting } from "./settings";
 
 let nodeToolBackendProcess: ChildProcess | null = null;
-const recentServerMessages: string[] = [];
-const MAX_RECENT_MESSAGES: number = 5;
 
 /**
  * Server Management Module
@@ -193,10 +191,6 @@ function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
   if (output) {
     logMessage(output);
-    recentServerMessages.push(output);
-    if (recentServerMessages.length > MAX_RECENT_MESSAGES) {
-      recentServerMessages.shift();
-    }
   }
 
   if (output.includes("Address already in use")) {
@@ -245,16 +239,30 @@ async function ensureOllamaIsRunning(): Promise<boolean> {
  */
 async function showOllamaInstallDialog(): Promise<void> {
   const downloadUrl = "https://ollama.com/download";
+
+  // Check settings to see if user wants to skip this dialog
+  const settings = readSettings();
+  if (settings.SKIP_OLLAMA_DIALOG === true) {
+    return;
+  }
+
   const response = await dialog.showMessageBox({
     type: "info",
-    title: "Ollama Required",
-    message: "Ollama is required to run AI models locally",
+    title: "Download Ollama",
+    message: "Ollama is required to run LLMs locally",
     detail:
-      "Ollama is an open-source tool that allows NodeTool to run AI models locally on your machine. This provides better privacy and performance compared to cloud-based solutions.\n\nPlease download and install Ollama to continue using NodeTool's AI features.",
-    buttons: ["Download Ollama", "Cancel"],
+      "Ollama is an open-source tool that allows NodeTool to run LLMs locally on your machine.\nAlternatively, you can use cloud providers, such as OpenAI, Anthropic or Gemini",
+    buttons: ["Download Ollama", "Continue without Ollama"],
     defaultId: 0,
     cancelId: 1,
+    checkboxLabel: "Don't ask again",
+    checkboxChecked: false,
   });
+
+  // Save user preference if they checked "Don't ask again"
+  if (response.checkboxChecked) {
+    updateSetting("SKIP_OLLAMA_DIALOG", true);
+  }
 
   if (response.response === 0) {
     await shell.openExternal(downloadUrl);

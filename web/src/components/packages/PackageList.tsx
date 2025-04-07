@@ -171,8 +171,8 @@ const PackageList: React.FC = () => {
   const uninstallMutation = useMutation({
     mutationFn: async (repoId: string) => {
       setActivePackageId(repoId);
-      const { data, error } = await client.DELETE("/api/packages/{repo_id}", {
-        params: { path: { repo_id: repoId } }
+      const { data, error } = await client.DELETE("/api/packages/uninstall", {
+        body: { repo_id: repoId }
       });
       if (error) throw error;
       return data;
