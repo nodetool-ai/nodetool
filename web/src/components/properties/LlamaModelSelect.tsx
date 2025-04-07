@@ -58,7 +58,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
 
   if (isSuccess && options.length === 1) {
     return (
-      <div>No models found. Click RECOMMENDED MODELS above to find models.</div>
+      <div>No models found. Please start Ollama and download a model.</div>
     );
   }
 

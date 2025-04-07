@@ -88,23 +88,27 @@
   <body>
     <script>
       // Add platform class to body
-      document.body.classList.add('platform-' + window.api.platform);
+      document.body.classList.add("platform-" + window.api.platform);
 
       // Initialize window controls
-      document.addEventListener('DOMContentLoaded', () => {
-        const minimizeBtn = document.querySelector('.window-control-button:nth-child(1)');
-        const maximizeBtn = document.querySelector('.window-control-button:nth-child(2)');
-        const closeBtn = document.querySelector('#close-button');
+      document.addEventListener("DOMContentLoaded", () => {
+        const minimizeBtn = document.querySelector(
+          ".window-control-button:nth-child(1)"
+        );
+        const maximizeBtn = document.querySelector(
+          ".window-control-button:nth-child(2)"
+        );
+        const closeBtn = document.querySelector("#close-button");
 
-        minimizeBtn.addEventListener('click', () => {
+        minimizeBtn.addEventListener("click", () => {
           window.api.windowControls.minimize();
         });
 
-        maximizeBtn.addEventListener('click', () => {
+        maximizeBtn.addEventListener("click", () => {
           window.api.windowControls.maximize();
         });
 
-        closeBtn.addEventListener('click', () => {
+        closeBtn.addEventListener("click", () => {
           window.api.windowControls.close();
         });
       });
@@ -114,7 +118,9 @@
       <div class="window-controls">
         <button class="window-control-button">&#x2014;</button>
         <button class="window-control-button">&#x2610;</button>
-        <button class="window-control-button" id="close-button">&#x2715;</button>
+        <button class="window-control-button" id="close-button">
+          &#x2715;
+        </button>
       </div>
     </div>
     <div id="boot-message">
@@ -215,16 +221,6 @@
 
                   <label class="package-option">
                     <div class="checkbox-wrapper">
-                      <input type="checkbox" name="comfy" />
-                    </div>
-                    <div class="package-header">
-                      <h4>🎨 ComfyUI</h4>
-                    </div>
-                    <p>Generate images and videos with ComfyUI</p>
-                  </label>
-
-                  <label class="package-option">
-                    <div class="checkbox-wrapper">
                       <input type="checkbox" name="ml" />
                     </div>
                     <div class="package-header">
@@ -247,19 +243,9 @@
                       <h4>🧠 OpenAI</h4>
                     </div>
                     <p>
-                      Integration with ChatGPT, DALL-E, and other OpenAI
-                      services
+                      Additional services from OpenAI, like TTS and
+                      Transcription
                     </p>
-                  </label>
-
-                  <label class="package-option">
-                    <div class="checkbox-wrapper">
-                      <input type="checkbox" name="anthropic" />
-                    </div>
-                    <div class="package-header">
-                      <h4>🔮 Anthropic</h4>
-                    </div>
-                    <p>Access to Claude and other Anthropic AI models</p>
                   </label>
 
                   <label class="package-option">
@@ -280,16 +266,6 @@
                       <h4>⚡ FAL AI</h4>
                     </div>
                     <p>Run premium Image and Video models on Fal AI</p>
-                  </label>
-
-                  <label class="package-option">
-                    <div class="checkbox-wrapper">
-                      <input type="checkbox" name="ollama" />
-                    </div>
-                    <div class="package-header">
-                      <h4>🦙 Ollama</h4>
-                    </div>
-                    <p>Run local LLMs with Ollama integration</p>
                   </label>
 
                   <label class="package-option">
@@ -357,7 +333,7 @@
                     <div class="package-header">
                       <h4>🌐 Network</h4>
                     </div>
-                    <p>Scrape websites and use web APIs</p>
+                    <p>HTTP, IMAP and BeautifulSoup</p>
                   </label>
                 </div>
               </div>
@@ -368,32 +344,12 @@
                 <div class="package-options">
                   <label class="package-option">
                     <div class="checkbox-wrapper">
-                      <input type="checkbox" name="google" />
-                    </div>
-                    <div class="package-header">
-                      <h4>🔍 Google</h4>
-                    </div>
-                    <p>Fetch GMail emails and use Gemini for AI</p>
-                  </label>
-
-                  <label class="package-option">
-                    <div class="checkbox-wrapper">
                       <input type="checkbox" name="apple" />
                     </div>
                     <div class="package-header">
                       <h4>🍎 Apple</h4>
                     </div>
                     <p>Automation for Apple Notes, Calendar, and more</p>
-                  </label>
-
-                  <label class="package-option">
-                    <div class="checkbox-wrapper">
-                      <input type="checkbox" name="chroma" />
-                    </div>
-                    <div class="package-header">
-                      <h4>🧩 Chroma</h4>
-                    </div>
-                    <p>Build your knowledge base with Chroma</p>
                   </label>
                 </div>
               </div>

@@ -40,8 +40,6 @@ const HelpChat: React.FC = () => {
     setSelectedModel(model.repo_id);
   }, []);
 
-  const queryClient = useQueryClient();
-
   const handleStarterClick = useCallback(
     (prompt: string) => {
       sendMessage(
@@ -134,6 +132,8 @@ const HelpChat: React.FC = () => {
         currentNodeName={null}
         progress={0}
         total={0}
+        currentToolCall={null}
+        chunks={""}
       />
     </div>
   );
