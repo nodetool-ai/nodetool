@@ -6,46 +6,24 @@ import { useNodes } from "../../contexts/NodeContext";
 
 export function useAddToGroup() {
   const { isGroupable, isGroup } = useIsGroupable();
-  const { hoveredNodes, updateNode, setHoveredNodes, findNode } = useNodes(
-    (state) => ({
-      hoveredNodes: state.hoveredNodes,
-      updateNode: state.updateNode,
-      setHoveredNodes: state.setHoveredNodes,
-      findNode: state.findNode
-    })
-  );
+  const { updateNode } = useNodes((state) => ({
+    updateNode: state.updateNode
+  }));
   const addToGroup = useCallback(
     (nodes: Node<NodeData>[], parentNode?: Node<NodeData> | undefined) => {
       nodes.forEach((node) => {
         if (parentNode && isGroupable(node) && isGroup(parentNode)) {
           if (!node.parentId) {
-            updateNode(node.id, {
-              position: {
-                x: node.position.x - parentNode.position.x,
-                y: node.position.y - parentNode.position.y
-              },
-              parentId: parentNode.id,
-              expandParent: true
-            });
-          }
-          if (node.parentId) {
-            // already in group
-            updateNode(node.id, {
-              expandParent: true
-            });
-          }
-        } else {
-          // not hovered over group node
-          if (node.parentId) {
-            // remove from group and adjust position
-            updateNode(node.id, {
-              position: {
-                x: node.position.x + (parentNode?.position.x || 0),
-                y: node.position.y + (parentNode?.position.y || 0)
-              },
-              parentId: undefined,
-              expandParent: false
-            });
+            setTimeout(() => {
+              updateNode(node.id, {
+                position: {
+                  x: node.position.x - parentNode.position.x,
+                  y: node.position.y - parentNode.position.y
+                },
+                parentId: parentNode.id,
+                expandParent: true
+              });
+            }, 100);
           }
         }
       });

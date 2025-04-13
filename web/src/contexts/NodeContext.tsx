@@ -9,6 +9,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { useWorkflowManager } from "./WorkflowManagerContext";
 import { TemporalState } from "zundo";
 import { Box } from "@mui/material";
+import { isEqual } from "lodash";
 
 interface NodeContextValue {
   store: NodeStore;
@@ -17,30 +18,22 @@ interface NodeContextValue {
 
 export const NodeContext = createContext<NodeContextValue | null>(null);
 
-export const useNodes = <T,>(
-  selector: (state: NodeStoreState) => T,
-  equalityFn?: (left: T, right: T) => boolean
-): T => {
+export const useNodes = <T,>(selector: (state: NodeStoreState) => T): T => {
   const context = useContext(NodeContext);
   if (!context) {
     throw new Error("useNodes must be used within a NodeProvider");
   }
-  return useStoreWithEqualityFn(context.store, selector, equalityFn ?? shallow);
+  return useStoreWithEqualityFn(context.store, selector, isEqual);
 };
 
 export const useTemporalNodes = <T,>(
-  selector: (state: TemporalState<PartializedNodeStore>) => T,
-  equalityFn?: (left: T, right: T) => boolean
+  selector: (state: TemporalState<PartializedNodeStore>) => T
 ): T => {
   const context = useContext(NodeContext);
   if (!context) {
     throw new Error("useTemporalNodes must be used within a NodeProvider");
   }
-  return useStoreWithEqualityFn(
-    context.store.temporal,
-    selector,
-    equalityFn ?? shallow
-  );
+  return useStoreWithEqualityFn(context.store.temporal, selector, isEqual);
 };
 
 export const NodeProvider: React.FC<{

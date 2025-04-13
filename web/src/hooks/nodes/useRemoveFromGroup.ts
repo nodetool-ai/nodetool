@@ -4,23 +4,22 @@ import { Node } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 
 export const useRemoveFromGroup = () => {
-  const { setNodes } = useNodes((state) => ({
-    setNodes: state.setNodes
+  const { updateNode } = useNodes((state) => ({
+    updateNode: state.updateNode
   }));
   const removeFromGroup = useCallback(
     (nodesToRemove?: Node<NodeData>[]) => {
       if (nodesToRemove) {
-        setNodes((nodes) =>
-          nodes.map((node) => {
-            if (nodesToRemove.some((n) => n.id === node.id)) {
-              return { ...node, parentId: undefined };
-            }
-            return node;
-          })
-        );
+        nodesToRemove.forEach((node) => {
+          setTimeout(() => {
+            updateNode(node.id, {
+              parentId: undefined
+            });
+          }, 100);
+        });
       }
     },
-    [setNodes]
+    [updateNode]
   );
 
   return removeFromGroup;
