@@ -38,14 +38,13 @@ import {
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import { devLog, devWarn } from "../utils/DevLog";
+import { devWarn } from "../utils/DevLog";
 import { autoLayout } from "../core/graph";
-import { Slugify, isConnectable } from "../utils/TypeHandler";
+import { isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
-import { tryCacheFiles, tryCacheRepos } from "../serverState/tryCacheFiles";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
@@ -654,6 +653,9 @@ export const createNodeStore = (
             return {
               id: nodeId,
               type: metadata.node_type,
+              style: {
+                width: DEFAULT_NODE_WIDTH
+              },
               data: {
                 properties: defaults,
                 collapsed: false,
