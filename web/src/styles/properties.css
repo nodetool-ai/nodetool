@@ -48,6 +48,13 @@
   min-width: 35px;
 }
 
+.bool-property {
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* values */
 .value-changed .value {
   color: var(--c_hl1);
