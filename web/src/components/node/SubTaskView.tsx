@@ -8,12 +8,8 @@ import {
   ListItem,
   ListItemText,
   Checkbox,
-  Box,
-  Collapse,
-  CircularProgress
+  Box
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SubTask } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
@@ -46,14 +42,16 @@ const styles = (theme: any) =>
       color: theme.palette.text.secondary,
       marginLeft: "2rem"
     },
-    ".subtask-running": {
-      color: theme.palette.primary.main
+    "@keyframes shine": {
+      "0%": { backgroundPosition: "-200%" },
+      "100%": { backgroundPosition: "200%" }
     },
-    ".running-indicator": {
-      display: "flex",
-      alignItems: "center",
-      marginLeft: "0.5rem",
-      color: theme.palette.primary.main
+    ".shine-effect": {
+      background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2}, ${theme.palette.c_hl1})`,
+      backgroundSize: "200%",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      animation: "shine 5s infinite"
     }
   });
 
@@ -62,7 +60,6 @@ interface SubTaskViewProps {
 }
 
 const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
-  const [expanded, setExpanded] = React.useState(false);
   const hasDependencies = subtask.input_files.length > 0;
   const isRunning = subtask.start_time > 0 && !subtask.completed;
 
@@ -79,7 +76,7 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
                   subtask.completed
                     ? "subtask-completed"
                     : isRunning
-                    ? "subtask-running"
+                    ? "shine-effect"
                     : ""
                 }
               >
@@ -87,40 +84,21 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
               </Typography>
             }
           />
-          {isRunning && (
-            <Box className="running-indicator">
-              <CircularProgress size={16} thickness={5} />
-              <Typography variant="caption" sx={{ ml: 0.5 }}>
-                Running
-              </Typography>
-            </Box>
-          )}
-          {hasDependencies && (
-            <Box
-              ml={1}
-              onClick={() => setExpanded(!expanded)}
-              sx={{ cursor: "pointer" }}
-            >
-              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </Box>
-          )}
         </div>
 
         {hasDependencies && (
-          <Collapse in={expanded}>
-            <Box ml={3} mt={1}>
-              <List dense disablePadding>
-                {subtask.input_files.map((depId) => (
-                  <ListItem key={depId} dense disablePadding>
-                    <div className="dependency-marker">
-                      &rarr;&nbsp;
-                      {depId}
-                    </div>
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-          </Collapse>
+          <Box ml={3} mt={1}>
+            <List dense disablePadding>
+              {subtask.input_files.map((depId) => (
+                <ListItem key={depId} dense disablePadding>
+                  <div className="dependency-marker">
+                    &rarr;&nbsp;
+                    {depId}
+                  </div>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
         )}
       </Paper>
     </div>
