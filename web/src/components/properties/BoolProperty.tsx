@@ -8,12 +8,7 @@ const BoolProperty = (props: PropertyProps) => {
   const id = `switch-${props.property.name}-${props.propertyIndex}`;
 
   return (
-    <>
-      <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
-        id={id}
-      />
+    <div className="bool-property">
       <Switch
         id={id}
         inputProps={{ "aria-labelledby": id }}
@@ -23,7 +18,12 @@ const BoolProperty = (props: PropertyProps) => {
         className="nodrag"
         size="small"
       />
-    </>
+      <PropertyLabel
+        name={props.property.name}
+        description={props.property.description}
+        id={id}
+      />
+    </div>
   );
 };
 
