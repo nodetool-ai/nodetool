@@ -60,7 +60,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   return (
     <Toolbar variant="dense" className="node-toolbar">
-      {node?.parentId && (
+      {/* {node?.parentId && (
         <Tooltip title="Remove from Group">
           <IconButton
             onClick={() => removeFromGroup([node as Node<NodeData>])}
@@ -69,7 +69,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             <GroupRemoveIcon />
           </IconButton>
         </Tooltip>
-      )}
+      )} */}
       <Tooltip title="Duplicate (Space+D)">
         <IconButton onClick={handleDuplicateNodes} tabIndex={-1}>
           <QueueIcon />

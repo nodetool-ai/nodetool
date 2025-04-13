@@ -12,7 +12,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
-import { useAddToGroup } from "../nodes/useAddToGroup";
 // File type detection
 function detectFileType(file: File): string {
   switch (file.type) {

@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNotificationStore } from "../../stores/NotificationStore";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
@@ -20,9 +19,6 @@ export const useSurroundWithGroup = () => {
     pause: state.pause,
     resume: state.resume
   }));
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
 
   const getBounds = useMemo(() => {
     return (nodes: Node<NodeData>[]) => {
