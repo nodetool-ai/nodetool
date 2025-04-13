@@ -3,12 +3,19 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip
+  Tooltip,
+  IconButton
 } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import NumbersIcon from "@mui/icons-material/Numbers";
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -145,63 +152,58 @@ const TableActions: React.FC<TableActionsProps> = ({
       {editable && (
         <>
           <Tooltip title="Add new row">
-            <Button variant="outlined" onClick={handleAddRow}>
-              Add Row
-            </Button>
+            <IconButton onClick={handleAddRow}>
+              <AddIcon sx={{ fontSize: 12 }} />
+            </IconButton>
           </Tooltip>
 
           <Tooltip title="Delete selected rows">
-            <Button
-              className={selectedRows.length > 0 ? "" : " disabled"}
-              variant="outlined"
+            <IconButton
+              disabled={selectedRows.length === 0}
               onClick={() => {
                 if (tabulator?.getSelectedRows().length) {
                   handleDeleteRows();
                 }
               }}
             >
-              Delete Rows
-            </Button>
+              <DeleteIcon sx={{ fontSize: 12 }} />
+            </IconButton>
           </Tooltip>
         </>
       )}
 
       {showSortingButton && (
         <Tooltip title="Reset table sorting">
-          <Button variant="outlined" onClick={handleResetSorting}>
-            Reset Sorting
-          </Button>
+          <IconButton onClick={handleResetSorting}>
+            <RestartAltIcon sx={{ fontSize: 12 }} />
+          </IconButton>
         </Tooltip>
       )}
 
       <Tooltip title="Show Select column">
-        <ToggleButtonGroup
-          className="toggle select-row"
-          value={showSelect ? "selected" : null}
-          exclusive
-          onChange={() => setShowSelect(!showSelect)}
+        <IconButton
+          onClick={() => setShowSelect(!showSelect)}
+          color={showSelect ? "primary" : "default"}
         >
-          <ToggleButton value="selected">Show Select</ToggleButton>
-        </ToggleButtonGroup>
+          <CheckBoxIcon sx={{ fontSize: 12 }} />
+        </IconButton>
       </Tooltip>
 
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <Tooltip title="Show Row Numbers">
-          <ToggleButtonGroup
-            className="toggle row-numbers"
-            value={showRowNumbers ? "selected" : null}
-            exclusive
-            onChange={() => setShowRowNumbers(!showRowNumbers)}
+          <IconButton
+            onClick={() => setShowRowNumbers(!showRowNumbers)}
+            color={showRowNumbers ? "primary" : "default"}
           >
-            <ToggleButton value="selected">Show Row Numbers</ToggleButton>
-          </ToggleButtonGroup>
+            <NumbersIcon sx={{ fontSize: 12 }} />
+          </IconButton>
         </Tooltip>
       )}
 
       <Tooltip title="Copy table data to clipboard">
-        <Button variant="outlined" onClick={handleCopyData}>
-          Copy Data
-        </Button>
+        <IconButton onClick={handleCopyData}>
+          <ContentCopyIcon sx={{ fontSize: 12 }} />
+        </IconButton>
       </Tooltip>
     </div>
   );

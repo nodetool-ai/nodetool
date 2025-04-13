@@ -100,65 +100,12 @@ export const tableStyles = (theme: any) =>
       display: "flex",
       width: "100%",
       gap: ".25em",
-      marginBottom: ".5em",
+      margin: "1em",
       justifyContent: "flex-start",
       alignItems: "flex-start",
       height: "2em",
       "& .disabled": {
         opacity: 0.5
-      },
-      "& button": {
-        height: "2.5em",
-        maxWidth: "6em",
-        lineHeight: "1.1em",
-        textAlign: "center",
-        display: "flex",
-        alignItems: "center",
-        padding: "0.25em 1em",
-        fontSize: theme.fontSizeTinyer,
-        color: theme.palette.c_gray6,
-        margin: "0",
-        border: `1px solid ${theme.palette.c_gray1}`,
-        borderRadius: "2px",
-        backgroundColor: theme.palette.c_gray0,
-        transition: "all 0.2s ease",
-        "&:hover": {
-          color: theme.palette.c_hl1,
-          borderColor: theme.palette.c_hl1,
-          backgroundColor: theme.palette.c_gray1
-        }
-      }
-    },
-
-    // Toggle button
-    ".toggle": {
-      height: "2em",
-      display: "flex",
-      flexDirection: "column",
-      gap: ".5em",
-      padding: "0",
-      margin: "0",
-      "& .MuiToggleButton-root": {
-        fontSize: theme.fontSizeTinyer,
-        lineHeight: "1.1em",
-        color: theme.palette.c_gray5,
-        backgroundColor: theme.palette.c_gray0,
-        margin: "0",
-        border: `1px solid ${theme.palette.c_gray1}`,
-        borderRadius: "2px",
-        textAlign: "left",
-        padding: ".5em 1em",
-        transition: "all 0.2s ease",
-        "&:hover, &.Mui-selected:hover": {
-          color: theme.palette.c_hl1,
-          borderColor: theme.palette.c_hl1,
-          backgroundColor: theme.palette.c_gray1
-        },
-        "&.Mui-selected": {
-          color: theme.palette.c_hl1,
-          borderColor: theme.palette.c_hl1,
-          backgroundColor: theme.palette.c_gray0
-        }
       }
     },
 
