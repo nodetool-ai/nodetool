@@ -46,14 +46,12 @@ export const useNotificationStore = create<NotificationStore>()((set) => ({
   lastDisplayedTimestamp: null,
 
   addNotification: (notification) => {
-    if (verbosityCheck(notification.type, DEVLOG_NOTIFICATION_VERBOSITY)) {
-      if (notification.type === "warning") {
-        log.warn("NOTIFICATION:", notification);
-      } else if (notification.type === "error") {
-        log.error("NOTIFICATION:", notification);
-      } else {
-        log.info("NOTIFICATION:", notification);
-      }
+    if (notification.type === "warning") {
+      log.warn("NOTIFICATION:", notification);
+    } else if (notification.type === "error") {
+      log.error("NOTIFICATION:", notification);
+    } else {
+      log.info("NOTIFICATION:", notification);
     }
 
     set((state) => ({
