@@ -1,6 +1,5 @@
 import { components } from "../api";
 
-export type User = components["schemas"]["User"];
 export type Node = components["schemas"]["Node"];
 export type Edge = components["schemas"]["Edge"];
 export type Asset = components["schemas"]["Asset"];

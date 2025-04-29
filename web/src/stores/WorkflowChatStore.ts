@@ -10,11 +10,12 @@ import {
   ToolCallUpdate,
   WorkflowAttributes
 } from "./ApiTypes";
-import { CHAT_URL } from "./ApiClient";
+import { CHAT_URL, isLocalhost } from "./ApiClient";
 import { useAuth } from "./useAuth";
 import { devError, devLog } from "../utils/DevLog";
 import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
+import { supabase } from "../lib/supabaseClient";
 
 type WorkflowChatState = {
   socket: WebSocket | null;
@@ -55,10 +56,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   progress: 0,
   total: 0,
   connect: async (workflow: WorkflowAttributes) => {
-    const user = useAuth.getState().getUser();
-    if (!user) {
-      throw new Error("User is not logged in");
-    }
     devLog("Connecting to workflow chat", workflow.id);
 
     set({ workflow });
@@ -174,15 +171,15 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
   sendMessage: async (message: Message) => {
     const { socket } = get();
-    const user = useAuth.getState().getUser();
 
-    if (!user) {
-      throw new Error("User is not logged in");
+    if (!isLocalhost) {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      message.auth_token = session?.access_token;
     }
 
     set({ error: null });
-
-    message.auth_token = user.auth_token;
 
     if (!message.workflow_id) {
       throw new Error("Workflow ID is required");

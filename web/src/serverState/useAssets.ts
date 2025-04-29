@@ -28,7 +28,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     (state) => state.setCurrentFolderId
   );
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-  const currentUser = useAuth((state) => state.getUser());
+  const currentUser = useAuth((state) => state.user);
   const setCurrentFolder = useAssetGridStore((state) => state.setCurrentFolder);
   const loadCurrentFolder = useAssetStore((state) => state.loadCurrentFolder);
   const {

@@ -2,7 +2,6 @@
 
 import useAuth from "../../stores/useAuth";
 
-
 const styles = {
   svg: {
     display: "block"
@@ -10,9 +9,10 @@ const styles = {
 };
 
 const GoogleAuthButton = () => {
-  const { oauthLogin } = useAuth();
+  const { signInWithProvider, state } = useAuth();
   const handleClick = async () => {
-    await oauthLogin("google");
+    if (state === "loading" || state === "logged_in") return;
+    await signInWithProvider("google");
   };
 
   return (

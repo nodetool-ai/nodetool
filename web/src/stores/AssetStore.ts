@@ -261,10 +261,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @param name The name of the folder.
    */
   createFolder: async (parent_id: string | null, name: string) => {
+    const headers = await authHeader();
     const folder = await createAsset(
       BASE_URL + "/api/assets/",
       "POST",
-      authHeader(),
+      headers,
       {
         parent_id: parent_id,
         content_type: "folder",
@@ -437,11 +438,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     parent_id?: string,
     onUploadProgress?: (progressEvent: any) => void
   ) => {
+    const headers = await authHeader();
     try {
       const asset = await createAsset(
         BASE_URL + "/api/assets/",
         "POST",
-        authHeader(),
+        headers,
         {
           workflow_id: workflow_id,
           parent_id: parent_id,

@@ -144,7 +144,7 @@ interface FolderListProps {
 }
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
-  const currentUser = useAuth((state) => state.getUser());
+  const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT

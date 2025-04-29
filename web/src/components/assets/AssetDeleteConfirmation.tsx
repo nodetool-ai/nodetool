@@ -65,7 +65,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const { mutation } = useAssetDeletion();
   const { refetchAssetsAndFolders } = useAssets();
   const getAsset = useAssetStore((state) => state.get);
-  const user = useAuth.getState().getUser();
+  const user = useAuth((state) => state.user);
 
   useEffect(() => {
     const countAssetTypes = async () => {
