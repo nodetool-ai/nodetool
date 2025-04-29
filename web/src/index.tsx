@@ -47,7 +47,7 @@ import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 import { MenuProvider } from "./providers/MenuProvider";
 
-import { log } from "loglevel";
+import log from "loglevel";
 
 (window as any).log = log;
 
