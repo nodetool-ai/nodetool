@@ -76,13 +76,17 @@ const authMiddleware: Middleware = {
    * This handler primarily deals with completely invalid/expired sessions.
    */
   async onResponse({ response }) {
-    if (response?.status === 401) {
-      console.warn("API request unauthorized (401). Signing out.");
-      // Attempt to sign out via Supabase
-      await supabase.auth.signOut();
-      // Redirect to login regardless of sign-out success
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+    if (response?.status === 401 && window.location.pathname !== "/login") {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      if (session) {
+        console.warn("API request unauthorized (401). Signing out.");
+        // Attempt to sign out via Supabase
+        await supabase.auth.signOut();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
     }
     return response;
