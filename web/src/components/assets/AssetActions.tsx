@@ -159,7 +159,7 @@ const AssetActions = ({
   const parentFolder = useAssetGridStore((state) => state.parentFolder);
   const { refetchAssetsAndFolders, navigateToFolderId, isLoading } =
     useAssets();
-  const currentUser = useAuth((state) => state.getUser());
+  const currentUser = useAuth((state) => state.user);
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =

@@ -27,7 +27,6 @@ import AssetExplorer from "./components/assets/AssetExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
-import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -85,10 +84,6 @@ function getRoutes() {
     {
       path: "/welcome",
       element: <Welcome />
-    },
-    {
-      path: "/oauth/callback",
-      element: <OAuthCallback />
     },
     {
       path: "/login",

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { BASE_URL, WORKER_URL } from "./ApiClient";
+import { BASE_URL, isLocalhost, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
 import { devError, devLog } from "../utils/DevLog";
@@ -24,6 +24,7 @@ import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
+import { supabase } from "../lib/supabaseClient";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -90,11 +91,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   notifications: [],
 
   connect: async (url: string) => {
-    const user = useAuth.getState().getUser();
-    if (!user) {
-      throw new Error("User is not logged in");
-    }
-
     if (get().socket) {
       get().disconnect();
     }
@@ -172,13 +168,22 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     edges: Edge[]
   ) => {
     set({ workflow, nodes, edges });
-    const getUser = useAuth.getState().getUser;
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
     const clearResults = useResultsStore.getState().clearResults;
     const clearProgress = useResultsStore.getState().clearProgress;
     const connectUrl = WORKER_URL;
+    let auth_token = "local_token";
+    let user = "1";
+
+    if (!isLocalhost) {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      auth_token = session?.access_token || "";
+      user = session?.user?.id || "";
+    }
 
     set({
       statusMessage: "Workflow starting..."
@@ -192,12 +197,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
     if (socket === null) {
       throw new Error("Socket is null");
-    }
-
-    const user = getUser();
-
-    if (user === null) {
-      throw new Error("User is not logged in");
     }
 
     clearStatuses(workflow.id);
@@ -214,9 +213,9 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const req: RunJobRequest = {
       type: "run_job_request",
       api_url: BASE_URL,
-      user_id: user.id,
+      user_id: user,
       workflow_id: workflow.id,
-      auth_token: user.auth_token || "",
+      auth_token: auth_token,
       job_type: "workflow",
       params: params || {},
       explicit_types: false,

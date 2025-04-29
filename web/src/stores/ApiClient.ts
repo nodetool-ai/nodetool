@@ -1,79 +1,123 @@
 import createClient, { type Middleware } from "openapi-fetch";
-import { paths } from "../api.js"; // (generated from openapi-typescript)
-import { useAuth } from "./useAuth.js";
+import { paths } from "../api.js"; // Generated from openapi-typescript
+import { supabase } from "../lib/supabaseClient";
 
+/**
+ * Checks if the current hostname indicates a local development environment.
+ * Includes common localhost variations and specific local IPs.
+ */
 export const isLocalhost =
-  window.location.hostname.includes("dev.") ||
-  window.location.hostname === "127.0.0.1" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "192.168.50.225";
+  typeof window !== "undefined" &&
+  (window.location.hostname.includes("dev.") ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "192.168.50.225");
 
+/** Flag indicating a development environment (synonym for isLocalhost). */
 export const isDevelopment = isLocalhost;
+/** Flag indicating a production environment. */
 export const isProduction = !isLocalhost;
 
-(window as any)["isProduction"] = isProduction;
+// Expose production status globally for potential debugging or conditional logic
+if (typeof window !== "undefined") {
+  (window as any)["isProduction"] = isProduction;
+}
 
-// TODO: make it configurable via env vars
-export const BASE_URL = isLocalhost
-  ? window.location.protocol + "//" + window.location.hostname + ":8000"
-  : "https://api.nodetool.ai";
+/**
+ * Base URL for the backend API.
+ * Dynamically sets the URL based on whether the environment is local or production.
+ * Uses the current hostname and port 8000 for local development,
+ * and a hardcoded production URL otherwise.
+ * TODO: Make production URL configurable via environment variables.
+ */
+export const BASE_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL
+  : `${window.location.protocol}//${window.location.hostname}:8000`;
 
+/** WebSocket URL for the prediction worker endpoint. */
 export const WORKER_URL =
-  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
+  BASE_URL.replace(/^http/, "ws") + // Replaces http/https with ws/wss
   "/predict";
 
-export const CHAT_URL =
-  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") + "/chat";
+/** WebSocket URL for the chat endpoint. */
+export const CHAT_URL = BASE_URL.replace(/^http/, "ws") + "/chat";
 
-export const DOWNLOAD_URL =
-  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
-  "/hf/download";
+/** WebSocket URL for the HuggingFace model download endpoint. */
+export const DOWNLOAD_URL = BASE_URL.replace(/^http/, "ws") + "/hf/download";
 
-export const pingWorker = () => {
-  if (isDevelopment) {
-    return;
-  }
-  // only needed for the modal worker to wake up
-  // const ts = new Date().getTime();
-  // const url = WORKER_URL.replace("predict", "?" + ts);
-  // fetch(url, {
-  //   method: "GET",
-  // });
-};
+/**
+ * Middleware for the openapi-fetch client to handle authentication.
+ */
 const authMiddleware: Middleware = {
-  async onRequest({ request, options }) {
-    const user = useAuth.getState().user;
+  /**
+   * Intercepts requests before they are sent.
+   * Fetches the current Supabase session and adds the Authorization (Bearer token)
+   * and apikey headers if a session exists.
+   */
+  async onRequest({ request }) {
+    if (isLocalhost) {
+      return request;
+    }
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
-    if (user && request) {
-      request.headers.set("Authorization", `Bearer ${user.auth_token}`);
+    if (session && request) {
+      const token = session.access_token;
+      request.headers.set("Authorization", `Bearer ${token}`);
     }
     return request;
   },
-  async onResponse({ request, response, options }) {
-    if (response?.status == 401) {
-      console.log("Unauthorized, signing out");
-      useAuth.getState().signout();
-      window.location.href = "/login";
+  /**
+   * Intercepts responses after they are received.
+   * If a 401 Unauthorized status is detected, it triggers a Supabase sign-out
+   * and redirects the user to the login page.
+   * Note: Supabase client handles token refreshes automatically.
+   * This handler primarily deals with completely invalid/expired sessions.
+   */
+  async onResponse({ response }) {
+    if (response?.status === 401) {
+      console.warn("API request unauthorized (401). Signing out.");
+      // Attempt to sign out via Supabase
+      await supabase.auth.signOut();
+      // Redirect to login regardless of sign-out success
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
     return response;
   }
 };
 
+/**
+ * The configured openapi-fetch client instance for making API calls.
+ * Includes the base URL and authentication middleware.
+ */
 export const client = createClient<paths>({
   baseUrl: BASE_URL
 });
 
+// Apply the authentication middleware to the client instance
 client.use(authMiddleware);
 
-export const authHeader = () => {
-  const user = useAuth.getState().user;
-  if (user) {
-    return {
-      authorization: "Bearer " + user.auth_token
-    };
-  } else {
-    return {
-      authorization: undefined
-    };
+/**
+ * Asynchronously generates an object containing the necessary authentication headers
+ * (Authorization Bearer token and apikey) based on the current Supabase session.
+ * Returns an empty object if no session exists.
+ * Useful for manual fetch/axios requests that don't use the main `client`.
+ *
+ * @returns {Promise<Record<string, string>>} A promise resolving to the headers object.
+ */
+export const authHeader = async (): Promise<{ [key: string]: string }> => {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  const headers: { [key: string]: string } = {};
+
+  if (session) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
   }
+
+  return headers;
 };
