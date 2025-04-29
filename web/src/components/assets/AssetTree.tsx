@@ -14,7 +14,7 @@ import {
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
-import { devError } from "../../utils/DevLog";
+import log from "loglevel";
 import { IconForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
@@ -89,7 +89,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         );
         onTotalAssetsCalculated(total);
       } catch (error) {
-        devError("Error fetching asset tree:", error);
+        log.error("Error fetching asset tree:", error);
         setAssetTree([]);
         onTotalAssetsCalculated(0);
       } finally {

@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useState, useEffect, useRef, MouseEventHandler } from "react";
 import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
-// import { devLog } from "../../utils/DevLog";
+// import log from "loglevel";
 
 interface ImageViewerProps {
   asset?: Asset;

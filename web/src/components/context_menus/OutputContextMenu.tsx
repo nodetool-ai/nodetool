@@ -9,7 +9,7 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -85,7 +85,7 @@ const OutputContextMenu: React.FC = () => {
 
   const fetchMetadata = useCallback(
     (nodeType: string) => {
-      devLog(`Fetching metadata for node type: ${nodeType}`);
+      log.info(`Fetching metadata for node type: ${nodeType}`);
       const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
       const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
       const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
@@ -108,7 +108,7 @@ const OutputContextMenu: React.FC = () => {
   const createNodeWithEdge = useCallback(
     (metadata: any, position: { x: number; y: number }, nodeType: string) => {
       if (!metadata) {
-        devLog("Metadata is undefined, cannot create node.");
+        log.info("Metadata is undefined, cannot create node.");
         return;
       }
 

@@ -17,7 +17,7 @@ import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { devLog, devWarn, devError } from "../../utils/DevLog";
+import log from "loglevel";
 import { createAssetFile } from "../../utils/createAssetFile";
 import JSZip from "jszip";
 import { isEqual } from "lodash";
@@ -169,12 +169,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   // }
 
   const handleAddToAssets = async () => {
-    devLog("handleAddToAssets called");
+    log.info("handleAddToAssets called");
     if (result?.output) {
-      devLog("Result output exists:", result.output);
+      log.info("Result output exists:", result.output);
       try {
         const assetFiles = createAssetFile(result.output, props.id);
-        devLog("Created asset files:", assetFiles);
+        log.info("Created asset files:", assetFiles);
 
         for (const { file } of assetFiles) {
           await createAsset(file);
@@ -185,24 +185,24 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           content: `${assetFiles.length} file(s) added to assets successfully`
         });
       } catch (error) {
-        devError("Error in handleAddToAssets:", error);
+        log.error("Error in handleAddToAssets:", error);
         addNotification({
           type: "error",
           content: "Failed to add preview to assets"
         });
       }
     } else {
-      devWarn("No result output to add to assets");
+      log.warn("No result output to add to assets");
     }
   };
 
   const handleDownload = async () => {
-    devLog("handleDownload called");
+    log.info("handleDownload called");
     if (result?.output) {
-      devLog("Result output exists:", result.output);
+      log.info("Result output exists:", result.output);
       try {
         const assetFiles = createAssetFile(result.output, props.id);
-        devLog("Created asset files:", assetFiles);
+        log.info("Created asset files:", assetFiles);
 
         // Check for Electron's API (could be window.electron or window.api)
         const electronApi = (window as any).electron || (window as any).api;
@@ -260,20 +260,20 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           }
         }
 
-        devLog("File download initiated");
+        log.info("File download initiated");
         addNotification({
           type: "success",
           content: "Download started successfully"
         });
       } catch (error) {
-        devError("Error in handleDownload:", error);
+        log.error("Error in handleDownload:", error);
         addNotification({
           type: "error",
           content: "Failed to start download"
         });
       }
     } else {
-      devWarn("No result output to download");
+      log.warn("No result output to download");
       addNotification({
         type: "warning",
         content: "No content available to download"

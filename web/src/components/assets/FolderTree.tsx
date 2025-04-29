@@ -6,7 +6,7 @@ import { Box, Button } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { useAssetStore } from "../../stores/AssetStore";
-import { devError } from "../../utils/DevLog";
+import log from "loglevel";
 
 interface FolderNode {
   id: string;
@@ -84,7 +84,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     };
 
     if (!node.id) {
-      devError("Node with undefined id found:", node);
+      log.error("Node with undefined id found:", node);
       return null;
     }
 

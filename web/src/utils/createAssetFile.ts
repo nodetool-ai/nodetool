@@ -1,4 +1,4 @@
-import { devLog } from "./DevLog";
+import log from "loglevel";
 
 interface AssetFileResult {
   file: File;
@@ -64,7 +64,7 @@ const createSingleAssetFile = (
   }
 
   const file = new File([content], filename, { type: mimeType });
-  devLog(`Created file for type: ${type}`);
+  log.info(`Created file for type: ${type}`);
 
   return { file, filename, type: mimeType };
 };
@@ -74,7 +74,7 @@ export const createAssetFile = (
   id: string
 ): AssetFileResult[] => {
   if (Array.isArray(output)) {
-    devLog("Creating multiple asset files");
+    log.info("Creating multiple asset files");
     return output.map((item, index) => createSingleAssetFile(item, id, index));
   } else {
     return [createSingleAssetFile(output, id)];

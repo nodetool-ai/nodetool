@@ -8,7 +8,7 @@ import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 const AssetItemContextMenu = () => {

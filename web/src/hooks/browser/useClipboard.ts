@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
 export const useClipboard = () => {
@@ -45,7 +45,7 @@ export const useClipboard = () => {
     data: string | null;
     isValid: boolean;
   }> => {
-    devLog("Attempting to read from clipboard.");
+    log.info("Attempting to read from clipboard.");
     let data = "";
     if (isFirefox && clipboardData) {
       data = clipboardData;
@@ -53,7 +53,7 @@ export const useClipboard = () => {
       if (document.hasFocus()) {
         if (navigator.clipboard) {
           data = await navigator.clipboard.readText();
-          devLog("Clipboard read successfully.");
+          log.info("Clipboard read successfully.");
         }
       }
     }
@@ -79,7 +79,7 @@ export const useClipboard = () => {
 
       setIsClipboardValid(isValid);
       if (isValid) {
-        devLog("Attempting to write to clipboard.");
+        log.info("Attempting to write to clipboard.");
         const outputData = formatJson
           ? JSON.stringify(JSON.parse(data), null, 2)
           : data;

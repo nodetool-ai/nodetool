@@ -4,8 +4,8 @@ import { css } from "@emotion/react";
 import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
-import { devError } from "../../utils/DevLog";
 import { CircularProgress } from "@mui/material";
+import log from "loglevel";
 
 interface TextViewerProps {
   asset?: Asset;
@@ -54,7 +54,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
       .then((response) => {
         setDocument(response.data);
       })
-      .catch(devError);
+      .catch(log.error);
   }, [asset?.get_url]);
 
   return (

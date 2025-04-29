@@ -3,7 +3,7 @@ import { NodeData } from "./NodeData";
 import { BASE_URL, isLocalhost, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
-import { devError, devLog } from "../utils/DevLog";
+import log from "loglevel";
 import {
   Prediction,
   NodeProgress,
@@ -100,7 +100,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const socket = new WebSocket(url);
 
     socket.onopen = () => {
-      devLog("WebSocket connected");
+      log.info("WebSocket connected");
       set({ socket });
     };
 
@@ -116,12 +116,12 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     };
 
     socket.onerror = (error) => {
-      devError("WebSocket error:", error);
+      log.error("WebSocket error:", error);
       set({ state: "error" });
     };
 
     socket.onclose = () => {
-      devLog("WebSocket disconnected");
+      log.info("WebSocket disconnected");
       set({ socket: null, state: "idle" });
     };
 
@@ -150,7 +150,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     try {
       handleUpdate(workflow, data);
     } catch (error) {
-      devError("WorkflowRunner WS error:", error);
+      log.error("WorkflowRunner WS error:", error);
     }
   },
 

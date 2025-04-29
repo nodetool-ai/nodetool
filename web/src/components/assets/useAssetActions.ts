@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import { devError } from "../../utils/DevLog";
+import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetActions = (asset: Asset) => {
@@ -123,7 +123,7 @@ export const useAssetActions = (asset: Asset) => {
           setMoveToFolderDialogOpen(false);
         }
       } catch (error) {
-        devError("Invalid JSON string:", assetData);
+        log.error("Invalid JSON string:", assetData);
       }
     },
     [

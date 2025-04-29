@@ -3,7 +3,7 @@ import WaveSurfer from "wavesurfer.js";
 import Record from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import { useNodes } from "../../contexts/NodeContext";
 
 export type WaveRecorderProps = {
@@ -29,7 +29,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
       setError("No media devices available");
       return;
     }
-    devLog("Fetching audio devices");
+    log.info("Fetching audio devices");
     const abortCtrl = new AbortController();
     abortControllerRef.current = abortCtrl;
 
@@ -64,7 +64,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
       })
       .catch((error) => {
         if (error.name === "AbortError") {
-          devLog("Fetch aborted");
+          log.info("Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${error.message}`);
         }

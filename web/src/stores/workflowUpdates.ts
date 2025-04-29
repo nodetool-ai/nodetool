@@ -14,7 +14,7 @@ import { useAssetStore } from "./AssetStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
-import { devError } from "../utils/DevLog";
+import log from "loglevel";
 import useWorkflowRunner from "./WorkflowRunner";
 import { MsgpackData } from "./WorkflowChatStore";
 
@@ -36,7 +36,7 @@ export const handleUpdate = (
     if (task.node_id) {
       setTask(workflow.id, task.node_id, task.task);
     } else {
-      devError("TaskUpdate has no node_id");
+      log.error("TaskUpdate has no node_id");
     }
   }
 
@@ -103,12 +103,12 @@ export const handleUpdate = (
     const update = data as NodeUpdate;
     // const node = findNode(update.node_id);
     // if (!node) {
-    //   devError("received message for deleted node", update.node_id);
+    //   log.error("received message for deleted node", update.node_id);
     //   return;
     // }
 
     if (update.error) {
-      devError("WorkflowRunner update error", update.error);
+      log.error("WorkflowRunner update error", update.error);
       runner.addNotification({
         type: "error",
         alert: true,
@@ -141,7 +141,7 @@ export const handleUpdate = (
                 setResult(workflow.id, update.node_id, { [key]: ref });
               });
             } else {
-              devError(
+              log.error(
                 `WorkflowRunner: Asset id is null or undefined for key: ${key}`
               );
             }

@@ -15,7 +15,7 @@ import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { set, throttle } from "lodash";
 import AudioControls from "./AudioControls";
-import { devLog, devError } from "../../utils/DevLog";
+import log from "loglevel";
 
 type WaveSurferProps = {
   fontSize?: "normal" | "small" | "tiny";
@@ -159,14 +159,14 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     try {
       waveSurferRef.current?.playPause();
     } catch (error) {
-      devError("Audio Playback Error:", error);
+      log.error("Audio Playback Error:", error);
     }
   }, []);
 
   useEffect(() => {
-    devLog("Audio Player mounted.");
+    log.info("Audio Player mounted.");
     return () => {
-      devLog("Audio Player unmounted.");
+      log.info("Audio Player unmounted.");
     };
   }, []);
 
@@ -259,21 +259,21 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         waveSurferRef.current = waveSurfer;
 
         waveSurfer.on("error", (err) => {
-          devError("Wavesurfer audio error:", err);
+          log.error("Wavesurfer audio error:", err);
         });
         waveSurfer.on("play", onPlay);
         waveSurfer.on("pause", onPause);
         waveSurfer.on("ready", () => {
           setIsReady(true);
           checkWaveformFit();
-          devLog("Audio is ready for playback");
+          log.info("Audio is ready for playback");
           if (otherProps.playOnLoad) {
             waveSurfer.play();
           }
         });
         waveSurfer.on("decode", (duration) => {
           setDuration(duration);
-          devLog("Decode: ", duration + "s");
+          log.info("Decode: ", duration + "s");
         });
         waveSurfer.on("audioprocess", handleAudioProcess);
         waveSurfer.on("seeking", handleSeekingProcess as any);
@@ -290,13 +290,13 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         });
         setPrevUrl(audioUrl);
       } else if (response.status !== 200) {
-        devError("Audio file not found.");
+        log.error("Audio file not found.");
       }
     } catch (error) {
       if (axios.isCancel(error)) {
-        devLog("Request canceled:", error.message);
+        log.info("Request canceled:", error.message);
       } else {
-        devError("Error while checking or loading audio:", error);
+        log.error("Error while checking or loading audio:", error);
       }
     }
 
@@ -423,7 +423,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
                 waveSurferRef.current?.zoom(value);
               });
             } catch (error: any) {
-              devLog("Zoom audio failed: ", error.message);
+              log.info("Zoom audio failed: ", error.message);
             }
           }}
         />

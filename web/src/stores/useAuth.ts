@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devLog } from "../utils/DevLog";
+import log from "loglevel";
 import { createErrorMessage } from "../utils/errorHandling";
 import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
@@ -15,7 +15,7 @@ export interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
   /** The current Supabase user object derived from the session, or null. */
-  user: User | null;
+  user: User | { id: string } | null;
   /** The current state of the authentication process. */
   state: "init" | "loading" | "error" | "logged_in" | "logged_out";
   /** Stores the error message if an authentication operation fails. */
@@ -47,14 +47,16 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * - Bypasses Supabase check if `isLocalhost` is true for development convenience.
    */
   initialize: async () => {
-    devLog("Auth: Initializing...");
+    log.info("Auth: Initializing...");
     if (isLocalhost) {
       // Provide a predictable state for local development without requiring login
-      devLog("Auth: Running in localhost mode, setting state to logged_in.");
+      log.info("Auth: Running in localhost mode, setting state to logged_in.");
       set({
         state: "logged_in", // Assume logged in for local dev
         session: null,
-        user: null,
+        user: {
+          id: "1"
+        },
         error: null
       });
       return;
@@ -77,11 +79,14 @@ export const useAuth = create<LoginStore>((set, get) => ({
         state: session ? "logged_in" : "logged_out",
         error: null
       });
-      devLog("Auth: Initial session checked.", session ? "Found" : "Not found");
+      log.info(
+        "Auth: Initial session checked.",
+        session ? "Found" : "Not found"
+      );
 
       // Listen for subsequent auth state changes (login, logout, token refresh)
       supabase.auth.onAuthStateChange((event, session) => {
-        devLog(
+        log.info(
           "Auth: State Change Event -",
           event,
           "; Session:",
@@ -98,7 +103,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // unsubscribed here, as the auth store is typically global and persists
       // for the application's lifetime.
     } catch (error: any) {
-      devLog("Auth: Initialization error", error);
+      log.info("Auth: Initialization error", error);
       set({
         state: "error",
         error: createErrorMessage(error, "Auth initialization failed").message,
@@ -128,7 +133,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       if (error) throw error;
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
     } catch (error: any) {
-      devLog(`Auth: Sign in with ${provider} error`, error);
+      log.info(`Auth: Sign in with ${provider} error`, error);
       set({
         state: "error",
         error: createErrorMessage(error, `Failed to sign in with ${provider}`)
@@ -149,7 +154,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // will also fire and update the state.
       set({ session: null, user: null, state: "logged_out", error: null });
     } catch (error: any) {
-      devLog("Auth: Sign out error", error);
+      log.info("Auth: Sign out error", error);
       // If sign-out fails, remain in an error state but clear session/user
       set({
         state: "error",

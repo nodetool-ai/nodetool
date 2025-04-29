@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { devWarn } from "./DevLog";
+import log from "loglevel";
 
 interface Settings {
   timeFormat: "12h" | "24h";
@@ -37,7 +37,7 @@ export function prettyDate(
   }
 
   if (!dateTime.isValid) {
-    devWarn(dateTime.invalidReason);
+    log.warn(dateTime.invalidReason);
     return "Invalid Date";
   }
 
