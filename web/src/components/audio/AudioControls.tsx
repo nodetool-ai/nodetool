@@ -11,7 +11,7 @@ import LoopIcon from "@mui/icons-material/Loop";
 import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
-import { devError, devWarn } from "../../utils/DevLog";
+import log from "loglevel";
 
 interface AudioControlsProps {
   fontSize?: "normal" | "small" | "tiny" | undefined;
@@ -111,7 +111,7 @@ const Zoom: React.FC<ZoomProps> = ({
 
 async function download(filename: string, assetUrl: string) {
   if (!assetUrl) {
-    devWarn("No url provided for download");
+    log.warn("No url provided for download");
     return;
   }
 
@@ -120,7 +120,7 @@ async function download(filename: string, assetUrl: string) {
     const response = await fetch(assetUrl);
 
     if (!response.ok) {
-      devWarn("Network response was not ok");
+      log.warn("Network response was not ok");
       return;
     }
 
@@ -139,7 +139,7 @@ async function download(filename: string, assetUrl: string) {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {
-    devError("Failed to download file:", error);
+    log.error("Failed to download file:", error);
   }
 }
 
@@ -219,7 +219,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                   if (assetUrl) {
                     download(filename || "audio.mp3", assetUrl);
                   } else {
-                    devWarn("No assetUrl provided for download");
+                    log.warn("No assetUrl provided for download");
                   }
                 }}
               >

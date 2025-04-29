@@ -8,7 +8,7 @@ import ViewWeekIcon from "@mui/icons-material/ViewWeek";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import LoginIcon from "@mui/icons-material/Login";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -123,7 +123,7 @@ const InputContextMenu: React.FC = () => {
         event.stopPropagation();
         createConstantNode(event);
       }
-      devLog("Create Constant Node");
+      log.info("Create Constant Node");
       closeContextMenu();
     },
     [createConstantNode, closeContextMenu]

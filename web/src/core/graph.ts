@@ -1,5 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
-import { devWarn } from "../utils/DevLog";
+import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
 import ELK from "elkjs";
 import { zip } from "lodash";
@@ -83,7 +83,7 @@ export function topologicalSort(
   const totalNodes = nodes.length;
   const processedNodes = sortedNodes.flat().length;
   if (processedNodes < totalNodes) {
-    devWarn("Graph contains at least one cycle", { edges, nodes });
+    log.warn("Graph contains at least one cycle", { edges, nodes });
   }
 
   return sortedNodes;

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import Papa from "papaparse";
-import { devError } from "../../utils/DevLog";
+import log from "loglevel";
 import useMetadataStore from "../../stores/MetadataStore";
 
 interface ParsedCSV {
@@ -45,7 +45,7 @@ export const useCreateDataframe = (createNode: any, addNode: any) => {
                 };
                 addNode(newNode);
               } else {
-                devError("CSV file is empty or could not be parsed");
+                log.error("CSV file is empty or could not be parsed");
               }
             }
           };

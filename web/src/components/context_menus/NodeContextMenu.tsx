@@ -14,7 +14,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 //utils
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 //reactflow
 import { Node } from "@xyflow/react";
@@ -50,7 +50,7 @@ const NodeContextMenu: React.FC = () => {
       const metadataToCopy = {
         NodeData: metadata
       };
-      devLog("Copying metadata to clipboard", metadataToCopy);
+      log.info("Copying metadata to clipboard", metadataToCopy);
       addNotification({
         type: "info",
         alert: true,

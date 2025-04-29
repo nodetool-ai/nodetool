@@ -12,7 +12,7 @@ import {
   Alert
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
-import { devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import { useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -40,7 +40,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   useEffect(() => {
     if (dialogOpen) {
       setBaseNewName("");
-      devLog("dialogOpen", dialogOpen);
+      log.info("dialogOpen", dialogOpen);
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
       getAsset(assets[0]).then((asset) => {

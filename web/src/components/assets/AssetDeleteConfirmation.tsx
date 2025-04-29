@@ -23,7 +23,7 @@ import { useAssetStore } from "../../stores/AssetStore";
 import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
-import { devError, devLog } from "../../utils/DevLog";
+import log from "loglevel";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
@@ -115,15 +115,15 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     try {
       const response = await mutation.mutateAsync(assets);
       if (response === undefined) {
-        devError("Received undefined response from server");
+        log.error("Received undefined response from server");
       } else if (typeof response === "object" && response !== null) {
-        devLog("Deleted asset IDs:", (response as any).deleted_asset_ids);
+        log.info("Deleted asset IDs:", (response as any).deleted_asset_ids);
       }
       setDialogOpen(false);
       await refetchAssetsAndFolders();
     } catch (error) {
       if (error instanceof Error) {
-        devError("Execute deletion error:", error.message);
+        log.error("Execute deletion error:", error.message);
       }
     } finally {
       setIsLoading(false);

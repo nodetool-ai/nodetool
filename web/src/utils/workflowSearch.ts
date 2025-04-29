@@ -1,6 +1,6 @@
 import Fuse from "fuse.js";
 import { Workflow } from "../stores/ApiTypes";
-import { devError } from "./DevLog";
+import log from "loglevel";
 
 interface WorkflowSearchData {
   workflow: Workflow;
@@ -38,7 +38,7 @@ const extractNodeData = (
 
     return { names, descriptions };
   } catch (e) {
-    devError("Error extracting node data:", e);
+    log.error("Error extracting node data:", e);
     return { names: [], descriptions: [] };
   }
 };

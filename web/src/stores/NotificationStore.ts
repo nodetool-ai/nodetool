@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
-import { devLog, devWarn, devError } from "../utils/DevLog";
-import { DEVLOG_NOTIFICATION_VERBOSITY } from "../config/constants";
+import log from "loglevel";
 // import { persist } from "zustand/middleware";
 export type NotificationType =
   | "info"
@@ -49,11 +48,11 @@ export const useNotificationStore = create<NotificationStore>()((set) => ({
   addNotification: (notification) => {
     if (verbosityCheck(notification.type, DEVLOG_NOTIFICATION_VERBOSITY)) {
       if (notification.type === "warning") {
-        devWarn("NOTIFICATION:", notification);
+        log.warn("NOTIFICATION:", notification);
       } else if (notification.type === "error") {
-        devError("NOTIFICATION:", notification);
+        log.error("NOTIFICATION:", notification);
       } else {
-        devLog("NOTIFICATION:", notification);
+        log.info("NOTIFICATION:", notification);
       }
     }
 

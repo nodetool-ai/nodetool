@@ -7,7 +7,7 @@
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
-import { devWarn } from "../../utils/DevLog";
+import log from "loglevel";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
@@ -108,7 +108,7 @@ export const useCopyPaste = () => {
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
-      devWarn("Mouse position not available");
+      log.warn("Mouse position not available");
       return;
     }
 
@@ -141,7 +141,7 @@ export const useCopyPaste = () => {
       });
 
       if (!firstNodePosition) {
-        devWarn("Failed to calculate paste position");
+        log.warn("Failed to calculate paste position");
         return;
       }
 

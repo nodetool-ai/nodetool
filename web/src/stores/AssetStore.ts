@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { client, BASE_URL, authHeader } from "../stores/ApiClient";
 import { Asset, AssetList } from "../stores/ApiTypes";
-import { devError } from "../utils/DevLog";
+import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
@@ -384,9 +384,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().invalidateQueries(["assets"]);
       return true;
     } catch (error) {
-      devError("AssetStore download error:", error);
+      log.error("AssetStore download error:", error);
       if (axios.isAxiosError(error)) {
-        devError(
+        log.error(
           "AssetStore download error:",
           error.message,
           error.response?.data
@@ -480,7 +480,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     ) {
       return (data as AssetTreeResponse).assets;
     } else {
-      devError("AssetStore: Unexpected data structure received:", data);
+      log.error("AssetStore: Unexpected data structure received:", data);
       throw new Error("Unexpected data structure received from server");
     }
   }

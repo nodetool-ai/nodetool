@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { memo, useCallback, useEffect, useState } from "react";
 import { isEqual } from "lodash";
 import { useQuery } from "@tanstack/react-query";
-import { devError } from "../../../utils/DevLog";
+import log from "loglevel";
 import PropertyLabel from "../../node/PropertyLabel";
 import { FileInfo } from "../../../stores/ApiTypes";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -408,7 +408,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
           );
         }
       } catch (error) {
-        devError(`${props.pathType}: Failed to load children:`, error);
+        log.error(`${props.pathType}: Failed to load children:`, error);
         setFiles((currentFiles) =>
           updateTreeWithChildren(currentFiles, itemId, [
             createErrorItem(itemId)

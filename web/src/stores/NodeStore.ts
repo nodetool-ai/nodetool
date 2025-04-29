@@ -38,7 +38,7 @@ import {
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import { devWarn } from "../utils/DevLog";
+import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";
@@ -164,7 +164,7 @@ const sanitizeGraph = (
   const sanitizedNodes = nodes.map((node) => {
     const sanitizedNode = { ...node };
     if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
-      devWarn(
+      log.warn(
         `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
       );
       delete sanitizedNode.parentId;
@@ -377,7 +377,7 @@ export const createNodeStore = (
           findEdge: (id: string) => get().edges.find((e) => e.id === id),
           addNode: (node: Node<NodeData>) => {
             if (get().findNode(node.id)) {
-              devWarn(`Node with id ${node.id} already exists`);
+              log.warn(`Node with id ${node.id} already exists`);
               return;
             }
             node.expandParent = true;
@@ -420,7 +420,7 @@ export const createNodeStore = (
           deleteNode: (id: string) => {
             const nodeToDelete = get().findNode(id);
             if (!nodeToDelete) {
-              devWarn(`Node with id ${id} not found`);
+              log.warn(`Node with id ${id} not found`);
               return;
             }
             const focusedElement = document.activeElement as HTMLElement;

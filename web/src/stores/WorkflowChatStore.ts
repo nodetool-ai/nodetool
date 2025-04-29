@@ -12,7 +12,7 @@ import {
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import { useAuth } from "./useAuth";
-import { devError, devLog } from "../utils/DevLog";
+import log from "loglevel";
 import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { supabase } from "../lib/supabaseClient";
@@ -56,7 +56,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   progress: 0,
   total: 0,
   connect: async (workflow: WorkflowAttributes) => {
-    devLog("Connecting to workflow chat", workflow.id);
+    log.info("Connecting to workflow chat", workflow.id);
 
     set({ workflow });
 
@@ -69,7 +69,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     const socket = new WebSocket(CHAT_URL);
 
     socket.onopen = () => {
-      devLog("Chat WebSocket connected");
+      log.info("Chat WebSocket connected");
       set({ socket, status: "connected" });
     };
 
@@ -141,11 +141,11 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     };
 
     socket.onerror = (error) => {
-      devError("Chat WebSocket error:", error);
+      log.error("Chat WebSocket error:", error);
     };
 
     socket.onclose = () => {
-      devLog("Chat WebSocket disconnected");
+      log.info("Chat WebSocket disconnected");
       set({ socket: null, status: "disconnected" });
     };
 

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useState, useEffect, useRef, memo } from "react";
 import { Grid, InputLabel } from "@mui/material";
-import { devWarn } from "../../utils/DevLog";
+import log from "loglevel";
 import { ColumnDef } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Column from "./Column";
@@ -154,7 +154,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       newName.trim() === "" ||
       localColumns.some((col) => col.name === newName)
     ) {
-      devWarn(
+      log.warn(
         "Invalid column name. Column names must be unique and non-empty."
       );
     }
