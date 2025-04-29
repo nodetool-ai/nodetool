@@ -7,13 +7,6 @@ export const TOOLTIP_ENTER_DELAY = 200;
 export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 0;
 
-// DEVLOG
-export const DEVLOG_NOTIFICATION_VERBOSITY: ("error" | "info" | "warn")[] = [
-  "info",
-  "error",
-  "warn"
-];
-
 export const DEBUG_RENDER_LOGGING = true;
 
 // NOTIFICATIONS
