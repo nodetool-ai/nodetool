@@ -89,7 +89,7 @@ NodeTool includes several pre-built agent examples:
 - **Professional Research Tools:** Analyzes the LinkedIn job market and performs advanced Google searches.
 - **Utility Agents:** Processes emails and integrates web search capabilities.
 
-Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples).
+Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) of the `nodetool-core` repository.
 
 ## ✨ Cool Things You Can Do
 
@@ -118,7 +118,7 @@ Release 0.6 is in pre-release.
 
 ## 🛠️ Development Setup
 
-Follow these steps to set up a local development environment.
+Follow these steps to set up a local development environment for the entire NodeTool platform, including the UI, backend services, and the core library (`nodetool-core`). If you are primarily interested in contributing to the core library itself, please also refer to the [nodetool-core repository](https://github.com/nodetool-ai/nodetool-core) for its specific development setup using Poetry.
 
 ### Prerequisites
 
@@ -248,6 +248,8 @@ AGPL
 
 We'd love to hear from you! Whether you have questions, suggestions, or feedback, feel free to reach out through any of the following channels:
 
+- **NodeTool Platform Repository:** [github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
+- **NodeTool Core Library Repository:** [github.com/nodetool-ai/nodetool-core](https://github.com/nodetool-ai/nodetool-core)
 - **Email:** [hello@nodetool.ai](mailto:hello@nodetool.ai)
 - **Discord Community:** [Join us on Discord](https://discord.gg/26m5xBwe)
 - **Community Forum:** [Visit the NodeTool Forum](https://forum.nodetool.ai) _(Please update link if available)_
