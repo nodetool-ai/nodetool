@@ -1,6 +1,7 @@
 import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // Generated from openapi-typescript
 import { supabase } from "../lib/supabaseClient";
+import log from "loglevel";
 
 /**
  * Checks if the current hostname indicates a local development environment.
@@ -77,17 +78,18 @@ const authMiddleware: Middleware = {
    */
   async onResponse({ response }) {
     if (response?.status === 401 && window.location.pathname !== "/login") {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      if (session) {
-        console.warn("API request unauthorized (401). Signing out.");
-        // Attempt to sign out via Supabase
-        await supabase.auth.signOut();
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
-        }
-      }
+      log.warn("API request unauthorized (401).");
+      // const {
+      //   data: { session }
+      // } = await supabase.auth.getSession();
+      // if (session) {
+      //   console.warn("API request unauthorized (401). Signing out.");
+      //   // Attempt to sign out via Supabase
+      //   await supabase.auth.signOut();
+      //   if (typeof window !== "undefined") {
+      //     window.location.href = "/login";
+      //   }
+      // }
     }
     return response;
   }
