@@ -5,7 +5,7 @@ import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import { isEqual } from "lodash";
 import { memo, useMemo } from "react";
-import OpenAIModelSelect from "./OpenAIModelSelect";
+import LanguageModelSelect from "./LanguageModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 
 const ModelProperty = (props: PropertyProps) => {
@@ -31,9 +31,9 @@ const ModelProperty = (props: PropertyProps) => {
           />
         );
       }
-    } else if (modelType === "openai_model") {
+    } else if (modelType === "language_model") {
       return (
-        <OpenAIModelSelect
+        <LanguageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />

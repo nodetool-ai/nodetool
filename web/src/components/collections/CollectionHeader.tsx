@@ -6,7 +6,7 @@ interface CollectionHeaderProps {
   isElectron: boolean;
 }
 
-const CollectionHeader = ({ isElectron }: CollectionHeaderProps) => {
+const CollectionHeader = () => {
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
     null
   );
@@ -15,18 +15,6 @@ const CollectionHeader = ({ isElectron }: CollectionHeaderProps) => {
     <Box sx={{ mb: 2 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>
         File Indexing with MarkItDown
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        {isElectron ? (
-          <>
-            <strong>Drag and drop files</strong> onto a collection to index them
-            using MarkItDown.
-          </>
-        ) : (
-          <strong style={{ color: "#cc6666" }}>
-            File drag and drop is only available in the desktop app
-          </strong>
-        )}{" "}
       </Typography>
       <Typography
         variant="subtitle2"
