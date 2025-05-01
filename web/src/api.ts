@@ -162,57 +162,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/oauth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Oauth Login */
-        post: operations["oauth_login_api_auth_oauth_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/oauth/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Oauth Callback */
-        post: operations["oauth_callback_api_auth_oauth_callback_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify */
-        post: operations["verify_api_auth_verify_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/messages/": {
         parameters: {
             query?: never;
@@ -594,23 +543,6 @@ export interface paths {
         };
         /** Get Public Workflow */
         get: operations["get_public_workflow_api_workflows_public__id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/workflows/user/{user_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** User Workflows */
-        get: operations["user_workflows_api_workflows_user__user_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1216,11 +1148,6 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
-        };
-        /** AuthRequest */
-        AuthRequest: {
-            /** Token */
-            token: string;
         };
         /** Body_create_api_assets__post */
         Body_create_api_assets__post: {
@@ -2640,6 +2567,8 @@ export interface components {
             output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
+            /** Model */
+            model?: string | null;
         };
         /**
          * Message
@@ -2689,6 +2618,8 @@ export interface components {
             output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
+            /** Model */
+            model?: string | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -3025,34 +2956,6 @@ export interface components {
             /** Properties */
             properties?: Record<string, never> | null;
         };
-        /** OAuthAuthorizeRequest */
-        OAuthAuthorizeRequest: {
-            provider: components["schemas"]["OAuthProvider"];
-            /** State */
-            state: string;
-            /** Authorization Response */
-            authorization_response: string;
-            /** Redirect Uri */
-            redirect_uri: string;
-        };
-        /** OAuthLoginRequest */
-        OAuthLoginRequest: {
-            /** Redirect Uri */
-            redirect_uri: string;
-            provider: components["schemas"]["OAuthProvider"];
-        };
-        /** OAuthLoginResponse */
-        OAuthLoginResponse: {
-            /** Url */
-            url: string;
-            /** State */
-            state: string;
-        };
-        /**
-         * OAuthProvider
-         * @enum {string}
-         */
-        OAuthProvider: "google" | "facebook";
         /** OpenAIModel */
         OpenAIModel: {
             /**
@@ -3573,7 +3476,7 @@ export interface components {
             type: "subtask";
             /**
              * Content
-             * @description The content of the subtask
+             * @description Instructions for the subtask
              */
             content: string;
             /**
@@ -3581,6 +3484,12 @@ export interface components {
              * @description The file path where the subtask will save its output
              */
             output_file: string;
+            /**
+             * Artifacts
+             * @description A list of files that the subtask will save as artifacts
+             * @default []
+             */
+            artifacts: string[];
             /**
              * Completed
              * @description Whether the subtask is completed
@@ -3613,15 +3522,10 @@ export interface components {
             output_type: string;
             /**
              * Output Schema
-             * @description The JSON schema of the output of the subtask, must be an object with properties of the output type
+             * @description The JSON schema of the output of the subtask
+             * @default
              */
-            output_schema?: Record<string, never> | null;
-            /**
-             * Use Code Interpreter
-             * @description Whether to use a code interpreter for the subtask
-             * @default false
-             */
-            use_code_interpreter: boolean;
+            output_schema: string;
         };
         /** SystemStats */
         SystemStats: {
@@ -3746,7 +3650,7 @@ export interface components {
          * @description Enum for different task update event types.
          * @enum {string}
          */
-        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "subtask_completed";
+        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
         /**
          * TextRef
          * @description A reference to a plain text asset.
@@ -3768,11 +3672,6 @@ export interface components {
             /** Data */
             data?: unknown;
         };
-        /** TokenResponse */
-        TokenResponse: {
-            /** Valid */
-            valid: boolean;
-        };
         /** ToolCall */
         ToolCall: {
             /**
@@ -3792,6 +3691,8 @@ export interface components {
             args: Record<string, never>;
             /** Result */
             result?: unknown;
+            /** Subtask Id */
+            subtask_id?: string | null;
         };
         /**
          * ToolCallUpdate
@@ -3830,46 +3731,6 @@ export interface components {
             type_args: components["schemas"]["TypeMetadata"][];
             /** Type Name */
             type_name?: string | null;
-        };
-        /** User */
-        User: {
-            /** Id */
-            id: string;
-            /** Permissions */
-            permissions?: Record<string, never> | null;
-            /**
-             * Email
-             * @default
-             */
-            email: string;
-            /**
-             * Passcode
-             * @default
-             */
-            passcode: string;
-            /** Auth Token */
-            auth_token?: string | null;
-            /** Verified At */
-            verified_at?: string | null;
-            /**
-             * Passcode Valid
-             * Format: date-time
-             */
-            passcode_valid?: string;
-            /** Token Valid */
-            token_valid?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at?: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at?: string;
-            /** Deleted At */
-            deleted_at?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -4414,105 +4275,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    oauth_login_api_auth_oauth_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthLoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OAuthLoginResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    oauth_callback_api_auth_oauth_callback_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OAuthAuthorizeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    verify_api_auth_verify_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5365,41 +5127,6 @@ export interface operations {
             };
         };
     };
-    user_workflows_api_workflows_user__user_id__get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string | null;
-                columns?: string | null;
-            };
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     examples_api_workflows_examples_get: {
         parameters: {
             query?: never;
@@ -5570,6 +5297,7 @@ export interface operations {
                 stream?: boolean;
             };
             header?: {
+                authentication?: string | null;
                 authorization?: string | null;
             };
             path: {
@@ -5921,13 +5649,9 @@ export interface operations {
     get_settings_api_settings__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -5940,27 +5664,14 @@ export interface operations {
                     "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     update_settings_api_settings__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -5994,13 +5705,9 @@ export interface operations {
                 offset?: number | null;
                 limit?: number | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6027,13 +5734,9 @@ export interface operations {
     create_collection_api_collections__post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6064,15 +5767,11 @@ export interface operations {
     get_api_collections__name__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 name: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6099,15 +5798,11 @@ export interface operations {
     update_collection_api_collections__name__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 name: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6138,15 +5833,11 @@ export interface operations {
     delete_collection_api_collections__name__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 name: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6179,9 +5870,7 @@ export interface operations {
             path: {
                 name: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {

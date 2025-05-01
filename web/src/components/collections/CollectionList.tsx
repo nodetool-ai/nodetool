@@ -58,13 +58,10 @@ const CollectionList = () => {
     handleDrop,
     handleDragOver,
     handleDragLeave
-  } = useCollectionDragAndDrop(isElectron);
+  } = useCollectionDragAndDrop();
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
-    null
-  );
 
   const handleDeleteClick = (collectionName: string) => {
     setDeleteTarget(collectionName);
@@ -93,7 +90,7 @@ const CollectionList = () => {
       </Button>
       {!showForm && (
         <>
-          <CollectionHeader isElectron={isElectron} />
+          <CollectionHeader />
           {error && (
             <Typography color="error" sx={{ marginTop: 2 }}>
               Error loading collections
