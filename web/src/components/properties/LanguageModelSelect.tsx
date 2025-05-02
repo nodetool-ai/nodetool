@@ -25,9 +25,18 @@ const staticModels = [
   {
     id: "gemini-2.5-pro-exp-03-25",
     name: "Gemini 2.5 Pro Experimental",
-    provider: "google"
+    provider: "gemini"
   },
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "google" },
+  {
+    id: "gemini-2.5-flash-preview-04-17",
+    name: "Gemini 2.5 Flash",
+    provider: "gemini"
+  },
+  {
+    id: "gemini-2.0-flash",
+    name: "Gemini 2.0 Flash",
+    provider: "gemini"
+  },
   { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
   {
     id: "gpt-4o-audio-preview-2024-12-17",
@@ -51,34 +60,13 @@ const staticModels = [
 const staticModelIds = new Set(staticModels.map((m) => m.id));
 
 const LanguageModelSelect = ({ onChange, value }: LanguageModelSelectProps) => {
-  const loadOpenAIModels = useModelStore((state) => state.loadOpenAIModels);
-
-  const {
-    data: models,
-    isError,
-    isLoading,
-    isSuccess
-  } = useQuery({
-    queryKey: ["models", "openai_model"], // Keep query key for fetching OpenAI models
-    queryFn: loadOpenAIModels
-  });
-
   const options = useMemo(() => {
-    if (isLoading) return []; // Return empty while loading to avoid flashing "Select a model"
-
-    const openAIOptions = ((models as OpenAIModel[]) || []).map((model) => ({
-      value: model.id || "",
-      label: model.id || ""
-    }));
-
     const staticOptions = staticModels.map((model) => ({
       value: model.id,
       label: model.name
     }));
 
-    const combinedOptions = [...openAIOptions, ...staticOptions].filter(
-      (option) => option.value
-    ); // Filter out any empty values
+    const combinedOptions = [...staticOptions].filter((option) => option.value); // Filter out any empty values
 
     // Remove duplicates if any model id appears in both lists (unlikely but safe)
     const uniqueOptions = Array.from(
@@ -92,13 +80,14 @@ const LanguageModelSelect = ({ onChange, value }: LanguageModelSelectProps) => {
       { value: "", label: "Select a model" }, // Add the placeholder option
       ...uniqueOptions
     ];
-  }, [models, isLoading]); // Removed isError from deps as we handle it below
+  }, []);
 
   const handleChange = useCallback(
     (selectedValue: string) => {
       onChange({
         type: "language_model",
-        id: selectedValue
+        id: selectedValue,
+        provider: staticModels.find((m) => m.id === selectedValue)?.provider
       });
     },
     [onChange]
@@ -106,24 +95,6 @@ const LanguageModelSelect = ({ onChange, value }: LanguageModelSelectProps) => {
 
   // Check if the current value exists in the combined options list
   const isValueMissing = value && !options.some((v) => v.value === value);
-
-  if (isLoading) {
-    return <div>Loading models...</div>;
-  }
-
-  if (isError) {
-    return <div>Error loading models</div>;
-  }
-
-  // Adjust the "No models found" message if needed, considering static models are always present
-  if (isSuccess && options.length <= 1) {
-    // <= 1 because of the placeholder
-    return (
-      <div>
-        Error loading OpenAI models. Only manually added models available.
-      </div>
-    );
-  }
 
   return (
     <Select
