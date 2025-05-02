@@ -184,7 +184,7 @@ const getHeaderFooterColors = (metadata: NodeMetadata) => {
       ? darkenHexColor(
           simulateOpacity(
             colorForType(firstOutputColor),
-            0.5,
+            0.8,
             ThemeNodes.palette.c_node_bg
           ),
           20
