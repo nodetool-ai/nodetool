@@ -26,10 +26,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const titleizedType = useMemo(
-    () => (metadataTitle ? titleizeString(metadataTitle) : ""),
-    [metadataTitle]
-  );
+  // const titleizedType = useMemo(
+  //   () => (metadataTitle ? titleizeString(metadataTitle) : ""),
+  //   [metadataTitle]
+  // );
   const updateNode = useNodes((state) => state.updateNode);
 
   const handleOpenContextMenu = useCallback(
@@ -60,7 +60,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         backgroundColor: backgroundColor
       }}
     >
-      <span className="node-title">{titleizedType}</span>
+      <span className="node-title">{metadataTitle}</span>
       {showMenu && (
         <div className="menu-button-container" tabIndex={-1}>
           <button
