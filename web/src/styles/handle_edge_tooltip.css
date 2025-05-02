@@ -122,25 +122,25 @@
   height: var(--handle_height);
   background-color: var(--c_gray1);
   border: 0;
-  border-radius: 0;
   z-index: 999;
+  box-shadow: 0 0 3px 0px rgba(0, 0, 0, 0.3);
 }
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
   left: -6px;
   top: 7px;
-  border-left: 1px solid var(--c_gray1);
-}
-.react-flow__node .react-flow__handle-left.is-connectable {
-  border-left: 2px solid var(--c_gray4) !important;
-}
-.react-flow__node .react-flow__handle-right.is-connectable {
-  border-right: 2px solid var(--c_gray4) !important;
+  border-left: 1px solid;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  border-radius: 2px 0 0 2px;
 }
 .react-flow__node .react-flow__handle-right {
   transform-origin: left center;
-  border-right: 1px solid var(--c_gray1);
+  border-right: 1px solid;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
   right: -6px;
+  border-radius: 0 2px 2px 0;
 }
 
 /* multiple outputs */

@@ -358,9 +358,9 @@ let DATA_TYPES: DataType[] = [
     icon: "MergeType"
   },
   {
-    value: "model",
-    label: "Model",
-    description: "Machine learning model",
+    value: "language_model",
+    label: "Language Model",
+    description: "Language model",
     color: monokaiColors.blue,
     textColor: "#fff",
     name: "",
