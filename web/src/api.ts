@@ -1156,6 +1156,14 @@ export interface components {
             /** Json */
             json?: string | null;
         };
+        /** Body_index_api_collections__name__index_post */
+        Body_index_api_collections__name__index_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+        };
         /** Body_upload_file_api_files_upload__path__post */
         Body_upload_file_api_files_upload__path__post: {
             /**
@@ -1201,6 +1209,12 @@ export interface components {
             type: "chunk";
             /** Node Id */
             node_id?: string | null;
+            /**
+             * Content Type
+             * @default text
+             * @enum {string}
+             */
+            content_type: "text" | "audio" | "image" | "video" | "document";
             /** Content */
             content: string;
             /**
@@ -2416,13 +2430,6 @@ export interface components {
             asset_id?: string | null;
             /** Data */
             data?: unknown;
-        };
-        /** IndexFile */
-        IndexFile: {
-            /** Path */
-            path: string;
-            /** Mime Type */
-            mime_type: string;
         };
         /** IndexResponse */
         IndexResponse: {
@@ -5874,7 +5881,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["IndexFile"];
+                "multipart/form-data": components["schemas"]["Body_index_api_collections__name__index_post"];
             };
         };
         responses: {
