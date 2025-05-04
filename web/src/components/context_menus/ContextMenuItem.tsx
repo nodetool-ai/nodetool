@@ -17,8 +17,10 @@ const styles = (theme: any) =>
   css({
     "&": {
       color: theme.palette.c_white,
-      backgroundColor: "rgba(15, 20, 25, 0.85)",
       transition: "all 0.2s ease-in-out"
+    },
+    ".MuiMenuItem-root": {
+      padding: 0
     },
     svg: {
       fontSize: theme.fontSizeNormal,
@@ -28,9 +30,12 @@ const styles = (theme: any) =>
       paddingLeft: 0,
       listStyleType: "none"
     },
-    "li.MuiMenuItem-root": {
-      margin: 0,
-      padding: 0
+    "li.MuiListSubheader-root": {
+      color: theme.palette.c_white,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 500,
+      letterSpacing: "0.3px",
+      textAlign: "left"
     },
     "button.action": {
       display: "flex",
@@ -50,18 +55,13 @@ const styles = (theme: any) =>
       position: "relative",
       transition: "all 0.15s ease-out"
     },
-    ".button.action:hover, .button.action:focus": {
-      color: theme.palette.c_white,
-      backgroundColor: "rgba(255, 255, 255, 0.1)"
-    },
     ".label": {
       display: "block",
       paddingLeft: "0.8em",
       transition: "all 0.15s ease"
     },
     "button.action:hover svg": {
-      transform: "scale(1.1)",
-      color: theme.palette.c_white
+      transform: "scale(1.2)"
     },
     "button.action.disabled": {
       cursor: "default",

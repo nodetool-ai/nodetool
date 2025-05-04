@@ -45,8 +45,6 @@ export type MessageVideoContent = components["schemas"]["MessageVideoContent"];
 export type MessageAudioContent = components["schemas"]["MessageAudioContent"];
 export type MessageDocumentContent =
   components["schemas"]["MessageDocumentContent"];
-export type OAuthAuthorizeRequest =
-  components["schemas"]["OAuthAuthorizeRequest"];
 export type Image = components["schemas"]["ImageRef"];
 export type Document = components["schemas"]["DocumentRef"];
 export type FolderRef = components["schemas"]["FolderRef"];
@@ -58,7 +56,7 @@ export type NodeProgress = components["schemas"]["NodeProgress"];
 export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
-export type OpenAIModel = components["schemas"]["OpenAIModel"];
+export type LanguageModel = components["schemas"]["LanguageModel"];
 export type CachedModel = components["schemas"]["CachedModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type ModelInfo = components["schemas"]["ModelInfo"];

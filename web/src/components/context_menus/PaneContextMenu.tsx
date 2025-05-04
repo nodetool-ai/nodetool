@@ -1,7 +1,8 @@
+/** @jsxImportSource @emotion/react */
 import React, { useCallback } from "react";
 import { FitViewOptions, useReactFlow } from "@xyflow/react";
 
-import { Divider, Menu } from "@mui/material";
+import { css, Divider, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -15,22 +16,22 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import TextsmsIcon from "@mui/icons-material/Textsms";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
-import { css, Theme } from "@emotion/react";
 
 interface PaneContextMenuProps {
   top?: number;
   left?: number;
   [x: string]: any;
 }
-
 const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
@@ -108,6 +109,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       });
       const newNode = createNode(metadata, position);
       addNode(newNode);
+      closeContextMenu();
     },
     [createNode, addNode, reactFlowInstance, menuPosition]
   );
@@ -126,8 +128,15 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       if (loopMetadata) {
         createLoopNode(loopMetadata, position);
       }
+      closeContextMenu();
     },
-    [createLoopNode, loopMetadata, reactFlowInstance, menuPosition]
+    [
+      createLoopNode,
+      loopMetadata,
+      reactFlowInstance,
+      menuPosition,
+      closeContextMenu
+    ]
   );
 
   const addInputNode = useCallback(
@@ -136,6 +145,82 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.input.${nodeType}`);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+  );
+
+  const addAgentNode = useCallback(
+    (event: React.MouseEvent | undefined) => {
+      if (!event) return;
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(`nodetool.agents.Agent`);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+  );
+
+  const addLLMNode = useCallback(
+    (event: React.MouseEvent | undefined) => {
+      if (!event) return;
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(`nodetool.llms.LLM`);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+  );
+
+  const addDataGeneratorNode = useCallback(
+    (event: React.MouseEvent | undefined) => {
+      if (!event) return;
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(`nodetool.generators.DataGenerator`);
+      if (metadata) {
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        addNode(newNode);
+      }
+      closeContextMenu();
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
+  );
+
+  const addTaskPlannerNode = useCallback(
+    (event: React.MouseEvent | undefined) => {
+      if (!event) return;
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(`nodetool.agents.TaskPlanner`);
       if (metadata) {
         const position = reactFlowInstance.screenToFlowPosition({
           x: menuPosition?.x || event.clientX,
@@ -198,16 +283,42 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           )
         }
       />
-      <Divider />
       <ContextMenuItem
         onClick={(e) => {
-          e?.preventDefault();
-          fitScreen();
+          if (e) {
+            e.preventDefault();
+            fitScreen();
+          }
           closeContextMenu();
         }}
         label="Fit Screen"
         IconComponent={<FitScreenIcon />}
-        tooltip={"ALT+S | OPTION+S"}
+        tooltip={"Shift + F"}
+      />
+      <Divider />
+      <ContextMenuItem
+        onClick={addAgentNode}
+        label="Add Agent"
+        IconComponent={<SupportAgentIcon />}
+        tooltip="Add an Agent node"
+      />
+      <ContextMenuItem
+        onClick={addTaskPlannerNode}
+        label="Add Task Planner"
+        IconComponent={<TextsmsIcon />}
+        tooltip="Add a Task Planner node"
+      />
+      <ContextMenuItem
+        onClick={addLLMNode}
+        label="Add LLM"
+        IconComponent={<TextsmsIcon />}
+        tooltip="Add an LLM node"
+      />
+      <ContextMenuItem
+        onClick={addDataGeneratorNode}
+        label="Add Data Generator"
+        IconComponent={<DataObjectIcon />}
+        tooltip="Add a data generator node"
       />
       <Divider />
       <ContextMenuItem
