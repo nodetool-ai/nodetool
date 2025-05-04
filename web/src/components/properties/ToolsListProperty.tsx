@@ -1,38 +1,70 @@
-import { memo, useCallback } from "react";
-import { Autocomplete, Chip, TextField } from "@mui/material";
+import { memo, useCallback, useMemo } from "react";
+import {
+  Chip,
+  IconButton,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography
+} from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
+import {
+  MailOutline,
+  Search,
+  Newspaper,
+  ImageSearch,
+  Language,
+  ManageSearch,
+  Image,
+  VolumeUp
+} from "@mui/icons-material";
 
-// Hardcoded list of tools from cot_agent.py
 const AVAILABLE_TOOLS = [
   "search_email",
   "google_search",
-  "add_label",
+  "google_news",
+  "google_images",
   "browser",
-  "screenshot",
-  "search_file",
   "chroma_hybrid_search",
-  "extract_pdf_text",
-  "convert_pdf_to_markdown",
-  "create_apple_note",
-  "read_apple_notes",
-  "list_assets_directory",
-  "read_asset",
-  "save_asset",
-  "create_workspace_file",
-  "read_file",
-  "run_nodejs",
-  "run_npm_command",
-  "run_eslint",
-  "debug_javascript",
-  "run_jest_test",
-  "validate_javascript"
+  "google_image_generation",
+  "openai_image_generation",
+  "openai_text_to_speech"
 ];
+
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  search_email: "Search for emails",
+  google_search: "Search Google",
+  google_news: "Search Google News",
+  google_images: "Search Google Images",
+  browser: "Browse the web",
+  chroma_hybrid_search: "Search for documents in the Chroma database",
+  google_image_generation: "Generate images using Google's Gemini API",
+  openai_image_generation:
+    "Generate images using OpenAI's Image Generation API",
+  openai_text_to_speech:
+    "Convert text into spoken audio using OpenAI's Text-to-Speech API"
+};
+
+const TOOL_ICONS: Record<string, JSX.Element> = {
+  search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />,
+  google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
+  google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
+  google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
+  browser: <Language fontSize="small" sx={{ mr: 0.5 }} />,
+  chroma_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
+  google_image_generation: <Image fontSize="small" sx={{ mr: 0.5 }} />,
+  openai_image_generation: <Image fontSize="small" sx={{ mr: 0.5 }} />,
+  openai_text_to_speech: <VolumeUp fontSize="small" sx={{ mr: 0.5 }} />
+};
 
 const ToolsListProperty = (props: PropertyProps) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
-  const toolNames = props.value?.map((tool: any) => tool.name) || [];
+  const toolNames: string[] = useMemo(
+    () => props.value?.map((tool: any) => tool.name) || [],
+    [props.value]
+  );
 
   const onChange = useCallback(
     (selectedToolNames: string[]) => {
@@ -43,6 +75,16 @@ const ToolsListProperty = (props: PropertyProps) => {
     [props]
   );
 
+  const handleToggleTool = useCallback(
+    (toolName: string) => {
+      const newToolNames = toolNames.includes(toolName)
+        ? toolNames.filter((name) => name !== toolName)
+        : [...toolNames, toolName];
+      onChange(newToolNames);
+    },
+    [toolNames, onChange]
+  );
+
   return (
     <>
       <PropertyLabel
@@ -50,55 +92,29 @@ const ToolsListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      <Autocomplete
-        id={id}
-        multiple
-        freeSolo
-        size="small"
-        options={AVAILABLE_TOOLS}
-        value={toolNames}
-        sx={{
-          "& .MuiInputBase-root": {
-            padding: "2px 2px",
-            minHeight: "18px"
-          }
-        }}
-        onChange={(_, newValue) => onChange(newValue as string[])}
-        renderTags={(value: readonly string[], getTagProps) =>
-          value.map((option: string, index: number) => (
-            <Chip
-              variant="outlined"
-              size="small"
-              label={option}
-              {...getTagProps({ index })}
-              key={option}
-              sx={{
-                height: "20px",
-                "& .MuiChip-label": {
-                  fontSize: "0.75rem",
-                  padding: "0 6px"
-                }
-              }}
-            />
-          ))
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="outlined"
-            size="small"
-            placeholder={toolNames.length === 0 ? "Select tools..." : ""}
-            fullWidth
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                padding: "2px 4px",
-                minHeight: "32px"
-              }
-            }}
-          />
-        )}
-        className="nodrag"
-      />
+      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+        {AVAILABLE_TOOLS.map((tool) => {
+          const isSelected = toolNames.includes(tool);
+          return (
+            <Tooltip
+              title={TOOL_DESCRIPTIONS[tool] || tool}
+              key={tool}
+              placement="top"
+            >
+              <IconButton
+                size="small"
+                onClick={() => handleToggleTool(tool)}
+                color={isSelected ? "default" : "primary"}
+                sx={{
+                  padding: "4px"
+                }}
+              >
+                {TOOL_ICONS[tool] || <Search fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          );
+        })}
+      </Stack>
     </>
   );
 };

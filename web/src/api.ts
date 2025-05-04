@@ -282,15 +282,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/openai_models": {
+    "/api/models/language_models": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Openai Models Endpoint */
-        get: operations["get_openai_models_endpoint_api_models_openai_models_get"];
+        /** Get Language Models Endpoint */
+        get: operations["get_language_models_endpoint_api_models_language_models_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2490,6 +2490,27 @@ export interface components {
             /** Error */
             error?: string | null;
         };
+        /** LanguageModel */
+        LanguageModel: {
+            /**
+             * Type
+             * @default language_model
+             * @constant
+             */
+            type: "language_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /** LlamaModel */
         LlamaModel: {
             /**
@@ -2962,35 +2983,6 @@ export interface components {
             result?: Record<string, never> | null;
             /** Properties */
             properties?: Record<string, never> | null;
-        };
-        /** OpenAIModel */
-        OpenAIModel: {
-            /**
-             * Type
-             * @default openai_model
-             * @constant
-             */
-            type: "openai_model";
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-            /**
-             * Object
-             * @default
-             */
-            object: string;
-            /**
-             * Created
-             * @default 0
-             */
-            created: number;
-            /**
-             * Owned By
-             * @default
-             */
-            owned_by: string;
         };
         /**
          * OutputSlot
@@ -4568,7 +4560,7 @@ export interface operations {
             };
         };
     };
-    get_openai_models_endpoint_api_models_openai_models_get: {
+    get_language_models_endpoint_api_models_language_models_get: {
         parameters: {
             query?: never;
             header?: {
@@ -4587,7 +4579,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OpenAIModel"][];
+                    "application/json": components["schemas"]["LanguageModel"][];
                 };
             };
             /** @description Validation Error */
