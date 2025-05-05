@@ -94,26 +94,25 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       }
     },
     // run stop button
-    ".workflow-actions": {
+    ".action-buttons": {
       marginRight: ".5em",
       display: "flex",
-      justifyContent: "center",
+      justifyContent: "flex-end",
       alignItems: "center",
-      width: "2em",
-      height: "2em"
+      width: "auto",
+      height: "2em",
+      gap: ".5em"
     },
-    ".workflow-actions button": {
+    ".action-buttons button": {
       padding: 0,
       margin: 0,
-      width: "100%",
-      height: "100%",
       minWidth: "unset",
       minHeight: "unset",
       color: "white",
       opacity: 0.6,
       transition: "all 0.2s ease"
     },
-    ".workflow-actions button:hover": {
+    ".action-buttons button:hover": {
       opacity: 1,
       background: "transparent"
     }
@@ -288,7 +287,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             placeholder=""
           />
         </div>
-        <div className="workflow-actions">
+        <div className="action-buttons">
+          <ColorPicker
+            color={color || null}
+            onColorChange={handleColorChange}
+          />
           <Tooltip
             title={
               <div
@@ -338,7 +341,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </Tooltip>
         </div>
       </div>
-      <ColorPicker color={color || null} onColorChange={handleColorChange} />
+
       <NodeResizeHandle
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
