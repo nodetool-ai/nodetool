@@ -26,7 +26,9 @@ import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isProduction } from "../../stores/ApiClient";
-import RemoteSettingsMenu from "./RemoteSettingsMenu";
+import RemoteSettingsMenu, {
+  remoteSidebarSections
+} from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -378,7 +380,7 @@ interface SettingsMenuProps {
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const { user, signout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const {
     isMenuOpen,
@@ -428,8 +430,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const id = isMenuOpen ? "docs" : undefined;
 
   const copyAuthToken = () => {
-    if (user && user.auth_token) {
-      navigator.clipboard.writeText(user.auth_token);
+    if (user && (user as any).auth_token) {
+      navigator.clipboard.writeText((user as any).auth_token);
       addNotification({
         type: "info",
         alert: true,
@@ -458,8 +460,32 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
+  const remoteSidebarSections = [
+    {
+      category: "API Providers",
+      items: [
+        { id: "openai", label: "OpenAI" },
+        { id: "google", label: "Google" },
+        { id: "anthropic", label: "Anthropic" },
+        { id: "replicate", label: "Replicate" },
+        { id: "huggingface", label: "HuggingFace" },
+        { id: "aime", label: "AIME" },
+        { id: "falai", label: "Fal.ai" },
+        { id: "elevenlabs", label: "Eleven Labs" },
+        { id: "brightdata", label: "Brightdata" }
+      ]
+    },
+    {
+      category: "Folder Settings",
+      items: [
+        { id: "comfyui", label: "ComfyUI" },
+        { id: "chromadb", label: "ChromaDB" }
+      ]
+    }
+  ];
+
   // Conditionally add API section if user has auth token
-  if (user && user.auth_token) {
+  if (user && (user as any).auth_token) {
     generalSidebarSections.push({
       category: "API",
       items: [{ id: "api", label: "Nodetool API" }]
@@ -522,13 +548,15 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
           </div>
 
           <div className="settings-container">
-            {settingsTab === 0 && (
-              <SettingsSidebar
-                activeSection={activeSection}
-                sections={generalSidebarSections}
-                onSectionClick={scrollToSection}
-              />
-            )}
+            <SettingsSidebar
+              activeSection={activeSection}
+              sections={
+                settingsTab === 0
+                  ? generalSidebarSections
+                  : remoteSidebarSections
+              }
+              onSectionClick={scrollToSection}
+            />
 
             <div className="settings-content">
               <TabPanel value={settingsTab} index={0}>
@@ -737,7 +765,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </div>
                 </div>
 
-                {user && user.auth_token && (
+                {user && (user as any).auth_token && (
                   <>
                     <Typography variant="h3" id="api">
                       Nodetool API
