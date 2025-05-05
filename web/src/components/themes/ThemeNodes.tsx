@@ -395,7 +395,7 @@ ThemeNodes.components = {
       root: {
         margin: "0",
         padding: "0",
-        width: "2.4em",
+        width: "2em",
         height: "1em",
         overflow: "visible"
       },
@@ -414,7 +414,8 @@ ThemeNodes.components = {
         padding: "0 !important",
         color: ThemeNodes.palette.c_gray4,
         "&.Mui-checked": {
-          color: ThemeNodes.palette.c_hl1
+          color: ThemeNodes.palette.c_hl1,
+          transform: "translateX(10px) !important"
         },
         "&.Mui-checked + .MuiSwitch-track": {
           backgroundColor: ThemeNodes.palette.c_gray6

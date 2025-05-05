@@ -51,7 +51,8 @@
 .bool-property {
   padding: 0 5px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+
   gap: 5px;
 }
 
@@ -61,14 +62,17 @@
 }
 
 .value-changed textarea,
-.value-changed .MuiSwitch-track,
+/* .value-changed .MuiSwitch-track, */
 .value-changed .MuiInput-root {
   border-right: 2px solid var(--c_hl1) !important;
 }
 
 .value-changed .MuiSwitch-track {
-  background-color: var(--c_hl1) !important;
-  opacity: 0.4;
+  padding-right: 1em;
+  opacity: 1;
+  border-bottom: 2px solid var(--c_hl1) !important;
+   background-color: var(--c_gray3) !important;
+  /* opacity: 0.4; */
 }
 
 /* Textarea */
@@ -142,17 +146,20 @@
 
 .property-label {
   height: 18px;
+  padding: 0;
 }
 
 .property-label label {
+  display: inline-block;
   font-weight: 300;
   color: var(--c_gray6);
   font-family: var(--font-family-1);
   font-size: var(--font-size-normal);
   padding: 0;
   margin: 0;
-  line-height: 18px;
-  height: 18px;
+  line-height: 1em;
+  max-height: 2em;
+  overflow: hidden;
 }
 .image-property .property-label {
   margin-bottom: 5px;
