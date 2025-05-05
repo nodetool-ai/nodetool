@@ -162,7 +162,6 @@
 
 .react-flow__node .node-header .color-picker-button {
   position: absolute;
-  right: 0.5em;
   pointer-events: all;
   margin: 5px;
   height: 1.1em;
