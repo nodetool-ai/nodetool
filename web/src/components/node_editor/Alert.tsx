@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, createRef } from "react";
 import { Alert as MUIAlert, AlertColor } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
@@ -73,6 +73,7 @@ const Alert: React.FC = () => {
     Notification[]
   >([]);
 
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
   const [show, setShow] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -160,22 +161,38 @@ const Alert: React.FC = () => {
   };
   return (
     <TransitionGroup component="ul" css={styles}>
-      {visibleNotifications.map((notification: Notification) => (
-        <CSSTransition key={notification.id} timeout={300} classNames="alert">
-          <li>
-            <MUIAlert
-              severity={mapTypeToSeverity(notification.type)}
-              onClose={
-                notification.type === "error" || notification.dismissable
-                  ? () => handleClose(notification.id)
-                  : undefined
-              }
-            >
-              {notification.content}
-            </MUIAlert>
-          </li>
-        </CSSTransition>
-      ))}
+      {visibleNotifications.map((notification: Notification) => {
+        if (!nodeRefs.current[notification.id]) {
+          nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
+        }
+        const nodeRef = nodeRefs.current[notification.id];
+
+        return (
+          <CSSTransition
+            key={notification.id}
+            nodeRef={nodeRef}
+            timeout={300}
+            classNames="alert"
+            onExited={() => {
+              delete nodeRefs.current[notification.id];
+            }}
+          >
+            <li ref={nodeRef}>
+              {" "}
+              <MUIAlert
+                severity={mapTypeToSeverity(notification.type)}
+                onClose={
+                  notification.type === "error" || notification.dismissable
+                    ? () => handleClose(notification.id)
+                    : undefined
+                }
+              >
+                {notification.content}
+              </MUIAlert>
+            </li>
+          </CSSTransition>
+        );
+      })}
     </TransitionGroup>
   );
 };
