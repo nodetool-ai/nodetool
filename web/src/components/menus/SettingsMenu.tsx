@@ -26,9 +26,7 @@ import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isProduction } from "../../stores/ApiClient";
-import RemoteSettingsMenu, {
-  remoteSidebarSections
-} from "./RemoteSettingsMenu";
+import RemoteSettingsMenu from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -484,7 +482,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
-  // Conditionally add API section if user has auth token
   if (user && (user as any).auth_token) {
     generalSidebarSections.push({
       category: "API",
