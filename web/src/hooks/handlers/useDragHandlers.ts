@@ -8,10 +8,10 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
-  const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
   const { cKeyPressed } = useKeyPressed((state) => ({
     cKeyPressed: state.isKeyPressed("c")
@@ -42,22 +42,7 @@ export default function useDragHandlers() {
   const createCommentNode = useCallback(
     (width: number, height: number) => {
       if (cKeyPressed) {
-        // Fake metadata for comments
-        const metadata = {
-          namespace: "default",
-          node_type: "nodetool.workflows.base_node.Comment",
-          properties: [],
-          title: "Comment",
-          description: "Comment",
-          icon: "",
-          color: "",
-          outputs: [],
-          the_model_info: {},
-          basic_fields: [],
-          layout: "comment",
-          recommended_models: [],
-          is_dynamic: false
-        };
+        const metadata = COMMENT_NODE_METADATA;
         const newNode = createNode(metadata, {
           x: startPos.x,
           y: startPos.y - 20
@@ -65,8 +50,8 @@ export default function useDragHandlers() {
         newNode.width = Math.max(width, 150);
         newNode.height = Math.max(height, 100);
         newNode.style = {
-          width: Math.max(width, 150),
-          height: Math.max(height, 100)
+          width: newNode.width,
+          height: newNode.height
         };
         addNode(newNode);
       }
@@ -76,57 +61,77 @@ export default function useDragHandlers() {
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback((_event: any) => {
-    console.log("onNodeDragStart");
-    // pause();
+    setLastParentNode(undefined);
   }, []);
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
     (_event: any, node: Node<NodeData>) => {
-      addToGroup([node], lastParentNode);
-      resume();
-      draggedNodes.forEach((node) => {
-        updateNode(node.id, {
-          position: {
-            x: node.position.x,
-            y: node.position.y
-          }
-        });
-      });
+      // Only add to group if a valid parent was intersected during drag
+      // and the node isn't already in that group
+      if (lastParentNode && node.parentId !== lastParentNode.id) {
+        addToGroup([node], lastParentNode);
+      }
+      resume(); // Resume history
       setDraggedNodes(new Set());
       setHoveredNodes([]);
+      setLastParentNode(undefined); // Clear parent after drag
     },
-    [
-      addToGroup,
-      lastParentNode,
-      resume,
-      draggedNodes,
-      updateNode,
-      setDraggedNodes,
-      setHoveredNodes
-    ]
+    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
 
   /* SELECTION DRAG START */
-  const onSelectionDragStart = useCallback((_event: any) => {}, []);
-
-  /* SELECTION DRAG */
-  const onSelectionDrag = useCallback(
-    (event: MouseEvent, nodes: Node<NodeData>[]) => {
+  const onSelectionDragStart = useCallback(
+    (_event: any, nodes: Node<NodeData>[]) => {
+      // Clear potential parent from previous drag
+      setLastParentNode(undefined);
+      // Pause history tracking at the start of selection drag
       pause();
       setDraggedNodes(new Set(nodes));
     },
     [pause, setDraggedNodes]
   );
 
+  /* SELECTION DRAG */
+  const onSelectionDrag = useCallback(
+    (event: MouseEvent, nodes: Node<NodeData>[]) => {
+      // Find potential parent based on the position of the *first* node in selection
+      // (This might need refinement if selection spans multiple groups)
+      if (nodes.length > 0) {
+        const intersections = reactFlow
+          .getIntersectingNodes(nodes[0]) // Check based on first node
+          .filter((n) => isGroup(n as Node<NodeData>))
+          .map((n) => n.id);
+        setHoveredNodes(intersections); // Highlight intersected groups
+        if (intersections.length > 0) {
+          const potentialParent = findNode(intersections[0]);
+          setLastParentNode(potentialParent);
+        } else {
+          setLastParentNode(undefined);
+        }
+      }
+    },
+    [reactFlow, setHoveredNodes, isGroup, findNode]
+  );
+
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
     (_event: any, nodes: Node<NodeData>[]) => {
-      addToGroup(nodes, lastParentNode);
-      resume();
+      // Only add to group if a valid parent was intersected during drag
+      // and nodes aren't already in that group (check first node as proxy)
+      if (
+        lastParentNode &&
+        nodes.length > 0 &&
+        nodes[0].parentId !== lastParentNode.id
+      ) {
+        addToGroup(nodes, lastParentNode);
+      }
+      resume(); // Resume history
       setDraggedNodes(new Set());
+      setHoveredNodes([]);
+      setLastParentNode(undefined); // Clear parent after drag
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes]
+    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
 
   /* SELECTION START */
@@ -164,19 +169,34 @@ export default function useDragHandlers() {
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
-      pause();
-      setDraggedNodes(new Set([node]));
+      if (draggedNodes.size === 0) {
+        // If not already dragging a selection
+        pause(); // Pause if starting a single node drag
+        setDraggedNodes(new Set([node]));
+      }
+
+      // Find potential parent based on intersection
       const intersections = reactFlow
         .getIntersectingNodes(node)
         .filter((n) => isGroup(n as Node<NodeData>))
         .map((n) => n.id);
       setHoveredNodes(intersections);
       if (intersections.length > 0) {
-        const lastParent = findNode(intersections[0]);
-        setLastParentNode(lastParent);
+        const potentialParent = findNode(intersections[0]);
+        setLastParentNode(potentialParent);
+      } else {
+        setLastParentNode(undefined);
       }
     },
-    [pause, reactFlow, setHoveredNodes, isGroup, findNode]
+    [
+      pause,
+      reactFlow,
+      setHoveredNodes,
+      isGroup,
+      findNode,
+      draggedNodes,
+      setDraggedNodes
+    ]
   );
 
   return {
