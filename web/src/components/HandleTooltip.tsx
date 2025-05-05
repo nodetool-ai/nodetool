@@ -45,7 +45,7 @@ function updateTooltip(type: string, show: boolean, x?: number, y?: number) {
         color: ${textColorForType(type)};
         border-radius: .5em;
         font-size: ${ThemeNodetool.fontSizeSmall};
-        padding: 4px 8px;
+        padding: 2px 12px;
         display: block;
         visibility: visible;
         white-space: nowrap;
@@ -58,7 +58,7 @@ function updateTooltip(type: string, show: boolean, x?: number, y?: number) {
   tooltip.style.opacity = show ? "1" : "0";
   if (x !== undefined && y !== undefined) {
     tooltip.style.left = `${x - 20}px`;
-    tooltip.style.top = `${y - 8}px`;
+    tooltip.style.top = `${y + 2}px`;
     tooltip.style.transform = "translateX(-100%)";
   }
 }
