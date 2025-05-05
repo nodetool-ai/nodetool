@@ -7,7 +7,6 @@ import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { settingsStyles } from "./SettingsMenu";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 const remoteSettingsStyles = (theme: any): SerializedStyles => {
