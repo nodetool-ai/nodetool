@@ -70,7 +70,11 @@ export const settingsStyles = (theme: any): any =>
     },
     ".tab-panel": {
       padding: "0",
+      height: "100%",
       fontSize: theme.fontSizeNormal
+    },
+    ".tab-panel-content": {
+      paddingBottom: "1em"
     },
 
     ".settings": {
@@ -113,7 +117,8 @@ export const settingsStyles = (theme: any): any =>
       display: "flex",
       flexDirection: "row",
       flex: 1,
-      overflow: "hidden"
+      overflow: "hidden",
+      height: "70vh"
     },
     ".settings-sidebar": {
       width: "220px",
@@ -164,7 +169,7 @@ export const settingsStyles = (theme: any): any =>
       flex: 1,
       padding: "0 1em",
       overflowY: "auto",
-      maxHeight: "75vh",
+      height: "70vh",
       "&::-webkit-scrollbar": {
         width: "8px"
       },
@@ -363,7 +368,7 @@ function TabPanel(props: TabPanelProps) {
       className="tab-panel"
       {...other}
     >
-      {value === index && <Box>{children}</Box>}
+      {value === index && <Box className="tab-panel-content">{children}</Box>}
     </div>
   );
 }

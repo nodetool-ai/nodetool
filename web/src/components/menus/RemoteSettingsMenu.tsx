@@ -16,8 +16,9 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
     display: flex;
 
     .save-button-container {
-      position: sticky;
-      bottom: -30px;
+      position: absolute;
+      top: 49px;
+      right: 10px;
       z-index: 100;
       margin: 0;
       padding: 0.75em 0;
