@@ -24,8 +24,8 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
-import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
+import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -90,19 +90,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata: NodeMetadata = {
-        namespace: "default",
-        node_type: "nodetool.workflows.base_node.Group",
-        properties: [],
-        title: "Group",
-        description: "Group Node",
-        outputs: [],
-        the_model_info: {},
-        layout: "default",
-        recommended_models: [],
-        basic_fields: [],
-        is_dynamic: false
-      };
+      // Use the imported constant
+      const metadata = GROUP_NODE_METADATA;
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,
         y: menuPosition?.y || event.clientY
@@ -111,7 +100,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       addNode(newNode);
       closeContextMenu();
     },
-    [createNode, addNode, reactFlowInstance, menuPosition]
+    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
   );
 
   const createLoopNode = useCreateLoopNode();

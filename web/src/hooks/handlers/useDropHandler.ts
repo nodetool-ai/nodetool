@@ -74,20 +74,6 @@ export const useDropHandler = () => {
           createLoopNode(node, position);
         } else {
           const newNode = createNode(node, position);
-          const intersections = reactFlow
-            .getIntersectingNodes(newNode)
-            .filter((n) => isGroup(n as Node<NodeData>))
-            .map((n) => n.id);
-          if (intersections.length > 0) {
-            const parentNode = findNode(intersections[0]);
-            if (parentNode) {
-              newNode.parentId = parentNode.id;
-              newNode.position = {
-                x: newNode.position.x - parentNode.position.x,
-                y: newNode.position.y - parentNode.position.y
-              };
-            }
-          }
           addNode(newNode);
         }
         return;

@@ -1,20 +1,15 @@
 import { useCallback, useMemo } from "react";
-import { NodeMetadata } from "../../stores/ApiTypes";
-import useMetadataStore from "../../stores/MetadataStore";
+import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
 import ThemeNodes from "../../components/themes/ThemeNodes";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export const useSurroundWithGroup = () => {
-  const { addNode, createNode, updateNode, findNode } = useNodes((state) => ({
-    addNode: state.addNode,
+  const { createNode, setNodes } = useNodes((state) => ({
     createNode: state.createNode,
-    updateNode: state.updateNode,
-    findNode: state.findNode
+    setNodes: state.setNodes
   }));
-  const getMetadata = useMetadataStore.getState().getMetadata;
   const { pause, resume } = useTemporalNodes((state) => ({
     pause: state.pause,
     resume: state.resume
@@ -22,9 +17,12 @@ export const useSurroundWithGroup = () => {
 
   const getBounds = useMemo(() => {
     return (nodes: Node<NodeData>[]) => {
-      return nodes.reduce(
+      const validNodes = nodes.filter((n): n is Node<NodeData> => !!n);
+      if (validNodes.length === 0) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+      }
+      return validNodes.reduce(
         (bounds, node) => {
-          if (!node) return bounds;
           return {
             x: Math.min(bounds.x, node.position.x),
             y: Math.min(bounds.y, node.position.y),
@@ -45,39 +43,56 @@ export const useSurroundWithGroup = () => {
 
   const surroundWithGroup = useCallback(
     ({ selectedNodes }: { selectedNodes: Node<NodeData>[] }) => {
+      const validSelectedNodes = selectedNodes.filter(
+        (n): n is Node<NodeData> => !!n
+      );
+      if (validSelectedNodes.length === 0) return;
+
       pause();
-      const groupMetadata = getMetadata(GROUP_NODE_TYPE) as NodeMetadata;
-      const bounds = getBounds(selectedNodes);
+
+      const groupMetadata = GROUP_NODE_METADATA;
+      const bounds = getBounds(validSelectedNodes);
+      const selectedNodeIds = new Set(validSelectedNodes.map((n) => n.id));
 
       const groupNode = createNode(groupMetadata, {
         x: bounds.x - 20,
         y: bounds.y - 50
       });
+
+      if (!groupNode.data.properties) {
+        groupNode.data.properties = {};
+      }
+
       groupNode.data.properties.group_color = ThemeNodes.palette.c_bg_group;
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {
-        width: Math.max(bounds.width - bounds.x + 40, 200),
-        height: Math.max(bounds.height - bounds.y + 40, 200)
+        width: groupNode.width,
+        height: groupNode.height
       };
 
-      addNode(groupNode);
+      setNodes((prevNodes) => {
+        const updatedChildNodes = prevNodes.map((node) => {
+          if (selectedNodeIds.has(node.id)) {
+            return {
+              ...node,
+              parentId: groupNode.id,
+              expandParent: true,
+              position: {
+                x: node.position.x - bounds.x + 20,
+                y: node.position.y - bounds.y + 50
+              }
+            };
+          }
+          return node;
+        });
 
-      selectedNodes.forEach((node) => {
-        if (node) {
-          updateNode(node.id, {
-            parentId: groupNode.id,
-            expandParent: true,
-            position: {
-              x: node.position.x - bounds.x + 20,
-              y: node.position.y - bounds.y + 50
-            }
-          });
-        }
+        return [groupNode, ...updatedChildNodes];
       });
+
       resume();
     },
-    [getMetadata, getBounds, createNode, addNode, updateNode, pause, resume]
+    [getBounds, createNode, setNodes, pause, resume]
   );
 
   return surroundWithGroup;
