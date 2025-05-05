@@ -11,7 +11,9 @@ import {
   JobUpdate,
   RunJobRequest,
   WorkflowAttributes,
-  TaskUpdate
+  TaskUpdate,
+  Chunk,
+  PlanningUpdate
 } from "./ApiTypes";
 import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
@@ -70,11 +72,13 @@ export type WorkflowRunner = {
 };
 
 type MsgpackData =
+  | Chunk
   | JobUpdate
   | Prediction
   | NodeProgress
   | NodeUpdate
-  | TaskUpdate;
+  | TaskUpdate
+  | PlanningUpdate;
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   socket: null,
@@ -109,7 +113,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       const workflow = get().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
-      console.log("data", data);
+      if (data.type !== "chunk") {
+        console.log("data", data);
+      }
+
       if (workflow) {
         get().readMessage(workflow, data);
       }
@@ -173,6 +180,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearErrors = useErrorStore.getState().clearErrors;
     const clearResults = useResultsStore.getState().clearResults;
     const clearProgress = useResultsStore.getState().clearProgress;
+    const clearToolCalls = useResultsStore.getState().clearToolCalls;
+    const clearTasks = useResultsStore.getState().clearTasks;
+    const clearPlanningUpdates =
+      useResultsStore.getState().clearPlanningUpdates;
     const connectUrl = WORKER_URL;
     let auth_token = "local_token";
     let user = "1";
@@ -204,6 +215,9 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     clearErrors(workflow.id);
     clearResults(workflow.id);
     clearProgress(workflow.id);
+    clearToolCalls(workflow.id);
+    clearTasks(workflow.id);
+    clearPlanningUpdates(workflow.id);
 
     set({
       state: "running",

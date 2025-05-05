@@ -8,7 +8,8 @@ import {
   ListItem,
   ListItemText,
   Checkbox,
-  Box
+  Box,
+  CircularProgress
 } from "@mui/material";
 import { SubTask } from "../../stores/ApiTypes";
 
@@ -67,7 +68,36 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
     <div css={styles}>
       <Paper className="subtask-item" elevation={0}>
         <div className="subtask-content">
-          <Checkbox checked={subtask.completed} disabled size="small" />
+          <Box
+            sx={{
+              width: 32, // size of spinner (20) + marginRight (12)
+              height: 32, // Assuming checkbox 'small' fits within this
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: "12px" // Keep the original margin outside the box
+            }}
+          >
+            {isRunning ? (
+              <CircularProgress size={20} />
+            ) : (
+              <Checkbox
+                checked={subtask.completed}
+                disabled
+                size="small"
+                sx={
+                  subtask.completed
+                    ? {
+                        color: (theme) => theme.palette.success.main,
+                        "&.Mui-disabled": {
+                          color: (theme) => theme.palette.success.main
+                        }
+                      }
+                    : {}
+                }
+              />
+            )}
+          </Box>
           <ListItemText
             primary={
               <Typography

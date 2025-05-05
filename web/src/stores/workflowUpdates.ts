@@ -7,7 +7,9 @@ import {
   AssetRef,
   Message,
   TaskUpdate,
-  ToolCallUpdate
+  ToolCallUpdate,
+  Chunk,
+  PlanningUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useAssetStore } from "./AssetStore";
@@ -30,6 +32,26 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const setTask = useResultsStore.getState().setTask;
+  const addChunk = useResultsStore.getState().addChunk;
+  const setToolCall = useResultsStore.getState().setToolCall;
+  const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
+
+  if (data.type === "planning_update") {
+    const planningUpdate = data as PlanningUpdate;
+    if (planningUpdate.node_id) {
+      setPlanningUpdate(workflow.id, planningUpdate.node_id, planningUpdate);
+    } else {
+      log.error("PlanningUpdate has no node_id");
+    }
+  }
+  if (data.type === "tool_call_update") {
+    const toolCall = data as ToolCallUpdate;
+    if (toolCall.node_id) {
+      setToolCall(workflow.id, toolCall.node_id, toolCall);
+    } else {
+      log.error("ToolCallUpdate has no node_id");
+    }
+  }
 
   if (data.type === "task_update") {
     const task = data as TaskUpdate;
@@ -37,6 +59,15 @@ export const handleUpdate = (
       setTask(workflow.id, task.node_id, task.task);
     } else {
       log.error("TaskUpdate has no node_id");
+    }
+  }
+
+  if (data.type === "chunk") {
+    const chunk = data as Chunk;
+    if (chunk.node_id) {
+      addChunk(workflow.id, chunk.node_id, chunk.content);
+    } else {
+      log.error("Chunk has no node_id");
     }
   }
 

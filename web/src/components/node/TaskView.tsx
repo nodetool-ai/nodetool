@@ -33,7 +33,7 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
     <div css={styles}>
       <Paper className="task-container" elevation={1}>
         <Typography variant="h6" className="task-title">
-          {task.title}
+          Task: {task.title}
         </Typography>
         {task.description && (
           <Typography variant="body2" className="task-description">
