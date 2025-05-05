@@ -37,7 +37,7 @@ const styles = (theme: any) =>
       padding: "0",
       height: "32px",
       width: "100%",
-      "-webkit-app-region": "drag"
+      WebkitAppRegion: "drag"
     },
     "& .tabs": {
       flex: 1,
@@ -56,14 +56,14 @@ const styles = (theme: any) =>
       msOverflowStyle: "none",
       backdropFilter: "blur(8px)",
       position: "relative",
-      "-webkit-app-region": "drag",
+      WebkitAppRegion: "drag",
 
       "&::-webkit-scrollbar": {
         display: "none"
       }
     },
     "& .tab": {
-      "-webkit-app-region": "no-drag",
+      WebkitAppRegion: "no-drag",
       padding: "4px 16px",
       height: "32px",
       display: "flex",
@@ -214,7 +214,7 @@ const styles = (theme: any) =>
       padding: 0,
       marginLeft: "2px",
       transition: "all 0.1s ease-in-out",
-      "-webkit-app-region": "no-drag",
+      WebkitAppRegion: "no-drag",
       position: "relative",
       zIndex: 1001,
 
@@ -230,7 +230,7 @@ const styles = (theme: any) =>
     "& .window-controls": {
       display: "flex",
       height: "32px",
-      "-webkit-app-region": "no-drag",
+      WebkitAppRegion: "no-drag",
       flexShrink: 0
     },
     "& .window-control-button": {
