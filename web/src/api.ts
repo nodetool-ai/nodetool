@@ -1431,6 +1431,17 @@ export interface components {
              */
             body: string | components["schemas"]["TextRef"];
         };
+        /** Error */
+        Error: {
+            /**
+             * Type
+             * @default error
+             * @constant
+             */
+            type: "error";
+            /** Error */
+            error: string;
+        };
         /** FileInfo */
         FileInfo: {
             /** Name */
@@ -3104,6 +3115,23 @@ export interface components {
              */
             repo_id: string;
         };
+        /** PlanningUpdate */
+        PlanningUpdate: {
+            /**
+             * Type
+             * @default planning_update
+             * @constant
+             */
+            type: "planning_update";
+            /** Node Id */
+            node_id?: string | null;
+            /** Phase */
+            phase: string;
+            /** Status */
+            status: string;
+            /** Content */
+            content?: string | null;
+        };
         /**
          * PlotlyConfig
          * @description Configuration for Plotly Express charts.
@@ -3416,6 +3444,16 @@ export interface components {
              * @description Brightdata scraping browser endpoint for accessing Brightdata's proxy infrastructure
              */
             BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT?: string | null;
+            /**
+             * Data For Seo Login
+             * @description DataForSEO login for accessing DataForSEO's API
+             */
+            DATA_FOR_SEO_LOGIN?: string | null;
+            /**
+             * Data For Seo Password
+             * @description DataForSEO password for accessing DataForSEO's API
+             */
+            DATA_FOR_SEO_PASSWORD?: string | null;
         };
         /** SettingsModel */
         SettingsModel: {
@@ -3483,6 +3521,18 @@ export interface components {
              * @description The file path where the subtask will save its output
              */
             output_file: string;
+            /**
+             * Is Reasoning
+             * @description Whether the subtask is a reasoning task
+             * @default false
+             */
+            is_reasoning: boolean;
+            /**
+             * Max Iterations
+             * @description The maximum number of iterations for the subtask
+             * @default 10
+             */
+            max_iterations: number;
             /**
              * Artifacts
              * @description A list of files that the subtask will save as artifacts
@@ -3576,12 +3626,6 @@ export interface components {
              */
             type: "task";
             /**
-             * Agent Name
-             * @description The name of the agent to use for the task
-             * @default
-             */
-            agent_name: string;
-            /**
              * Title
              * @description The title of the task
              * @default
@@ -3627,10 +3671,7 @@ export interface components {
              */
             tasks: components["schemas"]["Task"][];
         };
-        /**
-         * TaskUpdate
-         * @description A task update from a provider.
-         */
+        /** TaskUpdate */
         TaskUpdate: {
             /**
              * Type
@@ -3692,6 +3733,8 @@ export interface components {
             result?: unknown;
             /** Subtask Id */
             subtask_id?: string | null;
+            /** Message */
+            message?: string | null;
         };
         /**
          * ToolCallUpdate
@@ -3704,10 +3747,14 @@ export interface components {
              * @constant
              */
             type: "tool_call_update";
+            /** Node Id */
+            node_id?: string | null;
             /** Name */
             name: string;
             /** Args */
             args: Record<string, never>;
+            /** Message */
+            message?: string | null;
         };
         /**
          * TypeMetadata
@@ -4824,7 +4871,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["TaskUpdate"] | components["schemas"]["Chunk"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlotlyConfig"] | Record<string, never>;
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | Record<string, never> | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"];
                 };
             };
         };

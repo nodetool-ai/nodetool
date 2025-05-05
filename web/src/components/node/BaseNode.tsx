@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import {
   Node,
   NodeProps,
@@ -13,7 +13,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, Box } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -35,6 +35,8 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
+import ChunkDisplay from "./ChunkDisplay";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -260,6 +262,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [result]);
 
+  const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
+  const chunkRef = useRef<HTMLDivElement>(null);
+  const toolCall = useResultsStore((state) =>
+    state.getToolCall(workflow_id, id)
+  );
+  const planningUpdate = useResultsStore((state) =>
+    state.getPlanningUpdate(workflow_id, id)
+  );
+
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
@@ -325,6 +336,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
       {selected && resizer}
+      {toolCall?.message && status === "running" && (
+        <div className="tool-call-container">{toolCall.message}</div>
+      )}
+      {planningUpdate && (
+        <PlanningUpdateDisplay planningUpdate={planningUpdate} />
+      )}
+      {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
       {meta.showFooter && (
         <NodeFooter

@@ -5,6 +5,7 @@ import {
   Message,
   NodeProgress,
   NodeUpdate,
+  PlanningUpdate,
   Prediction,
   TaskUpdate,
   ToolCallUpdate,
@@ -42,7 +43,8 @@ export type MsgpackData =
   | Message
   | ToolCallUpdate
   | TaskUpdate
-  | Chunk;
+  | Chunk
+  | PlanningUpdate;
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,

@@ -1,20 +1,34 @@
 import { create } from "zustand";
-import { Task } from "./ApiTypes";
+import { PlanningUpdate, Task, ToolCall, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
+  toolCalls: Record<string, ToolCallUpdate>;
+  planningUpdates: Record<string, PlanningUpdate>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
   clearProgress: (workflowId: string) => void;
+  clearToolCalls: (workflowId: string) => void;
+  clearTasks: (workflowId: string) => void;
+  clearPlanningUpdates: (workflowId: string) => void;
   setResult: (workflowId: string, nodeId: string, result: any) => void;
   getResult: (workflowId: string, nodeId: string) => any;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
   getTask: (workflowId: string, nodeId: string) => Task | undefined;
   addChunk: (workflowId: string, nodeId: string, chunk: string) => void;
   getChunk: (workflowId: string, nodeId: string) => string | undefined;
+  setToolCall: (
+    workflowId: string,
+    nodeId: string,
+    toolCall: ToolCallUpdate
+  ) => void;
+  getToolCall: (
+    workflowId: string,
+    nodeId: string
+  ) => ToolCallUpdate | undefined;
   setProgress: (
     workflowId: string,
     nodeId: string,
@@ -25,6 +39,15 @@ type ResultsStore = {
     workflowId: string,
     nodeId: string
   ) => { progress: number; total: number } | undefined;
+  getPlanningUpdate: (
+    workflowId: string,
+    nodeId: string
+  ) => PlanningUpdate | undefined;
+  setPlanningUpdate: (
+    workflowId: string,
+    nodeId: string,
+    planningUpdate: PlanningUpdate
+  ) => void;
 };
 
 export const hashKey = (workflowId: string, nodeId: string) =>
@@ -35,6 +58,51 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   progress: {},
   chunks: {},
   tasks: {},
+  toolCalls: {},
+  planningUpdates: {},
+  /**
+   * Set the planning update for a node.
+   * The planning update is stored in the planningUpdates map.
+   */
+  setPlanningUpdate: (
+    workflowId: string,
+    nodeId: string,
+    planningUpdate: PlanningUpdate
+  ) => {
+    set({
+      planningUpdates: {
+        ...get().planningUpdates,
+        [hashKey(workflowId, nodeId)]: planningUpdate
+      }
+    });
+  },
+  /**
+   * Get the planning update for a node.
+   * The planning update is stored in the planningUpdates map.
+   */
+  getPlanningUpdate: (workflowId: string, nodeId: string) => {
+    return get().planningUpdates[hashKey(workflowId, nodeId)];
+  },
+  /**
+   * Set the tool call for a node.
+   * The tool call is stored in the toolCalls map.
+   */
+  setToolCall: (
+    workflowId: string,
+    nodeId: string,
+    toolCall: ToolCallUpdate
+  ) => {
+    set({
+      toolCalls: { ...get().toolCalls, [hashKey(workflowId, nodeId)]: toolCall }
+    });
+  },
+  /**
+   * Get the tool call for a node.
+   * The tool call is stored in the toolCalls map.
+   */
+  getToolCall: (workflowId: string, nodeId: string) => {
+    return get().toolCalls[hashKey(workflowId, nodeId)];
+  },
   /**
    * Set the task for a node.
    * The task is stored in the tasks map.
@@ -87,6 +155,43 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }
     set({ progress });
   },
+  /**
+   * Clear the tool calls for a workflow.
+   */
+  clearToolCalls: (workflowId: string) => {
+    const toolCalls = get().toolCalls;
+    for (const key in toolCalls) {
+      if (key.startsWith(workflowId)) {
+        delete toolCalls[key];
+      }
+    }
+    set({ toolCalls });
+  },
+  /**
+   * Clear the tasks for a workflow.
+   */
+  clearTasks: (workflowId: string) => {
+    const tasks = get().tasks;
+    for (const key in tasks) {
+      if (key.startsWith(workflowId)) {
+        delete tasks[key];
+      }
+    }
+    set({ tasks });
+  },
+  /**
+   * Clear the planning updates for a workflow.
+   */
+  clearPlanningUpdates: (workflowId: string) => {
+    const planningUpdates = get().planningUpdates;
+    for (const key in planningUpdates) {
+      if (key.startsWith(workflowId)) {
+        delete planningUpdates[key];
+      }
+    }
+    set({ planningUpdates });
+  },
+
   /**
    * Set the result for a node.
    * The result is stored in the results map.

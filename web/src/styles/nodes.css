@@ -181,6 +181,27 @@
   color: var(--c_hl1);
 }
 
+.react-flow__node .planning-update-container {
+  margin: 1em;
+  border-top: 1px solid var(--c_gray2);
+  font-size: 0.7reml;
+  color: var(--c_gray6);
+  word-break: break-word;
+}
+
+.react-flow__node .tool-call-container {
+  margin: 1em;
+  border-top: 1px solid var(--c_gray2);
+  font-size: 0.7reml;
+  color: var(--c_hl1);
+  word-break: break-word;
+}
+
+.react-flow__node .node-chunk {
+  margin-top: 0.5em;
+  padding: 0.5em;
+}
+
 .react-flow__node .node-status {
   max-width: 250px;
   padding: 10px;
@@ -278,7 +299,9 @@
 .react-flow.zoomed-out .loop-node .inputs,
 .react-flow.zoomed-out .loop-node .outputs,
 .react-flow.zoomed-out .preview-node-content,
-.react-flow.zoomed-out .model-button {
+.react-flow.zoomed-out .model-button,
+.react-flow.zoomed-out .tool-call-container,
+.react-flow.zoomed-out .node-chunk {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
