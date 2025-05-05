@@ -44,6 +44,7 @@ const styles = (theme: any) =>
       margin: 0,
       padding: "0.5em 1em",
       maxWidth: "unset",
+      borderRadius: "0.2em",
       fontFamily: theme.fontFamily1,
       textTransform: "none",
       fontSize: theme.fontSizeNormal,
