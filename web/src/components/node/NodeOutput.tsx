@@ -24,13 +24,6 @@ export type NodeOutputProps = {
   output: OutputSlot;
 };
 
-const tooltipStyles = css({
-  ".MuiTooltip-tooltip": {
-    backgroundColor: "#000",
-    color: "#fff"
-  }
-});
-
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
@@ -99,7 +92,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
       enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       placement="right"
       className={`${classConnectable} ${Slugify(output.type.type)}`}
-      css={tooltipStyles}
     >
       <Handle
         type="source"
