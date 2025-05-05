@@ -10,8 +10,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
 
 const ColorCircle = styled.div<{ color: string | null }>`
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background-color: ${({ color }) => color || "#808080"};
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -36,8 +36,9 @@ const styles = (theme: any) =>
     ".color-picker-button": {
       width: "100%",
       height: "100%",
-      minWidth: "unset",
-      boxShadow: "0 0 2px" + theme.palette.c_gray0,
+      minWidth: "50px",
+      minHeight: "50px",
+      // boxShadow: "0 0 2px" + theme.palette.c_gray0,
       borderRadius: "100%",
       pointerEvents: "all",
       margin: 0,
