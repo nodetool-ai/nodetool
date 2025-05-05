@@ -204,7 +204,7 @@ export const settingsStyles = (theme: any): any =>
         borderBottom: "none",
         paddingBottom: "0"
       },
-      "&:first-child": {
+      "&:first-of-type": {
         paddingTop: "0"
       },
       width: "100%",
