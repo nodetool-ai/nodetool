@@ -3430,20 +3430,15 @@ export interface components {
              */
             FAL_API_KEY?: string | null;
             /**
-             * Brightdata Api Key
-             * @description Brightdata API key for accessing Brightdata's proxy infrastructure
+             * Serpapi Api Key
+             * @description API key for accessing SerpAPI scraping infrastructure
              */
-            BRIGHTDATA_API_KEY?: string | null;
+            SERPAPI_API_KEY?: string | null;
             /**
-             * Brightdata Serp Zone
-             * @description Brightdata SERP zone for accessing Brightdata's SERP infrastructure
+             * Browser Url
+             * @description Browser URL for accessing a browser instance
              */
-            BRIGHTDATA_SERP_ZONE?: string | null;
-            /**
-             * Brightdata Scraping Browser Endpoint
-             * @description Brightdata scraping browser endpoint for accessing Brightdata's proxy infrastructure
-             */
-            BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT?: string | null;
+            BROWSER_URL?: string | null;
             /**
              * Data For Seo Login
              * @description DataForSEO login for accessing DataForSEO's API
@@ -3512,6 +3507,11 @@ export interface components {
              */
             type: "subtask";
             /**
+             * Model
+             * @description The model to use for the subtask
+             */
+            model?: string | null;
+            /**
              * Content
              * @description Instructions for the subtask
              */
@@ -3522,23 +3522,11 @@ export interface components {
              */
             output_file: string;
             /**
-             * Is Reasoning
-             * @description Whether the subtask is a reasoning task
-             * @default false
-             */
-            is_reasoning: boolean;
-            /**
              * Max Iterations
              * @description The maximum number of iterations for the subtask
              * @default 10
              */
             max_iterations: number;
-            /**
-             * Artifacts
-             * @description A list of files that the subtask will save as artifacts
-             * @default []
-             */
-            artifacts: string[];
             /**
              * Completed
              * @description Whether the subtask is completed

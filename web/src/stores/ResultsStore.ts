@@ -13,6 +13,7 @@ type ResultsStore = {
   clearProgress: (workflowId: string) => void;
   clearToolCalls: (workflowId: string) => void;
   clearTasks: (workflowId: string) => void;
+  clearChunks: (workflowId: string) => void;
   clearPlanningUpdates: (workflowId: string) => void;
   setResult: (workflowId: string, nodeId: string, result: any) => void;
   getResult: (workflowId: string, nodeId: string) => any;
@@ -191,7 +192,18 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }
     set({ planningUpdates });
   },
-
+  /**
+   * Clear the chunks for a workflow.
+   */
+  clearChunks: (workflowId: string) => {
+    const chunks = get().chunks;
+    for (const key in chunks) {
+      if (key.startsWith(workflowId)) {
+        delete chunks[key];
+      }
+    }
+    set({ chunks });
+  },
   /**
    * Set the result for a node.
    * The result is stored in the results map.
