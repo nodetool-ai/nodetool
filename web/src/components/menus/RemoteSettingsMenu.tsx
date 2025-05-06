@@ -132,9 +132,10 @@ const RemoteSettings = () => {
     FAL_API_KEY: "",
     ELEVENLABS_API_KEY: "",
     GOOGLE_MAIL_USER: "",
-    BRIGHTDATA_API_KEY: "",
-    BRIGHTDATA_SERP_ZONE: "",
-    BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT: ""
+    BROWSER_URL: "",
+    DATA_FOR_SEO_LOGIN: "",
+    DATA_FOR_SEO_PASSWORD: "",
+    SERPAPI_API_KEY: ""
   });
 
   const updateSettingsMutation = useMutation({
@@ -161,10 +162,10 @@ const RemoteSettings = () => {
         FAL_API_KEY: data.secrets.FAL_API_KEY || "",
         ELEVENLABS_API_KEY: data.secrets.ELEVENLABS_API_KEY || "",
         GOOGLE_MAIL_USER: data.secrets.GOOGLE_MAIL_USER || "",
-        BRIGHTDATA_API_KEY: data.secrets.BRIGHTDATA_API_KEY || "",
-        BRIGHTDATA_SERP_ZONE: data.secrets.BRIGHTDATA_SERP_ZONE || "",
-        BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT:
-          data.secrets.BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT || ""
+        BROWSER_URL: data.secrets.BROWSER_URL || "",
+        DATA_FOR_SEO_LOGIN: data.secrets.DATA_FOR_SEO_LOGIN || "",
+        DATA_FOR_SEO_PASSWORD: data.secrets.DATA_FOR_SEO_PASSWORD || "",
+        SERPAPI_API_KEY: data.secrets.SERPAPI_API_KEY || ""
       });
     }
   }, [isSuccess, data]);
@@ -523,67 +524,101 @@ const RemoteSettings = () => {
               </div>
             </div>
 
-            <Typography variant="h2" id="brightdata">
-              Brightdata
+            <Typography variant="h2" id="dataforseo">
+              DataForSEO
             </Typography>
             <div className="settings-item">
               <TextField
+                autoComplete="off"
+                id="dataforseo-login-input"
+                label="DataForSEO Login"
+                value={settings.DATA_FOR_SEO_LOGIN}
+                onChange={(e) =>
+                  handleChange("DATA_FOR_SEO_LOGIN", e.target.value)
+                }
+                variant="standard"
+              />
+              <TextField
                 type="password"
                 autoComplete="off"
-                id="brightdata-api-key-input"
-                label="Brightdata API Key"
-                value={settings.BRIGHTDATA_API_KEY}
+                id="dataforseo-password-input"
+                label="DataForSEO Password"
+                value={settings.DATA_FOR_SEO_PASSWORD}
                 onChange={(e) =>
-                  handleChange("BRIGHTDATA_API_KEY", e.target.value)
-                }
-                variant="standard"
-              />
-              <TextField
-                autoComplete="off"
-                id="brightdata-serp-zone-input"
-                label="Brightdata SERP Zone"
-                value={settings.BRIGHTDATA_SERP_ZONE}
-                onChange={(e) =>
-                  handleChange("BRIGHTDATA_SERP_ZONE", e.target.value)
-                }
-                variant="standard"
-                sx={{ marginTop: "1em" }}
-              />
-              <TextField
-                autoComplete="off"
-                id="brightdata-scraping-browser-endpoint-input"
-                label="Brightdata Scraping Browser Endpoint"
-                value={settings.BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT}
-                onChange={(e) =>
-                  handleChange(
-                    "BRIGHTDATA_SCRAPING_BROWSER_ENDPOINT",
-                    e.target.value
-                  )
+                  handleChange("DATA_FOR_SEO_PASSWORD", e.target.value)
                 }
                 variant="standard"
                 sx={{ marginTop: "1em" }}
               />
               <div className="text-and-button">
                 <Typography className="description">
-                  Brightdata provides advanced web scraping and proxy
-                  infrastructure for reliable data collection:
-                  <br />• <strong>API Key</strong>: Your authentication key for
-                  Brightdata services
-                  <br />• <strong>SERP Zone</strong>: The specific zone ID for
-                  Search Engine Results Page (SERP) data collection
-                  <br />• <strong>Scraping Browser Endpoint</strong>: The
-                  WebSocket (WSS) or HTTP endpoint URL for connecting to
-                  Brightdata&apos;s cloud-based browsers. For Puppeteer, use
-                  format:
-                  &apos;wss://brd-customer-[CUSTOMER_ID]-zone-[ZONE_NAME]:[PASSWORD]@brd.superproxy.io:9222&apos;.
-                  For Playwright, use the CDP endpoint with the same format.
+                  Enter your DataForSEO credentials to access their API for SERP
+                  data and other SEO tools.
                   <br />
                   <a
-                    href="https://brightdata.com/cp/account"
+                    href="https://dataforseo.com/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    &rarr; Brightdata Account Settings
+                    &rarr; DataForSEO Website
+                  </a>
+                </Typography>
+              </div>
+            </div>
+
+            <Typography variant="h2" id="serpapi">
+              SerpAPI
+            </Typography>
+            <div className="settings-item">
+              <TextField
+                type="password"
+                autoComplete="off"
+                id="serpapi-api-key-input"
+                label="SerpAPI API Key"
+                value={settings.SERPAPI_API_KEY}
+                onChange={(e) =>
+                  handleChange("SERPAPI_API_KEY", e.target.value)
+                }
+                variant="standard"
+              />
+              <div className="text-and-button">
+                <Typography className="description">
+                  Enter your SerpAPI API key to access their search engine
+                  results scraping service.
+                  <br />
+                  <a
+                    href="https://serpapi.com/manage-api-key"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    &rarr; SerpAPI Dashboard
+                  </a>
+                </Typography>
+              </div>
+            </div>
+
+            <Typography variant="h2" id="brightdata">
+              Crawling Browser
+            </Typography>
+            <div className="settings-item">
+              <TextField
+                autoComplete="off"
+                id="browser-url-input"
+                label="Browser URL"
+                value={settings.BROWSER_URL}
+                onChange={(e) => handleChange("BROWSER_URL", e.target.value)}
+                variant="standard"
+                sx={{ marginTop: "1em" }}
+              />
+              <div className="text-and-button">
+                <Typography className="description">
+                  <br />
+                  <a
+                    href="https://docs.browserless.io/overview/connection-urls"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    &rarr; Browserless Connection URLs
                   </a>
                   <br />
                   <a
@@ -591,7 +626,7 @@ const RemoteSettings = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    &rarr; Scraping Browser Documentation
+                    &rarr; Brightdata Scraping Browser Documentation
                   </a>
                 </Typography>
               </div>
@@ -675,6 +710,8 @@ export const remoteSidebarSections = [
       { id: "aime", label: "AIME" },
       { id: "falai", label: "Fal.ai" },
       { id: "elevenlabs", label: "Eleven Labs" },
+      { id: "dataforseo", label: "DataForSEO" },
+      { id: "serpapi", label: "SerpAPI" },
       { id: "brightdata", label: "Brightdata" }
     ]
   },

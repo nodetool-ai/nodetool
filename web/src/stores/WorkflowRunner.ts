@@ -182,6 +182,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearProgress = useResultsStore.getState().clearProgress;
     const clearToolCalls = useResultsStore.getState().clearToolCalls;
     const clearTasks = useResultsStore.getState().clearTasks;
+    const clearChunks = useResultsStore.getState().clearChunks;
     const clearPlanningUpdates =
       useResultsStore.getState().clearPlanningUpdates;
     const connectUrl = WORKER_URL;
@@ -218,6 +219,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     clearToolCalls(workflow.id);
     clearTasks(workflow.id);
     clearPlanningUpdates(workflow.id);
+    clearChunks(workflow.id);
 
     set({
       state: "running",

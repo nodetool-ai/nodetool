@@ -18,7 +18,12 @@ import {
   Language,
   ManageSearch,
   Image,
-  VolumeUp
+  VolumeUp,
+  Lens,
+  Map,
+  ShoppingCart,
+  Analytics,
+  Work
 } from "@mui/icons-material";
 
 const AVAILABLE_TOOLS = [
@@ -26,6 +31,11 @@ const AVAILABLE_TOOLS = [
   "google_search",
   "google_news",
   "google_images",
+  "google_lens",
+  "google_maps",
+  "google_shopping",
+  "google_finance",
+  "google_jobs",
   "browser",
   "chroma_hybrid_search",
   "google_image_generation",
@@ -38,6 +48,11 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   google_search: "Search Google",
   google_news: "Search Google News",
   google_images: "Search Google Images",
+  google_lens: "Search Google Lens",
+  google_maps: "Search Google Maps",
+  google_shopping: "Search Google Shopping",
+  google_finance: "Search Google Finance",
+  google_jobs: "Search Google Jobs",
   browser: "Browse the web",
   chroma_hybrid_search: "Search for documents in the Chroma database",
   google_image_generation: "Generate images using Google's Gemini API",
@@ -48,15 +63,20 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 };
 
 const TOOL_ICONS: Record<string, JSX.Element> = {
-  search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />,
   google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
   google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
   google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
+  google_lens: <Lens fontSize="small" sx={{ mr: 0.5 }} />,
+  google_maps: <Map fontSize="small" sx={{ mr: 0.5 }} />,
+  google_shopping: <ShoppingCart fontSize="small" sx={{ mr: 0.5 }} />,
+  google_finance: <Analytics fontSize="small" sx={{ mr: 0.5 }} />,
+  google_jobs: <Work fontSize="small" sx={{ mr: 0.5 }} />,
   browser: <Language fontSize="small" sx={{ mr: 0.5 }} />,
   chroma_hybrid_search: <ManageSearch fontSize="small" sx={{ mr: 0.5 }} />,
   google_image_generation: <Image fontSize="small" sx={{ mr: 0.5 }} />,
   openai_image_generation: <Image fontSize="small" sx={{ mr: 0.5 }} />,
-  openai_text_to_speech: <VolumeUp fontSize="small" sx={{ mr: 0.5 }} />
+  openai_text_to_speech: <VolumeUp fontSize="small" sx={{ mr: 0.5 }} />,
+  search_email: <MailOutline fontSize="small" sx={{ mr: 0.5 }} />
 };
 
 const ToolsListProperty = (props: PropertyProps) => {
