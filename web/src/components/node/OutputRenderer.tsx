@@ -37,6 +37,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
+import { console } from "node:inspector/promises";
 export type OutputRendererProps = {
   value: any;
 };

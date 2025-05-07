@@ -48,6 +48,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
+import BaseNode from "./BaseNode";
+import IteratorNode from "./IteratorNode";
 
 declare global {
   interface Window {
@@ -132,6 +134,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
+  nodeTypes["nodetool.workflows.base_node.Iterator"] = IteratorNode;
   nodeTypes["default"] = PlaceholderNode;
 
   /* SETTINGS */

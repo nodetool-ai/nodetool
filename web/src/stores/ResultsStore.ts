@@ -15,7 +15,12 @@ type ResultsStore = {
   clearTasks: (workflowId: string) => void;
   clearChunks: (workflowId: string) => void;
   clearPlanningUpdates: (workflowId: string) => void;
-  setResult: (workflowId: string, nodeId: string, result: any) => void;
+  setResult: (
+    workflowId: string,
+    nodeId: string,
+    result: any,
+    append?: boolean
+  ) => void;
   getResult: (workflowId: string, nodeId: string) => any;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
   getTask: (workflowId: string, nodeId: string) => Task | undefined;
@@ -212,9 +217,29 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @param result The result to set.
    */
-  setResult: (workflowId: string, nodeId: string, result: any) => {
+  setResult: (
+    workflowId: string,
+    nodeId: string,
+    result: any,
+    append?: boolean
+  ) => {
     const key = hashKey(workflowId, nodeId);
-    set({ results: { ...get().results, [key]: result } });
+    if (get().results[key] === undefined || !append) {
+      set({ results: { ...get().results, [key]: result } });
+    } else {
+      if (Array.isArray(get().results[key])) {
+        set({
+          results: {
+            ...get().results,
+            [key]: [...get().results[key], result]
+          }
+        });
+      } else {
+        set({
+          results: { ...get().results, [key]: [get().results[key], result] }
+        });
+      }
+    }
   },
 
   /**

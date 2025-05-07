@@ -49,6 +49,10 @@ const styles = (theme: any) =>
           display: "none"
         }
       },
+      ".preview-node-content": {
+        height: "100%",
+        width: "100%"
+      },
       ".node-header": {
         width: "100%",
         minHeight: "unset",
@@ -149,12 +153,19 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
+  console.log("result", result);
 
   const memoizedOutputRenderer = useMemo(() => {
-    return result?.output !== undefined ? (
-      <OutputRenderer value={result.output} />
+    return result !== undefined ? (
+      <OutputRenderer
+        value={
+          Array.isArray(result)
+            ? result.map((i: any) => i.output)
+            : result.output
+        }
+      />
     ) : null;
-  }, [result?.output]);
+  }, [result]);
 
   // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
   // useEffect(() => {
