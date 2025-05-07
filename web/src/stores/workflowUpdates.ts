@@ -157,7 +157,12 @@ export const handleUpdate = (
     }
 
     if (update.status === "completed") {
-      setResult(workflow.id, update.node_id, update.result);
+      setResult(
+        workflow.id,
+        update.node_id,
+        update.result,
+        update.node_name === "Preview"
+      );
 
       if (update.result) {
         Object.entries(update.result).forEach(([key, value]) => {

@@ -59,6 +59,35 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     }
   }, [reactFlowInstance]);
 
+  const addIteratorNode = useCallback(
+    (event: React.MouseEvent) => {
+      const metadata = {
+        namespace: "default",
+        node_type: "nodetool.workflows.base_node.Iterator",
+        properties: [],
+        title: "Iterator",
+        description: "Iterator",
+        outputs: [],
+        the_model_info: {},
+        layout: "default",
+        recommended_models: [],
+        basic_fields: [],
+        is_dynamic: false
+      };
+      const newNode = createNode(
+        metadata,
+        reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        })
+      );
+      newNode.width = 100;
+      newNode.height = 100;
+      newNode.style = { width: 100, height: 100 };
+      addNode(newNode);
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition]
+  );
   // add comment
   const addComment = (event: React.MouseEvent) => {
     // Fake metadata for comments
@@ -351,6 +380,18 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         onClick={(e) => {
           if (e) {
             e.preventDefault();
+            addIteratorNode(e);
+          }
+          closeContextMenu();
+        }}
+        label="Add Iterator"
+        IconComponent={<LoopIcon />}
+        tooltip="Add an iterator node"
+      />
+      <ContextMenuItem
+        onClick={(e) => {
+          if (e) {
+            e.preventDefault();
             addGroupNode(e);
           }
           closeContextMenu();
@@ -358,18 +399,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         label="Add Group"
         IconComponent={<GroupWorkIcon />}
         tooltip={"Add a group node"}
-      />
-      <ContextMenuItem
-        onClick={(e) => {
-          if (e) {
-            e.preventDefault();
-            addLoopNode(e);
-          }
-          closeContextMenu();
-        }}
-        label="Add Loop"
-        IconComponent={<LoopIcon />}
-        tooltip={"Add a loop node"}
       />
     </Menu>
   );
