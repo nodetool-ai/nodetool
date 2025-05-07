@@ -41,7 +41,10 @@ const styles = (theme: any) =>
     ".dependency-marker": {
       display: "flex",
       color: theme.palette.text.secondary,
-      marginLeft: "2rem"
+      marginLeft: "-.5em",
+      paddingLeft: "0",
+      fontSize: "0.8em",
+      wordBreak: "break-all"
     },
     "@keyframes shine": {
       "0%": { backgroundPosition: "-200%" },
