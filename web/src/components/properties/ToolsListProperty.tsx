@@ -1,12 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
-import {
-  Chip,
-  IconButton,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography
-} from "@mui/material";
+import { IconButton, Stack, Tooltip } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
@@ -19,7 +12,7 @@ import {
   ManageSearch,
   Image,
   VolumeUp,
-  Lens,
+  Camera,
   Map,
   ShoppingCart,
   Analytics,
@@ -66,7 +59,7 @@ const TOOL_ICONS: Record<string, JSX.Element> = {
   google_search: <Search fontSize="small" sx={{ mr: 0.5 }} />,
   google_news: <Newspaper fontSize="small" sx={{ mr: 0.5 }} />,
   google_images: <ImageSearch fontSize="small" sx={{ mr: 0.5 }} />,
-  google_lens: <Lens fontSize="small" sx={{ mr: 0.5 }} />,
+  google_lens: <Camera fontSize="small" sx={{ mr: 0.5 }} />,
   google_maps: <Map fontSize="small" sx={{ mr: 0.5 }} />,
   google_shopping: <ShoppingCart fontSize="small" sx={{ mr: 0.5 }} />,
   google_finance: <Analytics fontSize="small" sx={{ mr: 0.5 }} />,
@@ -112,7 +105,13 @@ const ToolsListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+      <Stack
+        className="tools-list-items"
+        direction="row"
+        spacing={1}
+        flexWrap="wrap"
+        sx={{ mt: 1 }}
+      >
         {AVAILABLE_TOOLS.map((tool) => {
           const isSelected = toolNames.includes(tool);
           return (
@@ -124,9 +123,13 @@ const ToolsListProperty = (props: PropertyProps) => {
               <IconButton
                 size="small"
                 onClick={() => handleToggleTool(tool)}
-                color={isSelected ? "default" : "primary"}
                 sx={{
-                  padding: "4px"
+                  padding: "1px",
+                  marginLeft: "0 !important",
+                  color: isSelected ? "c_hl1" : "c_gray3",
+                  "&:hover": {
+                    color: "c_gray6"
+                  }
                 }}
               >
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
