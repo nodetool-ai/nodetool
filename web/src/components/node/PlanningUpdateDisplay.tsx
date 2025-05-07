@@ -1,10 +1,29 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useMemo, useCallback } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { PlanningUpdate } from "../../stores/ApiTypes";
-import { Button } from "@mui/material";
+import { Button, css } from "@mui/material";
+
 interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
 }
+
+const styles = (theme: any) =>
+  css({
+    "@keyframes aiColorShift": {
+      "0%": { color: "#00FFFF" } /* Aqua */,
+      "25%": { color: "#7B68EE" } /* MediumSlateBlue */,
+      "50%": { color: "#AFEEEE" } /* PaleTurquoise */,
+      "75%": { color: "#48D1CC" } /* MediumTurquoise */,
+      "100%": { color: "#00FFFF" } /* Aqua */
+    },
+
+    ".ai-animated-heading": {
+      animation: "aiColorShift 4s infinite",
+      fontFamily: theme.fontFamily1,
+      fontSize: "0.8rem"
+    }
+  });
 
 const PLANNING_CONTENT_TRUNCATE_LENGTH = 200; // Max characters before truncating
 
@@ -27,9 +46,21 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
     );
   }, [planningUpdate?.content]);
 
+  if (planningUpdate.status === "Failed") {
+    return (
+      <div className="planning-update-container" css={styles}>
+        <h3 className="ai-animated-heading">
+          {planningUpdate.phase} <em>{planningUpdate.status}</em>
+        </h3>
+      </div>
+    );
+  }
+  if (planningUpdate.status === "Success") {
+    return null;
+  }
   return (
-    <div className="planning-update-container">
-      <h3>
+    <div className="planning-update-container" css={styles}>
+      <h3 className="ai-animated-heading">
         {planningUpdate.phase} <em>{planningUpdate.status}</em>
       </h3>
       {truncatedPlanningContent && (
