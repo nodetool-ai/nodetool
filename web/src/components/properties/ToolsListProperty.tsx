@@ -126,9 +126,10 @@ const ToolsListProperty = (props: PropertyProps) => {
                 sx={{
                   padding: "1px",
                   marginLeft: "0 !important",
+                  transition: "color 0.2s ease",
                   color: isSelected ? "c_hl1" : "c_gray3",
                   "&:hover": {
-                    color: "c_gray6"
+                    color: isSelected ? "c_hl1" : "c_gray6"
                   }
                 }}
               >
