@@ -263,7 +263,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [result]);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
-  const chunkRef = useRef<HTMLDivElement>(null);
   const toolCall = useResultsStore((state) =>
     state.getToolCall(workflow_id, id)
   );
