@@ -202,8 +202,3 @@ img::selection {
   background-color: white;
   opacity: 8%;
 }
-
-:root {
-  /* Check if the variable is defined here */
-  --nt-colors-color-palette-solid: #000000; /* Example value */
-}

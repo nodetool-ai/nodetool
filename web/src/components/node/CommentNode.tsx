@@ -35,13 +35,13 @@ const styles = (theme: any) =>
       height: "100%",
       margin: 0,
       padding: "2em 1em",
-      // border: `1px solid ${hexToRgba(theme.palette.c_white, 0.3)}`,
-      boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_white, 0.1)}`,
+      // border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.3)}`,
+      boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_brightest, 0.1)}`,
       backgroundColor: "transparent",
       // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
       "&:hover": {
-        // border: `1px solid ${hexToRgba(theme.palette.c_white, 0.5)}`,
-        boxShadow: `0 0 12px ${hexToRgba(theme.palette.c_white, 0.2)}`
+        // border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.5)}`,
+        boxShadow: `0 0 12px ${hexToRgba(theme.palette.c_brightest, 0.2)}`
       },
       "&.collapsed": {
         maxHeight: "60px"
@@ -90,17 +90,17 @@ const styles = (theme: any) =>
       "& button": {
         padding: "2px 6px",
         fontSize: "12px",
-        backgroundColor: hexToRgba(theme.palette.c_white, 0.1),
-        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.2)}`,
+        backgroundColor: hexToRgba(theme.palette.c_brightest, 0.1),
+        border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.2)}`,
         borderRadius: "3px",
         color: theme.palette.c_black,
         cursor: "pointer",
         "&:hover": {
-          backgroundColor: hexToRgba(theme.palette.c_white, 0.2)
+          backgroundColor: hexToRgba(theme.palette.c_brightest, 0.2)
         },
         "&.active": {
-          backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
-          borderColor: hexToRgba(theme.palette.c_white, 0.4)
+          backgroundColor: hexToRgba(theme.palette.c_brightest, 0.3),
+          borderColor: hexToRgba(theme.palette.c_brightest, 0.4)
         }
       }
     },
@@ -161,7 +161,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [editor] = useState(() => withReact(createEditor()));
   const [color, setColor] = useState(
     props.data.properties.comment_color ||
-      (ThemeNodes.colorSchemes?.dark?.palette as any)?.c_bg_comment ||
+      ThemeNodes.palette.c_bg_comment ||
       "#ffffff"
   );
   const [value, setValue] = useState<Descendant[]>(() => {

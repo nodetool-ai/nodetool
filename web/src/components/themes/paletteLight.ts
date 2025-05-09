@@ -1,17 +1,13 @@
-import { PaletteOptions, PaletteColorOptions } from "@mui/material/styles";
-
-declare module "@mui/system/createTheme" {
-  interface Palette {
-    [key: string]: string;
-  }
-}
+import {
+  PaletteOptions,
+  PaletteColorOptions,
+  PaletteColor
+} from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
-  // Extend PaletteOptions as well to include custom colors
   interface PaletteOptions {
-    /* General */
     c_black?: string;
-    c_white?: string;
+    c_brightest?: string;
     c_gray0?: string;
     c_gray1?: string;
     c_gray2?: string;
@@ -63,7 +59,7 @@ declare module "@mui/material/styles" {
   interface Palette {
     /* General */
     c_black?: string;
-    c_white?: string;
+    c_brightest?: string;
     c_gray0?: string;
     c_gray1?: string;
     c_gray2?: string;
@@ -113,75 +109,76 @@ declare module "@mui/material/styles" {
   }
 }
 
-export const sharedPalette: PaletteOptions = {
+export const paletteLight: PaletteOptions = {
   /* General */
-  c_black: "#020202", // From ThemeNodetool (ThemeNodes was #000000)
-  c_white: "#FCFCFC", // From ThemeNodetool (ThemeNodes was #ffffff)
-  c_gray0: "#0E0E0E",
-  c_gray1: "#242424",
-  c_gray2: "#444444",
+  c_black: "#FCFCFC",
+  c_brightest: "#020202",
+  c_gray0: "#D9D9D9",
+  c_gray1: "#BDBDBD",
+  c_gray2: "#959595",
   c_gray3: "#6D6D6D",
-  c_gray4: "#959595",
-  c_gray5: "#BDBDBD",
-  c_gray6: "#D9D9D9",
-  c_background: "#424854",
-  c_node_menu: "#232323",
+  c_gray4: "#444444",
+  c_gray5: "#242424",
+  c_gray6: "#0E0E0E",
+  c_background: "#F5F5F7",
+  c_node_menu: "#FFFFFF",
   /* Highlights */
-  c_hl1: "#76e5b8",
-  c_hl1_1: "#325954", // From ThemeNodetool (ThemeNodes was #bdf0e9)
-  c_hl2: "#128B6E", // From ThemeNodetool (ThemeNodes was #1ec7c7)
-  c_selection: "#8EACA777",
-  c_input: "#374f4f",
-  c_output: "#493f4d",
+  c_hl1: "#007AFF",
+  c_hl1_1: "#5EADFF",
+  c_hl2: "#34C759",
+  c_selection: "#B4D7FFB3",
+  c_input: "#EFEFF0",
+  c_output: "#E0E0E0",
 
   /* Statuses */
-  c_attention: "#E35BFF",
-  c_delete: "#FF2222", // From ThemeNodetool (ThemeNodes was #ff2222)
-  c_debug: "#FF3355", // New from ThemeNodetool
-  c_error: "#FF5555",
-  c_info: "#FFFFFF", // New from ThemeNodetool
-  c_job: "#223399", // New from ThemeNodetool
-  c_node: "#029486", // New from ThemeNodetool
-  c_progress: "#556611", // New from ThemeNodetool
-  c_success: "#50FA7B",
-  c_warn: "#FFB86C", // New from ThemeNodetool
-  c_warning: "#FFB86C", // From ThemeNodetool (ThemeNodes was #ffb86c)
-  c_link: "#e4ffde", // From ThemeNodetool (ThemeNodes was ##e4ffde - fixed typo)
-  c_link_visited: "#d1e2cd",
+  c_attention: "#FF9500", // Orange for attention
+  c_delete: "#FF3B30", // Red for delete
+  c_debug: "#5856D6", // Indigo/Purple for debug
+  c_error: "#FF3B30", // Red for error
+  c_info: "#5AC8FA", // Light blue for info
+  c_job: "#007AFF", // Blue for job
+  c_node: "#34C759", // Green for node status
+  c_progress: "#FFCC00", // Yellow for progress
+  c_success: "#34C759", // Green for success
+  c_warn: "#FF9500", // Orange for warn
+  c_warning: "#FF9500", // Orange for warning
+  c_link: "#007AFF",
+  c_link_visited: "#5856D6",
 
   /* Scrollbar*/
-  c_scroll_bg: "#484848", // New from ThemeNodetool
-  c_scroll_hover: "#383838", // New from ThemeNodetool
-  c_scroll_thumb: "#2A2A2A", // New from ThemeNodetool
+  c_scroll_bg: "#F0F0F0",
+  c_scroll_hover: "#DCDCDC",
+  c_scroll_thumb: "#C0C0C0",
 
-  /* From ThemeNodes - potentially to be merged or confirmed if still needed */
-  c_node_bg: "#2b2e31",
-  c_node_bg_group: "#3d3d3d",
-  c_node_header_bg: "#202020",
-  c_node_header_bg_group: "#444",
-  c_bg_loop: "#305c9d17",
-  c_bg_group: "#9bcfdb17",
-  c_bg_comment: "#fff",
-  c_editor_bg_color: "rgb(128, 128, 128)",
-  c_editor_grid_color: "#333",
-  c_editor_axis_color: "#5e5e5e",
+  /* Node specific - adjust for light theme */
+  c_node_bg: "#FFFFFF",
+  c_node_bg_group: "#F7F7F7",
+  c_node_header_bg: "#EFEFEF",
+  c_node_header_bg_group: "#EAEAEA",
+  c_bg_loop: "#007AFF1A", // Light blue with alpha
+  c_bg_group: "#34C7591A", // Light green with alpha
+  c_bg_comment: "#FFFFE0", // Light yellow for comments
+  c_editor_bg_color: "#FFFFFF",
+  c_editor_grid_color: "#E0E0E0",
+  c_editor_axis_color: "#D3D3D3",
 
   primary: {
-    main: "#76e5b8", // From ThemeNodetool (ThemeNodes was #424242)
+    main: "#007AFF", // Example primary color for light theme
     contrastText: "#FFFFFF"
   },
   secondary: {
-    main: "#757575",
-    contrastText: "#FFFFFF"
+    main: "#5AC8FA", // Example secondary color
+    contrastText: "#000000"
   },
   tertiary: {
-    light: "#a7d0c3",
-    main: "#68a89a",
-    dark: "#387c6d",
-    contrastText: "#fff"
+    // Assuming tertiary is similar to MUI's definition
+    main: "#FF9500",
+    light: "#FFB340",
+    dark: "#D67E00",
+    contrastText: "#FFFFFF"
   },
   background: {
-    default: "#202020",
-    paper: "#232323"
+    default: "#FFFFFF",
+    paper: "#FDFDFD"
   }
 };

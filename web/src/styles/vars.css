@@ -11,7 +11,7 @@
 
   /* General */
   --c_black: var(--palette-c_black);
-  --c_white: var(--palette-c_white);
+  --c_white: var(--palette-c_brightest);
   --c_gray0: var(--palette-c_gray0);
   --c_gray1: var(--palette-c_gray1);
   --c_gray2: var(--palette-c_gray2);
@@ -21,14 +21,15 @@
   --c_gray6: var(--palette-c_gray6);
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);
+
   /* Highlights */
   --c_hl1: var(--palette-c_hl1);
   --c_hl1_1: var(--palette-c_hl1_1);
   --c_hl2: var(--palette-c_hl2);
   --c_link: var(--palette-c_link);
   --c_link_visited: var(--palette-c_link_visited);
-  /* --c_selection: #8eaca7; */
   --c_selection: var(--palette-c_selection);
+
   /* Statuses */
   --c_attention: var(--palette-c_attention);
   --c_delete: var(--palette-c_delete);
@@ -41,46 +42,22 @@
   --c_success: var(--palette-c_success);
   --c_warn: var(--palette-c_warn);
   --c_warning: var(--palette-c_warning);
+
   /* Scrollbar*/
   --c_scroll_bg: var(--palette-c_scroll_bg);
   --c_scroll_hover: var(--palette-c_scroll_hover);
   --c_scroll_thumb: var(--palette-c_scroll_thumb);
   --c_input: var(--palette-c_input);
   --c_output: var(--palette-c_output);
-  /* Data Types */
-  /*
-  If these colors are needed, they should be added to sharedPalette.ts 
-  and then referenced here, e.g., --c_any: var(--palette-c_any);
 
-  --c_any: #FFFFFF;
-  --c_asset: #E6DB69;
-  --c_assistant: #56DB52;
-  --c_audio: #1E90FF;
-  --c_bool: #09152C;
-  --c_dataframe: #AAFFC3;
-  --c_dict: #FFD8B1;
-  --c_enum: #F54F31;
-  --c_file: #FFC63D;
-  --c_float: #747D82;
-  --c_folder: #B9AF8A;
-  --c_image: #36B1BF;
-  --c_int: #3B3F42;
-  --c_list: #E6BEFF;
-  --c_model: #800061;
-  --c_str: #12620b;
-  --c_tensor: #c331ed;
-  --c_text: #248809;
-  --c_thread: #3B1EBF;
-  --c_thread_message: #4D39D7;
-  --c_union: #7B5353;
-  --c_video: #BCF60C;
-*/
   /* NODES */
+  --handle_width: 6px;
+  --handle_height: 12px;
   --c_node_bg: var(--palette-c_node_bg);
   --c_node_bg_group: var(--palette-c_node_bg_group);
   --c_node_header_bg: var(--palette-c_node_header_bg);
   --c_node_header_bg_group: var(--palette-c_node_header_bg_group);
 
-  --handle_width: 6px;
-  --handle_height: 12px;
+
 }
+
