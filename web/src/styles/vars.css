@@ -10,47 +10,47 @@
   --font-size-tinyer: 6.5px;
 
   /* General */
-  --c_black: var(--mui-palette-c_black);
-  --c_white: var(--mui-palette-c_white);
-  --c_gray0: var(--mui-palette-c_gray0);
-  --c_gray1: var(--mui-palette-c_gray1);
-  --c_gray2: var(--mui-palette-c_gray2);
-  --c_gray3: var(--mui-palette-c_gray3);
-  --c_gray4: var(--mui-palette-c_gray4);
-  --c_gray5: var(--mui-palette-c_gray5);
-  --c_gray6: var(--mui-palette-c_gray6);
-  --c_background: var(--mui-palette-c_background);
-  --c_node_menu: var(--mui-palette-c_node_menu);
+  --c_black: var(--palette-c_black);
+  --c_white: var(--palette-c_white);
+  --c_gray0: var(--palette-c_gray0);
+  --c_gray1: var(--palette-c_gray1);
+  --c_gray2: var(--palette-c_gray2);
+  --c_gray3: var(--palette-c_gray3);
+  --c_gray4: var(--palette-c_gray4);
+  --c_gray5: var(--palette-c_gray5);
+  --c_gray6: var(--palette-c_gray6);
+  --c_background: var(--palette-c_background);
+  --c_node_menu: var(--palette-c_node_menu);
   /* Highlights */
-  --c_hl1: var(--mui-palette-c_hl1);
-  --c_hl1_1: var(--mui-palette-c_hl1_1);
-  --c_hl2: var(--mui-palette-c_hl2);
-  --c_link: var(--mui-palette-c_link);
-  --c_link_visited: var(--mui-palette-c_link_visited);
+  --c_hl1: var(--palette-c_hl1);
+  --c_hl1_1: var(--palette-c_hl1_1);
+  --c_hl2: var(--palette-c_hl2);
+  --c_link: var(--palette-c_link);
+  --c_link_visited: var(--palette-c_link_visited);
   /* --c_selection: #8eaca7; */
-  --c_selection: var(--mui-palette-c_selection);
+  --c_selection: var(--palette-c_selection);
   /* Statuses */
-  --c_attention: var(--mui-palette-c_attention);
-  --c_delete: var(--mui-palette-c_delete);
-  --c_debug: var(--mui-palette-c_debug);
-  --c_error: var(--mui-palette-c_error);
-  --c_info: var(--mui-palette-c_info);
-  --c_job: var(--mui-palette-c_job);
-  --c_node: var(--mui-palette-c_node);
-  --c_progress: var(--mui-palette-c_progress);
-  --c_success: var(--mui-palette-c_success);
-  --c_warn: var(--mui-palette-c_warn);
-  --c_warning: var(--mui-palette-c_warning);
+  --c_attention: var(--palette-c_attention);
+  --c_delete: var(--palette-c_delete);
+  --c_debug: var(--palette-c_debug);
+  --c_error: var(--palette-c_error);
+  --c_info: var(--palette-c_info);
+  --c_job: var(--palette-c_job);
+  --c_node: var(--palette-c_node);
+  --c_progress: var(--palette-c_progress);
+  --c_success: var(--palette-c_success);
+  --c_warn: var(--palette-c_warn);
+  --c_warning: var(--palette-c_warning);
   /* Scrollbar*/
-  --c_scroll_bg: var(--mui-palette-c_scroll_bg);
-  --c_scroll_hover: var(--mui-palette-c_scroll_hover);
-  --c_scroll_thumb: var(--mui-palette-c_scroll_thumb);
-  --c_input: var(--mui-palette-c_input);
-  --c_output: var(--mui-palette-c_output);
+  --c_scroll_bg: var(--palette-c_scroll_bg);
+  --c_scroll_hover: var(--palette-c_scroll_hover);
+  --c_scroll_thumb: var(--palette-c_scroll_thumb);
+  --c_input: var(--palette-c_input);
+  --c_output: var(--palette-c_output);
   /* Data Types */
   /*
   If these colors are needed, they should be added to sharedPalette.ts 
-  and then referenced here, e.g., --c_any: var(--mui-palette-c_any);
+  and then referenced here, e.g., --c_any: var(--palette-c_any);
 
   --c_any: #FFFFFF;
   --c_asset: #E6DB69;
@@ -76,10 +76,10 @@
   --c_video: #BCF60C;
 */
   /* NODES */
-  --c_node_bg: var(--mui-palette-c_node_bg);
-  --c_node_bg_group: var(--mui-palette-c_node_bg_group);
-  --c_node_header_bg: var(--mui-palette-c_node_header_bg);
-  --c_node_header_bg_group: var(--mui-palette-c_node_header_bg_group);
+  --c_node_bg: var(--palette-c_node_bg);
+  --c_node_bg_group: var(--palette-c_node_bg_group);
+  --c_node_header_bg: var(--palette-c_node_header_bg);
+  --c_node_header_bg_group: var(--palette-c_node_header_bg_group);
 
   --handle_width: 6px;
   --handle_height: 12px;
