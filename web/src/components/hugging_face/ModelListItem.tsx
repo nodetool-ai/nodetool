@@ -3,9 +3,6 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import {
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Typography,
   Tooltip,
   CircularProgress,
@@ -37,7 +34,6 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       boxSizing: "border-box",
       borderBottom: "1px solid " + theme.palette.c_gray2,
-      // borderRadius: ".25em",
       transition: "border 0.125s ease-in",
       wordBreak: "break-word",
 
@@ -47,7 +43,7 @@ const styles = (theme: any) =>
       },
 
       "&:hover": {
-        border: "1px solid" + theme.palette.c_gray2
+        opacity: 0.9
       },
 
       "& .model-content": {
