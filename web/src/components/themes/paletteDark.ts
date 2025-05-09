@@ -168,5 +168,15 @@ export const paletteDark: PaletteOptions = {
   background: {
     default: "#202020",
     paper: "#232323"
+  },
+  text: {
+    primary: "#fff",
+    secondary: "#ddd",
+    disabled: "#aaa"
+  },
+  action: {
+    active: "#fff",
+    hover: "#ddd",
+    selected: "#aaa"
   }
 };
