@@ -35,7 +35,8 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
       padding: 0.6em 2.5em;
       font-family: ${theme.fontFamily2};
       word-spacing: -0.2em;
-      color: ${theme.palette.c_hl1};
+      color: ${theme.palette.primary.contrastText};
+      background-color: ${theme.palette.c_hl1};
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
       border-radius: 0.3em;
