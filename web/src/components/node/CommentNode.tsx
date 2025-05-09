@@ -136,6 +136,10 @@ const renderLeaf = (props: any) => {
     style.fontWeight = "bold";
   }
 
+  if (props.leaf.italic) {
+    style.fontStyle = "italic";
+  }
+
   if (props.leaf.size) {
     switch (props.leaf.size) {
       case "-":
