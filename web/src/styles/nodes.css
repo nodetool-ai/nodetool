@@ -165,8 +165,7 @@
   pointer-events: all;
   margin: 5px;
   height: 1.1em;
-  z-index: 10000;
-  background-color: transparent;
+  z-index: 1000;
   border-radius: 0;
 }
 
