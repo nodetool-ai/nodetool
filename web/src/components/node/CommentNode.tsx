@@ -34,7 +34,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       margin: 0,
-      padding: "2em 1em",
+      padding: "2.5em 1em 1em 1em",
       // border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.3)}`,
       boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_brightest, 0.1)}`,
       backgroundColor: "transparent",
@@ -59,7 +59,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       left: 0,
-      padding: "0 1em",
+      padding: "0 .2em",
       "& [data-slate-placeholder='true']": {
         color: "rgba(0, 0, 0, 0.6)"
       }
@@ -80,15 +80,15 @@ const styles = (theme: any) =>
     },
     ".format-buttons": {
       position: "absolute",
-      top: "1em",
-      right: "4em",
+      top: ".5em",
+      right: "3em",
       display: "flex",
       gap: "4px",
       zIndex: 1,
       opacity: 0,
       transition: "opacity 0.2s ease",
       "& button": {
-        padding: "2px 6px",
+        padding: "1px 5px",
         fontSize: "12px",
         backgroundColor: hexToRgba(theme.palette.c_brightest, 0.1),
         border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.2)}`,
@@ -109,12 +109,15 @@ const styles = (theme: any) =>
     },
     ".color-picker-container": {
       position: "absolute",
-      top: "1em",
-      right: "1em",
+      width: "2em",
+      height: "2em",
+      overflow: "hidden",
+      top: ".3em",
+      right: ".5em",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: 0
+      opacity: 0.1
     }
   });
 
@@ -265,7 +268,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
         <FormatButton
           format="italic"
-          label="I"
+          label="i"
           isActive={isMarkActive("italic")}
           onToggle={toggleMark}
         />

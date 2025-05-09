@@ -36,9 +36,8 @@ const styles = (theme: any) =>
     ".color-picker-button": {
       width: "100%",
       height: "100%",
-      minWidth: "50px",
-      minHeight: "50px",
-      // boxShadow: "0 0 2px" + theme.palette.c_gray0,
+      minWidth: "unset",
+      minHeight: "unset",
       borderRadius: "100%",
       pointerEvents: "all",
       margin: 0,
