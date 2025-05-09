@@ -160,7 +160,9 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }));
   const [editor] = useState(() => withReact(createEditor()));
   const [color, setColor] = useState(
-    props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment
+    props.data.properties.comment_color ||
+      (ThemeNodes.colorSchemes?.dark?.palette as any)?.c_bg_comment ||
+      "#ffffff"
   );
   const [value, setValue] = useState<Descendant[]>(() => {
     return Array.isArray(props.data.properties.comment) &&
