@@ -42,7 +42,7 @@ declare module "@mui/material/styles" {
     c_scroll_bg?: string;
     c_scroll_hover?: string;
     c_scroll_thumb?: string;
-    // Properties from ThemeNodes that might be missing or different in ThemeNodetool
+
     c_node_bg?: string;
     c_node_bg_group?: string;
     c_node_header_bg?: string;
@@ -69,6 +69,7 @@ declare module "@mui/material/styles" {
     c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
+
     /* Highlights */
     c_hl1?: string;
     c_hl1_1?: string;
@@ -76,6 +77,7 @@ declare module "@mui/material/styles" {
     c_selection?: string;
     c_input?: string;
     c_output?: string;
+
     /* Status */
     c_attention?: string;
     c_delete?: string;
@@ -90,11 +92,12 @@ declare module "@mui/material/styles" {
     c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
+
     /* Scrollbar*/
     c_scroll_bg?: string;
     c_scroll_hover?: string;
     c_scroll_thumb?: string;
-    // Properties from ThemeNodes that might be missing or different in ThemeNodetool
+
     c_node_bg?: string;
     c_node_bg_group?: string;
     c_node_header_bg?: string;
@@ -122,6 +125,7 @@ export const paletteLight: PaletteOptions = {
   c_gray6: "#0E0E0E",
   c_background: "#F5F5F7",
   c_node_menu: "#FFFFFF",
+
   /* Highlights */
   c_hl1: "#007AFF",
   c_hl1_1: "#5EADFF",
@@ -163,22 +167,26 @@ export const paletteLight: PaletteOptions = {
   c_editor_axis_color: "#D3D3D3",
 
   primary: {
-    main: "#007AFF", // Example primary color for light theme
+    main: "#76e5b8",
     contrastText: "#FFFFFF"
   },
   secondary: {
-    main: "#5AC8FA", // Example secondary color
-    contrastText: "#000000"
-  },
-  tertiary: {
-    // Assuming tertiary is similar to MUI's definition
-    main: "#FF9500",
-    light: "#FFB340",
-    dark: "#D67E00",
+    main: "#757575",
     contrastText: "#FFFFFF"
   },
+  tertiary: {
+    light: "#a7d0c3",
+    main: "#68a89a",
+    dark: "#387c6d",
+    contrastText: "#fff"
+  },
   background: {
-    default: "#FFFFFF",
+    default: "#880000",
     paper: "#FDFDFD"
+  },
+  text: {
+    primary: "#000000",
+    secondary: "#000000",
+    disabled: "#000000"
   }
 };

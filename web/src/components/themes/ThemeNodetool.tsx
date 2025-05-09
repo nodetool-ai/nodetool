@@ -1,7 +1,7 @@
 import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
-// import { paletteLight } from "./paletteLight";
+import { paletteLight } from "./paletteLight";
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -44,10 +44,10 @@ declare module "@mui/system/createTheme" {
 const ThemeNodetool: Theme = createTheme({
   defaultColorScheme: "dark",
   colorSchemes: {
-    // light: {
-    //   palette: paletteLight
-    // },
     dark: {
+      palette: paletteDark
+    },
+    light: {
       palette: paletteDark
     }
   },
