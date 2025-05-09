@@ -15,6 +15,7 @@ import PanelLeft from "./components/panels/PanelLeft";
 
 import { ThemeProvider } from "@emotion/react";
 import { CircularProgress, CssBaseline } from "@mui/material";
+import { CssVarsProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 
 import "@xyflow/react/dist/style.css";
@@ -162,10 +163,11 @@ const AppWrapper = () => {
   const { state } = useAuth();
 
   useEffect(() => {
+    // Existing effect for loading metadata
     loadMetadata().then((data) => {
       setStatus(data);
     });
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   if (status === "pending") {
     return (
@@ -194,17 +196,19 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <MenuProvider>
-            <WorkflowManagerProvider queryClient={queryClient}>
-              <KeyboardProvider active={true}>
-                <RouterProvider router={router} />
-                <HuggingFaceDownloadDialog />
-              </KeyboardProvider>
-            </WorkflowManagerProvider>
-          </MenuProvider>
-        </ThemeProvider>
+        <CssVarsProvider theme={ThemeNodetool}>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <MenuProvider>
+              <WorkflowManagerProvider queryClient={queryClient}>
+                <KeyboardProvider active={true}>
+                  <RouterProvider router={router} />
+                  <HuggingFaceDownloadDialog />
+                </KeyboardProvider>
+              </WorkflowManagerProvider>
+            </MenuProvider>
+          </ThemeProvider>
+        </CssVarsProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );

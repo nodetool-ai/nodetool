@@ -8,7 +8,7 @@ import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppHeaderActions from "../panels/AppHeaderActions";
 import { Workflow } from "../../stores/ApiTypes";
-import { generateCSS } from "../themes/GenerateCSS";
+// import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import TabsBar from "./TabsBar";
@@ -332,7 +332,8 @@ const TabsNodeEditor = () => {
             <TabsBar workflows={workflows} />
             <WindowControls />
           </div>
-          <div className="editor-container" css={generateCSS}>
+          {/* <div className="editor-container" css={generateCSS}> */}
+          <div className="editor-container">
             {workflows.map((workflow) => {
               const isActive = currentWorkflowId === workflow.id;
               return (
