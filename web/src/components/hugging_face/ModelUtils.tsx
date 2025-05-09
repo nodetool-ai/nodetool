@@ -8,7 +8,6 @@ import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHuggingFaceRepoInfo } from "../../utils/huggingFaceUtils";
-import ThemeNodetool from "../themes/ThemeNodetool";
 
 export type OllamaModel = {
   name: string;
