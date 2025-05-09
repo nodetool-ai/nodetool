@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo, useState, useCallback } from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -35,13 +35,10 @@ const styles = (theme: any) =>
       height: "100%",
       margin: 0,
       padding: "2.5em 1em 1em 1em",
-      // border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.3)}`,
-      boxShadow: `0 0 8px ${hexToRgba(theme.palette.c_brightest, 0.1)}`,
+      boxShadow: `inset 0 0 5px 1px #00000011`,
       backgroundColor: "transparent",
-      // transition: "border-color 0.2s ease, box-shadow 0.2s ease",
       "&:hover": {
-        // border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.5)}`,
-        boxShadow: `0 0 12px ${hexToRgba(theme.palette.c_brightest, 0.2)}`
+        boxShadow: `inset 0 0 8px 1px #ffffff11`
       },
       "&.collapsed": {
         maxHeight: "60px"
