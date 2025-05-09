@@ -49,12 +49,13 @@ const styles = (theme: any) =>
     },
     ".text-editor": {
       width: "100%",
+      height: "100%",
+      overflowX: "hidden",
+      overflowY: "auto",
       color: theme.palette.c_black,
       fontSize: theme.fontSizeBigger,
       fontFamily: theme.fontFamily1,
-      lineHeight: "1.2em",
-      overflowX: "hidden",
-      overflowY: "auto",
+      lineHeight: "1.1em",
       left: 0,
       padding: "0 .2em",
       "& [data-slate-placeholder='true']": {
