@@ -153,7 +153,7 @@ export const paletteDark: PaletteOptions = {
 
   primary: {
     main: "#76e5b8",
-    contrastText: "#FFFFFF"
+    contrastText: "#000"
   },
   secondary: {
     main: "#757575",
