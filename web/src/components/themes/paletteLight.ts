@@ -185,8 +185,13 @@ export const paletteLight: PaletteOptions = {
     paper: "#FDFDFD"
   },
   text: {
-    primary: "#000000",
-    secondary: "#000000",
-    disabled: "#000000"
+    primary: "#000",
+    secondary: "#222",
+    disabled: "#444"
+  },
+  action: {
+    active: "#000",
+    hover: "#222",
+    selected: "#444"
   }
 };

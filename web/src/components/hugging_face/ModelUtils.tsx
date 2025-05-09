@@ -215,9 +215,16 @@ export const renderModelActions = (
     )}
     {downloaded && (
       <Button
-        variant="outlined"
+        // variant="outlined"
         disabled
-        sx={{ fontSize: "0.8em", padding: "0.5em 1.25e" }}
+        className="model-downloaded-button"
+        sx={{
+          fontSize: "0.8em",
+          padding: "0.5em 1.25e",
+          marginLeft: "0.5em",
+          backgroundColor: "#252525",
+          color: "#fff !important"
+        }}
       >
         <Check sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
         DOWNLOADED
