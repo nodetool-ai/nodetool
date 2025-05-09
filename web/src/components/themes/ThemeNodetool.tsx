@@ -1,4 +1,6 @@
 import { Theme, createTheme } from "@mui/material/styles";
+import type {} from "@mui/material/themeCssVarsAugmentation"; // MUI v6 CSS Vars type augmentation
+import { sharedPalette } from "./sharedPalette"; // Import shared palette
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -36,54 +38,15 @@ declare module "@mui/system/createTheme" {
     fontFamily1: string;
     fontFamily2: string;
   }
-  interface Palette {
-    [key: string]: string;
-  }
-}
-
-declare module "@mui/material/styles" {
-  interface Palette {
-    /* General */
-    c_black?: string;
-    c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
-    c_background?: string;
-    c_node_menu?: string;
-    /* Highlights */
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
-    c_selection?: string;
-    c_input?: string;
-    c_output?: string;
-    /* Status */
-    c_attention?: string;
-    c_delete?: string;
-    c_debug?: string;
-    c_error?: string;
-    c_info?: string;
-    c_job?: string;
-    c_node?: string;
-    c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
-    c_link?: string;
-    c_link_visited?: string;
-    /* Scrollbar*/
-    c_scroll_bg?: string;
-    c_scroll_hover?: string;
-    c_scroll_thumb?: string;
-  }
 }
 
 const ThemeNodetool: Theme = createTheme({
+  defaultColorScheme: "dark",
+  colorSchemes: {
+    dark: {
+      palette: sharedPalette
+    }
+  },
   fontSizeGiant: "2em", // 32px
   fontSizeBigger: "1.25em", // 20px
   fontSizeBig: "1.125em", // 18px
@@ -96,66 +59,6 @@ const ThemeNodetool: Theme = createTheme({
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
 
-  palette: {
-    /* General */
-    c_black: "#020202",
-    c_white: "#FCFCFC",
-    c_gray0: "#0E0E0E",
-    c_gray1: "#242424",
-    c_gray2: "#444444",
-    c_gray3: "#6D6D6D",
-    c_gray4: "#959595",
-    c_gray5: "#BDBDBD",
-    c_gray6: "#D9D9D9",
-    c_background: "#424854",
-    c_node_menu: "#232323",
-    /* Highlights */
-    c_hl1: "#76e5b8",
-    c_hl1_1: "#325954",
-    c_hl2: "#128B6E",
-    c_selection: "#8EACA777",
-    c_input: "#374f4f",
-    c_output: "#493f4d",
-
-    /* Statuses */
-    c_attention: "#E35BFF",
-    c_delete: "#FF2222",
-    c_debug: "#FF3355",
-    c_error: "#FF5555",
-    c_info: "#FFFFFF",
-    c_job: "#223399",
-    c_node: "#029486",
-    c_progress: "#556611",
-    c_success: "#50FA7B",
-    c_warn: "#FFB86C",
-    c_warning: "#FFB86C",
-    c_link: "##e4ffde",
-    c_link_visited: "#d1e2cd",
-    /* Scrollbar*/
-    c_scroll_bg: "#484848",
-    c_scroll_hover: "#383838",
-    c_scroll_thumb: "#2A2A2A",
-
-    mode: "dark",
-    primary: {
-      main: "#76e5b8",
-      contrastText: "#FFFFFF"
-    },
-    secondary: {
-      main: "#757575",
-      contrastText: "#FFFFFF"
-    },
-    tertiary: {
-      light: "#a7d0c3",
-      main: "#68a89a",
-      dark: "#387c6d",
-      contrastText: "#fff"
-    },
-    background: {
-      default: "#202020",
-      paper: "#232323"
-    }
-  } as any,
   typography: {
     fontFamily: "'Inter', sans-serif",
     fontSize: 14
@@ -163,7 +66,8 @@ const ThemeNodetool: Theme = createTheme({
   spacing: 4,
   shape: {
     borderRadius: 4
-  }
+  },
+  cssVariables: { colorSchemeSelector: '[data-mui-color-scheme="dark"]' }
 });
 
 ThemeNodetool.components = {

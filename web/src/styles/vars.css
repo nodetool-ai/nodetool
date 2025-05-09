@@ -10,45 +10,48 @@
   --font-size-tinyer: 6.5px;
 
   /* General */
-  --c_black: #020202;
-  --c_white: #fcfcfc;
-  --c_gray0: #0e0e0e;
-  --c_gray1: #242424;
-  --c_gray2: #444444;
-  --c_gray3: #6d6d6d;
-  --c_gray4: #959595;
-  --c_gray5: #bdbdbd;
-  --c_gray6: #d9d9d9;
-  --c_background: #424854;
-  --c_node_menu: #232323;
+  --c_black: var(--mui-palette-c_black);
+  --c_white: var(--mui-palette-c_white);
+  --c_gray0: var(--mui-palette-c_gray0);
+  --c_gray1: var(--mui-palette-c_gray1);
+  --c_gray2: var(--mui-palette-c_gray2);
+  --c_gray3: var(--mui-palette-c_gray3);
+  --c_gray4: var(--mui-palette-c_gray4);
+  --c_gray5: var(--mui-palette-c_gray5);
+  --c_gray6: var(--mui-palette-c_gray6);
+  --c_background: var(--mui-palette-c_background);
+  --c_node_menu: var(--mui-palette-c_node_menu);
   /* Highlights */
-  --c_hl1: #76e5b8;
-  --c_hl1_1: #b7e3d9;
-  --c_hl2: #1ec7c7;
-  --c_link: #e4ffde;
-  --c_link_visited: #d1e2cd;
+  --c_hl1: var(--mui-palette-c_hl1);
+  --c_hl1_1: var(--mui-palette-c_hl1_1);
+  --c_hl2: var(--mui-palette-c_hl2);
+  --c_link: var(--mui-palette-c_link);
+  --c_link_visited: var(--mui-palette-c_link_visited);
   /* --c_selection: #8eaca7; */
-  --c_selection: #8eaca777;
+  --c_selection: var(--mui-palette-c_selection);
   /* Statuses */
-  --c_attention: #e35bff;
-  --c_delete: #ff2222;
-  --c_debug: #ff3355;
-  --c_error: #ff5555;
-  --c_info: #ffffff;
-  --c_job: #223399;
-  --c_node: #029486;
-  --c_progress: #556611;
-  --c_success: #50fa7b;
-  --c_warn: #ffb86c;
-  --c_warning: #ffb86c;
+  --c_attention: var(--mui-palette-c_attention);
+  --c_delete: var(--mui-palette-c_delete);
+  --c_debug: var(--mui-palette-c_debug);
+  --c_error: var(--mui-palette-c_error);
+  --c_info: var(--mui-palette-c_info);
+  --c_job: var(--mui-palette-c_job);
+  --c_node: var(--mui-palette-c_node);
+  --c_progress: var(--mui-palette-c_progress);
+  --c_success: var(--mui-palette-c_success);
+  --c_warn: var(--mui-palette-c_warn);
+  --c_warning: var(--mui-palette-c_warning);
   /* Scrollbar*/
-  --c_scroll_bg: #484848;
-  --c_scroll_hover: #383838;
-  --c_scroll_thumb: #2a2a2a;
-  --c_input: #374f4f;
-  --c_output: #493f4d;
+  --c_scroll_bg: var(--mui-palette-c_scroll_bg);
+  --c_scroll_hover: var(--mui-palette-c_scroll_hover);
+  --c_scroll_thumb: var(--mui-palette-c_scroll_thumb);
+  --c_input: var(--mui-palette-c_input);
+  --c_output: var(--mui-palette-c_output);
   /* Data Types */
   /*
+  If these colors are needed, they should be added to sharedPalette.ts 
+  and then referenced here, e.g., --c_any: var(--mui-palette-c_any);
+
   --c_any: #FFFFFF;
   --c_asset: #E6DB69;
   --c_assistant: #56DB52;
@@ -73,10 +76,10 @@
   --c_video: #BCF60C;
 */
   /* NODES */
-  --c_node_bg: #1a1c1e;
-  --c_node_bg_group: #2a2d30;
-  --c_node_header_bg: #151515;
-  --c_node_header_bg_group: #232323;
+  --c_node_bg: var(--mui-palette-c_node_bg);
+  --c_node_bg_group: var(--mui-palette-c_node_bg_group);
+  --c_node_header_bg: var(--mui-palette-c_node_header_bg);
+  --c_node_header_bg_group: var(--mui-palette-c_node_header_bg_group);
 
   --handle_width: 6px;
   --handle_height: 12px;
