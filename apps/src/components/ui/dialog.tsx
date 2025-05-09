@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 
 interface DialogContentProps extends ChakraDialog.ContentProps {
+  children: React.ReactNode;
   portalled?: boolean;
   portalRef?: React.RefObject<HTMLElement>;
   className?: string;
