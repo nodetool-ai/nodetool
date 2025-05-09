@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useState, useCallback, useRef } from "react";
-import { NodeProps, NodeResizeControl, Node } from "@xyflow/react";
+import { memo, useState, useCallback } from "react";
+import { NodeProps } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
-import { Container, Icon, IconButton } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { createEditor, Editor, Element, Transforms } from "slate";
+import { createEditor, Editor } from "slate";
 import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -146,7 +146,8 @@ const renderLeaf = (props: any) => {
         style.fontSize = "1em";
         break;
       case "+":
-        style.fontSize = "1.5em";
+        style.fontSize = "1.25em";
+        style.lineHeight = "1.2em";
         break;
     }
   }
