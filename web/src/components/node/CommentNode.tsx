@@ -86,6 +86,7 @@ const styles = (theme: any) =>
       transition: "opacity 0.2s ease",
       "& button": {
         padding: "1px 5px",
+        minWidth: "20px",
         fontSize: "12px",
         backgroundColor: hexToRgba(theme.palette.c_brightest, 0.1),
         border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.2)}`,
@@ -114,7 +115,11 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: 0.1
+      opacity: 0.2,
+      transition: "opacity 0.2s ease",
+      "&:hover": {
+        opacity: 0.9
+      }
     }
   });
 
@@ -264,7 +269,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <div className="format-buttons">
         <FormatButton
           format="bold"
-          label="B"
+          label="b"
           isActive={isMarkActive("bold")}
           onToggle={toggleMark}
         />
