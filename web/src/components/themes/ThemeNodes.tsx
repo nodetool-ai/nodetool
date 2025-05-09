@@ -1,7 +1,7 @@
 import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
 // import type {} from "@mui/material/themeCssVarsAugmentation"; // No longer strictly needed for this approach
 import { paletteDark } from "./paletteDark";
-// import { paletteLight } from "./paletteLight"; // Will be used by the theme switcher logic, not directly in base theme options here
+import { paletteLight } from "./paletteLight";
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -46,13 +46,15 @@ const ThemeNodes: Theme = createTheme({
   colorSchemes: {
     dark: {
       palette: paletteDark
+    },
+    light: {
+      palette: paletteDark
     }
   },
   cssVariables: {
     colorSchemeSelector: "[data-mui-color-scheme]",
     cssVarPrefix: ""
   },
-  palette: paletteDark,
 
   fontSizeGiant: "2.5em",
   fontSizeBigger: "1.25em",
