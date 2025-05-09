@@ -47,6 +47,10 @@ const ThemeNodes: Theme = createTheme({
       palette: sharedPalette
     }
   },
+  cssVariables: {
+    colorSchemeSelector: '[data-mui-color-scheme="dark"]',
+    cssVarPrefix: ""
+  },
   fontSizeGiant: "2.5em", // 26.25px
   fontSizeBigger: "1.25em", // 15px
   fontSizeBig: "1.125em", // 13.5px
@@ -64,8 +68,7 @@ const ThemeNodes: Theme = createTheme({
   spacing: 4,
   shape: {
     borderRadius: 4
-  },
-  cssVariables: { colorSchemeSelector: '[data-mui-color-scheme="dark"]' }
+  }
 });
 
 ThemeNodes.components = {
