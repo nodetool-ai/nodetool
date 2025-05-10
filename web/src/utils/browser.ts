@@ -1,28 +1,46 @@
 export interface ElectronDetectionDetails {
   isElectron: boolean;
-  hasProcessFlag: boolean;
-  hasUAFlag: boolean;
+  isRendererProcess: boolean; // from window.process.type === 'renderer'
+  hasElectronVersionInWindowProcess: boolean; // from window.process.versions.electron
+  hasElectronInUserAgent: boolean; // from navigator.userAgent
 }
 
 /**
- * Checks if the current environment is Electron.
- * It looks for the presence of `window.process.versions.electron`
- * (indicating nodeIntegration is likely enabled) or 'Electron' in the User-Agent string.
+ * Checks if the current environment is Electron using multiple signals.
+ * It looks for:
+ *  - `window.process.type === 'renderer'`
+ *  - The presence of `window.process.versions.electron`
+ *  - 'Electron' in the User-Agent string.
  *
- * @returns An object containing:
- *  - isElectron: boolean (true if either condition is met)
- *  - hasProcessFlag: boolean (true if window.process.versions.electron is found)
- *  - hasUAFlag: boolean (true if 'Electron' is in the User-Agent)
+ * @returns An object containing boolean flags for each check and a combined `isElectron` flag.
  */
 export const getIsElectronDetails = (): ElectronDetectionDetails => {
-  // Check for process.versions.electron (nodeIntegration enabled or contextBridge exposure)
-  const hasProcessFlag =
-    typeof window !== "undefined" && !!window.process?.versions?.electron;
+  const isRendererProcess =
+    typeof window !== "undefined" &&
+    typeof window.process === "object" &&
+    window.process.type === "renderer";
 
-  // Fallback to User-Agent sniffing
-  const hasUAFlag =
-    typeof navigator !== "undefined" &&
+  const hasElectronVersionInWindowProcess =
+    typeof window !== "undefined" &&
+    typeof window.process === "object" &&
+    typeof window.process.versions === "object" &&
+    !!window.process.versions.electron;
+
+  const hasElectronInUserAgent =
+    typeof navigator === "object" &&
+    typeof navigator.userAgent === "string" &&
     navigator.userAgent.includes("Electron");
 
-  return { isElectron: hasProcessFlag || hasUAFlag, hasProcessFlag, hasUAFlag };
+  // An environment is considered Electron if any of these specific checks are true.
+  const isElectron =
+    isRendererProcess ||
+    hasElectronVersionInWindowProcess ||
+    hasElectronInUserAgent;
+
+  return {
+    isElectron,
+    isRendererProcess,
+    hasElectronVersionInWindowProcess,
+    hasElectronInUserAgent
+  };
 };
