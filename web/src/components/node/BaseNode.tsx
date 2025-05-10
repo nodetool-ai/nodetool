@@ -13,7 +13,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container, Box } from "@mui/material";
+import { Container, Box, Tooltip, Button } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -37,6 +37,8 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -232,15 +234,25 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     throw new Error("Metadata is not loaded for node type " + type);
   }
+  const specialNamespaces = useMemo(
+    () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
+    []
+  );
+
   const meta = useMemo(() => {
     return {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields: metadata.basic_fields || [],
       hasAdvancedFields:
         metadata.properties?.length > metadata.basic_fields?.length,
-      showFooter: metadata.namespace !== "nodetool.constant"
+      showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
-  }, [metadata]);
+  }, [
+    metadata.basic_fields,
+    metadata.namespace,
+    metadata.properties?.length,
+    specialNamespaces
+  ]);
 
   // Style
   const styleProps = useMemo(
@@ -323,7 +335,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConstantNode={nodeType.isConstantNode}
         isOutputNode={nodeType.isOutputNode}
         data={data}
+        hasAdvancedFields={meta.hasAdvancedFields}
         showAdvancedFields={showAdvancedFields}
+        onToggleAdvancedFields={onToggleAdvancedFields}
         basicFields={meta.nodeBasicFields}
         status={status}
         workflowId={workflow_id}
@@ -331,6 +345,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onUpdatePropertyName={handleUpdatePropertyName}
         onDeleteProperty={handleDeleteProperty}
       />
+
       {metadata?.is_dynamic && (
         <NodePropertyForm onAddProperty={handleAddProperty} />
       )}
@@ -349,9 +364,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           metadata={metadata}
           backgroundColor={footerColor}
           nodeType={type}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          showAdvancedFields={showAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
         />
       )}
 

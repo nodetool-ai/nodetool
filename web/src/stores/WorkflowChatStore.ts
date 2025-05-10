@@ -3,8 +3,10 @@ import {
   Chunk,
   JobUpdate,
   Message,
+  MessageContent,
   NodeProgress,
   NodeUpdate,
+  OutputUpdate,
   PlanningUpdate,
   Prediction,
   TaskUpdate,
@@ -12,7 +14,6 @@ import {
   WorkflowAttributes
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
-import { useAuth } from "./useAuth";
 import log from "loglevel";
 import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
@@ -23,8 +24,7 @@ type WorkflowChatState = {
   workflow: WorkflowAttributes | null;
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   messages: Message[];
-  currentNodeName: string | null;
-  currentToolCall: ToolCallUpdate | null;
+  progressMessage: string | null;
   progress: number;
   total: number;
   chunks: string;
@@ -44,13 +44,44 @@ export type MsgpackData =
   | ToolCallUpdate
   | TaskUpdate
   | Chunk
-  | PlanningUpdate;
+  | PlanningUpdate
+  | OutputUpdate;
+
+const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
+  const dataUri = URL.createObjectURL(new Blob([data]));
+  if (type === "image") {
+    return {
+      type: "image_url",
+      image: {
+        type: "image",
+        uri: dataUri
+      }
+    };
+  } else if (type === "audio") {
+    return {
+      type: "audio",
+      audio: {
+        type: "audio",
+        uri: dataUri
+      }
+    };
+  } else if (type === "video") {
+    return {
+      type: "video",
+      video: {
+        type: "video",
+        uri: dataUri
+      }
+    };
+  } else {
+    throw new Error(`Unknown message content type: ${type}`);
+  }
+};
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,
   messages: [],
-  currentNodeName: null,
-  currentToolCall: null,
+  progressMessage: null,
   chunks: "",
   workflow: null,
   status: "disconnected",
@@ -68,8 +99,45 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     set({ status: "connecting" });
 
-    const socket = new WebSocket(CHAT_URL);
+    const createMessageFromChunks = () => {
+      const chunks = get().chunks;
+      const message = {
+        role: "assistant",
+        type: "message",
+        content: chunks,
+        workflow_id: get().workflow?.id
+      };
+      set({ messages: [...get().messages, message], chunks: "" });
+    };
 
+    // Get authentication token if not connecting to localhost
+    let wsUrl = CHAT_URL;
+
+    if (!isLocalhost) {
+      try {
+        const {
+          data: { session }
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          // Add token as query parameter for WebSocket connection
+          wsUrl = `${CHAT_URL}?api_key=${session.access_token}`;
+          log.debug("Adding authentication to WebSocket connection");
+        } else {
+          log.warn(
+            "No Supabase session found, connecting without authentication"
+          );
+        }
+      } catch (error) {
+        log.error("Error getting Supabase session:", error);
+        set({
+          status: "error",
+          error: "Authentication failed. Please log in again."
+        });
+        return;
+      }
+    }
+
+    const socket = new WebSocket(wsUrl);
     socket.onopen = () => {
       log.info("Chat WebSocket connected");
       set({ socket, status: "connected" });
@@ -99,41 +167,55 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
         if (data.type === "job_update") {
           const update = data as JobUpdate;
           if (update.status === "completed") {
+            createMessageFromChunks();
             set({
-              currentNodeName: null,
               progress: 0,
               total: 0,
-              currentToolCall: null,
-              chunks: "",
+              progressMessage: null,
               status: "connected"
             });
           } else if (update.status === "failed") {
             set({
               error: update.error,
               status: "error",
-              currentNodeName: null,
               progress: 0,
               total: 0,
-              currentToolCall: null,
-              chunks: ""
+              progressMessage: null
             });
+          }
+        } else if (data.type === "output_update") {
+          const update = data as OutputUpdate;
+          if (update.output_type === "string") {
+            set({ chunks: get().chunks + update.value });
+          } else if (update.output_type === "image") {
+            const message = {
+              role: "assistant",
+              type: "message",
+              content: [
+                makeMessageContent(
+                  "image",
+                  (update?.value as { data: Uint8Array }).data
+                )
+              ],
+              workflow_id: get().workflow?.id
+            };
+            set({ messages: [...get().messages, message] });
           }
         } else if (data.type === "node_update") {
           const update = data as NodeUpdate;
-          set({ currentNodeName: update.node_name });
           if (update.status === "completed") {
-            set({ progress: 0, total: 0, currentToolCall: null, chunks: "" });
+            set({ progress: 0, total: 0, progressMessage: null });
           }
         } else if (data.type === "node_progress") {
           const progress = data as NodeProgress;
           set({
             progress: progress.progress,
             total: progress.total,
-            currentToolCall: null
+            progressMessage: null
           });
         } else if (data.type === "tool_call_update") {
           const update = data as ToolCallUpdate;
-          set({ currentToolCall: update });
+          set({ progressMessage: update.message });
         } else if (data.type === "chunk") {
           const chunk = data as Chunk;
           const currentChunk = get().chunks;
@@ -144,6 +226,13 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     socket.onerror = (error) => {
       log.error("Chat WebSocket error:", error);
+      if (!isLocalhost) {
+        set({
+          status: "error",
+          error:
+            "Connection failed. This may be due to an authentication issue."
+        });
+      }
     };
 
     socket.onclose = () => {
@@ -173,13 +262,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
   sendMessage: async (message: Message) => {
     const { socket } = get();
-
-    if (!isLocalhost) {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      message.auth_token = session?.access_token;
-    }
 
     set({ error: null });
 

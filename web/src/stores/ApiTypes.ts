@@ -52,6 +52,7 @@ export type Audio = components["schemas"]["AudioRef"];
 export type Video = components["schemas"]["VideoRef"];
 export type RunJobRequest = components["schemas"]["RunJobRequest"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
+export type OutputUpdate = components["schemas"]["OutputUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
 export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];

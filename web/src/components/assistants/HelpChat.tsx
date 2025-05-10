@@ -129,7 +129,6 @@ const HelpChat: React.FC = () => {
         status={isLoading ? "loading" : "connected"}
         messages={messages}
         sendMessage={(message) => sendMessage(message, selectedModel)}
-        currentNodeName={null}
         progress={0}
         total={0}
         currentToolCall={null}

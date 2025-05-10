@@ -221,12 +221,11 @@ const textPulse = keyframes`
 
 type ChatViewProps = {
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
-  currentNodeName: string | null;
   progress: number;
   total: number;
   messages: Array<Message>;
   sendMessage: (message: Message) => Promise<void>;
-  currentToolCall: ToolCallUpdate | null;
+  progressMessage: string | null;
   chunks: string;
 };
 export const Progress = ({
@@ -278,12 +277,11 @@ const DOC_TYPES_REGEX =
 
 const ChatView = ({
   status,
-  currentNodeName,
   progress,
   total,
   messages,
   sendMessage,
-  currentToolCall,
+  progressMessage,
   chunks
 }: ChatViewProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -666,29 +664,15 @@ const ChatView = ({
             <MarkdownRenderer content={chunks} />
           </li>
         )}
-        {currentNodeName && !currentToolCall && (
-          <li key="node-status" className="node-status">
-            running{" "}
+        {progressMessage && (
+          <li key="progress-message" className="node-status">
             <span
               css={css`
                 display: inline;
                 animation: ${textPulse} 1.8s ease-in-out infinite;
               `}
             >
-              {currentNodeName}...
-            </span>
-          </li>
-        )}
-        {currentToolCall && (
-          <li key="tool-call-indicator" className="node-status">
-            running{" "}
-            <span
-              css={css`
-                display: inline;
-                animation: ${textPulse} 1.8s ease-in-out infinite;
-              `}
-            >
-              {currentToolCall.name}...
+              {progressMessage}
             </span>
           </li>
         )}
