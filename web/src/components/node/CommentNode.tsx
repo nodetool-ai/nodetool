@@ -53,7 +53,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       color: theme.palette.c_black,
-      fontSize: theme.fontSizeBigger,
+      fontSize: theme.fontSizeBig,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.1em",
       left: 0,
@@ -103,7 +103,7 @@ const styles = (theme: any) =>
         }
       }
     },
-    "&:hover .format-buttons": {
+    "&:hover .format-buttons, &:hover .node-resize-handle": {
       opacity: 1
     },
     ".color-picker-container": {
@@ -116,10 +116,18 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: 0.2,
+      opacity: 0,
       transition: "opacity 0.2s ease",
       "&:hover": {
         opacity: 0.9
+      }
+    },
+
+    ".node-resize-handle": {
+      opacity: 0.6,
+      transition: "opacity 0.2s ease",
+      "&:hover": {
+        opacity: 1
       }
     }
   });
@@ -221,7 +229,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isMarkActive = useCallback(
     (format: keyof Omit<CustomText, "text">) => {
       const marks = Editor.marks(editor);
-      return marks ? marks[format] === true : false;
+      return marks ? marks[format] !== undefined : false;
     },
     [editor]
   );
@@ -283,14 +291,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <FormatButton
           format="size"
           label="-"
-          isActive={isMarkActive("size")}
-          onToggle={toggleMark}
+          isActive={isMarkActive("size") && Editor.marks(editor)?.size === "-"}
+          onToggle={(format, label) => toggleMark(format, label)}
         />
         <FormatButton
           format="size"
           label="+"
-          isActive={isMarkActive("size")}
-          onToggle={toggleMark}
+          isActive={isMarkActive("size") && Editor.marks(editor)?.size === "+"}
+          onToggle={(format, label) => toggleMark(format, label)}
         />
       </div>
       <div className="text-editor" onClick={handleClick}>
