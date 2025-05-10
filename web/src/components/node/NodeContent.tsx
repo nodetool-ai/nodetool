@@ -17,6 +17,8 @@ interface NodeContentProps {
   data: NodeData;
   basicFields: string[];
   showAdvancedFields: boolean;
+  hasAdvancedFields: boolean;
+  onToggleAdvancedFields: () => void;
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
@@ -36,6 +38,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   data,
   basicFields,
   showAdvancedFields,
+  hasAdvancedFields,
+  onToggleAdvancedFields,
   status,
   workflowId,
   renderedResult,
@@ -51,8 +55,10 @@ const NodeContent: React.FC<NodeContentProps> = ({
         nodeType={nodeType}
         data={data}
         showHandle={!isConstantNode}
+        hasAdvancedFields={hasAdvancedFields}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
+        onToggleAdvancedFields={onToggleAdvancedFields}
         onDeleteProperty={onDeleteProperty}
         onUpdatePropertyName={onUpdatePropertyName}
       />

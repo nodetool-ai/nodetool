@@ -7,7 +7,6 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NodeInfo from "../node_menu/NodeInfo";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
@@ -41,19 +40,13 @@ export interface NodeFooterProps {
   metadata: NodeMetadata;
   backgroundColor?: string;
   nodeType: string;
-  hasAdvancedFields?: boolean;
-  showAdvancedFields?: boolean;
-  onToggleAdvancedFields?: () => void;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
   metadata,
   backgroundColor,
-  nodeType,
-  hasAdvancedFields,
-  showAdvancedFields,
-  onToggleAdvancedFields
+  nodeType
 }) => {
   const { openNodeMenu } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
@@ -85,23 +78,6 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>
-      {hasAdvancedFields && (
-        <Tooltip
-          title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
-          placement="bottom"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <Button
-            className={`advanced-fields-button${
-              showAdvancedFields ? " active" : ""
-            }`}
-            tabIndex={-1}
-            onClick={onToggleAdvancedFields}
-          >
-            <ExpandMoreIcon />
-          </Button>
-        </Tooltip>
-      )}
       <Tooltip
         placement="bottom-start"
         enterDelay={600}
