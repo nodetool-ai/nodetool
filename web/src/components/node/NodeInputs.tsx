@@ -5,6 +5,12 @@ import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
+import { Button } from "@mui/material";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { Tooltip } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { css } from "@emotion/react";
+import { Collapse } from "@mui/material";
 
 export interface NodeInputsProps {
   id: string;
@@ -16,6 +22,8 @@ export interface NodeInputsProps {
   showHandle?: boolean;
   showAdvancedFields?: boolean;
   basicFields?: string[];
+  hasAdvancedFields?: boolean;
+  onToggleAdvancedFields?: () => void;
   onUpdatePropertyName?: (
     oldPropertyName: string,
     newPropertyName: string
@@ -109,6 +117,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   layout,
   showAdvancedFields,
   basicFields,
+  hasAdvancedFields,
+  onToggleAdvancedFields,
   onDeleteProperty,
   onUpdatePropertyName
 }) => {
@@ -119,56 +129,107 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicProperties: { [key: string]: Property } =
     data?.dynamic_properties || {};
 
+  const basicInputs: JSX.Element[] = [];
+  const advancedInputs: JSX.Element[] = [];
+
+  properties.forEach((property, index) => {
+    const tabIndex = tabableProperties.findIndex(
+      (p) => p.name === property.name
+    );
+    const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
+    const isBasicField = basicFields?.includes(property.name);
+    const isAdvancedField = !isBasicField;
+
+    const inputElement = (
+      <NodeInput
+        key={property.name + id}
+        id={id}
+        nodeType={nodeType}
+        layout={layout}
+        property={property}
+        propertyIndex={index.toString()}
+        data={data}
+        showFields={showFields}
+        showHandle={showHandle}
+        tabIndex={finalTabIndex}
+        showAdvancedFields={showAdvancedFields}
+        basicFields={basicFields}
+      />
+    );
+
+    if (isBasicField) {
+      basicInputs.push(inputElement);
+    } else {
+      advancedInputs.push(inputElement);
+    }
+  });
+
+  const dynamicInputElements = Object.entries(dynamicProperties).map(
+    ([name, value], index) => (
+      <NodeInput
+        key={`dynamic-${name}-${id}`}
+        id={id}
+        nodeType={nodeType}
+        layout={layout}
+        property={{
+          name,
+          type: {
+            type: "any",
+            type_args: [],
+            optional: false
+          }
+        }}
+        propertyIndex={`dynamic-${index}`}
+        data={data}
+        showFields={true}
+        showHandle={true}
+        tabIndex={-1}
+        isDynamicProperty={true}
+        onDeleteProperty={onDeleteProperty}
+        onUpdatePropertyName={onUpdatePropertyName}
+      />
+    )
+  );
+
   return (
     <div className={`node-inputs node-drag-handle node-${id}`}>
-      {properties.map((property, index) => {
-        const tabIndex = tabableProperties.findIndex(
-          (p) => p.name === property.name
-        );
-        const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
+      {basicInputs}
 
-        return (
-          <NodeInput
-            key={property.name + id}
-            id={id}
-            nodeType={nodeType}
-            layout={layout}
-            property={property}
-            propertyIndex={index.toString()}
-            data={data}
-            showFields={showFields}
-            showHandle={showHandle}
-            tabIndex={finalTabIndex}
-            showAdvancedFields={showAdvancedFields}
-            basicFields={basicFields}
-          />
-        );
-      })}
+      {hasAdvancedFields && (
+        <div className="expand-button-container">
+          <Tooltip
+            title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
+            placement="bottom"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <Button
+              className={`advanced-fields-button${
+                showAdvancedFields ? " active" : ""
+              }`}
+              tabIndex={-1}
+              onClick={onToggleAdvancedFields}
+              size="small"
+              variant="text"
+            >
+              <ExpandMoreIcon />{" "}
+              {showAdvancedFields ? "Show less" : "Show more"}
+            </Button>
+          </Tooltip>
+        </div>
+      )}
 
-      {Object.entries(dynamicProperties).map(([name, value], index) => (
-        <NodeInput
-          key={`dynamic-${name}-${id}`}
-          id={id}
-          nodeType={nodeType}
-          layout={layout}
-          property={{
-            name,
-            type: {
-              type: "any",
-              type_args: [],
-              optional: false
-            }
-          }}
-          propertyIndex={`dynamic-${index}`}
-          data={data}
-          showFields={true}
-          showHandle={true}
-          tabIndex={-1}
-          isDynamicProperty={true}
-          onDeleteProperty={onDeleteProperty}
-          onUpdatePropertyName={onUpdatePropertyName}
-        />
-      ))}
+      {advancedInputs.length > 0 && (
+        <Collapse
+          in={showAdvancedFields}
+          timeout={300}
+          mountOnEnter
+          unmountOnExit
+        >
+          <div className="advanced-fields-container">{advancedInputs}</div>
+        </Collapse>
+      )}
+
+      {dynamicInputElements}
     </div>
   );
 };
