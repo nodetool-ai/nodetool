@@ -2,16 +2,18 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState, useRef, createRef } from "react";
-import { Alert as MUIAlert, AlertColor } from "@mui/material";
+import { Alert as MUIAlert, AlertColor, IconButton } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
+import { useClipboard } from "../../hooks/browser/useClipboard";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
-const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
+const DEFAULT_NOTIFICATION_TIMEOUT = 30000; // Default time before notification auto-closes
 
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
@@ -35,7 +37,11 @@ const styles = css({
   zIndex: 100000,
   display: "flex",
   flexDirection: "column",
+  gap: "2px",
   alignItems: "flex-end",
+  ".MuiAlert-message": {
+    padding: "0.5em 2em 0.2em 0"
+  },
   li: {
     listStyleType: "none",
     maxWidth: "35vw",
@@ -71,6 +77,7 @@ const Alert: React.FC = () => {
     lastDisplayedTimestamp: state.lastDisplayedTimestamp,
     updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
   }));
+  const { writeClipboard } = useClipboard();
 
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
@@ -165,8 +172,13 @@ const Alert: React.FC = () => {
       );
     }, TRANSITION_DURATION);
   };
+
+  const handleCopy = async (content: string) => {
+    await writeClipboard(content, true);
+  };
+
   return (
-    <TransitionGroup component="ul" css={styles}>
+    <TransitionGroup component="ul" css={styles} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
@@ -183,8 +195,7 @@ const Alert: React.FC = () => {
               delete nodeRefs.current[notification.id];
             }}
           >
-            <li ref={nodeRef}>
-              {" "}
+            <li ref={nodeRef} style={{ position: "relative" }}>
               <MUIAlert
                 severity={mapTypeToSeverity(notification.type)}
                 onClose={
@@ -195,6 +206,28 @@ const Alert: React.FC = () => {
               >
                 {notification.content}
               </MUIAlert>
+              <IconButton
+                className="copy-button"
+                size="small"
+                onClick={() => handleCopy(notification.content)}
+                title="Copy to clipboard"
+                sx={{
+                  position: "absolute",
+                  bottom: "0.25em",
+                  right: "0.4em",
+                  width: "1.5em",
+                  height: "1.5em",
+                  padding: "0.2em",
+                  opacity: 0.2,
+                  color: "black",
+                  transition: "opacity 0.2s ease",
+                  "&:hover": {
+                    opacity: 1
+                  }
+                }}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
             </li>
           </CSSTransition>
         );

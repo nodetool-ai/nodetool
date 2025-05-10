@@ -5,10 +5,13 @@ import {
   Button,
   Popover,
   Tooltip,
-  Typography
+  Typography,
+  IconButton
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useClipboard } from "../../hooks/browser/useClipboard";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -20,6 +23,7 @@ const NotificationButton: React.FC = React.memo(() => {
     lastDisplayedTimestamp,
     updateLastDisplayedTimestamp
   } = useNotificationStore();
+  const { writeClipboard } = useClipboard();
 
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) return notifications.length;
@@ -38,6 +42,10 @@ const NotificationButton: React.FC = React.memo(() => {
   const handleNotificationClose = useCallback(() => {
     setNotificationAnchor(null);
   }, []);
+
+  const handleCopy = async (content: string) => {
+    await writeClipboard(content, true);
+  };
 
   return (
     <>
@@ -135,6 +143,7 @@ const NotificationButton: React.FC = React.memo(() => {
                       : ThemeNodetool.palette.c_gray2
                   }`,
                   transition: "all 0.2s ease",
+                  position: "relative",
                   "&:hover": {
                     backgroundColor: ThemeNodetool.palette.c_gray1,
                     transform: "translateX(2px)"
@@ -148,7 +157,8 @@ const NotificationButton: React.FC = React.memo(() => {
                   sx={{
                     fontSize: "0.85rem",
                     lineHeight: 1.5,
-                    wordWrap: "break-word"
+                    wordWrap: "break-word",
+                    pr: 3 // Add padding for the copy button
                   }}
                 >
                   {notification.content}
@@ -165,6 +175,25 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.timestamp.toLocaleString()}
                 </Typography>
+                <IconButton
+                  className="copy-button"
+                  size="small"
+                  onClick={() => handleCopy(notification.content)}
+                  title="Copy to clipboard"
+                  sx={{
+                    position: "absolute",
+                    top: "0",
+                    right: "0",
+                    padding: "0.25em",
+                    opacity: 0.1,
+                    transition: "opacity 0.2s ease",
+                    "&:hover": {
+                      opacity: 1
+                    }
+                  }}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
               </Box>
             ))
           )}
