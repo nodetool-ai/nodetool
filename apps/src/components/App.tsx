@@ -6,6 +6,7 @@ import ChatInterface from "./ChatInterface";
 import { MiniApp } from "./MiniApp";
 import { useTheme } from "next-themes";
 import { ColorModeButton } from "./ui/color-mode";
+import { getIsElectronDetails } from "../../../web/src/utils/browser";
 
 interface AppProps {
   initialWorkflowId?: string;
@@ -15,7 +16,13 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
   const [workflow, setWorkflow] = React.useState<Workflow | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const isMac = window.navigator.platform.toLowerCase().includes("mac");
+
+  const platform = window.navigator.platform;
+  const isMac = platform.toLowerCase().includes("mac");
+
+  const electronDetectionDetails = getIsElectronDetails();
+  const isElectron = electronDetectionDetails.isElectron;
+
   const { theme, resolvedTheme } = useTheme();
   const displayTheme = resolvedTheme || theme || "light";
 
@@ -46,10 +53,12 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
     }
   }, [initialWorkflowId]);
 
+  const showWindowControls = isMac && isElectron;
+
   return (
     <div data-theme={displayTheme} className="app-root">
       <Flex h="100vh" direction="column" color="text" className="app-container">
-        {!isMac && <WindowControls />}
+        {showWindowControls && <WindowControls />}
 
         {workflow && (
           <Box
