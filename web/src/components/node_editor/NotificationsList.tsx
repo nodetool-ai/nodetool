@@ -1,10 +1,12 @@
 /* @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { List, ListItem, ListItemText, Box } from "@mui/material";
+import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import { isEqual } from "lodash";
+import { useClipboard } from "../../hooks/browser/useClipboard";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 const styles = (theme: any) =>
   css({
@@ -24,6 +26,7 @@ const styles = (theme: any) =>
       borderBottom: "1px solid rgba(30, 30, 30, 0.1)",
       borderRadius: "4px",
       transition: "background-color 0.2s ease",
+      position: "relative",
       "&:hover": {
         backgroundColor: "rgba(0, 0, 0, 0.02)"
       }
@@ -82,17 +85,36 @@ const styles = (theme: any) =>
     },
     ".MuiListItemText-secondary": {
       fontSize: "0.6em"
+    },
+    ".copy-button": {
+      position: "absolute",
+      top: "0.5em",
+      right: "0.5em",
+      padding: "0.25em",
+      opacity: 0,
+      transition: "opacity 0.2s ease",
+      "&:hover": {
+        opacity: 1
+      }
+    },
+    "li:hover .copy-button": {
+      opacity: 0.7
     }
   });
 
 const NotificationsList: React.FC = () => {
   const notifications = useNotificationStore((state) => state.notifications);
+  const { writeClipboard } = useClipboard();
   const recentNotifications = [...notifications]
     .sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
     .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
+
+  const handleCopy = async (content: string) => {
+    await writeClipboard(content, true);
+  };
 
   return (
     <Box css={styles} className="notifications-list-container">
@@ -126,6 +148,14 @@ const NotificationsList: React.FC = () => {
                 </div>
               }
             />
+            <IconButton
+              className="copy-button"
+              size="small"
+              onClick={() => handleCopy(notification.content)}
+              title="Copy to clipboard"
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
           </ListItem>
         ))}
       </List>
