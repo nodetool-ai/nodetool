@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
 import { css } from "@emotion/react";
+import React, { memo } from "react";
 
 // components
 import Alert from "../node_editor/Alert";
@@ -59,8 +59,8 @@ const styles = (theme: any) =>
       },
       svg: {
         display: "block",
-        width: "18px",
-        height: "18px",
+        width: "20px",
+        height: "20px",
         fontSize: "12px"
       }
     },

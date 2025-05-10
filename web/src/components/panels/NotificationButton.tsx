@@ -43,7 +43,7 @@ const NotificationButton: React.FC = React.memo(() => {
     <>
       <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
-          className="notification-button command-button"
+          className="notification-button command-button command-icon"
           onClick={handleNotificationClick}
           tabIndex={-1}
           sx={{

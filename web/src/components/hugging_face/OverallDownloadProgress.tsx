@@ -1,8 +1,7 @@
 import React from "react";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
@@ -61,13 +60,27 @@ const OverallDownloadProgress: React.FC = () => {
           className="command-icon"
           tabIndex={-1}
           sx={{
+            margin: "-2px 0 0 -2px",
             display: "flex",
             alignItems: "center",
-            gap: "2px"
+            gap: "2px",
+            "& svg": {
+              width: "22px",
+              height: "22px"
+            }
           }}
         >
-          <div className="icon-container">
-            <FileDownloadIcon sx={{ fontSize: "1.5em" }} />
+          <div
+            className="icon-container"
+            style={{
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            <FileDownloadIcon />
           </div>
         </Button>
         {progress > 0 && (

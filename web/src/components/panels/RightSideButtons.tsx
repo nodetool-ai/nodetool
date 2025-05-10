@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { memo, useState } from "react";
 import { Box, Button, Popover, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
@@ -13,13 +15,20 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { IconForType } from "../../config/data_types";
 import ModelsManager from "../hugging_face/ModelsManager";
 
+const styles = (theme: any) =>
+  css({
+    ".command-icon": {
+      color: theme.palette.c_brightest
+    }
+  });
+
 const RightSideButtons: React.FC = () => {
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
   const [modelsOpen, setModelsOpen] = useState(false);
 
   return (
-    <Box className="buttons-right">
+    <Box className="buttons-right" css={styles}>
       {!isProduction && (
         <>
           <ModelsManager
