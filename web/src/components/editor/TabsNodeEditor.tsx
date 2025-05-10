@@ -17,6 +17,7 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
+import { getIsElectronDetails } from "../../utils/browser";
 
 const styles = (theme: any) =>
   css({
@@ -260,6 +261,13 @@ const WindowControls = () => {
   const handleMaximize = () => window.api?.windowControls?.maximize();
   const handleClose = () => window.api?.windowControls?.close();
 
+  if (!window.api?.windowControls) {
+    console.warn(
+      "[TabsNodeEditor] window.api.windowControls not found. Window controls will not function."
+    );
+    return null;
+  }
+
   return (
     <div className="window-controls">
       <button
@@ -295,6 +303,12 @@ const TabsNodeEditor = () => {
       currentWorkflowId: state.currentWorkflowId,
       loadingStates: state.loadingStates
     }));
+
+  const electronDetectionDetails = getIsElectronDetails();
+  const isElectron = electronDetectionDetails.isElectron;
+  const platform = window.navigator.platform;
+  const isMac = platform.toLowerCase().includes("mac");
+
   const workflows = useMemo(() => {
     const loadingWorkflows = Object.keys(loadingStates)
       .filter((id) => !openWorkflows.some((w) => w.id === id))
@@ -330,7 +344,7 @@ const TabsNodeEditor = () => {
         <div css={styles}>
           <div className="tabs-container">
             <TabsBar workflows={workflows} />
-            <WindowControls />
+            {!isMac && isElectron && <WindowControls />}
           </div>
           <div className="editor-container" css={generateCSS}>
             {workflows.map((workflow) => {
