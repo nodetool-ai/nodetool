@@ -10,6 +10,9 @@ import {
   Notification
 } from "../../stores/NotificationStore";
 
+const TRANSITION_DURATION = 300; // Duration for fade in/out animations
+const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
+
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
     error: "error",
@@ -113,25 +116,23 @@ const Alert: React.FC = () => {
         setShow((s) => ({ ...s, [notification.id]: false }));
 
         setTimeout(() => {
-          // removeNotification(notification.id);
           setVisibleNotifications((prev) =>
             prev.filter((item) => item.id !== notification.id)
           );
-        }, 500);
-      }, notification.timeout || 3000);
+        }, TRANSITION_DURATION);
+      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
     });
 
     const timeouts = newNotifications.map((notification) => {
       const showTimeout = setTimeout(() => {
         setShow((s) => ({ ...s, [notification.id]: false }));
         const removeTimeout = setTimeout(() => {
-          // removeNotification(notification.id);
           setVisibleNotifications((prev) =>
             prev.filter((item) => item.id !== notification.id)
           );
-        }, 500); // Fade out duration
+        }, TRANSITION_DURATION);
         return removeTimeout;
-      }, notification.timeout || 3000);
+      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
       return showTimeout;
     });
 
@@ -146,18 +147,23 @@ const Alert: React.FC = () => {
   ]);
 
   const handleClose = (id: string) => {
-    removeNotification(id);
+    setShow((s) => ({ ...s, [id]: false }));
+    setTimeout(() => {
+      removeNotification(id);
+      setVisibleNotifications((prev) =>
+        prev.filter((notification) => notification.id !== id)
+      );
+    }, TRANSITION_DURATION);
   };
 
   const initiateExitTransition = (id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
-
     setTimeout(() => {
-      // removeNotification(id);
+      removeNotification(id);
       setVisibleNotifications((prev) =>
         prev.filter((notification) => notification.id !== id)
       );
-    }, 3000);
+    }, TRANSITION_DURATION);
   };
   return (
     <TransitionGroup component="ul" css={styles}>
