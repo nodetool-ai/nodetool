@@ -368,7 +368,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           }
           if (typeof value[0] === "string") {
             return (
-              <ListTable data={value} data_type="string" editable={false} />
+              <MarkdownRenderer
+                content={value.map((v: any) => v.toString()).join("")}
+              />
             );
           }
           if (typeof value[0] === "number") {
