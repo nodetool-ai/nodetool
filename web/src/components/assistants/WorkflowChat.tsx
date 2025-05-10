@@ -5,7 +5,6 @@ import { useWorkflowChat } from "./hooks/useWorkflowChat";
 import ChatContainer from "./chat/ChatContainer";
 import ChatControls from "./chat/ChatControls";
 import ChatContent from "./chat/ChatContent";
-import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 
 interface WorkflowChatProps {
   workflow_id: string;

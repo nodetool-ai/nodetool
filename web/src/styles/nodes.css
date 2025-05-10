@@ -423,31 +423,48 @@
   scale: 0.5;
 }
 
-.node-footer .advanced-fields-button {
-  display: block;
+.node-inputs .expand-button-container {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.node-inputs .advanced-fields-button {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  min-width: 0;
   padding: 0;
   margin: 0 2px;
-  min-width: 18px;
-  top: 4px;
-  right: -7px;
-  color: var(--c_gray8);
+  font-size: 0.7rem;
+  color: var(--c_gray3);
   background-color: transparent;
   border: none;
   cursor: pointer;
   transition: transform 0.2s ease;
-  transform-origin: center center;
+  text-align: left;
 }
 
-.node-footer .advanced-fields-button:hover {
+.node-inputs .advanced-fields-button.active .MuiSvgIcon-root {
+  transform: rotate(180deg);
+}
+
+.node-inputs .advanced-fields-button .MuiSvgIcon-root {
+  transition: transform 0.3s ease;
+  font-size: 1rem;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
+.node-inputs .advanced-fields-button:hover {
   color: var(--c_white);
 }
 
-.node-footer .advanced-fields-button.active svg {
+.node-inputs .advanced-fields-button.active svg {
   color: var(--c_hl1);
   transform: rotate(180deg);
 }
 
-.node-footer .advanced-fields-button svg {
+.node-inputs .advanced-fields-button svg {
   scale: 0.7;
 }
 
