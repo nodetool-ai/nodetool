@@ -1198,7 +1198,10 @@ export interface components {
         };
         /**
          * Chunk
-         * @description A chunk of streamed content from a provider.
+         * @description A message representing a chunk of streamed content from a provider.
+         *
+         *     Used for streaming partial results in text generation, audio processing,
+         *     or other operations where results are produced incrementally.
          */
         Chunk: {
             /**
@@ -1431,7 +1434,13 @@ export interface components {
              */
             body: string | components["schemas"]["TextRef"];
         };
-        /** Error */
+        /**
+         * Error
+         * @description A message representing a general error that occurred during workflow execution.
+         *
+         *     Used for communicating errors that aren't specific to a particular node
+         *     or when the node context is unavailable.
+         */
         Error: {
             /**
              * Type
@@ -2571,17 +2580,11 @@ export interface components {
             type: string;
             /** Id */
             id?: string | null;
-            /** Auth Token */
-            auth_token?: string | null;
             /** Workflow Id */
             workflow_id?: string | null;
             graph?: components["schemas"]["Graph"] | null;
-            /** Task Id */
-            task_id?: string | null;
             /** Thread Id */
             thread_id?: string | null;
-            /** User Id */
-            user_id?: string | null;
             /** Tools */
             tools?: string[] | null;
             /** Tool Call Id */
@@ -2591,11 +2594,8 @@ export interface components {
              * @default
              */
             role: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
+            /** Name */
+            name?: string | null;
             /** Content */
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
@@ -2622,17 +2622,11 @@ export interface components {
             type: string;
             /** Id */
             id?: string | null;
-            /** Auth Token */
-            auth_token?: string | null;
             /** Workflow Id */
             workflow_id?: string | null;
             graph?: components["schemas"]["Graph"] | null;
-            /** Task Id */
-            task_id?: string | null;
             /** Thread Id */
             thread_id?: string | null;
-            /** User Id */
-            user_id?: string | null;
             /** Tools */
             tools?: string[] | null;
             /** Tool Call Id */
@@ -2642,11 +2636,8 @@ export interface components {
              * @default
              */
             role: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
+            /** Name */
+            name?: string | null;
             /** Content */
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
@@ -2931,7 +2922,13 @@ export interface components {
             /** Is Dynamic */
             is_dynamic: boolean;
         };
-        /** NodeProgress */
+        /**
+         * NodeProgress
+         * @description A message representing progress of a node's execution.
+         *
+         *     Used for communicating completion percentage and partial results
+         *     from long-running operations to clients.
+         */
         NodeProgress: {
             /**
              * Type
@@ -2972,7 +2969,13 @@ export interface components {
             /** Count */
             count: number;
         };
-        /** NodeUpdate */
+        /**
+         * NodeUpdate
+         * @description A message representing a general update from a node.
+         *
+         *     This is the primary way nodes communicate their status, results,
+         *     and errors to the workflow runner and clients.
+         */
         NodeUpdate: {
             /**
              * Type
@@ -3008,6 +3011,37 @@ export interface components {
              * @default false
              */
             stream: boolean;
+        };
+        /**
+         * OutputUpdate
+         * @description A message representing output from an output node.
+         *
+         *     This message type allows for direct streaming of output values from workflow nodes
+         *     to consumers that may need immediate access to outputs before workflow completion.
+         *     It provides structured metadata about the output, including its type and source.
+         */
+        OutputUpdate: {
+            /**
+             * Type
+             * @default output_update
+             * @constant
+             */
+            type: "output_update";
+            /** Node Id */
+            node_id: string;
+            /** Node Name */
+            node_name: string;
+            /** Output Name */
+            output_name: string;
+            /** Value */
+            value: unknown;
+            /** Output Type */
+            output_type: string;
+            /**
+             * Metadata
+             * @default {}
+             */
+            metadata: Record<string, never>;
         };
         /** PackageForNodeResponse */
         PackageForNodeResponse: {
@@ -3115,7 +3149,13 @@ export interface components {
              */
             repo_id: string;
         };
-        /** PlanningUpdate */
+        /**
+         * PlanningUpdate
+         * @description A message representing a planning update from a node.
+         *
+         *     Used for communicating planning stage information to clients, especially
+         *     for nodes that involve multi-step planning processes.
+         */
         PlanningUpdate: {
             /**
              * Type
@@ -3507,6 +3547,11 @@ export interface components {
              */
             type: "subtask";
             /**
+             * Id
+             * @description Unique identifier for the subtask
+             */
+            id?: string;
+            /**
              * Model
              * @description The model to use for the subtask
              */
@@ -3659,7 +3704,13 @@ export interface components {
              */
             tasks: components["schemas"]["Task"][];
         };
-        /** TaskUpdate */
+        /**
+         * TaskUpdate
+         * @description A message representing an update to a task's status.
+         *
+         *     Used for communicating progress and status changes for complex
+         *     task-based operations, such as agent workflows.
+         */
         TaskUpdate: {
             /**
              * Type
@@ -3726,7 +3777,10 @@ export interface components {
         };
         /**
          * ToolCallUpdate
-         * @description A tool call from a provider.
+         * @description A message representing a tool call from a provider.
+         *
+         *     Used to communicate when an AI provider executes a tool call,
+         *     particularly useful in agent-based workflows.
          */
         ToolCallUpdate: {
             /**
@@ -4859,7 +4913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | Record<string, never> | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"];
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | Record<string, never> | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"];
                 };
             };
         };
