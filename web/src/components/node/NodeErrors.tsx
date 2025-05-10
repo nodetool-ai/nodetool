@@ -2,7 +2,8 @@
 import { memo } from "react";
 import { css } from "@emotion/react";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import { Button } from "@mui/material";
+import { IconButton } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import useErrorStore from "../../stores/ErrorStore";
 import { isEqual } from "lodash";
 
@@ -31,19 +32,21 @@ export const errorStyles = (theme: any) =>
         backgroundColor: theme.palette.c_white
       }
     },
-    button: {
+    ".copy-button": {
       position: "absolute",
-      left: "8px",
       top: "-2px",
-      height: "1em",
-      padding: "6px 3px",
-      borderRadius: "1px",
-      fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_gray1,
+      left: "7px",
+      padding: ".2em 0",
+      opacity: 0.4,
+      svg: {
+        width: ".5em",
+        height: ".5em"
+      },
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
-      }
+        opacity: 1
+      },
+      transition: "opacity 0.2s ease",
+      color: theme.palette.c_black
     }
   });
 
@@ -61,13 +64,14 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   }
   return (
     <div css={errorStyles} className="node-error nodrag nowheel">
-      <Button
+      <IconButton
+        className="copy-button"
         size="small"
         onClick={() => writeClipboard(error, true)}
         title="Copy error to clipboard"
       >
-        COPY
-      </Button>
+        <ContentCopyIcon fontSize="small" />
+      </IconButton>
       <div className="error-text">{error}</div>
     </div>
   );
