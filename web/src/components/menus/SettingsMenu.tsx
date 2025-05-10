@@ -494,7 +494,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
           tabIndex={-1}
-          className="settings-button"
+          className="settings-button command-icon"
           aria-controls={isMenuOpen ? "basic-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={isMenuOpen ? "true" : undefined}
