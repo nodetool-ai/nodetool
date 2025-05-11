@@ -2,11 +2,11 @@ import { memo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 
 const SLIDER_HEIGHT_DRAGGING = "3px";
-const SLIDER_HEIGHT = "1px";
-const SLIDER_OPACITY = 0.2;
+const SLIDER_HEIGHT = "3px";
+const SLIDER_OPACITY = 0.5;
 const SLIDER_COLOR = ThemeNodes.palette.c_gray3;
 const SLIDER_COLOR_DRAGGING = ThemeNodes.palette.c_hl1;
-const SLIDER_BG_COLOR = "transparent";
+const SLIDER_BG_COLOR = "var(--c_gray0)";
 const SLIDER_BG_COLOR_DRAGGING = ThemeNodes.palette.c_gray2;
 
 const RangeIndicator: React.FC<{
@@ -20,7 +20,7 @@ const RangeIndicator: React.FC<{
     className="range-container"
     tabIndex={-1}
     style={{
-      opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY,
+      opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY + 0.3,
       backgroundColor:
         isDragging || isEditable ? SLIDER_BG_COLOR_DRAGGING : SLIDER_BG_COLOR
     }}
@@ -29,6 +29,7 @@ const RangeIndicator: React.FC<{
       className="range-indicator"
       tabIndex={-1}
       style={{
+        opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY,
         backgroundColor:
           isDragging || isEditable ? SLIDER_COLOR_DRAGGING : SLIDER_COLOR,
         width: `${((value - min) / (max - min)) * 100}%`,
