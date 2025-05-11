@@ -145,7 +145,7 @@
 
 /* multiple outputs */
 .multi-outputs .react-flow__handle-right {
-  top: 0.4em;
+  top: 5px;
 }
 
 ul.multi-outputs {
