@@ -55,9 +55,6 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
       </div>
     );
   }
-  if (planningUpdate.status === "Success") {
-    return null;
-  }
   return (
     <div className="planning-update-container" css={styles}>
       <h3 className="ai-animated-heading">
