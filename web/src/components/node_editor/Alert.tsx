@@ -206,28 +206,31 @@ const Alert: React.FC = () => {
               >
                 {notification.content}
               </MUIAlert>
-              <IconButton
-                className="copy-button"
-                size="small"
-                onClick={() => handleCopy(notification.content)}
-                title="Copy to clipboard"
-                sx={{
-                  position: "absolute",
-                  bottom: "0.25em",
-                  right: "0.4em",
-                  width: "1.5em",
-                  height: "1.5em",
-                  padding: "0.2em",
-                  opacity: 0.2,
-                  color: "black",
-                  transition: "opacity 0.2s ease",
-                  "&:hover": {
-                    opacity: 1
-                  }
-                }}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
+              {notification.dismissable ||
+                (notification.type === "error" && (
+                  <IconButton
+                    className="copy-button"
+                    size="small"
+                    onClick={() => handleCopy(notification.content)}
+                    title="Copy to clipboard"
+                    sx={{
+                      position: "absolute",
+                      bottom: "0.3em",
+                      right: "1.75em",
+                      width: "1.5em",
+                      height: "1.5em",
+                      padding: "0.2em",
+                      opacity: 0.2,
+                      color: "black",
+                      transition: "opacity 0.2s ease",
+                      "&:hover": {
+                        opacity: 1
+                      }
+                    }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                ))}
             </li>
           </CSSTransition>
         );
