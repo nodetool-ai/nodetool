@@ -3,7 +3,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 
 const SLIDER_HEIGHT_DRAGGING = "3px";
 const SLIDER_HEIGHT = "3px";
-const SLIDER_OPACITY = 0.5;
+const SLIDER_OPACITY = 0.4;
 const SLIDER_COLOR = ThemeNodes.palette.c_gray3;
 const SLIDER_COLOR_DRAGGING = ThemeNodes.palette.c_hl1;
 const SLIDER_BG_COLOR = "var(--c_gray0)";
