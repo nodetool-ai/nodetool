@@ -176,7 +176,7 @@ const styles = (theme: any) =>
   css({
     "&": {
       backgroundColor: theme.palette.c_gray2,
-      height: "100%",
+      height: "calc(100% - 43px)",
       width: "100%",
       padding: ".25em",
       overflow: "auto",
