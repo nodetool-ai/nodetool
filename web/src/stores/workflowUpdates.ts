@@ -9,7 +9,9 @@ import {
   TaskUpdate,
   ToolCallUpdate,
   Chunk,
-  PlanningUpdate
+  PlanningUpdate,
+  OutputUpdate,
+  ImageRef
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useAssetStore } from "./AssetStore";
@@ -70,7 +72,21 @@ export const handleUpdate = (
       log.error("Chunk has no node_id");
     }
   }
-
+  if (data.type === "output_update") {
+    const update = data as OutputUpdate;
+    const assetTypes = ["image", "audio", "video", "document"];
+    if (update.output_type === "string") {
+      addChunk(workflow.id, update.node_id, update.value as string);
+    } else if (assetTypes.includes(update.output_type)) {
+      setResult(workflow.id, update.node_id, {
+        [update.output_name]: {
+          type: update.output_type,
+          uri: "",
+          data: (update.value as { data: Uint8Array }).data
+        }
+      });
+    }
+  }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
     useWorkflowRunner.setState({
