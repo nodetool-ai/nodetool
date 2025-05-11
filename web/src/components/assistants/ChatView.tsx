@@ -224,6 +224,7 @@ type ChatViewProps = {
   progress: number;
   total: number;
   messages: Array<Message>;
+  model?: string;
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
   chunks: string;
@@ -280,6 +281,7 @@ const ChatView = ({
   progress,
   total,
   messages,
+  model,
   sendMessage,
   progressMessage,
   chunks
@@ -293,9 +295,7 @@ const ChatView = ({
       shiftKeyPressed: state.isKeyPressed("Shift")
     })
   );
-  const [submitted, setSubmitted] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const loading = false;
   const [isDragging, setIsDragging] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
 
@@ -305,12 +305,6 @@ const ChatView = ({
     },
     []
   );
-
-  useEffect(() => {
-    if (submitted && !loading) {
-      setSubmitted(false);
-    }
-  }, [loading, submitted]);
 
   const makeMessageContent = (file: DroppedFile): MessageContent => {
     if (file.type.startsWith("image/")) {
@@ -354,9 +348,7 @@ const ChatView = ({
   };
 
   const chatPost = useCallback(() => {
-    setSubmitted(true);
-
-    if (!loading && prompt.length > 0) {
+    if (status !== "loading" && prompt.length > 0) {
       try {
         setPrompt("");
         const content: MessageContent[] = [
@@ -373,6 +365,7 @@ const ChatView = ({
           type: "message",
           name: "",
           role: "user",
+          model: "help:" + model,
           content: [...content, ...fileContents]
         });
         setDroppedFiles([]);
@@ -380,7 +373,7 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     }
-  }, [loading, prompt, sendMessage, droppedFiles]);
+  }, [status, prompt, sendMessage, droppedFiles, model]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesListRef.current) {
@@ -731,7 +724,7 @@ const ChatView = ({
                 }
               }
             }}
-            disabled={submitted}
+            disabled={status === "loading" || status === "error"}
             minRows={1}
             maxRows={4}
             placeholder="Type your message..."
@@ -753,8 +746,9 @@ const ChatView = ({
               className="chat-send-button"
               onClick={() => {
                 if (
-                  !submitted &&
-                  !(status !== "connected" || prompt.trim() === "")
+                  status !== "loading" &&
+                  status !== "error" &&
+                  prompt.trim() !== ""
                 ) {
                   chatPost();
                 }

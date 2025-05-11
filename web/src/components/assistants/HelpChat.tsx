@@ -1,13 +1,12 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
-import { useChatStore } from "../../stores/ChatStore";
 import { Box, Typography, Button, Stack } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
-import { useQueryClient } from "@tanstack/react-query";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
 import LlamaModelSelect from "../properties/LlamaModelSelect";
+import useHelpChatStore from "../../stores/HelpChatStore";
+import LanguageModelSelect from "../properties/LanguageModelSelect";
 
 const CONVERSATION_STARTERS = [
   {
@@ -29,31 +28,43 @@ const CONVERSATION_STARTERS = [
 ];
 
 const HelpChat: React.FC = () => {
-  const { messages, isLoading, sendMessage, setMessages } = useChatStore();
+  const {
+    connect,
+    messages,
+    status,
+    sendMessage,
+    progressMessage,
+    resetMessages,
+    chunks
+  } = useHelpChatStore();
   const [selectedModel, setSelectedModel] = React.useState(DEFAULT_MODEL);
   const handleResetChat = useCallback(() => {
-    setMessages([]);
+    resetMessages();
     useTutorialStore.getState().endTutorial();
-  }, [setMessages]);
+  }, [resetMessages]);
 
   const handleModelChange = useCallback((model: any) => {
-    setSelectedModel(model.repo_id);
+    setSelectedModel(model.id);
   }, []);
 
   const handleStarterClick = useCallback(
     (prompt: string) => {
-      sendMessage(
-        {
-          type: "message",
-          name: "user",
-          role: "user",
-          content: prompt
-        },
-        selectedModel
-      );
+      sendMessage({
+        type: "message",
+        name: "user",
+        role: "user",
+        model: "help:" + selectedModel,
+        content: prompt
+      });
     },
     [sendMessage, selectedModel]
   );
+
+  useEffect(() => {
+    if (status === "disconnected") {
+      connect();
+    }
+  }, [connect, status]);
 
   return (
     <div
@@ -82,7 +93,7 @@ const HelpChat: React.FC = () => {
           Model:
         </Typography>
         <Box sx={{ flexGrow: 1 }}>
-          <LlamaModelSelect
+          <LanguageModelSelect
             value={selectedModel}
             onChange={handleModelChange}
           />
@@ -126,13 +137,14 @@ const HelpChat: React.FC = () => {
       )}
 
       <ChatView
-        status={isLoading ? "loading" : "connected"}
+        model={selectedModel}
+        status={status}
         messages={messages}
-        sendMessage={(message) => sendMessage(message, selectedModel)}
+        sendMessage={sendMessage}
         progress={0}
         total={0}
-        currentToolCall={null}
-        chunks={""}
+        progressMessage={progressMessage}
+        chunks={chunks}
       />
     </div>
   );
