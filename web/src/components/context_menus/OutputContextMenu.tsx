@@ -137,9 +137,7 @@ const OutputContextMenu: React.FC = () => {
 
       newNode.data.properties.name =
         sourceType?.type && sourceHandle
-          ? `${sourceType.type}_${sourceHandle}_${getTimestampForFilename(
-              false
-            )}`
+          ? `${sourceType.type}_${sourceHandle}`
           : "";
 
       addNode(newNode);
