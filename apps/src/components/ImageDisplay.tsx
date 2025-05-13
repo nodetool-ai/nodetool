@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Box, Text } from "@chakra-ui/react";
 
 interface ImageDisplayProps {
   data: Uint8Array | string;
@@ -29,14 +30,35 @@ export const ImageDisplay: React.FC<ImageDisplayProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div className="image-result">
-      <div className="drag-indicator">↓ Drag image to save ↓</div>
-      {isLoading && <div className="image-loader">Loading image...</div>}
-      {error && <div className="error-message">{error}</div>}
+    <Box
+      bg="gray.800"
+      color="white"
+      borderRadius="lg"
+      boxShadow="md"
+      p={4}
+      textAlign="center"
+    >
+      <Text fontSize="sm" color="gray.400" mb={2}>
+        ↓ Drag image to save ↓
+      </Text>
+      {isLoading && (
+        <Text fontSize="sm" color="gray.300">
+          Loading image...
+        </Text>
+      )}
+      {error && (
+        <Text fontSize="sm" color="red.400">
+          {error}
+        </Text>
+      )}
       <img
         src={imageUrl}
         draggable
-        style={{ opacity: isLoading ? 0 : 1 }}
+        style={{
+          opacity: isLoading ? 0 : 1,
+          borderRadius: "8px",
+          maxWidth: "100%",
+        }}
         onLoad={() => setIsLoading(false)}
         onError={() => {
           setIsLoading(false);
@@ -44,6 +66,6 @@ export const ImageDisplay: React.FC<ImageDisplayProps> = ({ data }) => {
         }}
         alt="Result"
       />
-    </div>
+    </Box>
   );
 };

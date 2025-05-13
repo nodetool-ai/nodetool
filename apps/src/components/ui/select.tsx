@@ -55,7 +55,14 @@ export const SelectContent = React.forwardRef<
   return (
     <Portal disabled={!portalled} container={portalRef}>
       <ChakraSelect.Positioner>
-        <ChakraSelect.Content {...rest} ref={ref} />
+        <ChakraSelect.Content
+          {...rest}
+          ref={ref}
+          bg="gray.900"
+          color="white"
+          borderRadius="lg"
+          boxShadow="md"
+        />
       </ChakraSelect.Positioner>
     </Portal>
   );
@@ -67,7 +74,15 @@ export const SelectItem = React.forwardRef<
 >(function SelectItem(props, ref) {
   const { item, children, ...rest } = props;
   return (
-    <ChakraSelect.Item key={item.value} item={item} {...rest} ref={ref}>
+    <ChakraSelect.Item
+      key={item.value}
+      item={item}
+      {...rest}
+      ref={ref}
+      bg="gray.800"
+      color="white"
+      borderRadius="md"
+    >
       {children}
       <ChakraSelect.ItemIndicator />
     </ChakraSelect.Item>

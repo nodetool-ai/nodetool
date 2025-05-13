@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
+import { Box, Button as ChakraButton, Text } from "@chakra-ui/react";
 
 interface AudioPlayerProps {
   data: Uint8Array | string;
@@ -67,27 +68,31 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   return (
-    <div
-      className={
-        className ? `audio-player-root ${className}` : "audio-player-root"
-      }
-      role="region"
-      aria-label="Audio player"
+    <Box
+      bg="gray.800"
+      color="white"
+      borderRadius="lg"
+      boxShadow="md"
+      p={4}
+      textAlign="center"
+      width="100%"
+      maxW="400px"
+      mx="auto"
+      mb={2}
     >
-      <div className="audio-player__waveform" ref={waveformRef} />
-      <div className="audio-player__controls">
-        <button
-          className={`audio-player__play-btn ${isPlaying ? "is-playing" : ""}`}
-          onClick={togglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
-          aria-pressed={isPlaying}
-        >
-          {isPlaying ? "⏸" : "▶"}
-        </button>
-      </div>
-      <div className="audio-player__time" aria-live="polite">
+      <Box ref={waveformRef} mb={2} />
+      <ChakraButton
+        onClick={togglePlay}
+        colorScheme="blue"
+        size="sm"
+        borderRadius="full"
+        mb={2}
+      >
+        {isPlaying ? "⏸" : "▶"}
+      </ChakraButton>
+      <Text fontSize="sm" color="gray.300" aria-live="polite">
         {timeDisplay}
-      </div>
-    </div>
+      </Text>
+    </Box>
   );
 };

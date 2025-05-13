@@ -28,6 +28,10 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(
       <ChakraField.Root
         className={className ? `field-root ${className}` : "field-root"}
         ref={ref}
+        bg="gray.900"
+        color="white"
+        borderRadius="lg"
+        boxShadow="md"
         {...rest}
       >
         {label && (

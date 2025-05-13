@@ -242,3 +242,20 @@ export type Result =
   | DocumentRef
   | string
   | number;
+
+export type MsgpackData =
+  | JobUpdate
+  | Prediction
+  | NodeProgress
+  | NodeUpdate
+  | Message
+  | ToolCallUpdate
+  | TaskUpdate
+  | Chunk
+  | PlanningUpdate
+  | OutputUpdate;
+
+export interface ToolCallUpdate {
+  type: "tool_call_update";
+  message: string;
+}
