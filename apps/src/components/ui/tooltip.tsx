@@ -37,9 +37,11 @@ export const Tooltip = React.forwardRef<HTMLDivElement, TooltipProps>(
           <ChakraTooltip.Positioner>
             <ChakraTooltip.Content
               ref={ref}
-              bg="tooltipBg"
-              color="text"
-              borderColor="border"
+              bg="gray.800"
+              color="white"
+              borderColor="gray.700"
+              borderRadius="md"
+              boxShadow="md"
               className={
                 className ? `tooltip-content ${className}` : "tooltip-content"
               }

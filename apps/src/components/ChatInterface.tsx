@@ -51,41 +51,6 @@ const LoadingDots = styled.div`
     }
   }
 `;
-
-// New component to display tool calls
-const ToolCallDisplay = styled(Box)`
-  margin: 10px 0;
-  padding: 12px;
-  border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-left: 3px solid #3182ce;
-`;
-
-const ToolCallHeader = styled(Flex)`
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-`;
-
-const ToolCallName = styled(Text)`
-  font-weight: bold;
-  color: #3182ce;
-`;
-
-const ToolCallSection = styled(Box)`
-  margin-top: 8px;
-  padding: 8px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-`;
-
-const ToolCallLabel = styled(Text)`
-  font-size: 0.8rem;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: #718096;
-`;
-
 const fileToData = async (file: File): Promise<Uint8Array> => {
   const buffer = await file.arrayBuffer();
   return new Uint8Array(buffer);
@@ -114,7 +79,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     connect,
     status,
     statusMessage,
-    streamingMessage,
     messages,
     droppedFiles,
     progress,
@@ -135,7 +99,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages]);
 
   const handleSubmit = useCallback(
     async (message: string) => {
@@ -221,57 +185,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     []
   );
 
-  const toggleToolCall = useCallback((toolCallId: string) => {
-    setExpandedToolCalls((prev) => ({
-      ...prev,
-      [toolCallId]: !prev[toolCallId],
-    }));
-  }, []);
-  const renderToolCall = useCallback(
-    (toolCall: ToolCall) => {
-      return (
-        <ToolCallDisplay key={toolCall.id} className="tool-call-display">
-          <ToolCallHeader className="tool-call-header">
-            <ToolCallName>
-              <span
-                className={`tool-call-status ${toolCall.result ? "status-completed" : "status-pending"}`}
-              ></span>
-              {toolCall.name}
-            </ToolCallName>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => toggleToolCall(toolCall.id)}
-            >
-              {expandedToolCalls[toolCall.id] ? "Hide Details" : "Show Details"}
-            </Button>
-          </ToolCallHeader>
-
-          {expandedToolCalls[toolCall.id] && (
-            <div className="tool-call-content">
-              <ToolCallSection className="tool-call-section">
-                <ToolCallLabel>Arguments</ToolCallLabel>
-                <pre style={{ overflow: "auto", maxHeight: "200px" }}>
-                  {JSON.stringify(toolCall.args, null, 2)}
-                </pre>
-              </ToolCallSection>
-
-              {toolCall.result && Object.keys(toolCall.result).length > 0 && (
-                <ToolCallSection className="tool-call-section">
-                  <ToolCallLabel>Result</ToolCallLabel>
-                  <pre style={{ overflow: "auto", maxHeight: "200px" }}>
-                    {JSON.stringify(toolCall.result, null, 2)}
-                  </pre>
-                </ToolCallSection>
-              )}
-            </div>
-          )}
-        </ToolCallDisplay>
-      );
-    },
-    [expandedToolCalls]
-  );
-
   const renderMessageContent = useCallback(
     (content: MessageContent, messageIndex: number, contentIndex: number) => {
       switch (content.type) {
@@ -354,7 +267,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
           return null;
       }
     },
-    [expandedThoughts]
+    [expandedThoughts, toggleThought]
   );
 
   const renderMessage = useCallback(
@@ -423,40 +336,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   );
 
   return (
-    <Box h="100%">
+    <Box
+      h="100%"
+      bg="gray.900"
+      color="white"
+      borderRadius="2xl"
+      boxShadow="xl"
+      p={4}
+    >
       <Flex direction="column" h="calc(100% - 90px)" overflow="hidden">
         <Box flex="1" overflowY="auto">
           {messages.map((msg, index) => {
-            if (msg.type === "tool_call") {
-              return renderToolCall(msg as ToolCall);
-            }
             return renderMessage(msg as Message, index);
           })}
-          {streamingMessage && (
-            <Box mb="4" p="3" borderRadius="md" maxW="80%" bg="bg2" mr="auto">
-              {renderMessageContent(
-                {
-                  type: "text",
-                  text: streamingMessage,
-                },
-                messages.length,
-                0
-              )}
+          {status === "loading" && (
+            <Box textAlign="center" py={2}>
+              <LoadingDots>
+                <span></span>
+                <span></span>
+                <span></span>
+              </LoadingDots>
+              <Text>{statusMessage}</Text>
             </Box>
           )}
           <Box ref={messagesEndRef} />
         </Box>
 
-        {status === "loading" && (
-          <Box textAlign="center" py={2}>
-            <LoadingDots>
-              <span></span>
-              <span></span>
-              <span></span>
-            </LoadingDots>
-            <Text>{statusMessage}</Text>
-          </Box>
-        )}
         {progress.current > 0 && (
           <ProgressRoot
             value={(progress.current * 100.0) / progress.total}

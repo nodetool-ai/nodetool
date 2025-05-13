@@ -25,9 +25,11 @@ export const DialogContent = React.forwardRef<
         <ChakraDialog.Content
           ref={ref}
           className={className ? `dialog-root ${className}` : "dialog-root"}
-          bg="dialogBg"
-          borderColor="border"
-          color="text"
+          bg="gray.900"
+          color="white"
+          borderRadius="2xl"
+          boxShadow="xl"
+          borderColor="gray.700"
           {...rest}
         >
           {children}

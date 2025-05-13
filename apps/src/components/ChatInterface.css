@@ -1,6 +1,8 @@
 .chat-interface-container {
   background: transparent;
   padding: 40px 10px 0 10px;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 /* Chat interface semantic classes */
@@ -12,6 +14,8 @@
   height: 100%;
   background: #202123;
   color: white;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .chat-messages {
@@ -120,4 +124,42 @@
 
 .status-error {
   background-color: #fc8181;
+}
+
+/* Desktop styles */
+@media screen and (min-width: 768px) {
+  .chat-interface-container {
+    padding: 40px 20px 0 20px;
+    max-width: 1000px;
+  }
+
+  .chat-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .chat-message {
+    max-width: 70%;
+  }
+
+  .chat-input-area {
+    max-width: 1000px;
+    margin: 1rem auto;
+  }
+}
+
+/* Large desktop styles */
+@media screen and (min-width: 1200px) {
+  .chat-interface-container {
+    padding: 40px 40px 0 40px;
+    max-width: 1200px;
+  }
+
+  .chat-container {
+    max-width: 1200px;
+  }
+
+  .chat-input-area {
+    max-width: 1200px;
+  }
 }

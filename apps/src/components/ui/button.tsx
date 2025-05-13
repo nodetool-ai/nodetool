@@ -26,16 +26,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         }
         disabled={loading || disabled}
         ref={ref}
-        bg="buttonBg"
-        color="text"
-        borderRadius="sm"
+        bg="blue.700"
+        color="white"
+        borderRadius="xl"
+        boxShadow="md"
         transition="all 0.2s ease"
         _hover={{
-          color: "primary",
-          bg: "buttonHover",
+          color: "white",
+          bg: "blue.600",
         }}
         _active={{
-          bg: "buttonActiveBg",
+          bg: "blue.800",
         }}
         {...rest}
       >

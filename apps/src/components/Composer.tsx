@@ -1,9 +1,36 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Box, Flex, Textarea, IconButton, HStack } from "@chakra-ui/react";
-import { FaMicrophone, FaStop, FaEnvelope, FaGlobe } from "react-icons/fa";
+import {
+  Box,
+  Flex,
+  Textarea,
+  IconButton,
+  HStack,
+  VStack,
+  useDisclosure,
+  Portal,
+} from "@chakra-ui/react";
+import {
+  FaMicrophone,
+  FaStop,
+  FaEnvelope,
+  FaGlobe,
+  FaSearch,
+  FaNewspaper,
+  FaImage,
+  FaCamera,
+  FaMap,
+  FaShoppingCart,
+  FaChartLine,
+  FaBriefcase,
+  FaLanguage,
+  FaDatabase,
+  FaVolumeUp,
+  FaTools,
+} from "react-icons/fa";
 import { FaTimes } from "react-icons/fa";
 import useChatStore from "../stores/ChatStore";
 import { Tooltip } from "./ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ComposerProps {
   handleAudioChange: (
@@ -21,6 +48,42 @@ const SendIcon = () => (
   </svg>
 );
 
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  search_email: "Search for emails",
+  google_search: "Search Google",
+  google_news: "Search Google News",
+  google_images: "Search Google Images",
+  google_lens: "Search Google Lens",
+  google_maps: "Search Google Maps",
+  google_shopping: "Search Google Shopping",
+  google_finance: "Search Google Finance",
+  google_jobs: "Search Google Jobs",
+  browser: "Browse the web",
+  chroma_hybrid_search: "Search for documents in the Chroma database",
+  google_image_generation: "Generate images using Google's Gemini API",
+  openai_image_generation:
+    "Generate images using OpenAI's Image Generation API",
+  openai_text_to_speech:
+    "Convert text into spoken audio using OpenAI's Text-to-Speech API",
+};
+
+const tools = [
+  { id: "search_email", icon: FaEnvelope, label: "Search Email" },
+  { id: "google_search", icon: FaSearch, label: "Google Search" },
+  { id: "google_news", icon: FaNewspaper, label: "Google News" },
+  { id: "google_images", icon: FaImage, label: "Google Images" },
+  { id: "google_lens", icon: FaCamera, label: "Google Lens" },
+  { id: "google_maps", icon: FaMap, label: "Google Maps" },
+  { id: "google_shopping", icon: FaShoppingCart, label: "Google Shopping" },
+  { id: "google_finance", icon: FaChartLine, label: "Google Finance" },
+  { id: "google_jobs", icon: FaBriefcase, label: "Google Jobs" },
+  { id: "browser", icon: FaGlobe, label: "Browser" },
+  { id: "chroma_hybrid_search", icon: FaDatabase, label: "Chroma Search" },
+  { id: "google_image_generation", icon: FaImage, label: "Google Image Gen" },
+  { id: "openai_image_generation", icon: FaImage, label: "OpenAI Image Gen" },
+  { id: "openai_text_to_speech", icon: FaVolumeUp, label: "Text to Speech" },
+];
+
 export const Composer: React.FC<ComposerProps> = ({
   onSubmit,
   handleAudioChange,
@@ -29,6 +92,7 @@ export const Composer: React.FC<ComposerProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const { open, onOpen, onClose, onToggle } = useDisclosure();
   const {
     status,
     selectedTools,
@@ -116,11 +180,6 @@ export const Composer: React.FC<ComposerProps> = ({
     [droppedFiles, setDroppedFiles]
   );
 
-  const tools = [
-    { id: "search_email", icon: FaEnvelope, label: "Search Email" },
-    { id: "browser", icon: FaGlobe, label: "Browser" },
-  ];
-
   const toggleTool = useCallback(
     (toolId: string) => {
       setSelectedTools(
@@ -138,7 +197,9 @@ export const Composer: React.FC<ComposerProps> = ({
         maxW="48rem"
         mx="auto"
         bg="gray.800"
-        borderRadius="30px"
+        color="white"
+        borderRadius="2xl"
+        boxShadow="md"
         border="1px solid"
         borderColor="gray.700"
         position="relative"
@@ -203,37 +264,31 @@ export const Composer: React.FC<ComposerProps> = ({
           }}
         />
 
-        <HStack position="absolute" right={3} bottom={3}>
-          {tools.map((tool) => (
-            <Tooltip
-              key={tool.id}
-              content={tool.label}
-              contentProps={{
-                bg: "gray.800",
-                color: "white",
-                borderColor: "gray.700",
+        <HStack position="absolute" right={3} bottom={3} gap={1}>
+          <Tooltip
+            content="Tools"
+            contentProps={{
+              bg: "gray.800",
+              color: "white",
+              borderColor: "gray.700",
+            }}
+          >
+            <IconButton
+              aria-label="Toggle tools"
+              onClick={onToggle}
+              variant="ghost"
+              size="xs"
+              minW="32px"
+              h="32px"
+              bg={open ? "blue.500" : "transparent"}
+              borderRadius="full"
+              _hover={{
+                bg: open ? "blue.600" : "whiteAlpha.200",
               }}
             >
-              <IconButton
-                key={tool.id}
-                aria-label={tool.label}
-                onClick={() => toggleTool(tool.id)}
-                variant="ghost"
-                size="xs"
-                borderRadius="full"
-                bg={
-                  selectedTools.includes(tool.id) ? "blue.500" : "transparent"
-                }
-                _hover={{
-                  bg: selectedTools.includes(tool.id)
-                    ? "blue.600"
-                    : "whiteAlpha.200",
-                }}
-              >
-                <tool.icon />
-              </IconButton>
-            </Tooltip>
-          ))}
+              <FaTools />
+            </IconButton>
+          </Tooltip>
           <Tooltip
             content={isRecording ? "Stop recording" : "Start recording"}
             contentProps={{
@@ -247,6 +302,8 @@ export const Composer: React.FC<ComposerProps> = ({
               onClick={isRecording ? stopRecording : startRecording}
               variant="ghost"
               size="xs"
+              minW="32px"
+              h="32px"
               bg={isRecording ? "red.500" : "transparent"}
               borderRadius="full"
             >
@@ -266,8 +323,10 @@ export const Composer: React.FC<ComposerProps> = ({
               onClick={handleSubmit}
               disabled={status === "loading"}
               variant="ghost"
-              bg={status === "loading" ? "gray.500" : "transparent"}
               size="xs"
+              minW="32px"
+              h="32px"
+              bg={status === "loading" ? "gray.500" : "transparent"}
               borderRadius="full"
             >
               <SendIcon />
@@ -275,6 +334,77 @@ export const Composer: React.FC<ComposerProps> = ({
           </Tooltip>
         </HStack>
       </Flex>
+
+      <Portal>
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: "fixed",
+                bottom: "100px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 1000,
+              }}
+            >
+              <Box
+                bg="gray.800"
+                borderRadius="xl"
+                p={4}
+                boxShadow="xl"
+                border="1px solid"
+                borderColor="gray.700"
+                maxW="48rem"
+                w="100%"
+                mx="auto"
+              >
+                <VStack gap={2} align="stretch" maxW="340px">
+                  <Flex wrap="wrap" gap={2}>
+                    {tools.map((tool) => (
+                      <Tooltip
+                        key={tool.id}
+                        content={TOOL_DESCRIPTIONS[tool.id] || tool.label}
+                        contentProps={{
+                          bg: "gray.800",
+                          color: "white",
+                          borderColor: "gray.700",
+                        }}
+                      >
+                        <IconButton
+                          aria-label={tool.label}
+                          onClick={() => {
+                            toggleTool(tool.id);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          minW="40px"
+                          h="40px"
+                          bg={
+                            selectedTools.includes(tool.id)
+                              ? "blue.500"
+                              : "transparent"
+                          }
+                          _hover={{
+                            bg: selectedTools.includes(tool.id)
+                              ? "blue.600"
+                              : "whiteAlpha.200",
+                          }}
+                        >
+                          <tool.icon />
+                        </IconButton>
+                      </Tooltip>
+                    ))}
+                  </Flex>
+                </VStack>
+              </Box>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Portal>
     </Box>
   );
 };

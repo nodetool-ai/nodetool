@@ -1,6 +1,16 @@
 import { create } from "zustand";
 import { encode, decode } from "@msgpack/msgpack";
-import { Message, ToolCall } from "../types/workflow";
+import {
+  Message,
+  ToolCall,
+  MessageContent as WorkflowMessageContent,
+  MsgpackData,
+  JobUpdate,
+  NodeUpdate,
+  NodeProgress,
+  OutputUpdate,
+  ToolCallUpdate,
+} from "../types/workflow";
 
 type ChatStatus =
   | "disconnected"
@@ -21,7 +31,7 @@ interface ChatState {
   droppedFiles: File[];
   selectedTools: string[];
   currentNode: string;
-  streamingMessage: string;
+  chunks: string;
   // Actions
   connect: (workflowId?: string) => Promise<void>;
   disconnect: () => void;
@@ -32,11 +42,45 @@ interface ChatState {
   setSelectedTools: (tools: string[]) => void;
 }
 
+const makeMessageContent = (
+  type: string,
+  data: Uint8Array
+): WorkflowMessageContent => {
+  const dataUri = URL.createObjectURL(new Blob([data]));
+  if (type === "image") {
+    return {
+      type: "image_url",
+      image: {
+        type: "image",
+        uri: dataUri,
+      },
+    } as WorkflowMessageContent;
+  } else if (type === "audio") {
+    return {
+      type: "audio",
+      audio: {
+        type: "audio",
+        uri: dataUri,
+      },
+    } as WorkflowMessageContent;
+  } else if (type === "video") {
+    return {
+      type: "video",
+      video: {
+        type: "video",
+        uri: dataUri,
+      },
+    } as WorkflowMessageContent;
+  } else {
+    throw new Error(`Unknown message content type: ${type}`);
+  }
+};
+
 const useChatStore = create<ChatState>((set, get) => ({
   status: "disconnected",
   statusMessage: "",
   messages: [],
-  streamingMessage: "",
+  chunks: "",
   results: {},
   progress: { current: 0, total: 0 },
   currentNode: "",
@@ -55,6 +99,18 @@ const useChatStore = create<ChatState>((set, get) => ({
     set({ workflowId: workflowId || null, status: "connecting" });
     const socket = new WebSocket(get().chatUrl);
 
+    const createMessageFromChunks = () => {
+      const chunks = get().chunks;
+      const message: Message = {
+        role: "assistant",
+        type: "message",
+        content: chunks,
+        workflow_id: get().workflowId,
+        name: "assistant",
+      };
+      set({ messages: [...get().messages, message], chunks: "" });
+    };
+
     socket.onopen = () => {
       console.log("Chat WebSocket connected");
       set({ status: "connected" });
@@ -62,37 +118,40 @@ const useChatStore = create<ChatState>((set, get) => ({
 
     socket.onmessage = async (event: MessageEvent) => {
       const arrayBuffer = await event.data.arrayBuffer();
-      const data = decode(new Uint8Array(arrayBuffer)) as any;
+      const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
       console.log("Received message:", data);
 
       if (data.type === "message") {
         set((state) => ({
-          streamingMessage: "",
-          messages: [...state.messages, data],
+          chunks: "",
+          messages: [...state.messages, data as Message],
           status: "connected",
           progress: { current: 0, total: 0 },
           currentNode: "",
         }));
       } else if (data.type === "job_update") {
-        if (data.status === "completed") {
+        const update = data as JobUpdate;
+        if (update.status === "completed") {
+          createMessageFromChunks();
           set({
             progress: { current: 0, total: 0 },
             status: "connected",
             currentNode: "",
             statusMessage: "",
-            streamingMessage: "",
+            chunks: "",
           });
-        } else if (data.status === "failed") {
+        } else if (update.status === "failed") {
           set({
-            error: data.error,
+            error: update.error,
             status: "error",
             progress: { current: 0, total: 0 },
             currentNode: "",
-            statusMessage: data.error,
+            statusMessage: update.error,
           });
         }
       } else if (data.type === "node_update") {
-        if (data.status === "completed") {
+        const update = data as NodeUpdate;
+        if (update.status === "completed") {
           set({
             progress: { current: 0, total: 0 },
             currentNode: "",
@@ -100,38 +159,53 @@ const useChatStore = create<ChatState>((set, get) => ({
           });
         } else {
           set({
-            statusMessage: `${data.node_name} ${data.status}`,
+            statusMessage: update.node_name,
           });
         }
       } else if (data.type === "chunk") {
         set({
           status: "loading",
-          streamingMessage: get().streamingMessage + data.content,
+          chunks: get().chunks + data.content,
         });
-      } else if (data.type === "tool_call") {
+      } else if (data.type === "output_update") {
+        const update = data as OutputUpdate;
+        if (update.output_type === "string") {
+          set({ chunks: get().chunks + update.value });
+        } else if (["image", "audio", "video"].includes(update.output_type)) {
+          const message: Message = {
+            role: "assistant",
+            type: "message",
+            content: [
+              makeMessageContent(
+                update.output_type,
+                (update?.value as { data: Uint8Array }).data
+              ),
+            ],
+            workflow_id: get().workflowId,
+            name: "assistant",
+          };
+          set({ messages: [...get().messages, message] });
+        }
+      } else if (data.type === "tool_call_update") {
+        const update = data as ToolCallUpdate;
         set({
-          messages: [...get().messages, data.tool_call],
-        });
-      } else if (data.type === "tool_result") {
-        set({
-          messages: get().messages.map((message) =>
-            message.id === data.result.id ? data.result : message
-          ),
+          statusMessage: update.message,
         });
       } else if (data.type === "node_progress") {
-        if (data.chunk.length > 0) {
+        const progress = data as NodeProgress;
+        if (progress.chunk) {
           set({
             status: "loading",
-            streamingMessage: get().streamingMessage + data.chunk,
+            chunks: get().chunks + progress.chunk,
           });
         } else {
           set({
             status: "loading",
             progress: {
-              current: data.progress,
-              total: data.total,
+              current: progress.progress,
+              total: progress.total,
             },
-            currentNode: data.node_name,
+            currentNode: progress.node_id,
           });
         }
       }

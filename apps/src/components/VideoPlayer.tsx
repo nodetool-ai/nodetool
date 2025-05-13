@@ -37,21 +37,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       width="100%"
       position="relative"
       paddingTop="56.25%"
+      bg="gray.800"
+      borderRadius="lg"
+      boxShadow="md"
+      overflow="hidden"
     >
-      <Box
-        as="video"
+      <video
         ref={videoRef}
-        position="absolute"
-        top={0}
-        left={0}
-        width="100%"
-        height="100%"
-        objectFit="contain"
-        css={{
-          "&": {
-            controls: true,
-          },
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          borderRadius: "8px",
         }}
+        controls
       />
     </Box>
   );

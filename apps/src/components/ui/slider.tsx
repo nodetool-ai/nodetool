@@ -28,6 +28,9 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         className={className ? `slider-root ${className}` : "slider-root"}
         ref={ref}
         thumbAlignment="center"
+        color="white"
+        borderRadius="lg"
+        boxShadow="md"
         {...rest}
       >
         {label && !showValue && (
@@ -41,7 +44,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         )}
         <ChakraSlider.Control
           data-has-mark-label={hasMarkLabel || undefined}
-          bg={currentTheme === "dark" ? "slider-bg-dark" : "slider-bg-light"}
+          bg="gray.800"
         >
           <ChakraSlider.Track>
             <ChakraSlider.Range bg="primary" />

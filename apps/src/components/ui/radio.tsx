@@ -18,11 +18,12 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
       <ChakraRadioGroup.Item
         className={className ? `radio-root ${className}` : "radio-root"}
         ref={rootRef}
-        bg="inputBg"
-        borderColor="border"
-        _hover={{
-          borderColor: "primary",
-        }}
+        bg="gray.800"
+        color="white"
+        borderColor="gray.600"
+        borderRadius="full"
+        boxShadow="sm"
+        _hover={{ borderColor: "blue.400" }}
         {...rest}
       >
         <ChakraRadioGroup.ItemHiddenInput ref={ref} {...inputProps} />
