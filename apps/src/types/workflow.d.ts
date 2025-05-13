@@ -45,8 +45,9 @@ export interface Workflow {
 export interface JobUpdate {
   type: "job_update";
   job_id: string;
-  progress: number;
-  total: number;
+  status: "completed" | "failed" | "queued" | "running";
+  error?: string;
+  message?: string;
 }
 
 export interface NodeUpdate {
@@ -54,10 +55,79 @@ export interface NodeUpdate {
   node_id: string;
   node_name: string;
   status: string;
-  progress: number;
-  total: number;
+  error?: string;
   result?: {
     output?: any;
+  };
+}
+
+export interface NodeProgress {
+  type: "node_progress";
+  node_id: string;
+  progress: number;
+  total: number;
+  chunk?: string;
+}
+
+export interface Chunk {
+  type: "chunk";
+  node_id: string;
+  content: string;
+}
+
+export interface TaskUpdate {
+  type: "task_update";
+  node_id: string;
+  task: {
+    id: string;
+    name: string;
+    status: string;
+  };
+}
+
+export interface OutputUpdate {
+  type: "output_update";
+  node_id: string;
+  node_name: string;
+  output_name: string;
+  value: unknown;
+  output_type: string;
+  metadata: Record<string, never>;
+}
+
+export interface PlanningUpdate {
+  type: "planning_update";
+  node_id: string;
+  message: string;
+}
+
+export interface Prediction {
+  type: "prediction";
+  node_id: string;
+  status: string;
+  logs?: string;
+}
+
+export interface WorkflowAttributes {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RunJobRequest {
+  type: "run_job_request";
+  workflow_id: string;
+  job_type: "workflow";
+  auth_token: string;
+  params: Record<string, any>;
+  api_url?: string;
+  user_id?: string;
+  explicit_types?: boolean;
+  graph?: {
+    nodes: any[];
+    edges: any[];
   };
 }
 
