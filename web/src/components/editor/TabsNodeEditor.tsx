@@ -6,7 +6,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import AppHeaderActions from "../panels/AppHeaderActions";
+import AppToolbar from "../panels/AppToolbar";
 import { Workflow } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
@@ -371,7 +371,7 @@ const TabsNodeEditor = () => {
                               <>
                                 <AppHeader />
                                 <div className="actions-container">
-                                  <AppHeaderActions
+                                  <AppToolbar
                                     setWorkflowToEdit={setWorkflowToEdit}
                                   />
                                 </div>
