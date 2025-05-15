@@ -1,5 +1,14 @@
 /** @jsxImportSource @emotion/react */
-import { Button, Tooltip, CircularProgress, Box } from "@mui/material";
+import {
+  Button,
+  Tooltip,
+  CircularProgress,
+  Box,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel
+} from "@mui/material";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
@@ -10,7 +19,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation } from "react-router-dom";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -41,6 +50,27 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       margin: "0",
       padding: "0 1em"
+    },
+    ".mode-select": {
+      top: "-2px",
+      padding: "0",
+      minWidth: "80px",
+      marginRight: "12px",
+      height: "24px",
+      "& .MuiInputBase-root": {
+        height: "24px",
+        minHeight: "24px"
+      },
+      "& .MuiSelect-select": {
+        fontSize: "0.75rem",
+        padding: "0px 8px",
+        color: theme.palette.c_gray6,
+        lineHeight: "24px",
+        height: "24px"
+      },
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.palette.c_gray3
+      }
     },
     ".status-message-container": {
       alignItems: "center",
@@ -247,6 +277,63 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
   );
 });
 
+const WorkflowModeSelect = memo(function WorkflowModeSelect() {
+  const { getWorkflow } = useNodes((state) => ({
+    getWorkflow: state.getWorkflow
+  }));
+  const workflow = getWorkflow();
+
+  const workflowMode = (workflow?.settings?.run_mode || "normal") as string;
+
+  const { saveWorkflow } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow
+  }));
+
+  const [runMode, setRunMode] = useState<string>(workflowMode);
+
+  useEffect(() => {
+    if (workflowMode) {
+      setRunMode(workflowMode);
+    } else {
+      setRunMode("normal");
+    }
+  }, [workflowMode]);
+
+  const handleModeChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const newMode = event.target.value as string;
+    setRunMode(newMode);
+
+    const updatedWorkflow = {
+      ...workflow,
+      settings: {
+        ...(workflow.settings || {}),
+        run_mode: newMode
+      }
+    };
+
+    saveWorkflow(updatedWorkflow);
+  };
+
+  return (
+    <Tooltip title="Run Mode" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <FormControl size="small" className="mode-select">
+        <Select
+          value={runMode}
+          onChange={handleModeChange as any}
+          displayEmpty
+          variant="outlined"
+          size="small"
+        >
+          <MenuItem value="normal">Normal</MenuItem>
+          <MenuItem value="app">App</MenuItem>
+          <MenuItem value="chat">Chat</MenuItem>
+          <MenuItem value="headless">Headless</MenuItem>
+        </Select>
+      </FormControl>
+    </Tooltip>
+  );
+});
+
 const RunWorkflowButton = memo(function RunWorkflowButton() {
   const { workflow, nodes, edges } = useNodes((state) => ({
     workflow: state.workflow,
@@ -408,13 +495,11 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
   );
 });
 
-interface AppHeaderActionsProps {
+interface AppToolbarProps {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }
 
-const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
-  setWorkflowToEdit
-}) => {
+const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const path = useLocation().pathname;
   const { autoLayout } = useNodes((state) => ({
@@ -438,6 +523,7 @@ const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
             <SaveWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
+            <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
             {isLocalhost && <RunAsAppButton />}
@@ -448,4 +534,4 @@ const AppHeaderActions: React.FC<AppHeaderActionsProps> = ({
   );
 };
 
-export default memo(AppHeaderActions, isEqual);
+export default memo(AppToolbar, isEqual);
