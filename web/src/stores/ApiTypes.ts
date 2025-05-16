@@ -48,6 +48,7 @@ export type MessageDocumentContent =
 export type Image = components["schemas"]["ImageRef"];
 export type Document = components["schemas"]["DocumentRef"];
 export type FolderRef = components["schemas"]["FolderRef"];
+export type FontRef = components["schemas"]["FontRef"];
 export type Audio = components["schemas"]["AudioRef"];
 export type Video = components["schemas"]["VideoRef"];
 export type RunJobRequest = components["schemas"]["RunJobRequest"];

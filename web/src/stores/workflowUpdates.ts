@@ -78,13 +78,18 @@ export const handleUpdate = (
     if (update.output_type === "string") {
       addChunk(workflow.id, update.node_id, update.value as string);
     } else if (assetTypes.includes(update.output_type)) {
-      setResult(workflow.id, update.node_id, {
-        [update.output_name]: {
+      setResult(
+        workflow.id,
+        update.node_id,
+        {
           type: update.output_type,
           uri: "",
           data: (update.value as { data: Uint8Array }).data
-        }
-      });
+        },
+        true
+      );
+    } else {
+      setResult(workflow.id, update.node_id, update.value, true);
     }
   }
   if (data.type === "job_update") {

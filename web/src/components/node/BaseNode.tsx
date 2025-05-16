@@ -266,6 +266,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Results and rendering
   const result = useResultsStore((state) => state.getResult(workflow_id, id));
+
+  console.log(type, result);
+
   const renderedResult = useMemo(() => {
     if (result && typeof result === "object") {
       return Object.entries(result).map(([key, value]) => (

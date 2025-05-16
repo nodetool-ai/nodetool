@@ -32,6 +32,7 @@ import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
+import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
@@ -130,6 +131,8 @@ function handleAdvancedDataTypes(
       return DataframeProperty;
     case "record_type":
       return RecordTypeProperty;
+    case "font":
+      return FontProperty;
     case "union":
       return handleUnionType(property);
     case "list":
