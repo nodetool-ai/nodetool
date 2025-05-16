@@ -82,14 +82,23 @@ export const handleUpdate = (
         workflow.id,
         update.node_id,
         {
-          type: update.output_type,
-          uri: "",
-          data: (update.value as { data: Uint8Array }).data
+          output: {
+            type: update.output_type,
+            uri: "",
+            data: (update.value as { data: Uint8Array }).data
+          }
         },
         true
       );
     } else {
-      setResult(workflow.id, update.node_id, update.value, true);
+      setResult(
+        workflow.id,
+        update.node_id,
+        {
+          output: update.value
+        },
+        true
+      );
     }
   }
   if (data.type === "job_update") {

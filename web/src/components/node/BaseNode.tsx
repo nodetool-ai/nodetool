@@ -267,14 +267,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Results and rendering
   const result = useResultsStore((state) => state.getResult(workflow_id, id));
 
-  console.log(type, result);
-
   const renderedResult = useMemo(() => {
-    if (result && typeof result === "object") {
-      return Object.entries(result).map(([key, value]) => (
-        <OutputRenderer key={key} value={value} />
-      ));
-    }
+    return result !== undefined ? (
+      <OutputRenderer
+        value={
+          Array.isArray(result)
+            ? result.map((i: any) => i.output)
+            : result.output
+        }
+      />
+    ) : null;
   }, [result]);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
