@@ -187,33 +187,29 @@ export const handleUpdate = (
     }
 
     if (update.status === "completed") {
-      setResult(
-        workflow.id,
-        update.node_id,
-        update.result,
-        update.node_name === "Preview"
-      );
+      setResult(workflow.id, update.node_id, update.result, true);
 
-      if (update.result) {
-        Object.entries(update.result).forEach(([key, value]) => {
-          const ref = value as AssetRef;
-          if (typeof ref === "object" && ref !== null && "asset_id" in ref) {
-            const asset_id = ref.asset_id;
-            if (asset_id) {
-              getAsset(asset_id).then((res) => {
-                if (res?.get_url) {
-                  ref.uri = res.get_url;
-                }
-                setResult(workflow.id, update.node_id, { [key]: ref });
-              });
-            } else {
-              log.error(
-                `WorkflowRunner: Asset id is null or undefined for key: ${key}`
-              );
-            }
-          }
-        });
-      }
+      // This should happen in output renderer.
+      // if (update.result) {
+      //   Object.entries(update.result).forEach(([key, value]) => {
+      //     const ref = value as AssetRef;
+      //     if (typeof ref === "object" && ref !== null && "asset_id" in ref) {
+      //       const asset_id = ref.asset_id;
+      //       if (asset_id) {
+      //         getAsset(asset_id).then((res) => {
+      //           if (res?.get_url) {
+      //             ref.uri = res.get_url;
+      //           }
+      //           setResult(workflow.id, update.node_id, { [key]: ref });
+      //         });
+      //       } else {
+      //         log.error(
+      //           `WorkflowRunner: Asset id is null or undefined for key: ${key}`
+      //         );
+      //       }
+      //     }
+      //   });
+      // }
     }
 
     // if (update.properties) {

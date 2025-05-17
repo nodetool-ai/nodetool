@@ -195,8 +195,13 @@ const namespaceStyles = (theme: any) =>
       padding: "0 0 .5em 0"
     },
     ".no-results": {
-      padding: "0 0 0 1em",
-      margin: 0
+      padding: "0 0 0 2em",
+      margin: "0",
+      fontSize: "0.8em",
+      color: theme.palette.c_gray5
+    },
+    h6: {
+      color: theme.palette.c_gray4
     },
     ".highlighted": {
       paddingLeft: ".25em",
@@ -473,8 +478,6 @@ const NoSelectionContent = memo(function NoSelectionContent({
             marginBottom: "0.5em",
             textTransform: "none",
             lineHeight: "1.5",
-            borderColor: "#61dafb",
-            color: "#61dafb",
             padding: "15px"
           }}
         >
@@ -482,13 +485,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
         </Button>
       </div>
 
-      <Typography variant="h4" sx={{ margin: "1em 0 0 0" }}>
-        Let us know what&apos;s missing
-      </Typography>
-      <Typography variant="body1" sx={{ margin: "1em 0 0 0" }}>
-        We&apos;re always looking to improve Nodetool and welcome any
-        suggestions!
-      </Typography>
+      <Typography variant="h6">Let us know what&apos;s missing</Typography>
       <ul className="no-results">
         <li>
           Join our{" "}
@@ -502,7 +499,6 @@ const NoSelectionContent = memo(function NoSelectionContent({
                 "noopener,noreferrer"
               );
             }}
-            style={{ color: "#61dafb" }}
           >
             Discord
           </a>
@@ -519,7 +515,6 @@ const NoSelectionContent = memo(function NoSelectionContent({
                 "noopener,noreferrer"
               );
             }}
-            style={{ color: "#61dafb" }}
           >
             Nodetool Forum
           </a>
