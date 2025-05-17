@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
@@ -131,6 +131,17 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
+  const { edges } = useNodes((state) => ({
+    edges: state.edges
+  }));
+  const isConnected = useCallback(
+    (handle: string) => {
+      return edges.some(
+        (edge) => edge.target === id && edge.targetHandle === handle
+      );
+    },
+    [edges, id]
+  );
 
   properties.forEach((property, index) => {
     const tabIndex = tabableProperties.findIndex(
@@ -138,7 +149,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     );
     const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
     const isBasicField = basicFields?.includes(property.name);
-    const isAdvancedField = !isBasicField;
 
     const inputElement = (
       <NodeInput
@@ -157,7 +167,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       />
     );
 
-    if (isBasicField) {
+    if (isBasicField || isConnected(property.name)) {
       basicInputs.push(inputElement);
     } else {
       advancedInputs.push(inputElement);
