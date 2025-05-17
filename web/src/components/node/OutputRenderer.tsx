@@ -5,7 +5,8 @@ import React, {
   useRef,
   useEffect,
   memo,
-  createElement
+  createElement,
+  useState
 } from "react";
 import { css } from "@emotion/react";
 import Plot from "react-plotly.js";
@@ -30,6 +31,7 @@ import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
+import AssetViewer from "../assets/AssetViewer";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import ArrayView from "./ArrayView"; // We'll create this component
 import TaskPlanView from "./TaskPlanView";
@@ -37,7 +39,6 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
-import { console } from "node:inspector/promises";
 export type OutputRendererProps = {
   value: any;
 };
@@ -259,11 +260,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     (state) => state.addNotification
   );
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
 
   const type = useMemo(() => typeFor(value), [value]);
 
   const onDoubleClickAsset = useCallback(
     (asset: Asset) => {
+      setLocalOpenAsset(asset);
       setOpenAsset(asset);
     },
     [setOpenAsset]
@@ -507,7 +510,27 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     }
   }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
 
-  return renderContent;
+  return (
+    <>
+      {openAsset && (
+        <AssetViewer
+          asset={openAsset}
+          sortedAssets={
+            Array.isArray(value) &&
+            value.every(
+              (item) =>
+                item.type && ["image", "audio", "video"].includes(item.type)
+            )
+              ? value
+              : undefined
+          }
+          open={openAsset !== null}
+          onClose={() => setLocalOpenAsset(null)}
+        />
+      )}
+      {renderContent}
+    </>
+  );
 };
 
 export default memo(OutputRenderer, isEqual);
