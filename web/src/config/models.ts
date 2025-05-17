@@ -82,11 +82,6 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "gemma2:2b",
-    name: "Gemma2 - 2B",
-    type: "llama_model"
-  },
-  {
     id: "codegemma:latest",
     name: "Coddegemma",
     type: "llama_model"
@@ -99,66 +94,6 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "qwq:latest",
     name: "QwQ",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:0.5b",
-    name: "Qwen2 - 0.5B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:1.5b",
-    name: "Qwen2 - 1.5B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:3b",
-    name: "Qwen2 - 3B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:7b",
-    name: "Qwen2 - 7B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:14b",
-    name: "Qwen2 - 14B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5:32b",
-    name: "Qwen2 - 32B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:0.5b",
-    name: "Qwen2 Coder - 0.5B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:1.5b",
-    name: "Qwen2 Coder - 1.5B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:3b",
-    name: "Qwen2 Coder - 3B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:7b",
-    name: "Qwen2 Coder - 7B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:14b",
-    name: "Qwen2 Coder - 14B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2.5-coder:32b",
-    name: "Qwen2 Coder - 32B",
     type: "llama_model"
   },
   {
@@ -194,6 +129,61 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "mistral-small:latest",
     name: "Mistral Small",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:1b",
+    name: "Gemma3 - 1B",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:4b",
+    name: "Gemma3 - 4B",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:12b",
+    name: "Gemma3 - 12B",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:27b",
+    name: "Gemma3 - 27B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:0.6b",
+    name: "Qwen3 - 0.6B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:1.7b",
+    name: "Qwen3 - 1.7B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:4b",
+    name: "Qwen3 - 4B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:8b",
+    name: "Qwen3 - 8B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:14b",
+    name: "Qwen3 - 14B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:30b",
+    name: "Qwen3 - 30B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen3:32b",
+    name: "Qwen3 - 32B",
     type: "llama_model"
   }
 ];
