@@ -13,6 +13,7 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { isEqual } from "lodash";
+import { getAssetThumbUrl } from "../../utils/getAssetThumbUrl";
 
 const styles = (theme: any) =>
   css({
@@ -328,18 +329,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`
+                backgroundImage: `url(${getAssetThumbUrl(asset)})`
               }}
               aria-label={asset.id}
             />
             <div
               className="image-aspect-ratio"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`
+                backgroundImage: `url(${getAssetThumbUrl(asset)})`
               }}
               aria-label={asset.id}
             />
@@ -369,9 +366,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`
+                backgroundImage: `url(${getAssetThumbUrl(asset)})`
               }}
               aria-label={asset.id}
             />
@@ -388,11 +383,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
             />
-            {asset.thumb_url && (
+            {getAssetThumbUrl(asset) !== "/images/placeholder.png" && (
               <div
                 className="image"
                 style={{
-                  backgroundImage: `url(${asset.thumb_url})`
+                  backgroundImage: `url(${getAssetThumbUrl(asset)})`
                 }}
                 aria-label={asset.id}
               />

@@ -238,15 +238,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   }, [currentAsset, url]);
 
   const handleChangeAsset = useCallback(
-    (newAsset: Asset) => {
-      setTimeout(() => {
-        setCurrentAsset(newAsset);
-      }, 10);
-      if (assetsToUse) {
-        const index = assetsToUse.findIndex((item) => item.id === newAsset.id);
-        setCurrentIndex(index !== -1 ? index : null);
-      } else {
-        setCurrentIndex(null);
+    (index: number) => {
+      if (assetsToUse && index >= 0 && index < assetsToUse.length) {
+        const newAsset = assetsToUse[index];
+        setTimeout(() => {
+          setCurrentAsset(newAsset);
+        }, 10);
+        setCurrentIndex(index);
       }
     },
     [assetsToUse, setCurrentAsset, setCurrentIndex]
@@ -264,7 +262,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     if (asset) {
       setCurrentAsset(asset);
       const index = assetsToUse?.findIndex((item) => item.id === asset.id);
-      setCurrentIndex(index !== undefined ? index : null);
+      setCurrentIndex(index !== undefined && index !== -1 ? index : null);
     }
   }, [asset, assetsToUse]);
 
@@ -273,29 +271,25 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       if (currentIndex !== null && assetsToUse) {
         if (direction === "left" && currentIndex > 0) {
           if (controlKeyPressed) {
-            handleChangeAsset(
-              assetsToUse[Math.max(currentIndex - prevNextAmount, 0)]
-            );
+            const newIndex = Math.max(currentIndex - prevNextAmount, 0);
+            handleChangeAsset(newIndex);
           } else {
-            handleChangeAsset(assetsToUse[currentIndex - 1]);
+            handleChangeAsset(currentIndex - 1);
           }
         } else if (
           direction === "right" &&
           currentIndex < assetsToUse.length - 1
         ) {
           if (controlKeyPressed) {
-            handleChangeAsset(
-              assetsToUse[
-                Math.min(currentIndex + prevNextAmount, assetsToUse.length - 1)
-              ]
-            );
+            const newIndex = Math.min(currentIndex + prevNextAmount, assetsToUse.length - 1);
+            handleChangeAsset(newIndex);
           } else {
-            handleChangeAsset(assetsToUse[currentIndex + 1]);
+            handleChangeAsset(currentIndex + 1);
           }
         }
       }
     },
-    [handleChangeAsset, currentIndex, assetsToUse]
+    [handleChangeAsset, currentIndex, assetsToUse, prevNextAmount]
   );
 
   useEffect(() => {
@@ -389,7 +383,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [currentAsset, url, contentType]);
 
-  const renderNavigation = () => {
+  const navigation = useMemo(() => {
     if (currentIndex === null) return null;
     const prevAssets =
       assetsToUse?.slice(
@@ -399,12 +393,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     const nextAssets =
       assetsToUse?.slice(currentIndex + 1, currentIndex + prevNextAmount + 1) ||
       [];
+    console.log("prevAssets", prevAssets);
+    console.log("nextAssets", nextAssets);
     return (
       <>
         <IconButton
           className="prev-next-button left"
-          onMouseDown={() =>
-            handleChangeAsset(prevAssets[prevAssets.length - 1])
+          onMouseDown={() => 
+            handleChangeAsset(Math.max(0, currentIndex - 1))
           }
           disabled={prevAssets?.length === 0}
         >
@@ -412,31 +408,35 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         </IconButton>
         <IconButton
           className="prev-next-button right"
-          onMouseDown={() => handleChangeAsset(nextAssets[0])}
+          onMouseDown={() => handleChangeAsset(Math.min(assetsToUse.length - 1, currentIndex + 1))}
           disabled={nextAssets?.length === 0}
         >
           <KeyboardArrowRightIcon />
         </IconButton>
         <div className="asset-navigation">
           <div className="prev-next-items left">
-            {prevAssets?.map((asset) => (
-              <Button
-                className="item"
-                key={asset.id}
-                onMouseDown={() => handleChangeAsset(asset)}
-              >
-                <AssetItem
-                  asset={asset}
-                  draggable={false}
-                  isParent={false}
-                  showDeleteButton={false}
-                  enableContextMenu={false}
-                  showName={false}
-                  showDuration={true}
-                  showFiletype={true}
-                />
-              </Button>
-            ))}
+            {prevAssets?.map((asset, idx) => {
+              // Calculate the actual index in the assetsToUse array
+              const assetIndex = Math.max(0, currentIndex - prevAssets.length + idx);
+              return (
+                <Button
+                  className="item"
+                  key={asset.id || idx}
+                  onMouseDown={() => handleChangeAsset(assetIndex)}
+                >
+                  <AssetItem
+                    asset={asset}
+                    draggable={false}
+                    isParent={false}
+                    showDeleteButton={false}
+                    enableContextMenu={false}
+                    showName={false}
+                    showDuration={true}
+                    showFiletype={true}
+                  />
+                </Button>
+              );
+            })}
           </div>
           <div className="prev-next-items current">
             <AssetItem
@@ -451,24 +451,28 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             />
           </div>
           <div className="prev-next-items right">
-            {nextAssets?.map((asset) => (
-              <Button
-                className="item"
-                key={asset.id}
-                onMouseDown={() => handleChangeAsset(asset)}
-              >
-                <AssetItem
-                  asset={asset}
-                  draggable={false}
-                  isParent={false}
-                  showDeleteButton={false}
-                  enableContextMenu={false}
-                  showName={false}
-                  showDuration={true}
-                  showFiletype={true}
-                />
-              </Button>
-            ))}
+            {nextAssets?.map((asset, idx) => {
+              // Calculate the actual index in the assetsToUse array
+              const assetIndex = currentIndex + 1 + idx;
+              return (
+                <Button
+                  className="item"
+                  key={asset.id || idx}
+                  onMouseDown={() => handleChangeAsset(assetIndex)}
+                >
+                  <AssetItem
+                    asset={asset}
+                    draggable={false}
+                    isParent={false}
+                    showDeleteButton={false}
+                    enableContextMenu={false}
+                    showName={false}
+                    showDuration={true}
+                    showFiletype={true}
+                  />
+                </Button>
+              );
+            })}
           </div>
           <div className="asset-info">
             <Typography className="folder-name">
@@ -485,7 +489,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         </div>
       </>
     );
-  };
+  }, [
+    currentIndex,
+    assetsToUse,
+    currentAsset,
+    currentFolderName,
+    handleChangeAsset
+  ]);
 
   if (!open) {
     return null;
@@ -525,7 +535,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         </div>
 
         {assetViewer}
-        {renderNavigation()}
+        {navigation}
       </Dialog>
     </div>
   );
