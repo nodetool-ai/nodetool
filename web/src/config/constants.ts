@@ -21,4 +21,4 @@ export const MIN_ZOOM = 0.38;
 export const MAX_ZOOM = 3.5;
 
 // MODEL
-export const DEFAULT_MODEL = "llama3.2:3b";
+export const DEFAULT_MODEL = "qwen3:4b";
