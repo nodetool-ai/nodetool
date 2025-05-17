@@ -13,6 +13,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -278,8 +279,9 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
 });
 
 const WorkflowModeSelect = memo(function WorkflowModeSelect() {
-  const { getWorkflow } = useNodes((state) => ({
-    getWorkflow: state.getWorkflow
+  const { getWorkflow, workflowJSON } = useNodes((state) => ({
+    getWorkflow: state.getWorkflow,
+    workflowJSON: state.workflowJSON
   }));
   const workflow = getWorkflow();
 
@@ -495,6 +497,30 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
   );
 });
 
+const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
+  const { workflow, workflowJSON } = useNodes((state) => ({
+    workflow: state.workflow,
+    workflowJSON: state.workflowJSON
+  }));
+
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([workflowJSON()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = `${workflow.name}.json`;
+    link.href = url;
+    link.click();
+  }, [workflowJSON, workflow]);
+
+  return (
+    <Tooltip title="Download Workflow JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button className="action-button" onClick={handleDownload} tabIndex={-1}>
+        <FileDownloadIcon />
+      </Button>
+    </Tooltip>
+  );
+});
+
 interface AppToolbarProps {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }
@@ -522,6 +548,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <NodeMenuButton />
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
             <SaveWorkflowButton />
+            <DownloadWorkflowButton />
             <AutoLayoutButton autoLayout={autoLayout} />
             <WorkflowModeSelect />
             <RunWorkflowButton />
