@@ -22,7 +22,9 @@ const styles = (theme: any) =>
       padding: "1em 1em 2em 1em"
     },
     p: {
-      width: "100%"
+      width: "100%",
+      lineHeight: "1.2em",
+      margin: "0.25em 0 .5em 0"
     },
     pre: {
       width: "90%",
