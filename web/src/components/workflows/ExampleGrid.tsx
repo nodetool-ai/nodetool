@@ -103,6 +103,16 @@ const styles = (theme: any) =>
       position: "relative",
       zIndex: 2
     },
+    ".workflow .package-name": {
+      fontSize: "0.875rem",
+      lineHeight: "1.2",
+      display: "-webkit-box",
+      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.c_gray5,
+      padding: "0.25em 0.5em",
+      borderRadius: "4px",
+      marginBottom: "0.5em"
+    },
     ".workflow .description": {
       fontSize: "0.875rem",
       color: theme.palette.text.secondary,
@@ -598,7 +608,7 @@ const ExampleGrid = () => {
               <Typography variant="h4" component={"h4"}>
                 {workflow.name}
               </Typography>
-              <Typography variant="body2" component={"p"}>
+              <Typography className="package-name" component={"p"}>
                 {workflow.package_name}
               </Typography>
               <Typography className="description">
