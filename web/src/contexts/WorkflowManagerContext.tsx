@@ -360,6 +360,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               name: workflow.name,
               description: workflow.description,
               tags: workflow.tags,
+              package_name: workflow.package_name,
+              path: workflow.path,
               access: "public",
               graph: workflow.graph
             }

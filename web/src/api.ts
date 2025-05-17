@@ -3926,6 +3926,10 @@ export interface components {
             settings?: {
                 [key: string]: string | boolean | number | null;
             } | null;
+            /** Package Name */
+            package_name?: string | null;
+            /** Path */
+            path?: string | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -3952,6 +3956,10 @@ export interface components {
         WorkflowRequest: {
             /** Name */
             name: string;
+            /** Package Name */
+            package_name?: string | null;
+            /** Path */
+            path?: string | null;
             /** Tags */
             tags?: string[] | null;
             /** Description */

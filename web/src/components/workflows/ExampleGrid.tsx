@@ -339,6 +339,8 @@ const ExampleGrid = () => {
         thumbnail: workflow.thumbnail,
         thumbnail_url: workflow.thumbnail_url,
         tags: tags,
+        package_name: workflow.package_name,
+        path: workflow.path,
         access: "private",
         graph: JSON.parse(JSON.stringify(workflow.graph)),
         created_at: new Date().toISOString(),
@@ -595,6 +597,9 @@ const ExampleGrid = () => {
               </Box>
               <Typography variant="h4" component={"h4"}>
                 {workflow.name}
+              </Typography>
+              <Typography variant="body2" component={"p"}>
+                {workflow.package_name}
               </Typography>
               <Typography className="description">
                 {workflow.description}
