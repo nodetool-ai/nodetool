@@ -98,21 +98,23 @@ const styles = (theme: any) =>
       fontWeight: "bold",
       textShadow: "0 1px 3px rgba(0,0,0,0.8)"
     },
-    ".workflow h4": {
+    ".workflow h3": {
+      color: "var(--c_brightest)",
       marginTop: "8px",
       marginBottom: "4px",
+      minHeight: "2em",
       position: "relative",
       zIndex: 2
     },
     ".workflow .package-name": {
-      fontSize: "0.875rem",
+      fontSize: "var(--font-size-small)",
       lineHeight: "1.2",
       display: "-webkit-box",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray0,
       color: theme.palette.c_gray5,
-      padding: "0.25em 0.5em",
+      padding: "0.2em 0.5em",
       borderRadius: "4px",
-      marginBottom: "0.5em"
+      margin: "0.5em 0"
     },
     ".workflow .description": {
       fontSize: "0.875rem",
@@ -597,6 +599,9 @@ const ExampleGrid = () => {
                   </Box>
                 </Fade>
               )}
+              <Typography variant="h3" component={"h3"}>
+                {workflow.name}
+              </Typography>
               <Box className="image-wrapper">
                 <img
                   width="200px"
@@ -611,11 +616,8 @@ const ExampleGrid = () => {
                   alt={workflow.name}
                 />
               </Box>
-              <Typography variant="h4" component={"h4"}>
-                {workflow.name}
-              </Typography>
               <Typography className="package-name" component={"p"}>
-                {workflow.package_name}
+                {workflow.package_name?.replace("nodetool-", "").toUpperCase()}
               </Typography>
               <Typography className="description">
                 {workflow.description}
