@@ -28,6 +28,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assets/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Package Assets
+         * @description List all assets from installed nodetool packages.
+         */
+        get: operations["list_package_assets_api_assets_packages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/packages/{package_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Package Assets By Package
+         * @description List all assets from a specific nodetool package.
+         */
+        get: operations["list_package_assets_by_package_api_assets_packages__package_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/packages/{package_name}/{asset_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Package Asset
+         * @description Serve a specific asset file from a nodetool package.
+         */
+        get: operations["get_package_asset_api_assets_packages__package_name___asset_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assets/{id}": {
         parameters: {
             query?: never;
@@ -1110,6 +1170,28 @@ export interface components {
             /** Asset Ids */
             asset_ids: string[];
         };
+        /**
+         * AssetInfo
+         * @description Asset information model for nodetool packages.
+         *     Represents files provided by packages in their assets directories.
+         */
+        AssetInfo: {
+            /**
+             * Package Name
+             * @description Name of the package providing the asset
+             */
+            package_name: string;
+            /**
+             * Name
+             * @description Asset file name
+             */
+            name: string;
+            /**
+             * Path
+             * @description Full path to the asset file
+             */
+            path: string;
+        };
         /** AssetList */
         AssetList: {
             /** Next */
@@ -1471,6 +1553,22 @@ export interface components {
             type: "error";
             /** Error */
             error: string;
+        };
+        /**
+         * ExampleMetadata
+         * @description Metadata for an example workflow.
+         */
+        ExampleMetadata: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Tags */
+            tags: string[];
+            /** Thumbnail Url */
+            thumbnail_url: string;
         };
         /** FileInfo */
         FileInfo: {
@@ -3083,6 +3181,25 @@ export interface components {
              */
             metadata: Record<string, never>;
         };
+        /** PackageAsset */
+        PackageAsset: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Package Name */
+            package_name: string;
+            /**
+             * Virtual Path
+             * @description Virtual path to access the asset
+             */
+            virtual_path: string;
+        };
+        /** PackageAssetList */
+        PackageAssetList: {
+            /** Assets */
+            assets: components["schemas"]["PackageAsset"][];
+        };
         /** PackageForNodeResponse */
         PackageForNodeResponse: {
             /** Node Type */
@@ -3173,6 +3290,16 @@ export interface components {
              * @description Git commit hash of the package
              */
             git_hash?: string | null;
+            /**
+             * Assets
+             * @description List of assets provided by this package
+             */
+            assets?: components["schemas"]["AssetInfo"][] | null;
+            /**
+             * Examples
+             * @description List of examples provided by this package
+             */
+            examples?: components["schemas"]["ExampleMetadata"][] | null;
         };
         /** PackageResponse */
         PackageResponse: {
@@ -4050,6 +4177,89 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_package_assets_api_assets_packages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageAssetList"];
+                };
+            };
+        };
+    };
+    list_package_assets_by_package_api_assets_packages__package_name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PackageAssetList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_package_asset_api_assets_packages__package_name___asset_name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_name: string;
+                asset_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
