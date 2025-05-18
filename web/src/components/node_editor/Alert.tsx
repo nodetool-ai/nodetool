@@ -13,8 +13,8 @@ import {
 import { useClipboard } from "../../hooks/browser/useClipboard";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
-const DEFAULT_NOTIFICATION_TIMEOUT = 30000; // Default time before notification auto-closes
-
+const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
+const MAX_WIDTH = "500px";
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
     error: "error",
@@ -34,17 +34,23 @@ const styles = css({
   position: "fixed",
   top: "60px",
   right: "2em",
-  zIndex: 100000,
+  zIndex: 10000,
   display: "flex",
   flexDirection: "column",
   gap: "2px",
   alignItems: "flex-end",
   ".MuiAlert-message": {
-    padding: "0.5em 2em 0.2em 0"
+    padding: "0.5em 2em 0.2em 0",
+    lineHeight: "1.2em",
+    fontSize: "var(--font-size-big)",
+    overflowX: "hidden",
+    overflowY: "auto",
+    maxHeight: "80px",
+    wordBreak: "break-all"
   },
   li: {
     listStyleType: "none",
-    maxWidth: "35vw",
+    maxWidth: MAX_WIDTH,
     transition: "all 0.3s ease-in-out",
     "&.alert-enter": {
       opacity: 0,
@@ -222,6 +228,7 @@ const Alert: React.FC = () => {
                       padding: "0.2em",
                       opacity: 0.2,
                       color: "black",
+                      lineHeight: "1.2em",
                       transition: "opacity 0.2s ease",
                       "&:hover": {
                         opacity: 1
