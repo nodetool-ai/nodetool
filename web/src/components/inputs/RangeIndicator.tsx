@@ -17,7 +17,7 @@ const RangeIndicator: React.FC<{
   isEditable: boolean;
 }> = ({ value, min, max, isDragging, isEditable }) => (
   <div
-    className="range-container"
+    className="range-container nodrag"
     tabIndex={-1}
     style={{
       opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY + 0.3,
