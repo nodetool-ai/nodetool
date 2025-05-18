@@ -147,9 +147,6 @@ const styles = (theme: any) =>
         whiteSpace: "nowrap",
         maxWidth: "200px"
       }
-    },
-    h3: {
-      margin: "0 0 0 20px"
     }
   });
 
