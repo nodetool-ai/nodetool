@@ -140,7 +140,7 @@ const styles = (theme: any) =>
     ".workflow:hover .description": {
       WebkitLineClamp: "unset",
       position: "absolute",
-      zIndex: 1,
+      zIndex: 100,
       width: "calc(100% + 10px)",
       backgroundColor: theme.palette.background.default,
       boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
@@ -534,7 +534,6 @@ const ExampleGrid = () => {
           />
         </Tooltip>
       </Box>
-      {/* {renderSearchDebug()} */}
       <Box className="container">
         {isLoading && (
           <div className="loading-indicator">
