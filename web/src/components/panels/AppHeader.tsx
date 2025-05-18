@@ -93,7 +93,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
 
   return (
     <div css={styles} className="app-header">
-      <Toolbar variant="dense" className="toolbar">
+      <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <Tooltip
             enterDelay={TOOLTIP_ENTER_DELAY}
