@@ -12,7 +12,6 @@ import {
   RunJobRequest,
   WorkflowAttributes,
   TaskUpdate,
-  Chunk,
   PlanningUpdate
 } from "./ApiTypes";
 import { Omit } from "lodash";
@@ -72,7 +71,6 @@ export type WorkflowRunner = {
 };
 
 type MsgpackData =
-  | Chunk
   | JobUpdate
   | Prediction
   | NodeProgress
@@ -113,9 +111,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       const workflow = get().workflow;
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
-      if (data.type !== "chunk") {
-        console.log("data", data);
-      }
+      console.log("data", data);
 
       if (workflow) {
         get().readMessage(workflow, data);
