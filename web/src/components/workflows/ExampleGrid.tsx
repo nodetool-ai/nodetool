@@ -29,6 +29,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToEditorButton from "../panels/BackToEditorButton";
+import { BASE_URL } from "../../stores/ApiClient";
 
 const styles = (theme: any) =>
   css({
@@ -597,13 +598,18 @@ const ExampleGrid = () => {
                 </Fade>
               )}
               <Box className="image-wrapper">
-                {workflow.thumbnail_url && (
-                  <img
-                    width="200px"
-                    src={workflow.thumbnail_url}
-                    alt={workflow.name}
-                  />
-                )}
+                <img
+                  width="200px"
+                  src={
+                    BASE_URL +
+                    "/api/assets/packages/" +
+                    workflow.package_name +
+                    "/" +
+                    workflow.name +
+                    ".jpg"
+                  }
+                  alt={workflow.name}
+                />
               </Box>
               <Typography variant="h4" component={"h4"}>
                 {workflow.name}

@@ -227,7 +227,6 @@ type ChatViewProps = {
   model?: string;
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
-  chunks: string;
 };
 export const Progress = ({
   progress,
@@ -283,8 +282,7 @@ const ChatView = ({
   messages,
   model,
   sendMessage,
-  progressMessage,
-  chunks
+  progressMessage
 }: ChatViewProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
@@ -642,7 +640,7 @@ const ChatView = ({
         {messages.map((msg, index) => (
           <MessageView key={msg.id || `msg-${index}`} {...msg} />
         ))}
-        {status === "loading" && progress === 0 && chunks.length === 0 && (
+        {status === "loading" && progress === 0 && (
           <li key="loading-indicator">
             <LoadingIndicator />
           </li>
@@ -650,11 +648,6 @@ const ChatView = ({
         {progress > 0 && (
           <li key="progress-indicator">
             <Progress progress={progress} total={total} />
-          </li>
-        )}
-        {chunks.length > 0 && (
-          <li key="chunk-indicator">
-            <MarkdownRenderer content={chunks} />
           </li>
         )}
         {progressMessage && (

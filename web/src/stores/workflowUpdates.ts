@@ -8,7 +8,6 @@ import {
   Message,
   TaskUpdate,
   ToolCallUpdate,
-  Chunk,
   PlanningUpdate,
   OutputUpdate,
   ImageRef
@@ -34,7 +33,6 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const setTask = useResultsStore.getState().setTask;
-  const addChunk = useResultsStore.getState().addChunk;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
 
@@ -64,19 +62,11 @@ export const handleUpdate = (
     }
   }
 
-  if (data.type === "chunk") {
-    const chunk = data as Chunk;
-    if (chunk.node_id) {
-      addChunk(workflow.id, chunk.node_id, chunk.content);
-    } else {
-      log.error("Chunk has no node_id");
-    }
-  }
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
     const assetTypes = ["image", "audio", "video", "document"];
     if (update.output_type === "string") {
-      addChunk(workflow.id, update.node_id, update.value as string);
+      // String updates are handled in WorkflowChatStore directly
     } else if (assetTypes.includes(update.output_type)) {
       setResult(
         workflow.id,

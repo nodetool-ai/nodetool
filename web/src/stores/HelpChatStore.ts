@@ -1,5 +1,17 @@
 import { create } from "zustand";
-import { Chunk, Message, MessageContent } from "./ApiTypes";
+import {
+  Chunk,
+  JobUpdate,
+  Message,
+  MessageContent,
+  NodeProgress,
+  NodeUpdate,
+  OutputUpdate,
+  PlanningUpdate,
+  Prediction,
+  TaskUpdate,
+  ToolCallUpdate
+} from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
 import { decode, encode } from "@msgpack/msgpack";
@@ -9,8 +21,9 @@ type HelpChatState = {
   socket: WebSocket | null;
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   messages: Message[];
-  chunks: string;
-  progressMessage: string;
+  progressMessage: string | null;
+  progress: number;
+  total: number;
   error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -18,15 +31,57 @@ type HelpChatState = {
   resetMessages: () => void;
 };
 
-export type MsgpackData = Message | Chunk;
+export type MsgpackData =
+  | JobUpdate
+  | Chunk
+  | Prediction
+  | NodeProgress
+  | NodeUpdate
+  | Message
+  | ToolCallUpdate
+  | TaskUpdate
+  | PlanningUpdate
+  | OutputUpdate;
+
+const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
+  const dataUri = URL.createObjectURL(new Blob([data]));
+  if (type === "image") {
+    return {
+      type: "image_url",
+      image: {
+        type: "image",
+        uri: dataUri
+      }
+    };
+  } else if (type === "audio") {
+    return {
+      type: "audio",
+      audio: {
+        type: "audio",
+        uri: dataUri
+      }
+    };
+  } else if (type === "video") {
+    return {
+      type: "video",
+      video: {
+        type: "video",
+        uri: dataUri
+      }
+    };
+  } else {
+    throw new Error(`Unknown message content type: ${type}`);
+  }
+};
 
 const useHelpChatStore = create<HelpChatState>((set, get) => ({
   socket: null,
   messages: [],
-  chunks: "",
+  progressMessage: null,
   status: "disconnected",
   error: null,
-  progressMessage: "",
+  progress: 0,
+  total: 0,
   connect: async () => {
     log.info("Connecting to help chat");
 
@@ -34,17 +89,7 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
       get().disconnect();
     }
 
-    set({ status: "connecting" });
-
-    const createMessageFromChunks = () => {
-      const chunks = get().chunks;
-      const message = {
-        role: "assistant",
-        type: "message",
-        content: chunks
-      };
-      set({ messages: [...get().messages, message], chunks: "" });
-    };
+    set({ status: "connecting", error: null });
 
     // Get authentication token if not connecting to localhost
     let wsUrl = CHAT_URL;
@@ -73,58 +118,161 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
       }
     }
 
+    log.info("Attempting to connect to WebSocket:", wsUrl);
     const socket = new WebSocket(wsUrl);
     socket.onopen = () => {
       log.info("Help Chat WebSocket connected");
-      set({ socket, status: "connected" });
+      set({ socket, status: "connected", error: null });
     };
 
     socket.onmessage = async (event) => {
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
-      console.log(data);
-
       if (data.type === "message") {
         set((state) => ({
           messages: [...state.messages, data as Message],
-          status: "connected"
+          status: "connected",
+          progress: 0,
+          total: 0
         }));
       } else if (data.type === "chunk") {
         const chunk = data as Chunk;
-        const currentChunk = get().chunks;
-        set({ chunks: currentChunk + chunk.content, status: "connected" });
+        const messages = get().messages;
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === "assistant") {
+          // Append to the last assistant message
+          const updatedMessage: Message = {
+            ...lastMessage,
+            // Ensure content is treated as a string and concatenated
+            content: (lastMessage.content || "") + chunk.content
+          };
+          set({ messages: [...messages.slice(0, -1), updatedMessage] });
+        } else {
+          // Create a new assistant message
+          const message: Message = {
+            role: "assistant" as const,
+            type: "message" as const,
+            content: chunk.content
+          };
+          set({ messages: [...messages, message] });
+        }
         if (chunk.done) {
-          createMessageFromChunks();
+          set({ status: "connected" });
         }
       } else {
-        // Handle other relevant message types for help chat if any in the future
-        log.warn("Received unknown message type for help chat:", data.type);
+        // Update local state based on the data type
+        if (data.type === "job_update") {
+          const update = data as JobUpdate;
+          if (update.status === "completed") {
+            set({
+              progress: 0,
+              total: 0,
+              progressMessage: null,
+              status: "connected"
+            });
+          } else if (update.status === "failed") {
+            set({
+              error: update.error,
+              status: "error",
+              progress: 0,
+              total: 0,
+              progressMessage: null
+            });
+          }
+        } else if (data.type === "output_update") {
+          const update = data as OutputUpdate;
+          if (update.output_type === "string") {
+            const messages = get().messages;
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              // Check if this is the end of stream marker
+              if (update.value === "<nodetool_end_of_stream>") {
+                // Message is complete, do nothing
+                console.log(get().messages);
+                return;
+              }
+              // Append to the last assistant message
+              const updatedMessage: Message = {
+                ...lastMessage,
+                content: lastMessage.content + (update.value as string)
+              };
+              set({ messages: [...messages.slice(0, -1), updatedMessage] });
+            } else {
+              // Create a new assistant message
+              const message: Message = {
+                role: "assistant" as const,
+                type: "message" as const,
+                content: update.value as string
+              };
+              set({ messages: [...messages, message] });
+            }
+          } else if (update.output_type === "image") {
+            const message: Message = {
+              role: "assistant" as const,
+              type: "message" as const,
+              content: [
+                makeMessageContent(
+                  "image",
+                  (update?.value as { data: Uint8Array }).data
+                )
+              ]
+            };
+            set({ messages: [...get().messages, message] });
+          }
+        } else if (data.type === "node_update") {
+          const update = data as NodeUpdate;
+          if (update.status === "completed") {
+            set({ progress: 0, total: 0, progressMessage: null });
+          }
+        } else if (data.type === "node_progress") {
+          const progress = data as NodeProgress;
+          set({
+            progress: progress.progress,
+            total: progress.total,
+            progressMessage: null
+          });
+        } else if (data.type === "tool_call_update") {
+          const update = data as ToolCallUpdate;
+          set({ progressMessage: update.message });
+        }
       }
     };
 
     socket.onerror = (error) => {
       log.error("Help Chat WebSocket error:", error);
-      if (!isLocalhost) {
-        set({
-          status: "error",
-          error:
-            "Connection failed. This may be due to an authentication issue."
-        });
-      }
+      set({
+        status: "error",
+        error:
+          "Connection failed." +
+          (!isLocalhost ? " This may be due to an authentication issue." : "")
+      });
     };
 
-    socket.onclose = () => {
-      log.info("Help Chat WebSocket disconnected");
-      set({ socket: null, status: "disconnected" });
+    socket.onclose = (event) => {
+      log.info("Help Chat WebSocket disconnected", {
+        code: event.code,
+        reason: event.reason
+      });
+      set({
+        socket: null,
+        status: "disconnected",
+        error: event.reason || "Connection closed"
+      });
     };
 
     set({ socket });
 
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        reject(new Error("Connection timeout"));
+      }, 10000); // 10 second timeout
+
       const interval = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
           clearInterval(interval);
+          clearTimeout(timeout);
           resolve();
         }
       }, 100);
@@ -145,11 +293,6 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
     set({ error: null });
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      set({
-        status: "error",
-        error: "Connection failed. Please try again."
-      });
-      console.error("Connection failed. Please try again.");
       return;
     }
 
