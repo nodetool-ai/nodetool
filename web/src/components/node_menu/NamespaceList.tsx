@@ -18,8 +18,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
 import { usePanelStore } from "../../stores/PanelStore";
 
-const DEBUG_NODE_FILTERING = true; // Added for debug control
-
 type NamespaceTree = {
   [key: string]: {
     children: NamespaceTree;
@@ -80,13 +78,12 @@ const namespaceStyles = (theme: any) =>
       gap: "0",
       overflowY: "auto",
       minWidth: "200px",
-      maxWidth: "220px",
-      width: "fit-content",
+      width: "100%",
+      boxSizing: "border-box",
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "1em",
       paddingLeft: "1em",
-      marginRight: ".5em",
       boxShadow: "inset 0 0 4px rgba(0, 0, 0, 0.2)",
       borderRadius: "8px"
     },
@@ -364,7 +361,8 @@ const namespaceStyles = (theme: any) =>
     ".namespace-panel-container": {
       position: "relative",
       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-      width: "200px",
+      width: "270px",
+      marginRight: "0.5em",
       "&.collapsed": {
         width: 0,
         opacity: 0,
@@ -661,27 +659,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const togglePanel = useCallback(() => {
     setIsPanelCollapsed((prev) => !prev);
   }, []);
-
-  if (DEBUG_NODE_FILTERING && process.env.NODE_ENV === "development") {
-    console.groupCollapsed(
-      `NamespaceList Debug: Path='${selectedPath.join(".") || "[root]"}'`
-    );
-    console.log("Selected Path:", JSON.stringify(selectedPath));
-    console.log("Search Term:", searchTerm);
-    console.log("NodeMenuStore searchResults count:", searchResults.length);
-    const searchResultsNamespaces = Array.from(
-      new Set(searchResults.map((n) => n.namespace).slice(0, 10))
-    );
-    console.log(
-      "Sample of searchResults namespaces (up to 10 unique):",
-      JSON.stringify(searchResultsNamespaces)
-    );
-    console.log(
-      "Total nodes in MetadataStore (allMetadata):",
-      Object.keys(allMetadata).length
-    );
-    console.groupEnd();
-  }
 
   return (
     <div
