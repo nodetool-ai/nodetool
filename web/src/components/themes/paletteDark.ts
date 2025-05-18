@@ -9,6 +9,7 @@ declare module "@mui/material/styles" {
     c_black?: string;
     c_bg_comment?: string;
     c_brightest?: string;
+    c_white?: string;
     c_gray0?: string;
     c_gray1?: string;
     c_gray2?: string;
@@ -59,6 +60,7 @@ declare module "@mui/material/styles" {
     c_black?: string;
     c_bg_comment?: string;
     c_brightest?: string;
+    c_white?: string;
     c_gray0?: string;
     c_gray1?: string;
     c_gray2?: string;
@@ -110,6 +112,7 @@ export const paletteDark: PaletteOptions = {
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
+  c_white: "#FCFCFC",
   c_gray0: "#0E0E0E",
   c_gray1: "#242424",
   c_gray2: "#444444",

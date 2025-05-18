@@ -8,6 +8,7 @@ declare module "@mui/material/styles" {
   interface PaletteOptions {
     c_black?: string;
     c_brightest?: string;
+    c_white?: string;
     c_gray0?: string;
     c_gray1?: string;
     c_gray2?: string;
@@ -114,8 +115,9 @@ declare module "@mui/material/styles" {
 
 export const paletteLight: PaletteOptions = {
   /* General */
-  c_black: "#FCFCFC",
-  c_brightest: "#020202",
+  c_black: "#020202",
+  c_brightest: "#FCFCFC",
+  c_white: "#FCFCFC",
   c_gray0: "#D9D9D9",
   c_gray1: "#BDBDBD",
   c_gray2: "#959595",
