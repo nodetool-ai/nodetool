@@ -585,7 +585,7 @@ const ExampleGrid = () => {
                     workflow.name +
                     ".jpg"
                   }
-                  alt={workflow.name}
+                  alt={" "}
                 />
                 <Typography className="package-name" component={"p"}>
                   {workflow.package_name
