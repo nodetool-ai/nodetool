@@ -102,7 +102,8 @@ const styles = (theme: any) =>
       color: "var(--c_brightest)",
       marginTop: "8px",
       marginBottom: "4px",
-      height: "2em",
+      height: "2.2em",
+      lineHeight: "1.1em",
       overflow: "hidden",
       position: "relative",
       zIndex: 2
