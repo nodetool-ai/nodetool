@@ -197,6 +197,11 @@ export const settingsStyles = (theme: any): any =>
       flexDirection: "column",
       gap: ".8em"
     },
+    ".settings-item.large": {
+      ".MuiInputBase-root": {
+        maxWidth: "unset !important"
+      }
+    },
     ".settings-item": {
       padding: "1em 0",
       borderBottom: `1px solid ${theme.palette.c_gray2}`,
@@ -211,6 +216,9 @@ export const settingsStyles = (theme: any): any =>
       display: "flex",
       flexDirection: "column",
       gap: ".8em",
+      ".MuiInputBase-root": {
+        maxWidth: "200px !important"
+      },
       ".MuiFormControl-root": {
         width: "100%",
         minWidth: "unset",
@@ -595,7 +603,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       />
                     </FormControl>
                     <Typography className="description">
-                      Select nodes when dragging.
+                      Mark nodes as selected after changing a node&apos;s
+                      position.
+                      <br />
+                      If disabled, nodes can still be selected by clicking on
+                      them.
                     </Typography>
                   </div>
                 </div>
@@ -625,12 +637,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         button.
                       </Typography>
                       <Typography>
-                        With RightMouseButton selected, you can also pan with:
+                        With RMB selected, you can also pan with the Middle
+                        Mouse Button.
                       </Typography>
-                      <ul>
-                        <li>Space + LeftClick</li>
-                        <li>Middle Mouse Button</li>
-                      </ul>
                     </div>
                   </div>
 

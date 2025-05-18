@@ -110,6 +110,35 @@ const remoteSettingsStyles = (theme: any): SerializedStyles => {
   `;
 };
 
+const ExternalLinkButton = ({
+  href,
+  children
+}: {
+  href: string;
+  children: React.ReactNode;
+}) => (
+  <Button
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    sx={{
+      padding: ".1em 1em !important",
+      textDecoration: "none",
+      fontSize: "var(--fontSizeSmall) !important",
+      color: "var(--c_black) !important",
+      backgroundColor: "var(--c_hl1) !important",
+
+      "&:hover": {
+        color: "primary.light",
+        textDecoration: "underline",
+        filter: "brightness(1.15)"
+      }
+    }}
+  >
+    &rarr; {children}
+  </Button>
+);
+
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
   const { updateSettings, fetchSettings } = useRemoteSettingsStore();
@@ -223,7 +252,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="openai">
                 OpenAI
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -241,13 +270,9 @@ const RemoteSettings = () => {
                     Setting up an OpenAI API key enables you to use models like
                     GPT, Whisper, DALL-E, and more.
                     <br />
-                    <a
-                      href="https://platform.openai.com/account/api-keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; OpenAI Settings
-                    </a>
+                    <ExternalLinkButton href="https://platform.openai.com/account/api-keys">
+                      OpenAI Settings
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -255,7 +280,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="google">
                 Google
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -272,17 +297,13 @@ const RemoteSettings = () => {
                     Enter your Google Gemini API key to access Google&apos;s
                     latest AI models.
                     <br />
-                    <a
-                      href="https://makersuite.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; Google AI Studio API Keys
-                    </a>
+                    <ExternalLinkButton href="https://makersuite.google.com/app/apikey">
+                      Google AI Studio API Keys
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   autoComplete="off"
                   id="google-mail-user-input"
@@ -322,13 +343,9 @@ const RemoteSettings = () => {
                     5. Click &quot;Generate&quot; and use the 16-character
                     password
                     <br />
-                    <a
-                      href="https://myaccount.google.com/security"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; Google Account Security Settings
-                    </a>
+                    <ExternalLinkButton href="https://myaccount.google.com/security">
+                      Google Account Security Settings
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -336,7 +353,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="anthropic">
                 Anthropic
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -351,16 +368,11 @@ const RemoteSettings = () => {
                 <div className="text-and-button">
                   <Typography className="description">
                     By entering your Anthropic API token, you&apos;ll be able to
-                    use sophisticated models like Claude 3.5 Sonnet. models like
-                    Claude 3.5 Sonnet.
+                    use sophisticated models like Claude 3.5 Sonnet.
                     <br />
-                    <a
-                      href="https://console.anthropic.com/account/keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; Anthropic Settings
-                    </a>
+                    <ExternalLinkButton href="https://console.anthropic.com/account/keys">
+                      Anthropic Settings
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -368,7 +380,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="replicate">
                 Replicate
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -388,13 +400,9 @@ const RemoteSettings = () => {
                     <br /> By configuring your Replicate API token, you&apos;ll
                     gain access to models like flux.dev and flux.pro.
                     <br />
-                    <a
-                      href="https://replicate.com/account/api-tokens"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; Replicate Settings
-                    </a>
+                    <ExternalLinkButton href="https://replicate.com/account/api-tokens">
+                      Replicate Settings
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -402,7 +410,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="huggingface">
                 HuggingFace
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -417,13 +425,9 @@ const RemoteSettings = () => {
                     Enter your HuggingFace Access Token to use additional models
                     that are not openly available.
                     <br />
-                    <a
-                      href="https://huggingface.co/settings/tokens"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; HuggingFace Settings
-                    </a>
+                    <ExternalLinkButton href="https://huggingface.co/settings/tokens">
+                      HuggingFace Settings
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -431,7 +435,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="aime">
                 AIME
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   autoComplete="off"
                   id="aime-user-input"
@@ -454,20 +458,16 @@ const RemoteSettings = () => {
                   Enter your AIME account username and API key to access AIME
                   API.
                   <br />
-                  <a
-                    href="https://api.aime.info/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    &rarr; AIME API
-                  </a>
+                  <ExternalLinkButton href="https://api.aime.info/">
+                    AIME API
+                  </ExternalLinkButton>
                 </Typography>
               </div>
 
               <Typography variant="h2" id="falai">
                 Fal.ai
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -482,13 +482,9 @@ const RemoteSettings = () => {
                     Enter your Fal.ai API key to access their AI models and
                     services.
                     <br />
-                    <a
-                      href="https://fal.ai/dashboard/keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; Fal.ai API Keys
-                    </a>
+                    <ExternalLinkButton href="https://fal.ai/dashboard/keys">
+                      Fal.ai API Keys
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -496,7 +492,7 @@ const RemoteSettings = () => {
               <Typography variant="h2" id="elevenlabs">
                 Eleven Labs
               </Typography>
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   type="password"
                   autoComplete="off"
@@ -513,13 +509,9 @@ const RemoteSettings = () => {
                     Enter your ElevenLabs API key to access advanced
                     text-to-speech capabilities.
                     <br />
-                    <a
-                      href="https://elevenlabs.io/app/settings/api-keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      &rarr; ElevenLabs Dashboard
-                    </a>
+                    <ExternalLinkButton href="https://elevenlabs.io/app/settings/api-keys">
+                      ElevenLabs Dashboard
+                    </ExternalLinkButton>
                   </Typography>
                 </div>
               </div>
@@ -528,7 +520,7 @@ const RemoteSettings = () => {
             <Typography variant="h2" id="dataforseo">
               DataForSEO
             </Typography>
-            <div className="settings-item">
+            <div className="settings-item large">
               <TextField
                 autoComplete="off"
                 id="dataforseo-login-input"
@@ -556,13 +548,9 @@ const RemoteSettings = () => {
                   Enter your DataForSEO credentials to access their API for SERP
                   data and other SEO tools.
                   <br />
-                  <a
-                    href="https://dataforseo.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    &rarr; DataForSEO Website
-                  </a>
+                  <ExternalLinkButton href="https://dataforseo.com/">
+                    DataForSEO Website
+                  </ExternalLinkButton>
                 </Typography>
               </div>
             </div>
@@ -570,7 +558,7 @@ const RemoteSettings = () => {
             <Typography variant="h2" id="serpapi">
               SerpAPI
             </Typography>
-            <div className="settings-item">
+            <div className="settings-item large">
               <TextField
                 type="password"
                 autoComplete="off"
@@ -587,13 +575,9 @@ const RemoteSettings = () => {
                   Enter your SerpAPI API key to access their search engine
                   results scraping service.
                   <br />
-                  <a
-                    href="https://serpapi.com/manage-api-key"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    &rarr; SerpAPI Dashboard
-                  </a>
+                  <ExternalLinkButton href="https://serpapi.com/manage-api-key">
+                    SerpAPI Dashboard
+                  </ExternalLinkButton>
                 </Typography>
               </div>
             </div>
@@ -601,7 +585,7 @@ const RemoteSettings = () => {
             <Typography variant="h2" id="brightdata">
               Crawling Browser
             </Typography>
-            <div className="settings-item">
+            <div className="settings-item large">
               <TextField
                 autoComplete="off"
                 id="browser-url-input"
@@ -614,21 +598,13 @@ const RemoteSettings = () => {
               <div className="text-and-button">
                 <Typography className="description">
                   <br />
-                  <a
-                    href="https://docs.browserless.io/overview/connection-urls"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    &rarr; Browserless Connection URLs
-                  </a>
+                  <ExternalLinkButton href="https://docs.browserless.io/overview/connection-urls">
+                    Browserless Connection URLs
+                  </ExternalLinkButton>
                   <br />
-                  <a
-                    href="https://brightdata.com/products/scraping-browser"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    &rarr; Brightdata Scraping Browser Documentation
-                  </a>
+                  <ExternalLinkButton href="https://brightdata.com/products/scraping-browser">
+                    Brightdata Scraping Browser Documentation
+                  </ExternalLinkButton>
                 </Typography>
               </div>
             </div>
@@ -639,7 +615,7 @@ const RemoteSettings = () => {
                 ComfyUI
               </Typography>
 
-              <div className="settings-item folder-path">
+              <div className="settings-item large folder-path">
                 <TextField
                   autoComplete="off"
                   id="comfy-folder-input"
@@ -659,7 +635,7 @@ const RemoteSettings = () => {
                 ChromaDB
               </Typography>
 
-              <div className="settings-item">
+              <div className="settings-item large">
                 <TextField
                   autoComplete="off"
                   id="chroma-path-input"

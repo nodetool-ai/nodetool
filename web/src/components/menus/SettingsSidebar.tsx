@@ -32,7 +32,7 @@ const sidebarStyles = (theme: any) => css`
   .settings-sidebar-item {
     padding: 0.75em 1.5em;
     cursor: pointer;
-    font-size: ${theme.fontSizeSmaller};
+    font-size: ${theme.fontSizeSmall};
     color: ${theme.palette.c_white};
     opacity: 0.7;
     transition: all 0.2s ease;
