@@ -59,13 +59,16 @@ const styles = (theme: any) =>
         flex: 1,
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: "1em",
         lineHeight: "2.5em",
         minWidth: 0 // Prevents flex item from overflowing
       },
 
       "& .model-header": {
-        flex: 2
+        flex: 2,
+        maxWidth: "400px",
+        lineHeight: "1.2em"
       },
 
       "& .model-name": {
@@ -78,19 +81,29 @@ const styles = (theme: any) =>
 
       "& .model-details": {
         flex: 1,
-        gap: "0.5em",
+        gap: "0.2em",
+        width: "200px",
         display: "flex",
-        alignItems: "center",
-        flexWrap: "wrap"
+        alignItems: "start",
+        flexWrap: "wrap",
+        flexDirection: "column"
       },
 
       "& .model-info": {
         color: theme.palette.text.secondary,
         fontSize: "0.875rem"
       },
+      "& .pipeline-tag": {
+        color: "var(--c_gray1)",
+        fontSize: "var(--font-size-small)",
+        fontWeight: "bold",
+        height: "1.5em",
+        padding: "0"
+      },
 
       "& .actions-container": {
         display: "flex",
+        justifyContent: "space-between",
         gap: "1em",
         alignItems: "center",
         flexShrink: 0
@@ -98,13 +111,21 @@ const styles = (theme: any) =>
 
       "& .model-stats": {
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "start",
+        minWidth: "200px",
         gap: "0.5em"
+      },
+
+      "& .model-stats-item": {
+        display: "flex",
+        alignItems: "center",
+        gap: "0.25em"
       },
 
       "& .model-actions": {
         display: "flex",
-        gap: "1.5em",
+        gap: ".5em",
         alignItems: "center"
       },
 
@@ -235,19 +256,6 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
           </div>
 
           <div className="model-details">
-            <Typography component="span" className="model-info">
-              {renderModelSecondaryInfo(modelData, isHuggingFace)}
-            </Typography>
-
-            {model.size_on_disk && (
-              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
-                <Typography component="span" className="model-info">
-                  {" • "}
-                  {modelSize(model)}
-                </Typography>
-              </Tooltip>
-            )}
-
             {modelData.cardData?.pipeline_tag && (
               <Chip
                 label={modelData.cardData.pipeline_tag}
@@ -256,24 +264,39 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
                 component="span"
               />
             )}
+            {model.size_on_disk && (
+              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
+                <Typography component="span" className="model-info">
+                  {modelSize(model)}
+                </Typography>
+              </Tooltip>
+            )}
+
+            <Typography component="span" className="model-info">
+              {renderModelSecondaryInfo(modelData, isHuggingFace)}
+            </Typography>
           </div>
         </div>
 
         <div className="actions-container">
           {isHuggingFace && (
             <div className="model-stats">
-              <Tooltip title="Downloads on HF last month">
-                <CloudDownloadIcon fontSize="small" />
-              </Tooltip>
-              <Typography component="span" variant="body2">
-                {modelData.downloads?.toLocaleString() || "N/A"}
-              </Typography>
-              <Tooltip title="Likes on HF">
-                <FavoriteIcon fontSize="small" />
-              </Tooltip>
-              <Typography component="span" variant="body2">
-                {modelData.likes?.toLocaleString() || "N/A"}
-              </Typography>
+              <div className="model-stats-item">
+                <Tooltip title="Downloads on HF last month">
+                  <CloudDownloadIcon fontSize="small" />
+                </Tooltip>
+                <Typography component="span" variant="body2">
+                  {modelData.downloads?.toLocaleString() || "N/A"}
+                </Typography>
+              </div>
+              <div className="model-stats-item">
+                <Tooltip title="Likes on HF">
+                  <FavoriteIcon fontSize="small" />
+                </Tooltip>
+                <Typography component="span" variant="body2">
+                  {modelData.likes?.toLocaleString() || "N/A"}
+                </Typography>
+              </div>
             </div>
           )}
 

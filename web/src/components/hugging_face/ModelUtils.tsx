@@ -181,8 +181,14 @@ export const renderModelSecondaryInfo = (
 ) => (
   <>
     {isHuggingFace && (
-      <Typography variant="body2" className="text-license">
-        {modelData.cardData?.license}
+      <Typography
+        variant="body2"
+        className="text-license"
+        sx={{
+          color: "var(--c_gray4)"
+        }}
+      >
+        {modelData.cardData?.license.toUpperCase()}
       </Typography>
     )}
     {!isHuggingFace && (
@@ -213,7 +219,7 @@ export const renderModelActions = (
       alignItems: "center",
       justifyContent: "space-between",
       width: "100%",
-      padding: "0 1em"
+      padding: "0 .5em"
     }}
   >
     {props.onDownload && !downloaded && (
@@ -226,7 +232,7 @@ export const renderModelActions = (
         className="model-downloaded-button"
         sx={{
           fontSize: "0.8em",
-          padding: "0.5em 1.25e",
+          padding: "0.5em",
           marginLeft: "0.5em",
           backgroundColor: "#252525",
           color: "#fff !important"
