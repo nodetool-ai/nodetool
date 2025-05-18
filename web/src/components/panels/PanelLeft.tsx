@@ -196,6 +196,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
       <Tooltip title="Workflows (Key 1)" placement="right">
         <IconButton
+          tabIndex={-1}
           onClick={() => onViewChange("workflowGrid")}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
@@ -206,6 +207,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
       <Tooltip title="Assets (Key 2)" placement="right">
         <Button
+          tabIndex={-1}
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
@@ -228,6 +230,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
       <Tooltip title="Collections (Key 3)" placement="right">
         <IconButton
+          tabIndex={-1}
           onClick={() => onViewChange("collections")}
           className={
             activeView === "collections" && panelVisible ? "active" : ""
@@ -244,6 +247,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
       <Tooltip title="Chat (Key 4)" placement="right">
         <IconButton
+          tabIndex={-1}
           onClick={() => onViewChange("chat")}
           className={activeView === "chat" && panelVisible ? "active" : ""}
         >
@@ -252,6 +256,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
       <Tooltip title="Packs (Key 5)" placement="right">
         <IconButton
+          tabIndex={-1}
           className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
           onClick={() => onViewChange("packs")}
         >
@@ -261,7 +266,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
       <div style={{ flexGrow: 1 }} />
       <Tooltip title="Close Panel" placement="right">
-        <IconButton onClick={handlePanelToggle}>
+        <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
         </IconButton>
       </Tooltip>

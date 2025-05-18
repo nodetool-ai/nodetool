@@ -224,6 +224,7 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
           />
         ))}
         <button
+          tabIndex={-1}
           className="new-workflow-button"
           onClick={handleNewWorkflow}
           title="Create new workflow"
@@ -232,6 +233,7 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
         </button>
       </div>
       <button
+        tabIndex={-1}
         className="scroll-button"
         onClick={handleScrollRight}
         disabled={!canScrollRight}
