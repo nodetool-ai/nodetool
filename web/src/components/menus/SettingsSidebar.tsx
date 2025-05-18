@@ -30,9 +30,9 @@ const sidebarStyles = (theme: any) => css`
   overflow-y: auto;
 
   .settings-sidebar-item {
-    padding: 0.75em 1.5em;
+    padding: 0.5em 1em;
     cursor: pointer;
-    font-size: ${theme.fontSizeSmall};
+    font-size: ${theme.fontSizeNormal};
     color: ${theme.palette.c_white};
     opacity: 0.7;
     transition: all 0.2s ease;
