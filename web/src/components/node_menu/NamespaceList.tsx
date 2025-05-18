@@ -18,6 +18,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { KeyboardArrowLeft, AddCircleOutline } from "@mui/icons-material";
 import { usePanelStore } from "../../stores/PanelStore";
 
+const DEBUG_NODE_FILTERING = true; // Added for debug control
+
 type NamespaceTree = {
   [key: string]: {
     children: NamespaceTree;
@@ -659,6 +661,27 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   const togglePanel = useCallback(() => {
     setIsPanelCollapsed((prev) => !prev);
   }, []);
+
+  if (DEBUG_NODE_FILTERING && process.env.NODE_ENV === "development") {
+    console.groupCollapsed(
+      `NamespaceList Debug: Path='${selectedPath.join(".") || "[root]"}'`
+    );
+    console.log("Selected Path:", JSON.stringify(selectedPath));
+    console.log("Search Term:", searchTerm);
+    console.log("NodeMenuStore searchResults count:", searchResults.length);
+    const searchResultsNamespaces = Array.from(
+      new Set(searchResults.map((n) => n.namespace).slice(0, 10))
+    );
+    console.log(
+      "Sample of searchResults namespaces (up to 10 unique):",
+      JSON.stringify(searchResultsNamespaces)
+    );
+    console.log(
+      "Total nodes in MetadataStore (allMetadata):",
+      Object.keys(allMetadata).length
+    );
+    console.groupEnd();
+  }
 
   return (
     <div

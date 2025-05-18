@@ -421,17 +421,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             })
           : searchMatchedNodes;
       } else {
-        // Without search term, show nodes for selected path only
+        // Without search term or type filters, show nodes for selected path only
         filteredResults = typeFilteredMetadata.filter((node) => {
-          if (!selectedPathString.includes(".")) {
+          if (selectedPathString) {
             return node.namespace.startsWith(selectedPathString);
           }
-          return (
-            node.namespace === selectedPathString ||
-            (node.namespace.startsWith(selectedPathString + ".") &&
-              node.namespace.split(".").length ===
-                selectedPathString.split(".").length + 1)
-          );
+          return true;
         });
       }
 
