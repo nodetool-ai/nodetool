@@ -51,16 +51,23 @@ const scrollableContentStyles = (theme: any) =>
   css({
     overflowY: "auto",
     flex: 1,
+    backgroundColor: "var(--palette-grey-900)",
     "&.connectable-nodes-content": {
       minHeight: 0,
       maxHeight: "calc(70vh - 130px)",
-      padding: "0 0 1em .5em"
+      padding: "0 0 1em .5em",
+      overflowX: "hidden"
+    },
+    ".namespace": {
+      backgroundColor: "transparent",
+
+      padding: "1em 0 0 .3em"
     },
     ".node": {
       display: "flex",
       alignItems: "center",
       margin: "0",
-      padding: ".25em",
+      padding: ".2em",
       borderRadius: "3px",
       cursor: "pointer",
       ".node-button": {
@@ -93,6 +100,9 @@ const scrollableContentStyles = (theme: any) =>
     h4: {
       padding: ".25em"
     }
+    // ".node-tooltip": {
+    //   backgroundColor: "red"
+    // }
   });
 
 const fixedHeaderStyles = (theme: any) =>
@@ -309,7 +319,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       <Box css={scrollableContentStyles} className="connectable-nodes-content">
         {Object.entries(groupedNodes).map(([namespace, nodes]) => (
           <React.Fragment key={namespace}>
-            <MenuItem disabled>
+            <MenuItem className="namespace" disabled>
               <Typography
                 variant="h4"
                 color="textSecondary"
@@ -322,6 +332,8 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             </MenuItem>
             {nodes.map((nodeMetadata: NodeMetadata) => (
               <Tooltip
+                leaveDelay={10}
+                enterDelay={200}
                 key={nodeMetadata.node_type}
                 TransitionProps={{ timeout: 0 }}
                 placement="left"
