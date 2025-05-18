@@ -160,6 +160,21 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
           );
         }
 
+        let textForNamespaceHeader = namespace; // Default to full namespace string
+
+        if (selectedPath && selectedPath === namespace) {
+          // If the current group of nodes IS the selected namespace, display its last part.
+          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
+          textForNamespaceHeader = namespace.split(".").pop() || namespace;
+        } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
+          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
+          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
+          textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
+        }
+        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
+        // If namespace is not a child of selectedPath and not equal to selectedPath,
+        // it also remains the full 'namespace'.
+
         elements.push(
           <Typography
             key={`namespace-${namespace}-${namespaceIndex}`}
@@ -167,7 +182,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes }) => {
             component="div"
             className="namespace-text"
           >
-            {namespace.replaceAll(selectedPath, "")}
+            {textForNamespaceHeader}
           </Typography>,
           ...nodesInNamespace.map((node) => (
             <div key={node.node_type}>

@@ -13,6 +13,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = []
 }) => {
+  const DEBUG_SEARCH = false;
   const { highlightedNamespaces, selectedPath, allSearchMatches, searchTerm } =
     useNodeMenuStore((state) => ({
       highlightedNamespaces: state.highlightedNamespaces,
@@ -74,7 +75,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const finalIsHighlightedPropForChild =
           highlightDueToActiveSearch || highlightDueToSelectionHierarchy;
 
-        if (process.env.NODE_ENV === "development") {
+        if (process.env.NODE_ENV === "development" && DEBUG_SEARCH) {
           console.log(
             `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, initialStoreHighlight=${initialIsHighlightedBasedOnStore}, searchCount=${searchResultCount}, itemMatchesSearchCriteria=${itemMatchesSearchHighlightCriteria}, highlightDueToSearch=${highlightDueToActiveSearch}, isPartOfSelectedHierarchy=${isRelatedToSelectedPath}, highlightDueToSelection=${highlightDueToSelectionHierarchy}, finalPropValue=${finalIsHighlightedPropForChild}`
           );
