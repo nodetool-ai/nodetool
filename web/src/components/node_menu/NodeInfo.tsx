@@ -21,7 +21,7 @@ const nodeInfoStyles = (theme: any) =>
   css({
     display: "flex",
     flexDirection: "column",
-    backgroundColor: "transparent",
+    backgroundColor: "var(--palette-grey-900)",
     overflowY: "auto",
     gap: ".5em",
     padding: "1em",
@@ -29,11 +29,11 @@ const nodeInfoStyles = (theme: any) =>
     width: "300px",
     position: "relative",
     ".node-title": {
-      fontSize: theme.fontSizeNormal,
-      fontWeight: "600",
-      lineHeight: "1.5em",
-      minHeight: "1.5em",
-      color: theme.palette.c_hl1,
+      fontSize: theme.fontSizeBigger,
+      fontWeight: "500",
+      lineHeight: "1.2em",
+      minHeight: "1em",
+      color: "var(--palette-grey-100)",
       marginBottom: "0.25em"
     },
     ".title-container": {
