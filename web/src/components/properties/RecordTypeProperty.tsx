@@ -45,6 +45,12 @@ const styles = (theme: any) =>
   });
 
 const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
+  if (value === undefined) {
+    value = {
+      columns: [],
+      data: []
+    };
+  }
   const onChangeColumns = useCallback(
     (columns: ColumnDef[]) => {
       onChange({
