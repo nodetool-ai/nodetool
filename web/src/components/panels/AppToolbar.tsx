@@ -58,6 +58,9 @@ const styles = (theme: any) =>
       minWidth: "80px",
       marginRight: "12px",
       height: "24px",
+      "& svg": {
+        right: "2px"
+      },
       "& .MuiInputBase-root": {
         height: "24px",
         minHeight: "24px"
@@ -292,6 +295,7 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
   }));
 
   const [runMode, setRunMode] = useState<string>(workflowMode);
+  const [selectIsOpen, setSelectIsOpen] = useState(false);
 
   useEffect(() => {
     if (workflowMode) {
@@ -317,19 +321,38 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
   };
 
   return (
-    <Tooltip title="Run Mode" enterDelay={TOOLTIP_ENTER_DELAY}>
-      <FormControl size="small" className="mode-select">
+    <Tooltip
+      placement="top"
+      title="Run Mode"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      PopperProps={{
+        sx: {
+          visibility: selectIsOpen ? "hidden" : "visible"
+        }
+      }}
+    >
+      <FormControl size="small" className="mode-select" tabIndex={-1}>
         <Select
+          tabIndex={-1}
+          inputProps={{ tabIndex: -1 }}
           value={runMode}
           onChange={handleModeChange as any}
+          onOpen={() => setSelectIsOpen(true)}
+          onClose={() => setSelectIsOpen(false)}
           displayEmpty
-          variant="outlined"
-          size="small"
         >
-          <MenuItem value="normal">Normal</MenuItem>
-          <MenuItem value="app">App</MenuItem>
-          <MenuItem value="chat">Chat</MenuItem>
-          <MenuItem value="headless">Headless</MenuItem>
+          <MenuItem tabIndex={-1} value="normal">
+            Normal
+          </MenuItem>
+          <MenuItem tabIndex={-1} value="app">
+            App
+          </MenuItem>
+          <MenuItem tabIndex={-1} value="chat">
+            Chat
+          </MenuItem>
+          <MenuItem tabIndex={-1} value="headless">
+            Headless
+          </MenuItem>
         </Select>
       </FormControl>
     </Tooltip>
