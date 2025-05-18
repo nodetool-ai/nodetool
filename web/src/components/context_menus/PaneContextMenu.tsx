@@ -311,7 +311,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
         label="Fit Screen"
         IconComponent={<FitScreenIcon />}
-        tooltip={"Shift + F"}
+        tooltip={"F Key"}
       />
       <Divider />
       <ContextMenuItem
