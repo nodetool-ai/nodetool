@@ -102,19 +102,23 @@ const styles = (theme: any) =>
       color: "var(--c_brightest)",
       marginTop: "8px",
       marginBottom: "4px",
-      minHeight: "2em",
+      height: "2em",
+      overflow: "hidden",
       position: "relative",
       zIndex: 2
     },
     ".workflow .package-name": {
+      position: "absolute",
+      bottom: "0",
+      left: "0",
       fontSize: "var(--font-size-small)",
       lineHeight: "1.2",
       display: "-webkit-box",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_gray5,
-      padding: "0.2em 0.5em",
-      borderRadius: "4px",
-      margin: "0.5em 0"
+      padding: "0.4em 0.5em",
+      borderRadius: "0 4px 0 0",
+      margin: "0"
     },
     ".workflow .description": {
       fontSize: "0.875rem",
@@ -127,7 +131,7 @@ const styles = (theme: any) =>
       width: "100%",
       position: "relative",
       maxHeight: "4.5em",
-      marginBottom: "0.5em",
+      margin: "0.5em 0",
       backgroundColor: "transparent",
       transition:
         "color 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease"
@@ -419,38 +423,6 @@ const ExampleGrid = () => {
     );
   }, [selectedTag, groupedWorkflows, data, searchQuery, nodesOnlySearch]);
 
-  // const renderSearchDebug = () => {
-  //   if (!searchQuery.trim() || !searchResults.length) return null;
-
-  //   return (
-  //     <Box className="search-debug">
-  //       <Typography variant="body2">
-  //         Search results ({searchResults.length}):
-  //       </Typography>
-  //       {searchResults.slice(0, 3).map((result, idx) => {
-  //         const data = prepareWorkflowData(result.workflow);
-  //         return (
-  //           <Typography key={idx} variant="body2">
-  //             • {result.workflow.name} (score: {result.score.toFixed(2)})
-  //             {result.matches.slice(0, 2).map((match, midx) => (
-  //               <span key={midx}>
-  //                 <br />
-  //                 &nbsp;&nbsp;matched:{" "}
-  //                 <span className="match-highlight">{match.text}</span>
-  //               </span>
-  //             ))}
-  //             <br />
-  //             &nbsp;&nbsp;nodes:{" "}
-  //             <span className="match-highlight">
-  //               {data.nodeNames.join(", ")}
-  //             </span>
-  //           </Typography>
-  //         );
-  //       })}
-  //     </Box>
-  //   );
-  // };
-
   const handleClearSearch = () => {
     setSearchQuery("");
     setNodesOnlySearch(false);
@@ -615,10 +587,12 @@ const ExampleGrid = () => {
                   }
                   alt={workflow.name}
                 />
+                <Typography className="package-name" component={"p"}>
+                  {workflow.package_name
+                    ?.replace("nodetool-", "")
+                    .toUpperCase()}
+                </Typography>
               </Box>
-              <Typography className="package-name" component={"p"}>
-                {workflow.package_name?.replace("nodetool-", "").toUpperCase()}
-              </Typography>
               <Typography className="description">
                 {workflow.description}
               </Typography>
