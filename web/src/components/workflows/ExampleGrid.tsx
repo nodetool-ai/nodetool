@@ -351,20 +351,22 @@ const ExampleGrid = () => {
       if (!tags.includes("example")) {
         tags.push("example");
       }
+      // Create a minimal workflow request with the example parameters
       const req = {
         name: workflow.name,
         description: workflow.description,
-        thumbnail: workflow.thumbnail,
-        thumbnail_url: workflow.thumbnail_url,
         tags: tags,
-        package_name: workflow.package_name,
-        path: workflow.path,
         access: "private",
-        graph: JSON.parse(JSON.stringify(workflow.graph)),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      const newWorkflow = await createWorkflow(req);
+      
+      // Call createWorkflow with the example parameters
+      const newWorkflow = await createWorkflow(
+        req,
+        workflow.package_name || undefined,
+        workflow.name
+      );
       return newWorkflow;
     },
     [createWorkflow]
