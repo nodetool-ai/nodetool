@@ -19,10 +19,17 @@ import { DownloadProgress } from "./DownloadProgress";
 
 const styles = (theme: any) =>
   css({
+    ".model-content": {
+      display: "flex",
+      flexDirection: "column"
+    },
     ".models-grid": {
       maxHeight: "1000px",
-      overflow: "auto",
-      paddingRight: "1em"
+      overflowY: "auto",
+      overflowX: "hidden",
+      paddingRight: "1em",
+      flexGrow: 1,
+      minHeight: 0
     },
     ".model-container": {
       display: "flex",

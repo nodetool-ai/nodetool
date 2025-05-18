@@ -60,8 +60,10 @@ const styles = (theme: any) =>
       minHeight: "120px"
     },
     ".cancel-button": {
-      padding: "1em",
-      marginTop: ".5em"
+      padding: "0.5em 1em",
+      marginTop: ".5em",
+      lineHeight: "1.1em",
+      whiteSpace: "nowrap"
     }
   });
 
