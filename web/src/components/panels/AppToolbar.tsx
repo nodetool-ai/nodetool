@@ -9,11 +9,6 @@ import {
   FormControl,
   InputLabel
 } from "@mui/material";
-import LayoutIcon from "@mui/icons-material/ViewModule";
-import SaveIcon from "@mui/icons-material/Save";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import EditIcon from "@mui/icons-material/Edit";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -28,9 +23,16 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
+
+// Icons
+import LayoutIcon from "@mui/icons-material/ViewModule";
+import SaveIcon from "@mui/icons-material/Save";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import EditIcon from "@mui/icons-material/Edit";
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const styles = (theme: any) =>
   css({
@@ -538,7 +540,7 @@ const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
   return (
     <Tooltip title="Download Workflow JSON" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Button className="action-button" onClick={handleDownload} tabIndex={-1}>
-        <FileDownloadIcon />
+        <DownloadIcon />
       </Button>
     </Tooltip>
   );

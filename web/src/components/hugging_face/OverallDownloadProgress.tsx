@@ -3,7 +3,7 @@ import { Box, Button, Tooltip } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import DownloadingIcon from "@mui/icons-material/Downloading";
 
 const pulse = keyframes`
   0% {
@@ -80,7 +80,7 @@ const OverallDownloadProgress: React.FC = () => {
               justifyContent: "center"
             }}
           >
-            <FileDownloadIcon />
+            <DownloadingIcon />
           </div>
         </Button>
         {progress > 0 && (
