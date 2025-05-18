@@ -60,19 +60,23 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const highlightDueToActiveSearch =
           isSearchTermPresentAndEffective && itemMatchesSearchHighlightCriteria;
 
-        const isPartOfSelectedPathHierarchy =
+        // Condition for an item being related to the selected path (ancestor, self, or descendant)
+        // This applies when NO search term is active.
+        const selectedPathString = selectedPath.join(".");
+        const isRelatedToSelectedPath =
           selectedPath.length > 0 &&
-          selectedPath.join(".").startsWith(currentFullPath);
+          (selectedPathString.startsWith(currentFullPath) || // current is ancestor or self
+            currentFullPath.startsWith(selectedPathString)); // current is descendant or self
 
         const highlightDueToSelectionHierarchy =
-          !isSearchTermPresentAndEffective && isPartOfSelectedPathHierarchy;
+          !isSearchTermPresentAndEffective && isRelatedToSelectedPath;
 
         const finalIsHighlightedPropForChild =
           highlightDueToActiveSearch || highlightDueToSelectionHierarchy;
 
         if (process.env.NODE_ENV === "development") {
           console.log(
-            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, initialStoreHighlight=${initialIsHighlightedBasedOnStore}, searchCount=${searchResultCount}, itemMatchesSearchCriteria=${itemMatchesSearchHighlightCriteria}, highlightDueToSearch=${highlightDueToActiveSearch}, isPartOfSelectedHierarchy=${isPartOfSelectedPathHierarchy}, highlightDueToSelection=${highlightDueToSelectionHierarchy}, finalPropValue=${finalIsHighlightedPropForChild}`
+            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, initialStoreHighlight=${initialIsHighlightedBasedOnStore}, searchCount=${searchResultCount}, itemMatchesSearchCriteria=${itemMatchesSearchHighlightCriteria}, highlightDueToSearch=${highlightDueToActiveSearch}, isPartOfSelectedHierarchy=${isRelatedToSelectedPath}, highlightDueToSelection=${highlightDueToSelectionHierarchy}, finalPropValue=${finalIsHighlightedPropForChild}`
           );
           if (
             currentPath.length === 0 &&
