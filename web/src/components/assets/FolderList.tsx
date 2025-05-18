@@ -257,7 +257,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     id: currentUser?.id,
     name: "ASSETS",
     content_type: "folder",
-    children: folderTree,
+    children: Object.values(folderTree || {}),
     parent_id: currentUser?.id || ""
   };
 
@@ -272,12 +272,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       }}
       ref={containerRef}
     >
-      <div className="folder-list">
-        {renderFolder(rootFolder, 0, true)}
-        {Object.values(folderTree || {}).map((rootFolder: any) =>
-          renderFolder(rootFolder)
-        )}
-      </div>
+      <div className="folder-list">{renderFolder(rootFolder, 0, true)}</div>
       {!isHorizontal && (
         <div
           className={`resize-handle ${isResizing ? "resizing" : ""}`}
