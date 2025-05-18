@@ -10,7 +10,7 @@ interface ChatContentProps {
 }
 
 const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage }) => {
-  const { messages, status, progress, total, error, progressMessage, chunks } =
+  const { messages, status, progress, total, error, progressMessage } =
     useWorkflowChatStore();
 
   return (
@@ -31,7 +31,6 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage }) => {
         progress={progress}
         total={total}
         progressMessage={progressMessage}
-        chunks={chunks}
       />
     </Box>
   );
