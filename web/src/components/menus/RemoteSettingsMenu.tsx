@@ -139,12 +139,23 @@ const ExternalLinkButton = ({
   </Button>
 );
 
-const maskSecret = (value: string, visibleChars: number = 4): string => {
+const maskSecret = (value: string): string => {
   if (!value) return "";
-  if (value.length <= visibleChars) return value;
-  return (
-    value.substring(0, visibleChars) + "•".repeat(value.length - visibleChars)
-  );
+  const visibleStartChars = 4;
+  const visibleEndChars = 4;
+  const minLengthForPartialMask = 20;
+
+  if (value.length > minLengthForPartialMask) {
+    const middleLength = value.length - visibleStartChars - visibleEndChars;
+    const middleDots = "•".repeat(middleLength > 0 ? middleLength : 0);
+    return (
+      value.substring(0, visibleStartChars) +
+      middleDots +
+      value.substring(value.length - visibleEndChars)
+    );
+  } else {
+    return "•".repeat(value.length);
+  }
 };
 
 const RemoteSettings = () => {
