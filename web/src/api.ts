@@ -628,6 +628,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/examples/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Examples
+         * @description Search for example workflows by searching through node titles, descriptions, and types.
+         *
+         *     Args:
+         *         query: The search string to find in node properties
+         *
+         *     Returns:
+         *         WorkflowList: A list of workflows that contain nodes matching the query
+         */
+        get: operations["search_examples_api_workflows_examples_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/examples/{package_name}/{example_name}": {
         parameters: {
             query?: never;
@@ -5528,6 +5554,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkflowList"];
+                };
+            };
+        };
+    };
+    search_examples_api_workflows_examples_search_get: {
+        parameters: {
+            query: {
+                query: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

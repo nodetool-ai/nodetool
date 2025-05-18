@@ -13,18 +13,26 @@ import {
   InputAdornment,
   Fade
 } from "@mui/material";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { searchWorkflows, SearchResult } from "../../utils/workflowSearch";
+import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
 import { Clear as ClearIcon } from "@mui/icons-material";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+
+interface SearchResult {
+  workflow: Workflow;
+  score: number;
+  matches: {
+    text: string;
+  }[];
+}
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -317,8 +325,10 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowManager((state) => state.loadExamples);
+  const searchWorkflows = useWorkflowManager((state) => state.searchExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
+  const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
@@ -335,6 +345,7 @@ const ExampleGrid = () => {
     const nodeParam = searchParams.get("node");
     if (nodeParam) {
       setSearchQuery(nodeParam);
+      setInputValue(nodeParam);
       setNodesOnlySearch(true);
       setSelectedTag(null);
     }
@@ -344,6 +355,25 @@ const ExampleGrid = () => {
     queryKey: ["examples"],
     queryFn: loadWorkflows
   });
+
+  // Use query for backend node search results
+  const { data: searchData, isLoading: isSearching } = useQuery<WorkflowList>({
+    queryKey: ["exampleSearch", searchQuery],
+    queryFn: () => searchWorkflows(searchQuery),
+    enabled: !!searchQuery.trim() && nodesOnlySearch,
+    placeholderData: (previousData) => previousData
+  });
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(inputValue);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [inputValue]);
 
   const copyExampleWorkflow = useCallback(
     async (workflow: Workflow) => {
@@ -361,7 +391,7 @@ const ExampleGrid = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      
+
       // Call createWorkflow with the example parameters
       const newWorkflow = await createWorkflow(
         req,
@@ -416,19 +446,44 @@ const ExampleGrid = () => {
         : groupedWorkflows[selectedTag];
 
     if (searchQuery.trim()) {
-      const results = searchWorkflows(workflows, searchQuery, nodesOnlySearch);
-      setSearchResults(results);
-      return results.map((r) => r.workflow);
+      // Use backend search for node-only search
+      if (nodesOnlySearch && searchData?.workflows) {
+        // Convert backend search results to our SearchResult format
+        const results: SearchResult[] = searchData.workflows.map(
+          (workflow) => ({
+            workflow,
+            score: 1, // Backend doesn't provide score
+            matches: [] // Backend doesn't provide matches yet
+          })
+        );
+        setSearchResults(results);
+        return searchData.workflows;
+      }
+
+      // Use frontend search for general workflow search
+      if (!nodesOnlySearch) {
+        const results = searchWorkflowsFrontend(workflows, searchQuery, false);
+        setSearchResults(results);
+        return results.map((r) => r.workflow);
+      }
     }
 
     setSearchResults([]);
     return [...workflows].sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     );
-  }, [selectedTag, groupedWorkflows, data, searchQuery, nodesOnlySearch]);
+  }, [
+    selectedTag,
+    groupedWorkflows,
+    data,
+    searchQuery,
+    searchData,
+    nodesOnlySearch
+  ]);
 
   const handleClearSearch = () => {
     setSearchQuery("");
+    setInputValue("");
     setNodesOnlySearch(false);
     // Update URL to remove node parameter
     const newSearchParams = new URLSearchParams(searchParams);
@@ -495,16 +550,16 @@ const ExampleGrid = () => {
           placeholder="Search examples..."
           variant="outlined"
           size="small"
-          value={searchQuery}
+          value={inputValue}
           onChange={(e) => {
-            setSearchQuery(e.target.value);
+            setInputValue(e.target.value);
             if (e.target.value.trim()) {
               setSelectedTag(null);
             }
           }}
           slotProps={{
             input: {
-              endAdornment: searchQuery && (
+              endAdornment: inputValue && (
                 <InputAdornment position="end">
                   <IconButton
                     aria-label="clear search"
@@ -538,10 +593,14 @@ const ExampleGrid = () => {
         </Tooltip>
       </Box>
       <Box className="container">
-        {isLoading && (
+        {(isLoading || isSearching) && (
           <div className="loading-indicator">
             <CircularProgress />
-            <Typography variant="h4">Loading Examples</Typography>
+            <Typography variant="h4">
+              {isSearching && nodesOnlySearch
+                ? "Searching for nodes..."
+                : "Loading Examples"}
+            </Typography>
           </div>
         )}
         {isError && (
