@@ -305,7 +305,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         hasParent ? "hasParent" : ""
       }`}
     >
-      <div className="preview-node-content">
+      <div className="preview-node-content nowheel">
         <Handle
           style={{ top: "50%", backgroundColor: "white" }}
           id="value"
