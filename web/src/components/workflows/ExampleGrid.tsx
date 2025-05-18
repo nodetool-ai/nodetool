@@ -354,6 +354,7 @@ const ExampleGrid = () => {
       // Create a minimal workflow request with the example parameters
       const req = {
         name: workflow.name,
+        package_name: workflow.package_name,
         description: workflow.description,
         tags: tags,
         access: "private",
