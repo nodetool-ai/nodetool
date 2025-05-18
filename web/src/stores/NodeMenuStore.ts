@@ -407,19 +407,13 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       let filteredResults;
       if (hasSearchTerm || hasTypeFilters) {
         // With search term or type filters, show matching results filtered by path
-        filteredResults = selectedPathString
-          ? searchMatchedNodes.filter((node) => {
-              if (!selectedPathString.includes(".")) {
-                return node.namespace.startsWith(selectedPathString);
-              }
-              return (
-                node.namespace === selectedPathString ||
-                (node.namespace.startsWith(selectedPathString + ".") &&
-                  node.namespace.split(".").length ===
-                    selectedPathString.split(".").length + 1)
-              );
-            })
-          : searchMatchedNodes;
+        if (selectedPathString) {
+          filteredResults = searchMatchedNodes.filter((node) => {
+            return node.namespace.startsWith(selectedPathString);
+          });
+        } else {
+          filteredResults = searchMatchedNodes;
+        }
       } else {
         // Without search term or type filters, show nodes for selected path only
         filteredResults = typeFilteredMetadata.filter((node) => {
