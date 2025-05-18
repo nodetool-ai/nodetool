@@ -268,7 +268,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const result = useResultsStore((state) => state.getResult(workflow_id, id));
 
   const renderedResult = useMemo(() => {
-    return result !== undefined ? (
+    return result && Object.keys(result).length > 0 ? (
       <OutputRenderer
         value={
           Array.isArray(result)

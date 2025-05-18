@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
-import { Box, Typography, Button, Stack } from "@mui/material";
+import { Box, Typography, Button, Stack, Alert } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { ChatHeader } from "./chat/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
@@ -35,7 +35,9 @@ const HelpChat: React.FC = () => {
     sendMessage,
     progressMessage,
     resetMessages,
-    chunks
+    error,
+    progress,
+    total
   } = useHelpChatStore();
   const [selectedModel, setSelectedModel] = React.useState(DEFAULT_MODEL);
   const handleResetChat = useCallback(() => {
@@ -62,7 +64,9 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (status === "disconnected") {
-      connect();
+      connect().catch((error) => {
+        console.error("Failed to connect to help chat:", error);
+      });
     }
   }, [connect, status]);
 
@@ -99,6 +103,12 @@ const HelpChat: React.FC = () => {
           />
         </Box>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mx: 2, my: 1 }}>
+          {error}
+        </Alert>
+      )}
 
       {messages.length === 0 && (
         <Stack spacing={1} sx={{ px: 2, py: 1 }}>
@@ -141,10 +151,9 @@ const HelpChat: React.FC = () => {
         status={status}
         messages={messages}
         sendMessage={sendMessage}
-        progress={0}
-        total={0}
+        progress={progress}
+        total={total}
         progressMessage={progressMessage}
-        chunks={chunks}
       />
     </div>
   );

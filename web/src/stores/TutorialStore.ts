@@ -5,6 +5,7 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 import { LlamaModel } from "./ApiTypes";
 import { CachedModel } from "./ApiTypes";
+import useHelpChatStore from "./HelpChatStore";
 
 interface TutorialState {
   isInTutorial: boolean;
@@ -340,7 +341,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       currentTutorial: tutorialName,
       currentStepIndex: 0
     });
-    useChatStore.getState().addMessages([
+    useHelpChatStore.getState().addMessages([
       {
         type: "message",
         id: uuidv4(),
@@ -361,7 +362,7 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     set({ currentStepIndex: currentStepIndex + 1 });
     const tutorialName = get().currentTutorial;
     if (tutorialName === null) return;
-    useChatStore.getState().addMessages([
+    useHelpChatStore.getState().addMessages([
       {
         type: "message",
         id: uuidv4(),

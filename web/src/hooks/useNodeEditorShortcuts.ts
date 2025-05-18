@@ -152,6 +152,23 @@ export const useNodeEditorShortcuts = (active: boolean) => {
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
+  const handleSaveExample = useCallback(async () => {
+    try {
+      await saveExample();
+      addNotification({
+        content: "Example saved successfully",
+        type: "success",
+        alert: true
+      });
+    } catch (error) {
+      addNotification({
+        content: error instanceof Error ? error.message : "Failed to save example",
+        type: "error",
+        alert: true
+      });
+    }
+  }, [saveExample, addNotification]);
+
   // Define OS-specific tab switching shortcuts
   const prevTabShortcut = navigator.userAgent.includes("Mac")
     ? [ControlOrMeta, "Shift", "["]
@@ -180,7 +197,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo([ControlOrMeta, "x"], handleCut);
   useCombo([ControlOrMeta, "s"], handleSave);
 
-  useCombo([ControlOrMeta, "Shift", "e"], saveExample);
+  useCombo([ControlOrMeta, "Shift", "e"], handleSaveExample);
 
   useCombo([ControlOrMeta, "d"], duplicateNodes);
   useCombo([ControlOrMeta, "Shift", "d"], duplicateNodesVertical);

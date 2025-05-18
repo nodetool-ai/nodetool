@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import {
-  Chunk,
   JobUpdate,
   Message,
   MessageContent,
@@ -27,7 +26,6 @@ type WorkflowChatState = {
   progressMessage: string | null;
   progress: number;
   total: number;
-  chunks: string;
   error: string | null;
   connect: (workflow: WorkflowAttributes) => Promise<void>;
   disconnect: () => void;
@@ -43,7 +41,6 @@ export type MsgpackData =
   | Message
   | ToolCallUpdate
   | TaskUpdate
-  | Chunk
   | PlanningUpdate
   | OutputUpdate;
 
@@ -82,7 +79,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   socket: null,
   messages: [],
   progressMessage: null,
-  chunks: "",
   workflow: null,
   status: "disconnected",
   error: null,
@@ -98,17 +94,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     }
 
     set({ status: "connecting" });
-
-    const createMessageFromChunks = () => {
-      const chunks = get().chunks;
-      const message = {
-        role: "assistant",
-        type: "message",
-        content: chunks,
-        workflow_id: get().workflow?.id
-      };
-      set({ messages: [...get().messages, message], chunks: "" });
-    };
 
     // Get authentication token if not connecting to localhost
     let wsUrl = CHAT_URL;
@@ -147,8 +132,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       const arrayBuffer = await event.data.arrayBuffer();
       const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
-      console.log(data);
-
       if (data.type === "message") {
         set((state) => ({
           messages: [...state.messages, data as Message],
@@ -167,7 +150,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
         if (data.type === "job_update") {
           const update = data as JobUpdate;
           if (update.status === "completed") {
-            createMessageFromChunks();
             set({
               progress: 0,
               total: 0,
@@ -186,11 +168,34 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
         } else if (data.type === "output_update") {
           const update = data as OutputUpdate;
           if (update.output_type === "string") {
-            set({ chunks: get().chunks + update.value });
+            const messages = get().messages;
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              // Check if this is the end of stream marker
+              if (update.value === "<nodetool_end_of_stream>") {
+                // Message is complete, do nothing
+                return;
+              }
+              // Append to the last assistant message
+              const updatedMessage: Message = {
+                ...lastMessage,
+                content: lastMessage.content + (update.value as string)
+              };
+              set({ messages: [...messages.slice(0, -1), updatedMessage] });
+            } else {
+              // Create a new assistant message
+              const message: Message = {
+                role: "assistant" as const,
+                type: "message" as const,
+                content: update.value as string,
+                workflow_id: get().workflow?.id
+              };
+              set({ messages: [...messages, message] });
+            }
           } else if (update.output_type === "image") {
-            const message = {
-              role: "assistant",
-              type: "message",
+            const message: Message = {
+              role: "assistant" as const,
+              type: "message" as const,
               content: [
                 makeMessageContent(
                   "image",
@@ -216,10 +221,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
         } else if (data.type === "tool_call_update") {
           const update = data as ToolCallUpdate;
           set({ progressMessage: update.message });
-        } else if (data.type === "chunk") {
-          const chunk = data as Chunk;
-          const currentChunk = get().chunks;
-          set({ chunks: currentChunk + chunk.content });
         }
       }
     };
