@@ -62,7 +62,11 @@ type WorkflowManagerState = {
   setLoadingState: (workflowId: string, state: Partial<LoadingState>) => void;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
-  create: (workflow: WorkflowRequest) => Promise<Workflow>;
+  create: (
+    workflow: WorkflowRequest,
+    fromExamplePackage?: string,
+    fromExampleName?: string
+  ) => Promise<Workflow>;
   load: (cursor?: string, limit?: number) => Promise<any>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
@@ -219,12 +223,24 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       /**
        * Creates a workflow based on the provided request object.
        * @param {WorkflowRequest} workflow The workflow request data
+       * @param {string} [fromExamplePackage] The package name for creating from example
+       * @param {string} [fromExampleName] The example name for creating from example
        * @returns {Promise<Workflow>} The created workflow
        * @throws {Error} If the API call fails
        */
-      create: async (workflow: WorkflowRequest) => {
+      create: async (
+        workflow: WorkflowRequest,
+        fromExamplePackage?: string,
+        fromExampleName?: string
+      ) => {
         const { data, error } = await client.POST("/api/workflows/", {
-          body: workflow
+          body: workflow,
+          params: {
+            query: {
+              from_example_package: fromExamplePackage,
+              from_example_name: fromExampleName
+            }
+          }
         });
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
