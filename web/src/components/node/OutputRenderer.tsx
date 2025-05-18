@@ -287,6 +287,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    console.log("type", type);
+    console.log("value", value);
     if (type === "video" && videoRef.current) {
       if (value?.uri === "") {
         const blob = new Blob([value?.data], { type: "video/mp4" });
@@ -367,7 +369,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "array":
         if (value.length > 0) {
           if (value[0] === undefined || value[0] === null) {
-            return <div>Array is empty</div>;
+            return null;
           }
           if (typeof value[0] === "string") {
             return (
@@ -543,10 +545,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                       contentType = "application/octet-stream";
                       name = item.name || `File ${index + 1}`;
                   }
-                  
-                  const get_url = item.uri || uint8ArrayToDataUri(item.data, contentType);
+
+                  const get_url =
+                    item.uri || uint8ArrayToDataUri(item.data, contentType);
                   const thumb_url = item.thumb_url || get_url;
-                  
+
                   return {
                     id: item.id || `output-${item.type}-${index}`,
                     user_id: "",

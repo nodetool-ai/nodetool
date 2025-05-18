@@ -71,6 +71,7 @@ type WorkflowManagerState = {
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
   loadExamples: () => Promise<any>;
+  searchExamples: (query: string) => Promise<any>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: () => Promise<any>;
@@ -308,6 +309,21 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const { data, error } = await client.GET("/api/workflows/examples", {});
         if (error) {
           throw createErrorMessage(error, "Failed to load examples");
+        }
+        return data;
+      },
+
+      // Searches example workflows using the backend search API.
+      searchExamples: async (query: string) => {
+        const { data, error } = await client.GET("/api/workflows/examples/search", {
+          params: {
+            query: {
+              query
+            }
+          }
+        });
+        if (error) {
+          throw createErrorMessage(error, "Failed to search examples");
         }
         return data;
       },
