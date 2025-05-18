@@ -628,6 +628,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/examples/{package_name}/{example_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Example
+         * @description Load a specific example workflow from disk by package name and example name.
+         *
+         *     Args:
+         *         package_name: The name of the package containing the example
+         *         example_name: The name of the example workflow to load
+         *
+         *     Returns:
+         *         Workflow: The loaded example workflow with full graph data
+         *
+         *     Raises:
+         *         HTTPException: If the package or example is not found
+         */
+        get: operations["get_example_api_workflows_examples__package_name___example_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/{id}": {
         parameters: {
             query?: never;
@@ -1567,8 +1597,6 @@ export interface components {
             description: string;
             /** Tags */
             tags: string[];
-            /** Thumbnail Url */
-            thumbnail_url: string;
         };
         /** FileInfo */
         FileInfo: {
@@ -3300,6 +3328,11 @@ export interface components {
              * @description List of examples provided by this package
              */
             examples?: components["schemas"]["ExampleMetadata"][] | null;
+            /**
+             * Source Folder
+             * @description Source folder of the package
+             */
+            source_folder?: string | null;
         };
         /** PackageResponse */
         PackageResponse: {
@@ -5377,7 +5410,10 @@ export interface operations {
     };
     create_api_workflows__post: {
         parameters: {
-            query?: never;
+            query?: {
+                from_example_package?: string | null;
+                from_example_name?: string | null;
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -5492,6 +5528,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkflowList"];
+                };
+            };
+        };
+    };
+    get_example_api_workflows_examples__package_name___example_name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_name: string;
+                example_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
