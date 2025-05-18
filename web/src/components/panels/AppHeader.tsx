@@ -5,20 +5,8 @@ import React, { memo } from "react";
 // components
 import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
-
-// mui icons
-
-// nodetool icons
-
 // mui
-import {
-  AppBar,
-  Button,
-  Tooltip,
-  Toolbar,
-  Typography,
-  Box
-} from "@mui/material";
+import { Button, Tooltip, Toolbar, Typography, Box } from "@mui/material";
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
@@ -96,6 +84,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <Tooltip
+            placement="right"
             enterDelay={TOOLTIP_ENTER_DELAY}
             title={
               <div style={{ textAlign: "center" }}>
