@@ -67,6 +67,12 @@ export const App: React.FC<AppProps> = ({ initialWorkflowId }) => {
             borderColor="border"
             className="app-header"
             padding={"4em 1em 2em 1em"}
+            style={{
+              position: "absolute",
+              top: 0,
+              zIndex: 100,
+              width: "100%",
+            }}
           >
             <Flex justify="space-between" align="center">
               <Box>

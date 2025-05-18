@@ -16,6 +16,7 @@ const FormatButton: React.FC<FormatButtonProps> = ({
 }) => {
   return (
     <button
+      tabIndex={-1}
       className={`nodrag ${isActive ? "active" : ""}`}
       onMouseDown={(event) => {
         event.preventDefault();
