@@ -226,6 +226,9 @@ const namespaceStyles = (theme: any) =>
       ".node-button": {
         padding: ".1em .5em",
         flexGrow: 1,
+        "&:hover": {
+          backgroundColor: "var(--palette-grey-800)"
+        },
         "& .MuiTypography-root": {
           fontSize: theme.fontSizeSmall
         }
