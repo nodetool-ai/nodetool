@@ -207,7 +207,14 @@ export const renderModelActions = (
 ) => (
   <Box
     className="model-actions"
-    sx={{ display: "flex", gap: 1, alignItems: "center" }}
+    sx={{
+      display: "flex",
+      gap: 1,
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      padding: "0 1em"
+    }}
   >
     {props.onDownload && !downloaded && (
       <ModelDownloadButton onClick={props.onDownload} />
