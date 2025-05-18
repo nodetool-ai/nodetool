@@ -139,6 +139,14 @@ const ExternalLinkButton = ({
   </Button>
 );
 
+const maskSecret = (value: string, visibleChars: number = 4): string => {
+  if (!value) return "";
+  if (value.length <= visibleChars) return value;
+  return (
+    value.substring(0, visibleChars) + "•".repeat(value.length - visibleChars)
+  );
+};
+
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
   const { updateSettings, fetchSettings } = useRemoteSettingsStore();
@@ -254,11 +262,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="openai-api-key-input"
                   label="OpenAI API key"
-                  value={settings.OPENAI_API_KEY}
+                  value={maskSecret(settings.OPENAI_API_KEY)}
                   onChange={(e) =>
                     handleChange("OPENAI_API_KEY", e.target.value)
                   }
@@ -282,11 +290,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="gemini-api-key-input"
                   label="Google Gemini API Key"
-                  value={settings.GEMINI_API_KEY}
+                  value={maskSecret(settings.GEMINI_API_KEY)}
                   onChange={(e) =>
                     handleChange("GEMINI_API_KEY", e.target.value)
                   }
@@ -315,11 +323,11 @@ const RemoteSettings = () => {
                   variant="standard"
                 />
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="google-app-password-input"
                   label="Google App Password"
-                  value={settings.GOOGLE_APP_PASSWORD}
+                  value={maskSecret(settings.GOOGLE_APP_PASSWORD)}
                   onChange={(e) =>
                     handleChange("GOOGLE_APP_PASSWORD", e.target.value)
                   }
@@ -355,11 +363,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="anthropic-api-key-input"
                   label="Anthropic API key"
-                  value={settings.ANTHROPIC_API_KEY}
+                  value={maskSecret(settings.ANTHROPIC_API_KEY)}
                   onChange={(e) =>
                     handleChange("ANTHROPIC_API_KEY", e.target.value)
                   }
@@ -382,11 +390,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="replicate-api-token-input"
                   label="Replicate API token"
-                  value={settings.REPLICATE_API_TOKEN}
+                  value={maskSecret(settings.REPLICATE_API_TOKEN)}
                   onChange={(e) =>
                     handleChange("REPLICATE_API_TOKEN", e.target.value)
                   }
@@ -412,11 +420,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="hf-token-input"
                   label="HuggingFace token"
-                  value={settings.HF_TOKEN}
+                  value={maskSecret(settings.HF_TOKEN)}
                   onChange={(e) => handleChange("HF_TOKEN", e.target.value)}
                   variant="standard"
                 />
@@ -445,11 +453,11 @@ const RemoteSettings = () => {
                   variant="standard"
                 />
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="aime-api-key-input"
                   label="AIME API Key"
-                  value={settings.AIME_API_KEY}
+                  value={maskSecret(settings.AIME_API_KEY)}
                   onChange={(e) => handleChange("AIME_API_KEY", e.target.value)}
                   variant="standard"
                   sx={{ marginTop: "1em" }}
@@ -469,11 +477,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="fal-api-key-input"
                   label="Fal.ai API Key"
-                  value={settings.FAL_API_KEY}
+                  value={maskSecret(settings.FAL_API_KEY)}
                   onChange={(e) => handleChange("FAL_API_KEY", e.target.value)}
                   variant="standard"
                 />
@@ -494,11 +502,11 @@ const RemoteSettings = () => {
               </Typography>
               <div className="settings-item large">
                 <TextField
-                  type="password"
+                  type="text"
                   autoComplete="off"
                   id="elevenlabs-api-key-input"
                   label="ElevenLabs API Key"
-                  value={settings.ELEVENLABS_API_KEY}
+                  value={maskSecret(settings.ELEVENLABS_API_KEY)}
                   onChange={(e) =>
                     handleChange("ELEVENLABS_API_KEY", e.target.value)
                   }
@@ -532,11 +540,11 @@ const RemoteSettings = () => {
                 variant="standard"
               />
               <TextField
-                type="password"
+                type="text"
                 autoComplete="off"
                 id="dataforseo-password-input"
                 label="DataForSEO Password"
-                value={settings.DATA_FOR_SEO_PASSWORD}
+                value={maskSecret(settings.DATA_FOR_SEO_PASSWORD)}
                 onChange={(e) =>
                   handleChange("DATA_FOR_SEO_PASSWORD", e.target.value)
                 }
@@ -560,11 +568,11 @@ const RemoteSettings = () => {
             </Typography>
             <div className="settings-item large">
               <TextField
-                type="password"
+                type="text"
                 autoComplete="off"
                 id="serpapi-api-key-input"
                 label="SerpAPI API Key"
-                value={settings.SERPAPI_API_KEY}
+                value={maskSecret(settings.SERPAPI_API_KEY)}
                 onChange={(e) =>
                   handleChange("SERPAPI_API_KEY", e.target.value)
                 }
