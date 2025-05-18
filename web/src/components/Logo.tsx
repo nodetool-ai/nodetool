@@ -74,6 +74,7 @@ type LogoProps = {
   borderRadius: string;
   small: boolean;
   singleLine?: boolean;
+  enableText?: boolean;
 };
 
 const Logo = ({
@@ -82,7 +83,8 @@ const Logo = ({
   fontSize,
   borderRadius,
   small,
-  singleLine
+  singleLine,
+  enableText = false
 }: LogoProps) => {
   const [rdt, setRdt] = useState(randomDatatype());
   const [hoverColor, setHoverColor] = useState(rdt.color);
@@ -117,17 +119,19 @@ const Logo = ({
       {small && (
         <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
       )}
-      <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
-        <div className="nodetool" aria-hidden="true">
-          {!singleLine && (
-            <>
-              {"NODE"}
-              <br />
-              {"TOOL"}
-            </>
-          )}
+      {enableText && (
+        <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
+          <div className="nodetool" aria-hidden="true">
+            {!singleLine && (
+              <>
+                {"NODE"}
+                <br />
+                {"TOOL"}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

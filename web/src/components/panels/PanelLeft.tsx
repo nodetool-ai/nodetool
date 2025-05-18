@@ -1,15 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
-import CodeIcon from "@mui/icons-material/Code";
-import ChatIcon from "@mui/icons-material/Chat";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import HelpChat from "../assistants/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
-import GridViewIcon from "@mui/icons-material/GridView";
 import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
@@ -19,10 +16,14 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import ExamplesIcon from "@mui/icons-material/AutoAwesome";
-import { Fullscreen } from "@mui/icons-material";
 import PackageList from "../packages/PackageList";
-import { Extension } from "@mui/icons-material";
+// Icons
+import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import CodeIcon from "@mui/icons-material/Code";
+import ChatIcon from "@mui/icons-material/Chat";
+import GridViewIcon from "@mui/icons-material/GridView";
+import WidgetsIcon from "@mui/icons-material/Widgets";
+import { Fullscreen } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
@@ -176,7 +177,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
-      <Tooltip title="Explore Examples" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip
+        placement="right"
+        title="Explore Examples"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <Button
           className={`nav-button ${
             path === "/examples" && panelVisible ? "active" : ""
@@ -260,7 +265,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
           onClick={() => onViewChange("packs")}
         >
-          <Extension />
+          <WidgetsIcon />
         </IconButton>
       </Tooltip>
 
