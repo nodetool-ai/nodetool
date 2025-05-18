@@ -263,7 +263,7 @@ const ThemeNodes: Theme = createTheme({
           minHeight: "1.2em",
           margin: " 0",
           "&.Mui-focused": {
-            color: theme.palette.c_brightest
+            color: theme.palette.c_white
           }
         })
       }
@@ -376,7 +376,7 @@ const ThemeNodes: Theme = createTheme({
           margin: "0"
         }),
         icon: ({ theme }) => ({
-          color: theme.palette.c_brightest,
+          color: theme.palette.c_white,
           width: ".5em",
           height: "1em",
           fontSize: "3em"
@@ -430,7 +430,7 @@ const ThemeNodes: Theme = createTheme({
         root: ({ theme }) => ({
           fontFamily: theme.fontFamily2,
           "&.MuiToggleButton-sizeSmall.Mui-selected": {
-            color: theme.palette.c_brightest,
+            color: theme.palette.c_white,
             backgroundColor: theme.palette.c_gray1
           },
           "&.MuiToggleButton-sizeSmall": {

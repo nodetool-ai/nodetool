@@ -89,17 +89,17 @@ const styles = (theme: any) =>
         padding: "1px 5px",
         minWidth: "20px",
         fontSize: "12px",
-        backgroundColor: hexToRgba(theme.palette.c_brightest, 0.1),
-        border: `1px solid ${hexToRgba(theme.palette.c_brightest, 0.2)}`,
+        backgroundColor: hexToRgba(theme.palette.c_white, 0.1),
+        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.2)}`,
         borderRadius: "3px",
         color: theme.palette.c_black,
         cursor: "pointer",
         "&:hover": {
-          backgroundColor: hexToRgba(theme.palette.c_brightest, 0.2)
+          backgroundColor: hexToRgba(theme.palette.c_white, 0.2)
         },
         "&.active": {
-          backgroundColor: hexToRgba(theme.palette.c_brightest, 0.3),
-          borderColor: hexToRgba(theme.palette.c_brightest, 0.4)
+          backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
+          borderColor: hexToRgba(theme.palette.c_white, 0.4)
         }
       }
     },

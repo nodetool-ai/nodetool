@@ -139,7 +139,7 @@ const ThemeNodetool: Theme = createTheme({
         body2: ({ theme }) => ({
           fontSize: "1em",
           lineHeight: 1.2,
-          color: theme.palette.c_brightest,
+          color: theme.palette.c_white,
           fontFamily: theme.fontFamily1
         })
       }
@@ -159,7 +159,7 @@ const ThemeNodetool: Theme = createTheme({
           fontWeight: "lighter",
           lineHeight: "1em",
           padding: theme.spacing(0, 0, 2, 0),
-          color: theme.palette.c_brightest,
+          color: theme.palette.c_white,
           "&.Mui-focused": {
             color: theme.palette.primary.main
           }
