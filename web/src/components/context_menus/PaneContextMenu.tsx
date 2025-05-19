@@ -59,36 +59,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     }
   }, [reactFlowInstance]);
 
-  const addIteratorNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = {
-        namespace: "default",
-        node_type: "nodetool.workflows.base_node.Iterator",
-        properties: [],
-        title: "Iterator",
-        description: "Iterator",
-        outputs: [],
-        the_model_info: {},
-        layout: "default",
-        recommended_models: [],
-        basic_fields: [],
-        is_dynamic: false
-      };
-      const newNode = createNode(
-        metadata,
-        reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        })
-      );
-      newNode.width = 100;
-      newNode.height = 100;
-      newNode.style = { width: 100, height: 100 };
-      addNode(newNode);
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition]
-  );
-  // add comment
   const addComment = (event: React.MouseEvent) => {
     // Fake metadata for comments
     const metadata = {
@@ -135,26 +105,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const createLoopNode = useCreateLoopNode();
   const loopMetadata = useMetadataStore((state) =>
     state.getMetadata("nodetool.group.Loop")
-  );
-
-  const addLoopNode = useCallback(
-    (event: React.MouseEvent) => {
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: menuPosition?.x || event.clientX,
-        y: menuPosition?.y || event.clientY
-      });
-      if (loopMetadata) {
-        createLoopNode(loopMetadata, position);
-      }
-      closeContextMenu();
-    },
-    [
-      createLoopNode,
-      loopMetadata,
-      reactFlowInstance,
-      menuPosition,
-      closeContextMenu
-    ]
   );
 
   const addInputNode = useCallback(
@@ -375,18 +325,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         label="Add Comment"
         IconComponent={<AddCommentIcon />}
         tooltip={"C + Click or Drag"}
-      />
-      <ContextMenuItem
-        onClick={(e) => {
-          if (e) {
-            e.preventDefault();
-            addIteratorNode(e);
-          }
-          closeContextMenu();
-        }}
-        label="Add Iterator"
-        IconComponent={<LoopIcon />}
-        tooltip="Add an iterator node"
       />
       <ContextMenuItem
         onClick={(e) => {

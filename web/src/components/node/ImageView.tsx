@@ -19,6 +19,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   if (!imageUrl) {
     return <Typography>No Image found</Typography>;
   }
+  console.log("imageUrl", imageUrl);
 
   return (
     <div

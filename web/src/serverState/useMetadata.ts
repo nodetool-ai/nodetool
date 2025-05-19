@@ -27,30 +27,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     outputs: [],
     the_model_info: {},
     recommended_models: []
-  },
-  "nodetool.workflows.base_node.Iterator": {
-    title: "Iterator",
-    description: "Iterator",
-    namespace: "default",
-    node_type: "nodetool.workflows.base_node.Iterator",
-    layout: "default",
-    basic_fields: ["input_list"],
-    is_dynamic: false,
-    the_model_info: {},
-    recommended_models: [],
-    properties: [
-      {
-        name: "input_list",
-        type: { type: "list", optional: false, type_args: [] }
-      }
-    ],
-    outputs: [
-      {
-        name: "output",
-        type: { type: "any", optional: false, type_args: [] },
-        stream: false
-      }
-    ]
   }
 };
 
