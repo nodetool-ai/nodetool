@@ -512,8 +512,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     }
   }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
 
-  console.log("value", value);
-
   return (
     <>
       {openAsset && (
