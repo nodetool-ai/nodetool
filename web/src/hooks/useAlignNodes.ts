@@ -19,62 +19,107 @@ const useAlignNodes = () => {
       const selectedNodes = getSelectedNodes();
       if (selectedNodes.length < 2) return;
 
+      // Create a map to store the changes for each node
+      const nodeUpdates = new Map<
+        string,
+        { position: { x: number; y: number }; data: Partial<NodeData> }
+      >();
+
+      // Initialize with current positions and ensure data is at least an empty object
+      selectedNodes.forEach((node) => {
+        nodeUpdates.set(node.id, {
+          position: { ...node.position }, // New position object
+          data: { ...(node.data || {}) } // New data object, ensure it exists
+        });
+      });
+
       const xCoordinates = selectedNodes.map((node) => node.position.x);
       const yCoordinates = selectedNodes.map((node) => node.position.y);
 
       const xRange = Math.max(...xCoordinates) - Math.min(...xCoordinates);
       const yRange = Math.max(...yCoordinates) - Math.min(...yCoordinates);
-      const arrangedNodes: Node<NodeData>[] = [...selectedNodes];
+
+      // Create a sorted list of node IDs for processing alignment
+      // We operate on the `nodeUpdates` map using these sorted IDs
+      const sortedNodeIds = selectedNodes.map((n) => n.id);
 
       if (xRange < yRange) {
-        // align left
+        // Align left
         const leftMostX = Math.min(...xCoordinates);
-        // Sort nodes by y position
-        arrangedNodes.sort((a, b) => a.position.y - b.position.y);
-        arrangedNodes.forEach((node, index) => {
-          node.position.x = leftMostX;
+        // Sort nodes by original y position for processing order
+        sortedNodeIds.sort((idA, idB) => {
+          const nodeA = selectedNodes.find((n) => n.id === idA)!;
+          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          return nodeA.position.y - nodeB.position.y;
+        });
+
+        sortedNodeIds.forEach((nodeId, index) => {
+          const update = nodeUpdates.get(nodeId)!;
+          update.position.x = leftMostX;
           if (arrangeSpacing && index > 0) {
+            const previousNodeId = sortedNodeIds[index - 1];
+            const previousNodeOriginal = selectedNodes.find(
+              (n) => n.id === previousNodeId
+            )!;
             const previousNodeHeight =
-              arrangedNodes[index - 1].measured?.height ?? 0;
-            node.position.y =
-              arrangedNodes[index - 1].position.y +
+              previousNodeOriginal.measured?.height ?? 0;
+            const previousNodeUpdate = nodeUpdates.get(previousNodeId)!;
+            update.position.y =
+              previousNodeUpdate.position.y +
               previousNodeHeight +
               VERTICAL_SPACING;
           }
         });
       } else {
-        // align top
+        // Align top
         const topMostY = Math.min(...yCoordinates);
-        // Sort nodes by x position
-        arrangedNodes.sort((a, b) => a.position.x - b.position.x);
-        arrangedNodes.forEach((node, index) => {
-          node.position.y = topMostY;
+        // Sort nodes by original x position for processing order
+        sortedNodeIds.sort((idA, idB) => {
+          const nodeA = selectedNodes.find((n) => n.id === idA)!;
+          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          return nodeA.position.x - nodeB.position.x;
+        });
+
+        sortedNodeIds.forEach((nodeId, index) => {
+          const update = nodeUpdates.get(nodeId)!;
+          update.position.y = topMostY;
           if (arrangeSpacing && index > 0) {
-            const previousNodeWidth =
-              arrangedNodes[index - 1].measured?.width ?? 0;
-            node.position.x =
-              arrangedNodes[index - 1].position.x +
+            const previousNodeId = sortedNodeIds[index - 1];
+            const previousNodeOriginal = selectedNodes.find(
+              (n) => n.id === previousNodeId
+            )!;
+            const previousNodeWidth = previousNodeOriginal.measured?.width ?? 0;
+            const previousNodeUpdate = nodeUpdates.get(previousNodeId)!;
+            update.position.x =
+              previousNodeUpdate.position.x +
               previousNodeWidth +
               HORIZONTAL_SPACING;
           }
         });
       }
-      //set collapsed
+
+      // Set collapsed state in the updates map
       if (collapsed !== undefined) {
-        arrangedNodes.forEach((node) => {
-          node.data.collapsed = collapsed;
+        selectedNodes.forEach((node) => {
+          const update = nodeUpdates.get(node.id)!;
+          update.data.collapsed = collapsed;
         });
       }
 
-      // HACK: Force React Flow to update node internals
-      // otherwise the nodes were only updated after deselecting
-      arrangedNodes.forEach((node) => {
-        reactFlow.setNodes((nds) =>
-          nds.map((n) =>
-            n.id === node.id ? { ...n, position: node.position } : n
-          )
-        );
-      });
+      // Update React Flow nodes
+      reactFlow.setNodes((currentNodes) =>
+        currentNodes.map((currentNode) => {
+          const updatedProps = nodeUpdates.get(currentNode.id);
+          if (updatedProps) {
+            return {
+              ...currentNode,
+              position: { ...updatedProps.position }, // Create a new position object
+              data: { ...currentNode.data, ...updatedProps.data } // Create a new data object, merging existing with updates
+            };
+          }
+          return currentNode; // Not a selected node, return as is
+        })
+      );
     },
     [getSelectedNodes, reactFlow]
   );
