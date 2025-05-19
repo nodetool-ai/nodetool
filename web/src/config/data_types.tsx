@@ -152,7 +152,7 @@ let DATA_TYPES: DataType[] = [
     value: "any",
     label: "Any Type",
     description: "A generic datatype, accepting any kind of value",
-    color: solarizedColors.base2,
+    color: solarizedColors.base0,
     textColor: "dark",
     name: "",
     slug: "",
