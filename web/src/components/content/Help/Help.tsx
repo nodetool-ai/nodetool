@@ -238,7 +238,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <div className="help-item">
                 <Typography>History Redo</Typography>
                 <Button>CTRL + SHIFT + Z</Button> |{" "}
-                <Button>CMD + Shift + Z</Button>
+                <Button>CMD + SHIFT + Z</Button>
               </div>
               <div className="help-item">
                 <Typography>Align selected Nodes</Typography>
@@ -246,7 +246,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               </div>
               <div className="help-item">
                 <Typography>Arrange selected Nodes</Typography>
-                <Button>CTRL + A</Button> | <Button>CMD + A</Button>
+                <Button>SHIFT + A</Button> | <Button>CMD + A</Button>
               </div>
 
               <div className="help-item">
