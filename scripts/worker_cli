@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export PYTHONPATH=$PYTHONPATH:src
-
-python -m nodetool.worker_cli $@
