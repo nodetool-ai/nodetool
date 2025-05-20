@@ -99,7 +99,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <>
       <div
-        className="output markdown"
+        className="output markdown noscroll"
         css={styles}
         ref={containerRef}
         tabIndex={0}
