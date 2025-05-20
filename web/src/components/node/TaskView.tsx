@@ -30,7 +30,7 @@ interface TaskViewProps {
 
 const TaskView: React.FC<TaskViewProps> = ({ task }) => {
   return (
-    <div css={styles}>
+    <div css={styles} className="noscroll">
       <Paper className="task-container" elevation={1}>
         <Typography variant="h6" className="task-title">
           Task: {task.title}

@@ -48,7 +48,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
 
   if (planningUpdate.status === "Failed") {
     return (
-      <div className="planning-update-container" css={styles}>
+      <div className="planning-update-container noscroll" css={styles}>
         <h3 className="ai-animated-heading">
           {planningUpdate.phase} <em>{planningUpdate.status}</em>
         </h3>
@@ -56,7 +56,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
     );
   }
   return (
-    <div className="planning-update-container" css={styles}>
+    <div className="planning-update-container noscroll" css={styles}>
       <h3 className="ai-animated-heading">
         {planningUpdate.phase} <em>{planningUpdate.status}</em>
       </h3>
