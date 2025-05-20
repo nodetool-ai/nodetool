@@ -175,14 +175,11 @@ Ensure the `nodetool` Conda environment is active.
 
 **Option A: Run Backend with Web UI (for Development)**
 
-This starts the backend server and serves the web UI directly. Hot-reloading is enabled.
+This command starts the backend server and serves the web UI directly with hot reloading enabled.
 
 ```bash
-# On macOS and Linux:
-./scripts/server
-
-# On Windows:
-.\scripts\server.bat
+# On macOS / Linux / Windows:
+nodetool serve
 ```
 
 Access the UI in your browser at `http://localhost:3000`.
