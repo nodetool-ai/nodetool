@@ -202,3 +202,11 @@ img::selection {
   background-color: white;
   opacity: 8%;
 }
+
+/* Hide scrollbars for text outputs */
+.noscroll {
+  scrollbar-width: none;
+}
+.noscroll::-webkit-scrollbar {
+  display: none;
+}
