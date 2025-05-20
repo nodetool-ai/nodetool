@@ -171,7 +171,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         allSearchMatches: allMatches
       });
 
-      // Update highlighted namespaces
+      // Use allMatches instead of sortedResults to maintain highlighting of all namespaces with matches
       get().updateHighlightedNamespaces(allMatches);
     },
 
@@ -303,7 +303,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           selectedPath: [],
           highlightedNamespaces: [],
           selectedInputType: "",
-          selectedOutputType: ""
+          selectedOutputType: "",
+          showDocumentation: false,
+          selectedNodeType: null
         });
       }
     },
@@ -347,7 +349,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         selectedOutputType:
           params.dropType && params.connectDirection === "source"
             ? params.dropType
-            : ""
+            : "",
+        menuWidth: 900, // Set default menu width
+        menuHeight: 800 // Set default menu height
       });
 
       // Only perform search if any search-related params changed
