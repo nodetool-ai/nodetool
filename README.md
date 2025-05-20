@@ -2,7 +2,7 @@
   <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - AI Prototyping Platform
 </h1>
 
-Design and build AI agent systems.
+Hackable AI workflows — local, self-hosted, or cloud. Your playground, your rules.
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -10,17 +10,23 @@ Design and build AI agent systems.
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating AI workflows.
+NodeTool is an open-source, privacy-first platform for rapidly building AI agents and workflows. Build wild ideas locally, self-host behind your firewall, or burst to GPU cloud when you choose.
 
 ## 🚀 Why NodeTool?
 
 NodeTool empowers you to create sophisticated AI solutions with ease:
 
-- **🔒 Privacy-First:** Run all AI models (LLMs, audio, video) locally. Process sensitive data securely with zero data transmission.
-- **☁️ Cloud Integration:** Scale with cloud GPUs or connect to OpenAI, Gemini, Anthropic, Replicate & Fal.AI. Create hybrid workflows, controlling exactly what data is shared.
-- **🤖 Advanced Agent Design:** Build multi-agent systems visually. Implement strategic planning, reasoning, and integrate tools like web browsing and file operations.
-- **🎨 Rapid AI Prototyping:** The fastest way to prototype AI workflows. Use the visual editor to drag-and-drop L1LMs, Diffusion Models, and more—no coding required.
-- **💻 Comprehensive System Integration:** Control desktop apps, clipboard, and browser with AI. Trigger workflows via custom shortcuts and access local files or knowledge bases.
+- **🛠 Hack-Ready:** Mix visual editing with code to remix workflows and share nodes.
+- **🔒 Private by Default:** Run models locally with zero telemetry.
+- **🏠 Self-Host in 60 Seconds:** Deploy on-prem with Docker or Kubernetes.
+- **🚀 Burst to GPU Cloud:** Tap cloud GPUs only when you need extra compute.
+- **🎉 Fun to Play With:** Craft chat agents, desktop automation, and creative AI experiments.
+
+## 🎯 Who is NodeTool For?
+
+- **AI Tinkerers & Indie Hackers:** Experiment freely with local models and share your creations.
+- **University Labs & Student Clubs:** Self-host behind the firewall for research projects with zero telemetry.
+- **Startup Product Teams:** Prototype locally, then flip a toggle to scale demos in the cloud.
 
 ---
 
@@ -30,12 +36,13 @@ NodeTool empowers you to create sophisticated AI solutions with ease:
 
 ## ⚙️ Quickstart Installation
 
-### 1️⃣ Get Running in Minutes
+### 1️⃣ Choose Your Deployment
 
-- **Windows / Mac / Linux:** [Download the installer here](https://nodetool.ai)
-- Launch the installer and run NodeTool.
+- **Desktop (Local):** [Download the installer](https://nodetool.ai) and run NodeTool on your machine.
+- **Self-Hosted (On-Prem):** Use our Docker image or Helm chart to spin up a server in seconds.
+- **Cloud (GPU Burst):** Sign up for hosted GPUs when you need extra power.
 
-**Note:** Requires an Nvidia GPU or Apple Silicon (M1+) and at least 20GB of free disk space for model downloads.
+**Note:** Local mode requires an Nvidia GPU or Apple Silicon (M1+) and at least 20GB of free disk space for model downloads.
 
 ### 2️⃣ Create Your First AI Workflow
 
@@ -63,10 +70,11 @@ NodeTool offers a comprehensive suite for building, automating, and deploying AI
 - **Asset Management:** Import, organize, and manage images, audio, video, and other media assets within your workflows.
 - **Ready-to-Use Templates:** Start quickly with pre-built workflow templates for common AI tasks.
 - **Mini-App Builder:** Convert workflows into standalone desktop applications with a few clicks.
-- **Chat Interface:** Build personalized chatbot interfaces tailored to your specific needs.
+- **Chat Agents & Automation:** Build playful chatbots that trigger workflows and control desktop apps.
 - **API Access:** Integrate NodeTool with external applications and services via APIs.
 - **Custom Python Extensions:** Extend functionality with custom Python scripts and integrations.
 - **Cross-Platform:** Build and run workflows on Mac, Windows, and Linux.
+- **Creative AI Tools:** Remix images, audio, and text for fun experiments.
 
 ## 🤖 NodeTool Agent System
 
@@ -86,7 +94,7 @@ NodeTool includes several pre-built agent examples:
 - **Wikipedia-Style Research Agent:** Generates structured documentation via web research.
 - **ChromaDB Research Agent:** Processes and indexes documents for semantic querying.
 - **Social Media Analysis Agents:** Tracks and analyzes content from Twitter/X, Instagram, and Reddit.
-- **Professional Research Tools:** Analyzes the LinkedIn job market and performs advanced Google searches.
+- **Automation Agents:** Let bots browse the web, move files, or trigger desktop actions for you.
 - **Utility Agents:** Processes emails and integrates web search capabilities.
 
 Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) of the `nodetool-core` repository.
