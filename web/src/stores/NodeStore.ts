@@ -341,21 +341,38 @@ export const createNodeStore = (
           onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => {
             const edge = get().edges.find((e) => e.id === oldEdge.id);
             if (edge) {
-              const newEdge = {
-                ...edge,
-                source: newConnection.source,
-                target: newConnection.target,
-                sourceHandle: newConnection.sourceHandle || null,
-                targetHandle: newConnection.targetHandle || null
-              };
-              set({
-                edges: get().edges.map((e) =>
-                  e.id === oldEdge.id ? newEdge : e
-                )
-              });
+              const srcNode = get().findNode(newConnection.source);
+              const targetNode = get().findNode(newConnection.target);
+              if (
+                srcNode &&
+                targetNode &&
+                get().validateConnection(newConnection, srcNode, targetNode)
+              ) {
+                const newEdge = {
+                  ...edge,
+                  source: newConnection.source,
+                  target: newConnection.target,
+                  sourceHandle: newConnection.sourceHandle || null,
+                  targetHandle: newConnection.targetHandle || null
+                };
+                set({
+                  edges: get().edges.map((e) =>
+                    e.id === oldEdge.id ? newEdge : e
+                  )
+                });
+              }
             }
           },
           onConnect: (connection: Connection) => {
+            const srcNode = get().findNode(connection.source);
+            const targetNode = get().findNode(connection.target);
+            if (
+              !srcNode ||
+              !targetNode ||
+              !get().validateConnection(connection, srcNode, targetNode)
+            ) {
+              return;
+            }
             const newEdge = {
               ...connection,
               id: get().generateEdgeId(),
@@ -603,6 +620,14 @@ export const createNodeStore = (
                 edge.targetHandle === connection.targetHandle
             );
             if (existingConnection) {
+              return false;
+            }
+            const targetHandleInUse = edges.some(
+              (edge) =>
+                edge.target === connection.target &&
+                edge.targetHandle === connection.targetHandle
+            );
+            if (targetHandleInUse) {
               return false;
             }
             const srcHandle = connection.sourceHandle;
