@@ -14,7 +14,6 @@ import {
   TaskUpdate,
   PlanningUpdate
 } from "./ApiTypes";
-import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
 import { useAuth } from "./useAuth";
 import { useNotificationStore, Notification } from "./NotificationStore";
