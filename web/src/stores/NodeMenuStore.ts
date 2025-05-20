@@ -95,6 +95,15 @@ type NodeMenuStore = {
   updateHighlightedNamespaces: (results: NodeMetadata[]) => void;
   closeNodeMenu: () => void;
   openNodeMenu: (params: OpenNodeMenuParams) => void;
+  isLoading: boolean;
+  searchResultsCache: Record<
+    string,
+    {
+      sortedResults: NodeMetadata[];
+      groupedResults: SearchResultGroup[];
+      allMatches: NodeMetadata[];
+    }
+  >;
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
@@ -107,6 +116,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       get().selectedOutputType,
       get().searchResults
     );
+
+  // Subscribe to metadata changes and clear cache
+  useMetadataStore.subscribe(() => {
+    set({ searchResultsCache: {} });
+  });
 
   return {
     // menu
@@ -150,29 +164,67 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     setSelectedPath: (path: string[]) => {
       const currentPath = get().selectedPath;
       const newPath = currentPath.join(".") === path.join(".") ? [] : path;
-      set({
-        selectedPath: newPath
+      const searchTerm = get().searchTerm;
+      const selectedInputType = get().selectedInputType;
+      const selectedOutputType = get().selectedOutputType;
+      const cacheKey = JSON.stringify({
+        path: newPath,
+        searchTerm,
+        selectedInputType,
+        selectedOutputType
       });
-
-      // Get current metadata and filter based on new path
-      const metadata = Object.values(useMetadataStore.getState().metadata);
-      const { sortedResults, groupedResults, allMatches } =
-        computeSearchResults(
-          metadata,
-          get().searchTerm,
-          newPath,
-          get().selectedInputType as TypeName,
-          get().selectedOutputType as TypeName
-        );
-
+      const cache = get().searchResultsCache;
+      // Debug logging
+      console.debug("[NodeMenuStore] setSelectedPath cacheKey:", cacheKey);
+      console.debug("[NodeMenuStore] cache size:", Object.keys(cache).length);
+      if (cache[cacheKey]) {
+        console.debug("[NodeMenuStore] cache HIT for key:", cacheKey);
+        // Use cached results immediately
+        const { sortedResults, groupedResults, allMatches } = cache[cacheKey];
+        set({
+          selectedPath: newPath,
+          searchResults: sortedResults,
+          groupedSearchResults: groupedResults,
+          allSearchMatches: allMatches,
+          isLoading: false
+        });
+        get().updateHighlightedNamespaces(allMatches);
+        return;
+      } else {
+        console.debug("[NodeMenuStore] cache MISS for key:", cacheKey);
+      }
+      // Immediate UI update
       set({
-        searchResults: sortedResults,
-        groupedSearchResults: groupedResults,
-        allSearchMatches: allMatches
+        selectedPath: newPath,
+        searchResults: [],
+        groupedSearchResults: [],
+        allSearchMatches: [],
+        isLoading: true
       });
-
-      // Use allMatches instead of sortedResults to maintain highlighting of all namespaces with matches
-      get().updateHighlightedNamespaces(allMatches);
+      // Defer expensive computation
+      setTimeout(() => {
+        const metadata = Object.values(useMetadataStore.getState().metadata);
+        const { sortedResults, groupedResults, allMatches } =
+          computeSearchResults(
+            metadata,
+            searchTerm,
+            newPath,
+            selectedInputType as TypeName,
+            selectedOutputType as TypeName
+          );
+        // Store in cache
+        set((state) => ({
+          searchResults: sortedResults,
+          groupedSearchResults: groupedResults,
+          allSearchMatches: allMatches,
+          isLoading: false,
+          searchResultsCache: {
+            ...state.searchResultsCache,
+            [cacheKey]: { sortedResults, groupedResults, allMatches }
+          }
+        }));
+        get().updateHighlightedNamespaces(allMatches);
+      }, 0);
     },
 
     /**
@@ -360,7 +412,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           get().performSearch(params.searchTerm || "");
         }, 0);
       }
-    }
+    },
+    isLoading: false,
+    searchResultsCache: {}
   };
 });
 
