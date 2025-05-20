@@ -23,7 +23,9 @@ const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const createFolder = useAssetStore((state) => state.createFolder);
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const fetchFolders = async () => {
     return await load({ content_type: "folder" });
   };
@@ -35,7 +37,7 @@ const FolderProperty = (props: PropertyProps) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [folderName, setFolderName] = useState<string>("New Folder");
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   useEffect(() => {
     if (anchorEl) {
       const timer = setTimeout(() => {
@@ -94,8 +96,15 @@ const FolderProperty = (props: PropertyProps) => {
             </MenuItem>
           ))}
         </Select>
-        <Button onClick={(e) => setAnchorEl(e.currentTarget)}>
-          <CreateNewFolderIcon />
+        <Button
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            border: "none",
+            padding: "0",
+            margin: "0"
+          }}
+        >
+          <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
         </Button>
       </div>
       <Popover
@@ -123,7 +132,6 @@ const FolderProperty = (props: PropertyProps) => {
               }
             }}
             onChange={(e) => setFolderName(e.target.value)}
-            fullWidth
           />
         </DialogContent>
         <DialogActions className="dialog-actions">
