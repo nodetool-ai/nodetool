@@ -5,14 +5,14 @@ const dialogStyles = (theme: any) =>
     "&": {
       position: "fixed",
       backgroundColor: "transparent",
-      width: "500px",
-      height: "400px",
+      width: "400px",
+      height: "300px",
       maxHeight: "400px",
       transform: "translate(0, 0)"
     },
     "& .MuiPaper-root": {
       width: "100%",
-      maxWidth: "500px"
+      maxWidth: "300px"
     },
     ".dialog-content": {
       padding: "0 .5em"
@@ -30,16 +30,30 @@ const dialogStyles = (theme: any) =>
       padding: ".5em 1em"
     },
     ".input-field": {
-      padding: ".5em"
+      padding: "8px 8px",
+      marginBottom: "16px",
+      width: "100%"
     },
     ".input-field input": {
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
+      padding: "8px 12px",
+      transition: "border-color 0.2s ease-in-out"
     },
     ".input-field:hover fieldset": {
-      border: "1px solid gray"
+      borderColor: theme.palette.c_gray6
     },
     ".input-field .Mui-focused fieldset": {
-      border: "1px solid white"
+      borderColor: theme.palette.c_hl1,
+      borderWidth: "2px"
+    },
+    ".input-field .MuiOutlinedInput-root": {
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.palette.c_gray6
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.palette.c_hl1,
+        borderWidth: "2px"
+      }
     },
     ".button-confirm": {
       color: theme.palette.c_hl1,
