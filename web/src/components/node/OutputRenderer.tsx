@@ -455,7 +455,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (
-          <div className="output value nodrag" css={styles}>
+          <div className="output value nodrag noscroll" css={styles}>
             <ButtonGroup className="actions">
               <Tooltip
                 title="Copy to Clipboard"
@@ -499,8 +499,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       default:
         return (
-          <div className="output value nodrag" css={styles}>
+          <div className="output value nodrag noscroll" css={styles}>
             {value !== null && value !== undefined && value.toString() !== "" && (
+
               <>
                 <ButtonGroup className="actions">
                   <Tooltip
