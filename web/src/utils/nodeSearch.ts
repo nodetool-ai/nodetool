@@ -121,17 +121,21 @@ export function computeSearchResults(
   const hasSearchTerm = term.trim().length > 0;
   const hasTypeFilters = selectedInputType || selectedOutputType;
 
+  // Filter out default namespace nodes
   const filteredMetadata = metadata.filter(
     (node) => node.namespace !== "default"
   );
 
-  const typeFilteredMetadata = filterDataByType(
-    filteredMetadata,
-    selectedInputType as TypeName,
-    selectedOutputType as TypeName
-  );
+  // Apply type filtering if needed
+  const typeFilteredMetadata = hasTypeFilters
+    ? filterDataByType(
+        filteredMetadata,
+        selectedInputType as TypeName,
+        selectedOutputType as TypeName
+      )
+    : filteredMetadata;
 
-  // First filter by path if one is selected
+  // Filter by path if one is selected
   let pathFilteredMetadata = typeFilteredMetadata;
   if (selectedPathString) {
     pathFilteredMetadata = typeFilteredMetadata.filter((node) => {
@@ -146,27 +150,42 @@ export function computeSearchResults(
     });
   }
 
-  let searchMatchedNodes = pathFilteredMetadata;
-  let groupedResults: SearchResultGroup[] = [];
-
-  if (hasSearchTerm) {
-    const allEntries = pathFilteredMetadata.map((node: NodeMetadata) => {
-      const { description, tags, useCases } = formatNodeDocumentation(
-        node.description
-      );
-      return {
-        title: node.title,
-        node_type: node.node_type,
-        namespace: node.namespace,
-        description: description,
-        use_cases: useCases.raw,
-        tags: tags.join(", "),
-        metadata: node
-      };
+  // If no search term, we can skip the expensive search operations
+  if (!hasSearchTerm) {
+    const sortedResults = pathFilteredMetadata.sort((a, b) => {
+      const namespaceComparison = a.namespace.localeCompare(b.namespace);
+      return namespaceComparison !== 0
+        ? namespaceComparison
+        : a.title.localeCompare(b.title);
     });
-    groupedResults = performGroupedSearch(allEntries, term);
-    searchMatchedNodes = groupedResults.flatMap((group) => group.nodes);
+
+    return {
+      sortedResults,
+      groupedResults: [
+        { title: selectedPathString || "All Nodes", nodes: sortedResults }
+      ],
+      allMatches: sortedResults
+    };
   }
+
+  // Only perform search operations if we have a search term
+  const allEntries = pathFilteredMetadata.map((node: NodeMetadata) => {
+    const { description, tags, useCases } = formatNodeDocumentation(
+      node.description
+    );
+    return {
+      title: node.title,
+      node_type: node.node_type,
+      namespace: node.namespace,
+      description: description,
+      use_cases: useCases.raw,
+      tags: tags.join(", "),
+      metadata: node
+    };
+  });
+
+  const groupedResults = performGroupedSearch(allEntries, term);
+  const searchMatchedNodes = groupedResults.flatMap((group) => group.nodes);
 
   const sortedResults = searchMatchedNodes.sort((a, b) => {
     const namespaceComparison = a.namespace.localeCompare(b.namespace);
@@ -174,28 +193,6 @@ export function computeSearchResults(
       ? namespaceComparison
       : a.title.localeCompare(b.title);
   });
-
-  if (selectedPathString && !hasSearchTerm) {
-    groupedResults = [{ title: selectedPathString, nodes: sortedResults }];
-  } else if (!hasSearchTerm) {
-    groupedResults = performGroupedSearch(
-      sortedResults.map((node) => {
-        const { description, tags, useCases } = formatNodeDocumentation(
-          node.description
-        );
-        return {
-          title: node.title,
-          node_type: node.node_type,
-          namespace: node.namespace,
-          description: description,
-          use_cases: useCases.raw,
-          tags: tags.join(", "),
-          metadata: node
-        };
-      }),
-      term
-    );
-  }
 
   return {
     sortedResults,
