@@ -255,6 +255,17 @@ const typeFor = (value: any): string => {
 };
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
+  // Do not render anything for undefined, null, empty string, empty array or empty object
+  if (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0) ||
+    (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
+  ) {
+    return null;
+  }
+
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -489,7 +500,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       default:
         return (
           <div className="output value nodrag" css={styles}>
-            {value !== null && (
+            {value !== null && value !== undefined && value.toString() !== "" && (
               <>
                 <ButtonGroup className="actions">
                   <Tooltip
