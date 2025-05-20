@@ -236,10 +236,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   // ON MOVE START | DRAG PANE
-  const handleOnMoveStart = useCallback(() => {
-    // This also triggers on click, which will mess up the state of isMenuOpen
-    closeNodeMenu();
-  }, [closeNodeMenu]);
+  const handleOnMoveStart = useCallback(
+    (event: any) => {
+      // Only close menu on pan events, not zoom events
+      if (event.type === "pan") {
+        closeNodeMenu();
+      }
+    },
+    [closeNodeMenu]
+  );
 
   // ON NODES CHANGE
   const handleNodesChange = useCallback(
