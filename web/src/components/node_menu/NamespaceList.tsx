@@ -694,7 +694,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </div>
           </List>
         </div>
-        {searchResults && searchResults.length > 0 ? (
+        {selectedPathString || searchTerm ? (
           <>
             <List className="node-list">
               <RenderNodes nodes={searchResults} />
