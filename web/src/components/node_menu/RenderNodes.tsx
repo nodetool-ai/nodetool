@@ -16,9 +16,9 @@ import {
 import { isEqual } from "lodash";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import ThemeNodes from "../themes/ThemeNodes";
-import { SearchResultGroup } from "../../stores/NodeMenuStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { SearchResultGroup } from "../../utils/nodeSearch";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
