@@ -230,12 +230,15 @@ export default function useConnectionHandlers() {
               handleOnConnect(newConnection);
               endConnecting();
             } else {
+              // If all inputs are connected, use the first compatible input
+              const newConnection = {
+                source: connectNodeId || "",
+                sourceHandle: connectHandleId || "",
+                target: nodeId,
+                targetHandle: possibleInputs[0].name
+              };
+              handleOnConnect(newConnection);
               endConnecting();
-              addNotification({
-                type: "warning",
-                alert: true,
-                content: "All possible inputs are already connected"
-              });
             }
           } else {
             endConnecting();
