@@ -229,6 +229,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [sortedAssets, folderFiles]
   );
 
+  console.log("assetsToUse", assetsToUse);
+
   const handleDownload = useCallback(() => {
     const downloadUrl = url || (currentAsset && currentAsset.get_url);
 

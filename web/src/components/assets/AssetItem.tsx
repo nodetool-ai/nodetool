@@ -13,7 +13,6 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 import { isEqual } from "lodash";
-import { getAssetThumbUrl } from "../../utils/getAssetThumbUrl";
 
 const styles = (theme: any) =>
   css({
@@ -329,14 +328,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${getAssetThumbUrl(asset)})`
+                backgroundImage: `url(${asset.get_url})`
               }}
               aria-label={asset.id}
             />
             <div
               className="image-aspect-ratio"
               style={{
-                backgroundImage: `url(${getAssetThumbUrl(asset)})`
+                backgroundImage: `url(${asset.get_url})`
               }}
               aria-label={asset.id}
             />
@@ -366,7 +365,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${getAssetThumbUrl(asset)})`
+                backgroundImage: `url(${asset.get_url})`
               }}
               aria-label={asset.id}
             />
@@ -383,11 +382,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
             />
-            {getAssetThumbUrl(asset) !== "/images/placeholder.png" && (
+            {asset.get_url !== "/images/placeholder.png" && (
               <div
                 className="image"
                 style={{
-                  backgroundImage: `url(${getAssetThumbUrl(asset)})`
+                  backgroundImage: `url(${asset.get_url})`
                 }}
                 aria-label={asset.id}
               />
