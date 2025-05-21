@@ -73,13 +73,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={clearMissingModels}
         />
       )}
-      {/* <CommandMenu
-        open={openCommandMenu}
-        setOpen={setOpenCommandMenu}
-        undo={nodeHistory.undo}
-        redo={nodeHistory.redo}
-        reactFlowWrapper={reactFlowWrapper}
-      /> */}
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation
           nodeType={selectedNodeType}
@@ -87,52 +80,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <div
-        className="node-editor"
-        style={{
-          width: "100%",
-          height: "100%",
-          position: "absolute",
-          left: 0,
-          top: 0,
-          right: 0,
-          bottom: 0,
-          overflow: "hidden"
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            position: "relative",
-            display: "flex",
-            flexDirection: "column"
-          }}
-        >
-          {isUploading && (
-            <div className="loading-overlay">
-              <CircularProgress /> Uploading assets...
-            </div>
-          )}
-          <div
-            style={{
-              flex: 1,
-              position: "relative",
-              width: "100%",
-              height: "100%",
-              minHeight: 0
-            }}
-          >
-            <ReactFlowWrapper workflowId={workflowId} active={active} />
+      <div className="node-editor">
+        {isUploading && (
+          <div className="loading-overlay">
+            <CircularProgress /> Uploading assets...
           </div>
-          {active && (
-            <>
-              <WorkflowChat workflow_id="default" />
-              <NodeMenu focusSearchInput={true} />
-              {/* <WorkflowGenerator /> */}
-            </>
-          )}
-        </div>
+        )}
+        <ReactFlowWrapper workflowId={workflowId} active={active} />
+        {active && (
+          <>
+            <WorkflowChat workflow_id="default" />
+            <NodeMenu focusSearchInput={true} />
+          </>
+        )}
       </div>
     </>
   );

@@ -355,7 +355,11 @@ const TabsNodeEditor = () => {
             <TabsBar workflows={workflows} />
             {!isMac && isElectron && <WindowControls />}
           </div>
-          <div className="editor-container" css={generateCSS}>
+          <div
+            className="editor-container"
+            css={generateCSS}
+            style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+          >
             {workflows.map((workflow) => {
               const isActive = currentWorkflowId === workflow.id;
               return (
@@ -363,13 +367,10 @@ const TabsNodeEditor = () => {
                   key={workflow.id}
                   sx={{
                     overflow: "hidden",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
                     width: "100%",
                     height: "100%",
+                    minHeight: 0,
+                    minWidth: 0,
                     display: isActive ? "flex" : "none",
                     flexDirection: "column"
                   }}
@@ -403,8 +404,8 @@ const TabsNodeEditor = () => {
                                 flex: 1,
                                 minHeight: 0,
                                 position: "relative",
-                                width: "100%",
-                                height: "100%"
+                                width: "100px",
+                                height: "100px"
                               }}
                             >
                               <NodeEditor

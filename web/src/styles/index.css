@@ -1,3 +1,10 @@
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 90deg;
@@ -209,4 +216,15 @@ img::selection {
 }
 .noscroll::-webkit-scrollbar {
   display: none;
+}
+
+.node-editor {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
