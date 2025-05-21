@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to OpenAI's coding agents when working with code in this repository.
 
 ## Project Overview
 
@@ -147,13 +147,3 @@ When working on this codebase:
 - The web UI follows a React component structure with stores for state management
 - The electron app wraps the web UI and provides desktop integration features
 - The apps component handles mini-app functionality
-
-## AI Agent Documentation
-
-The repository includes several AGENTS.md files to guide AI coding assistants through the codebase structure:
-
-- `/AGENTS.md`: Root documentation for OpenAI's coding agents (similar to this CLAUDE.md file)
-- `/web/src/AGENTS.md`: Overview of the React web application structure
-- `/web/src/components/AGENTS.md`: Detailed guide to React UI components
-- `/web/src/stores/AGENTS.md`: Documentation for Zustand state management stores
-- `/web/src/contexts/AGENTS.md`: Guide to React contexts and their integration with stores
