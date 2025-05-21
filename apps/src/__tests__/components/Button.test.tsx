@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Button } from '../../components/ui/button';
-import { ChakraProvider } from '@chakra-ui/react';
+import { ChakraProvider, createSystem } from '@chakra-ui/react';
+import theme from '../../styles/theme/apps_theme';
 
 // Mock next-themes to avoid errors
 jest.mock('next-themes', () => ({
@@ -11,7 +12,7 @@ jest.mock('next-themes', () => ({
 describe('Button Component', () => {
   test('renders button with correct text', () => {
     render(
-      <ChakraProvider>
+      <ChakraProvider value={theme}>
         <Button>Test Button</Button>
       </ChakraProvider>
     );
@@ -21,7 +22,7 @@ describe('Button Component', () => {
 
   test('renders button in loading state', () => {
     render(
-      <ChakraProvider>
+      <ChakraProvider value={theme}>
         <Button loading>Test Button</Button>
       </ChakraProvider>
     );
@@ -29,26 +30,26 @@ describe('Button Component', () => {
     // In loading state, the text should be hidden with opacity 0
     const hiddenText = screen.getByText('Test Button');
     expect(hiddenText).toBeInTheDocument();
-    expect(hiddenText.parentElement).toHaveStyle({ opacity: 0 });
+    expect(hiddenText).toHaveStyle({ opacity: 0 });
     
     // Should have a spinner
-    expect(document.querySelector('div[role="status"]')).toBeInTheDocument();
+    expect(screen.getByText('Test Button').parentElement?.parentElement?.querySelector('.chakra-spinner')).toBeInTheDocument();
   });
 
   test('renders button with loading text', () => {
     render(
-      <ChakraProvider>
+      <ChakraProvider value={theme}>
         <Button loading loadingText="Loading...">Test Button</Button>
       </ChakraProvider>
     );
     
     expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(document.querySelector('div[role="status"]')).toBeInTheDocument();
+    expect(screen.getByText('Loading...').parentElement?.querySelector('.chakra-spinner')).toBeInTheDocument();
   });
 
   test('should be disabled when loading', () => {
     render(
-      <ChakraProvider>
+      <ChakraProvider value={theme}>
         <Button loading>Test Button</Button>
       </ChakraProvider>
     );
