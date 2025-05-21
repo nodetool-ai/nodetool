@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NamespaceItem from "./NamespaceItem";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
-import { isEqual } from "lodash";
 
 interface RenderNamespacesProps {
   tree: NamespaceTree;
@@ -40,44 +39,30 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     () =>
       Object.keys(tree).map((namespace) => {
         const currentFullPath = [...currentPath, namespace].join(".");
-        const initialIsHighlightedBasedOnStore =
-          highlightedNamespaces.includes(currentFullPath);
         const isExpanded =
           currentPath.length > 0
             ? selectedPath.includes(currentPath[currentPath.length - 1])
             : true;
-        const isSelectedForNamespaceItem =
-          selectedPath.join(".") === currentFullPath;
+        const isSelected = selectedPath.join(".") === currentFullPath;
         const path = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
 
-        const searchResultCount = allSearchMatches.filter((result) =>
-          result.namespace.startsWith(currentFullPath)
-        ).length;
-
-        const itemMatchesSearchHighlightCriteria =
-          initialIsHighlightedBasedOnStore && searchResultCount > 0;
+        const searchResultCount = allSearchMatches.filter((result) => {
+          const resultPath = result.namespace.split(".");
+          return (
+            resultPath.slice(0, currentPath.length + 1).join(".") ===
+            currentFullPath
+          );
+        }).length;
 
         const highlightDueToActiveSearch =
-          isSearchTermPresentAndEffective && itemMatchesSearchHighlightCriteria;
+          isSearchTermPresentAndEffective && searchResultCount > 0;
 
-        // Condition for an item being related to the selected path (ancestor, self, or descendant)
-        // This applies when NO search term is active.
-        const selectedPathString = selectedPath.join(".");
-        const isRelatedToSelectedPath =
-          selectedPath.length > 0 &&
-          (selectedPathString.startsWith(currentFullPath) || // current is ancestor or self
-            currentFullPath.startsWith(selectedPathString)); // current is descendant or self
-
-        const highlightDueToSelectionHierarchy =
-          !isSearchTermPresentAndEffective && isRelatedToSelectedPath;
-
-        const finalIsHighlightedPropForChild =
-          highlightDueToActiveSearch || highlightDueToSelectionHierarchy;
+        const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
 
         if (process.env.NODE_ENV === "development" && DEBUG_SEARCH) {
           console.log(
-            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, initialStoreHighlight=${initialIsHighlightedBasedOnStore}, searchCount=${searchResultCount}, itemMatchesSearchCriteria=${itemMatchesSearchHighlightCriteria}, highlightDueToSearch=${highlightDueToActiveSearch}, isPartOfSelectedHierarchy=${isRelatedToSelectedPath}, highlightDueToSelection=${highlightDueToSelectionHierarchy}, finalPropValue=${finalIsHighlightedPropForChild}`
+            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, searchCount=${searchResultCount}, highlightDueToSearch=${highlightDueToActiveSearch}, finalPropValue=${finalIsHighlightedPropForChild}`
           );
           if (
             currentPath.length === 0 &&
@@ -109,7 +94,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           currentFullPath,
           isHighlighted: finalIsHighlightedPropForChild,
           isExpanded,
-          isSelected: isSelectedForNamespaceItem,
+          isSelected,
           hasChildren
         };
       }),
@@ -121,7 +106,8 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       allSearchMatches,
       searchTerm,
       isSearchTermPresentAndEffective,
-      minSearchTermLength
+      minSearchTermLength,
+      DEBUG_SEARCH
     ]
   );
 
