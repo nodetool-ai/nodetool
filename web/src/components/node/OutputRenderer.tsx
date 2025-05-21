@@ -255,6 +255,17 @@ const typeFor = (value: any): string => {
 };
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
+  // Do not render anything for undefined, null, empty string, empty array or empty object
+  if (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0) ||
+    (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
+  ) {
+    return null;
+  }
+
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -444,7 +455,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (
-          <div className="output value nodrag" css={styles}>
+          <div className="output value nodrag noscroll" css={styles}>
             <ButtonGroup className="actions">
               <Tooltip
                 title="Copy to Clipboard"
@@ -488,8 +499,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       default:
         return (
-          <div className="output value nodrag" css={styles}>
-            {value !== null && (
+          <div className="output value nodrag noscroll" css={styles}>
+            {value !== null && value !== undefined && value.toString() !== "" && (
+
               <>
                 <ButtonGroup className="actions">
                   <Tooltip

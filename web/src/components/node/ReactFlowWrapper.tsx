@@ -94,7 +94,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgesChange,
     onEdgeUpdate,
     shouldFitToScreen,
-    setShouldFitToScreen
+    setShouldFitToScreen,
+    validateConnection,
+    findNode
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -102,7 +104,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgesChange: state.onEdgesChange,
     onEdgeUpdate: state.onEdgeUpdate,
     shouldFitToScreen: state.shouldFitToScreen,
-    setShouldFitToScreen: state.setShouldFitToScreen
+    setShouldFitToScreen: state.setShouldFitToScreen,
+    validateConnection: state.validateConnection,
+    findNode: state.findNode
   }));
   const { loadingState } = useWorkflowManager((state) => ({
     loadingState: state.getLoadingState(workflowId)
@@ -346,6 +350,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={settings.connectionSnap}
+        isValidConnection={(connection) => {
+          if (!connection.source || !connection.target) return true;
+          const src = findNode(connection.source);
+          const tgt = findNode(connection.target);
+          if (!src || !tgt) return false;
+          return validateConnection(connection, src, tgt);
+        }}
         attributionPosition="bottom-left"
         selectNodesOnDrag={settings.selectNodesOnDrag}
         onClick={handleClick}
