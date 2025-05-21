@@ -34,7 +34,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
     "typescript": "^5.3.3",
-    "vite": "^6.0.7",
+    "vite": "^6.3.5",
     "vite-plugin-electron": "^0.29.0"
   },
   "optionalDependencies": {
@@ -50,7 +50,7 @@
     "gunzip-maybe": "^1.4.2",
     "js-yaml": "^4.1.0",
     "node-stream-zip": "^1.15.0",
-    "tar-fs": "^3.0.6",
+    "tar-fs": "^3.0.7",
     "ws": "^8.18.0"
   },
   "permissions": [
