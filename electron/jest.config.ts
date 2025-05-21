@@ -8,6 +8,9 @@ export default {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
+      diagnostics: {
+        ignoreCodes: [2339, 2345]
+      }
     }],
   },
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
@@ -30,10 +33,5 @@ export default {
     '/dist/',
     '/dist-electron/',
     '/dist-web/',
-  ],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
+  ]
 }
