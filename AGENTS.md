@@ -125,6 +125,35 @@ NodeTool follows a client-server architecture with multiple components:
    npm test
    ```
 
+2. **Electron Tests:**
+   ```bash
+   cd electron
+   npm test
+   ```
+
+### Running Linting and Tests Before Submitting Changes
+
+Always run linting, type checking, and tests before submitting changes:
+
+```bash
+# Web UI
+cd web
+npm run lint
+npm run typecheck
+npm test
+
+# Apps UI
+cd apps
+npm run lint
+npm run typecheck
+
+# Electron
+cd electron
+npm run lint
+npm run typecheck
+npm test
+```
+
 ## Development Workflow
 
 When working on this codebase:
