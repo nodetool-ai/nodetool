@@ -160,7 +160,10 @@ const styles = (theme: any) =>
       flex: 1,
       position: "relative",
       borderTop: "none",
-      overflow: "hidden"
+      overflow: "hidden",
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
     },
     ".status-message-container": {
       position: "absolute",
@@ -253,6 +256,12 @@ const styles = (theme: any) =>
     },
     "& .window-control-button#close-button:hover": {
       backgroundColor: "#e81123"
+    },
+    "& .actions-container": {
+      flexShrink: 0,
+      width: "100%",
+      backgroundColor: theme.palette.c_gray0,
+      borderBottom: `1px solid ${theme.palette.c_gray1}`
     }
   });
 
@@ -357,9 +366,12 @@ const TabsNodeEditor = () => {
                     position: "absolute",
                     top: 0,
                     left: 0,
+                    right: 0,
+                    bottom: 0,
                     width: "100%",
                     height: "100%",
-                    display: isActive ? "block" : "none"
+                    display: isActive ? "flex" : "none",
+                    flexDirection: "column"
                   }}
                 >
                   <ReactFlowProvider>
@@ -368,7 +380,13 @@ const TabsNodeEditor = () => {
                         <KeyboardProvider active={isActive}>
                           <NodeProvider workflowId={workflow.id}>
                             {isActive && (
-                              <>
+                              <div
+                                style={{
+                                  flexShrink: 0,
+                                  position: "relative",
+                                  zIndex: 1
+                                }}
+                              >
                                 <AppHeader />
                                 <div className="actions-container">
                                   <AppToolbar
@@ -378,12 +396,22 @@ const TabsNodeEditor = () => {
                                 <div className="status-message-container">
                                   <StatusMessage />
                                 </div>
-                              </>
+                              </div>
                             )}
-                            <NodeEditor
-                              workflowId={workflow.id}
-                              active={isActive}
-                            />
+                            <div
+                              style={{
+                                flex: 1,
+                                minHeight: 0,
+                                position: "relative",
+                                width: "100%",
+                                height: "100%"
+                              }}
+                            >
+                              <NodeEditor
+                                workflowId={workflow.id}
+                                active={isActive}
+                              />
+                            </div>
                           </NodeProvider>
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
