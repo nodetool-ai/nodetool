@@ -59,6 +59,7 @@ jobs:
           name: web-coverage
           path: web/coverage
           retention-days: 5
+          if-no-files-found: warn
 
   electron:
     name: Electron Lint
