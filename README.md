@@ -16,11 +16,10 @@ NodeTool is an open-source, privacy-first platform that empowers you to build so
 
 NodeTool empowers you to build powerful agentic workflows:
 
-- **🔒 Privacy-First:** Run all AI models locally. Keep your sensitive data secure with zero external transmission.
-- **☁️ Cloud Integration:** Scale with cloud GPUs or connect to OpenAI, Gemini, Anthropic, and more. You control what stays local and what goes to the cloud.
+- **☁️ Models:** Use local models or connect to OpenAI, Gemini, Anthropic, and more. 
 - **🤖 Advanced Agent Design:** Build intelligent multi-agent systems that can plan, reason, and use tools like web browsing and file operations.
 - **🎨 Rapid Prototyping:** The fastest way to prototype agentic workflows. Visual editor with no coding required.
-- **💻 System Integration:** Control desktop apps, clipboard, and browser with AI. Trigger workflows via shortcuts and access local files or knowledge bases.
+- **💻 Integrations:** Fetch emails, create posts, access any tool.
 
 ---
 
