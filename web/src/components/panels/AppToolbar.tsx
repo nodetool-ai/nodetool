@@ -553,8 +553,9 @@ interface AppToolbarProps {
 const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const path = useLocation().pathname;
-  const { autoLayout } = useNodes((state) => ({
-    autoLayout: state.autoLayout
+  const { autoLayout, workflow } = useNodes((state) => ({
+    autoLayout: state.autoLayout,
+    workflow: state.workflow
   }));
 
   useCombo(["Ctrl+Space"], () =>
@@ -578,7 +579,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {isLocalhost && <RunAsAppButton />}
+            {isLocalhost && workflow?.settings?.run_mode === "app" && <RunAsAppButton />}
           </>
         </div>
       )}
