@@ -188,7 +188,7 @@ export const renderModelSecondaryInfo = (
           color: "var(--c_gray4)"
         }}
       >
-        {modelData.cardData?.license.toUpperCase()}
+        {modelData?.cardData?.license?.toUpperCase()}
       </Typography>
     )}
     {!isHuggingFace && (
