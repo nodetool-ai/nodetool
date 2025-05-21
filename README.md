@@ -249,7 +249,7 @@ We'd love to hear from you! Whether you have questions, suggestions, or feedback
 - **NodeTool Core Library Repository:** [github.com/nodetool-ai/nodetool-core](https://github.com/nodetool-ai/nodetool-core)
 - **Email:** [hello@nodetool.ai](mailto:hello@nodetool.ai)
 - **Discord Community:** [Join us on Discord](https://discord.gg/26m5xBwe)
-- **Community Forum:** [Visit the NodeTool Forum](https://forum.nodetool.ai) _(Please update link if available)_
+- **Community Forum:** [Visit the NodeTool Forum](https://forum.nodetool.ai)
 - **GitHub Issues:** [Report issues or request features](https://github.com/nodetool-ai/nodetool/issues)
 - **Project Leads:** Matthias Georgi ([matti@nodetool.ai](mailto:matti@nodetool.ai)), David Bührer ([david@nodetool.ai](mailto:david@nodetool.ai))
 
