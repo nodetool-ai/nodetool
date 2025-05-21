@@ -8,7 +8,8 @@ import {
   ReactFlow,
   SelectionMode,
   ConnectionMode,
-  useViewport
+  useViewport,
+  Connection
 } from "@xyflow/react";
 
 // store
@@ -355,7 +356,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           const src = findNode(connection.source);
           const tgt = findNode(connection.target);
           if (!src || !tgt) return false;
-          return validateConnection(connection, src, tgt);
+          return validateConnection(connection as Connection, src, tgt);
         }}
         attributionPosition="bottom-left"
         selectNodesOnDrag={settings.selectNodesOnDrag}
