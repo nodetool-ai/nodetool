@@ -18,7 +18,8 @@ import {
   NPArray,
   Task,
   TaskPlan,
-  PlotlyConfig
+  PlotlyConfig,
+  AssetRef
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -44,45 +45,44 @@ export type OutputRendererProps = {
 };
 
 function generateAssetGridContent(
-  value: Asset[],
+  value: AssetRef[],
   onDoubleClick: (asset: Asset) => void
 ) {
-  const assets: Asset[] = value.map((item: any, index: number) => {
+  const assets: Asset[] = value.map((item: AssetRef, index: number) => {
     let contentType: string;
     let name: string;
     switch (item.type) {
       case "image":
         contentType = "image/png";
-        name = item.name || `Image ${index + 1}.png`;
         break;
       case "audio":
         contentType = "audio/mp3";
-        name = item.name || `Audio ${index + 1}.mp3`;
         break;
       case "video":
         contentType = "video/mp4";
-        name = item.name || `Video ${index + 1}.mp4`;
         break;
       default:
         contentType = "application/octet-stream";
-        name = item.name || `File ${index + 1}`;
     }
 
-    const get_url = item.uri || uint8ArrayToDataUri(item.data, contentType);
-    const thumb_url = item.thumb_url || get_url;
+    if (item.data && !(item.data instanceof Uint8Array)) {
+      throw new Error("Data is not a Uint8Array");
+    }
+
+    const get_url =
+      item.uri || uint8ArrayToDataUri(item.data as Uint8Array, contentType);
 
     return {
-      id: item.id || `output-${item.type}-${index}`,
+      id: `output-${item.type}-${index}`,
       user_id: "",
       workflow_id: null,
       parent_id: "",
-      name: name,
+      name: `output-${item.type}-${index}`,
       content_type: contentType,
       metadata: {},
       created_at: new Date().toISOString(),
       get_url: get_url,
-      thumb_url: thumb_url,
-      duration: item.duration || null
+      thumb_url: get_url
     } as Asset;
   });
 
@@ -260,7 +260,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     value === null ||
     (typeof value === "string" && value.trim() === "") ||
     (Array.isArray(value) && value.length === 0) ||
-    (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
+    (typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0)
   );
 
   const { writeClipboard } = useClipboard();
@@ -295,8 +297,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    console.log("type", type);
-    console.log("value", value);
     if (type === "video" && videoRef.current) {
       if (value?.uri === "") {
         const blob = new Blob([value?.data], { type: "video/mp4" });
@@ -497,29 +497,29 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       default:
         return (
           <div className="output value nodrag noscroll" css={styles}>
-            {value !== null && value !== undefined && value.toString() !== "" && (
-
-              <>
-                <ButtonGroup className="actions">
-                  <Tooltip
-                    title="Copy to Clipboard"
-                    enterDelay={TOOLTIP_ENTER_DELAY}
-                  >
-                    <Button
-                      size="small"
-                      onClick={() => handleCopyToClipboard(value?.toString())}
+            {value !== null &&
+              value !== undefined &&
+              value.toString() !== "" && (
+                <>
+                  <ButtonGroup className="actions">
+                    <Tooltip
+                      title="Copy to Clipboard"
+                      enterDelay={TOOLTIP_ENTER_DELAY}
                     >
-                      Copy
-                    </Button>
-                  </Tooltip>
-                </ButtonGroup>
-                <MarkdownRenderer content={value?.toString()} />
-              </>
-            )}
+                      <Button
+                        size="small"
+                        onClick={() => handleCopyToClipboard(value?.toString())}
+                      >
+                        Copy
+                      </Button>
+                    </Tooltip>
+                  </ButtonGroup>
+                  <MarkdownRenderer content={value?.toString()} />
+                </>
+              )}
           </div>
         );
     }
-
   }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
 
   if (!shouldRender) {
