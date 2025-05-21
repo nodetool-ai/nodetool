@@ -691,11 +691,22 @@ const Welcome = () => {
                     Choose the option that best suits your needs and project
                     requirements.
                   </Typography>
-                  <Typography variant="body1" sx={{ mt: 1 }}>
-                    You can enter the API keys in the
+                  <Box
+                    sx={{
+                      mt: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1
+                    }}
+                  >
+                    <Typography variant="body1">
+                      You can enter the API keys in the
+                    </Typography>
                     <SettingsMenu buttonText="Settings Menu" />
-                    in the top right corner.
-                  </Typography>
+                    <Typography variant="body1">
+                      in the top right corner.
+                    </Typography>
+                  </Box>
                 </Box>
 
                 <Box
