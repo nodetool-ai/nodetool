@@ -17,8 +17,6 @@ import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
-import useRemoteSettingsStore from "./RemoteSettingStore";
-import { useSettingsStore } from "./SettingsStore";
 import {
   computeSearchResults,
   filterNodesUtil,
@@ -174,11 +172,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         selectedOutputType
       });
       const cache = get().searchResultsCache;
-      // Debug logging
-      console.debug("[NodeMenuStore] setSelectedPath cacheKey:", cacheKey);
-      console.debug("[NodeMenuStore] cache size:", Object.keys(cache).length);
       if (cache[cacheKey]) {
-        console.debug("[NodeMenuStore] cache HIT for key:", cacheKey);
         // Use cached results immediately
         const { sortedResults, groupedResults, allMatches } = cache[cacheKey];
         set({
@@ -190,17 +184,19 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         });
         get().updateHighlightedNamespaces(allMatches);
         return;
-      } else {
-        console.debug("[NodeMenuStore] cache MISS for key:", cacheKey);
       }
-      // Immediate UI update
+
+      // Keep the current allSearchMatches
+      const currentAllMatches = get().allSearchMatches;
+
+      // Immediate UI update - only clear display results, keep allSearchMatches
       set({
         selectedPath: newPath,
         searchResults: [],
         groupedSearchResults: [],
-        allSearchMatches: [],
         isLoading: true
       });
+
       // Defer expensive computation
       setTimeout(() => {
         const metadata = Object.values(useMetadataStore.getState().metadata);
@@ -216,14 +212,22 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         set((state) => ({
           searchResults: sortedResults,
           groupedSearchResults: groupedResults,
-          allSearchMatches: allMatches,
+          allSearchMatches:
+            currentAllMatches.length > 0 ? currentAllMatches : allMatches,
           isLoading: false,
           searchResultsCache: {
             ...state.searchResultsCache,
-            [cacheKey]: { sortedResults, groupedResults, allMatches }
+            [cacheKey]: {
+              sortedResults,
+              groupedResults,
+              allMatches:
+                currentAllMatches.length > 0 ? currentAllMatches : allMatches
+            }
           }
         }));
-        get().updateHighlightedNamespaces(allMatches);
+        get().updateHighlightedNamespaces(
+          currentAllMatches.length > 0 ? currentAllMatches : allMatches
+        );
       }, 0);
     },
 
