@@ -51,15 +51,6 @@ jobs:
         run: |
           cd web
           npm test
-          
-      - name: Upload test coverage
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: web-coverage
-          path: web/coverage
-          retention-days: 5
-          if-no-files-found: warn
 
   electron:
     name: Electron Lint
