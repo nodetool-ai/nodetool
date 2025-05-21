@@ -87,14 +87,44 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <div className="node-editor">
-        <>
+      <div
+        className="node-editor"
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "absolute",
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          overflow: "hidden"
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
           {isUploading && (
             <div className="loading-overlay">
               <CircularProgress /> Uploading assets...
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          <div
+            style={{
+              flex: 1,
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              minHeight: 0
+            }}
+          >
+            <ReactFlowWrapper workflowId={workflowId} active={active} />
+          </div>
           {active && (
             <>
               <WorkflowChat workflow_id="default" />
@@ -102,7 +132,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               {/* <WorkflowGenerator /> */}
             </>
           )}
-        </>
+        </div>
       </div>
     </>
   );
