@@ -37,6 +37,9 @@ interface ComposerProps {
     audioRef: { type: "audio"; data: Uint8Array } | null
   ) => void;
   onSubmit: (message: string) => void;
+  disabled?: boolean;
+  droppedFiles: File[];
+  setDroppedFiles: (files: File[]) => void;
 }
 
 const SendIcon = () => (
