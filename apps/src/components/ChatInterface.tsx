@@ -378,7 +378,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         )}
       </Flex>
 
-      <Composer onSubmit={handleSubmit} handleAudioChange={handleAudioChange} />
+      <Composer 
+        onSubmit={handleSubmit} 
+        handleAudioChange={handleAudioChange}
+        disabled={status === "loading"}
+        droppedFiles={droppedFiles}
+        setDroppedFiles={setDroppedFiles}
+      />
     </Box>
   );
 };
