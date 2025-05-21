@@ -2,7 +2,7 @@
   <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - AI Prototyping Platform
 </h1>
 
-Design and build AI agent systems.
+Build, automate, and integrate with ease.
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -10,17 +10,17 @@ Design and build AI agent systems.
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating AI workflows.
+NodeTool is an open-source, privacy-first platform that empowers you to build sophisticated agentic workflows without coding. Connect your tools, streamline your processes.
 
 ## 🚀 Why NodeTool?
 
-NodeTool empowers you to create sophisticated AI solutions with ease:
+NodeTool empowers you to build powerful agentic workflows:
 
-- **🔒 Privacy-First:** Run all AI models (LLMs, audio, video) locally. Process sensitive data securely with zero data transmission.
-- **☁️ Cloud Integration:** Scale with cloud GPUs or connect to OpenAI, Gemini, Anthropic, Replicate & Fal.AI. Create hybrid workflows, controlling exactly what data is shared.
-- **🤖 Advanced Agent Design:** Build multi-agent systems visually. Implement strategic planning, reasoning, and integrate tools like web browsing and file operations.
-- **🎨 Rapid AI Prototyping:** The fastest way to prototype AI workflows. Use the visual editor to drag-and-drop L1LMs, Diffusion Models, and more—no coding required.
-- **💻 Comprehensive System Integration:** Control desktop apps, clipboard, and browser with AI. Trigger workflows via custom shortcuts and access local files or knowledge bases.
+- **🔒 Privacy-First:** Run all AI models locally. Keep your sensitive data secure with zero external transmission.
+- **☁️ Cloud Integration:** Scale with cloud GPUs or connect to OpenAI, Gemini, Anthropic, and more. You control what stays local and what goes to the cloud.
+- **🤖 Advanced Agent Design:** Build intelligent multi-agent systems that can plan, reason, and use tools like web browsing and file operations.
+- **🎨 Rapid Prototyping:** The fastest way to prototype agentic workflows. Visual editor with no coding required.
+- **💻 System Integration:** Control desktop apps, clipboard, and browser with AI. Trigger workflows via shortcuts and access local files or knowledge bases.
 
 ---
 
@@ -48,11 +48,11 @@ NodeTool empowers you to create sophisticated AI solutions with ease:
 
 ## ✨ Features
 
-NodeTool offers a comprehensive suite for building, automating, and deploying AI workflows:
+NodeTool empowers you with everything you need to build, automate, and deploy agentic workflows:
 
-- **Visual Workflow Editor:** Design complex AI workflows intuitively with drag-and-drop simplicity. No coding required.
+- **Visual Workflow Editor:** Build workflows with intuitive visual tools. No coding required.
 - **Local AI Models:** Run powerful open-source models from Hugging Face and Ollama directly on your hardware for complete privacy and offline capability.
-- **Cloud AI Integration:** Seamlessly connect to major cloud AI providers like OpenAI, Gemini, Anthropic, Replicate, and Fal.ai.
+- **Cloud AI Integration:** Connect to major AI providers like OpenAI, Gemini, Anthropic, Replicate, and Fal.ai.
 - **Advanced Vector Storage & RAG:**
   - Built-in ChromaDB integration for efficient embedding storage and retrieval.
   - Easily create Retrieval-Augmented Generation (RAG) workflows.
@@ -91,14 +91,14 @@ NodeTool includes several pre-built agent examples:
 
 Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) of the `nodetool-core` repository.
 
-## ✨ Cool Things You Can Do
+## ✨ Real-World Applications
 
-Explore practical examples showcasing NodeTool's capabilities:
+See how NodeTool streamlines your workflows:
 
-- **📧 Daily Email Digest:** Automatically scans your Gmail, summarizes emails using an LLM (extracting sender, topics, actions), and creates a concise daily digest. Stay updated without manually reading every email.
-- **🐉 Pokemon Maker:** Generate unique Pokemon descriptions and images using AI. Input animal inspirations and get custom Pokemon with types, abilities, and personalities.
-- **🔍 Simple RAG Document Q&A:** Ask questions about your documents. This workflow searches a ChromaDB vector collection, formats relevant results, and uses an LLM (like Deepseek-Coder-V2) to generate answers based _only_ on the retrieved content.
-- **🎨 Image Style Transfer:** Transform images by applying the style of a reference image. Uses IP-Adapter for style and ControlNet for structure preservation, perfect for creative image variations.
+- **📧 Email Automation:** Never miss important emails again. Automatically scan Gmail, extract key information, and create personalized daily summaries.
+- **🐉 Creative AI Generator:** Turn ideas into unique Pokemon with custom descriptions, images, types, and abilities using AI creativity.
+- **🔍 Smart Document Q&A:** Get instant answers from your documents. Upload PDFs and other files, then ask questions and get accurate responses.
+- **🎨 Image Style Transfer:** Transform any image with artistic styles while preserving the original structure and composition.
 
 ---
 
