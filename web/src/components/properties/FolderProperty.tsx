@@ -18,7 +18,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect, useMemo } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import { isEqual } from "lodash";
 
@@ -36,7 +36,19 @@ const FolderProperty = (props: PropertyProps) => {
     queryKey: ["assets", { content_type: "folder" }],
     queryFn: fetchFolders
   });
-  const selectValue = props.value?.asset_id || "";
+
+  // Validate that the selected value exists in the options
+  const availableFolderIds = useMemo(
+    () => data?.assets.map((folder) => folder.id) || [],
+    [data?.assets]
+  );
+
+  const selectValue = useMemo(() => {
+    const assetId = props.value?.asset_id || "";
+    // Only use the asset_id if it exists in the available options
+    return availableFolderIds.includes(assetId) ? assetId : "";
+  }, [props.value?.asset_id, availableFolderIds]);
+
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [folderName, setFolderName] = useState<string>("New Folder");
   const inputRef = useRef<HTMLInputElement>(null);
