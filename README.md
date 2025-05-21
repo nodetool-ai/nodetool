@@ -2,7 +2,7 @@
   <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - Agentic Workflow Builder
 </h1>
 
-Build, automate, and integrate with ease.
+Build, automate, and integrate.
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -10,7 +10,7 @@ Build, automate, and integrate with ease.
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is an open-source, privacy-first platform that empowers you to build sophisticated agentic workflows without coding. Connect your tools, streamline your processes.
+NodeTool is an open-source agentic workflow builder thet let's you build powerful tools. Connect your tools, streamline your work.
 
 ## 🚀 Why NodeTool?
 
