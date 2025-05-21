@@ -5,9 +5,9 @@ import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
 
 // Mocking dependencies
-jest.mock('electron', () => {
-  return require('../__mocks__/electron');
-});
+import * as electronMock from '../__mocks__/electron';
+
+jest.mock('electron', () => electronMock);
 
 jest.mock('../logger', () => ({
   logMessage: jest.fn(),
