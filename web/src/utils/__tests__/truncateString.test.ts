@@ -12,9 +12,9 @@ describe('truncateString', () => {
     const maxLength = 20;
     const result = truncateString(input, maxLength);
     
-    // Result should be 17 characters from original + "…" (for total of maxLength)
+    // Result should be 19 characters from original + "…" (for total of maxLength)
     expect(result.length).toBe(maxLength);
-    expect(result).toBe('This is a very lon…');
+    expect(result).toBe('This is a very long…');
   });
 
   it('should use default maxLength of 50 if not provided', () => {
@@ -22,7 +22,7 @@ describe('truncateString', () => {
     const result = truncateString(input);
     
     expect(result.length).toBe(50); // Default maxLength
-    expect(result).toBe('A'.repeat(47) + '…');
+    expect(result).toBe('A'.repeat(49) + '…');
   });
 
   it('should handle empty string input', () => {
