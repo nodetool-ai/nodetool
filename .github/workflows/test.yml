@@ -1,0 +1,121 @@
+name: Lint and Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - "electron/**"
+      - "apps/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - "electron/**"
+      - "apps/**"
+
+jobs:
+  web:
+    name: Web Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Run TypeScript type check
+        run: |
+          cd web
+          npm run typecheck
+
+      - name: Run ESLint
+        run: |
+          cd web
+          npm run lint
+          
+      - name: Run Tests
+        run: |
+          cd web
+          npm test
+          
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: web-coverage
+          path: web/coverage
+          retention-days: 5
+
+  electron:
+    name: Electron Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Run TypeScript type check
+        run: |
+          cd electron
+          npm run typecheck
+
+      - name: Run ESLint
+        run: |
+          cd electron
+          npm run lint
+
+  apps:
+    name: Apps Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: apps/package-lock.json
+
+      - name: Install mini apps dependencies
+        run: |
+          cd apps
+          npm ci
+
+      - name: Run TypeScript type check
+        run: |
+          cd apps
+          npm run typecheck
+
+      - name: Run ESLint
+        run: |
+          cd apps
+          npm run lint

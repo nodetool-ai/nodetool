@@ -90,6 +90,8 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit"
