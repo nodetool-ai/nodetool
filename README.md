@@ -156,17 +156,12 @@ NodeTool's functionality is extended via packs. Install only the ones you need.
 nodetool package list -a
 
 # Example: Install packs for specific integrations
-pip install git+https://github.com/nodetool-ai/nodetool-ollama          # For Ollama local models
-pip install git+https://github.com/nodetool-ai/nodetool-openai          # For OpenAI API
 pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu121 # For HuggingFace models (PyTorch/CUDA)
-pip install git+https://github.com/nodetool-ai/nodetool-chroma          # For ChromaDB vector storage
-# ... install other packs like anthropic, google, replicate, fal, comfy, elevenlabs, etc.
-# pip install git+https://github.com/nodetool-ai/nodetool-anthropic
-# pip install git+https://github.com/nodetool-ai/nodetool-google
+# ... install other packs like replicate, fal, elevenlabs, etc.
 # ... add other relevant packs here
 ```
 
-_Note:_ Some packs like `nodetool-comfy` and `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
+_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
 
 ### 4. Run NodeTool Backend & Web UI
 
