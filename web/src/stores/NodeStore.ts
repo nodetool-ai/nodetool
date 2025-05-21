@@ -373,16 +373,27 @@ export const createNodeStore = (
             ) {
               return;
             }
+
+            // Remove any existing connections to this target handle
+            const filteredEdges = get().edges.filter(
+              (edge) =>
+                !(
+                  edge.target === connection.target &&
+                  edge.targetHandle === connection.targetHandle
+                )
+            );
+
             const newEdge = {
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
               targetHandle: connection.targetHandle || null
             } as Edge;
+
             set({
               edges: addEdge(
                 newEdge,
-                get().edges.map((edge) => ({
+                filteredEdges.map((edge) => ({
                   ...edge,
                   sourceHandle: edge.sourceHandle || null,
                   targetHandle: edge.targetHandle || null
@@ -620,14 +631,6 @@ export const createNodeStore = (
                 edge.targetHandle === connection.targetHandle
             );
             if (existingConnection) {
-              return false;
-            }
-            const targetHandleInUse = edges.some(
-              (edge) =>
-                edge.target === connection.target &&
-                edge.targetHandle === connection.targetHandle
-            );
-            if (targetHandleInUse) {
               return false;
             }
             const srcHandle = connection.sourceHandle;
