@@ -260,11 +260,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [onNodesChange, closeNodeMenu]
   );
 
-  /* KEY LISTENER */
-  // const { spaceKeyPressed } = useKeyPressedStore((state) => ({
-  //   spaceKeyPressed: state.isKeyPressed(" ")
-  // }));
-
   // EDGE HANDLER
   const {
     onEdgeMouseEnter,
@@ -320,6 +315,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         </Typography>
       </div>
     );
+  }
+
+  if (!active) {
+    return null;
   }
 
   return (
