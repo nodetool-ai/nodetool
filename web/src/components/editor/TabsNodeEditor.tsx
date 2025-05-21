@@ -367,6 +367,7 @@ const TabsNodeEditor = () => {
                   key={workflow.id}
                   sx={{
                     overflow: "hidden",
+                    position: "absolute",
                     width: "100%",
                     height: "100%",
                     minHeight: 0,
@@ -404,8 +405,8 @@ const TabsNodeEditor = () => {
                                 flex: 1,
                                 minHeight: 0,
                                 position: "relative",
-                                width: "100px",
-                                height: "100px"
+                                width: "100%",
+                                height: "100%"
                               }}
                             >
                               <NodeEditor
