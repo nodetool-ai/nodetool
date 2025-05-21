@@ -255,16 +255,13 @@ const typeFor = (value: any): string => {
 };
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
-  // Do not render anything for undefined, null, empty string, empty array or empty object
-  if (
+  const shouldRender = !(
     value === undefined ||
     value === null ||
     (typeof value === "string" && value.trim() === "") ||
     (Array.isArray(value) && value.length === 0) ||
     (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)
-  ) {
-    return null;
-  }
+  );
 
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
@@ -522,7 +519,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
     }
+
   }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
+
+  if (!shouldRender) {
+    return null;
+  }
 
   return (
     <>

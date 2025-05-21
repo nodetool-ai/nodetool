@@ -27,6 +27,7 @@ export default [
       "vite.config.ts",
       "dist-electron/**/*",
       "dist-web/**/*",
+      "jest.config.ts",
     ],
   },
   {
