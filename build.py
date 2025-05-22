@@ -47,6 +47,7 @@ class BuildError(Exception):
 
 
 class Build:
+    """Manage building and packaging of the Nodetool application."""
     def __init__(
         self,
         clean_build: bool = False,
@@ -82,6 +83,7 @@ class Build:
         env: dict | None = None,
         ignore_error: bool = False,
     ) -> int:
+        """Execute a shell command and stream output to the logger."""
         # Remove the conda run wrapper since we're using base environment
         logger.info(" ".join(command))
 
@@ -97,6 +99,7 @@ class Build:
         )
 
         def stream_output(pipe, log_func):
+            """Forward each line from *pipe* to *log_func*."""
             for line in iter(pipe.readline, ""):
                 log_func(line.strip())
 
