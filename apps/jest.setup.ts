@@ -20,5 +20,10 @@ try {
     globalThis.TextDecoder = util.TextDecoder;
   }
 } catch {
-  // ignore if util import fails
+  // Polyfill TextEncoder/TextDecoder for msgpack
+  if (typeof globalThis.TextEncoder === 'undefined') {
+    const { TextEncoder, TextDecoder } = require('util');
+    globalThis.TextEncoder = TextEncoder;
+    globalThis.TextDecoder = TextDecoder;
+  }
 }

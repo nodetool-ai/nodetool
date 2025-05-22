@@ -16,6 +16,9 @@ interface NodeContextValue {
   workflowId: string;
 }
 
+// Context wrapper around a NodeStore instance. Components can use the custom
+// hooks below to access node state and actions with equality checks to minimize
+// unnecessary re-renders.
 export const NodeContext = createContext<NodeContextValue | null>(null);
 
 export const useNodes = <T,>(selector: (state: NodeStoreState) => T): T => {
@@ -41,6 +44,9 @@ export const NodeProvider: React.FC<{
   workflowId: string;
 }> = ({ children, workflowId }) => {
   const store = useWorkflowManager((state) => state.getNodeStore(workflowId));
+
+  // If the store isn't ready yet we display a small loading indicator. This
+  // occurs while workflows are being fetched or initialized.
 
   if (!store) {
     return (
