@@ -6,3 +6,10 @@ if (typeof globalThis.structuredClone !== 'function') {
     return JSON.parse(JSON.stringify(obj));
   };
 }
+
+// Polyfill TextEncoder/TextDecoder for msgpack
+if (typeof globalThis.TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  globalThis.TextEncoder = TextEncoder;
+  globalThis.TextDecoder = TextDecoder;
+}
