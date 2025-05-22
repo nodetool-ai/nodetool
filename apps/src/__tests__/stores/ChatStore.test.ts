@@ -8,41 +8,27 @@ const resetStore = () => {
 };
 
 describe('ChatStore', () => {
-  afterEach(() => {
-    resetStore();
+  const initialState = useChatStore.getState();
+  beforeEach(() => {
+    useChatStore.setState(initialState, true);
   });
 
-  test('appendMessage adds to messages', () => {
-    const message = {
-      type: 'message',
-      role: 'user',
-      name: 'User',
-      content: 'hello',
-    } as any;
-
+  test('appendMessage adds a message', () => {
+    const message = { role: 'user', type: 'message', content: 'hello', workflow_id: '1', name: 'user' } as any;
     useChatStore.getState().appendMessage(message);
-
-    expect(useChatStore.getState().messages).toHaveLength(1);
-    expect(useChatStore.getState().messages[0]).toMatchObject(message);
+    expect(useChatStore.getState().messages).toContain(message);
   });
 
   test('resetMessages clears messages', () => {
-    const message = {
-      type: 'message',
-      role: 'user',
-      name: 'User',
-      content: 'hello',
-    } as any;
-
+    const message = { role: 'user', type: 'message', content: 'hello', workflow_id: '1', name: 'user' } as any;
     useChatStore.getState().appendMessage(message);
-    expect(useChatStore.getState().messages).toHaveLength(1);
-
+    expect(useChatStore.getState().messages.length).toBe(1);
     useChatStore.getState().resetMessages();
-    expect(useChatStore.getState().messages).toHaveLength(0);
+    expect(useChatStore.getState().messages.length).toBe(0);
   });
 
   test('setDroppedFiles updates droppedFiles', () => {
-    const file = new File(['data'], 'test.txt', { type: 'text/plain' });
+    const file = new File(['data'], 'test.txt');
     useChatStore.getState().setDroppedFiles([file]);
     expect(useChatStore.getState().droppedFiles).toEqual([file]);
   });

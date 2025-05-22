@@ -5,6 +5,10 @@ import { useReactFlow } from "@xyflow/react";
 import { useCreateLoopNode } from "./nodes/useCreateLoopNode";
 import { useNodes } from "../contexts/NodeContext";
 
+// This hook encapsulates the logic for creating a new node in the graph.
+// It handles translating screen coordinates to ReactFlow coordinates and
+// delegates loop node creation to `useCreateLoopNode`.
+
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
@@ -20,6 +24,9 @@ export const useCreateNode = (
   const createLoopNode = useCreateLoopNode();
 
   const handleCreateNode = useCallback(
+    // Create a node at the last click position or at the provided center
+    // position. Loop nodes are expanded into a group with input and output
+    // child nodes handled by `createLoopNode`.
     (metadata: NodeMetadata) => {
       if (!reactFlowInstance) return;
 
