@@ -1,26 +1,25 @@
 <h1 style="">
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - AI Prototyping Platform
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - Agentic Workflow Builder
 </h1>
 
-Design and build AI agent systems.
+Build, automate, and integrate.
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
-![Lint](https://github.com/nodetool-ai/nodetool/actions/workflows/lint.yml/badge.svg)
+[![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is an open-source, privacy-first, no-code platform for rapidly building and automating AI workflows.
+NodeTool is an open-source agentic workflow builder thet let's you build powerful tools. Connect your tools, streamline your work.
 
 ## 🚀 Why NodeTool?
 
-NodeTool empowers you to create sophisticated AI solutions with ease:
+NodeTool empowers you to build powerful agentic workflows:
 
-- **🔒 Privacy-First:** Run all AI models (LLMs, audio, video) locally. Process sensitive data securely with zero data transmission.
-- **☁️ Cloud Integration:** Scale with cloud GPUs or connect to OpenAI, Gemini, Anthropic, Replicate & Fal.AI. Create hybrid workflows, controlling exactly what data is shared.
-- **🤖 Advanced Agent Design:** Build multi-agent systems visually. Implement strategic planning, reasoning, and integrate tools like web browsing and file operations.
-- **🎨 Rapid AI Prototyping:** The fastest way to prototype AI workflows. Use the visual editor to drag-and-drop L1LMs, Diffusion Models, and more—no coding required.
-- **💻 Comprehensive System Integration:** Control desktop apps, clipboard, and browser with AI. Trigger workflows via custom shortcuts and access local files or knowledge bases.
+- **☁️ Models:** Use local models or connect to OpenAI, Gemini, Anthropic, and more. 
+- **🤖 Advanced Agent Design:** Build intelligent multi-agent systems that can plan, reason, and use tools like web browsing and file operations.
+- **🎨 Rapid Prototyping:** The fastest way to prototype agentic workflows. Visual editor with no coding required.
+- **💻 Integrations:** Fetch emails, create posts, access any tool.
 
 ---
 
@@ -48,11 +47,11 @@ NodeTool empowers you to create sophisticated AI solutions with ease:
 
 ## ✨ Features
 
-NodeTool offers a comprehensive suite for building, automating, and deploying AI workflows:
+NodeTool empowers you with everything you need to build, automate, and deploy agentic workflows:
 
-- **Visual Workflow Editor:** Design complex AI workflows intuitively with drag-and-drop simplicity. No coding required.
+- **Visual Workflow Editor:** Build workflows with intuitive visual tools. No coding required.
 - **Local AI Models:** Run powerful open-source models from Hugging Face and Ollama directly on your hardware for complete privacy and offline capability.
-- **Cloud AI Integration:** Seamlessly connect to major cloud AI providers like OpenAI, Gemini, Anthropic, Replicate, and Fal.ai.
+- **Cloud AI Integration:** Connect to major AI providers like OpenAI, Gemini, Anthropic, Replicate, and Fal.ai.
 - **Advanced Vector Storage & RAG:**
   - Built-in ChromaDB integration for efficient embedding storage and retrieval.
   - Easily create Retrieval-Augmented Generation (RAG) workflows.
@@ -91,14 +90,14 @@ NodeTool includes several pre-built agent examples:
 
 Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) of the `nodetool-core` repository.
 
-## ✨ Cool Things You Can Do
+## ✨ Real-World Applications
 
-Explore practical examples showcasing NodeTool's capabilities:
+See how NodeTool streamlines your workflows:
 
-- **📧 Daily Email Digest:** Automatically scans your Gmail, summarizes emails using an LLM (extracting sender, topics, actions), and creates a concise daily digest. Stay updated without manually reading every email.
-- **🐉 Pokemon Maker:** Generate unique Pokemon descriptions and images using AI. Input animal inspirations and get custom Pokemon with types, abilities, and personalities.
-- **🔍 Simple RAG Document Q&A:** Ask questions about your documents. This workflow searches a ChromaDB vector collection, formats relevant results, and uses an LLM (like Deepseek-Coder-V2) to generate answers based _only_ on the retrieved content.
-- **🎨 Image Style Transfer:** Transform images by applying the style of a reference image. Uses IP-Adapter for style and ControlNet for structure preservation, perfect for creative image variations.
+- **📧 Email Automation:** Never miss important emails again. Automatically scan Gmail, extract key information, and create personalized daily summaries.
+- **🐉 Creative AI Generator:** Turn ideas into unique Pokemon with custom descriptions, images, types, and abilities using AI creativity.
+- **🔍 Smart Document Q&A:** Get instant answers from your documents. Upload PDFs and other files, then ask questions and get accurate responses.
+- **🎨 Image Style Transfer:** Transform any image with artistic styles while preserving the original structure and composition.
 
 ---
 
@@ -157,17 +156,12 @@ NodeTool's functionality is extended via packs. Install only the ones you need.
 nodetool package list -a
 
 # Example: Install packs for specific integrations
-pip install git+https://github.com/nodetool-ai/nodetool-ollama          # For Ollama local models
-pip install git+https://github.com/nodetool-ai/nodetool-openai          # For OpenAI API
 pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu121 # For HuggingFace models (PyTorch/CUDA)
-pip install git+https://github.com/nodetool-ai/nodetool-chroma          # For ChromaDB vector storage
-# ... install other packs like anthropic, google, replicate, fal, comfy, elevenlabs, etc.
-# pip install git+https://github.com/nodetool-ai/nodetool-anthropic
-# pip install git+https://github.com/nodetool-ai/nodetool-google
+# ... install other packs like replicate, fal, elevenlabs, etc.
 # ... add other relevant packs here
 ```
 
-_Note:_ Some packs like `nodetool-comfy` and `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
+_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
 
 ### 4. Run NodeTool Backend & Web UI
 
@@ -270,3 +264,7 @@ Manage packs easily through the **NodeTool UI**:
 Alternatively, install directly via `pip` (see [Development Setup](#3-install-optional-node-packs-as-needed)).
 
 Refer to the [NodeTool Registry repository](https://github.com/nodetool-ai/nodetool-registry) for detailed guidelines on creating and publishing packs.
+
+## 📚 Documentation
+
+The documentation site is built with [Hugo](https://gohugo.io/documentation/) using the [Docsy](https://www.docsy.dev/docs/) theme. Source files live in the [`docs/`](docs/) directory. Updates to `main` are automatically deployed to GitHub Pages via the `hugo.yml` workflow.

@@ -19,7 +19,7 @@ jobs:
       #   if: matrix.os == 'ubuntu-latest'
       #   uses: jlumbroso/free-disk-space@main
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v3

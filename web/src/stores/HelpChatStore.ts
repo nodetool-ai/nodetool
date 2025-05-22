@@ -28,6 +28,7 @@ type HelpChatState = {
   connect: () => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
+  addMessages: (messages: Message[]) => void;
   resetMessages: () => void;
 };
 
@@ -82,6 +83,11 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
   error: null,
   progress: 0,
   total: 0,
+  addMessages: (messages: Message[]) => {
+    set((state) => ({
+      messages: [...state.messages, ...messages]
+    }));
+  },
   connect: async () => {
     log.info("Connecting to help chat");
 
