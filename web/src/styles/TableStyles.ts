@@ -99,8 +99,8 @@ export const tableStyles = (theme: any) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: ".25em",
-      margin: "1em",
+      gap: ".1em",
+      margin: ".2em 0",
       justifyContent: "flex-start",
       alignItems: "flex-start",
       height: "2em",
