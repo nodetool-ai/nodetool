@@ -1,8 +1,9 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
 import path from 'path';
-import { createWindow, handleActivation } from '../window';
+import { createWindow, handleActivation, forceQuit } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
+import { logMessage } from '../logger';
 
 // Mocking dependencies
 jest.mock('electron', () => {
@@ -234,6 +235,17 @@ describe('Window Module', () => {
       // Should attempt to create a new window
       // We're not actually testing the createWindow function again, just that it's called
       expect(getMainWindow).toHaveBeenCalled();
+    });
+  });
+
+  describe('forceQuit', () => {
+    it('logs error, shows dialog and exits', () => {
+      const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      forceQuit('fatal');
+      expect(logMessage).toHaveBeenCalledWith('Force quitting application: fatal', 'error');
+      expect(dialog.showErrorBox).toHaveBeenCalledWith('Critical Error', 'fatal');
+      expect(exitSpy).toHaveBeenCalledWith(1);
+      exitSpy.mockRestore();
     });
   });
 });
