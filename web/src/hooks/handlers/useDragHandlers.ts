@@ -1,8 +1,20 @@
+/**
+ * Drag handlers for ReactFlow node editor
+ *
+ * Features:
+ * - Drag nodes into groups to add them
+ * - CTRL+drag nodes out of groups to remove them (supports pressing CTRL during drag)
+ * - C+drag to create comment nodes
+ * - Support for both single node and selection dragging
+ */
 import { useCallback, useState, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
-import { useKeyPressed } from "../../stores/KeyPressedStore";
+import {
+  useKeyPressed,
+  useKeyPressedStore
+} from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
@@ -12,6 +24,7 @@ import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
+  const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
   const { cKeyPressed } = useKeyPressed((state) => ({
     cKeyPressed: state.isKeyPressed("c")
@@ -60,36 +73,123 @@ export default function useDragHandlers() {
   );
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback((_event: any) => {
-    setLastParentNode(undefined);
-  }, []);
+  const onNodeDragStart = useCallback(
+    (_event: any, node: Node<NodeData>) => {
+      console.log(
+        "[DragDebug] onNodeDragStart called for node:",
+        node.id,
+        "Initial CTRL:",
+        useKeyPressedStore.getState().isKeyPressed("control")
+      );
+      setLastParentNode(undefined);
+      // Pause history tracking at the start of a single node drag
+      console.log(
+        "[DragDebug] onNodeDragStart - DIAGNOSTIC: pause() call is now COMMENTED OUT for node:",
+        node.id
+      );
+      // pause(); // DIAGNOSTIC: Temporarily disable history
+      setDraggedNodes(new Set([node])); // Ensure draggedNodes is set here
+    },
+    [setDraggedNodes] // Keep pause in deps for now, even if commented out for diagnostic
+  );
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
     (_event: any, node: Node<NodeData>) => {
-      // Only add to group if a valid parent was intersected during drag
-      // and the node isn't already in that group
-      if (lastParentNode && node.parentId !== lastParentNode.id) {
+      const initialCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onNodeDragStop called for node:",
+        node.id,
+        "Initial CTRL:",
+        initialCtrlPressed
+      );
+      const currentCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onNodeDragStop - currentCtrlPressed:",
+        currentCtrlPressed,
+        "node.parentId:",
+        node.parentId
+      );
+
+      if (currentCtrlPressed && node.parentId) {
+        console.log(
+          "[DragDebug] onNodeDragStop - Attempting to remove node from group:",
+          node.id,
+          "CTRL:",
+          currentCtrlPressed
+        );
+        removeFromGroup([node]);
+        console.log("[DragDebug] onNodeDragStop - removeFromGroup finished");
+      } else if (
+        lastParentNode &&
+        node.parentId !== lastParentNode.id &&
+        !currentCtrlPressed
+      ) {
+        console.log(
+          "[DragDebug] onNodeDragStop - Attempting to add node to group:",
+          node.id,
+          "lastParentNode:",
+          lastParentNode.id,
+          "CTRL:",
+          currentCtrlPressed
+        );
         addToGroup([node], lastParentNode);
+        console.log("[DragDebug] onNodeDragStop - addToGroup finished");
       }
-      resume(); // Resume history
+
+      console.log(
+        "[DragDebug] onNodeDragStop - DIAGNOSTIC: resume() call is now COMMENTED OUT. CTRL:",
+        currentCtrlPressed
+      );
+      // resume(); // DIAGNOSTIC: Temporarily disable history
+
       setDraggedNodes(new Set());
       setHoveredNodes([]);
-      setLastParentNode(undefined); // Clear parent after drag
+      setLastParentNode(undefined);
+      const finalCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onNodeDragStop - finished for node:",
+        node.id,
+        "Final CTRL:",
+        finalCtrlPressed
+      );
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [
+      addToGroup,
+      removeFromGroup,
+      lastParentNode,
+      resume, // Keep resume in deps for now, even if commented out for diagnostic
+      setDraggedNodes,
+      setHoveredNodes
+    ]
   );
 
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
     (_event: any, nodes: Node<NodeData>[]) => {
+      console.log(
+        "[DragDebug] onSelectionDragStart called for nodes:",
+        nodes.map((n) => n.id),
+        "Initial CTRL:",
+        useKeyPressedStore.getState().isKeyPressed("control")
+      );
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
       // Pause history tracking at the start of selection drag
+      console.log(
+        "[DragDebug] onSelectionDragStart - Calling pause() for nodes:",
+        nodes.map((n) => n.id)
+      );
       pause();
       setDraggedNodes(new Set(nodes));
     },
-    [pause, setDraggedNodes]
+    [pause, setDraggedNodes] // Ensured setDraggedNodes is in dependencies
   );
 
   /* SELECTION DRAG */
@@ -117,21 +217,88 @@ export default function useDragHandlers() {
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
     (_event: any, nodes: Node<NodeData>[]) => {
-      // Only add to group if a valid parent was intersected during drag
-      // and nodes aren't already in that group (check first node as proxy)
-      if (
+      const initialCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onSelectionDragStop called for nodes:",
+        nodes.map((n) => n.id),
+        "Initial CTRL:",
+        initialCtrlPressed
+      );
+      const currentCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onSelectionDragStop - currentCtrlPressed:",
+        currentCtrlPressed
+      );
+
+      if (currentCtrlPressed) {
+        const nodesToRemove = nodes.filter((node) => node.parentId);
+        console.log(
+          "[DragDebug] onSelectionDragStop - nodesToRemove:",
+          nodesToRemove.map((n) => n.id),
+          "CTRL:",
+          currentCtrlPressed
+        );
+        if (nodesToRemove.length > 0) {
+          console.log(
+            "[DragDebug] onSelectionDragStop - Attempting to remove nodes from group:",
+            nodesToRemove.map((n) => n.id),
+            "CTRL:",
+            currentCtrlPressed
+          );
+          removeFromGroup(nodesToRemove);
+          console.log(
+            "[DragDebug] onSelectionDragStop - removeFromGroup finished"
+          );
+        }
+      } else if (
         lastParentNode &&
         nodes.length > 0 &&
-        nodes[0].parentId !== lastParentNode.id
+        nodes[0].parentId !== lastParentNode.id &&
+        !currentCtrlPressed
       ) {
+        console.log(
+          "[DragDebug] onSelectionDragStop - Attempting to add nodes to group:",
+          nodes.map((n) => n.id),
+          "lastParentNode:",
+          lastParentNode.id,
+          "CTRL:",
+          currentCtrlPressed
+        );
         addToGroup(nodes, lastParentNode);
+        console.log("[DragDebug] onSelectionDragStop - addToGroup finished");
       }
-      resume(); // Resume history
+
+      console.log(
+        "[DragDebug] onSelectionDragStop - ALWAYS Calling resume() from drag handler. CTRL:",
+        currentCtrlPressed
+      );
+      resume(); // Always resume the history started by onNodeDragStart/onSelectionDragStart
+
       setDraggedNodes(new Set());
       setHoveredNodes([]);
-      setLastParentNode(undefined); // Clear parent after drag
+      setLastParentNode(undefined);
+      const finalCtrlPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
+      console.log(
+        "[DragDebug] onSelectionDragStop - finished for nodes:",
+        nodes.map((n) => n.id),
+        "Final CTRL:",
+        finalCtrlPressed
+      );
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [
+      addToGroup,
+      removeFromGroup,
+      lastParentNode,
+      resume,
+      setDraggedNodes,
+      setHoveredNodes
+    ]
   );
 
   /* SELECTION START */
@@ -169,10 +336,13 @@ export default function useDragHandlers() {
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
-      if (draggedNodes.size === 0) {
-        // If not already dragging a selection
-        pause(); // Pause if starting a single node drag
-        setDraggedNodes(new Set([node]));
+      // console.log("[DragDebug] onNodeDrag called for node:", node.id); // Optional: can be noisy
+      // The main pause is now in onNodeDragStart or onSelectionDragStart
+      // Ensure draggedNodes includes the current node if a drag is in progress without selection start (e.g., if onNodeDragStart didn't set it properly)
+      if (!draggedNodes.has(node) && !draggedNodes.size) {
+        // This case should ideally not be hit if onNodeDragStart is working correctly for single nodes.
+        // console.warn("[DragDebug] onNodeDrag - draggedNodes was empty, setting for node:", node.id);
+        // setDraggedNodes(new Set([node])); // Re-evaluating if this is needed or causes issues
       }
 
       // Find potential parent based on intersection
@@ -189,7 +359,6 @@ export default function useDragHandlers() {
       }
     },
     [
-      pause,
       reactFlow,
       setHoveredNodes,
       isGroup,

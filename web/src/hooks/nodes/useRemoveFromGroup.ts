@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
-import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
 
 export const useRemoveFromGroup = () => {
   // Get findNode to access parent position
@@ -9,18 +9,10 @@ export const useRemoveFromGroup = () => {
     updateNode: state.updateNode,
     findNode: state.findNode
   }));
-  // Get pause and resume from temporal store
-  const { pause, resume } = useTemporalNodes((state) => ({
-    pause: state.pause,
-    resume: state.resume
-  }));
 
   const removeFromGroup = useCallback(
     (nodesToRemove?: Node<NodeData>[]) => {
       if (!nodesToRemove || nodesToRemove.length === 0) return;
-
-      // Pause history tracking
-      pause();
 
       try {
         // Process nodes grouped by their parent
@@ -54,6 +46,11 @@ export const useRemoveFromGroup = () => {
             };
 
             // Remove setTimeout and update position along with parentId
+            console.log(
+              "[DragDebug] useRemoveFromGroup - updateNode for:",
+              node.id,
+              "to parentId: undefined"
+            );
             updateNode(node.id, {
               parentId: undefined,
               position: absolutePosition
@@ -63,11 +60,11 @@ export const useRemoveFromGroup = () => {
         });
       } finally {
         // Always resume history tracking
-        resume();
+        // resume(); // HISTORY MANAGEMENT MOVED TO DRAG HANDLERS
       }
     },
     // Add pause and resume to dependencies
-    [updateNode, findNode, pause, resume]
+    [updateNode, findNode]
   );
 
   return removeFromGroup;
