@@ -126,8 +126,6 @@ export const useDropHandler = () => {
     [
       reactFlow,
       user,
-      findNode,
-      isGroup,
       createNode,
       addNode,
       getAsset,

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useChatStore } from "./ChatStore";
 import { uuidv4 } from "./uuidv4";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";

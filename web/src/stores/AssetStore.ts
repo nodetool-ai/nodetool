@@ -276,6 +276,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     );
     get().add(folder);
     get().invalidateQueries(["assets", { parent_id: parent_id }]);
+    // Also invalidate the folder list so components like FolderProperty refresh
+    get().invalidateQueries(["assets", { content_type: "folder" }]);
     return folder;
   },
   /**
