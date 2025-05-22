@@ -163,7 +163,19 @@ pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-inde
 
 _Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
 
-### 4. Run NodeTool Backend & Web UI
+### 4. Configure Environment Variables
+
+Create a `.env` file inside the `web` directory (you can copy `web/.env.example` as a starting point). Set the following variables to match your deployment:
+
+```bash
+VITE_API_URL=http://localhost:8000            # URL of the NodeTool API server
+VITE_SUPABASE_URL=https://your-supabase.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+These variables are loaded by Vite at build time and allow you to point the UI at a different backend or Supabase project without changing the source code.
+
+### 5. Run NodeTool Backend & Web UI
 
 Ensure the `nodetool` Conda environment is active.
 
