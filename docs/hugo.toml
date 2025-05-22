@@ -1,0 +1,10 @@
+baseURL = "https://example.com/"
+title = "NodeTool Documentation"
+languageCode = "en-us"
+theme = "docsy"
+canonifyURLs = true
+enableGitInfo = true
+
+[module]
+  [[module.imports]]
+    path = "github.com/google/docsy"

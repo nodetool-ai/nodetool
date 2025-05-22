@@ -264,3 +264,7 @@ Manage packs easily through the **NodeTool UI**:
 Alternatively, install directly via `pip` (see [Development Setup](#3-install-optional-node-packs-as-needed)).
 
 Refer to the [NodeTool Registry repository](https://github.com/nodetool-ai/nodetool-registry) for detailed guidelines on creating and publishing packs.
+
+## 📚 Documentation
+
+The documentation site is built with [Hugo](https://gohugo.io/documentation/) using the [Docsy](https://www.docsy.dev/docs/) theme. Source files live in the [`docs/`](docs/) directory. Updates to `main` are automatically deployed to GitHub Pages via the `hugo.yml` workflow.
