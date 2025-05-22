@@ -1,8 +1,12 @@
+"""Utility script for updating the CHANGELOG using Anthropic."""
+
 import subprocess
 import os
 import requests
 from datetime import datetime, timedelta
 import anthropic
+
+"""Utility script for updating the CHANGELOG using Anthropic."""
 import dotenv
 
 dotenv.load_dotenv()
@@ -13,12 +17,14 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 # Function to get git log
 def get_git_log(since_date):
+    """Return the git commit log entries since *since_date*."""
     cmd = f"git log --since='{since_date}' --pretty=format:'%h - %s (%an, %ad)' --date=short"
     return subprocess.check_output(cmd, shell=True).decode("utf-8")
 
 
 # Function to read existing CHANGELOG.md
 def read_changelog():
+    """Return the contents of the existing CHANGELOG.md file."""
     if os.path.exists("CHANGELOG.md"):
         with open("CHANGELOG.md", "r") as f:
             return f.read()
@@ -27,12 +33,14 @@ def read_changelog():
 
 # Function to write updated CHANGELOG.md
 def write_changelog(content):
+    """Write *content* to CHANGELOG.md."""
     with open("CHANGELOG.md", "w") as f:
         f.write(content)
 
 
 # Function to get the last date from CHANGELOG.md
 def get_last_changelog_date(changelog):
+    """Extract and return the most recent date entry from the changelog."""
     lines = changelog.split("\n")
     for line in lines:
         if line.startswith("## "):
@@ -45,6 +53,7 @@ def get_last_changelog_date(changelog):
 
 # Function to update CHANGELOG using Anthropic API
 def update_changelog_with_anthropic(git_log, existing_changelog):
+    """Return an updated changelog generated via Anthropic."""
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     system_prompt = f"""
@@ -90,6 +99,7 @@ def update_changelog_with_anthropic(git_log, existing_changelog):
 
 # Main function
 def main():
+    """Update CHANGELOG.md with entries generated from recent commits."""
     existing_changelog = read_changelog()
     last_date = get_last_changelog_date(existing_changelog)
 
