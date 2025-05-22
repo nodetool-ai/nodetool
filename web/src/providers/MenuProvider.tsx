@@ -6,6 +6,10 @@ import {
   useEffect
 } from "react";
 
+// MenuProvider exposes a simple pub/sub mechanism for Electron menu events.
+// Components can register handlers to respond to menu actions emitted from the
+// main process via `window.api`.
+
 type MenuEventHandler = (data: any) => void;
 
 interface MenuContextType {
@@ -32,10 +36,12 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [globalHandler]);
 
+  // Allow components to subscribe to menu events
   const registerHandler = useCallback((handler: MenuEventHandler) => {
     handlers.current.add(handler);
   }, []);
 
+  // Remove a previously registered handler
   const unregisterHandler = useCallback((handler: MenuEventHandler) => {
     handlers.current.delete(handler);
   }, []);
