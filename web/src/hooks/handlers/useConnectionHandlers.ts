@@ -3,7 +3,7 @@ import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { TypeName } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { isConnectable } from "../../utils/TypeHandler";
+import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -103,7 +103,12 @@ export default function useConnectionHandlers() {
       }
       if (targetNode.data.dynamic_properties[targetHandle] !== undefined) {
         connectionCreated.current = true;
-        onConnect(connection);
+        // Add className for dynamic properties connection
+        const connectionWithClassName = {
+          ...connection,
+          className: Slugify("any") // Dynamic properties use "any" type
+        };
+        onConnect(connectionWithClassName);
         return;
       }
       const sourceMetadata = getMetadata(sourceNode.type || "");
@@ -125,7 +130,12 @@ export default function useConnectionHandlers() {
         )
       ) {
         connectionCreated.current = true;
-        onConnect(connection);
+        // Add className based on the source handle type
+        const connectionWithClassName = {
+          ...connection,
+          className: Slugify(sourceHandleMetadata.type.type || "")
+        };
+        onConnect(connectionWithClassName);
       } else {
         addNotification({
           type: "warning",
@@ -172,7 +182,8 @@ export default function useConnectionHandlers() {
             source: connectNodeId || "",
             sourceHandle: connectHandleId || "",
             target: nodeId,
-            targetHandle: connectHandleId // Use the same handle name for the dynamic property
+            targetHandle: connectHandleId, // Use the same handle name for the dynamic property
+            className: Slugify(connectType?.type || "")
           };
 
           // Create the dynamic property
@@ -225,7 +236,8 @@ export default function useConnectionHandlers() {
                 source: connectNodeId || "",
                 sourceHandle: connectHandleId || "",
                 target: nodeId,
-                targetHandle: unusedInput.name
+                targetHandle: unusedInput.name,
+                className: Slugify(connectType?.type || "")
               };
               handleOnConnect(newConnection);
               endConnecting();
@@ -235,7 +247,8 @@ export default function useConnectionHandlers() {
                 source: connectNodeId || "",
                 sourceHandle: connectHandleId || "",
                 target: nodeId,
-                targetHandle: possibleInputs[0].name
+                targetHandle: possibleInputs[0].name,
+                className: Slugify(connectType?.type || "")
               };
               handleOnConnect(newConnection);
               endConnecting();
@@ -271,7 +284,8 @@ export default function useConnectionHandlers() {
               source: nodeId,
               sourceHandle: firstOutput.name,
               target: connectNodeId || "",
-              targetHandle: connectHandleId || ""
+              targetHandle: connectHandleId || "",
+              className: Slugify(firstOutput.type.type || "")
             };
             handleOnConnect(newConnection);
             endConnecting();
