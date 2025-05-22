@@ -1,9 +1,12 @@
+"""Helper for generating documentation suggestions using Anthropic."""
+
 import sys
 import anthropic
 import os
 
 
 def get_files(folder):
+    """Return all TypeScript source files within *folder*."""
     files = []
     for file in os.listdir(folder):
         if file.endswith(".ts") or file.endswith(".tsx"):
@@ -12,6 +15,7 @@ def get_files(folder):
 
 
 def get_content(*folders):
+    """Concatenate the contents of all TypeScript files in *folders*."""
     content = ""
     for folder in folders:
         for file in get_files(folder):
