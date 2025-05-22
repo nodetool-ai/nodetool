@@ -164,31 +164,19 @@ const AppWrapper = () => {
 
   useEffect(() => {
     // Existing effect for loading metadata
-    loadMetadata().then((data) => {
-      setStatus(data);
-    });
+    loadMetadata()
+      .then((data) => {
+        setStatus(data);
+      })
+      .catch((error) => {
+        console.error("Failed to load metadata:", error);
+        setStatus("error"); // Ensure status is set to error on promise rejection
+      });
   }, []); // Empty dependency array ensures this runs only once on mount
 
-  if (status === "pending") {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh"
-        }}
-      >
-        <CircularProgress />
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return <div>Error loading metadata</div>;
-  }
-
   // Helper to navigate to the newly created workflow
+  // This function seems unused in the current context of AppWrapper's return,
+  // but keeping it in case it's used by other parts or intended for future use.
   const handleWorkflowCreated = (workflowId: string) => {
     window.location.href = `/editor/${workflowId}`;
   };
@@ -202,8 +190,39 @@ const AppWrapper = () => {
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
-                  <RouterProvider router={router} />
-                  <HuggingFaceDownloadDialog />
+                  {status === "pending" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100vh"
+                      }}
+                    >
+                      <CircularProgress />
+                    </div>
+                  )}
+                  {status === "error" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100vh",
+                        flexDirection: "column"
+                      }}
+                    >
+                      <div>Error loading application metadata.</div>
+                      <div>Please try refreshing the page.</div>
+                    </div>
+                  )}
+                  {/* Render RouterProvider only when metadata is successfully loaded */}
+                  {status !== "pending" && status !== "error" && (
+                    <>
+                      <RouterProvider router={router} />
+                      <HuggingFaceDownloadDialog />
+                    </>
+                  )}
                 </KeyboardProvider>
               </WorkflowManagerProvider>
             </MenuProvider>
