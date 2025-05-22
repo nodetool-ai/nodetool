@@ -19,7 +19,9 @@
   "include": [
     "src",
     "vite.config.ts",
-    "eslint.config.mjs"
+    "eslint.config.mjs",
+    "jest.config.ts",
+    "jest.setup.ts"
   ],
   "exclude": [
     "node_modules",
