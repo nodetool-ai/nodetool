@@ -5,24 +5,20 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
-// utils
-import { getMousePosition } from "../../utils/MousePosition";
-
 // store
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { debounce, isEqual } from "lodash";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Button, CircularProgress, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
-import { PlayArrow } from "@mui/icons-material";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
+import { Tooltip } from "@mui/material";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -82,7 +78,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       },
       input: {
         width: "fit-content",
-        maxWidth: "calc(100% - 200px)",
+        maxWidth: "calc(100% - 80px)",
         overflow: "hidden",
         backgroundColor: "transparent",
         outline: "none",
@@ -125,9 +121,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
-  const isSelected = useNodes((state) =>
-    state.getSelectedNodeIds().includes(props.id)
-  );
+
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
   const { workflow, updateNodeData, updateNode } = useNodes((state) => ({
@@ -135,15 +129,20 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNode: state.updateNode,
     workflow: state.workflow
   }));
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const state = useWorkflowRunner((state) => state.state);
-  const isWorkflowRunning = useWorkflowRunner(
-    (state) => state.state === "running"
-  );
   const { nodes, edges } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges
   }));
+
+  // const isSelected = useNodes((state) =>
+  //   state.getSelectedNodeIds().includes(props.id)
+  // );
+
+  // RUN WORKFLOW
+  const state = useWorkflowRunner((state) => state.state);
+  const isWorkflowRunning = useWorkflowRunner(
+    (state) => state.state === "running"
+  );
   const run = useWorkflowRunner((state) => state.run);
   const runWorkflow = useCallback(() => {
     // Filter nodes that belong to this group
@@ -216,16 +215,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // const handleHeaderClick = () => {
   //   updateNode(props.id, { selected: true });
   // };
-  // const handleHeaderDoubleClick = (e: React.MouseEvent) => {
-  //   headerInputRef.current?.focus();
-  //   headerInputRef.current?.select();
-  //   // e.preventDefault();
-  //   // e.stopPropagation();
-  //   // const clickedElement = e.target as HTMLElement;
-  //   // if (clickedElement.classList.contains("node-header")) {
-  //   //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
-  //   // }
-  // };
+  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+    headerInputRef.current?.focus();
+    headerInputRef.current?.select();
+    // e.preventDefault();
+    // e.stopPropagation();
+    // const clickedElement = e.target as HTMLElement;
+    // if (clickedElement.classList.contains("node-header")) {
+    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
+    // }
+  };
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newHeadline = event.target.value;
@@ -277,51 +276,50 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} 
       }`}
-      // ${props.data.collapsed ? "collapsed" : ""
-      // onDoubleClick={(e) => {
-      //   handleDoubleClick(e, props.id);
-      // }}
       style={{
         ...(nodeHovered
           ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
           : {}),
-        opacity: controlKeyPressed ? 0.5 : 1,
+        opacity: controlKeyPressed && nodeHovered ? 0.5 : 1,
         pointerEvents: controlKeyPressed ? "none" : ("none !important" as any),
         backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
       }}
     >
-      <div
-        className="node-header node-drag-handle"
-        onClick={handleHeaderClick}
-        // onDoubleClick={handleHeaderDoubleClick}
+      <Tooltip
+        placement="top"
+        enterDelay={TOOLTIP_ENTER_DELAY * 5}
+        enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
+        title="Double click to edit title. CTRL click to select."
       >
-        <div className="title-input">
-          <input
-            ref={headerInputRef}
-            spellCheck={false}
-            className="nodrag"
-            style={{
-              pointerEvents: isSelected ? "all" : "none"
-            }}
-            type="text"
-            value={headline}
-            onChange={handleHeadlineChange}
-            placeholder=""
-          />
+        <div
+          className="node-header node-drag-handle"
+          onClick={handleHeaderClick}
+          onDoubleClick={handleHeaderDoubleClick}
+        >
+          <div className="title-input">
+            <input
+              ref={headerInputRef}
+              spellCheck={false}
+              className="nodrag"
+              type="text"
+              value={headline}
+              onChange={handleHeadlineChange}
+              placeholder=""
+            />
+          </div>
+          <div className="action-buttons">
+            <ColorPicker
+              color={color || null}
+              onColorChange={handleColorChange}
+            />
+            <RunGroupButton
+              isWorkflowRunning={isWorkflowRunning}
+              state={state}
+              onClick={runWorkflow}
+            />
+          </div>
         </div>
-        <div className="action-buttons">
-          <ColorPicker
-            color={color || null}
-            onColorChange={handleColorChange}
-          />
-          <RunGroupButton
-            isWorkflowRunning={isWorkflowRunning}
-            state={state}
-            onClick={runWorkflow}
-          />
-        </div>
-      </div>
-
+      </Tooltip>
       <NodeResizeHandle
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
