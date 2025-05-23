@@ -240,7 +240,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const parentColor = useNodes((state) => {
     if (!parentId) return "";
     const parentNode = state.findNode(parentId);
-    return hexToRgba(parentNode?.data.properties.group_color || "", 0.1);
+    const groupColor = parentNode?.data.properties.group_color;
+    return hexToRgba(groupColor || "#000000", 0.1);
   });
 
   const specialNamespaces = useMemo(
