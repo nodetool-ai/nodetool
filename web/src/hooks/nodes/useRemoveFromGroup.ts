@@ -30,20 +30,30 @@ export const useRemoveFromGroup = () => {
         Object.keys(nodesByParent).forEach((parentId) => {
           const parentNode = findNode(parentId);
           // Ensure parent node exists and has a position
-          if (!parentNode) {
-            console.warn(`Parent node ${parentId} not found`);
+          if (!parentNode || parentNode.position === undefined) {
+            console.warn(
+              `Parent node ${parentId} not found or has no position.`
+            );
             return; // Skip if parent is invalid
           }
 
           const children = nodesByParent[parentId];
           children.forEach((node) => {
+            // Calculate new absolute position
+            const absolutePosition = {
+              x: (parentNode.position.x || 0) + (node.position?.x || 0),
+              y: (parentNode.position.y || 0) + (node.position?.y || 0)
+            };
+
             updateNode(node.id, {
               parentId: undefined,
+              position: absolutePosition,
               expandParent: false
             });
           });
         });
       } finally {
+        // Always resume history tracking
         // resume(); // HISTORY MANAGEMENT MOVED TO DRAG HANDLERS
       }
     },
