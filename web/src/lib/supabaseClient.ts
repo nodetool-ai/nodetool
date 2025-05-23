@@ -7,8 +7,9 @@ import { createClient } from "@supabase/supabase-js";
  * the repository and allows easy configuration for different deployments.
  */
 
-const supabaseUrl: string | undefined = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey: string | undefined = process.env.VITE_SUPABASE_ANON_KEY;
+// Vite exposes environment variables via `import.meta.env`
+const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
