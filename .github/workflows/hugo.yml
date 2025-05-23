@@ -25,6 +25,8 @@ jobs:
         with:
           hugo-version: '0.115.4'
           extended: true
+      - name: Install Docsy theme
+        run: hugo mod get github.com/google/docsy
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Build with Hugo
