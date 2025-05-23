@@ -14,16 +14,14 @@ export function useAddToGroup() {
       nodes.forEach((node) => {
         if (parentNode && isGroupable(node) && isGroup(parentNode)) {
           if (!node.parentId) {
-            setTimeout(() => {
-              updateNode(node.id, {
-                position: {
-                  x: node.position.x - parentNode.position.x,
-                  y: node.position.y - parentNode.position.y
-                },
-                parentId: parentNode.id,
-                expandParent: true
-              });
-            }, 100);
+            updateNode(node.id, {
+              position: {
+                x: node.position.x - parentNode.position.x,
+                y: node.position.y - parentNode.position.y
+              },
+              parentId: parentNode.id,
+              expandParent: true
+            });
           }
         }
       });
