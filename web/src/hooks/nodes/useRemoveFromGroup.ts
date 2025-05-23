@@ -48,6 +48,7 @@ export const useRemoveFromGroup = () => {
             updateNode(node.id, {
               parentId: undefined,
               position: absolutePosition,
+              selected: false,
               expandParent: false
             });
           });

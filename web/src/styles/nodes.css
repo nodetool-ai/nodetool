@@ -47,6 +47,9 @@
 .react-flow__node .node-header.has-parent {
   background-color: var(--c_node_header_bg_group);
 }
+.react-flow__node .node-header.has-parent {
+  opacity: 0.7;
+}
 
 .react-flow__node .node-header:hover {
   transition: opacity 0.15s;
