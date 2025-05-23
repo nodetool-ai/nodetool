@@ -10,6 +10,13 @@ import { Message, WorkflowAttributes, OutputUpdate } from '../ApiTypes';
 
 jest.mock('../workflowUpdates', () => ({ handleUpdate: jest.fn() }));
 jest.mock('../ApiClient', () => ({ CHAT_URL: 'ws://test/chat', isLocalhost: true }));
+jest.mock('../../lib/supabaseClient', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } })
+    }
+  }
+}));
 jest.mock('loglevel', () => ({
   __esModule: true,
   default: {
