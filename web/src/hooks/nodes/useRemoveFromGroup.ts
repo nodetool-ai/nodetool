@@ -4,7 +4,6 @@ import { Node } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 
 export const useRemoveFromGroup = () => {
-  // Get findNode to access parent position
   const { updateNode, findNode } = useNodes((state) => ({
     updateNode: state.updateNode,
     findNode: state.findNode
@@ -31,9 +30,6 @@ export const useRemoveFromGroup = () => {
           const parentNode = findNode(parentId);
           // Ensure parent node exists and has a position
           if (!parentNode || parentNode.position === undefined) {
-            console.warn(
-              `Parent node ${parentId} not found or has no position.`
-            );
             return; // Skip if parent is invalid
           }
 
@@ -48,8 +44,8 @@ export const useRemoveFromGroup = () => {
             updateNode(node.id, {
               parentId: undefined,
               position: absolutePosition,
-              selected: false,
-              expandParent: false
+              selected: false
+              // expandParent: false
             });
           });
         });

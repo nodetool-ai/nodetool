@@ -443,9 +443,6 @@ export const createNodeStore = (
                     // this might still cause issues.
                     // For safety, add child to the end if parent not found.
                     // React Flow might still complain if parent isn't rendered.
-                    log.warn(
-                      `Parent node ${nodeUpdate.parentId} not found while trying to reorder node ${id}. Adding node to the end.`
-                    );
                     newNodes.push(updatedNode);
                   }
                 }
