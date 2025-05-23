@@ -178,49 +178,48 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  const handleOpenNodeMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      openNodeMenu({
-        x: getMousePosition().x,
-        y: getMousePosition().y
-      });
-    },
-    [openNodeMenu]
-  );
+  // const handleOpenNodeMenu = useCallback(
+  //   (e: React.MouseEvent) => {
+  //     e.stopPropagation();
+  //     e.preventDefault();
+  //     openNodeMenu({
+  //       x: getMousePosition().x,
+  //       y: getMousePosition().y
+  //     });
+  //   },
+  //   [openNodeMenu]
+  // );
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent, id: string) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const clickedElement = e.target as HTMLElement;
-      if (
-        clickedElement.classList.contains("node-header") ||
-        clickedElement.classList.contains("title-input")
-      ) {
-        console.log("### double click", props.data.collapsed);
-        // updateNodeData(id, { collapsed: !props.data.collapsed });
-      } else {
-        handleOpenNodeMenu(e);
-      }
-    },
-    [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
-  );
+  // const handleDoubleClick = useCallback(
+  //   (e: React.MouseEvent, id: string) => {
+  //     e.preventDefault();
+  //     e.stopPropagation();
+  //     const clickedElement = e.target as HTMLElement;
+  //     if (
+  //       clickedElement.classList.contains("node-header") ||
+  //       clickedElement.classList.contains("title-input")
+  //     ) {
+  //       // updateNodeData(id, { collapsed: !props.data.collapsed });
+  //     } else {
+  //       handleOpenNodeMenu(e);
+  //     }
+  //   },
+  //   [handleOpenNodeMenu]
+  // );
 
-  const handleHeaderClick = () => {
-    updateNode(props.id, { selected: true });
-  };
-  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
-    headerInputRef.current?.focus();
-    headerInputRef.current?.select();
-    // e.preventDefault();
-    // e.stopPropagation();
-    // const clickedElement = e.target as HTMLElement;
-    // if (clickedElement.classList.contains("node-header")) {
-    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
-    // }
-  };
+  // const handleHeaderClick = () => {
+  //   updateNode(props.id, { selected: true });
+  // };
+  // const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+  //   headerInputRef.current?.focus();
+  //   headerInputRef.current?.select();
+  //   // e.preventDefault();
+  //   // e.stopPropagation();
+  //   // const clickedElement = e.target as HTMLElement;
+  //   // if (clickedElement.classList.contains("node-header")) {
+  //   //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
+  //   // }
+  // };
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newHeadline = event.target.value;
@@ -268,10 +267,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} 
       }`}
-      // ${        props.data.collapsed ? "collapsed" : ""
-      onDoubleClick={(e) => {
-        handleDoubleClick(e, props.id);
-      }}
+      // ${props.data.collapsed ? "collapsed" : ""
+      // onDoubleClick={(e) => {
+      //   handleDoubleClick(e, props.id);
+      // }}
       style={{
         ...(nodeHovered
           ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
@@ -283,8 +282,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       <div
         className="node-header"
-        onClick={handleHeaderClick}
-        onDoubleClick={handleHeaderDoubleClick}
+        // onClick={handleHeaderClick}
+        // onDoubleClick={handleHeaderDoubleClick}
       >
         <div className="title-input">
           <input

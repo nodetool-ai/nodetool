@@ -9,6 +9,7 @@ import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
+import { node } from "slate";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
@@ -134,13 +135,8 @@ export default function useDragHandlers() {
       // Pause history tracking at the start of selection drag
       pause();
       setDraggedNodes(new Set(nodes));
-      if (controlKeyPressed) {
-        draggedNodes.forEach((node) => {
-          removeFromGroup([node]);
-        });
-      }
     },
-    [pause, setDraggedNodes, controlKeyPressed, removeFromGroup]
+    [pause, setDraggedNodes]
   );
 
   /* SELECTION DRAG */
@@ -160,9 +156,22 @@ export default function useDragHandlers() {
         } else {
           setLastParentNode(undefined);
         }
+        if (nodes[0].parentId && controlKeyPressed) {
+          nodes.forEach((node) => {
+            removeFromGroup([node]);
+            setLastParentNode(undefined);
+          });
+        }
       }
     },
-    [reactFlow, setHoveredNodes, isGroup, findNode]
+    [
+      reactFlow,
+      setHoveredNodes,
+      isGroup,
+      findNode,
+      controlKeyPressed,
+      removeFromGroup
+    ]
   );
 
   /* SELECTION DRAG STOP */
