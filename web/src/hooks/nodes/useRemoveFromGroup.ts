@@ -30,36 +30,20 @@ export const useRemoveFromGroup = () => {
         Object.keys(nodesByParent).forEach((parentId) => {
           const parentNode = findNode(parentId);
           // Ensure parent node exists and has a position
-          if (!parentNode || parentNode.position === undefined) {
-            console.warn(
-              `Parent node ${parentId} not found or has no position.`
-            );
+          if (!parentNode) {
+            console.warn(`Parent node ${parentId} not found`);
             return; // Skip if parent is invalid
           }
 
           const children = nodesByParent[parentId];
           children.forEach((node) => {
-            // Calculate new absolute position
-            const absolutePosition = {
-              x: (parentNode.position.x || 0) + (node.position?.x || 0),
-              y: (parentNode.position.y || 0) + (node.position?.y || 0)
-            };
-
-            // Remove setTimeout and update position along with parentId
-            console.log(
-              "[DragDebug] useRemoveFromGroup - updateNode for:",
-              node.id,
-              "to parentId: undefined"
-            );
             updateNode(node.id, {
               parentId: undefined,
-              position: absolutePosition
-              // Consider adding expandParent: false if needed, but maybe not necessary
+              expandParent: false
             });
           });
         });
       } finally {
-        // Always resume history tracking
         // resume(); // HISTORY MANAGEMENT MOVED TO DRAG HANDLERS
       }
     },
