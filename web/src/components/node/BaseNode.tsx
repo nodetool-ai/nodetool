@@ -37,13 +37,14 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useNodes } from "../../contexts/NodeContext";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
+const PARENT_COLOR_OPACITY = 0.09;
+const HEADER_HEIGHT = 24;
 
 const resizer = (
   <div className="node-resizer">
@@ -130,6 +131,8 @@ const getNodeStyles = (colors: string[]) =>
     }
   });
 
+// get parent color inside useEffect, parentColor can change and should be kept uptodate
+
 // Style helper functions moved outside component
 const getStyleProps = (
   parentId: string | undefined,
@@ -210,6 +213,8 @@ const getHeaderFooterColors = (metadata: NodeMetadata) => {
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected, parentId } = props;
   const { workflow_id, title } = data;
+  const hasParent = Boolean(parentId);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -234,6 +239,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     throw new Error("Metadata is not loaded for node type " + type);
   }
+
+  // Node store access
+  const findNode = useNodes((state) => state.findNode);
+
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
     []
@@ -259,10 +268,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => getStyleProps(parentId, nodeType, isLoading, metadata),
     [parentId, nodeType, isLoading, metadata]
   );
-
-  // Node-specific data and relationships
-  const hasParent = Boolean(parentId);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Results and rendering
   const result = useResultsStore((state) => state.getResult(workflow_id, id));
@@ -306,6 +311,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
   }
+  const parentColor = useMemo(() => {
+    if (parentId) {
+      const parentNode = findNode(parentId);
+      return parentNode?.data.properties.group_color || "";
+    }
+    return "";
+  }, [parentId, findNode]);
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
@@ -328,6 +340,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
+        parentColor={parentColor}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />

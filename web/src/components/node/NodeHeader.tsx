@@ -21,6 +21,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
   hasParent,
+  parentColor,
   data,
   backgroundColor,
   showMenu = true
@@ -57,9 +58,25 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       }`}
       onClick={handleHeaderClick}
       style={{
+        // borderTop: hasParent ? `1px solid ${parentColor}` : "none",
         backgroundColor: backgroundColor
       }}
     >
+      {hasParent && (
+        <span
+          className="node-parent-color"
+          style={{
+            backgroundColor: parentColor,
+            position: "absolute",
+            width: "100%",
+            height: "calc(100% - 24px)",
+            pointerEvents: "none",
+            opacity: 0.09,
+            top: "24px",
+            left: 0
+          }}
+        />
+      )}
       <span className="node-title">{metadataTitle}</span>
       {showMenu && (
         <div className="menu-button-container" tabIndex={-1}>
