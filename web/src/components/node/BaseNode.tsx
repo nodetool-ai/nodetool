@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -26,7 +26,11 @@ import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
-import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
+import {
+  darkenHexColor,
+  hexToRgba,
+  simulateOpacity
+} from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
@@ -43,8 +47,6 @@ import { useNodes } from "../../contexts/NodeContext";
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
-const PARENT_COLOR_OPACITY = 0.09;
-const HEADER_HEIGHT = 24;
 
 const resizer = (
   <div className="node-resizer">
@@ -131,8 +133,6 @@ const getNodeStyles = (colors: string[]) =>
     }
   });
 
-// get parent color inside useEffect, parentColor can change and should be kept uptodate
-
 // Style helper functions moved outside component
 const getStyleProps = (
   parentId: string | undefined,
@@ -151,10 +151,7 @@ const getStyleProps = (
       .trim(),
     minHeight: metadata
       ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
-      : BASE_HEIGHT,
-    backgroundColor: hasParent
-      ? ThemeNodes.palette.c_node_bg_group
-      : ThemeNodes.palette.c_node_bg
+      : BASE_HEIGHT
   };
 };
 
@@ -240,8 +237,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  // Node store access
-  const findNode = useNodes((state) => state.findNode);
+  const parentColor = useNodes((state) => {
+    if (!parentId) return "";
+    const parentNode = state.findNode(parentId);
+    return hexToRgba(parentNode?.data.properties.group_color || "", 0.1);
+  });
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -311,13 +311,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
   }
-  const parentColor = useMemo(() => {
-    if (parentId) {
-      const parentNode = findNode(parentId);
-      return parentNode?.data.properties.group_color || "";
-    }
-    return "";
-  }, [parentId, findNode]);
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
@@ -330,7 +323,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
-        backgroundColor: styleProps.backgroundColor
+        backgroundColor: hasParent ? parentColor : ThemeNodes.palette.c_node_bg
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}
@@ -340,7 +333,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
-        parentColor={parentColor}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
