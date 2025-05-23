@@ -34,7 +34,7 @@ const styles = (theme: any) =>
       minWidth: "400px",
       minHeight: "250px"
     },
-    "&.hovered.space-pressed": {
+    "&.hovered.control-pressed": {
       border: "2px dashed black !important"
     },
     height: "100%",
@@ -178,7 +178,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, []);
 
   useEffect(() => {
-    // Selectable loop nodes when spacekey is pressed
+    // Selectable loop nodes when control key is pressed
     // (enables the use of the selection rectangle inside group nodes)
     updateNode(props.id, { selectable: false });
   }, [updateNode, props.id]);

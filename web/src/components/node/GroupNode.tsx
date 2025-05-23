@@ -21,7 +21,7 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
-
+import { useKeyPressed } from "../../stores/KeyPressedStore";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -33,7 +33,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       minWidth: minWidth + "px",
       minHeight: minHeight + "px"
     },
-    "&.hovered.space-pressed": {
+    "&.hovered.control-pressed": {
       border: "2px dashed black !important"
     },
     height: "100%",
@@ -119,6 +119,9 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
   });
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const controlKeyPressed = useKeyPressed((state) =>
+    state.isKeyPressed("control")
+  );
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
   const { workflow, updateNodeData, updateNode } = useNodes((state) => ({
@@ -196,7 +199,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         clickedElement.classList.contains("node-header") ||
         clickedElement.classList.contains("title-input")
       ) {
-        updateNodeData(id, { collapsed: !props.data.collapsed });
+        console.log("### double click", props.data.collapsed);
+        // updateNodeData(id, { collapsed: !props.data.collapsed });
       } else {
         handleOpenNodeMenu(e);
       }
@@ -249,18 +253,22 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   useEffect(() => {
-    // Selectable group nodes when spacekey is pressed
+    // Selectable group nodes when control key is pressed
     // (enables the use of the selection rectangle inside group nodes)
-    updateNode(props.id, { selectable: false });
-  }, [updateNode, props.id]);
+    if (controlKeyPressed) {
+      updateNode(props.id, { selectable: true });
+    } else {
+      updateNode(props.id, { selectable: false });
+    }
+  }, [updateNode, props.id, controlKeyPressed]);
 
   return (
     <div
       css={styles(ThemeNodes, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
-      className={`group-node ${nodeHovered ? "hovered" : ""} ${
-        props.data.collapsed ? "collapsed" : ""
+      className={`group-node ${nodeHovered ? "hovered" : ""} 
       }`}
+      // ${        props.data.collapsed ? "collapsed" : ""
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
@@ -268,6 +276,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         ...(nodeHovered
           ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
           : {}),
+        opacity: controlKeyPressed ? 0.5 : 1,
+        // pointerEvents: controlKeyPressed ? "all" : ("none !important" as any),
         backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
       }}
     >
