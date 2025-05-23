@@ -9,7 +9,6 @@ import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
-import { node } from "slate";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();

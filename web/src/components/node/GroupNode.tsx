@@ -22,6 +22,7 @@ import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
+import RunGroupButton from "./RunGroupButton";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -80,13 +81,15 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         overflow: "hidden"
       },
       input: {
-        width: "100%",
+        width: "fit-content",
+        maxWidth: "calc(100% - 200px)",
+        overflow: "hidden",
+        backgroundColor: "transparent",
         outline: "none",
         wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none",
         color: theme.palette.c_white,
-        backgroundColor: "transparent",
         padding: ".5em 0.5em",
         border: 0,
         fontSize: "1.5em",
@@ -121,6 +124,9 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
+  );
+  const isSelected = useNodes((state) =>
+    state.getSelectedNodeIds().includes(props.id)
   );
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -251,6 +257,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, updateNodeData]
   );
 
+  const handleHeaderClick = () => {
+    console.log("Node header clicked:", props.id, props.data);
+  };
+
   useEffect(() => {
     // Selectable group nodes when control key is pressed
     // (enables the use of the selection rectangle inside group nodes)
@@ -276,13 +286,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
           : {}),
         opacity: controlKeyPressed ? 0.5 : 1,
-        // pointerEvents: controlKeyPressed ? "all" : ("none !important" as any),
+        pointerEvents: controlKeyPressed ? "none" : ("none !important" as any),
         backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
       }}
     >
       <div
-        className="node-header"
-        // onClick={handleHeaderClick}
+        className="node-header node-drag-handle"
+        onClick={handleHeaderClick}
         // onDoubleClick={handleHeaderDoubleClick}
       >
         <div className="title-input">
@@ -290,6 +300,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             ref={headerInputRef}
             spellCheck={false}
             className="nodrag"
+            style={{
+              pointerEvents: isSelected ? "all" : "none"
+            }}
             type="text"
             value={headline}
             onChange={handleHeadlineChange}
@@ -301,53 +314,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             color={color || null}
             onColorChange={handleColorChange}
           />
-          <Tooltip
-            title={
-              <div
-                className="tooltip-span"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.1em"
-                }}
-              >
-                <span style={{ fontSize: "1.2em", color: "white" }}>
-                  Run Group
-                </span>
-                {/* <span style={{ fontSize: ".9em", color: "white" }}>
-                  CTRL+Enter
-                </span> */}
-              </div>
-            }
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <Button
-              size="large"
-              tabIndex={-1}
-              className={`action-button run-stop-button run-workflow ${
-                isWorkflowRunning ? "disabled" : ""
-              }`}
-              onClick={() => !isWorkflowRunning && runWorkflow()}
-            >
-              {state === "connecting" || state === "connected" ? (
-                <>
-                  <span
-                    className={`run-status ${
-                      state === "connecting" ? "connecting-status" : ""
-                    }`}
-                  >
-                    {state === "connecting" ? "Connecting" : "Connected"}
-                  </span>
-                  <PlayArrow />
-                </>
-              ) : state === "running" ? (
-                <CircularProgress />
-              ) : (
-                <PlayArrow />
-              )}
-            </Button>
-          </Tooltip>
+          <RunGroupButton
+            isWorkflowRunning={isWorkflowRunning}
+            state={state}
+            onClick={runWorkflow}
+          />
         </div>
       </div>
 
