@@ -8,8 +8,9 @@ if (typeof globalThis.structuredClone !== 'function') {
 }
 
 // Polyfill TextEncoder/TextDecoder for msgpack
+import { TextEncoder as NodeTextEncoder, TextDecoder as NodeTextDecoder } from 'util';
+
 if (typeof globalThis.TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = require('util');
-  globalThis.TextEncoder = TextEncoder;
-  globalThis.TextDecoder = TextDecoder;
+  globalThis.TextEncoder = NodeTextEncoder as unknown as typeof globalThis.TextEncoder;
+  globalThis.TextDecoder = NodeTextDecoder as unknown as typeof globalThis.TextDecoder;
 }
