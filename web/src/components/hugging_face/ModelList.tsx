@@ -125,6 +125,8 @@ const styles = (theme: any) =>
 
 const ModelList: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [modelSource, setModelSource] =
+    useState<"downloaded" | "recommended">("downloaded");
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -181,16 +183,49 @@ const ModelList: React.FC = () => {
     refetchOnWindowFocus: false
   });
 
+  const {
+    data: recommendedModels,
+    isLoading: recommendedLoading,
+    error: recommendedError
+  } = useQuery({
+    queryKey: ["recommendedModels"],
+    queryFn: async () => {
+      const { data, error } = await client.GET(
+        "/api/models/recommended_models",
+        {}
+      );
+      if (error) throw error;
+      return data.map(
+        (model: any): UnifiedModel => ({
+          id: model.repo_id,
+          type: model.the_model_type,
+          name: model.repo_id,
+          repo_id: model.repo_id,
+          description: "",
+          readme: model.readme ?? "",
+          size_on_disk: model.size_on_disk
+        })
+      );
+    },
+    refetchOnWindowFocus: false
+  });
+
   const groupedHFModels = useMemo(
     () => groupModelsByType(hfModels || []),
     [hfModels]
   );
+  const groupedRecommendedModels = useMemo(
+    () => groupModelsByType(recommendedModels || []),
+    [recommendedModels]
+  );
   const modelTypes = useMemo(() => {
-    const types = new Set(Object.keys(groupedHFModels));
+    const sourceGroups =
+      modelSource === "recommended" ? groupedRecommendedModels : groupedHFModels;
+    const types = new Set(Object.keys(sourceGroups));
     types.add("Other");
     types.add("llama_model");
     return sortModelTypes(Array.from(types));
-  }, [groupedHFModels]);
+  }, [groupedHFModels, groupedRecommendedModels, modelSource]);
 
   const handleModelTypeChange = useCallback((newValue: string) => {
     setSelectedModelType(newValue);
@@ -205,10 +240,15 @@ const ModelList: React.FC = () => {
       );
     };
 
+    const groups =
+      modelSource === "recommended" ? groupedRecommendedModels : groupedHFModels;
+    const llama =
+      modelSource === "recommended" ? groupedRecommendedModels["llama_model"] : ollamaModels;
+
     if (selectedModelType === "All") {
       const allModels = [
-        ...Object.values(groupedHFModels).flat(),
-        ...(ollamaModels || [])
+        ...Object.values(groups).flat(),
+        ...(modelSource === "recommended" ? [] : ollamaModels || [])
       ];
       const filteredAllModels = allModels.filter(filterModel);
       return Object.fromEntries(
@@ -222,20 +262,21 @@ const ModelList: React.FC = () => {
         ])
       );
     } else if (selectedModelType === "llama_model") {
-      return { llama_model: (ollamaModels || []).filter(filterModel) };
+      return { llama_model: (llama || []).filter(filterModel) };
     } else {
+      const source = groups[selectedModelType] || [];
       return {
-        [selectedModelType]: (groupedHFModels[selectedModelType] || []).filter(
-          filterModel
-        )
+        [selectedModelType]: source.filter(filterModel)
       };
     }
   }, [
     selectedModelType,
     groupedHFModels,
+    groupedRecommendedModels,
     ollamaModels,
     modelSearchTerm,
-    modelTypes
+    modelTypes,
+    modelSource
   ]);
 
   const deleteHFModel = async (repoId: string) => {
@@ -282,6 +323,16 @@ const ModelList: React.FC = () => {
   ) => {
     if (newViewMode !== null) {
       setViewMode(newViewMode);
+    }
+  };
+
+  const handleModelSourceChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newSource: "downloaded" | "recommended" | null
+  ) => {
+    if (newSource !== null) {
+      setModelSource(newSource);
+      setSelectedModelType("All");
     }
   };
 
@@ -335,7 +386,10 @@ const ModelList: React.FC = () => {
     }
   };
 
-  if (hfLoading || ollamaLoading) {
+  if (
+    (modelSource === "downloaded" && (hfLoading || ollamaLoading)) ||
+    (modelSource === "recommended" && recommendedLoading)
+  ) {
     return (
       <Box
         sx={{
@@ -354,18 +408,26 @@ const ModelList: React.FC = () => {
     );
   }
 
-  if (hfError) {
+  if (
+    (modelSource === "downloaded" && hfError) ||
+    (modelSource === "recommended" && recommendedError)
+  ) {
     return (
       <>
         <Typography variant="h3">Could not load models.</Typography>
-        {hfError && (
+        {hfError && modelSource === "downloaded" && (
           <Typography variant="body2" color="error">
             HuggingFace Error: {hfError.message}
           </Typography>
         )}
-        {ollamaError && (
+        {ollamaError && modelSource === "downloaded" && (
           <Typography variant="body2" color="error">
             Ollama Error: {ollamaError.message}
+          </Typography>
+        )}
+        {recommendedError && modelSource === "recommended" && (
+          <Typography variant="body2" color="error">
+            {recommendedError.message}
           </Typography>
         )}
       </>
@@ -391,6 +453,17 @@ const ModelList: React.FC = () => {
             onSearchChange={setModelSearchTerm}
             searchTerm={modelSearchTerm}
           />
+          <ToggleButtonGroup
+            value={modelSource}
+            exclusive
+            onChange={handleModelSourceChange}
+            aria-label="model source"
+            size="small"
+            sx={{ marginLeft: 1 }}
+          >
+            <ToggleButton value="downloaded">Downloaded</ToggleButton>
+            <ToggleButton value="recommended">Recommended</ToggleButton>
+          </ToggleButtonGroup>
           <ToggleButtonGroup
             value={viewMode}
             exclusive
