@@ -2,6 +2,7 @@ import React from "react";
 import { render, act } from "@testing-library/react";
 import { ConnectableNodesProvider } from "../ConnectableNodesProvider";
 import useConnectableNodes from "../../stores/ConnectableNodesStore";
+import metadataStore from "../../stores/MetadataStore";
 
 // Mock metadata store
 jest.mock("../../stores/MetadataStore", () => {
@@ -9,7 +10,6 @@ jest.mock("../../stores/MetadataStore", () => {
   return { __esModule: true, default: { getState } };
 });
 // Access the mocked getState function
-const { default: metadataStore } = require("../../stores/MetadataStore");
 const getState = (metadataStore as any).getState as jest.Mock;
 
 // Mock filter utilities
