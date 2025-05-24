@@ -12,10 +12,14 @@ import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
+  const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
   const { cKeyPressed } = useKeyPressed((state) => ({
     cKeyPressed: state.isKeyPressed("c")
   }));
+  const controlKeyPressed = useKeyPressed((state) =>
+    state.isKeyPressed("control")
+  );
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<
@@ -64,6 +68,48 @@ export default function useDragHandlers() {
     setLastParentNode(undefined);
   }, []);
 
+  /* NODE DRAG */
+  const onNodeDrag = useCallback(
+    (event: MouseEvent, node: Node<NodeData>) => {
+      if (controlKeyPressed) {
+        if (node.parentId) {
+          removeFromGroup([node]);
+        }
+      }
+      if (draggedNodes.size === 0) {
+        pause(); // Pause if starting a single node drag
+        setDraggedNodes(new Set([node]));
+      }
+
+      // Find potential parent based on intersection
+      const intersections = reactFlow
+        .getIntersectingNodes(node)
+        .filter((n) => isGroup(n as Node<NodeData>))
+        .map((n) => n.id);
+      setHoveredNodes(intersections);
+      if (intersections.length > 0) {
+        const potentialParent = findNode(intersections[0]);
+        setLastParentNode(potentialParent);
+      } else {
+        setLastParentNode(undefined);
+        if (controlKeyPressed) {
+          removeFromGroup([node]);
+        }
+      }
+    },
+    [
+      pause,
+      controlKeyPressed,
+      removeFromGroup,
+      reactFlow,
+      setHoveredNodes,
+      isGroup,
+      findNode,
+      draggedNodes,
+      setDraggedNodes
+    ]
+  );
+
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
     (_event: any, node: Node<NodeData>) => {
@@ -109,9 +155,22 @@ export default function useDragHandlers() {
         } else {
           setLastParentNode(undefined);
         }
+        if (nodes[0].parentId && controlKeyPressed) {
+          nodes.forEach((node) => {
+            removeFromGroup([node]);
+            setLastParentNode(undefined);
+          });
+        }
       }
     },
-    [reactFlow, setHoveredNodes, isGroup, findNode]
+    [
+      reactFlow,
+      setHoveredNodes,
+      isGroup,
+      findNode,
+      controlKeyPressed,
+      removeFromGroup
+    ]
   );
 
   /* SELECTION DRAG STOP */
@@ -165,39 +224,6 @@ export default function useDragHandlers() {
   if (settings.panControls === "RMB") {
     panOnDrag = [1, 2];
   }
-
-  /* NODE DRAG */
-  const onNodeDrag = useCallback(
-    (event: MouseEvent, node: Node<NodeData>) => {
-      if (draggedNodes.size === 0) {
-        // If not already dragging a selection
-        pause(); // Pause if starting a single node drag
-        setDraggedNodes(new Set([node]));
-      }
-
-      // Find potential parent based on intersection
-      const intersections = reactFlow
-        .getIntersectingNodes(node)
-        .filter((n) => isGroup(n as Node<NodeData>))
-        .map((n) => n.id);
-      setHoveredNodes(intersections);
-      if (intersections.length > 0) {
-        const potentialParent = findNode(intersections[0]);
-        setLastParentNode(potentialParent);
-      } else {
-        setLastParentNode(undefined);
-      }
-    },
-    [
-      pause,
-      reactFlow,
-      setHoveredNodes,
-      isGroup,
-      findNode,
-      draggedNodes,
-      setDraggedNodes
-    ]
-  );
 
   return {
     onNodeDragStart,

@@ -180,6 +180,7 @@ export const paletteDark: PaletteOptions = {
   action: {
     active: "#fff",
     hover: "#ddd",
-    selected: "#aaa"
+    selected: "#aaa",
+    disabled: "#666"
   }
 };

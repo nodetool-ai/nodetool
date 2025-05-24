@@ -68,18 +68,21 @@ export const tableStyles = (theme: any) =>
       minHeight: "2em",
       borderRight: `1px solid ${theme.palette.c_gray0}`
     },
+    ".tabulator .tabulator-header .tabulator-col-title": {
+      lineHeight: "1.1em"
+    },
     // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        transition: "border 0.2s"
+        transition: "border 0.15s"
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `4px solid ${theme.palette.c_hl1}`
+        borderBottom: `6px solid ${theme.palette.c_hl1}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `4px solid ${theme.palette.c_hl1}`
+        borderTop: `6px solid ${theme.palette.c_hl1}`
       },
 
     // cell
@@ -99,13 +102,25 @@ export const tableStyles = (theme: any) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: ".25em",
-      margin: "1em",
+      gap: ".1em",
+      margin: ".4em 0 .2em 0",
       justifyContent: "flex-start",
       alignItems: "flex-start",
       height: "2em",
       "& .disabled": {
-        opacity: 0.5
+        color: "var(--action-disabled)"
+      },
+      "& button": {
+        padding: ".1em",
+        width: ".8em",
+        height: ".8em",
+        "& svg": {
+          width: "100%",
+          height: "100%"
+        },
+        "&.disabled": {
+          opacity: 0.5
+        }
       }
     },
 

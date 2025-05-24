@@ -412,11 +412,42 @@ export const createNodeStore = (
             node.data.workflow_id = get().workflow.id;
             set({ nodes: [...get().nodes, node], workflowIsDirty: true });
           },
-          updateNode: (id: string, node: Partial<Node<NodeData>>) => {
-            set({
-              nodes: get().nodes.map((n) =>
-                n.id === id ? { ...n, ...node } : n
-              )
+          updateNode: (id: string, nodeUpdate: Partial<Node<NodeData>>) => {
+            set((state) => {
+              let newNodes = state.nodes.map((n) =>
+                n.id === id ? { ...n, ...nodeUpdate } : n
+              );
+
+              // If parentId is being set or changed, reorder nodes
+              if (nodeUpdate.parentId !== undefined) {
+                const updatedNode = newNodes.find((n) => n.id === id);
+                if (updatedNode) {
+                  // Remove the node from its current position
+                  newNodes = newNodes.filter((n) => n.id !== id);
+                  const parentIndex = newNodes.findIndex(
+                    (n) => n.id === nodeUpdate.parentId
+                  );
+
+                  if (
+                    nodeUpdate.parentId === null ||
+                    nodeUpdate.parentId === undefined
+                  ) {
+                    // If removing parentId, add to the end (or handle as per existing logic for no parent)
+                    newNodes.push(updatedNode);
+                  } else if (parentIndex !== -1) {
+                    // Insert after the parent
+                    newNodes.splice(parentIndex + 1, 0, updatedNode);
+                  } else {
+                    // Parent not found (should not happen if data is consistent), add to end
+                    // Or, if parentId is set but parent is not in the list yet,
+                    // this might still cause issues.
+                    // For safety, add child to the end if parent not found.
+                    // React Flow might still complain if parent isn't rendered.
+                    newNodes.push(updatedNode);
+                  }
+                }
+              }
+              return { ...state, nodes: newNodes, workflowIsDirty: true };
             });
           },
           updateNodeData: (id: string, data: Partial<NodeData>) => {
