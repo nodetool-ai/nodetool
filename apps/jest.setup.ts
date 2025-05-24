@@ -7,7 +7,6 @@ if (typeof globalThis.structuredClone !== 'function') {
   };
 }
 
-// Polyfill TextEncoder/TextDecoder for msgpack
 import { TextEncoder as NodeTextEncoder, TextDecoder as NodeTextDecoder } from 'util';
 
 if (typeof globalThis.TextEncoder === 'undefined') {
