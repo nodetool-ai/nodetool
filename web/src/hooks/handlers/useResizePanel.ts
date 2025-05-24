@@ -62,14 +62,22 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
           // If we didn't move, treat it as a click and toggle the current view
           actions.handleViewChange(panel.activeView);
         } else {
-          // Ensure final size respects minimum
-          const finalSize = Math.max(
+          // Ensure final size respects minimum and collapse if below threshold
+          let finalSize = Math.max(
             MIN_DRAG_SIZE,
             panel.panelSize || DEFAULT_PANEL_SIZE
           );
+
+          let visible = true;
+          if (finalSize < MIN_PANEL_SIZE) {
+            finalSize = MIN_DRAG_SIZE;
+            visible = false;
+          }
+
           if (finalSize !== panel.panelSize) {
             actions.setSize(finalSize);
           }
+          actions.setVisibility(visible);
         }
 
         actions.setIsDragging(false);
