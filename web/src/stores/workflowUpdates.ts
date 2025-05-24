@@ -68,14 +68,15 @@ export const handleUpdate = (
     if (update.output_type === "string") {
       // String updates are handled in WorkflowChatStore directly
     } else if (assetTypes.includes(update.output_type)) {
+      const value = update.value as { uri: string; data: Uint8Array };
       setResult(
         workflow.id,
         update.node_id,
         {
           output: {
             type: update.output_type,
-            uri: "",
-            data: (update.value as { data: Uint8Array }).data
+            uri: value.uri,
+            data: value.data
           }
         },
         true
