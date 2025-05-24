@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -26,7 +26,11 @@ import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
-import { darkenHexColor, simulateOpacity } from "../../utils/ColorUtils";
+import {
+  darkenHexColor,
+  hexToRgba,
+  simulateOpacity
+} from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
@@ -37,8 +41,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useNodes } from "../../contexts/NodeContext";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -148,10 +151,7 @@ const getStyleProps = (
       .trim(),
     minHeight: metadata
       ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
-      : BASE_HEIGHT,
-    backgroundColor: hasParent
-      ? ThemeNodes.palette.c_node_bg_group
-      : ThemeNodes.palette.c_node_bg
+      : BASE_HEIGHT
   };
 };
 
@@ -210,6 +210,8 @@ const getHeaderFooterColors = (metadata: NodeMetadata) => {
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected, parentId } = props;
   const { workflow_id, title } = data;
+  const hasParent = Boolean(parentId);
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -234,6 +236,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!metadata) {
     throw new Error("Metadata is not loaded for node type " + type);
   }
+
+  const parentColor = useNodes((state) => {
+    if (!parentId) return "";
+    const parentNode = state.findNode(parentId);
+    const groupColor = parentNode?.data.properties.group_color;
+    return hexToRgba(groupColor || "#000000", 0.1);
+  });
+
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
     []
@@ -259,10 +269,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => getStyleProps(parentId, nodeType, isLoading, metadata),
     [parentId, nodeType, isLoading, metadata]
   );
-
-  // Node-specific data and relationships
-  const hasParent = Boolean(parentId);
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   // Results and rendering
   const result = useResultsStore((state) => state.getResult(workflow_id, id));
@@ -318,7 +324,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
-        backgroundColor: styleProps.backgroundColor
+        backgroundColor: hasParent ? parentColor : ThemeNodes.palette.c_node_bg
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}

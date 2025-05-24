@@ -16,6 +16,8 @@ const styles = (theme: any) =>
     bottom: 0,
     left: 0,
     top: 0,
+    width: "50px",
+    height: "50px",
     pointerEvents: "none",
     ".react-flow__resize-control.handle": {
       opacity: 0

@@ -11,7 +11,6 @@ export interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
   hasParent?: boolean;
-  parentColor?: string;
   showMenu?: boolean;
   data: NodeData;
   backgroundColor?: string;
@@ -26,11 +25,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const updateNode = useNodes((state) => state.updateNode);
+
   // const titleizedType = useMemo(
   //   () => (metadataTitle ? titleizeString(metadataTitle) : ""),
   //   [metadataTitle]
   // );
-  const updateNode = useNodes((state) => state.updateNode);
 
   const handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {

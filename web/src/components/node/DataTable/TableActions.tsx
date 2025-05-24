@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Button,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
-  IconButton
-} from "@mui/material";
+import { Tooltip, IconButton } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -159,7 +153,9 @@ const TableActions: React.FC<TableActionsProps> = ({
 
           <Tooltip title="Delete selected rows">
             <IconButton
-              disabled={selectedRows.length === 0}
+              className={
+                tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
+              }
               onClick={() => {
                 if (tabulator?.getSelectedRows().length) {
                   handleDeleteRows();

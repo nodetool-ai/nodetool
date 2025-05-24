@@ -13,9 +13,8 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 
-import { ThemeProvider } from "@emotion/react";
 import { CircularProgress, CssBaseline } from "@mui/material";
-import { CssVarsProvider } from "@mui/material/styles";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 
 import "@xyflow/react/dist/style.css";
@@ -164,31 +163,19 @@ const AppWrapper = () => {
 
   useEffect(() => {
     // Existing effect for loading metadata
-    loadMetadata().then((data) => {
-      setStatus(data);
-    });
+    loadMetadata()
+      .then((data) => {
+        setStatus(data);
+      })
+      .catch((error) => {
+        console.error("Failed to load metadata:", error);
+        setStatus("error"); // Ensure status is set to error on promise rejection
+      });
   }, []); // Empty dependency array ensures this runs only once on mount
 
-  if (status === "pending") {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh"
-        }}
-      >
-        <CircularProgress />
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return <div>Error loading metadata</div>;
-  }
-
   // Helper to navigate to the newly created workflow
+  // This function seems unused in the current context of AppWrapper's return,
+  // but keeping it in case it's used by other parts or intended for future use.
   const handleWorkflowCreated = (workflowId: string) => {
     window.location.href = `/editor/${workflowId}`;
   };
@@ -196,19 +183,48 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <CssVarsProvider theme={ThemeNodetool}>
-          <ThemeProvider theme={ThemeNodetool}>
-            <CssBaseline />
-            <MenuProvider>
-              <WorkflowManagerProvider queryClient={queryClient}>
-                <KeyboardProvider active={true}>
-                  <RouterProvider router={router} />
-                  <HuggingFaceDownloadDialog />
-                </KeyboardProvider>
-              </WorkflowManagerProvider>
-            </MenuProvider>
-          </ThemeProvider>
-        </CssVarsProvider>
+        <MuiThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <MenuProvider>
+            <WorkflowManagerProvider queryClient={queryClient}>
+              <KeyboardProvider active={true}>
+                {status === "pending" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "100vh"
+                    }}
+                  >
+                    <CircularProgress />
+                  </div>
+                )}
+                {status === "error" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "100vh",
+                      flexDirection: "column"
+                    }}
+                  >
+                    <div>Error loading application metadata.</div>
+                    <div>Please try refreshing the page.</div>
+                  </div>
+                )}
+                {/* Render RouterProvider only when metadata is successfully loaded */}
+                {status !== "pending" && status !== "error" && (
+                  <>
+                    <RouterProvider router={router} />
+                    <HuggingFaceDownloadDialog />
+                  </>
+                )}
+              </KeyboardProvider>
+            </WorkflowManagerProvider>
+          </MenuProvider>{" "}
+        </MuiThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );
