@@ -58,6 +58,18 @@ describe('installer promptForInstallLocation', () => {
     expect(result).toEqual({ location: '/chosen', packages: ['pkg'] });
   });
 
+  it('registers install handler', async () => {
+    (getDefaultInstallLocation as jest.Mock).mockReturnValue('/d');
+    let handler: any;
+    (createIpcMainHandler as jest.Mock).mockImplementation((_c, fn) => { handler = fn; });
+
+    const promise = promptForInstallLocation();
+    await handler({}, { location: '/loc', packages: [] });
+    await promise;
+
+    expect(createIpcMainHandler).toHaveBeenCalledWith('install-to-location', expect.any(Function));
+  });
+
   it('rejects if no active window', async () => {
     (BrowserWindow.getFocusedWindow as jest.Mock).mockReturnValueOnce(null);
 
