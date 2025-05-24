@@ -31,6 +31,32 @@ export function useFileDrop(props: FileDropProps): {
       event.preventDefault();
       event.stopPropagation();
 
+      const assetJSON = event.dataTransfer.getData("asset");
+      if (assetJSON) {
+        try {
+          const asset = JSON.parse(assetJSON) as Asset;
+          const assetType = asset.content_type.split("/")[0];
+          if (
+            props.type === "all" ||
+            assetType === props.type ||
+            (props.type === "document" &&
+              (assetType === "application" || assetType === "text"))
+          ) {
+            props.onChangeAsset?.(asset);
+            props.onChange?.(asset.get_url as string);
+          } else {
+            notificationStore.addNotification({
+              type: "error",
+              alert: true,
+              content: `Invalid file type. Please drop a ${props.type} file.`
+            });
+          }
+        } catch {
+          /* Ignore JSON parse errors */
+        }
+        return;
+      }
+
       // Handle text data transfer
       if (event.dataTransfer.items && !event.dataTransfer.files.length) {
         const items = event.dataTransfer.items;

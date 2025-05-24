@@ -37,6 +37,7 @@ jest.mock('../../../stores/AssetGridStore', () => {
   };
 });
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { assetGridStore } = require('../../../stores/AssetGridStore');
 
 const pressed: Record<string, boolean> = {};
