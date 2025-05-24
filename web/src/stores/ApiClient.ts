@@ -26,14 +26,17 @@ if (typeof window !== "undefined") {
 
 /**
  * Base URL for the backend API.
- * Dynamically sets the URL based on whether the environment is local or production.
- * Uses the current hostname and port 8000 for local development,
- * and a hardcoded production URL otherwise.
- * TODO: Make production URL configurable via environment variables.
+ *
+ * The value is taken from the `VITE_API_URL` environment variable when
+ * available. When running locally without a `.env` file the URL falls back to
+ * the current hostname on port `8000`.
  */
-export const BASE_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL
-  : `${window.location.protocol}//${window.location.hostname}:8000`;
+const defaultLocalUrl =
+  typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    : "http://localhost:8000";
+
+export const BASE_URL = import.meta.env.VITE_API_URL || defaultLocalUrl;
 
 /** WebSocket URL for the prediction worker endpoint. */
 export const WORKER_URL =

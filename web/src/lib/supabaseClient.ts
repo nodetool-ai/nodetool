@@ -1,12 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
-// TODO: Move these to environment variables (.env file and deployment settings)
-const supabaseUrl = "https://zmytgmyiwfmdajmxjbag.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteXRnbXlpd2ZtZGFqbXhqYmFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4NTkyMTQsImV4cCI6MjA2MTQzNTIxNH0.vlsrFP-nQzfeg2pftlKoVejollw_3AK7YI80jRGsSkA";
+/**
+ * Create the Supabase client using credentials from environment variables.
+ * The variables should be provided in a Vite-compatible `.env` file or
+ * through the deployment environment. This keeps sensitive data out of
+ * the repository and allows easy configuration for different deployments.
+ */
+
+// Vite exposes environment variables via `import.meta.env`
+const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL and Anon Key must be provided.");
+  console.warn(
+    "Supabase credentials not found in environment. Using test placeholders."
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl ?? "http://localhost",
+  supabaseAnonKey ?? "public-anon-key"
+);
