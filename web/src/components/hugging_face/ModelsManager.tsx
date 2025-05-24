@@ -1,12 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Dialog, DialogContent } from "@mui/material";
-import React from "react";
+import { Dialog, DialogContent, Button } from "@mui/material";
+import React, { useMemo, useState } from "react";
 // import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
 // import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import ModelList from "./ModelList";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import RecommendedModelsDialog from "./RecommendedModelsDialog";
+import useMetadataStore from "../../stores/MetadataStore";
+import { UnifiedModel } from "../../stores/ApiTypes";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const styles = (theme: any) =>
   css({
@@ -67,6 +71,24 @@ interface ModelsManagerProps {
 }
 
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
+  const [showRecommended, setShowRecommended] = useState(false);
+  const recommended = useMetadataStore((state) => state.recommendedModels);
+  const { startDownload } = useModelDownloadStore();
+
+  const recommendedModels: UnifiedModel[] = useMemo(
+    () =>
+      recommended.map((model) => ({
+        id: model.path ? `${model.repo_id}/${model.path}` : model.repo_id || "",
+        repo_id: model.repo_id || "",
+        name: model.repo_id || "",
+        type: model.type || "hf.model",
+        path: model.path ?? null,
+        allow_patterns: model.allow_patterns ?? undefined,
+        ignore_patterns: model.ignore_patterns ?? undefined
+      })),
+    [recommended]
+  );
+
   return (
     <Dialog
       open={open}
@@ -95,11 +117,22 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
             </div>
           </div> */}
           <div className="existing-models-section">
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button variant="outlined" onClick={() => setShowRecommended(true)}>
+                Recommended Models
+              </Button>
+            </div>
             <div className="models-list-container">
               <ModelList />
             </div>
           </div>
         </div>
+        <RecommendedModelsDialog
+          open={showRecommended}
+          onClose={() => setShowRecommended(false)}
+          recommendedModels={recommendedModels}
+          startDownload={startDownload}
+        />
       </DialogContent>
     </Dialog>
   );
