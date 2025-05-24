@@ -169,9 +169,39 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
         }
       } else if (data.type === "output_update") {
         const output = data as OutputUpdate;
-        set({
-          results: [...get().results, output.value],
-        });
+        const assetTypes = ["image", "audio", "video", "document"];
+        if (assetTypes.includes(output.output_type)) {
+          let value: Uint8Array | undefined;
+          if (typeof output.value === "string") {
+            const binary = atob(output.value);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            value = bytes;
+          } else if (
+            output.value &&
+            typeof output.value === "object" &&
+            "data" in (output.value as any)
+          ) {
+            value = (output.value as { data: Uint8Array }).data;
+          }
+          set({
+            results: [
+              ...get().results,
+              {
+                type: output.output_type,
+                uri: "",
+                data: value,
+              },
+            ],
+          });
+        } else {
+          set({
+            results: [...get().results, output.value],
+          });
+        }
       }
     };
 
