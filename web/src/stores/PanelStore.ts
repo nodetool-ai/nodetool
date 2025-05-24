@@ -116,7 +116,7 @@ export const usePanelStore = create<ResizePanelState>()((set, get) => ({
 
   closePanel: () => {
     set((state) => ({
-      panel: { ...state.panel, panelSize: MIN_DRAG_SIZE }
+      panel: { ...state.panel, panelSize: MIN_DRAG_SIZE, isVisible: false }
     }));
   },
 
