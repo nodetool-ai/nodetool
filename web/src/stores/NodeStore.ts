@@ -304,10 +304,13 @@ export const createNodeStore = (
             get().edges.filter((e) => e.source === nodeId),
           getSelection: () => {
             const nodes = get().nodes.filter((node) => node.selected);
-            const nodeIds = nodes.reduce((acc, node) => {
-              acc[node.id] = true;
-              return acc;
-            }, {} as Record<string, boolean>);
+            const nodeIds = nodes.reduce(
+              (acc, node) => {
+                acc[node.id] = true;
+                return acc;
+              },
+              {} as Record<string, boolean>
+            );
             const edges = get().edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
@@ -588,14 +591,39 @@ export const createNodeStore = (
             if (selectedNodes.length <= 1) {
               selectedNodes = allNodes;
             }
+
+            const getBounds = (nodes: Node<NodeData>[]) => {
+              const minX = Math.min(...nodes.map((n) => n.position.x));
+              const minY = Math.min(...nodes.map((n) => n.position.y));
+              const maxX = Math.max(
+                ...nodes.map(
+                  (n) => n.position.x + (n.measured?.width ?? n.width ?? 100)
+                )
+              );
+              const maxY = Math.max(
+                ...nodes.map(
+                  (n) => n.position.y + (n.measured?.height ?? n.height ?? 100)
+                )
+              );
+              return { minX, minY, maxX, maxY };
+            };
+
+            const originalBounds = getBounds(selectedNodes);
             const layoutedNodes = await autoLayout(edges, selectedNodes);
+            const layoutBounds = getBounds(layoutedNodes);
+
+            const dx = originalBounds.minX - layoutBounds.minX;
+            const dy = originalBounds.minY - layoutBounds.minY;
 
             const updatedNodes = allNodes.map((node) => {
               const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
               if (layoutedNode) {
                 return {
                   ...node,
-                  position: layoutedNode.position
+                  position: {
+                    x: layoutedNode.position.x + dx,
+                    y: layoutedNode.position.y + dy
+                  }
                 };
               }
               return node;
