@@ -299,6 +299,7 @@
 .react-flow.zoomed-out .loop-node .outputs,
 .react-flow.zoomed-out .preview-node-content,
 .react-flow.zoomed-out .model-button,
+.react-flow.zoomed-out .expand-button-container,
 .react-flow.zoomed-out .tool-call-container,
 .react-flow.zoomed-out .node-chunk {
   opacity: 0;
