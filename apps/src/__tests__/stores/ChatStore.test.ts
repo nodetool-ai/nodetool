@@ -1,5 +1,12 @@
 import useChatStore from '../../stores/ChatStore';
 
+const initialState = useChatStore.getState();
+
+// Helper to reset store state between tests
+const resetStore = () => {
+  useChatStore.setState(initialState, true);
+};
+
 describe('ChatStore', () => {
   const initialState = useChatStore.getState();
   beforeEach(() => {
@@ -27,7 +34,7 @@ describe('ChatStore', () => {
   });
 
   test('setSelectedTools updates selectedTools', () => {
-    useChatStore.getState().setSelectedTools(['t1', 't2']);
-    expect(useChatStore.getState().selectedTools).toEqual(['t1', 't2']);
+    useChatStore.getState().setSelectedTools(['tool1', 'tool2']);
+    expect(useChatStore.getState().selectedTools).toEqual(['tool1', 'tool2']);
   });
 });
