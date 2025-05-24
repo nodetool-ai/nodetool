@@ -27,6 +27,7 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     reorderWorkflows,
     updateWorkflow,
     removeWorkflow,
+    saveWorkflow,
     currentWorkflowId,
     createNewWorkflow
   } = useWorkflowManager((state) => ({
@@ -35,6 +36,7 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     removeWorkflow: state.removeWorkflow,
     reorderWorkflows: state.reorderWorkflows,
     updateWorkflow: state.updateWorkflow,
+    saveWorkflow: state.saveWorkflow,
     currentWorkflowId: state.currentWorkflowId,
     createNewWorkflow: state.createNew
   }));
@@ -103,14 +105,16 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
   }, []);
 
   const handleNameChange = useCallback(
-    (workflowId: string, newName: string) => {
+    async (workflowId: string, newName: string) => {
       const workflow = getWorkflow(workflowId);
       if (workflow) {
-        updateWorkflow({ ...workflow, name: newName });
+        const updatedWorkflow = { ...workflow, name: newName };
+        updateWorkflow(updatedWorkflow);
+        await saveWorkflow(updatedWorkflow);
       }
       setEditingWorkflowId(null);
     },
-    [getWorkflow, updateWorkflow]
+    [getWorkflow, updateWorkflow, saveWorkflow]
   );
 
   const handleKeyDown = useCallback(
