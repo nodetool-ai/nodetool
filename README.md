@@ -279,4 +279,4 @@ Refer to the [NodeTool Registry repository](https://github.com/nodetool-ai/nodet
 
 ## 📚 Documentation
 
-The documentation site is built with Jekyll on GitHub Pages. Markdown files live in the `docs/` directory and changes on `main` are deployed automatically.
+The documentation site is built with Jekyll on GitHub Pages. Markdown files live in the `docs/` directory and changes on `main` are deployed automatically. Start with the [Getting Started](docs/getting-started.md) guide and browse our new [Tips and Tricks](docs/tips-and-tricks.md) section for handy workflow shortcuts.
