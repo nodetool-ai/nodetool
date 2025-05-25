@@ -2870,11 +2870,8 @@ export interface components {
              * @default
              */
             role: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
+            /** Name */
+            name?: string | null;
             /** Content */
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
@@ -3638,111 +3635,32 @@ export interface components {
             /** Children */
             children?: components["schemas"]["SVGElement"][];
         };
-        /** SecretsModel */
-        SecretsModel: {
-            /**
-             * Openai Api Key
-             * @description OpenAI API key for accessing GPT models, DALL-E, and other OpenAI services
-             */
-            OPENAI_API_KEY?: string | null;
-            /**
-             * Anthropic Api Key
-             * @description Anthropic API key for accessing Claude models and other Anthropic services
-             */
-            ANTHROPIC_API_KEY?: string | null;
-            /**
-             * Hf Token
-             * @description Hugging Face Token for accessing gated or private models on the Hugging Face Hub
-             */
-            HF_TOKEN?: string | null;
-            /**
-             * Replicate Api Token
-             * @description Replicate API Token for running models on Replicate's cloud infrastructure
-             */
-            REPLICATE_API_TOKEN?: string | null;
-            /**
-             * Aime User
-             * @description Aime user credential for authentication with Aime services
-             */
-            AIME_USER?: string | null;
-            /**
-             * Aime Api Key
-             * @description Aime API key for accessing Aime AI services
-             */
-            AIME_API_KEY?: string | null;
-            /**
-             * Google Mail User
-             * @description Google mail user for email integration features
-             */
-            GOOGLE_MAIL_USER?: string | null;
-            /**
-             * Google App Password
-             * @description Google app password for secure authentication with Google services
-             */
-            GOOGLE_APP_PASSWORD?: string | null;
-            /**
-             * Gemini Api Key
-             * @description Gemini API key for accessing Google's Gemini AI models
-             */
-            GEMINI_API_KEY?: string | null;
-            /**
-             * Elevenlabs Api Key
-             * @description ElevenLabs API key for high-quality text-to-speech services
-             */
-            ELEVENLABS_API_KEY?: string | null;
-            /**
-             * Fal Api Key
-             * @description FAL API key for accessing FAL.ai's serverless AI infrastructure
-             */
-            FAL_API_KEY?: string | null;
-            /**
-             * Serpapi Api Key
-             * @description API key for accessing SerpAPI scraping infrastructure
-             */
-            SERPAPI_API_KEY?: string | null;
-            /**
-             * Browser Url
-             * @description Browser URL for accessing a browser instance
-             */
-            BROWSER_URL?: string | null;
-            /**
-             * Data For Seo Login
-             * @description DataForSEO login for accessing DataForSEO's API
-             */
-            DATA_FOR_SEO_LOGIN?: string | null;
-            /**
-             * Data For Seo Password
-             * @description DataForSEO password for accessing DataForSEO's API
-             */
-            DATA_FOR_SEO_PASSWORD?: string | null;
-        };
-        /** SettingsModel */
-        SettingsModel: {
-            /**
-             * Font Path
-             * @description Location of font folder used by image processing nodes like RenderText. This should point to a directory containing TrueType (.ttf) or OpenType (.otf) fonts. If not specified, the system will use default fonts.
-             */
-            FONT_PATH?: string | null;
-            /**
-             * Comfy Folder
-             * @description Location of ComfyUI folder for integration with ComfyUI models and workflows. Set this to use models from your existing ComfyUI installation. This allows nodetool to access and use models, checkpoints, and other resources from your ComfyUI setup without duplicating files.
-             */
-            COMFY_FOLDER?: string | null;
-            /**
-             * Chroma Path
-             * @description Location of ChromaDB folder for vector database storage. ChromaDB is used to store and retrieve embeddings for semantic search and RAG applications. This can be any folder path - ChromaDB will create and manage the storage automatically. In Docker deployments, this path is mounted as a volume to persist data between container restarts.
-             */
-            CHROMA_PATH?: string | null;
+        /** SettingWithValue */
+        SettingWithValue: {
+            /** Package Name */
+            package_name: string;
+            /** Env Var */
+            env_var: string;
+            /** Group */
+            group: string;
+            /** Description */
+            description: string;
+            /** Is Secret */
+            is_secret: boolean;
+            /** Value */
+            value?: unknown | null;
         };
         /** SettingsResponse */
         SettingsResponse: {
-            settings: components["schemas"]["SettingsModel"];
-            secrets: components["schemas"]["SecretsModel"];
+            /** Settings */
+            settings: components["schemas"]["SettingWithValue"][];
         };
         /** SettingsUpdateRequest */
         SettingsUpdateRequest: {
-            settings: components["schemas"]["SettingsModel"];
-            secrets: components["schemas"]["SecretsModel"];
+            /** Settings */
+            settings: Record<string, never>;
+            /** Secrets */
+            secrets: Record<string, never>;
         };
         /** Sibling */
         Sibling: {
@@ -6179,7 +6097,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SettingsResponse"];
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

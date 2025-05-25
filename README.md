@@ -279,4 +279,4 @@ Refer to the [NodeTool Registry repository](https://github.com/nodetool-ai/nodet
 
 ## 📚 Documentation
 
-The documentation site is built with [Hugo](https://gohugo.io/documentation/) using the [Docsy](https://www.docsy.dev/docs/) theme. Source files live in the [`docs/`](docs/) directory. Updates to `main` are automatically deployed to GitHub Pages via the `hugo.yml` workflow.
+The documentation site is built with Jekyll on GitHub Pages. Markdown files live in the `docs/` directory and changes on `main` are deployed automatically. Start with the [Getting Started](docs/getting-started.md) guide and browse our new [Tips and Tricks](docs/tips-and-tricks.md) section for handy workflow shortcuts.
