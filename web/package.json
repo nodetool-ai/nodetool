@@ -92,6 +92,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
     "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts",
     "typecheck": "tsc --noEmit"
@@ -132,6 +133,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@playwright/test": "^1.42.1"
   }
 }
