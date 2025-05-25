@@ -48,10 +48,11 @@ class BuildError(Exception):
 
 class Build:
     """Manage building and packaging of the Nodetool application."""
+
     def __init__(
         self,
         clean_build: bool = False,
-        python_version: str = "3.10",
+        python_version: str = "3.11",
     ):
         """Initialize Build configuration."""
         platform = system().lower()
