@@ -1,13 +1,13 @@
 # NodeTool Documentation
 
-This directory contains the Hugo site for the NodeTool docs. It uses the [Docsy](https://www.docsy.dev/) theme.
+This directory contains the markdown files for the NodeTool docs. GitHub Pages builds the site automatically using Jekyll.
 
 ## Local development
 
-Install the extended version of [Hugo](https://gohugo.io/documentation/), then run:
+Install [Jekyll](https://jekyllrb.com/) and run:
 
 ```bash
-hugo server -s docs -D
+bundle exec jekyll serve
 ```
 
-The site will be available at <http://localhost:1313>.
+The site will be available at <http://localhost:4000>.
