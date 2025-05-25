@@ -33,6 +33,9 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 2. Open the app and pick a template or start from a blank canvas.
 3. Drag nodes, connect them and click **Run** to see results in real time.
 
+Want more details? Check out our [Getting Started](getting-started.md) guide and the
+[Tips and Tricks](tips-and-tricks.md) page for shortcuts and workflow ideas.
+
 ### Join the community
 
 Share your ideas, ask questions or contribute on GitHub and Discord. We’re excited to see what you build!
