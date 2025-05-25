@@ -28,6 +28,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
 import ExampleGrid from "./components/workflows/ExampleGrid";
+import GlobalChat from "./components/assistants/GlobalChat";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
@@ -110,6 +111,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ExampleGrid />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "chat",
+      element: (
+        <ProtectedRoute>
+          <GlobalChat />
         </ProtectedRoute>
       )
     },
