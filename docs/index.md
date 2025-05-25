@@ -1,7 +1,6 @@
 ---
-title: "NodeTool"
-linkTitle: "Home"
-weight: 1
+layout: default
+title: NodeTool
 ---
 
 NodeTool is a desktop app for building AI-powered workflows with simple drag-and-drop tools. It lets you combine local or cloud models with your everyday apps without writing code.
