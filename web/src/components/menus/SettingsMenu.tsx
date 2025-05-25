@@ -26,7 +26,9 @@ import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isProduction } from "../../stores/ApiClient";
-import RemoteSettingsMenu from "./RemoteSettingsMenu";
+import RemoteSettingsMenu, {
+  getRemoteSidebarSections
+} from "./RemoteSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -466,29 +468,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
-  const remoteSidebarSections = [
-    {
-      category: "API Providers",
-      items: [
-        { id: "openai", label: "OpenAI" },
-        { id: "google", label: "Google" },
-        { id: "anthropic", label: "Anthropic" },
-        { id: "replicate", label: "Replicate" },
-        { id: "huggingface", label: "HuggingFace" },
-        { id: "aime", label: "AIME" },
-        { id: "falai", label: "Fal.ai" },
-        { id: "elevenlabs", label: "Eleven Labs" },
-        { id: "brightdata", label: "Brightdata" }
-      ]
-    },
-    {
-      category: "Folder Settings",
-      items: [
-        { id: "comfyui", label: "ComfyUI" },
-        { id: "chromadb", label: "ChromaDB" }
-      ]
-    }
-  ];
+  const remoteSidebarSections = getRemoteSidebarSections();
 
   if (user && (user as any).auth_token) {
     generalSidebarSections.push({
@@ -548,7 +528,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               aria-label="settings tabs"
             >
               <Tab label="General" id="settings-tab-0" />
-              <Tab label="External Services" id="settings-tab-1" />
+              <Tab label="Settings" id="settings-tab-1" />
             </Tabs>
           </div>
 

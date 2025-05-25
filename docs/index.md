@@ -1,7 +1,6 @@
 ---
-title: "NodeTool"
-linkTitle: "Home"
-weight: 1
+layout: default
+title: NodeTool
 ---
 
 NodeTool is a desktop app for building AI-powered workflows with simple drag-and-drop tools. It lets you combine local or cloud models with your everyday apps without writing code.
@@ -33,6 +32,9 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 1. Download NodeTool for Windows, macOS or Linux.
 2. Open the app and pick a template or start from a blank canvas.
 3. Drag nodes, connect them and click **Run** to see results in real time.
+
+Want more details? Check out our [Getting Started](getting-started.md) guide and the
+[Tips and Tricks](tips-and-tricks.md) page for shortcuts and workflow ideas.
 
 ### Join the community
 
