@@ -281,14 +281,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           label="b"
           isActive={isMarkActive("bold")}
           onToggle={toggleMark}
-          tooltipText="Bold (Ctrl+B)"
+          tooltipText="Make selected text Bold (Ctrl+B)"
         />
         <FormatButton
           format="italic"
           label="i"
           isActive={isMarkActive("italic")}
           onToggle={toggleMark}
-          tooltipText="Italic (Ctrl+I)"
+          tooltipText="Make selected text Italic (Ctrl+I) "
         />
         {/* <FormatButton
           format="size"
@@ -301,7 +301,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           label="+"
           isActive={isMarkActive("size") && Editor.marks(editor)?.size === "+"}
           onToggle={(format, label) => toggleMark(format, label)}
-          tooltipText="Increase Font Size"
+          tooltipText="Increase Font Size for selected text"
         />
       </div>
       <div className="text-editor" onClick={handleClick}>
