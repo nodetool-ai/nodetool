@@ -103,7 +103,7 @@ export { iconMap };
 //   return { SvgIcon };
 // }
 
-interface DataType {
+export interface DataType {
   value: string;
   label: string;
   namespace: string;
