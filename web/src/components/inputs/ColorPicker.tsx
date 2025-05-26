@@ -13,7 +13,7 @@ const ColorCircle = styled.div<{ color: string | null }>`
   height: 24px;
   border-radius: 50%;
   background-color: ${({ color }) => color || "#808080"};
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.75);
 `;
 
 const styles = (theme: any) =>
