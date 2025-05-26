@@ -22,7 +22,8 @@ const FormatButton: React.FC<FormatButtonProps> = ({
     <Tooltip
       title={tooltipText}
       placement="bottom"
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      enterDelay={TOOLTIP_ENTER_DELAY * 4}
+      enterNextDelay={TOOLTIP_ENTER_DELAY * 4}
     >
       <button
         tabIndex={-1}
