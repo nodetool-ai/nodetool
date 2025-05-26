@@ -121,6 +121,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
+  const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -263,12 +264,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   useEffect(() => {
     // Selectable group nodes when control key is pressed
     // (enables the use of the selection rectangle inside group nodes)
-    if (controlKeyPressed) {
+    if (controlKeyPressed || metaKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [updateNode, props.id, controlKeyPressed]);
+  }, [updateNode, props.id, controlKeyPressed, metaKeyPressed]);
 
   return (
     <div
@@ -289,7 +290,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         placement="top"
         enterDelay={TOOLTIP_ENTER_DELAY * 5}
         enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
-        title="Double click to edit title. CTRL click to select node."
+        title="Double click to edit title. Hold CTRL or ⌘ key to select node."
       >
         <div
           className="node-header node-drag-handle"

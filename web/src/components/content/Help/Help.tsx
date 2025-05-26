@@ -221,24 +221,24 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               </Typography>
               <div className="help-item">
                 <Typography>Copy selected Nodes</Typography>
-                <Button>CTRL + C</Button> | <Button>CMD + C</Button>
+                <Button>CTRL + C</Button> | <Button>⌘ + C</Button>
               </div>
               <div className="help-item">
                 <Typography>Paste selected Nodes</Typography>
-                <Button>CTRL + V</Button> | <Button>CMD + V</Button>
+                <Button>CTRL + V</Button> | <Button>⌘ + V</Button>
               </div>
               <div className="help-item">
                 <Typography>Duplicate selected Nodes</Typography>
-                <Button>CTRL + D</Button> | <Button>CMD + D</Button>
+                <Button>CTRL + D</Button> | <Button>⌘ + D</Button>
               </div>
               <div className="help-item">
                 <Typography>History Undo</Typography>
-                <Button>CTRL + Z</Button> | <Button>CMD + Z</Button>
+                <Button>CTRL + Z</Button> | <Button>⌘ + Z</Button>
               </div>
               <div className="help-item">
                 <Typography>History Redo</Typography>
                 <Button>CTRL + SHIFT + Z</Button> |{" "}
-                <Button>CMD + SHIFT + Z</Button>
+                <Button>⌘ + SHIFT + Z</Button>
               </div>
               <div className="help-item">
                 <Typography>Align selected Nodes</Typography>
@@ -246,7 +246,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               </div>
               <div className="help-item">
                 <Typography>Arrange selected Nodes</Typography>
-                <Button>SHIFT + A</Button> | <Button>CMD + A</Button>
+                <Button>SHIFT + A</Button> | <Button>⌘ + A</Button>
               </div>
 
               <div className="help-item">
@@ -303,7 +303,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <div className="help-item">
                 <Typography>Set Default</Typography>
                 <Button>CTRL + RightClick</Button> |{" "}
-                <Button>CMD + RightClick</Button>
+                <Button>⌘ + RightClick</Button>
               </div>
               <div className="help-item">
                 <Typography>Confirm Editing</Typography>
@@ -328,7 +328,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
 
               <div className="help-item">
                 <Typography>Run Workflow</Typography>
-                <Button>CTRL + Enter</Button> | <Button>CMD + Enter</Button>
+                <Button>CTRL + Enter</Button> | <Button>⌘ + Enter</Button>
               </div>
               <div className="help-item">
                 <Typography>Cancel Workflow</Typography>
@@ -345,7 +345,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <div className="help-item">
                 <Typography>Open Command Menu</Typography>
                 <Button className="no-border">ALT + K</Button>
-                <Button className="no-border">CMD + K</Button>
+                <Button className="no-border">⌘ + K</Button>
               </div>
             </TabPanel>
             <TabPanel value={helpIndex} index={1}>
