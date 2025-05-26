@@ -35,6 +35,8 @@ import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
+import useSelect from "../../hooks/nodes/useSelect";
+import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -43,13 +45,13 @@ import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
-import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
+import { DATA_TYPES } from "../../config/data_types";
 declare global {
   interface Window {
     __beforeUnloadListenerAdded?: boolean;
@@ -110,6 +112,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     validateConnection: state.validateConnection,
     findNode: state.findNode
   }));
+
   const { loadingState } = useWorkflowManager((state) => ({
     loadingState: state.getLoadingState(workflowId)
   }));
@@ -127,9 +130,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
+  const { getNode } = useReactFlow();
 
   /* USE STORE */
   const { close: closeSelect } = useSelect();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   /* DEFINE NODE TYPES */
   const nodeTypes = useMetadataStore((state) => state.nodeTypes);
@@ -286,6 +291,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
   const reactFlowInstance = useReactFlow();
 
+  const processedEdges = useProcessedEdges({
+    edges,
+    getNode,
+    dataTypes: DATA_TYPES,
+    getMetadata
+  });
+
   const fitScreen = useCallback(() => {
     if (reactFlowInstance) {
       reactFlowInstance.fitView(fitViewOptions);
@@ -352,7 +364,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         fitView
         fitViewOptions={fitViewOptions}
         nodes={nodes}
-        edges={edges}
+        edges={processedEdges}
         nodeTypes={nodeTypes}
         snapToGrid={true}
         snapGrid={[settings.gridSnap, settings.gridSnap]}
@@ -404,12 +416,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         panActivationKeyCode=""
-        defaultEdgeOptions={{
-          style: { strokeWidth: 2, stroke: "url(#edge-gradient)" }
-        }}
-        // onSelectionChange={onSelectionChange}
-        // edgeTypes={edgeTypes}
-        // onNodeClick={onNodeClick}
         deleteKeyCode={["Delete", "Backspace"]}
       >
         <Background
@@ -427,7 +433,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
-        <EdgeGradientDefinitions />
+        <EdgeGradientDefinitions dataTypes={DATA_TYPES} />
       </ReactFlow>
     </div>
   );
