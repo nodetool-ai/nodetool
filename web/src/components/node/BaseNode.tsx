@@ -324,7 +324,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
-        backgroundColor: hasParent ? parentColor : ThemeNodes.palette.c_node_bg
+        backgroundColor:
+          hasParent && !isLoading ? parentColor : ThemeNodes.palette.c_node_bg
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}
