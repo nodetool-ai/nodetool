@@ -38,7 +38,8 @@ const helpStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      gap: ".1em"
+      gap: ".1em",
+      overflow: "hidden"
     },
 
     ".top": {
@@ -51,8 +52,8 @@ const helpStyles = (theme: any) =>
       borderBottom: `1px solid ${theme.palette.c_gray2}`
     },
     ".content": {
-      height: "100%",
-      padding: "0em 1em"
+      height: "calc(100% - 40px)",
+      padding: "0 1em 2em 1em"
     },
     ".help-tabs": {
       margin: "0 1em 1em 1em",
@@ -85,7 +86,7 @@ const helpStyles = (theme: any) =>
     ".tabpanel": {
       height: "100%",
       padding: "1em 0",
-      fontSize: theme.fontSizeNormal
+      fontSize: "var(--font-size-big)"
     },
     ".tabpanel-content": {
       height: "90%",
@@ -131,7 +132,7 @@ const helpStyles = (theme: any) =>
     },
     ".explanation": {
       marginBottom: "1em",
-      fontSize: theme.fontSizeSmall,
+      fontSize: "var(--font-size-normal)",
       color: theme.palette.c_gray5
     }
   });
