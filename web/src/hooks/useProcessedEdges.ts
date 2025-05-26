@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Edge, Node } from "@xyflow/react";
-import { DataType } from "../config/data_types"; // Removed DATA_TYPES import, will pass dataTypes as prop
-import { NodeMetadata } from "../stores/ApiTypes"; // Assuming NodeMetadata is exported
+import { DataType } from "../config/data_types";
+import { NodeMetadata } from "../stores/ApiTypes";
 
 interface ProcessedEdgesOptions {
   edges: Edge[];
@@ -24,7 +24,6 @@ export function useProcessedEdges({
   getMetadata
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
   return useMemo(() => {
-    const startTime = performance.now();
     const activeGradientKeys = new Set<string>();
 
     const processedResultEdges = edges.map((edge) => {
@@ -99,7 +98,10 @@ export function useProcessedEdges({
       };
     });
 
-    const endTime = performance.now();
     return { processedEdges: processedResultEdges, activeGradientKeys };
+    // `nodes` is a necessary dependency here to ensure correct edge type determination
+    // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
+    // fully populated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, nodes, getNode, dataTypes, getMetadata]);
 }

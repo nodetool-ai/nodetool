@@ -23,20 +23,16 @@ export const generateCSS = (() => {
           stroke-width: 2;
           stroke: ${color};
         }
-        .react-flow__edge .react-flow__edge-default .${slug} .selected .react-flow__edge-path{
           stroke: ${color};
-        }
         .react-flow g.custom-connection-line rect.${slug} {
           stroke-width: 2;
           fill: ${color};
         }
-        .react-flow .react-flow__edge.${slug} .react-flow__edge-path,
-        .react-flow .react-flow__edge.${slug} .react-flow__edge-textwrapper .react-flow__edge-textbg {
-          stroke-width: 2;
-          stroke: ${color};
+        .react-flow .react-flow__edge.${slug} .react-flow__edge-path {
+          stroke-width: 2; 
         }
         .react-flow .react-flow__edge.${slug} .react-flow__edge-textwrapper .react-flow__edge-textbg {
-          fill: ${color};
+          fill: ${color}; 
         }
         .react-flow__edge.${slug} .react-flow__edge-textwrapper .react-flow__edge-text {
           stroke-width: 2;
