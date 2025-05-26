@@ -289,7 +289,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         placement="top"
         enterDelay={TOOLTIP_ENTER_DELAY * 5}
         enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
-        title="Double click to edit title. CTRL click to select."
+        title="Double click to edit title. CTRL click to select node."
       >
         <div
           className="node-header node-drag-handle"
