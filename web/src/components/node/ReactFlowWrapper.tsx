@@ -38,7 +38,7 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 // constants
-import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
+import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -356,7 +356,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onlyRenderVisibleElements={false}
         ref={ref}
         className={
-          zoom <= MIN_ZOOM
+          zoom <= ZOOMED_OUT
             ? "zoomed-out"
             : " " + (connecting ? "is-connecting" : "")
         }
