@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { CustomText } from "./CommentNode";
 import Tooltip from "@mui/material/Tooltip";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface FormatButtonProps {
   format: keyof Omit<CustomText, "text">;
@@ -18,7 +19,11 @@ const FormatButton: React.FC<FormatButtonProps> = ({
   tooltipText
 }) => {
   return (
-    <Tooltip title={tooltipText} placement="bottom">
+    <Tooltip
+      title={tooltipText}
+      placement="bottom"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
       <button
         tabIndex={-1}
         className={`nodrag ${isActive ? "active" : ""}`}
