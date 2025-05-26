@@ -105,9 +105,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       workflowId: null,
       socket: null,
       
-      // Thread state
-      threads: {},
-      currentThreadId: null,
+      // Thread state - ensure default values
+      threads: {} as Record<string, Thread>,
+      currentThreadId: null as string | null,
 
       connect: async (workflowId?: string) => {
     log.info("Connecting to global chat");
@@ -557,9 +557,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
       name: "global-chat-storage",
       // Only persist threads and currentThreadId
       partialize: (state): any => ({
-        threads: state.threads,
-        currentThreadId: state.currentThreadId
-      })
+        threads: state.threads || {},
+        currentThreadId: state.currentThreadId || null
+      }),
+      onRehydrateStorage: () => (state) => {
+        console.log("GlobalChatStore hydrated:", state);
+      }
     }
   )
 );

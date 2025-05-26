@@ -120,6 +120,7 @@ const GlobalChat: React.FC = () => {
   // Get first message text for thread preview
   const getThreadPreview = useCallback(
     (threadId: string) => {
+      if (!threads) return "Loading...";
       const thread = threads[threadId];
       if (!thread || thread.messages.length === 0) {
         return "Empty conversation";
@@ -273,6 +274,22 @@ const GlobalChat: React.FC = () => {
       }
     });
 
+  // Show loading state if store hasn't initialized
+  if (!threads) {
+    return (
+      <Box
+        sx={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        <Typography>Loading chat...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -295,7 +312,7 @@ const GlobalChat: React.FC = () => {
         </Box>
 
         <ul className="thread-list">
-          {Object.keys(threads).length === 0 ? (
+          {!threads || Object.keys(threads).length === 0 ? (
             <li
               style={{
                 padding: "2em",
