@@ -7,14 +7,13 @@ import styled from "@emotion/styled";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { solarizedColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ThemeNodes from "../themes/ThemeNodes";
 
 const ColorCircle = styled.div<{ color: string | null }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background-color: ${({ color }) => color || "#808080"};
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.5);
 `;
 
 const styles = (theme: any) =>
