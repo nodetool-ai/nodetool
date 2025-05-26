@@ -15,19 +15,19 @@ Open NodeTool and sign in with your GitHub account or continue without signing i
 
 ## 3. Create a Workflow
 
-1. Click **New Workflow** and pick an empty canvas or one of the starter templates.
-2. Drag nodes from the sidebar onto the editor canvas.
-3. Connect them together to define the flow of data.
-4. Hit **Run** to see the results in real time.
+1. Click **New Workflow** or click on **Examples** to browse through helpful workflows.
+2. Open the NodeMenu with the **Space Key** or double click the canvas. To find nodes, browse the namespaces on the left or use the search.
+3. Create nodes by either clicking on them or drag them onto the canvas.
+4. Connect them together to define the flow of data.
+5. Hit the **Play Button at the top** or press (<kbd>Ctrl + Enter</kbd> | <kbd>⌘ + Enter</kbd>) to run the workflow.
 
 ## 4. Explore More Features
 
 - **Use local models** for maximum privacy or connect to cloud providers when you need extra power.
 - **Index your own documents** and ask questions about them with Retrieval-Augmented Generation.
 - **Turn workflows into mini apps** to share with teammates or friends.
+- **Open Command Menu** with <kbd>Alt + K</kbd> or <kbd>⌘ + K</kbd> for quick access to most features.
 
 ## 5. Next Steps
 
 Browse the other pages in this documentation to dive deeper. Join our [Discord community](https://discord.gg/26m5xBwe) to share tips and get help.
-
-Have fun building amazing AI workflows! 🚀
