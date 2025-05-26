@@ -253,7 +253,7 @@ const ThemeNodes: Theme = createTheme({
           position: "relative",
           marginBottom: "-3px",
           letterSpacing: "-.02em",
-          wordSpacing: "-.05em",
+          // wordSpacing: "-.05em",
           transform: "translate(0px, 0px) scale(1.0)",
           textTransform: "capitalize",
           transformOrigin: "top left",

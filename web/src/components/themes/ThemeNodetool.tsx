@@ -155,7 +155,7 @@ const ThemeNodetool: Theme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           textTransform: "capitalize",
-          fontSize: theme.fontSizeSmall,
+          fontSize: theme.fontSizeNormal,
           fontWeight: "lighter",
           lineHeight: "1em",
           padding: theme.spacing(0, 0, 2, 0),
