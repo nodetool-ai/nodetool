@@ -10,16 +10,22 @@ interface ProcessedEdgesOptions {
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
 }
 
+interface ProcessedEdgesResult {
+  processedEdges: Edge[];
+  activeGradientKeys: Set<string>;
+}
+
 export function useProcessedEdges({
   edges,
   getNode,
   dataTypes,
   getMetadata
-}: ProcessedEdgesOptions): Edge[] {
+}: ProcessedEdgesOptions): ProcessedEdgesResult {
   return useMemo(() => {
     const startTime = performance.now();
+    const activeGradientKeys = new Set<string>();
 
-    const processed = edges.map((edge) => {
+    const processedResultEdges = edges.map((edge) => {
       const sourceNode = getNode(edge.source);
       const targetNode = getNode(edge.target);
 
@@ -70,10 +76,14 @@ export function useProcessedEdges({
         }
       }
 
-      const strokeStyle =
-        sourceTypeSlug === targetTypeSlug
-          ? sourceColor
-          : `url(#gradient-${sourceTypeSlug}-${targetTypeSlug})`;
+      let strokeStyle;
+      if (sourceTypeSlug === targetTypeSlug) {
+        strokeStyle = sourceColor;
+      } else {
+        const gradientKey = `gradient-${sourceTypeSlug}-${targetTypeSlug}`;
+        strokeStyle = `url(#${gradientKey})`;
+        activeGradientKeys.add(gradientKey);
+      }
 
       return {
         ...edge,
@@ -89,8 +99,10 @@ export function useProcessedEdges({
     console.log(
       `[useProcessedEdges] Edge colors recalculated for ${
         edges.length
-      } edges in ${(endTime - startTime).toFixed(2)} ms`
+      } edges in ${(endTime - startTime).toFixed(
+        2
+      )} ms. Active gradient keys: ${activeGradientKeys.size}`
     );
-    return processed;
+    return { processedEdges: processedResultEdges, activeGradientKeys };
   }, [edges, getNode, dataTypes, getMetadata]);
 }
