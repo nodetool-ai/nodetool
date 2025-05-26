@@ -17,8 +17,8 @@ export const CHAT_HISTORY_AMOUNT = 10;
 
 // EDITOR
 export const DUPLICATE_SPACING = 50;
-export const MIN_ZOOM = 0.38;
-export const MAX_ZOOM = 3.5;
-
+export const MIN_ZOOM = 0.175;
+export const MAX_ZOOM = 4.0;
+export const ZOOMED_OUT = 0.6;
 // MODEL
 export const DEFAULT_MODEL = "qwen3:4b";

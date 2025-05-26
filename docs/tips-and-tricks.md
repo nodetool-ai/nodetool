@@ -3,12 +3,11 @@ layout: default
 title: Tips and Tricks
 ---
 
-Want to level up your NodeTool skills? Here are some handy tricks to supercharge your workflows.
+Here are some tips and tricks for using NodeTool more effectively
 
-- **Keyboard Shortcuts** – Press <kbd>Cmd/Ctrl + P</kbd> to open the command palette and quickly jump between actions.
-- **Clone Nodes** – Hold <kbd>Alt</kbd> while dragging a node to create a copy with the same settings.
-- **Quick Connections** – Drag from an output handle and release on empty space to create a new node preconnected for you.
-- **Dark Mode** – Toggle the theme in the settings menu to give your eyes a rest during late-night hacking sessions.
-- **Workflow Versions** – Use the history panel to rewind and explore previous versions of your workflow.
-
-Share your favorite tips in our community chat. Happy building! ✨
+- **Recommended Models** –
+- **Quick Connections** – Drag from an output handle and release on empty space to open the Connection Menu, allowing you to create commonly used nodes directly. From there, you can also open the Node Menu with filtered nodes that fit your connection type.
+- **Duplicate Nodes** – Select nodes and press <kbd>Ctrl + D</kbd> or <kbd>⌘ + D</kbd> to create copies.
+- **Workflow History** – Use <kbd>Ctrl + Z</kbd> | <kbd>⌘ + Z</kbd> to Undo and <kbd>Ctrl + Shift + Z</kbd> | <kbd>⌘ + Shift + Z</kbd> to Redo changes to your workflow.
+- **Fit to Screen / Focus** - Press <kbd>F</kbd> to fit all nodes to screen, or focus on selected nodes.
+- **Command Menu** – Press <kbd>Alt + K</kbd> or <kbd>⌘ + K</kbd> to open the command palette and quickly jump between actions.
