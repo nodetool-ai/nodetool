@@ -42,6 +42,7 @@ import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
+import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
 import useSelect from "../../hooks/nodes/useSelect";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -403,6 +404,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         panActivationKeyCode=""
+        defaultEdgeOptions={{
+          style: { strokeWidth: 2, stroke: "url(#edge-gradient)" }
+        }}
         // onSelectionChange={onSelectionChange}
         // edgeTypes={edgeTypes}
         // onNodeClick={onNodeClick}
@@ -423,6 +427,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
+        <EdgeGradientDefinitions />
       </ReactFlow>
     </div>
   );
