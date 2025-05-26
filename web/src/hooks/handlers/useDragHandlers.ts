@@ -20,6 +20,7 @@ export default function useDragHandlers() {
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
+  const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<
@@ -71,7 +72,7 @@ export default function useDragHandlers() {
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
-      if (controlKeyPressed) {
+      if (controlKeyPressed || metaKeyPressed) {
         if (node.parentId) {
           removeFromGroup([node]);
         }
@@ -92,7 +93,7 @@ export default function useDragHandlers() {
         setLastParentNode(potentialParent);
       } else {
         setLastParentNode(undefined);
-        if (controlKeyPressed) {
+        if (controlKeyPressed || metaKeyPressed) {
           removeFromGroup([node]);
         }
       }
@@ -100,6 +101,7 @@ export default function useDragHandlers() {
     [
       pause,
       controlKeyPressed,
+      metaKeyPressed,
       removeFromGroup,
       reactFlow,
       setHoveredNodes,
@@ -155,7 +157,7 @@ export default function useDragHandlers() {
         } else {
           setLastParentNode(undefined);
         }
-        if (nodes[0].parentId && controlKeyPressed) {
+        if (nodes[0].parentId && (controlKeyPressed || metaKeyPressed)) {
           nodes.forEach((node) => {
             removeFromGroup([node]);
             setLastParentNode(undefined);
@@ -169,6 +171,7 @@ export default function useDragHandlers() {
       isGroup,
       findNode,
       controlKeyPressed,
+      metaKeyPressed,
       removeFromGroup
     ]
   );
