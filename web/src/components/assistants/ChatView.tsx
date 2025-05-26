@@ -7,6 +7,7 @@ import { LinearProgress, Typography } from "@mui/material";
 import { Button, TextareaAutosize, Tooltip } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
+import ToolsSelector from "./ToolsSelector";
 
 // store
 import {
@@ -31,7 +32,8 @@ const styles = (theme: any) =>
       width: "100%",
       display: "flex",
       flexGrow: 1,
-      flexDirection: "column"
+      flexDirection: "column",
+      padding: "1em"
     },
     ".messages": {
       width: "100%",
@@ -227,6 +229,8 @@ type ChatViewProps = {
   model?: string;
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
+  selectedTools?: string[];
+  onToolsChange?: (tools: string[]) => void;
 };
 export const Progress = ({
   progress,
@@ -282,7 +286,9 @@ const ChatView = ({
   messages,
   model,
   sendMessage,
-  progressMessage
+  progressMessage,
+  selectedTools = [],
+  onToolsChange
 }: ChatViewProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
@@ -364,14 +370,15 @@ const ChatView = ({
           name: "",
           role: "user",
           model: "help:" + model,
-          content: [...content, ...fileContents]
+          content: [...content, ...fileContents],
+          tools: selectedTools.length > 0 ? selectedTools : undefined
         });
         setDroppedFiles([]);
       } catch (error) {
         console.error("Error sending message:", error);
       }
     }
-  }, [status, prompt, sendMessage, droppedFiles, model]);
+  }, [status, prompt, sendMessage, droppedFiles, model, selectedTools]);
 
   const scrollToBottom = useCallback(() => {
     if (messagesListRef.current) {
@@ -665,6 +672,19 @@ const ChatView = ({
       </ul>
 
       <div className="chat-controls">
+        {onToolsChange && (
+          <div
+            css={css`
+              padding: 0 1em;
+              margin-bottom: 0.5em;
+            `}
+          >
+            <ToolsSelector
+              value={selectedTools}
+              onChange={onToolsChange}
+            />
+          </div>
+        )}
         <div
           className={`compose-message ${isDragging ? "dragging" : ""}`}
           onDragOver={handleDragOver}
