@@ -2,7 +2,7 @@ build/
 dist/
 scripts/
 node_modules/
-docs/
+# docs/
 examples/
 src/comfy/
 src/comfy_custom_nodes/

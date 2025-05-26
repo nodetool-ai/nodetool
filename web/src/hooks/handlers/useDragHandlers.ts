@@ -25,6 +25,7 @@ export default function useDragHandlers() {
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
+  const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<
@@ -86,17 +87,14 @@ export default function useDragHandlers() {
       }
 
       let wasUngroupedByControlKey = false;
-      // Control-key based ungrouping
-      if (node.parentId && controlKeyPressed) {
+      // Control-key or Meta-key based ungrouping
+      if (node.parentId && (controlKeyPressed || metaKeyPressed)) {
         removeFromGroup([node]);
         wasUngroupedByControlKey = true;
       }
 
-      // if (draggedNodes.size === 0) {
       setDraggedNodes(new Set([node]));
-      // }
 
-      // Intersection logic conditional on *control key* ungrouping
       if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
         setHoveredNodes([]);
@@ -118,6 +116,7 @@ export default function useDragHandlers() {
     [
       pause,
       controlKeyPressed,
+      metaKeyPressed,
       removeFromGroup,
       reactFlow,
       setHoveredNodes,
@@ -170,8 +169,11 @@ export default function useDragHandlers() {
 
       let wasUngroupedByControlKey = false;
 
-      // Control-key based ungrouping for selection
-      if (parentedNodesForSpeedCheck.length > 0 && controlKeyPressed) {
+      // Control-key or Meta-key based ungrouping for selection
+      if (
+        parentedNodesForSpeedCheck.length > 0 &&
+        (controlKeyPressed || metaKeyPressed)
+      ) {
         removeFromGroup(parentedNodesForSpeedCheck); // removeFromGroup is idempotent
         wasUngroupedByControlKey = true;
       }
@@ -203,6 +205,7 @@ export default function useDragHandlers() {
       isGroup,
       findNode,
       controlKeyPressed,
+      metaKeyPressed,
       removeFromGroup
     ]
   );
@@ -223,7 +226,7 @@ export default function useDragHandlers() {
       setDraggedNodes(new Set());
       setHoveredNodes([]);
       setLastParentNode(undefined);
-      resetWiggleDetection(); // Reset wiggle detection when drag ends
+      resetWiggleDetection();
     },
     [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
