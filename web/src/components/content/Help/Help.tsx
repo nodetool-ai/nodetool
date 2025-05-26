@@ -1,11 +1,26 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
+import { Typography, Button, Tabs, Tab, Box, TextField } from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useState } from "react";
+
+interface HelpItem {
+  text: string;
+  buttons?: string[];
+  isButtonBorderless?: boolean[];
+  details?: string;
+}
+
+interface HelpItemGroup {
+  category?: string;
+  subCategory?: string;
+  explanation?: string;
+  items?: HelpItem[];
+}
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -38,7 +53,8 @@ const helpStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      gap: ".1em"
+      gap: ".1em",
+      overflow: "hidden"
     },
 
     ".top": {
@@ -51,8 +67,8 @@ const helpStyles = (theme: any) =>
       borderBottom: `1px solid ${theme.palette.c_gray2}`
     },
     ".content": {
-      height: "100%",
-      padding: "0em 1em"
+      height: "calc(100% - 40px)",
+      padding: "0 1em 2em 1em"
     },
     ".help-tabs": {
       margin: "0 1em 1em 1em",
@@ -83,12 +99,12 @@ const helpStyles = (theme: any) =>
       }
     },
     ".tabpanel": {
-      height: "100%",
+      height: "calc(100% - 40px)",
       padding: "1em 0",
-      fontSize: theme.fontSizeNormal
+      fontSize: "var(--font-size-big)"
     },
     ".tabpanel-content": {
-      height: "90%",
+      height: "100%",
       overflowY: "auto",
       "&::-webkit-scrollbar": {
         width: "8px"
@@ -131,7 +147,7 @@ const helpStyles = (theme: any) =>
     },
     ".explanation": {
       marginBottom: "1em",
-      fontSize: theme.fontSizeSmall,
+      fontSize: "var(--font-size-normal)",
       color: theme.palette.c_gray5
     }
   });
@@ -156,6 +172,131 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setHelpIndex(newValue);
   };
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value.toLowerCase());
+  };
+
+  const helpItems: HelpItemGroup[] = [
+    {
+      category: "Nodes",
+      subCategory: "Create Nodes",
+      items: [
+        {
+          text: "Open NodeMenu",
+          buttons: ["Double click on canvas", "SPACE"],
+          isButtonBorderless: [true, true]
+        },
+        {
+          text: "Search in NodeMenu",
+          details: "Start typing anywhere while the NodeMenu is opened"
+        },
+        { text: "Connection Menu", details: "End a connection on the canvas" },
+        {
+          text: "Quick Asset Node",
+          details:
+            "Drop any asset from the Asset Menu or external File Manager onto the Canvas"
+        }
+      ]
+    },
+    {
+      category: "Nodes",
+      subCategory: "Edit Nodes",
+      items: [
+        { text: "Copy selected Nodes", buttons: ["CTRL + C", "⌘ + C"] },
+        { text: "Paste selected Nodes", buttons: ["CTRL + V", "⌘ + V"] },
+        { text: "Duplicate selected Nodes", buttons: ["CTRL + D", "⌘ + D"] },
+        { text: "History Undo", buttons: ["CTRL + Z", "⌘ + Z"] },
+        {
+          text: "History Redo",
+          buttons: ["CTRL + SHIFT + Z", "⌘ + SHIFT + Z"]
+        },
+        { text: "Align selected Nodes", buttons: ["A"] },
+        { text: "Arrange selected Nodes", buttons: ["SHIFT + A", "⌘ + A"] },
+        { text: "Delete Node", buttons: ["BACKSPACE", "DELETE"] },
+        {
+          text: "Select multiple Nodes",
+          details:
+            "Drag area with SHIFT + Left Click (default)\nDrag area with Left Click if using RMB for panning (configurable in settings)"
+        },
+        { text: "Fit Screen (Focus all Nodes)", buttons: ["F"] },
+        { text: "Focus selected Nodes", buttons: ["F"] }
+      ]
+    },
+    {
+      category: "Nodes",
+      subCategory: "Edit Node Parameters",
+      items: [
+        {
+          text: "Drag Number",
+          buttons: ["Click + Drag Horizontal"],
+          isButtonBorderless: [true],
+          details:
+            "hold SHIFT for FINE adjustment\nhold CTRL for FAST adjustment\nhold SHIFT + CTRL for FASTER adjustment"
+        },
+        {
+          text: "Edit Number",
+          details: "Click a number property and enter a value"
+        },
+        {
+          text: "Set Default",
+          buttons: ["CTRL + RightClick", "⌘ + RightClick"]
+        },
+        {
+          text: "Confirm Editing",
+          buttons: ["Enter", "Click anywhere outside"]
+        },
+        { text: "Cancel Editing", buttons: ["ESC"] }
+      ]
+    },
+    {
+      category: "Workflows",
+      explanation:
+        "Control starting and stopping of workflows with shortcuts instead of the center menu.\nStopping a workflow may take a few seconds, depending on the task.",
+      items: [
+        { text: "Run Workflow", buttons: ["CTRL + Enter", "⌘ + Enter"] },
+        { text: "Cancel Workflow", buttons: ["ESC"] }
+      ]
+    },
+    {
+      category: "Command Menu",
+      explanation:
+        "The command menu provides quick keyboard access to most features.",
+      items: [
+        {
+          text: "Open Command Menu",
+          buttons: ["ALT + K", "⌘ + K"],
+          isButtonBorderless: [true, true]
+        }
+      ]
+    }
+  ];
+
+  const filteredHelpItems = helpItems
+    .map((group) => {
+      if (!group.items) return group;
+      const filtered = group.items.filter(
+        (item) =>
+          item.text.toLowerCase().includes(searchTerm) ||
+          (item.buttons &&
+            item.buttons.some((btn) =>
+              btn.toLowerCase().includes(searchTerm)
+            )) ||
+          (item.details && item.details.toLowerCase().includes(searchTerm))
+      );
+      if (filtered.length > 0) {
+        return { ...group, items: filtered };
+      }
+      if (
+        group.category?.toLowerCase().includes(searchTerm) ||
+        group.subCategory?.toLowerCase().includes(searchTerm)
+      ) {
+        return group;
+      }
+      return null;
+    })
+    .filter(Boolean as unknown as <T>(value: T | null) => value is T);
 
   return (
     <>
@@ -189,164 +330,137 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           </Tabs>
           <div className="content">
             <TabPanel value={helpIndex} index={0}>
-              <Typography variant="h2" color="#999">
-                Nodes
-              </Typography>
-              <Typography variant="h5" color="#999">
-                Create Nodes
-              </Typography>
-              <div className="help-item">
-                <Typography>Open NodeMenu</Typography>
-                <Button className="no-border">
-                  Double click on canvas
-                </Button> OR <Button className="no-border">SPACE</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Search in NodeMenu</Typography>
-                Start typing anywhere while the NodeMenu is opened
-                <br />
-              </div>
-
-              <div className="help-item">
-                <Typography>Connection Menu</Typography>
-                End a connection on the canvas
-              </div>
-              <div className="help-item">
-                <Typography>Quick Asset Node</Typography>
-                Drop any asset from the Asset Menu or external File Manager onto
-                the Canvas
-              </div>
-              <Typography variant="h5" color="#999">
-                Edit Nodes
-              </Typography>
-              <div className="help-item">
-                <Typography>Copy selected Nodes</Typography>
-                <Button>CTRL + C</Button> | <Button>CMD + C</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Paste selected Nodes</Typography>
-                <Button>CTRL + V</Button> | <Button>CMD + V</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Duplicate selected Nodes</Typography>
-                <Button>CTRL + D</Button> | <Button>CMD + D</Button>
-              </div>
-              <div className="help-item">
-                <Typography>History Undo</Typography>
-                <Button>CTRL + Z</Button> | <Button>CMD + Z</Button>
-              </div>
-              <div className="help-item">
-                <Typography>History Redo</Typography>
-                <Button>CTRL + SHIFT + Z</Button> |{" "}
-                <Button>CMD + SHIFT + Z</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Align selected Nodes</Typography>
-                <Button>A</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Arrange selected Nodes</Typography>
-                <Button>SHIFT + A</Button> | <Button>CMD + A</Button>
-              </div>
-
-              <div className="help-item">
-                <Typography>Delete Node</Typography>
-                <Button>BACKSPACE</Button> OR <Button>DELETE</Button>
-              </div>
-
-              <div className="help-item">
-                <Typography>Select multiple Nodes</Typography>
-                Drag area with SHIFT + Left Click (default)
-                <br />
-                Drag area with Left Click if using RMB for panning (configurable
-                in settings)
-              </div>
-
-              <div className="help-item">
-                <Typography>Fit Screen (Focus all Nodes)</Typography>
-                <Button>F</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Focus selected Nodes</Typography>
-                <Button>F</Button>
-              </div>
-
-              <Typography variant="h5" color="#999">
-                Edit Node Parameters
-              </Typography>
-              <div className="help-item">
-                <Typography>Drag Number</Typography>
-                <Button className="no-border">Click + Drag Horizontal</Button>
-                <Typography
-                  variant="body2"
-                  // color="#999"
-                  style={{
-                    border: "0",
-                    marginLeft: ".5em",
-                    color: ThemeNodetool.palette.c_gray6,
-                    fontSize: ThemeNodetool.fontSizeSmaller
+              <>
+                <TextField
+                  className="help-search"
+                  label="SEARCH HELP"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  onChange={handleSearchChange}
+                  sx={{
+                    marginTop: "0.5em",
+                    marginBottom: "1em",
+                    "& label": {
+                      top: "-0.5em",
+                      wordSpacing: "0.1em"
+                    },
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: ThemeNodetool.palette.c_gray1,
+                      borderRadius: "4px",
+                      "& input": {
+                        color: ThemeNodetool.palette.c_white
+                      },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: ThemeNodetool.palette.c_gray3
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: ThemeNodetool.palette.c_gray4
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: ThemeNodetool.palette.c_hl1
+                      }
+                    },
+                    "& .MuiInputLabel-outlined": {
+                      color: ThemeNodetool.palette.c_gray5,
+                      "&.Mui-focused": {
+                        color: ThemeNodetool.palette.c_hl1
+                      }
+                    }
                   }}
-                >
-                  hold SHIFT for FINE adjustment
-                  <br />
-                  hold CTRL for FAST adjustment
-                  <br />
-                  hold SHIFT + CTRL for FASTER adjustment
-                  <br />
-                </Typography>
-              </div>
-
-              <div className="help-item">
-                <Typography>Edit Number</Typography>
-                Click a number property and enter a value
-              </div>
-              <div className="help-item">
-                <Typography>Set Default</Typography>
-                <Button>CTRL + RightClick</Button> |{" "}
-                <Button>CMD + RightClick</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Confirm Editing</Typography>
-                <Button>Enter</Button> OR{" "}
-                <Button>Click anywhere outside</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Cancel Editing</Typography>
-                <Button>ESC</Button>
-              </div>
-
-              <Typography variant="h2" color="#999">
-                Workflows
-              </Typography>
-              <Typography className="explanation">
-                Control starting and stopping of workflows with shortcuts
-                instead of the center menu.
-                <br />
-                Stopping a workflow may take a few seconds, depending on the
-                task.
-              </Typography>
-
-              <div className="help-item">
-                <Typography>Run Workflow</Typography>
-                <Button>CTRL + Enter</Button> | <Button>CMD + Enter</Button>
-              </div>
-              <div className="help-item">
-                <Typography>Cancel Workflow</Typography>
-                <Button>ESC</Button>
-              </div>
-
-              <Typography variant="h2" color="#999">
-                Command Menu
-              </Typography>
-              <Typography className="explanation">
-                The command menu provides quick keyboard access to most
-                features.
-              </Typography>
-              <div className="help-item">
-                <Typography>Open Command Menu</Typography>
-                <Button className="no-border">ALT + K</Button>
-                <Button className="no-border">CMD + K</Button>
-              </div>
+                />
+                {filteredHelpItems.map(
+                  (group, groupIndex) =>
+                    group && (
+                      <div key={groupIndex}>
+                        {group.category &&
+                          !filteredHelpItems.some(
+                            (fg) =>
+                              fg &&
+                              fg.items &&
+                              fg.items.length > 0 &&
+                              fg.category === group.category &&
+                              fg.subCategory !== group.subCategory
+                          ) && (
+                            <Typography variant="h2" color="#999">
+                              {group.category}
+                            </Typography>
+                          )}
+                        {group.subCategory && (
+                          <Typography variant="h5" color="#999">
+                            {group.subCategory}
+                          </Typography>
+                        )}
+                        {group.explanation && (
+                          <Typography className="explanation">
+                            {group.explanation
+                              .split("\n")
+                              .map((line: string, i: number) => (
+                                <span key={i}>
+                                  {line}
+                                  <br />
+                                </span>
+                              ))}
+                          </Typography>
+                        )}
+                        {group.items &&
+                          group.items.map((item, itemIndex) => (
+                            <div className="help-item" key={itemIndex}>
+                              <Typography>{item.text}</Typography>
+                              {item.buttons &&
+                                item.buttons.map((buttonText, btnIndex) => (
+                                  <Button
+                                    key={btnIndex}
+                                    className={
+                                      item.isButtonBorderless?.[btnIndex]
+                                        ? "no-border"
+                                        : ""
+                                    }
+                                  >
+                                    {buttonText}
+                                  </Button>
+                                ))}
+                              {item.details &&
+                                !item.buttons &&
+                                item.details
+                                  .split("\n")
+                                  .map((line: string, i: number) => (
+                                    <span key={i}>
+                                      {line}
+                                      <br />
+                                    </span>
+                                  ))}
+                              {item.details && item.buttons && (
+                                <Typography
+                                  variant="body2"
+                                  style={{
+                                    border: "0",
+                                    marginLeft: ".5em",
+                                    color: ThemeNodetool.palette.c_gray6,
+                                    fontSize: ThemeNodetool.fontSizeSmaller
+                                  }}
+                                >
+                                  {item.details
+                                    .split("\n")
+                                    .map((line: string, i: number) => (
+                                      <span key={i}>
+                                        {line}
+                                        <br />
+                                      </span>
+                                    ))}
+                                </Typography>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )
+                )}
+                {filteredHelpItems.length === 0 && searchTerm && (
+                  <Typography>
+                    No results found for &quot;{searchTerm}&quot;
+                  </Typography>
+                )}
+              </>
             </TabPanel>
             <TabPanel value={helpIndex} index={1}>
               <DataTypesList />

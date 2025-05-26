@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Edge, Node } from "@xyflow/react";
-import { DataType } from "../config/data_types"; // Removed DATA_TYPES import, will pass dataTypes as prop
-import { NodeMetadata } from "../stores/ApiTypes"; // Assuming NodeMetadata is exported
+import { DataType } from "../config/data_types";
+import { NodeMetadata } from "../stores/ApiTypes";
 
 interface ProcessedEdgesOptions {
   edges: Edge[];
+  nodes: Node[];
   getNode: (id: string) => Node | undefined;
   dataTypes: DataType[];
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
@@ -17,12 +18,12 @@ interface ProcessedEdgesResult {
 
 export function useProcessedEdges({
   edges,
+  nodes,
   getNode,
   dataTypes,
   getMetadata
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
   return useMemo(() => {
-    const startTime = performance.now();
     const activeGradientKeys = new Set<string>();
 
     const processedResultEdges = edges.map((edge) => {
@@ -34,6 +35,7 @@ export function useProcessedEdges({
         dataTypes.find((dt) => dt.slug === "any")?.color || "#888";
       let targetTypeSlug = "any";
 
+      // --- Source Type Detection ---
       if (sourceNode && sourceNode.type && edge.sourceHandle) {
         const sourceMetadata = getMetadata(sourceNode.type);
         if (sourceMetadata && sourceMetadata.outputs) {
@@ -41,11 +43,12 @@ export function useProcessedEdges({
             (o) => o.name === edge.sourceHandle
           );
           if (outputInfo && outputInfo.type && outputInfo.type.type) {
+            const typeString = outputInfo.type.type;
             const typeInfoFromDataTypes = dataTypes.find(
               (dt) =>
-                dt.value === outputInfo.type.type ||
-                dt.name === outputInfo.type.type ||
-                dt.slug === outputInfo.type.type
+                dt.value === typeString ||
+                dt.name === typeString ||
+                dt.slug === typeString
             );
             if (typeInfoFromDataTypes) {
               sourceTypeSlug = typeInfoFromDataTypes.slug;
@@ -55,6 +58,7 @@ export function useProcessedEdges({
         }
       }
 
+      // --- Target Type Detection ---
       if (targetNode && targetNode.type && edge.targetHandle) {
         const targetMetadata = getMetadata(targetNode.type);
         if (targetMetadata && targetMetadata.properties) {
@@ -62,12 +66,12 @@ export function useProcessedEdges({
             (p) => p.name === edge.targetHandle
           );
           if (inputInfo && inputInfo.type && inputInfo.type.type) {
-            const targetTypeString = inputInfo.type.type;
+            const typeString = inputInfo.type.type;
             const typeInfoFromDataTypes = dataTypes.find(
               (dt) =>
-                dt.value === targetTypeString ||
-                dt.name === targetTypeString ||
-                dt.slug === targetTypeString
+                dt.value === typeString ||
+                dt.name === typeString ||
+                dt.slug === typeString
             );
             if (typeInfoFromDataTypes) {
               targetTypeSlug = typeInfoFromDataTypes.slug;
@@ -75,7 +79,6 @@ export function useProcessedEdges({
           }
         }
       }
-
       let strokeStyle;
       if (sourceTypeSlug === targetTypeSlug) {
         strokeStyle = sourceColor;
@@ -95,14 +98,10 @@ export function useProcessedEdges({
       };
     });
 
-    const endTime = performance.now();
-    console.log(
-      `[useProcessedEdges] Edge colors recalculated for ${
-        edges.length
-      } edges in ${(endTime - startTime).toFixed(
-        2
-      )} ms. Active gradient keys: ${activeGradientKeys.size}`
-    );
     return { processedEdges: processedResultEdges, activeGradientKeys };
-  }, [edges, getNode, dataTypes, getMetadata]);
+    // `nodes` is a necessary dependency here to ensure correct edge type determination
+    // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
+    // fully populated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edges, nodes, getNode, dataTypes, getMetadata]);
 }
