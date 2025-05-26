@@ -293,6 +293,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
+    nodes,
     getNode,
     dataTypes: DATA_TYPES,
     getMetadata
