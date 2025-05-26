@@ -48,6 +48,7 @@ import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDown
 import { MenuProvider } from "./providers/MenuProvider";
 
 import log from "loglevel";
+import GlobalChat from "./components/assistants/GlobalChat";
 
 (window as any).log = log;
 
@@ -92,6 +93,14 @@ function getRoutes() {
     {
       path: "/login",
       element: <Login />
+    },
+    {
+      path: "/chat",
+      element: (
+        <ProtectedRoute>
+          <GlobalChat />
+        </ProtectedRoute>
+      )
     },
     {
       path: "/editor",
