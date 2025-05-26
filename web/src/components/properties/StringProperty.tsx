@@ -54,7 +54,7 @@ const StringProperty = ({
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           onFocus={handleFocus}
-          className="nodrag"
+          className="nodrag nowheel"
           style={{
             width: "100%",
             minHeight: "48px",
