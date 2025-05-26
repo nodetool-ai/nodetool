@@ -291,12 +291,16 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
   const reactFlowInstance = useReactFlow();
 
-  const processedEdges = useProcessedEdges({
+  const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     getNode,
     dataTypes: DATA_TYPES,
     getMetadata
   });
+  const activeGradientKeysArray = useMemo(
+    () => Array.from(activeGradientKeys),
+    [activeGradientKeys]
+  );
 
   const fitScreen = useCallback(() => {
     if (reactFlowInstance) {
@@ -433,7 +437,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         <AxisMarker />
         <ContextMenus />
         <ConnectableNodes />
-        <EdgeGradientDefinitions dataTypes={DATA_TYPES} />
+        <EdgeGradientDefinitions
+          dataTypes={DATA_TYPES}
+          activeGradientKeys={activeGradientKeysArray}
+        />
       </ReactFlow>
     </div>
   );
