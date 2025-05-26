@@ -23,7 +23,6 @@ export const generateCSS = (() => {
           stroke-width: 2;
           stroke: ${color};
         }
-          stroke: ${color};
         .react-flow g.custom-connection-line rect.${slug} {
           stroke-width: 2;
           fill: ${color};
