@@ -1,6 +1,11 @@
 import { useCallback, useState, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { getMousePosition } from "../../utils/MousePosition";
+import {
+  getMousePosition,
+  addWiggleMovement,
+  isWiggling,
+  resetWiggleDetection
+} from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
@@ -64,36 +69,49 @@ export default function useDragHandlers() {
   );
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback((_event: any) => {
+  const onNodeDragStart = useCallback((event: any) => {
     setLastParentNode(undefined);
+    resetWiggleDetection(); // Reset wiggle detection for new drag
   }, []);
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node<NodeData>) => {
-      if (controlKeyPressed) {
-        if (node.parentId) {
-          removeFromGroup([node]);
-        }
-      }
-      if (draggedNodes.size === 0) {
-        pause(); // Pause if starting a single node drag
-        setDraggedNodes(new Set([node]));
+      pause();
+      addWiggleMovement(event.clientX, event.clientY);
+
+      // Wiggle ungrouping (works for both single nodes and selections)
+      if (node.parentId && isWiggling()) {
+        removeFromGroup([node]);
       }
 
-      // Find potential parent based on intersection
-      const intersections = reactFlow
-        .getIntersectingNodes(node)
-        .filter((n) => isGroup(n as Node<NodeData>))
-        .map((n) => n.id);
-      setHoveredNodes(intersections);
-      if (intersections.length > 0) {
-        const potentialParent = findNode(intersections[0]);
-        setLastParentNode(potentialParent);
-      } else {
+      let wasUngroupedByControlKey = false;
+      // Control-key based ungrouping
+      if (node.parentId && controlKeyPressed) {
+        removeFromGroup([node]);
+        wasUngroupedByControlKey = true;
+      }
+
+      // if (draggedNodes.size === 0) {
+      setDraggedNodes(new Set([node]));
+      // }
+
+      // Intersection logic conditional on *control key* ungrouping
+      if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
-        if (controlKeyPressed) {
-          removeFromGroup([node]);
+        setHoveredNodes([]);
+      } else {
+        // Find potential parent based on intersection
+        const intersections = reactFlow
+          .getIntersectingNodes(node)
+          .filter((n) => isGroup(n as Node<NodeData>))
+          .map((n) => n.id);
+        setHoveredNodes(intersections);
+        if (intersections.length > 0) {
+          const potentialParent = findNode(intersections[0]);
+          setLastParentNode(potentialParent);
+        } else {
+          setLastParentNode(undefined);
         }
       }
     },
@@ -104,9 +122,7 @@ export default function useDragHandlers() {
       reactFlow,
       setHoveredNodes,
       isGroup,
-      findNode,
-      draggedNodes,
-      setDraggedNodes
+      findNode
     ]
   );
 
@@ -121,19 +137,20 @@ export default function useDragHandlers() {
       resume(); // Resume history
       setDraggedNodes(new Set());
       setHoveredNodes([]);
-      setLastParentNode(undefined); // Clear parent after drag
+      setLastParentNode(undefined);
+      resetWiggleDetection();
     },
     [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
 
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
-    (_event: any, nodes: Node<NodeData>[]) => {
+    (event: any, nodes: Node<NodeData>[]) => {
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
-      // Pause history tracking at the start of selection drag
-      pause();
+      pause(); // pause history
       setDraggedNodes(new Set(nodes));
+      resetWiggleDetection();
     },
     [pause, setDraggedNodes]
   );
@@ -141,25 +158,42 @@ export default function useDragHandlers() {
   /* SELECTION DRAG */
   const onSelectionDrag = useCallback(
     (event: MouseEvent, nodes: Node<NodeData>[]) => {
-      // Find potential parent based on the position of the *first* node in selection
-      // (This might need refinement if selection spans multiple groups)
-      if (nodes.length > 0) {
-        const intersections = reactFlow
-          .getIntersectingNodes(nodes[0]) // Check based on first node
-          .filter((n) => isGroup(n as Node<NodeData>))
-          .map((n) => n.id);
-        setHoveredNodes(intersections); // Highlight intersected groups
-        if (intersections.length > 0) {
-          const potentialParent = findNode(intersections[0]);
-          setLastParentNode(potentialParent);
-        } else {
-          setLastParentNode(undefined);
-        }
-        if (nodes[0].parentId && controlKeyPressed) {
-          nodes.forEach((node) => {
-            removeFromGroup([node]);
+      // Add movement to wiggle detection
+      addWiggleMovement(event.clientX, event.clientY);
+
+      const parentedNodesForSpeedCheck = nodes.filter((n) => n.parentId);
+
+      // Check if wiggling and ungroup if so
+      if (parentedNodesForSpeedCheck.length > 0 && isWiggling()) {
+        removeFromGroup(parentedNodesForSpeedCheck);
+      }
+
+      let wasUngroupedByControlKey = false;
+
+      // Control-key based ungrouping for selection
+      if (parentedNodesForSpeedCheck.length > 0 && controlKeyPressed) {
+        removeFromGroup(parentedNodesForSpeedCheck); // removeFromGroup is idempotent
+        wasUngroupedByControlKey = true;
+      }
+
+      // Intersection logic conditional on *control key* ungrouping
+      if (wasUngroupedByControlKey) {
+        setLastParentNode(undefined);
+        setHoveredNodes([]);
+      } else {
+        // Find potential parent based on the position of the *first* node in selection
+        if (nodes.length > 0) {
+          const intersections = reactFlow
+            .getIntersectingNodes(nodes[0]) // Check based on first node
+            .filter((n) => isGroup(n as Node<NodeData>))
+            .map((n) => n.id);
+          setHoveredNodes(intersections); // Highlight intersected groups
+          if (intersections.length > 0) {
+            const potentialParent = findNode(intersections[0]);
+            setLastParentNode(potentialParent);
+          } else {
             setLastParentNode(undefined);
-          });
+          }
         }
       }
     },
@@ -188,7 +222,8 @@ export default function useDragHandlers() {
       resume(); // Resume history
       setDraggedNodes(new Set());
       setHoveredNodes([]);
-      setLastParentNode(undefined); // Clear parent after drag
+      setLastParentNode(undefined);
+      resetWiggleDetection(); // Reset wiggle detection when drag ends
     },
     [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
