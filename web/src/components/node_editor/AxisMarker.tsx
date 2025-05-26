@@ -19,7 +19,7 @@ const AxisMarker: React.FC = () => {
 
   const lineStyle: React.CSSProperties = {
     position: "absolute",
-    backgroundColor: ThemeNodes.palette.c_editor_axis_color
+    backgroundColor: "var(--palette-c_editor_axis_color)"
   };
 
   return (
