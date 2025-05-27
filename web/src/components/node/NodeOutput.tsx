@@ -77,8 +77,8 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
 
   return (
     <Tooltip
+      TransitionComponent={Zoom}
       slotProps={{
-        transition: Zoom,
         tooltip: {
           className: "tooltip-handle",
           sx: {
@@ -91,7 +91,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
       leaveDelay={TOOLTIP_LEAVE_DELAY}
       enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       placement="right"
-      className={`${classConnectable} ${Slugify(output.type.type)}`}
     >
       <Handle
         type="source"
@@ -99,6 +98,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
         position={Position.Right}
         isConnectable={true}
         onContextMenu={(e) => outputContextMenu(e, id, output)}
+        className={`${classConnectable} ${Slugify(output.type.type)}`}
       />
     </Tooltip>
   );
