@@ -52,6 +52,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
+import { getMousePosition } from "../../utils/MousePosition";
 declare global {
   interface Window {
     __beforeUnloadListenerAdded?: boolean;
@@ -284,7 +285,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onNodeDragStart,
     onNodeDragStop,
     panOnDrag,
-    onNodeDrag
+    onNodeDrag,
+    onSelectionEnd
   } = useDragHandlers();
 
   /* VIEWPORT */
@@ -396,6 +398,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onSelectionDrag={onSelectionDrag}
         onSelectionDragStop={onSelectionDragStop}
         onSelectionStart={onSelectionStart}
+        onSelectionEnd={onSelectionEnd}
         onSelectionContextMenu={handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
