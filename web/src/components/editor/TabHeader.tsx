@@ -3,6 +3,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
 import { DragEvent, memo, useCallback } from "react";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
+import { useIsWorkflowDirty } from "../../hooks/nodes/useIsWorkflowDirty";
 
 interface TabHeaderProps {
   workflow: WorkflowAttributes;
@@ -39,6 +40,9 @@ const TabHeader = ({
   onNameChange,
   onKeyDown
 }: TabHeaderProps) => {
+  const isDirty = useIsWorkflowDirty(workflow.id);
+  console.log(`TabHeader: workflow ${workflow.name}, isDirty: ${isDirty}`);
+
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -72,6 +76,9 @@ const TabHeader = ({
           : ""
       }`}
       onClick={() => onNavigate(workflow.id)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+      }}
       onDoubleClick={() => onDoubleClick(workflow.id)}
       onMouseDown={(e) => {
         // Middle mouse button (button 1)
@@ -105,7 +112,21 @@ const TabHeader = ({
           }}
         />
       ) : (
-        <span>{workflow.name}</span>
+        <span className="tab-name" style={{ marginRight: "4px" }}>
+          {workflow.name}
+          {isDirty && (
+            <span
+              className="dirty-indicator"
+              style={{
+                color: "var(--c_warning)",
+                fontWeight: "bold",
+                marginLeft: "2px"
+              }}
+            >
+              *
+            </span>
+          )}
+        </span>
       )}
       <CloseIcon
         className="close-icon"
