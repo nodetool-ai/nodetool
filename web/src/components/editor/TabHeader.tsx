@@ -1,9 +1,35 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
-import { DragEvent, memo, useCallback } from "react";
+import { DragEvent, memo, useCallback, useState, useEffect } from "react";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
-import { useIsWorkflowDirty } from "../../hooks/nodes/useIsWorkflowDirty";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+
+// Simple hook to get dirty state for a specific workflow
+const useWorkflowDirty = (workflowId: string): boolean => {
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    const nodeStore = getNodeStore(workflowId);
+    if (!nodeStore) {
+      setIsDirty(false);
+      return;
+    }
+
+    // Get initial state
+    setIsDirty(nodeStore.getState().workflowIsDirty);
+
+    // Subscribe to changes
+    const unsubscribe = nodeStore.subscribe((state) => {
+      setIsDirty(state.workflowIsDirty);
+    });
+
+    return unsubscribe;
+  }, [getNodeStore, workflowId]);
+
+  return isDirty;
+};
 
 interface TabHeaderProps {
   workflow: WorkflowAttributes;
@@ -40,8 +66,11 @@ const TabHeader = ({
   onNameChange,
   onKeyDown
 }: TabHeaderProps) => {
-  const isDirty = useIsWorkflowDirty(workflow.id);
-  console.log(`TabHeader: workflow ${workflow.name}, isDirty: ${isDirty}`);
+  // Use the simple hook to get reactive dirty state
+  const isWorkflowDirty = useWorkflowDirty(workflow.id);
+  console.log(
+    `TabHeader: workflow ${workflow.name}, isDirty: ${isWorkflowDirty}`
+  );
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
@@ -114,7 +143,7 @@ const TabHeader = ({
       ) : (
         <span className="tab-name" style={{ marginRight: "4px" }}>
           {workflow.name}
-          {isDirty && (
+          {isWorkflowDirty && (
             <span
               className="dirty-indicator"
               style={{
