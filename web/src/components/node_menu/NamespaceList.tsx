@@ -374,7 +374,8 @@ const namespaceStyles = (theme: any) =>
       }
     },
     ".node-info-container": {
-      width: "300px"
+      width: "300px",
+      backgroundColor: "transparent"
     },
     ".toggle-panel-button": {
       position: "absolute",
