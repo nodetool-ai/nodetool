@@ -104,20 +104,22 @@ const styles = (theme: any) =>
           height: "100%"
         }
       },
-      ".description": {
+      ".hint": {
         position: "absolute",
         opacity: 0,
         textAlign: "center",
-        top: "50%",
+        top: "50px",
         left: "50%",
+        width: "80%",
+        fontSize: "var(--font-size-smaller)",
+        fontWeight: "300",
         transform: "translate(-50%, -50%)",
         zIndex: 0,
-        fontFamily: theme.fontFamily2,
-        width: "100%",
-        color: theme.palette.c_gray5
+        color: theme.palette.c_gray5,
+        transition: "opacity 0.2s 1s ease-out"
       },
-      "&:hover .description": {
-        opacity: 1
+      "&:hover .hint": {
+        opacity: 0.7
       },
       // tensor
       "& .tensor": {
@@ -179,13 +181,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   // }
 
   const handleAddToAssets = async () => {
-    log.info("handleAddToAssets called");
     if (result?.output) {
-      log.info("Result output exists:", result.output);
       try {
         const assetFiles = createAssetFile(result.output, props.id);
-        log.info("Created asset files:", assetFiles);
-
         for (const { file } of assetFiles) {
           await createAsset(file);
         }
@@ -270,7 +268,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           }
         }
 
-        log.info("File download initiated");
         addNotification({
           type: "success",
           content: "Download started successfully"
@@ -323,6 +320,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Preview"
           />
+          {!result?.output && (
+            <Typography className="hint">
+              Displays any data from connected nodes
+            </Typography>
+          )}
           <div className="actions">
             <Tooltip title="Download">
               <Button
@@ -345,9 +347,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           </div>
         </>
 
-        {!result?.output && (
-          <Typography className="description">Preview any output</Typography>
-        )}
         <Handle
           style={{ top: "50%", backgroundColor: "white" }}
           id="value"
