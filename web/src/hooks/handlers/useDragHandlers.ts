@@ -262,22 +262,24 @@ export default function useDragHandlers() {
   const onSelectionEnd = useCallback(
     (event: MouseEvent) => {
       if (commentDragState.isActive && commentDragState.startPos) {
-        // Corrected typo here: commentDragSState -> commentDragState
         const projectedEndPos = reactFlow.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY
         });
-        const width = Math.abs(projectedEndPos.x - commentDragState.startPos.x);
-        const height = Math.abs(
-          projectedEndPos.y - commentDragState.startPos.y
-        );
+
+        const actualStartPos = commentDragState.startPos;
+        const nodeX = Math.min(actualStartPos.x, projectedEndPos.x);
+        const nodeY = Math.min(actualStartPos.y, projectedEndPos.y);
+
+        const width = Math.abs(actualStartPos.x - projectedEndPos.x);
+        const height = Math.abs(actualStartPos.y - projectedEndPos.y);
 
         if (width > 10 || height > 10) {
           // Threshold
-          createCommentNode(width, height, commentDragState.startPos);
+          // Pass the calculated top-left (nodeX, nodeY) as the initial position
+          createCommentNode(width, height, { x: nodeX, y: nodeY });
         }
       }
-      // Always reset after processing
       setCommentDragState({ isActive: false, startPos: null });
     },
     [commentDragState, reactFlow, createCommentNode, setCommentDragState]
