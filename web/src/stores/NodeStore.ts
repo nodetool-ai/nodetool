@@ -373,6 +373,7 @@ export const createNodeStore = (
                     e.id === oldEdge.id ? newEdge : e
                   )
                 });
+                get().setWorkflowDirty(true);
               }
             }
           },
@@ -413,6 +414,7 @@ export const createNodeStore = (
                 }))
               )
             });
+            get().setWorkflowDirty(true);
           },
           findNode: (id: string) => get().nodes.find((n) => n.id === id),
           findEdge: (id: string) => get().edges.find((e) => e.id === id),
@@ -520,17 +522,21 @@ export const createNodeStore = (
                 (edge) => edge.source !== id && edge.target !== id
               )
             });
+            get().setWorkflowDirty(true);
           },
           deleteEdge: (id: string) => {
             set({ edges: get().edges.filter((e) => e.id !== id) });
+            get().setWorkflowDirty(true);
           },
           addEdge: (edge: Edge) => {
             set({ edges: [...get().edges, edge] });
+            get().setWorkflowDirty(true);
           },
           updateEdge: (edge: Edge) => {
             set({
               edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
             });
+            get().setWorkflowDirty(true);
           },
           updateEdgeHandle: (
             nodeId: string,
@@ -544,6 +550,7 @@ export const createNodeStore = (
                   : edge
               )
             });
+            get().setWorkflowDirty(true);
           },
           getModels: () => {
             const nodes = get().nodes;
@@ -669,6 +676,7 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           setEdges: (edges: Edge[]) => {
+            console.log("setting edges", edges);
             set({ edges });
             get().setWorkflowDirty(true);
           },
