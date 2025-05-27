@@ -42,6 +42,7 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     createNewWorkflow: state.createNew,
     getNodeStore: state.getNodeStore
   }));
+
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: "left" | "right";
