@@ -283,7 +283,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
-        pointerEvents: controlKeyPressed || metaKeyPressed ? "none" : "auto",
+        pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
       }}
     >
