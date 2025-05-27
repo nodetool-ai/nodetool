@@ -122,9 +122,9 @@ export const paletteDark: PaletteOptions = {
   c_gray6: "#D9D9D9",
   c_background: "#424854",
   c_node_menu: "#232323",
-  c_hl1: "#76e5b8",
-  c_hl1_1: "#325954",
-  c_hl2: "#128B6E",
+  c_hl1: "#77b4e6",
+  c_hl1_1: "#6d94cc",
+  c_hl2: "#719dd9",
   c_selection: "#8EACA777",
   c_input: "#374f4f",
   c_output: "#493f4d",
@@ -150,22 +150,22 @@ export const paletteDark: PaletteOptions = {
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
   c_bg_group: "#9bcfdb17",
-  c_editor_bg_color: "rgb(100, 100, 100)",
+  c_editor_bg_color: "#141414",
   c_editor_grid_color: "#333",
-  c_editor_axis_color: "#5c5c5c",
+  c_editor_axis_color: "#1d1d1d",
 
   primary: {
-    main: "#76e5b8",
+    main: "#77b4e6",
     contrastText: "#000"
   },
   secondary: {
-    main: "#757575",
+    main: "##5aa3b8",
     contrastText: "#FFFFFF"
   },
   tertiary: {
-    light: "#a7d0c3",
-    main: "#68a89a",
-    dark: "#387c6d",
+    light: "#9bc5f0",
+    main: "#6ba3e6",
+    dark: "#4a7bc4",
     contrastText: "#fff"
   },
   background: {
