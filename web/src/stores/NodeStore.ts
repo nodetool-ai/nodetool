@@ -304,13 +304,10 @@ export const createNodeStore = (
             get().edges.filter((e) => e.source === nodeId),
           getSelection: () => {
             const nodes = get().nodes.filter((node) => node.selected);
-            const nodeIds = nodes.reduce(
-              (acc, node) => {
-                acc[node.id] = true;
-                return acc;
-              },
-              {} as Record<string, boolean>
-            );
+            const nodeIds = nodes.reduce((acc, node) => {
+              acc[node.id] = true;
+              return acc;
+            }, {} as Record<string, boolean>);
             const edges = get().edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
@@ -334,6 +331,7 @@ export const createNodeStore = (
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
             const nodes = applyNodeChanges(changes, get().nodes);
             set({ nodes });
+            get().setWorkflowDirty(true);
           },
           onEdgesChange: (changes: EdgeChange[]) => {
             set({
