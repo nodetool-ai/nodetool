@@ -172,29 +172,85 @@ const sanitizeGraph = (
     return sanitizedNode;
   });
 
+  console.log(`[sanitizeGraph] Processing ${edges.length} edges`);
+
   const sanitizedEdges = edges.reduce((acc, edge) => {
+    console.log(`[sanitizeGraph] Processing edge:`, edge);
+
     const sourceNode = nodeMap.get(edge.source);
     const targetNode = nodeMap.get(edge.target);
-    if (sourceNode && targetNode && sourceNode.type && targetNode.type) {
-      const sourceMetadata = metadata[sourceNode.type];
-      const targetMetadata = metadata[targetNode.type];
-      if (!sourceMetadata || !targetMetadata) {
-        acc.push(edge);
-      } else if (
-        sourceMetadata.outputs.some(
-          (output) => output.name === edge.sourceHandle
-        ) &&
-        (targetMetadata.is_dynamic ||
-          targetMetadata.properties.some(
-            (prop) => prop.name === edge.targetHandle
-          ))
-      ) {
-        acc.push(edge);
-      }
+
+    // Basic validation: both nodes must exist
+    if (!sourceNode || !targetNode) {
+      log.warn(`Edge ${edge.id} references non-existent nodes. Removing edge.`);
+      return acc;
     }
+
+    // Both nodes must have types
+    if (!sourceNode.type || !targetNode.type) {
+      log.warn(
+        `Edge ${edge.id} references nodes without types. Removing edge.`
+      );
+      return acc;
+    }
+
+    const sourceMetadata = metadata[sourceNode.type];
+    const targetMetadata = metadata[targetNode.type];
+
+    console.log(
+      `[sanitizeGraph] Source metadata for ${sourceNode.type}:`,
+      sourceMetadata?.outputs
+    );
+    console.log(
+      `[sanitizeGraph] Target metadata for ${targetNode.type}:`,
+      targetMetadata?.properties,
+      `is_dynamic: ${targetMetadata?.is_dynamic}`
+    );
+
+    // Both nodes must have metadata
+    if (!sourceMetadata || !targetMetadata) {
+      log.warn(
+        `Edge ${edge.id} references nodes with missing metadata. Removing edge.`
+      );
+      return acc;
+    }
+
+    // Validate source handle exists
+    if (
+      edge.sourceHandle &&
+      !sourceMetadata.outputs.some(
+        (output) => output.name === edge.sourceHandle
+      )
+    ) {
+      log.warn(
+        `Edge ${edge.id} references non-existent source handle "${edge.sourceHandle}". Available outputs:`,
+        sourceMetadata.outputs.map((o) => o.name)
+      );
+      return acc;
+    }
+
+    // Validate target handle exists (for non-dynamic nodes)
+    if (
+      edge.targetHandle &&
+      !targetMetadata.is_dynamic &&
+      !targetMetadata.properties.some((prop) => prop.name === edge.targetHandle)
+    ) {
+      log.warn(
+        `Edge ${edge.id} references non-existent target handle "${edge.targetHandle}". Available properties:`,
+        targetMetadata.properties.map((p) => p.name)
+      );
+      return acc;
+    }
+
+    console.log(`[sanitizeGraph] Edge ${edge.id} is valid, keeping it`);
+    // Edge is valid
+    acc.push(edge);
     return acc;
   }, [] as Edge[]);
 
+  console.log(
+    `[sanitizeGraph] Kept ${sanitizedEdges.length} out of ${edges.length} edges`
+  );
   return { nodes: sanitizedNodes, edges: sanitizedEdges };
 };
 
@@ -329,16 +385,11 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean) =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
-            const workflowName = get().workflow.name || "Unknown";
-            console.log(
-              `[${workflowName}] onNodesChange called with changes:`,
-              changes
-            );
-
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver)
+            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
             const isOnlyInternalChanges = changes.every(
               (change) =>
                 change.type === "dimensions" ||
+                change.type === "select" ||
                 (change.type === "position" && change.dragging === false)
             );
 
@@ -348,11 +399,6 @@ export const createNodeStore = (
             // Only mark as dirty if there are actual user changes, not just internal React Flow updates
             if (!isOnlyInternalChanges) {
               get().setWorkflowDirty(true);
-            } else {
-              console.log(
-                `[${workflowName}] Skipping setWorkflowDirty for internal changes:`,
-                changes.map((c) => c.type)
-              );
             }
           },
           onEdgesChange: (changes: EdgeChange[]) => {
@@ -602,12 +648,6 @@ export const createNodeStore = (
             };
           },
           setWorkflowDirty: (dirty: boolean) => {
-            const workflowName = get().workflow.name || "Unknown";
-            const stack = new Error().stack;
-            console.log(
-              `[${workflowName}] setWorkflowDirty(${dirty}) called from:`,
-              stack
-            );
             set({ workflowIsDirty: dirty });
           },
           autoLayout: async () => {
@@ -675,12 +715,6 @@ export const createNodeStore = (
               | Node<NodeData>[]
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ) => {
-            const workflowName = get().workflow.name || "Unknown";
-            console.log(
-              `[${workflowName}] setNodes called with:`,
-              typeof nodesOrCallback === "function" ? "function" : "array",
-              nodesOrCallback
-            );
             if (typeof nodesOrCallback === "function") {
               set((state) => ({
                 nodes: nodesOrCallback(state.nodes)

@@ -11,21 +11,54 @@ const useWorkflowDirty = (workflowId: string): boolean => {
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    const nodeStore = getNodeStore(workflowId);
-    if (!nodeStore) {
-      setIsDirty(false);
-      return;
+    let unsubscribe: (() => void) | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+    let isActive = true;
+
+    const setupSubscription = (nodeStore: any) => {
+      if (!isActive) return;
+
+      // Get initial state
+      const initialState = nodeStore.getState().workflowIsDirty;
+      setIsDirty(initialState);
+
+      // Subscribe to changes
+      unsubscribe = nodeStore.subscribe((state: any) => {
+        if (!isActive) return;
+        setIsDirty(state.workflowIsDirty);
+      });
+    };
+
+    const checkForNodeStore = () => {
+      if (!isActive) return;
+
+      const nodeStore = getNodeStore(workflowId);
+      if (nodeStore) {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        setupSubscription(nodeStore);
+      }
+    };
+
+    // Check immediately
+    checkForNodeStore();
+
+    // If not found, start polling every 100ms
+    if (!unsubscribe) {
+      pollInterval = setInterval(checkForNodeStore, 100);
     }
 
-    // Get initial state
-    setIsDirty(nodeStore.getState().workflowIsDirty);
-
-    // Subscribe to changes
-    const unsubscribe = nodeStore.subscribe((state) => {
-      setIsDirty(state.workflowIsDirty);
-    });
-
-    return unsubscribe;
+    return () => {
+      isActive = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, [getNodeStore, workflowId]);
 
   return isDirty;
@@ -68,9 +101,6 @@ const TabHeader = ({
 }: TabHeaderProps) => {
   // Use the simple hook to get reactive dirty state
   const isWorkflowDirty = useWorkflowDirty(workflow.id);
-  console.log(
-    `TabHeader: workflow ${workflow.name}, isDirty: ${isWorkflowDirty}`
-  );
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
