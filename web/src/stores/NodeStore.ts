@@ -172,85 +172,29 @@ const sanitizeGraph = (
     return sanitizedNode;
   });
 
-  console.log(`[sanitizeGraph] Processing ${edges.length} edges`);
-
   const sanitizedEdges = edges.reduce((acc, edge) => {
-    console.log(`[sanitizeGraph] Processing edge:`, edge);
-
     const sourceNode = nodeMap.get(edge.source);
     const targetNode = nodeMap.get(edge.target);
-
-    // Basic validation: both nodes must exist
-    if (!sourceNode || !targetNode) {
-      log.warn(`Edge ${edge.id} references non-existent nodes. Removing edge.`);
-      return acc;
+    if (sourceNode && targetNode && sourceNode.type && targetNode.type) {
+      const sourceMetadata = metadata[sourceNode.type];
+      const targetMetadata = metadata[targetNode.type];
+      if (!sourceMetadata || !targetMetadata) {
+        acc.push(edge);
+      } else if (
+        sourceMetadata.outputs.some(
+          (output) => output.name === edge.sourceHandle
+        ) &&
+        (targetMetadata.is_dynamic ||
+          targetMetadata.properties.some(
+            (prop) => prop.name === edge.targetHandle
+          ))
+      ) {
+        acc.push(edge);
+      }
     }
-
-    // Both nodes must have types
-    if (!sourceNode.type || !targetNode.type) {
-      log.warn(
-        `Edge ${edge.id} references nodes without types. Removing edge.`
-      );
-      return acc;
-    }
-
-    const sourceMetadata = metadata[sourceNode.type];
-    const targetMetadata = metadata[targetNode.type];
-
-    console.log(
-      `[sanitizeGraph] Source metadata for ${sourceNode.type}:`,
-      sourceMetadata?.outputs
-    );
-    console.log(
-      `[sanitizeGraph] Target metadata for ${targetNode.type}:`,
-      targetMetadata?.properties,
-      `is_dynamic: ${targetMetadata?.is_dynamic}`
-    );
-
-    // Both nodes must have metadata
-    if (!sourceMetadata || !targetMetadata) {
-      log.warn(
-        `Edge ${edge.id} references nodes with missing metadata. Removing edge.`
-      );
-      return acc;
-    }
-
-    // Validate source handle exists
-    if (
-      edge.sourceHandle &&
-      !sourceMetadata.outputs.some(
-        (output) => output.name === edge.sourceHandle
-      )
-    ) {
-      log.warn(
-        `Edge ${edge.id} references non-existent source handle "${edge.sourceHandle}". Available outputs:`,
-        sourceMetadata.outputs.map((o) => o.name)
-      );
-      return acc;
-    }
-
-    // Validate target handle exists (for non-dynamic nodes)
-    if (
-      edge.targetHandle &&
-      !targetMetadata.is_dynamic &&
-      !targetMetadata.properties.some((prop) => prop.name === edge.targetHandle)
-    ) {
-      log.warn(
-        `Edge ${edge.id} references non-existent target handle "${edge.targetHandle}". Available properties:`,
-        targetMetadata.properties.map((p) => p.name)
-      );
-      return acc;
-    }
-
-    console.log(`[sanitizeGraph] Edge ${edge.id} is valid, keeping it`);
-    // Edge is valid
-    acc.push(edge);
     return acc;
   }, [] as Edge[]);
 
-  console.log(
-    `[sanitizeGraph] Kept ${sanitizedEdges.length} out of ${edges.length} edges`
-  );
   return { nodes: sanitizedNodes, edges: sanitizedEdges };
 };
 
