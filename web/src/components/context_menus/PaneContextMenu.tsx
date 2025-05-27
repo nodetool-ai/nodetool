@@ -25,7 +25,10 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
-import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
+import {
+  GROUP_NODE_METADATA,
+  COMMENT_NODE_METADATA
+} from "../../utils/nodeUtils";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -61,19 +64,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   const addComment = (event: React.MouseEvent) => {
     // Fake metadata for comments
-    const metadata = {
-      namespace: "default",
-      node_type: "nodetool.workflows.base_node.Comment",
-      properties: [],
-      title: "Comment",
-      description: "Comment",
-      outputs: [],
-      the_model_info: {},
-      layout: "default",
-      recommended_models: [],
-      basic_fields: [],
-      is_dynamic: false
-    };
+    const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
       metadata,
       reactFlowInstance.screenToFlowPosition({
