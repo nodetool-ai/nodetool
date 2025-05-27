@@ -41,7 +41,8 @@ import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
-  WorkflowManagerProvider
+  WorkflowManagerProvider,
+  useWorkflowManager
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
@@ -247,5 +248,7 @@ const initialize = async () => {
   // Render after initialization and prefetching
   root.render(<AppWrapper />);
 };
+
+// EdgeValidator component removed - edge validation will be implemented in separate branch
 
 initialize().catch(console.error);

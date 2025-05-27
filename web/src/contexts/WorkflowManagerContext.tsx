@@ -75,6 +75,7 @@ type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: () => Promise<any>;
+  validateAllEdges: () => void;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -673,6 +674,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
           state.addWorkflow(data);
         }
+      },
+
+      validateAllEdges: () => {
+        // Edge validation functionality removed - will be implemented in separate branch
       }
     };
   });
