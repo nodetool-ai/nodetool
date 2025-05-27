@@ -329,9 +329,31 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean) =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
+            const workflowName = get().workflow.name || "Unknown";
+            console.log(
+              `[${workflowName}] onNodesChange called with changes:`,
+              changes
+            );
+
+            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver)
+            const isOnlyInternalChanges = changes.every(
+              (change) =>
+                change.type === "dimensions" ||
+                (change.type === "position" && change.dragging === false)
+            );
+
             const nodes = applyNodeChanges(changes, get().nodes);
             set({ nodes });
-            get().setWorkflowDirty(true);
+
+            // Only mark as dirty if there are actual user changes, not just internal React Flow updates
+            if (!isOnlyInternalChanges) {
+              get().setWorkflowDirty(true);
+            } else {
+              console.log(
+                `[${workflowName}] Skipping setWorkflowDirty for internal changes:`,
+                changes.map((c) => c.type)
+              );
+            }
           },
           onEdgesChange: (changes: EdgeChange[]) => {
             set({
@@ -580,6 +602,12 @@ export const createNodeStore = (
             };
           },
           setWorkflowDirty: (dirty: boolean) => {
+            const workflowName = get().workflow.name || "Unknown";
+            const stack = new Error().stack;
+            console.log(
+              `[${workflowName}] setWorkflowDirty(${dirty}) called from:`,
+              stack
+            );
             set({ workflowIsDirty: dirty });
           },
           autoLayout: async () => {
@@ -647,6 +675,12 @@ export const createNodeStore = (
               | Node<NodeData>[]
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ) => {
+            const workflowName = get().workflow.name || "Unknown";
+            console.log(
+              `[${workflowName}] setNodes called with:`,
+              typeof nodesOrCallback === "function" ? "function" : "array",
+              nodesOrCallback
+            );
             if (typeof nodesOrCallback === "function") {
               set((state) => ({
                 nodes: nodesOrCallback(state.nodes)
