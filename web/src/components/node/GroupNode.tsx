@@ -114,6 +114,38 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     ".action-buttons button:hover": {
       opacity: 1,
       background: "transparent"
+    },
+    // help text
+    ".help-text": {
+      position: "absolute",
+      top: "-60px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
+      color: "var(--c_black)",
+      padding: "0.75em 1em",
+      borderRadius: "4px",
+      fontSize: theme.fontSizeSmall,
+      whiteSpace: "nowrap",
+      zIndex: 100,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+      border: `1px solid ${theme.palette.c_gray3}`,
+      opacity: 0,
+      visibility: "hidden",
+      transition: "opacity 0.2s 2s ease, visibility 0.2s 2s ease"
+    },
+    ".help-text ul": {
+      listStyleType: "square",
+      padding: "0 0 0 .5em",
+      margin: "0 0 0 1em"
+    },
+    ".help-text li": {
+      padding: 0,
+      margin: 0
+    },
+    ".help-text.visible": {
+      opacity: 1,
+      visibility: "visible"
     }
   });
 
@@ -164,6 +196,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
   );
+
+  const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
     props.data.properties.headline || "Group"
@@ -258,7 +292,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleHeaderClick = () => {
-    console.log("Node header clicked:", props.id, props.data);
+    // console.log("Node header clicked:", props.id, props.data);
   };
 
   useEffect(() => {
@@ -291,7 +325,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         placement="top"
         enterDelay={TOOLTIP_ENTER_DELAY * 5}
         enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
-        title="Double click to edit title. Hold CTRL or ⌘ key to select node."
+        title={
+          <span>
+            <b>SELECT NODE:</b> Hold CTRL or ⌘ key + click
+            <br />
+            <b>EDIT TITLE:</b> Double click on header area
+          </span>
+        }
       >
         <div
           className="node-header node-drag-handle"
@@ -322,6 +362,18 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
         </div>
       </Tooltip>
+
+      {/* Help text that appears when dragging nodes */}
+      <div className={`help-text ${isDragging ? "visible" : "none"}`}>
+        <div>
+          <b>REMOVE FROM GROUP</b>
+        </div>
+        <ul>
+          <li>Drag out while holding CTRL | ⌘ key</li>
+          <li>Shake rapidly, then drag out</li>
+        </ul>
+      </div>
+
       <NodeResizeHandle
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
