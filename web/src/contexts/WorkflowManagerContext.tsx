@@ -315,13 +315,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Searches example workflows using the backend search API.
       searchExamples: async (query: string) => {
-        const { data, error } = await client.GET("/api/workflows/examples/search", {
-          params: {
-            query: {
-              query
+        const { data, error } = await client.GET(
+          "/api/workflows/examples/search",
+          {
+            params: {
+              query: {
+                query
+              }
             }
           }
-        });
+        );
         if (error) {
           throw createErrorMessage(error, "Failed to search examples");
         }
@@ -554,6 +557,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             nodeStore.setState({
               workflow: data
             });
+            nodeStore.getState().setWorkflowDirty(false);
           }
           return {
             openWorkflows: state.openWorkflows.map((w) =>
