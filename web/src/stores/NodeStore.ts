@@ -122,7 +122,6 @@ export interface NodeStoreState {
   ) => void;
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
-  getWorkflowIsDirty: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
   validateConnection: (
     connection: Connection,
@@ -159,7 +158,7 @@ const sanitizeGraph = (
   nodes: Node<NodeData>[],
   edges: Edge[],
   metadata: Record<string, NodeMetadata>
-) => {
+): { nodes: Node<NodeData>[]; edges: Edge[] } => {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
   const sanitizedNodes = nodes.map((node) => {
     const sanitizedNode = { ...node };
@@ -205,7 +204,7 @@ const sanitizeGraph = (
 export const createNodeStore = (
   workflow?: Workflow,
   state?: Partial<NodeStoreState>
-) =>
+): NodeStore =>
   create<NodeStoreState>()(
     temporal(
       (set, get) => {
@@ -286,23 +285,23 @@ export const createNodeStore = (
           hoveredNodes: [],
           shouldFitToScreen: state?.shouldFitToScreen || false,
           connectionAttempted: false,
-          setConnectionAttempted: (value: boolean) =>
+          setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
-          setHoveredNodes: (ids: string[]) => set({ hoveredNodes: ids }),
-          generateNodeId: () => {
+          setHoveredNodes: (ids: string[]): void => set({ hoveredNodes: ids }),
+          generateNodeId: (): string => {
             return crypto.randomUUID();
           },
-          generateNodeIds: (count: number) => {
+          generateNodeIds: (count: number): string[] => {
             return Array.from({ length: count }, () => crypto.randomUUID());
           },
-          generateEdgeId: () => {
+          generateEdgeId: (): string => {
             return crypto.randomUUID();
           },
-          getInputEdges: (nodeId: string) =>
+          getInputEdges: (nodeId: string): Edge[] =>
             get().edges.filter((e) => e.target === nodeId),
-          getOutputEdges: (nodeId: string) =>
+          getOutputEdges: (nodeId: string): Edge[] =>
             get().edges.filter((e) => e.source === nodeId),
-          getSelection: () => {
+          getSelection: (): NodeSelection => {
             const nodes = get().nodes.filter((node) => node.selected);
             const nodeIds = nodes.reduce((acc, node) => {
               acc[node.id] = true;
@@ -313,8 +312,9 @@ export const createNodeStore = (
             );
             return { nodes, edges };
           },
-          getSelectedNodes: () => get().nodes.filter((node) => node.selected),
-          setSelectedNodes: (nodes: Node<NodeData>[]) => {
+          getSelectedNodes: (): Node<NodeData>[] =>
+            get().nodes.filter((node) => node.selected),
+          setSelectedNodes: (nodes: Node<NodeData>[]): void => {
             set({
               nodes: get().nodes.map((node) => ({
                 ...node,
@@ -322,13 +322,13 @@ export const createNodeStore = (
               }))
             });
           },
-          getSelectedNodeIds: () =>
+          getSelectedNodeIds: (): string[] =>
             get()
               .getSelectedNodes()
               .map((node) => node.id),
-          setEdgeUpdateSuccessful: (value: boolean) =>
+          setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
-          onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
+          onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
             // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
             const isOnlyInternalChanges = changes.every(
               (change) =>
@@ -345,13 +345,13 @@ export const createNodeStore = (
               get().setWorkflowDirty(true);
             }
           },
-          onEdgesChange: (changes: EdgeChange[]) => {
+          onEdgesChange: (changes: EdgeChange[]): void => {
             set({
               edges: applyEdgeChanges(changes, get().edges)
             });
             get().setWorkflowDirty(true);
           },
-          onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => {
+          onEdgeUpdate: (oldEdge: Edge, newConnection: Connection): void => {
             const edge = get().edges.find((e) => e.id === oldEdge.id);
             if (edge) {
               const srcNode = get().findNode(newConnection.source);
@@ -377,7 +377,7 @@ export const createNodeStore = (
               }
             }
           },
-          onConnect: (connection: Connection) => {
+          onConnect: (connection: Connection): void => {
             const srcNode = get().findNode(connection.source);
             const targetNode = get().findNode(connection.target);
             if (
@@ -416,18 +416,24 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          findNode: (id: string) => get().nodes.find((n) => n.id === id),
-          findEdge: (id: string) => get().edges.find((e) => e.id === id),
-          addNode: (node: Node<NodeData>) => {
+          findNode: (id: string): Node<NodeData> | undefined =>
+            get().nodes.find((n) => n.id === id),
+          findEdge: (id: string): Edge | undefined =>
+            get().edges.find((e) => e.id === id),
+          addNode: (node: Node<NodeData>): void => {
             if (get().findNode(node.id)) {
               log.warn(`Node with id ${node.id} already exists`);
               return;
             }
             node.expandParent = true;
             node.data.workflow_id = get().workflow.id;
-            set({ nodes: [...get().nodes, node], workflowIsDirty: true });
+            set({ nodes: [...get().nodes, node] });
+            get().setWorkflowDirty(true);
           },
-          updateNode: (id: string, nodeUpdate: Partial<Node<NodeData>>) => {
+          updateNode: (
+            id: string,
+            nodeUpdate: Partial<Node<NodeData>>
+          ): void => {
             set((state) => {
               let newNodes = state.nodes.map((n) =>
                 n.id === id ? { ...n, ...nodeUpdate } : n
@@ -462,17 +468,18 @@ export const createNodeStore = (
                   }
                 }
               }
-              return { ...state, nodes: newNodes, workflowIsDirty: true };
+              return { ...state, nodes: newNodes };
             });
+            get().setWorkflowDirty(true);
           },
-          updateNodeData: (id: string, data: Partial<NodeData>) => {
+          updateNodeData: (id: string, data: Partial<NodeData>): void => {
             set({
               nodes: get().nodes.map((n) =>
                 n.id === id ? { ...n, data: { ...n.data, ...data } } : n
               )
             });
           },
-          updateNodeProperties: (id: string, properties: any) => {
+          updateNodeProperties: (id: string, properties: any): void => {
             const workflow_id = get().workflow.id;
             set({
               nodes: get().nodes.map(
@@ -491,7 +498,7 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          deleteNode: (id: string) => {
+          deleteNode: (id: string): void => {
             const nodeToDelete = get().findNode(id);
             if (!nodeToDelete) {
               log.warn(`Node with id ${id} not found`);
@@ -524,15 +531,15 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          deleteEdge: (id: string) => {
+          deleteEdge: (id: string): void => {
             set({ edges: get().edges.filter((e) => e.id !== id) });
             get().setWorkflowDirty(true);
           },
-          addEdge: (edge: Edge) => {
+          addEdge: (edge: Edge): void => {
             set({ edges: [...get().edges, edge] });
             get().setWorkflowDirty(true);
           },
-          updateEdge: (edge: Edge) => {
+          updateEdge: (edge: Edge): void => {
             set({
               edges: [...get().edges.filter((e) => e.id !== edge.id), edge]
             });
@@ -542,7 +549,7 @@ export const createNodeStore = (
             nodeId: string,
             oldHandle: string,
             newHandle: string
-          ) => {
+          ): void => {
             set({
               edges: get().edges.map((edge) =>
                 edge.target === nodeId && edge.targetHandle === oldHandle
@@ -552,7 +559,7 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          getModels: () => {
+          getModels: (): UnifiedModel[] => {
             const nodes = get().nodes;
             return nodes.reduce((acc, node) => {
               for (const key in node.data.properties) {
@@ -598,10 +605,10 @@ export const createNodeStore = (
               }
             };
           },
-          setWorkflowDirty: (dirty: boolean) => {
+          setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
           },
-          autoLayout: async () => {
+          autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
             let selectedNodes = allNodes.filter((node) => node.selected);
             const edges = get().edges;
@@ -649,23 +656,23 @@ export const createNodeStore = (
             get().setNodes(updatedNodes);
             set({ shouldFitToScreen: true });
           },
-          setShouldAutoLayout: (value: boolean) => {
+          setShouldAutoLayout: (value: boolean): void => {
             set({ shouldAutoLayout: value });
           },
-          clearMissingModels: () => {
+          clearMissingModels: (): void => {
             set({ missingModelFiles: [] });
           },
-          clearMissingRepos: () => {
+          clearMissingRepos: (): void => {
             set({ missingModelRepos: [] });
           },
-          setShouldFitToScreen: (value: boolean) => {
+          setShouldFitToScreen: (value: boolean): void => {
             set({ shouldFitToScreen: value });
           },
           setNodes: (
             nodesOrCallback:
               | Node<NodeData>[]
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
-          ) => {
+          ): void => {
             if (typeof nodesOrCallback === "function") {
               set((state) => ({
                 nodes: nodesOrCallback(state.nodes)
@@ -675,8 +682,7 @@ export const createNodeStore = (
             }
             get().setWorkflowDirty(true);
           },
-          setEdges: (edges: Edge[]) => {
-            console.log("setting edges", edges);
+          setEdges: (edges: Edge[]): void => {
             set({ edges });
             get().setWorkflowDirty(true);
           },
@@ -684,7 +690,7 @@ export const createNodeStore = (
             connection: Connection,
             srcNode: Node<NodeData>,
             targetNode: Node<NodeData>
-          ) => {
+          ): boolean => {
             const srcMetadata = useMetadataStore
               .getState()
               .getMetadata(srcNode.type as string);
@@ -730,8 +736,7 @@ export const createNodeStore = (
               isConnectable(srcType, targetType)
             );
           },
-          getWorkflowIsDirty: () => get().workflowIsDirty,
-          workflowJSON: () => {
+          workflowJSON: (): string => {
             const workflow = get().getWorkflow();
             workflow.id = "";
             return JSON.stringify(workflow, null, 2);
@@ -772,7 +777,7 @@ export const createNodeStore = (
               position: position
             };
           },
-          selectAllNodes: () => {
+          selectAllNodes: (): void => {
             set({
               nodes: get().nodes.map((node) => ({
                 ...node,
