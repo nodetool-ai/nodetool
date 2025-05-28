@@ -857,6 +857,7 @@ export const createNodeStore = (
             } else {
               set({ edges });
             }
+
             get().setWorkflowDirty(true);
           },
           validateConnection: (
