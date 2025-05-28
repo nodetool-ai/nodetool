@@ -249,6 +249,4 @@ const initialize = async () => {
   root.render(<AppWrapper />);
 };
 
-// EdgeValidator component removed - edge validation will be implemented in separate branch
-
 initialize().catch(console.error);
