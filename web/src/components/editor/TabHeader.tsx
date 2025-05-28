@@ -76,7 +76,7 @@ const useWorkflowDirty = (workflowId: string): boolean => {
       getNodeStore(workflowId) === undefined &&
       pollAttempts <= MAX_POLL_ATTEMPTS
     ) {
-      pollInterval = setInterval(checkForNodeStore, 100);
+      pollInterval = setInterval(checkForNodeStore, 500);
     }
 
     return () => {
