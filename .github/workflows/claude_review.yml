@@ -3,7 +3,7 @@ name: Claude Auto Review
 on:
   pull_request:
     types: [opened, synchronize]
-
+  workflow_dispatch:
 jobs:
   auto-review:
     runs-on: ubuntu-latest
