@@ -190,6 +190,7 @@ export interface NodeStoreState {
   shouldFitToScreen: boolean;
   setShouldFitToScreen: (value: boolean) => void;
   selectAllNodes: () => void;
+  cleanup: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -346,8 +347,11 @@ export const createNodeStore = (
           }
         }
 
+        // Store the unsubscribe function for cleanup
+        let unsubscribeMetadata: (() => void) | null = null;
+
         // Subscribe to metadata changes to re-sanitize edges when metadata loads
-        const unsubscribeMetadata = useMetadataStore.subscribe((state) => {
+        unsubscribeMetadata = useMetadataStore.subscribe((state) => {
           // Re-sanitize edges when metadata becomes available
           const currentState = get();
           const metadataCount = Object.keys(state.metadata).length;
@@ -676,6 +680,15 @@ export const createNodeStore = (
               return;
             }
 
+            // Validate the edge properly using the same validation logic
+            const metadata = useMetadataStore.getState().metadata;
+            const nodeMap = new Map(get().nodes.map((n) => [n.id, n]));
+
+            if (!isValidEdge(edge, nodeMap, metadata)) {
+              log.warn(`Cannot add edge ${edge.id}: edge validation failed`);
+              return;
+            }
+
             // Ensure handles are properly set
             const sanitizedEdge = {
               ...edge,
@@ -830,16 +843,20 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           setEdges: (edges: Edge[]): void => {
-            // Sanitize edges when setting them directly
             const metadata = useMetadataStore.getState().metadata;
             const nodes = get().nodes;
-            const { edges: sanitizedEdges } = sanitizeGraph(
-              nodes,
-              edges,
-              metadata
-            );
 
-            set({ edges: sanitizedEdges });
+            // Only sanitize if metadata is available and edges have actually changed
+            if (Object.keys(metadata).length > 0) {
+              const { edges: sanitizedEdges } = sanitizeGraph(
+                nodes,
+                edges,
+                metadata
+              );
+              set({ edges: sanitizedEdges });
+            } else {
+              set({ edges });
+            }
             get().setWorkflowDirty(true);
           },
           validateConnection: (
@@ -962,7 +979,14 @@ export const createNodeStore = (
                 selected: true
               }))
             });
-          }
+          },
+          cleanup: () => {
+            if (unsubscribeMetadata) {
+              unsubscribeMetadata();
+              unsubscribeMetadata = null;
+            }
+          },
+          ...state
         };
       },
       {
