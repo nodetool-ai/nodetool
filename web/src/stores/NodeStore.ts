@@ -346,10 +346,19 @@ export const createNodeStore = (
             }
           },
           onEdgesChange: (changes: EdgeChange[]): void => {
+            // Check if changes are only selection-related
+            const isOnlySelectionChanges = changes.every(
+              (change) => change.type === "select"
+            );
+
             set({
               edges: applyEdgeChanges(changes, get().edges)
             });
-            get().setWorkflowDirty(true);
+
+            // Only mark as dirty if there are actual edge modifications, not just selection changes
+            if (!isOnlySelectionChanges) {
+              get().setWorkflowDirty(true);
+            }
           },
           onEdgeUpdate: (oldEdge: Edge, newConnection: Connection): void => {
             const edge = get().edges.find((e) => e.id === oldEdge.id);
@@ -434,6 +443,10 @@ export const createNodeStore = (
             id: string,
             nodeUpdate: Partial<Node<NodeData>>
           ): void => {
+            // Check if this is only a selection change
+            const isOnlySelectionChange =
+              Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
+
             set((state) => {
               let newNodes = state.nodes.map((n) =>
                 n.id === id ? { ...n, ...nodeUpdate } : n
@@ -470,7 +483,11 @@ export const createNodeStore = (
               }
               return { ...state, nodes: newNodes };
             });
-            get().setWorkflowDirty(true);
+
+            // Only mark as dirty if this is not just a selection change
+            if (!isOnlySelectionChange) {
+              get().setWorkflowDirty(true);
+            }
           },
           updateNodeData: (id: string, data: Partial<NodeData>): void => {
             set({
