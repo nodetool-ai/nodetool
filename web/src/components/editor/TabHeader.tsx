@@ -4,6 +4,7 @@ import { isEqual } from "lodash";
 import { DragEvent, memo, useCallback, useState, useEffect } from "react";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import type { NodeStore, NodeStoreState } from "../../stores/NodeStore";
 
 // Simple hook to get dirty state for a specific workflow
 const useWorkflowDirty = (workflowId: string): boolean => {
@@ -14,19 +15,32 @@ const useWorkflowDirty = (workflowId: string): boolean => {
     let unsubscribe: (() => void) | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
     let isActive = true;
+    let pollAttempts = 0;
+    const MAX_POLL_ATTEMPTS = 50;
 
-    const setupSubscription = (nodeStore: any) => {
+    const setupSubscription = (nodeStore: NodeStore) => {
       if (!isActive) return;
 
-      // Get initial state
-      const initialState = nodeStore.getState().workflowIsDirty;
-      setIsDirty(initialState);
+      try {
+        // Get initial state
+        const initialState = nodeStore.getState().workflowIsDirty;
+        setIsDirty(initialState);
 
-      // Subscribe to changes
-      unsubscribe = nodeStore.subscribe((state: any) => {
-        if (!isActive) return;
-        setIsDirty(state.workflowIsDirty);
-      });
+        // Subscribe to changes
+        unsubscribe = nodeStore.subscribe((state: NodeStoreState) => {
+          if (!isActive) return;
+          setIsDirty(state.workflowIsDirty);
+        });
+      } catch (error) {
+        console.error(
+          `Failed to setup workflow dirty subscription for workflowId ${workflowId}:`,
+          error
+        );
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      }
     };
 
     const checkForNodeStore = () => {
@@ -39,14 +53,29 @@ const useWorkflowDirty = (workflowId: string): boolean => {
           pollInterval = null;
         }
         setupSubscription(nodeStore);
+      } else {
+        pollAttempts++;
+        if (pollAttempts > MAX_POLL_ATTEMPTS) {
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          console.warn(
+            `Max poll attempts reached for workflowId ${workflowId}. Node store not found.`
+          );
+        }
       }
     };
 
     // Check immediately
     checkForNodeStore();
 
-    // If not found, start polling every 100ms
-    if (!unsubscribe) {
+    // If not found, and polling hasn't been stopped by MAX_POLL_ATTEMPTS or by finding the store
+    if (
+      !unsubscribe &&
+      getNodeStore(workflowId) === undefined &&
+      pollAttempts <= MAX_POLL_ATTEMPTS
+    ) {
       pollInterval = setInterval(checkForNodeStore, 100);
     }
 
