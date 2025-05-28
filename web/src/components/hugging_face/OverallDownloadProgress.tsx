@@ -19,10 +19,10 @@ const pulse = keyframes`
 
 const moveRight = keyframes`
   0% {
-    background-position: 0% 0;
+    background-position: 100% 0;
   }
   100% {
-    background-position: 100% 0;
+    background-position: -100% 0;
   }
 `;
 
@@ -43,7 +43,7 @@ const OverallDownloadProgress: React.FC = () => {
       download.status === "progress" ? sum + download.downloadedBytes : sum,
     0
   );
-  const progress = 40; //totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0;
+  const progress = totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0;
 
   return (
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -86,7 +86,7 @@ const OverallDownloadProgress: React.FC = () => {
             <DownloadingIcon />
           </div>
         </Button>
-        {progress > -1 && (
+        {progress > 0 && (
           <Box
             className="progress-container"
             sx={{
