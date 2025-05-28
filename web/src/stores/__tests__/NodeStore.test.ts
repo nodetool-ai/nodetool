@@ -1,17 +1,22 @@
-jest.mock('../../components/node_types/PlaceholderNode', () => () => null);
+jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
 
-import { Position, Node, Edge } from '@xyflow/react';
-import { createNodeStore } from '../NodeStore';
-import { NodeData } from '../NodeData';
-import useErrorStore from '../ErrorStore';
-import useResultsStore from '../ResultsStore';
+import { Position, Node, Edge } from "@xyflow/react";
+import { createNodeStore } from "../NodeStore";
+import { NodeData } from "../NodeData";
+import useErrorStore from "../ErrorStore";
+import useResultsStore from "../ResultsStore";
 
 const makeNode = (id: string, workflowId: string): Node<NodeData> => ({
   id,
-  type: 'test',
+  type: "test",
   position: { x: 0, y: 0 },
   targetPosition: Position.Left,
-  data: { properties: {}, dynamic_properties: {}, selectable: true, workflow_id: workflowId },
+  data: {
+    properties: {},
+    dynamic_properties: {},
+    selectable: true,
+    workflow_id: workflowId
+  }
 });
 
 const makeEdge = (source: string, target: string): Edge => ({
@@ -19,10 +24,10 @@ const makeEdge = (source: string, target: string): Edge => ({
   source,
   target,
   sourceHandle: null,
-  targetHandle: null,
+  targetHandle: null
 });
 
-describe('NodeStore node management', () => {
+describe("NodeStore node management", () => {
   const originalError = useErrorStore.getState();
   const originalResults = useResultsStore.getState();
   let store: ReturnType<typeof createNodeStore>;
@@ -30,7 +35,10 @@ describe('NodeStore node management', () => {
   beforeEach(() => {
     store = createNodeStore();
     useErrorStore.setState({ ...originalError, clearErrors: jest.fn() }, true);
-    useResultsStore.setState({ ...originalResults, clearResults: jest.fn() }, true);
+    useResultsStore.setState(
+      { ...originalResults, clearResults: jest.fn() },
+      true
+    );
   });
 
   afterEach(() => {
@@ -38,53 +46,103 @@ describe('NodeStore node management', () => {
     useResultsStore.setState(originalResults, true);
   });
 
-  test('addNode adds a node and sets workflow dirty', () => {
-    const node = makeNode('a', store.getState().workflow.id);
+  test("addNode adds a node and sets workflow dirty", () => {
+    const node = makeNode("a", store.getState().workflow.id);
     store.getState().addNode(node);
-    expect(store.getState().findNode('a')).toBeDefined();
+    expect(store.getState().findNode("a")).toBeDefined();
     expect(store.getState().workflowIsDirty).toBe(true);
     expect(store.getState().nodes[0].expandParent).toBe(true);
-    expect(store.getState().nodes[0].data.workflow_id).toBe(store.getState().workflow.id);
+    expect(store.getState().nodes[0].data.workflow_id).toBe(
+      store.getState().workflow.id
+    );
   });
 
-  test('addNode ignores duplicate ids', () => {
-    const node = makeNode('a', store.getState().workflow.id);
+  test("addNode ignores duplicate ids", () => {
+    const node = makeNode("a", store.getState().workflow.id);
     store.getState().addNode(node);
     store.getState().addNode(node);
     expect(store.getState().nodes).toHaveLength(1);
   });
 
-  test('updateNode and updateNodeData', () => {
-    const node = makeNode('a', store.getState().workflow.id);
+  test("updateNode and updateNodeData", () => {
+    const node = makeNode("a", store.getState().workflow.id);
     store.getState().addNode(node);
-    store.getState().updateNode('a', { position: { x: 5, y: 5 } });
-    store.getState().updateNodeData('a', { title: 'test' });
-    const updated = store.getState().findNode('a')!;
+    store.getState().updateNode("a", { position: { x: 5, y: 5 } });
+    store.getState().updateNodeData("a", { title: "test" });
+    const updated = store.getState().findNode("a")!;
     expect(updated.position).toEqual({ x: 5, y: 5 });
-    expect(updated.data.title).toBe('test');
+    expect(updated.data.title).toBe("test");
   });
 
-  test('deleteNode removes node and edges', () => {
-    const a = makeNode('a', store.getState().workflow.id);
-    const b = makeNode('b', store.getState().workflow.id);
+  test("deleteNode removes node and edges", () => {
+    const a = makeNode("a", store.getState().workflow.id);
+    const b = makeNode("b", store.getState().workflow.id);
     store.getState().addNode(a);
     store.getState().addNode(b);
-    const edge = makeEdge('a', 'b');
+    const edge = makeEdge("a", "b");
     store.getState().addEdge(edge as Edge);
-    store.getState().deleteNode('a');
-    expect(store.getState().findNode('a')).toBeUndefined();
+    store.getState().deleteNode("a");
+    expect(store.getState().findNode("a")).toBeUndefined();
     expect(store.getState().edges).toHaveLength(0);
-    expect((useErrorStore.getState().clearErrors as jest.Mock)).toHaveBeenCalledWith('a');
-    expect((useResultsStore.getState().clearResults as jest.Mock)).toHaveBeenCalledWith('a');
+    expect(
+      useErrorStore.getState().clearErrors as jest.Mock
+    ).toHaveBeenCalledWith("a");
+    expect(
+      useResultsStore.getState().clearResults as jest.Mock
+    ).toHaveBeenCalledWith("a");
   });
 
-  test('undo and redo revert node changes', () => {
-    const node = makeNode('a', store.getState().workflow.id);
+  test("undo and redo revert node changes", () => {
+    const node = makeNode("a", store.getState().workflow.id);
     store.getState().addNode(node);
     expect(store.getState().nodes).toHaveLength(1);
     store.temporal.getState().undo();
     expect(store.getState().nodes).toHaveLength(0);
     store.temporal.getState().redo();
     expect(store.getState().nodes).toHaveLength(1);
+  });
+
+  test("selecting nodes should not mark workflow as dirty", () => {
+    // Add some nodes first
+    const nodeA = makeNode("a", store.getState().workflow.id);
+    const nodeB = makeNode("b", store.getState().workflow.id);
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    // Reset dirty state
+    store.getState().setWorkflowDirty(false);
+    expect(store.getState().workflowIsDirty).toBe(false);
+
+    // Select nodes using setSelectedNodes
+    store.getState().setSelectedNodes([nodeA]);
+    expect(store.getState().workflowIsDirty).toBe(false);
+
+    // Select all nodes
+    store.getState().selectAllNodes();
+    expect(store.getState().workflowIsDirty).toBe(false);
+
+    // Verify nodes are actually selected
+    expect(store.getState().getSelectedNodes()).toHaveLength(2);
+  });
+
+  test("onNodesChange with selection changes should not mark workflow as dirty", () => {
+    // Add a node first
+    const node = makeNode("a", store.getState().workflow.id);
+    store.getState().addNode(node);
+
+    // Reset dirty state
+    store.getState().setWorkflowDirty(false);
+    expect(store.getState().workflowIsDirty).toBe(false);
+
+    // Simulate selection change through onNodesChange
+    store.getState().onNodesChange([
+      {
+        type: "select",
+        id: "a",
+        selected: true
+      }
+    ]);
+
+    expect(store.getState().workflowIsDirty).toBe(false);
   });
 });
