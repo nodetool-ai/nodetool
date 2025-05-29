@@ -20,19 +20,16 @@ import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
 import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
+import {
+  findMatchingNodesInWorkflows,
+  SearchResult as FrontendSearchResult
+} from "../../utils/findMatchingNodesInWorkflows";
 import { Clear as ClearIcon } from "@mui/icons-material";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-
-interface SearchResult {
-  workflow: Workflow;
-  score: number;
-  matches: {
-    text: string;
-  }[];
-}
+import Fuse from "fuse.js";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -330,7 +327,9 @@ const ExampleGrid = () => {
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<FrontendSearchResult[]>(
+    []
+  );
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
   const closePanel = usePanelStore((state) => state.closePanel);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(
@@ -388,11 +387,73 @@ const ExampleGrid = () => {
     const handler = setTimeout(() => {
       setSearchQuery(inputValue);
     }, 300);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [inputValue]);
+
+  // Grouped workflows memo (MUST be defined before the useEffect that uses it)
+  const groupedWorkflows = useMemo(() => {
+    if (!data) return {};
+    return data.workflows.reduce(
+      (acc: Record<string, Workflow[]>, workflow: Workflow) => {
+        workflow.tags?.forEach((tag: string) => {
+          if (!acc[tag]) acc[tag] = [];
+          acc[tag].push(workflow);
+        });
+        return acc;
+      },
+      {} as Record<string, Workflow[]>
+    );
+  }, [data]);
+
+  // useEffect for populating searchResults based on search type and query
+  useEffect(() => {
+    if (nodesOnlySearch && searchQuery.trim() && searchData?.workflows) {
+      const detailedNodeMatchResults = findMatchingNodesInWorkflows(
+        searchData.workflows,
+        searchQuery
+      );
+      setSearchResults(
+        detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
+      );
+    } else if (!nodesOnlySearch && searchQuery.trim() && data?.workflows) {
+      const baseWorkflowsForGeneralSearch =
+        !selectedTag || !groupedWorkflows[selectedTag]
+          ? data.workflows
+          : groupedWorkflows[selectedTag] || [];
+      const generalResults = searchWorkflowsFrontend(
+        baseWorkflowsForGeneralSearch,
+        searchQuery,
+        false
+      );
+      setSearchResults(generalResults);
+    } else {
+      setSearchResults([]);
+    }
+  }, [
+    searchData,
+    data,
+    searchQuery,
+    nodesOnlySearch,
+    selectedTag,
+    groupedWorkflows
+  ]);
+
+  // Filtered workflows for display
+  const filteredWorkflows = useMemo(() => {
+    let workflowsToDisplay: Workflow[];
+    if (searchQuery.trim()) {
+      workflowsToDisplay = searchResults.map((r) => r.workflow);
+    } else {
+      const base = data?.workflows || [];
+      workflowsToDisplay =
+        !selectedTag || !groupedWorkflows[selectedTag]
+          ? base
+          : groupedWorkflows[selectedTag] || [];
+    }
+    return [...workflowsToDisplay].sort((a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    );
+  }, [searchQuery, searchResults, data, selectedTag, groupedWorkflows]);
 
   const copyExampleWorkflow = useCallback(
     async (workflow: Workflow) => {
@@ -444,58 +505,6 @@ const ExampleGrid = () => {
       setLoadingWorkflowId(null);
     };
   }, []);
-
-  const groupedWorkflows = useMemo(() => {
-    if (!data) return {};
-    return data.workflows.reduce((acc, workflow) => {
-      workflow.tags?.forEach((tag) => {
-        if (!acc[tag]) acc[tag] = [];
-        acc[tag].push(workflow);
-      });
-      return acc;
-    }, {} as Record<string, Workflow[]>);
-  }, [data]);
-
-  const filteredWorkflows = useMemo(() => {
-    if (!data?.workflows) return [];
-    const workflows =
-      !selectedTag || !groupedWorkflows[selectedTag]
-        ? data.workflows
-        : groupedWorkflows[selectedTag];
-    if (searchQuery.trim()) {
-      // Use backend search for node-only search
-      if (nodesOnlySearch && searchData?.workflows) {
-        // Convert backend search results to our SearchResult format
-        const results: SearchResult[] = searchData.workflows.map(
-          (workflow) => ({
-            workflow,
-            score: 1, // Backend doesn't provide score
-            matches: [] // Backend doesn't provide matches yet
-          })
-        );
-        setSearchResults(results);
-        return searchData.workflows;
-      }
-      // Use frontend search for general workflow search
-      if (!nodesOnlySearch) {
-        const results = searchWorkflowsFrontend(workflows, searchQuery, false);
-        setSearchResults(results);
-        return results.map((r) => r.workflow);
-      }
-    }
-    setSearchResults([]);
-    const sorted = [...workflows].sort((a, b) =>
-      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-    );
-    return sorted;
-  }, [
-    selectedTag,
-    groupedWorkflows,
-    data,
-    searchQuery,
-    searchData,
-    nodesOnlySearch
-  ]);
 
   const handleClearSearch = () => {
     setSearchQuery("");
@@ -685,11 +694,13 @@ const ExampleGrid = () => {
                   <Box
                     sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
                   >
-                    {matchedNodes.map((match, idx) => (
-                      <Typography key={idx} className="matched-item">
-                        {match.text}
-                      </Typography>
-                    ))}
+                    {matchedNodes.map(
+                      (match: { text: string }, idx: number) => (
+                        <Typography key={idx} className="matched-item">
+                          {match.text}
+                        </Typography>
+                      )
+                    )}
                   </Box>
                 )}
               </Box>
