@@ -41,7 +41,8 @@ import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
-  WorkflowManagerProvider
+  WorkflowManagerProvider,
+  useWorkflowManager
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, forwardRef } from "react";
 import { Button, css } from "@mui/material";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,7 @@ const styles = (theme: any) =>
     }
   });
 
-const BackToEditorButton = React.forwardRef<HTMLButtonElement>((props, ref) => {
+const BackToEditorButton = forwardRef<HTMLButtonElement>((props, ref) => {
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));

@@ -75,6 +75,7 @@ type WorkflowManagerState = {
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: () => Promise<any>;
+  validateAllEdges: () => void;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -315,13 +316,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Searches example workflows using the backend search API.
       searchExamples: async (query: string) => {
-        const { data, error } = await client.GET("/api/workflows/examples/search", {
-          params: {
-            query: {
-              query
+        const { data, error } = await client.GET(
+          "/api/workflows/examples/search",
+          {
+            params: {
+              query: {
+                query
+              }
             }
           }
-        });
+        );
         if (error) {
           throw createErrorMessage(error, "Failed to search examples");
         }
@@ -554,6 +558,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             nodeStore.setState({
               workflow: data
             });
+            nodeStore.getState().setWorkflowDirty(false);
           }
           return {
             openWorkflows: state.openWorkflows.map((w) =>
@@ -669,6 +674,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
           state.addWorkflow(data);
         }
+      },
+
+      validateAllEdges: () => {
+        // Edge validation functionality removed - will be implemented in separate branch
       }
     };
   });

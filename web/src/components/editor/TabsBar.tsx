@@ -29,7 +29,8 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     removeWorkflow,
     saveWorkflow,
     currentWorkflowId,
-    createNewWorkflow
+    createNewWorkflow,
+    getNodeStore
   } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
@@ -38,8 +39,10 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     updateWorkflow: state.updateWorkflow,
     saveWorkflow: state.saveWorkflow,
     currentWorkflowId: state.currentWorkflowId,
-    createNewWorkflow: state.createNew
+    createNewWorkflow: state.createNew,
+    getNodeStore: state.getNodeStore
   }));
+
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: "left" | "right";
@@ -120,12 +123,18 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent, workflowId: string, newName: string) => {
       if (e.key === "Enter") {
-        handleNameChange(workflowId, newName);
+        const workflow = getWorkflow(workflowId);
+        if (workflow) {
+          const updatedWorkflow = { ...workflow, name: newName };
+          updateWorkflow(updatedWorkflow);
+          saveWorkflow(updatedWorkflow);
+        }
+        setEditingWorkflowId(null);
       } else if (e.key === "Escape") {
         setEditingWorkflowId(null);
       }
     },
-    [handleNameChange, setEditingWorkflowId]
+    [getWorkflow, updateWorkflow, saveWorkflow]
   );
 
   const handleNavigate = useCallback(
@@ -209,24 +218,26 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
         <ChevronLeftIcon />
       </button>
       <div className="tabs" ref={tabsRef} onWheel={handleWheel}>
-        {workflows.map((workflow) => (
-          <TabHeader
-            key={workflow.id}
-            workflow={workflow}
-            isActive={workflow.id === currentWorkflowId}
-            isEditing={editingWorkflowId === workflow.id}
-            dropTarget={dropTarget}
-            onNavigate={handleNavigate}
-            onDoubleClick={handleDoubleClick}
-            onClose={handleClose}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onNameChange={handleNameChange}
-            onKeyDown={handleKeyDown}
-          />
-        ))}
+        {workflows.map((workflow) => {
+          return (
+            <TabHeader
+              key={workflow.id}
+              workflow={workflow}
+              isActive={workflow.id === currentWorkflowId}
+              isEditing={editingWorkflowId === workflow.id}
+              dropTarget={dropTarget}
+              onNavigate={handleNavigate}
+              onDoubleClick={handleDoubleClick}
+              onClose={handleClose}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onNameChange={handleNameChange}
+              onKeyDown={handleKeyDown}
+            />
+          );
+        })}
         <button
           tabIndex={-1}
           className="new-workflow-button"
