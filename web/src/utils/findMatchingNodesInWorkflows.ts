@@ -21,7 +21,6 @@ export const findMatchingNodesInWorkflows = (
   fuseMinMatchCharLengthFactor: number = 0.5
 ): SearchResult[] => {
   if (!searchQuery.trim() || !workflows || workflows.length === 0) {
-    // If no query or workflows, return them with no matches
     return workflows.map((workflow) => ({
       workflow,
       fuseScore: 1,
@@ -79,11 +78,12 @@ export const findMatchingNodesInWorkflows = (
       matchedNodeItems.map((match) => match.item.textToShow)
     );
 
-    return {
+    const result = {
       workflow,
       fuseScore:
         matchedNodeItems.length > 0 ? 1 - (matchedNodeItems[0].score || 0) : 0,
       matches: Array.from(uniqueMatchedTextsToShow).map((text) => ({ text }))
     };
+    return result;
   });
 };
