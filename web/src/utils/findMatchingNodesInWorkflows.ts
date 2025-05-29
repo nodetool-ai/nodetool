@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { Workflow } from "../stores/ApiTypes";
+import { Workflow, Node } from "../stores/ApiTypes";
 
 export interface SearchResult {
   workflow: Workflow;
@@ -33,8 +33,8 @@ export const findMatchingNodesInWorkflows = (
   return workflows.map((workflow) => {
     const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
-      Object.values(workflow.graph.nodes).forEach((node: any) => {
-        const title = String(node.title || "");
+      Object.values(workflow.graph.nodes).forEach((node: Node) => {
+        const title = String((node.data as { title?: string })?.title || "");
         const type = String(node.type || ""); // Full type string, e.g., "nodetool.llms.summarizer"
 
         // If title exists, add it for searching, but map it to show the full type.
