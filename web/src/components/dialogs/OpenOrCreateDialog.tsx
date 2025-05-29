@@ -25,6 +25,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import BackToDashboardButton from "../dashboard/BackToDashboardButton";
 const styles = (theme: any) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -305,6 +306,7 @@ const OpenOrCreateDialog = () => {
       </Typography>
       <DialogContent className="content">
         <div className="workflow-buttons">
+          <BackToDashboardButton />
           <Button variant="outlined" onClick={handleCreateNewWorkflow}>
             Create New
           </Button>
