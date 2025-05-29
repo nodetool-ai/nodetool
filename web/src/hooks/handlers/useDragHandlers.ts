@@ -28,6 +28,10 @@ export default function useDragHandlers() {
   const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [commentDragState, setCommentDragState] = useState<{
+    isActive: boolean;
+    startPos: { x: number; y: number } | null;
+  }>({ isActive: false, startPos: null });
   const [lastParentNode, setLastParentNode] = useState<
     Node<NodeData> | undefined
   >();
@@ -50,23 +54,21 @@ export default function useDragHandlers() {
     }));
 
   const createCommentNode = useCallback(
-    (width: number, height: number) => {
-      if (cKeyPressed) {
-        const metadata = COMMENT_NODE_METADATA;
-        const newNode = createNode(metadata, {
-          x: startPos.x,
-          y: startPos.y - 20
-        });
-        newNode.width = Math.max(width, 150);
-        newNode.height = Math.max(height, 100);
-        newNode.style = {
-          width: newNode.width,
-          height: newNode.height
-        };
-        addNode(newNode);
-      }
+    (width: number, height: number, initialPos: { x: number; y: number }) => {
+      const metadata = COMMENT_NODE_METADATA;
+      const newNode = createNode(metadata, {
+        x: initialPos.x,
+        y: initialPos.y - 20
+      });
+      newNode.width = Math.max(width, 150);
+      newNode.height = Math.max(height, 100);
+      newNode.style = {
+        width: newNode.width,
+        height: newNode.height
+      };
+      addNode(newNode);
     },
-    [addNode, cKeyPressed, createNode, startPos.x, startPos.y]
+    [addNode, createNode]
   );
 
   /* NODE DRAG START */
@@ -212,9 +214,7 @@ export default function useDragHandlers() {
 
   /* SELECTION DRAG STOP */
   const onSelectionDragStop = useCallback(
-    (_event: any, nodes: Node<NodeData>[]) => {
-      // Only add to group if a valid parent was intersected during drag
-      // and nodes aren't already in that group (check first node as proxy)
+    (event: MouseEvent, nodes: Node<NodeData>[]) => {
       if (
         lastParentNode &&
         nodes.length > 0 &&
@@ -222,6 +222,7 @@ export default function useDragHandlers() {
       ) {
         addToGroup(nodes, lastParentNode);
       }
+
       resume(); // Resume history
       setDraggedNodes(new Set());
       setHoveredNodes([]);
@@ -232,30 +233,57 @@ export default function useDragHandlers() {
   );
 
   /* SELECTION START */
-  const onSelectionStart = useCallback(() => {
-    // get mouse position for creating comment node
-    const mousePos = getMousePosition();
-    const projectedStartPos = reactFlow.screenToFlowPosition({
-      x: mousePos.x,
-      y: mousePos.y
-    });
-    setStartPos(projectedStartPos);
-  }, [reactFlow]);
-
-  /* SELECTION END */
-  const onSelectionEnd = useCallback(() => {
-    if (cKeyPressed) {
-      // create comment node
-      const mousePos = getMousePosition();
-      const projectedEndPos = reactFlow.screenToFlowPosition({
-        x: mousePos.x,
-        y: mousePos.y
+  const onSelectionStart = useCallback(
+    (event: any) => {
+      const currentMousePos = getMousePosition();
+      const projectedStartPos = reactFlow.screenToFlowPosition({
+        x: currentMousePos.x,
+        y: currentMousePos.y
       });
-      const width = Math.abs(projectedEndPos.x - startPos.x);
-      const height = Math.abs(projectedEndPos.y - startPos.y);
-      createCommentNode(width, height);
-    }
-  }, [createCommentNode, startPos, reactFlow, cKeyPressed]);
+      setStartPos(projectedStartPos); // General purpose
+
+      if (cKeyPressed) {
+        setCommentDragState({ isActive: true, startPos: projectedStartPos });
+      } else {
+        if (!commentDragState.isActive) {
+          setCommentDragState({ isActive: false, startPos: null });
+        }
+      }
+    },
+    [
+      reactFlow,
+      cKeyPressed,
+      setStartPos,
+      setCommentDragState,
+      commentDragState.isActive
+    ]
+  ); // Added commentDragState.isActive
+
+  const onSelectionEnd = useCallback(
+    (event: MouseEvent) => {
+      if (commentDragState.isActive && commentDragState.startPos) {
+        const projectedEndPos = reactFlow.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+
+        const actualStartPos = commentDragState.startPos;
+        const nodeX = Math.min(actualStartPos.x, projectedEndPos.x);
+        const nodeY = Math.min(actualStartPos.y, projectedEndPos.y);
+
+        const width = Math.abs(actualStartPos.x - projectedEndPos.x);
+        const height = Math.abs(actualStartPos.y - projectedEndPos.y);
+
+        if (width > 10 || height > 10) {
+          // Threshold
+          // Pass the calculated top-left (nodeX, nodeY) as the initial position
+          createCommentNode(width, height, { x: nodeX, y: nodeY });
+        }
+      }
+      setCommentDragState({ isActive: false, startPos: null });
+    },
+    [commentDragState, reactFlow, createCommentNode, setCommentDragState]
+  );
 
   // enables pan on drag. accepts boolean or array of mouse buttons
   let panOnDrag: number[] = [0];

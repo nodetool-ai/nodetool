@@ -118,9 +118,10 @@ const styles = (theme: any) =>
       right: 0,
       height: `${RESIZE_HANDLE_HEIGHT}px`,
       cursor: "ns-resize",
+      backgroundColor: "var(--c_gray2)",
       transition: "background-color 0.2s ease",
       "&:hover, &.resizing": {
-        backgroundColor: "#4c4c4c"
+        backgroundColor: "var(--c_gray3)"
       },
       "&::after": {
         content: '""',
