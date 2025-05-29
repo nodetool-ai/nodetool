@@ -16,6 +16,38 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import FormatButton from "./FormatButton";
 
+// Function to calculate contrast color (black or white) for a given hex background
+function getContrastTextColor(hexColor: string): string {
+  if (!hexColor) return "#000000"; // Default to black if no color
+  let hex = hexColor.replace("#", "");
+
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+
+  if (hex.length !== 6) {
+    // console.warn("Invalid hex color for contrast calculation:", hexColor);
+    return "#000000"; // Default to black for non-standard hex
+  }
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  if (isNaN(r) || isNaN(g) || isNaN(b)) {
+    // console.warn("Error parsing RGB from hex:", hexColor);
+    return "#000000"; // Default to black on parse error
+  }
+
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.5 ? "#000000" : "#FFFFFF";
+}
+
 export type CustomElement = {
   type: "paragraph";
   children: CustomText[];
@@ -52,7 +84,6 @@ const styles = (theme: any) =>
       height: "100%",
       overflowX: "hidden",
       overflowY: "auto",
-      color: theme.palette.c_black,
       fontSize: theme.fontSizeBig,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.1em",
@@ -190,6 +221,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : [{ type: "paragraph", children: [{ text: "" }] }];
   });
 
+  const textColor = getContrastTextColor(color);
+
   const handleChange = useCallback(
     (newValue: Descendant[]) => {
       setValue(newValue);
@@ -304,7 +337,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           tooltipText="Increase Font Size for selected text"
         />
       </div>
-      <div className="text-editor" onClick={handleClick}>
+      <div
+        className="text-editor"
+        onClick={handleClick}
+        css={css`
+          color: ${textColor};
+          & [data-slate-placeholder="true"] {
+            color: ${hexToRgba(textColor, 0.6)};
+          }
+        `}
+      >
         <Slate editor={editor} onChange={handleChange} initialValue={value}>
           <Editable
             placeholder="//"

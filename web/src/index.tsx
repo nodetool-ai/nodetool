@@ -50,6 +50,7 @@ import { MenuProvider } from "./providers/MenuProvider";
 
 import log from "loglevel";
 import GlobalChat from "./components/assistants/GlobalChat";
+import Dashboard from "./components/dashboard/Dashboard";
 
 (window as any).log = log;
 
@@ -67,12 +68,12 @@ const NavigateToStart = () => {
     return showWelcomeOnStartup ? (
       <Navigate to="/welcome" replace={true} />
     ) : (
-      <Navigate to="/editor/start" replace={true} />
+      <Navigate to="/dashboard" replace={true} />
     );
   } else if (state === "init") {
     return <div>Loading...</div>;
   } else if (state === "logged_in") {
-    return <Navigate to="/editor/start" replace={true} />;
+    return <Navigate to="/dashboard" replace={true} />;
   } else if (state === "logged_out") {
     return <Navigate to="/login" replace={true} />;
   } else if (state === "error") {
@@ -86,6 +87,14 @@ function getRoutes() {
     {
       path: "/",
       element: <NavigateToStart />
+    },
+    {
+      path: "/dashboard",
+      element: (
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      )
     },
     {
       path: "/welcome",
