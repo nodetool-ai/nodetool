@@ -47,6 +47,9 @@ interface GlobalChatState {
   threads: Record<string, Thread>;
   currentThreadId: string | null;
   
+  // Tool call tracking
+  isProcessingTools: boolean;
+  
   // Actions
   connect: (workflowId?: string) => Promise<void>;
   disconnect: () => void;
@@ -108,6 +111,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
+      
+      // Tool call tracking
+      isProcessingTools: false,
 
       connect: async (workflowId?: string) => {
     log.info("Connecting to global chat");
@@ -168,6 +174,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set((state) => {
             const thread = state.threads[threadId];
             if (thread) {
+              // Check if this message contains tool calls
+              const hasToolCalls = message.tool_calls && message.tool_calls.length > 0;
+              
+              // If this is a user message, we're starting a new request
+              const isUserMessage = message.role === "user";
+              
+              // If this is an assistant message without tool calls and we were processing tools,
+              // then this is likely the final response
+              const isAssistantMessage = message.role === "assistant";
+              const isFinalResponse = isAssistantMessage && !hasToolCalls && state.isProcessingTools;
+              
               return {
                 threads: {
                   ...state.threads,
@@ -177,9 +194,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     updatedAt: new Date().toISOString()
                   }
                 },
-                status: "connected",
-                progress: { current: 0, total: 0 },
-                statusMessage: ""
+                status: isFinalResponse ? "connected" : (isUserMessage ? "loading" : state.status),
+                progress: isFinalResponse ? { current: 0, total: 0 } : state.progress,
+                statusMessage: isFinalResponse ? "" : state.statusMessage,
+                isProcessingTools: hasToolCalls ? true : (isFinalResponse ? false : state.isProcessingTools)
               };
             }
             return state;
@@ -191,14 +209,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set({
             progress: { current: 0, total: 0 },
             status: "connected",
-            statusMessage: ""
+            statusMessage: "",
+            isProcessingTools: false // Clear tool processing on job completion
           });
         } else if (update.status === "failed") {
           set({
             error: update.error,
             status: "error",
             progress: { current: 0, total: 0 },
-            statusMessage: update.error || ""
+            statusMessage: update.error || "",
+            isProcessingTools: false // Clear tool processing on job failure
           });
         }
       } else if (data.type === "node_update") {
@@ -253,6 +273,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }
             if (chunk.done) {
               set({ status: "connected" });
+            } else {
+              set({ status: "loading" });
             }
           }
         }
@@ -332,7 +354,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       } else if (data.type === "tool_call_update") {
         const update = data as ToolCallUpdate;
-        set({ statusMessage: update.message });
+        set({ 
+          statusMessage: update.message,
+          status: "loading" // Ensure we stay in loading state during tool calls
+        });
       } else if (data.type === "node_progress") {
         const progress = data as NodeProgress;
         set({
@@ -446,7 +471,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...(title && !thread.title ? { title } : {})
           }
         },
-        status: "loading"
+        status: "loading",
+        isProcessingTools: false // Reset tool processing when sending a new message
       }));
     }
     
