@@ -20,14 +20,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
 import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
-import {
-  findMatchingNodesInWorkflows,
-  SearchResult as FrontendSearchResult
-} from "../../utils/findMatchingNodesInWorkflows";
+import { findMatchingNodesInWorkflows } from "../../utils/findMatchingNodesInWorkflows";
+import { SearchResult as FrontendSearchResult } from "../../types/search";
 import { Clear as ClearIcon } from "@mui/icons-material";
 import {
   TOOLTIP_ENTER_DELAY,
-  TOOLTIP_LEAVE_DELAY
+  TOOLTIP_LEAVE_DELAY,
+  SEARCH_DEBOUNCE_MS
 } from "../../config/constants";
 import Fuse from "fuse.js";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -35,6 +34,7 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { BASE_URL } from "../../stores/ApiClient";
+import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
 
 const styles = (theme: any) =>
   css({
@@ -408,7 +408,7 @@ const ExampleGrid = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(inputValue);
-    }, 500);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handler);
   }, [inputValue]);
 
@@ -432,13 +432,18 @@ const ExampleGrid = () => {
       searchQuery.trim().length > 1 &&
       searchData?.workflows
     ) {
-      const detailedNodeMatchResults = findMatchingNodesInWorkflows(
-        searchData.workflows,
-        searchQuery
-      );
-      setSearchResults(
-        detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
-      );
+      try {
+        const detailedNodeMatchResults = findMatchingNodesInWorkflows(
+          searchData.workflows,
+          searchQuery
+        );
+        setSearchResults(
+          detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
+        );
+      } catch (error) {
+        console.error("Search failed:", error);
+        setSearchResults([]); // Clear results on error
+      }
     } else if (
       !nodesOnlySearch &&
       searchQuery.trim().length > 1 &&
@@ -736,15 +741,15 @@ const ExampleGrid = () => {
                       {matchedNodes.map(
                         (match: { text: string }, idx: number) => (
                           <Typography key={idx} className="matched-item">
-                            {match.text.split(".").pop() && (
+                            {getNodeDisplayName(match.text) && (
                               <>
                                 <span className="matched-item-name">
-                                  {match.text.split(".").pop()}
+                                  {getNodeDisplayName(match.text)}
                                 </span>
                               </>
                             )}
                             <span className="matched-item-namespace">
-                              {match.text.split(".").slice(0, -1).join(".")}
+                              {getNodeNamespace(match.text)}
                             </span>
                           </Typography>
                         )
