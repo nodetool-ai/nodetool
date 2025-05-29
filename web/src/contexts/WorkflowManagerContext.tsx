@@ -315,14 +315,21 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Searches example workflows using the backend search API.
       searchExamples: async (query: string) => {
-        const { data, error } = await client.GET("/api/workflows/examples/search", {
-          params: {
-            query: {
-              query
+        const { data, error } = await client.GET(
+          "/api/workflows/examples/search",
+          {
+            params: {
+              query: {
+                query
+              }
             }
           }
-        });
+        );
         if (error) {
+          console.error(
+            "[WorkflowManagerContext] searchExamples error:",
+            error
+          );
           throw createErrorMessage(error, "Failed to search examples");
         }
         return data;
@@ -724,7 +731,6 @@ export const WorkflowManagerProvider: React.FC<{
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => {
-    console.log("Creating workflow manager store");
     const workflowManagerStore = createWorkflowManagerStore(queryClient);
     return workflowManagerStore;
   });

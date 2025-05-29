@@ -351,17 +351,36 @@ const ExampleGrid = () => {
     }
   }, [searchParams]);
 
-  const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
+  const {
+    data,
+    isLoading: isLoadingExamples,
+    isError,
+    error
+  } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
     queryFn: loadWorkflows
   });
 
   // Use query for backend node search results
-  const { data: searchData, isLoading: isSearching } = useQuery<WorkflowList>({
+  const {
+    data: searchData,
+    isLoading: isLoadingSearchData,
+    isFetching: isFetchingSearchData
+  } = useQuery<WorkflowList>({
     queryKey: ["exampleSearch", searchQuery],
     queryFn: () => searchWorkflows(searchQuery),
     enabled: !!searchQuery.trim() && nodesOnlySearch,
-    placeholderData: (previousData) => previousData
+    placeholderData: (previousData, previousQueryInstance) => {
+      // previousQueryInstance.queryKey is [string, string] (e.g., ["exampleSearch", "oldQuery"])
+      // searchQuery is the current, new query term
+      if (
+        previousQueryInstance &&
+        previousQueryInstance.queryKey[1] !== searchQuery
+      ) {
+        return undefined; // Don't use placeholder if the search term part of the key has changed
+      }
+      return previousData;
+    }
   });
 
   // Debounce search query
@@ -439,12 +458,10 @@ const ExampleGrid = () => {
 
   const filteredWorkflows = useMemo(() => {
     if (!data?.workflows) return [];
-
     const workflows =
       !selectedTag || !groupedWorkflows[selectedTag]
         ? data.workflows
         : groupedWorkflows[selectedTag];
-
     if (searchQuery.trim()) {
       // Use backend search for node-only search
       if (nodesOnlySearch && searchData?.workflows) {
@@ -459,7 +476,6 @@ const ExampleGrid = () => {
         setSearchResults(results);
         return searchData.workflows;
       }
-
       // Use frontend search for general workflow search
       if (!nodesOnlySearch) {
         const results = searchWorkflowsFrontend(workflows, searchQuery, false);
@@ -467,11 +483,11 @@ const ExampleGrid = () => {
         return results.map((r) => r.workflow);
       }
     }
-
     setSearchResults([]);
-    return [...workflows].sort((a, b) =>
+    const sorted = [...workflows].sort((a, b) =>
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     );
+    return sorted;
   }, [
     selectedTag,
     groupedWorkflows,
@@ -552,9 +568,14 @@ const ExampleGrid = () => {
           size="small"
           value={inputValue}
           onChange={(e) => {
-            setInputValue(e.target.value);
-            if (e.target.value.trim()) {
+            const newInputValue = e.target.value;
+            setInputValue(newInputValue);
+            if (newInputValue.trim()) {
               setSelectedTag(null);
+              setSearchResults([]); // Clear frontend search highlights immediately
+            } else {
+              // If input is cleared via TextField, trigger full clear behavior
+              handleClearSearch();
             }
           }}
           slotProps={{
@@ -593,11 +614,11 @@ const ExampleGrid = () => {
         </Tooltip>
       </Box>
       <Box className="container">
-        {(isLoading || isSearching) && (
+        {(isLoadingExamples || isFetchingSearchData) && (
           <div className="loading-indicator">
             <CircularProgress />
             <Typography variant="h4">
-              {isSearching && nodesOnlySearch
+              {isFetchingSearchData && nodesOnlySearch
                 ? "Searching for nodes..."
                 : "Loading Examples"}
             </Typography>
@@ -608,129 +629,136 @@ const ExampleGrid = () => {
             <Typography>{error?.message}</Typography>
           </ErrorOutlineRounded>
         )}
-        {filteredWorkflows.map((workflow) => {
-          const searchResult = searchResults.find(
-            (r) => r.workflow.id === workflow.id
-          );
-          const matchedNodes = searchResult?.matches?.length
-            ? searchResult.matches
-            : [];
-          const isLoading = loadingWorkflowId === workflow.id;
+        {/* Hide workflows while node search is in progress and fetching */}
+        {!((isLoadingSearchData || isFetchingSearchData) && nodesOnlySearch) &&
+          filteredWorkflows.map((workflow) => {
+            const searchResult = searchResults.find(
+              (r) => r.workflow.id === workflow.id
+            );
+            const matchedNodes = searchResult?.matches?.length
+              ? searchResult.matches
+              : [];
+            const isLoading = loadingWorkflowId === workflow.id;
 
-          return (
-            <Box
-              key={workflow.id}
-              className={`workflow ${isLoading ? "loading" : ""}`}
-              onClick={() => onClickWorkflow(workflow)}
-            >
-              {isLoading && (
-                <Fade in={true}>
-                  <Box className="loading-overlay">
-                    <CircularProgress size={40} color="secondary" />
-                    <Typography className="loading-text">
-                      Creating new workflow from example...
-                    </Typography>
-                  </Box>
-                </Fade>
-              )}
-              <Typography variant="h3" component={"h3"}>
-                {workflow.name}
-              </Typography>
-              <Box className="image-wrapper">
-                <img
-                  width="200px"
-                  src={
-                    BASE_URL +
-                    "/api/assets/packages/" +
-                    workflow.package_name +
-                    "/" +
-                    workflow.name +
-                    ".jpg"
-                  }
-                  alt={" "}
-                />
-                <Typography className="package-name" component={"p"}>
-                  {workflow.package_name
-                    ?.replace("nodetool-", "")
-                    .toUpperCase()}
+            return (
+              <Box
+                key={workflow.id}
+                className={`workflow ${isLoading ? "loading" : ""}`}
+                onClick={() => onClickWorkflow(workflow)}
+              >
+                {isLoading && (
+                  <Fade in={true}>
+                    <Box className="loading-overlay">
+                      <CircularProgress size={40} color="secondary" />
+                      <Typography className="loading-text">
+                        Creating new workflow from example...
+                      </Typography>
+                    </Box>
+                  </Fade>
+                )}
+                <Typography variant="h3" component={"h3"}>
+                  {workflow.name}
                 </Typography>
-              </Box>
-              <Typography className="description">
-                {workflow.description}
-              </Typography>
-              {nodesOnlySearch && matchedNodes.length > 0 && (
-                <Box
-                  sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
-                >
-                  {matchedNodes.map((match, idx) => (
-                    <Typography key={idx} className="matched-item">
-                      {match.text}
-                    </Typography>
-                  ))}
+                <Box className="image-wrapper">
+                  <img
+                    width="200px"
+                    src={
+                      BASE_URL +
+                      "/api/assets/packages/" +
+                      workflow.package_name +
+                      "/" +
+                      workflow.name +
+                      ".jpg"
+                    }
+                    alt={" "}
+                  />
+                  <Typography className="package-name" component={"p"}>
+                    {workflow.package_name
+                      ?.replace("nodetool-", "")
+                      .toUpperCase()}
+                  </Typography>
                 </Box>
-              )}
-            </Box>
-          );
-        })}
-        {filteredWorkflows.length === 0 && searchQuery && (
-          <Box className="no-results">
-            <Typography variant="body1" sx={{ marginBottom: "1em" }}>
-              Nothing found for
-              <strong style={{ color: ThemeNodetool.palette.c_hl1 }}>
-                {" "}
-                &quot;{searchQuery}&quot;
-              </strong>
-            </Typography>
+                <Typography className="description">
+                  {workflow.description}
+                </Typography>
+                {nodesOnlySearch && matchedNodes.length > 0 && (
+                  <Box
+                    sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
+                  >
+                    {matchedNodes.map((match, idx) => (
+                      <Typography key={idx} className="matched-item">
+                        {match.text}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
+        {filteredWorkflows.length === 0 &&
+          searchQuery &&
+          !(
+            (isLoadingSearchData || isFetchingSearchData) &&
+            nodesOnlySearch
+          ) && (
+            <Box className="no-results">
+              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+                Nothing found for
+                <strong style={{ color: ThemeNodetool.palette.c_hl1 }}>
+                  {" "}
+                  &quot;{searchQuery}&quot;
+                </strong>
+              </Typography>
 
-            <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
-              Help us improve the examples
-            </Typography>
-            <Typography variant="body1" sx={{ marginBottom: "1em" }}>
-              Let us know what you&apos;re missing!
-            </Typography>
-            <ul
-              style={{
-                listStyleType: "none",
-                padding: 0,
-                margin: 0
-                // "& li": { marginBottom: "0.5em" }
-              }}
-            >
-              <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(
-                      "https://discord.gg/WmQTWZRcYE",
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                  style={{ color: "#61dafb" }}
-                >
-                  Join our Discord
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(
-                      "https://forum.nodetool.ai",
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                  style={{ color: "#61dafb" }}
-                >
-                  Join the Nodetool Forum
-                </a>
-              </li>
-            </ul>
-          </Box>
-        )}
+              <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
+                Help us improve the examples
+              </Typography>
+              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+                Let us know what you&apos;re missing!
+              </Typography>
+              <ul
+                style={{
+                  listStyleType: "none",
+                  padding: 0,
+                  margin: 0
+                  // "& li": { marginBottom: "0.5em" }
+                }}
+              >
+                <li>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(
+                        "https://discord.gg/WmQTWZRcYE",
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                    style={{ color: "#61dafb" }}
+                  >
+                    Join our Discord
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(
+                        "https://forum.nodetool.ai",
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                    style={{ color: "#61dafb" }}
+                  >
+                    Join the Nodetool Forum
+                  </a>
+                </li>
+              </ul>
+            </Box>
+          )}
       </Box>
     </div>
   );
