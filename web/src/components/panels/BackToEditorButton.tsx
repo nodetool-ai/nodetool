@@ -15,7 +15,7 @@ const styles = (theme: any) =>
     }
   });
 
-const BackToEditorButton: React.FC = () => {
+const BackToEditorButton = React.forwardRef<HTMLButtonElement>((props, ref) => {
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
@@ -23,14 +23,18 @@ const BackToEditorButton: React.FC = () => {
 
   return (
     <Button
+      ref={ref}
       className="nav-button back-to-editor"
       onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
       css={styles}
+      {...props}
     >
       <KeyboardBackspaceIcon sx={{ fontSize: "20px", marginRight: "4px" }} />
       <span>Back to Editor</span>
     </Button>
   );
-};
+});
+
+BackToEditorButton.displayName = "BackToEditorButton";
 
 export default memo(BackToEditorButton);
