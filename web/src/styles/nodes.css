@@ -19,6 +19,7 @@
   width: auto;
   cursor: default !important;
   padding: 0;
+  border: 1px solid var(--c_gray2);
   border-radius: 0.3em;
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;

@@ -27,7 +27,7 @@ const styles = (theme: any) =>
       justifyContent: "space-between",
       alignItems: "center",
       position: "relative",
-      backgroundColor: theme.palette.c_gray1,
+      // backgroundColor: theme.palette.c_gray1,
       height: "40px",
       minHeight: "40px",
       padding: "0 12px",

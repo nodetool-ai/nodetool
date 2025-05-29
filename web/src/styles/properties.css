@@ -71,7 +71,7 @@
   padding-right: 1em;
   opacity: 1;
   border-bottom: 2px solid var(--c_hl1) !important;
-   background-color: var(--c_gray3) !important;
+  background-color: var(--c_gray3) !important;
   /* opacity: 0.4; */
 }
 
@@ -154,7 +154,7 @@
 .property-label label {
   display: block;
   font-weight: 300;
-  color: var(--c_gray6);
+  color: var(--c_gray4);
   font-family: var(--font-family-1);
   font-size: var(--font-size-normal);
   padding: 0;

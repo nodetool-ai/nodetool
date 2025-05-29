@@ -21,7 +21,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
             fontWeight: index === parts.length - 1 ? "500" : "300",
             color:
               index === parts.length - 1
-                ? ThemeNodes.palette.c_gray6
+                ? ThemeNodes.palette.c_gray4
                 : "inherit"
           }}
         >
