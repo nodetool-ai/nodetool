@@ -72,6 +72,55 @@ export const DEFAULT_NODE_WIDTH = 200;
 const undo_limit = 1000;
 const AUTO_SAVE_INTERVAL = 60000; // 1 minute
 
+/**
+ * Validates if an edge is valid based on node existence and handle validity
+ */
+const isValidEdge = (
+  edge: Edge,
+  nodeMap: Map<string, Node<NodeData>>,
+  metadata: Record<string, NodeMetadata>
+): boolean => {
+  const sourceNode = nodeMap.get(edge.source);
+  const targetNode = nodeMap.get(edge.target);
+
+  // Basic validation: nodes must exist
+  if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
+    return false;
+  }
+
+  const sourceMetadata = metadata[sourceNode.type];
+  const targetMetadata = metadata[targetNode.type];
+
+  // If metadata is missing, we can't validate handles properly
+  // But we should still check basic handle requirements
+  if (!sourceMetadata || !targetMetadata) {
+    // At minimum, edges must have handles specified
+    if (!edge.sourceHandle || !edge.targetHandle) {
+      return false;
+    }
+    // Allow the edge for now - it will be validated again when metadata loads
+    return true;
+  }
+
+  // Validate source handle
+  const hasValidSourceHandle = sourceMetadata.outputs.some(
+    (output) => output.name === edge.sourceHandle
+  );
+  if (!hasValidSourceHandle) {
+    return false;
+  }
+
+  // Validate target handle
+  const hasValidTargetHandle =
+    targetMetadata.is_dynamic ||
+    targetMetadata.properties.some((prop) => prop.name === edge.targetHandle);
+  if (!hasValidTargetHandle) {
+    return false;
+  }
+
+  return true;
+};
+
 export interface NodeStoreState {
   shouldAutoLayout: boolean;
   setShouldAutoLayout: (value: boolean) => void;
@@ -141,6 +190,7 @@ export interface NodeStoreState {
   shouldFitToScreen: boolean;
   setShouldFitToScreen: (value: boolean) => void;
   selectAllNodes: () => void;
+  cleanup: () => void;
 }
 
 export type PartializedNodeStore = Pick<
@@ -171,28 +221,74 @@ const sanitizeGraph = (
     return sanitizedNode;
   });
 
-  const sanitizedEdges = edges.reduce((acc, edge) => {
+  const sanitizedEdges = edges.filter((edge) => {
+    if (isValidEdge(edge, nodeMap, metadata)) {
+      return true;
+    }
+
+    // Log detailed information about why the edge was removed
     const sourceNode = nodeMap.get(edge.source);
     const targetNode = nodeMap.get(edge.target);
-    if (sourceNode && targetNode && sourceNode.type && targetNode.type) {
+
+    if (!sourceNode || !targetNode) {
+      log.warn(
+        `Edge ${edge.id} references non-existent nodes. Source: ${
+          edge.source
+        } (${sourceNode ? "exists" : "missing"}), Target: ${edge.target} (${
+          targetNode ? "exists" : "missing"
+        }). Removing edge.`
+      );
+    } else if (!sourceNode.type || !targetNode.type) {
+      log.warn(
+        `Edge ${edge.id} connects nodes without types. Source type: ${sourceNode.type}, Target type: ${targetNode.type}. Removing edge.`
+      );
+    } else {
       const sourceMetadata = metadata[sourceNode.type];
       const targetMetadata = metadata[targetNode.type];
-      if (!sourceMetadata || !targetMetadata) {
-        acc.push(edge);
-      } else if (
-        sourceMetadata.outputs.some(
+
+      if (sourceMetadata && targetMetadata) {
+        const hasValidSourceHandle = sourceMetadata.outputs.some(
           (output) => output.name === edge.sourceHandle
-        ) &&
-        (targetMetadata.is_dynamic ||
+        );
+        const hasValidTargetHandle =
+          targetMetadata.is_dynamic ||
           targetMetadata.properties.some(
             (prop) => prop.name === edge.targetHandle
-          ))
-      ) {
-        acc.push(edge);
+          );
+
+        if (!hasValidSourceHandle) {
+          log.warn(
+            `Edge ${edge.id} references invalid source handle "${
+              edge.sourceHandle
+            }" on node ${edge.source} (type: ${
+              sourceNode.type
+            }). Available outputs: ${sourceMetadata.outputs
+              .map((o) => o.name)
+              .join(", ")}. Removing edge.`
+          );
+        } else if (!hasValidTargetHandle) {
+          log.warn(
+            `Edge ${edge.id} references invalid target handle "${
+              edge.targetHandle
+            }" on node ${edge.target} (type: ${
+              targetNode.type
+            }). Available properties: ${targetMetadata.properties
+              .map((p) => p.name)
+              .join(", ")}. Removing edge.`
+          );
+        }
       }
     }
-    return acc;
-  }, [] as Edge[]);
+
+    return false;
+  });
+
+  const removedEdgeCount = edges.length - sanitizedEdges.length;
+  if (removedEdgeCount > 0) {
+    log.info(
+      `Sanitized graph: removed ${removedEdgeCount} invalid edge(s) out of ${edges.length} total edges.`
+    );
+  }
 
   return { nodes: sanitizedNodes, edges: sanitizedEdges };
 };
@@ -250,6 +346,26 @@ export const createNodeStore = (
             addNodeType(node.type, PlaceholderNode);
           }
         }
+
+        // Store the unsubscribe function for cleanup
+        let unsubscribeMetadata: (() => void) | null = null;
+
+        // Subscribe to metadata changes to re-sanitize edges when metadata loads
+        unsubscribeMetadata = useMetadataStore.subscribe((state) => {
+          // Re-sanitize edges when metadata becomes available
+          const currentState = get();
+          const metadataCount = Object.keys(state.metadata).length;
+          const edgeCount = currentState.edges.length;
+
+          if (metadataCount > 0 && edgeCount > 0) {
+            const { edges: sanitizedEdges } = sanitizeGraph(
+              currentState.nodes,
+              currentState.edges,
+              state.metadata
+            );
+            set({ edges: sanitizedEdges });
+          }
+        });
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -553,7 +669,34 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           addEdge: (edge: Edge): void => {
-            set({ edges: [...get().edges, edge] });
+            // Validate the edge before adding it
+            const sourceNode = get().findNode(edge.source);
+            const targetNode = get().findNode(edge.target);
+
+            if (!sourceNode || !targetNode) {
+              log.warn(
+                `Cannot add edge ${edge.id}: source or target node not found`
+              );
+              return;
+            }
+
+            // Validate the edge properly using the same validation logic
+            const metadata = useMetadataStore.getState().metadata;
+            const nodeMap = new Map(get().nodes.map((n) => [n.id, n]));
+
+            if (!isValidEdge(edge, nodeMap, metadata)) {
+              log.warn(`Cannot add edge ${edge.id}: edge validation failed`);
+              return;
+            }
+
+            // Ensure handles are properly set
+            const sanitizedEdge = {
+              ...edge,
+              sourceHandle: edge.sourceHandle || null,
+              targetHandle: edge.targetHandle || null
+            };
+
+            set({ edges: [...get().edges, sanitizedEdge] });
             get().setWorkflowDirty(true);
           },
           updateEdge: (edge: Edge): void => {
@@ -700,7 +843,21 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           setEdges: (edges: Edge[]): void => {
-            set({ edges });
+            const metadata = useMetadataStore.getState().metadata;
+            const nodes = get().nodes;
+
+            // Only sanitize if metadata is available and edges have actually changed
+            if (Object.keys(metadata).length > 0) {
+              const { edges: sanitizedEdges } = sanitizeGraph(
+                nodes,
+                edges,
+                metadata
+              );
+              set({ edges: sanitizedEdges });
+            } else {
+              set({ edges });
+            }
+
             get().setWorkflowDirty(true);
           },
           validateConnection: (
@@ -708,20 +865,24 @@ export const createNodeStore = (
             srcNode: Node<NodeData>,
             targetNode: Node<NodeData>
           ): boolean => {
+            // Basic validation: ensure handles are provided
+            if (!connection.sourceHandle || !connection.targetHandle) {
+              return false;
+            }
+
             const srcMetadata = useMetadataStore
               .getState()
               .getMetadata(srcNode.type as string);
             const targetMetadata = useMetadataStore
               .getState()
               .getMetadata(targetNode.type as string);
-            if (
-              !srcMetadata ||
-              !targetMetadata ||
-              !connection.sourceHandle ||
-              !connection.targetHandle
-            ) {
-              return false;
+
+            // If either node doesn't have metadata (placeholder nodes), allow connection
+            if (!srcMetadata || !targetMetadata) {
+              return true;
             }
+
+            // Check for existing connection
             const edges = get().edges;
             const existingConnection = edges.find(
               (edge) =>
@@ -733,13 +894,30 @@ export const createNodeStore = (
             if (existingConnection) {
               return false;
             }
+
+            // Validate source handle exists
             const srcHandle = connection.sourceHandle;
-            const srcOutput = srcMetadata?.outputs.find(
+            const srcOutput = srcMetadata.outputs.find(
               (output: OutputSlot) => output.name === srcHandle
             );
-            const srcType = srcOutput?.type;
+            if (!srcOutput) {
+              return false;
+            }
+
+            // Validate target handle exists (for non-dynamic nodes)
             const targetHandle = connection.targetHandle;
-            const targetProperty = targetMetadata?.properties.find(
+            const hasValidTargetHandle =
+              targetMetadata.is_dynamic ||
+              targetMetadata.properties.some(
+                (property: Property) => property.name === targetHandle
+              );
+            if (!hasValidTargetHandle) {
+              return false;
+            }
+
+            // Validate type compatibility
+            const srcType = srcOutput.type;
+            const targetProperty = targetMetadata.properties.find(
               (property: Property) => property.name === targetHandle
             );
             const targetType = targetProperty?.type || {
@@ -747,6 +925,7 @@ export const createNodeStore = (
               optional: false,
               type_args: []
             };
+
             return (
               srcType !== undefined &&
               targetType !== undefined &&
@@ -801,7 +980,14 @@ export const createNodeStore = (
                 selected: true
               }))
             });
-          }
+          },
+          cleanup: () => {
+            if (unsubscribeMetadata) {
+              unsubscribeMetadata();
+              unsubscribeMetadata = null;
+            }
+          },
+          ...state
         };
       },
       {
