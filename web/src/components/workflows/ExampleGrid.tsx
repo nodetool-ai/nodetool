@@ -346,7 +346,7 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowManager((state) => state.loadExamples);
-  const searchWorkflows = useWorkflowManager((state) => state.searchExamples);
+  const searchExamples = useWorkflowManager((state) => state.searchExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [inputValue, setInputValue] = useState("");
@@ -391,7 +391,7 @@ const ExampleGrid = () => {
     isFetching: isFetchingSearchData
   } = useQuery<WorkflowList>({
     queryKey: ["", searchQuery],
-    queryFn: () => searchWorkflows(searchQuery),
+    queryFn: () => searchExamples(searchQuery),
     enabled: searchQuery.trim().length > 1 && nodesOnlySearch,
     placeholderData: (previousData, previousQueryInstance) => {
       if (
@@ -408,7 +408,7 @@ const ExampleGrid = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(inputValue);
-    }, 300);
+    }, 500);
     return () => clearTimeout(handler);
   }, [inputValue]);
 
@@ -450,8 +450,7 @@ const ExampleGrid = () => {
           : groupedWorkflows[selectedTag] || [];
       const generalResults = searchWorkflowsFrontend(
         baseWorkflowsForGeneralSearch,
-        searchQuery,
-        false
+        searchQuery
       );
       setSearchResults(generalResults);
     } else {
@@ -537,7 +536,6 @@ const ExampleGrid = () => {
   const handleClearSearch = () => {
     setSearchQuery("");
     setInputValue("");
-    setNodesOnlySearch(false);
     // Update URL to remove node parameter
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.delete("node");
@@ -600,7 +598,17 @@ const ExampleGrid = () => {
       <Box className="search-container">
         <TextField
           className="search-field"
-          placeholder="Search examples..."
+          style={{
+            transition: "background-color 0.3s ease",
+            backgroundColor: nodesOnlySearch
+              ? "var(--palette-primary-dark)"
+              : "transparent"
+          }}
+          placeholder={
+            nodesOnlySearch
+              ? "Find examples that use a specific node..."
+              : "Find examples by name or description..."
+          }
           variant="outlined"
           size="small"
           value={inputValue}
