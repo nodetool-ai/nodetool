@@ -309,7 +309,7 @@ const styles = (theme: any) =>
       zIndex: 100
     },
     ".matched-item": {
-      width: "fint-content",
+      width: "fit-content",
       fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
       padding: ".2em .4em",
