@@ -59,8 +59,8 @@ const menuStyles = (theme: any) =>
       margin: 0,
       padding: ".5em 0",
       listStyle: "none",
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: theme.palette.c_node_bg,
+      border: `1px solid ${theme.palette.c_gray5}`,
       borderRadius: ".3em",
       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
       zIndex: 1000,
@@ -71,7 +71,7 @@ const menuStyles = (theme: any) =>
       padding: ".5em 1em",
       cursor: "pointer",
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_gray4,
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",
 
@@ -99,7 +99,6 @@ const menuStyles = (theme: any) =>
     ".select-header": {
       padding: "0px 5px",
       margin: "5px 0",
-      backgroundColor: theme.palette.c_gray2,
       border: `1px solid ${theme.palette.c_gray2}`,
       fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
@@ -114,7 +113,7 @@ const menuStyles = (theme: any) =>
     },
 
     ".select-header-text": {
-      color: theme.palette.c_white,
+      color: theme.palette.c_gray4,
       fontSize: theme.fontSizeNormal
     },
 

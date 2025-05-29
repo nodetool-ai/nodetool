@@ -183,27 +183,14 @@ const getNodeColors = (metadata: any): string[] => {
 
 const getHeaderFooterColors = (metadata: NodeMetadata) => {
   const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
+  if (!firstOutputColor) return { headerColor: "", footerColor: "" };
+
+  const baseColor = colorForType(firstOutputColor);
+  const bg = ThemeNodes.palette.c_node_bg;
+
   return {
-    headerColor: firstOutputColor
-      ? darkenHexColor(
-          simulateOpacity(
-            colorForType(firstOutputColor),
-            0.8,
-            ThemeNodes.palette.c_node_bg
-          ),
-          20
-        )
-      : "",
-    footerColor: firstOutputColor
-      ? darkenHexColor(
-          simulateOpacity(
-            colorForType(firstOutputColor),
-            0.25,
-            ThemeNodes.palette.c_node_bg
-          ),
-          100
-        )
-      : ""
+    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 60),
+    footerColor: darkenHexColor(simulateOpacity(baseColor, 0.3, bg), 40)
   };
 };
 
