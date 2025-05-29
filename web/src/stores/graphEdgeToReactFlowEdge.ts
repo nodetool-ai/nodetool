@@ -6,9 +6,9 @@ export const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
   return {
     id: edge.id || uuidv4(),
     source: edge.source,
-    sourceHandle: edge.sourceHandle,
+    sourceHandle: edge.sourceHandle || null,
     target: edge.target,
-    targetHandle: edge.targetHandle,
+    targetHandle: edge.targetHandle || null,
     className: edge.ui_properties?.className
   };
 };
