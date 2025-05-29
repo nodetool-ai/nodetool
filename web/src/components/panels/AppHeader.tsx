@@ -19,7 +19,8 @@ const styles = (theme: any) =>
   css({
     "&": {
       width: "100%",
-      overflow: "visible"
+      overflow: "visible",
+      backgroundColor: "var(--c_gray1)"
     },
     ".toolbar": {
       overflow: "visible",
@@ -27,7 +28,6 @@ const styles = (theme: any) =>
       justifyContent: "space-between",
       alignItems: "center",
       position: "relative",
-      // backgroundColor: theme.palette.c_gray1,
       height: "40px",
       minHeight: "40px",
       padding: "0 12px",

@@ -30,9 +30,11 @@ const styles = (theme: any) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
+      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      backgroundColor: "var(--c_gray1)",
       direction: "ltr",
       position: "absolute",
       overflowX: "hidden",
@@ -72,11 +74,6 @@ const styles = (theme: any) =>
           fontSize: "1em !important"
         }
       }
-    },
-    ".MuiDrawer-paper": {
-      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-      width: "auto",
-      backgroundColor: theme.palette.c_gray0
     },
     ".panel-tabs ": {
       minHeight: "2em"
