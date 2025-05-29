@@ -1,4 +1,4 @@
-import Fuse from "fuse.js";
+import Fuse, { type IFuseOptions } from "fuse.js";
 import { Workflow } from "../stores/ApiTypes";
 import log from "loglevel";
 
@@ -77,7 +77,7 @@ const workflowSearchOptions = {
 
 export interface SearchResult {
   workflow: Workflow;
-  score: number;
+  fuseScore: number;
   matches: {
     text: string;
   }[];
@@ -89,36 +89,71 @@ export const searchWorkflows = (
   nodesOnly: boolean = false
 ): SearchResult[] => {
   if (!query.trim())
-    return workflows.map((workflow) => ({ workflow, score: 1, matches: [] }));
-
-  const searchData = workflows.map((workflow) => {
-    const data = prepareWorkflowData(workflow);
-    return {
+    return workflows.map((workflow) => ({
       workflow,
-      nodeNames: data.nodeNames
-    };
-  });
+      fuseScore: 1,
+      matches: []
+    }));
+
+  const searchData = workflows.map((wf) => prepareWorkflowData(wf));
 
   const fuse = new Fuse(
     searchData,
     nodesOnly ? nodeOnlySearchOptions : workflowSearchOptions
   );
-  const results = fuse.search(query);
+  const fuseResults = fuse.search(query);
 
-  return results.map((result) => {
-    const uniqueMatches = new Set(
-      result.matches?.map((match) => {
-        const text = Array.isArray(match.value)
-          ? match.value.join(", ")
-          : String(match.value || "");
-        return text.split(".").pop() || text;
-      }) || []
-    );
+  if (nodesOnly) {
+    return fuseResults.map((result) => {
+      const matchedNodeTexts = new Set<string>();
+      const workflow = result.item.workflow;
+      const lowerCaseQuery = query.toLowerCase();
 
-    return {
-      workflow: result.item.workflow,
-      score: 1 - (result.score || 0),
-      matches: Array.from(uniqueMatches).map((text) => ({ text }))
-    };
-  });
+      if (workflow.graph && workflow.graph.nodes) {
+        Object.values(workflow.graph.nodes).forEach((node: any) => {
+          const nodeTitle = String(node.title || "").toLowerCase();
+          const nodeType = String(node.type || "").toLowerCase();
+
+          if (nodeTitle.includes(lowerCaseQuery)) {
+            matchedNodeTexts.add(String(node.title || ""));
+          }
+          if (nodeType.includes(lowerCaseQuery)) {
+            const typeParts = String(node.type || "").split(/[./]/);
+            const matchedPart = typeParts.find((part) =>
+              part.toLowerCase().includes(lowerCaseQuery)
+            );
+            if (matchedPart) {
+              matchedNodeTexts.add(matchedPart);
+            } else if (
+              String(node.type || "")
+                .toLowerCase()
+                .includes(lowerCaseQuery)
+            ) {
+              matchedNodeTexts.add(String(node.type || ""));
+            }
+          }
+        });
+      }
+      return {
+        workflow: workflow,
+        fuseScore: 1 - (result.score || 0),
+        matches: Array.from(matchedNodeTexts).map((text) => ({ text }))
+      };
+    });
+  } else {
+    return fuseResults.map((result) => {
+      const uniqueMatches = new Set<string>();
+      result.matches?.forEach((match) => {
+        const text = String(match.value || "");
+        if (text) {
+          uniqueMatches.add(text.split(/[./]/).pop() || text);
+        }
+      });
+      return {
+        workflow: result.item.workflow,
+        fuseScore: 1 - (result.score || 0),
+        matches: Array.from(uniqueMatches).map((text) => ({ text }))
+      };
+    });
+  }
 };
