@@ -19,11 +19,11 @@
   width: auto;
   cursor: default !important;
   padding: 0;
-  border: 1px solid var(--c_gray2);
-  border-radius: 0.3em;
+  border: 1px solid var(--c_gray1);
+  border-radius: 3px 3px 4px 4px;
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
-  box-shadow: 0.1em 0.1em 0.4em 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%)
 }
 
 /* Node header */
@@ -37,8 +37,9 @@
   background-color: var(--c_node_header_bg);
   color: var(--c_white);
   margin: 0;
-  border-radius: 0.3em 0.3em 0 0;
+  border-radius: 2px 2px 0 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%)
 }
 
 .node-drag-handle {
