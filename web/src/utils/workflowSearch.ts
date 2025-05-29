@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
 import { Workflow } from "../stores/ApiTypes";
+import { SearchResult } from "../types/search";
 
 const workflowSearchOptions = {
   includeScore: true,
@@ -15,14 +16,6 @@ const workflowSearchOptions = {
     { name: "description", weight: 1 }
   ]
 };
-
-export interface SearchResult {
-  workflow: Workflow;
-  fuseScore: number;
-  matches: {
-    text: string;
-  }[];
-}
 
 export const searchWorkflows = (
   workflows: Workflow[],

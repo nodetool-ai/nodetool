@@ -1,12 +1,15 @@
 import Fuse from "fuse.js";
-import { Workflow, Node } from "../stores/ApiTypes";
+import { Workflow, Node as ApiNode } from "../stores/ApiTypes";
+import { SearchResult } from "../types/search";
+import { FUSE_THRESHOLD, FUSE_MIN_MATCH_FACTOR } from "../config/constants";
 
-export interface SearchResult {
-  workflow: Workflow;
-  fuseScore: number;
-  matches: {
-    text: string;
-  }[];
+// Define a more flexible WorkflowNode type for search purposes
+interface WorkflowNode {
+  id: string; // from ApiNode
+  type: string; // from ApiNode, ensure it's always a string for reliable access
+  data?: { title?: string; [key: string]: any }; // More specific data typing for title
+  // Add any other properties from ApiNode that might be used, or a general [key: string]: any;
+  [key: string]: any; // Allows other properties from ApiNode
 }
 
 interface NodeMatch {
@@ -17,8 +20,8 @@ interface NodeMatch {
 export const findMatchingNodesInWorkflows = (
   workflows: Workflow[],
   searchQuery: string,
-  fuseThreshold: number = 0.35,
-  fuseMinMatchCharLengthFactor: number = 0.5
+  fuseThreshold: number = FUSE_THRESHOLD,
+  fuseMinMatchCharLengthFactor: number = FUSE_MIN_MATCH_FACTOR
 ): SearchResult[] => {
   if (!searchQuery.trim() || !workflows || workflows.length === 0) {
     return workflows.map((workflow) => ({
@@ -33,9 +36,11 @@ export const findMatchingNodesInWorkflows = (
   return workflows.map((workflow) => {
     const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
-      Object.values(workflow.graph.nodes).forEach((node: Node) => {
-        const title = String((node.data as { title?: string })?.title || "");
-        const type = String(node.type || ""); // Full type string, e.g., "nodetool.llms.summarizer"
+      Object.values(workflow.graph.nodes).forEach((node: any) => {
+        // Use 'any' for now, or a cast
+        const workflowNode = node as WorkflowNode; // Cast to WorkflowNode
+        const title = String(workflowNode.data?.title || "");
+        const type = String(workflowNode.type || "");
 
         // If title exists, add it for searching, but map it to show the full type.
         if (title && type) {
