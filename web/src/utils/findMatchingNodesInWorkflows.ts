@@ -1,19 +1,17 @@
 import Fuse from "fuse.js";
 import { Workflow } from "../stores/ApiTypes";
 
-// Re-defining SearchResult here as it's a shared structure.
-// Alternatively, it could be imported from a central types file if it doesn't cause circular dependencies.
 export interface SearchResult {
   workflow: Workflow;
-  score: number; // Score from Fuse.js, or a default if not applicable
+  fuseScore: number;
   matches: {
-    text: string; // The matched node title or type part
+    text: string;
   }[];
 }
 
-interface NodeInfo {
-  originalText: string; // The text to display (e.g., full title, or last part of type)
-  searchText: string; // The text to search against (e.g., lowercased full title, lowercased full type)
+interface NodeMatch {
+  textToShow: string;
+  searchText: string;
 }
 
 export const findMatchingNodesInWorkflows = (
@@ -24,38 +22,47 @@ export const findMatchingNodesInWorkflows = (
 ): SearchResult[] => {
   if (!searchQuery.trim() || !workflows || workflows.length === 0) {
     // If no query or workflows, return them with no matches
-    return workflows.map((workflow) => ({ workflow, score: 1, matches: [] }));
+    return workflows.map((workflow) => ({
+      workflow,
+      fuseScore: 1,
+      matches: []
+    }));
   }
 
   const lowerCaseQuery = searchQuery.toLowerCase();
 
   return workflows.map((workflow) => {
-    const nodeInfos: NodeInfo[] = [];
+    const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
       Object.values(workflow.graph.nodes).forEach((node: any) => {
-        // Consider typing node more strictly if possible
         const title = String(node.title || "");
-        const type = String(node.type || "");
+        const type = String(node.type || ""); // Full type string, e.g., "nodetool.llms.summarizer"
 
-        if (title) {
-          const info = { originalText: title, searchText: title.toLowerCase() };
-          nodeInfos.push(info);
+        // If title exists, add it for searching, but map it to show the full type.
+        if (title && type) {
+          // Ensure type is available to be shown
+          nodeInfos.push({
+            textToShow: type, // Always show the full type string
+            searchText: title.toLowerCase() // Search against the title
+          });
         }
+        // Add the type itself for searching, also mapped to show the full type.
         if (type) {
-          // For display, use the last part of the type (e.g., "FetchRSSFeed" from "lib.rss.FetchRSSFeed")
-          const displayType = type.split(/[./]/).pop() || type;
-          // For searching, use the full type string for better context
-          const info = {
-            originalText: displayType,
-            searchText: type.toLowerCase()
-          };
-          nodeInfos.push(info);
+          nodeInfos.push({
+            textToShow: type, // Show the full type string
+            searchText: type.toLowerCase() // Search against the full type string
+          });
         }
       });
     }
 
+    // Deduplicate nodeInfos: if a title is very similar to its type's display form,
+    // and both are set to show the same displayType, Fuse might find it twice with slightly different scores.
+    // We only care about the unique searchText for a given textToShow.
+    // However, a simpler approach is to let Fuse find them and then deduplicate the textToShow results.
+
     const fuse = new Fuse(nodeInfos, {
-      keys: ["searchText"],
+      keys: ["searchText"], // Search against title or full type string
       includeScore: true,
       threshold: fuseThreshold,
       minMatchCharLength: Math.max(
@@ -67,16 +74,16 @@ export const findMatchingNodesInWorkflows = (
 
     const matchedNodeItems = fuse.search(lowerCaseQuery);
 
-    // Deduplicate matches based on originalText to avoid showing "RSS" twice if query "RSS" matches "lib.rss.RSS"
-    const uniqueMatchedOriginalTexts = new Set(
-      matchedNodeItems.map((match) => match.item.originalText)
+    // The text to display comes from `textToShow` of the matched item.
+    const uniqueMatchedTextsToShow = new Set(
+      matchedNodeItems.map((match) => match.item.textToShow)
     );
 
     return {
       workflow,
-      score:
+      fuseScore:
         matchedNodeItems.length > 0 ? 1 - (matchedNodeItems[0].score || 0) : 0,
-      matches: Array.from(uniqueMatchedOriginalTexts).map((text) => ({ text }))
+      matches: Array.from(uniqueMatchedTextsToShow).map((text) => ({ text }))
     };
   });
 };

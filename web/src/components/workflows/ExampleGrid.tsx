@@ -177,6 +177,7 @@ const styles = (theme: any) =>
       boxShadow: `0 0 10px ${theme.palette.c_hl1}`,
       outline: `2px solid ${theme.palette.c_hl1}`
     },
+
     "@keyframes sciFiPulse": {
       "0%": {
         boxShadow: `0 0 5px ${theme.palette.c_hl1}`,
@@ -296,15 +297,38 @@ const styles = (theme: any) =>
       maxHeight: "100px",
       overflowY: "auto"
     },
+    ".matched-nodes": {
+      position: "absolute",
+      top: "2px",
+      left: "2px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "2px",
+      width: "fit-content",
+      height: "100%",
+      zIndex: 100
+    },
     ".matched-item": {
+      width: "fint-content",
       fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
-      padding: ".1em .4em",
+      padding: ".2em .4em",
       marginRight: ".5em",
       borderRadius: ".3em",
       color: theme.palette.c_black,
       wordBreak: "break-word",
-      backgroundColor: theme.palette.c_gray4
+      backgroundColor: theme.palette.c_gray5,
+      opacity: 0.96
+    },
+    ".matched-item-name": {
+      fontSize: "14px",
+      color: theme.palette.c_gray0
+    },
+    ".matched-item-namespace": {
+      display: "block",
+      color: theme.palette.c_gray1,
+      fontSize: "11px",
+      fontWeight: 600
     },
     ".no-results": {
       padding: "2em",
@@ -360,23 +384,21 @@ const ExampleGrid = () => {
     queryFn: loadWorkflows
   });
 
-  // Use query for backend node search results
+  // search backend for node matches
   const {
     data: searchData,
     isLoading: isLoadingSearchData,
     isFetching: isFetchingSearchData
   } = useQuery<WorkflowList>({
-    queryKey: ["exampleSearch", searchQuery],
+    queryKey: ["", searchQuery],
     queryFn: () => searchWorkflows(searchQuery),
-    enabled: !!searchQuery.trim() && nodesOnlySearch,
+    enabled: searchQuery.trim().length > 1 && nodesOnlySearch,
     placeholderData: (previousData, previousQueryInstance) => {
-      // previousQueryInstance.queryKey is [string, string] (e.g., ["exampleSearch", "oldQuery"])
-      // searchQuery is the current, new query term
       if (
         previousQueryInstance &&
         previousQueryInstance.queryKey[1] !== searchQuery
       ) {
-        return undefined; // Don't use placeholder if the search term part of the key has changed
+        return undefined;
       }
       return previousData;
     }
@@ -390,7 +412,6 @@ const ExampleGrid = () => {
     return () => clearTimeout(handler);
   }, [inputValue]);
 
-  // Grouped workflows memo (MUST be defined before the useEffect that uses it)
   const groupedWorkflows = useMemo(() => {
     if (!data) return {};
     return data.workflows.reduce(
@@ -405,9 +426,12 @@ const ExampleGrid = () => {
     );
   }, [data]);
 
-  // useEffect for populating searchResults based on search type and query
   useEffect(() => {
-    if (nodesOnlySearch && searchQuery.trim() && searchData?.workflows) {
+    if (
+      nodesOnlySearch &&
+      searchQuery.trim().length > 1 &&
+      searchData?.workflows
+    ) {
       const detailedNodeMatchResults = findMatchingNodesInWorkflows(
         searchData.workflows,
         searchQuery
@@ -415,7 +439,11 @@ const ExampleGrid = () => {
       setSearchResults(
         detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
       );
-    } else if (!nodesOnlySearch && searchQuery.trim() && data?.workflows) {
+    } else if (
+      !nodesOnlySearch &&
+      searchQuery.trim().length > 1 &&
+      data?.workflows
+    ) {
       const baseWorkflowsForGeneralSearch =
         !selectedTag || !groupedWorkflows[selectedTag]
           ? data.workflows
@@ -581,9 +609,10 @@ const ExampleGrid = () => {
             setInputValue(newInputValue);
             if (newInputValue.trim()) {
               setSelectedTag(null);
-              setSearchResults([]); // Clear frontend search highlights immediately
+              if (newInputValue.length > 1) {
+                setSearchResults([]);
+              }
             } else {
-              // If input is cleared via TextField, trigger full clear behavior
               handleClearSearch();
             }
           }}
@@ -628,7 +657,7 @@ const ExampleGrid = () => {
             <CircularProgress />
             <Typography variant="h4">
               {isFetchingSearchData && nodesOnlySearch
-                ? "Searching for nodes..."
+                ? "Searching for Examples"
                 : "Loading Examples"}
             </Typography>
           </div>
@@ -638,7 +667,7 @@ const ExampleGrid = () => {
             <Typography>{error?.message}</Typography>
           </ErrorOutlineRounded>
         )}
-        {/* Hide workflows while node search is in progress and fetching */}
+        {/* Hide workflows while searching */}
         {!((isLoadingSearchData || isFetchingSearchData) && nodesOnlySearch) &&
           filteredWorkflows.map((workflow) => {
             const searchResult = searchResults.find(
@@ -686,28 +715,44 @@ const ExampleGrid = () => {
                       ?.replace("nodetool-", "")
                       .toUpperCase()}
                   </Typography>
+                  {nodesOnlySearch && matchedNodes.length > 0 && (
+                    <Box
+                      className="matched-nodes"
+                      sx={{
+                        mt: 1,
+                        display: "flex",
+                        gap: 0.5,
+                        flexWrap: "wrap"
+                      }}
+                    >
+                      {matchedNodes.map(
+                        (match: { text: string }, idx: number) => (
+                          <Typography key={idx} className="matched-item">
+                            {match.text.split(".").pop() && (
+                              <>
+                                <span className="matched-item-name">
+                                  {match.text.split(".").pop()}
+                                </span>
+                              </>
+                            )}
+                            <span className="matched-item-namespace">
+                              {match.text.split(".").slice(0, -1).join(".")}
+                            </span>
+                          </Typography>
+                        )
+                      )}
+                    </Box>
+                  )}
                 </Box>
+
                 <Typography className="description">
                   {workflow.description}
                 </Typography>
-                {nodesOnlySearch && matchedNodes.length > 0 && (
-                  <Box
-                    sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}
-                  >
-                    {matchedNodes.map(
-                      (match: { text: string }, idx: number) => (
-                        <Typography key={idx} className="matched-item">
-                          {match.text}
-                        </Typography>
-                      )
-                    )}
-                  </Box>
-                )}
               </Box>
             );
           })}
         {filteredWorkflows.length === 0 &&
-          searchQuery &&
+          searchQuery.trim().length > 1 &&
           !(
             (isLoadingSearchData || isFetchingSearchData) &&
             nodesOnlySearch
