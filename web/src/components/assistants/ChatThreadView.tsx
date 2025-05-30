@@ -30,7 +30,11 @@ const styles = (theme: any) =>
     overflowY: "auto",
     listStyleType: "none",
     padding: ".5em",
-    margin: "0",
+    marginBottom: "1em",
+    paddingRight: "2em",
+    borderRadius: "1em",
+    marginRight: "1em",
+    backgroundColor: theme.palette.c_gray1,
 
     "li.chat-message": {
       width: "100%",
@@ -347,7 +351,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, []);
 
   return (
-    <ul className="messages" ref={messagesListRef} css={styles}>
+    <ul className="chat-messages" ref={messagesListRef} css={styles}>
       {messages.map((msg, index) => (
         <MessageView
           key={msg.id || `msg-${index}`}
