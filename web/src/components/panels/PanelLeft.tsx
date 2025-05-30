@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import HelpChat from "../assistants/HelpChat";
+import HelpChat from "../chat/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback } from "react";
