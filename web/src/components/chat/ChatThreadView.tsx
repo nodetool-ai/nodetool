@@ -10,7 +10,7 @@ import {
   MessageTextContent,
   MessageImageContent
 } from "../../stores/ApiTypes";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import ChatMarkdown from "./ChatMarkdown";
 import OutputRenderer from "../node/OutputRenderer";
 
 const pulse = keyframes`
@@ -254,7 +254,7 @@ const MessageView: React.FC<MessageViewProps> = ({
       return (
         <>
           {textBeforeThought && (
-            <MarkdownRenderer content={textBeforeThought} />
+            <ChatMarkdown content={textBeforeThought} />
           )}
           <div>
             <Button
@@ -299,17 +299,17 @@ const MessageView: React.FC<MessageViewProps> = ({
                   border-radius: 4px;
                 `}
               >
-                <MarkdownRenderer content={thoughtMatch[1]} />
+                <ChatMarkdown content={thoughtMatch[1]} />
               </div>
             )}
             {textAfterThought && (
-              <MarkdownRenderer content={textAfterThought} />
+              <ChatMarkdown content={textAfterThought} />
             )}
           </div>
         </>
       );
     }
-    return <MarkdownRenderer content={content} />;
+    return <ChatMarkdown content={content} />;
   };
 
   const content = message.content as

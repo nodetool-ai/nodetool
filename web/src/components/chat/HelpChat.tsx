@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { Box, Typography, Button, Stack, Alert } from "@mui/material";
 import { useTutorialStore } from "../../stores/TutorialStore";
-import { ChatHeader } from "./chat/ChatHeader";
+import { ChatHeader } from "./ui/ChatHeader";
 import { DEFAULT_MODEL } from "../../config/constants";
 import LlamaModelSelect from "../properties/LlamaModelSelect";
 import useHelpChatStore from "../../stores/HelpChatStore";
