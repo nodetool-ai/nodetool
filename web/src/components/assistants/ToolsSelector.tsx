@@ -248,6 +248,12 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <Badge
+          className="tools-badge"
+          sx={{
+            "& .MuiBadge-badge": {
+              top: "5px"
+            }
+          }}
           badgeContent={selectedTools.length}
           color="primary"
           invisible={selectedTools.length === 0}

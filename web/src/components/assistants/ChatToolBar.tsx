@@ -41,6 +41,26 @@ const styles = (theme: any) =>
         borderColor: theme.palette.c_hl1,
         color: theme.palette.c_hl1
       }
+    },
+
+    ".model-name-display": {
+      fontSize: "var(--fontSizeSmall)"
+    },
+
+    ".tool-tags-container": {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "flex-end"
+    },
+
+    ".tool-tag": {
+      backgroundColor: theme.palette.c_gray2,
+      padding: "2px 6px",
+      margin: "2px",
+      borderRadius: "4px",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.palette.text.primary,
+      lineHeight: "1.2" // Added for better vertical alignment of text in tag
     }
   });
 
@@ -89,6 +109,14 @@ interface ChatToolBarProps {
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
 }
+
+// Helper function to format tool names
+const formatToolName = (toolName: string) => {
+  return toolName
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 interface GroupedModels {
   [provider: string]: Array<{
@@ -236,6 +264,39 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         </>
       )}
       <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+      <div style={{ flexGrow: 1 }} />
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          textAlign: "right"
+        }}
+      >
+        {selectedModelName && (
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", fontWeight: "bold" }}
+            className="model-name-display"
+          >
+            {selectedModelName}
+          </Typography>
+        )}
+        {selectedTools.length > 0 && (
+          <Box
+            sx={{
+              mt: selectedModelName ? 0.25 : 0
+            }}
+            className="tool-tags-container"
+          >
+            {selectedTools.map((tool) => (
+              <Box key={tool} className="tool-tag">
+                {formatToolName(tool)}
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
     </div>
   );
 };
