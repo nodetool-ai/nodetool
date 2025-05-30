@@ -60,6 +60,7 @@
 
 .react-flow__node .node-header svg.MuiSvgIcon-root {
   scale: 0.8;
+  border: 0;
   opacity: 1;
 }
 

@@ -1,10 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Message, MessageContent } from "../../stores/ApiTypes";
 import ChatThreadView from "./ChatThreadView";
 import ChatComposer from "./ChatComposer";
 import ChatToolBar from "./ChatToolBar";
+import { Box, Typography } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
+import useModelStore from "../../stores/ModelStore";
+
+const formatToolName = (toolName: string) => {
+  return toolName
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 const styles = (theme: any) =>
   css({
@@ -17,12 +27,46 @@ const styles = (theme: any) =>
       flexDirection: "column",
       padding: "1em"
     },
+    ".info-display-container": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      textAlign: "right",
+      padding: "0 1em 0.5em 1em"
+    },
+    ".model-name-display": {
+      fontSize: "var(--fontSizeNormal)",
+      marginBottom: "0.5em",
+      padding: "0 .5em",
+      color: theme.palette.text.secondary
+      // fontWeight: "bold"
+    },
+    ".tool-tags-container": {
+      display: "flex",
+      maxWidth: "800px",
+      flexWrap: "wrap",
+      justifyContent: "flex-end"
+    },
+    ".tool-tag": {
+      backgroundColor: theme.palette.c_gray2,
+      padding: "2px 6px",
+      margin: "2px",
+      borderRadius: "4px",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.palette.text.primary,
+      lineHeight: "1.2"
+    },
     ".chat-controls": {
-      position: "relative",
-      bottom: 0,
       padding: "0 1em",
       marginTop: "auto",
-      zIndex: 1
+      zIndex: 1,
+      display: "flex",
+      alignItems: "center",
+      gap: "8px"
+    },
+    ".chat-composer-wrapper": {
+      flex: 1,
+      minWidth: 0
     }
   });
 
@@ -37,6 +81,7 @@ type ChatViewProps = {
   selectedTools?: string[];
   onToolsChange?: (tools: string[]) => void;
   onModelChange?: (modelId: string) => void;
+  onStop?: () => void;
 };
 
 const ChatView = ({
@@ -49,8 +94,22 @@ const ChatView = ({
   progressMessage,
   selectedTools = [],
   onToolsChange,
-  onModelChange
+  onModelChange,
+  onStop
 }: ChatViewProps) => {
+  const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
+  const { data: availableModels } = useQuery({
+    queryKey: ["models"],
+    queryFn: async () => await loadLanguageModels(),
+    staleTime: Infinity
+  });
+
+  const selectedModelName = useMemo(() => {
+    if (!availableModels || !model) return null;
+    const modelDetails = availableModels.find((m) => m.id === model);
+    return modelDetails?.name || model;
+  }, [availableModels, model]);
+
   const handleSendMessage = useCallback(
     async (content: MessageContent[], prompt: string) => {
       try {
@@ -79,6 +138,27 @@ const ChatView = ({
         progressMessage={progressMessage}
       />
 
+      <Box className="info-display-container">
+        {selectedModelName && (
+          <Typography
+            variant="caption"
+            className="model-name-display"
+            sx={{ mt: selectedTools.length > 0 ? 0.25 : 0 }}
+          >
+            {selectedModelName}
+          </Typography>
+        )}
+        {selectedTools.length > 0 && (
+          <Box className="tool-tags-container">
+            {selectedTools.map((tool) => (
+              <Box key={tool} className="tool-tag">
+                {formatToolName(tool)}
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+
       <div className="chat-controls">
         {onToolsChange && (
           <ChatToolBar
@@ -88,11 +168,14 @@ const ChatView = ({
             onModelChange={onModelChange}
           />
         )}
-        <ChatComposer
-          status={status}
-          onSendMessage={handleSendMessage}
-          disabled={status === "loading" || status === "error"}
-        />
+        <div className="chat-composer-wrapper">
+          <ChatComposer
+            status={status}
+            onSendMessage={handleSendMessage}
+            onStop={onStop}
+            disabled={status === "loading" || status === "error"}
+          />
+        </div>
       </div>
     </div>
   );
@@ -100,5 +183,4 @@ const ChatView = ({
 
 export default ChatView;
 
-// Re-export Progress component for backward compatibility
 export { Progress } from "./ChatThreadView";
