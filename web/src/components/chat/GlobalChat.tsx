@@ -37,7 +37,7 @@ const GlobalChat: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const mountedRef = useRef(false);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -157,8 +157,6 @@ const GlobalChat: React.FC = () => {
     },
     [deleteThread]
   );
-
-  const sidebarStyles = (theme: any) => css({});
 
   const mainAreaStyles = (theme: any) =>
     css({

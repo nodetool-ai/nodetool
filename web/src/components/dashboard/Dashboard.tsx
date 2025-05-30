@@ -317,7 +317,14 @@ const Dashboard: React.FC = () => {
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
-  const { connect, disconnect, status, sendMessage } = useGlobalChatStore();
+  const {
+    connect,
+    disconnect,
+    status,
+    sendMessage,
+    createNewThread,
+    switchThread
+  } = useGlobalChatStore();
 
   // Load workflows
   const loadWorkflows = async () => {
@@ -414,24 +421,28 @@ const Dashboard: React.FC = () => {
       if (status !== "connected") {
         await connect();
       }
+      const threadId = createNewThread();
+      switchThread(threadId);
 
+      sendMessage({
+        type: "message",
+        name: "",
+        role: "user",
+        content: content,
+        model: selectedModel
+      });
       // Navigate to chat view
       navigate("/chat");
-
-      // Send the message after navigation
-      setTimeout(() => {
-        const message: Message = {
-          type: "message",
-          name: "",
-          role: "user",
-          content: content,
-          model: selectedModel,
-          tools: selectedTools.length > 0 ? selectedTools : undefined
-        };
-        sendMessage(message);
-      }, 100);
     },
-    [status, connect, navigate, selectedModel, selectedTools, sendMessage]
+    [
+      status,
+      connect,
+      navigate,
+      selectedModel,
+      sendMessage,
+      createNewThread,
+      switchThread
+    ]
   );
 
   const handleModelChange = useCallback((modelId: string) => {
@@ -572,7 +583,6 @@ const Dashboard: React.FC = () => {
 
       {/* Chat Input Section */}
       <Box className="section chat-section">
-        <Typography className="section-title">Quick Chat</Typography>
         <ChatInputSection
           status={status as any}
           onSendMessage={handleSendChat}
