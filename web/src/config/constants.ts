@@ -22,3 +22,8 @@ export const MAX_ZOOM = 4.0;
 export const ZOOMED_OUT = 0.45;
 // MODEL
 export const DEFAULT_MODEL = "qwen3:4b";
+
+// SEARCH
+export const SEARCH_DEBOUNCE_MS = 500;
+export const FUSE_THRESHOLD = 0.35;
+export const FUSE_MIN_MATCH_FACTOR = 0.5;
