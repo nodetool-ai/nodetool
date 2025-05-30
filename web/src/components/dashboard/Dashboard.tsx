@@ -25,6 +25,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import ChatComposer from "../assistants/ChatComposer";
 import ChatToolBar from "../assistants/ChatToolBar";
 import { MessageContent } from "../../stores/ApiTypes";
+import ThemeNodes from "../themes/ThemeNodes";
 
 const styles = (theme: any) =>
   css({
@@ -51,15 +52,19 @@ const styles = (theme: any) =>
     },
 
     ".section-title": {
-      color: theme.palette.c_white,
-      marginBottom: theme.spacing(3),
-      fontWeight: 600,
-      fontSize: "1.5rem"
+      marginBottom: theme.spacing(3)
     },
 
     ".workflows-section": {
       gridRow: "1",
       gridColumn: "1"
+    },
+
+    ".workflow-controls": {
+      height: "40px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     },
 
     ".examples-section": {
@@ -151,26 +156,54 @@ const styles = (theme: any) =>
       cursor: "pointer",
       borderRadius: theme.spacing(1),
       overflow: "hidden",
-      backgroundColor: theme.palette.c_gray2,
-      transition: "transform 0.2s, box-shadow 0.2s",
+      backgroundColor: "var(--c_gray1)",
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: `0 8px 16px ${theme.palette.c_black}40`
+        opacity: 0.9
+      },
+      ".example-description-tooltip": {
+        visibility: "hidden",
+        width: "200px",
+        backgroundColor: theme.palette.c_black,
+        color: theme.palette.c_white,
+        textAlign: "center",
+        borderRadius: "6px",
+        padding: "5px 0",
+        position: "absolute",
+        zIndex: 1,
+        bottom: "125%",
+        left: "50%",
+        marginLeft: "-100px",
+        opacity: 0,
+        transition: "opacity 0.3s",
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          top: "100%",
+          left: "50%",
+          marginLeft: "-5px",
+          borderWidth: "5px",
+          borderStyle: "solid",
+          borderColor: `${theme.palette.c_black} transparent transparent transparent`
+        }
+      },
+      "&:hover .example-description-tooltip": {
+        visibility: "visible",
+        opacity: 1
       }
     },
 
     ".example-image": {
       width: "100%",
-      height: "180px",
+      height: "150px",
       objectFit: "cover",
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.c_gray2
     },
 
     ".example-name": {
-      padding: theme.spacing(2),
+      padding: ".2em .5em .5em 0",
       color: theme.palette.c_white,
-      fontSize: "1rem",
-      fontWeight: 500
+      backgroundColor: theme.palette.c_gray1,
+      fontSize: "var(--font-size-normal)"
     },
 
     ".header-controls": {
@@ -181,6 +214,7 @@ const styles = (theme: any) =>
     },
 
     ".create-button": {
+      padding: ".3em 1em",
       backgroundColor: theme.palette.c_gray2,
       color: theme.palette.c_white,
       "&:hover": {
@@ -190,6 +224,7 @@ const styles = (theme: any) =>
 
     ".sort-toggle": {
       "& .MuiToggleButton-root": {
+        lineHeight: "1.2em",
         color: theme.palette.c_gray5,
         borderColor: theme.palette.c_gray3,
         "&.Mui-selected": {
@@ -233,6 +268,10 @@ const styles = (theme: any) =>
       },
       ".examples-section": {
         gridRow: "2",
+        gridColumn: "1"
+      },
+      ".chat-section": {
+        gridRow: "3",
         gridColumn: "1"
       }
     },
@@ -391,13 +430,22 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleViewAllExamples = () => {
+    navigate("/examples");
+  };
+
   return (
-    <Box css={styles}>
+    <Box css={styles(ThemeNodes)}>
       {/* Recent Workflows Section */}
       <Box className="section workflows-section">
         <Box className="header-controls">
-          <Typography className="section-title">Recent Workflows</Typography>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <Typography variant="h2" className="section-title">
+            Recent Workflows
+          </Typography>
+          <Box
+            className="workflow-controls"
+            sx={{ display: "flex", gap: 2, alignItems: "center" }}
+          >
             <ToggleButtonGroup
               className="sort-toggle"
               value={settings.workflowOrder}
@@ -458,7 +506,9 @@ const Dashboard: React.FC = () => {
 
       {/* Start Examples Section */}
       <Box className="section examples-section">
-        <Typography className="section-title">Getting Started</Typography>
+        <Typography variant="h2" className="section-title">
+          Getting Started
+        </Typography>
         <Box className="content-scrollable">
           {isLoadingExamples ? (
             <Box className="loading-container">
@@ -488,11 +538,22 @@ const Dashboard: React.FC = () => {
                   <Typography className="example-name">
                     {example.name}
                   </Typography>
+                  {example.description && (
+                    <Typography className="example-description-tooltip">
+                      {truncateString(example.description, 150)}
+                    </Typography>
+                  )}
                 </Box>
               ))}
             </Box>
           )}
         </Box>
+        <Button
+          onClick={handleViewAllExamples}
+          sx={{ marginTop: 2, alignSelf: "center" }}
+        >
+          View All Examples
+        </Button>
       </Box>
 
       {/* Chat Input Section */}

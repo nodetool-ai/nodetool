@@ -24,12 +24,13 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(1),
-    padding: "0 1em",
+    gap: ".5em",
+    padding: "0 1em 0 0",
     marginBottom: "0.5em",
 
     ".model-button": {
       backgroundColor: theme.palette.c_gray2,
+      padding: ".5em",
       color: theme.palette.c_white,
       border: `1px solid ${theme.palette.c_gray3}`,
       "&:hover": {
@@ -56,8 +57,8 @@ const menuStyles = (theme: any) =>
       padding: "8px 16px",
       backgroundColor: theme.palette.c_gray2,
       color: theme.palette.c_gray5,
-      fontSize: "0.75rem",
-      fontWeight: 600,
+      fontSize: "0.9rem",
+      fontVariant: "small-caps",
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
@@ -119,7 +120,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 
   const groupedModels = useMemo(() => {
     if (!models || isLoading || isError) return {};
-    
+
     return models.reduce<GroupedModels>((acc, model) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
