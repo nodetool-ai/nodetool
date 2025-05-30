@@ -7,7 +7,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any) =>
   css({
-    width: "100%",
+    width: "fit-content",
     backgroundColor: theme.palette.c_gray0,
     "&:hover": {
       color: theme.palette.c_white,

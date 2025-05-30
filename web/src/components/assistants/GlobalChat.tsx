@@ -251,7 +251,7 @@ const GlobalChat: React.FC = () => {
       display: "flex",
       flexDirection: "column",
 
-      ".header": {
+      ".chat-header": {
         padding: "0 1em",
         display: "flex",
         alignItems: "center",
@@ -350,7 +350,7 @@ const GlobalChat: React.FC = () => {
 
       {/* Main Chat Area */}
       <Box css={mainAreaStyles}>
-        <Box className="header">
+        <Box className="chat-header">
           <BackToDashboardButton />
           <BackToEditorButton />
         </Box>

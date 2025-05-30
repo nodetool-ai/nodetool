@@ -23,7 +23,9 @@ const styles = (theme: any) =>
       listStyleType: "none"
     },
     ".messages li.chat-message p": {
-      margin: "0.3em 0"
+      margin: "0.3em 0",
+      lineHeight: "1.5em",
+      fontWeight: "400"
     },
     ".messages li.user": {
       color: theme.palette.c_gray5,
