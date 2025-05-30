@@ -14,8 +14,8 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../panels/BackToEditorButton";
+import BackToDashboardButton from "../dashboard/BackToDashboardButton";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { Message } from "../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -81,9 +81,6 @@ const GlobalChat: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount/unmount
 
-  const handleModelChange = useCallback((value: any) => {
-    setSelectedModel(value.id || DEFAULT_MODEL);
-  }, []);
 
   const handleNewChat = useCallback(() => {
     createNewThread();
@@ -359,13 +356,8 @@ const GlobalChat: React.FC = () => {
       {/* Main Chat Area */}
       <Box css={mainAreaStyles}>
         <Box className="header">
+          <BackToDashboardButton />
           <BackToEditorButton />
-          <Box sx={{ minWidth: 300 }}>
-            <LanguageModelSelect
-              value={selectedModel}
-              onChange={handleModelChange}
-            />
-          </Box>
         </Box>
 
         {error && (
@@ -385,6 +377,7 @@ const GlobalChat: React.FC = () => {
             model={selectedModel}
             selectedTools={selectedTools}
             onToolsChange={setSelectedTools}
+            onModelChange={(modelId) => setSelectedModel(modelId)}
           />
         </Box>
       </Box>
