@@ -24,44 +24,7 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
-    gap: ".5em",
-    padding: "0 1em 0 0",
-    marginBottom: "0.5em",
-
-    ".model-button": {
-      backgroundColor: theme.palette.c_gray2,
-      padding: ".5em",
-      color: theme.palette.c_white,
-      border: `1px solid ${theme.palette.c_gray3}`,
-      "&:hover": {
-        backgroundColor: theme.palette.c_gray3,
-        borderColor: theme.palette.c_gray4
-      },
-      "&.active": {
-        borderColor: theme.palette.c_hl1,
-        color: theme.palette.c_hl1
-      }
-    },
-
-    ".model-name-display": {
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".tool-tags-container": {
-      display: "flex",
-      flexWrap: "wrap",
-      justifyContent: "flex-end"
-    },
-
-    ".tool-tag": {
-      backgroundColor: theme.palette.c_gray2,
-      padding: "2px 6px",
-      margin: "2px",
-      borderRadius: "4px",
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.palette.text.primary,
-      lineHeight: "1.2" // Added for better vertical alignment of text in tag
-    }
+    gap: ".5em"
   });
 
 const menuStyles = (theme: any) =>
@@ -72,7 +35,6 @@ const menuStyles = (theme: any) =>
       minWidth: "280px",
       maxHeight: "400px"
     },
-
     ".provider-header": {
       padding: "8px 16px",
       backgroundColor: theme.palette.c_gray2,
@@ -82,7 +44,6 @@ const menuStyles = (theme: any) =>
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
-
     ".model-item": {
       "&:hover": {
         backgroundColor: theme.palette.c_gray2
@@ -91,11 +52,9 @@ const menuStyles = (theme: any) =>
         backgroundColor: theme.palette.c_gray2
       }
     },
-
     ".model-name": {
       color: theme.palette.c_white
     },
-
     ".loading-container": {
       display: "flex",
       justifyContent: "center",
@@ -109,14 +68,6 @@ interface ChatToolBarProps {
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
 }
-
-// Helper function to format tool names
-const formatToolName = (toolName: string) => {
-  return toolName
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 interface GroupedModels {
   [provider: string]: Array<{
@@ -148,7 +99,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 
   const groupedModels = useMemo(() => {
     if (!models || isLoading || isError) return {};
-
     return models.reduce<GroupedModels>((acc, model) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
@@ -163,10 +113,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
     }, {});
   }, [models, isLoading, isError]);
 
-  const selectedModelName = useMemo(() => {
+  const currentSelectedModelDetails = useMemo(() => {
     if (!models || !selectedModel) return null;
-    const model = models.find((m) => m.id === selectedModel);
-    return model?.name || selectedModel;
+    return models.find((m) => m.id === selectedModel);
   }, [models, selectedModel]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -188,20 +137,43 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   const sortedProviders = Object.keys(groupedModels).sort();
 
   return (
-    <div css={styles}>
+    <div className="chat-tool-bar" css={styles}>
       {onModelChange && (
         <>
           <Tooltip
-            title={selectedModelName || "Select AI Model"}
+            title={
+              currentSelectedModelDetails?.name ||
+              selectedModel ||
+              "Select AI Model"
+            }
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <IconButton
               ref={buttonRef}
-              className={`model-button ${selectedModel ? "active" : ""}`}
+              className={`select-model-button ${selectedModel ? "active" : ""}`}
+              sx={{
+                border: "1px solid transparent",
+                backgroundColor: "var(--c_gray2)",
+                padding: ".5em",
+                "&:hover": {
+                  border: "1px solid var(--c_hl1)",
+                  backgroundColor: "var(--c_gray3)"
+                }
+              }}
               onClick={handleClick}
               size="small"
             >
-              <SmartToyIcon fontSize="small" />
+              <SmartToyIcon
+                fontSize="small"
+                sx={{
+                  color: "var(--c_gray5)",
+                  border: "1px solid transparent",
+                  "&:hover": {
+                    border: "1px solid var(--c_hl1)",
+                    color: "var(--c_white)"
+                  }
+                }}
+              />
             </IconButton>
           </Tooltip>
           <Menu
@@ -264,39 +236,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         </>
       )}
       <ToolsSelector value={selectedTools} onChange={onToolsChange} />
-      <div style={{ flexGrow: 1 }} />
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          textAlign: "right"
-        }}
-      >
-        {selectedModelName && (
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", fontWeight: "bold" }}
-            className="model-name-display"
-          >
-            {selectedModelName}
-          </Typography>
-        )}
-        {selectedTools.length > 0 && (
-          <Box
-            sx={{
-              mt: selectedModelName ? 0.25 : 0
-            }}
-            className="tool-tags-container"
-          >
-            {selectedTools.map((tool) => (
-              <Box key={tool} className="tool-tag">
-                {formatToolName(tool)}
-              </Box>
-            ))}
-          </Box>
-        )}
-      </Box>
     </div>
   );
 };

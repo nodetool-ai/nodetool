@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React, { useRef, useState, useCallback } from "react";
 import { Button, TextareaAutosize, Tooltip, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import { MessageContent } from "../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -10,18 +11,22 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: any) =>
   css({
+    "& ": {
+      width: "100%",
+      display: "flex"
+    },
     ".compose-message": {
-      position: "relative",
       height: "auto",
       width: "100%",
       backgroundColor: theme.palette.c_gray2,
       border: "1px solid",
       borderColor: theme.palette.c_gray1,
       display: "flex",
-      borderRadius: "12px",
+      alignItems: "center",
+      borderRadius: "16px",
+      marginLeft: "1em",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-      flexDirection: "column",
-      alignItems: "stretch",
+      padding: "0px 6px 0px 12px",
 
       "&.dragging": {
         borderColor: theme.palette.c_hl1,
@@ -36,14 +41,13 @@ const styles = (theme: any) =>
       color: theme.palette.c_white,
       resize: "none",
       overflowY: "auto",
-      width: "calc(100% - 60px)",
-      height: "100%",
-      flexGrow: 1,
+      flex: 1,
       outline: "none",
       border: "1px solid transparent",
-      borderRadius: "12px",
-      padding: "1em 1em",
+      borderRadius: "16px",
+      padding: ".5em 1em .5em .5em",
       margin: "0",
+      boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.palette.c_gray3
@@ -55,8 +59,9 @@ const styles = (theme: any) =>
 
     ".compose-message button": {
       position: "absolute",
-      right: "8px",
       bottom: "8px",
+      width: "40px",
+      height: "40px",
       backgroundColor: "transparent",
       color: theme.palette.c_hl1,
       padding: "8px",
@@ -66,6 +71,20 @@ const styles = (theme: any) =>
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         transform: "scale(1.1)"
+      }
+    },
+
+    ".button-container": {
+      display: "flex",
+      alignItems: "center",
+      flexDirection: "row",
+      gap: "2px",
+      flexShrink: 0,
+      padding: "0 4px",
+      "& button": {
+        top: "0",
+        padding: ".25em",
+        position: "relative"
       }
     },
 
@@ -153,12 +172,14 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
 interface ChatComposerProps {
   status: "disconnected" | "connecting" | "connected" | "loading" | "error";
   onSendMessage: (content: MessageContent[], prompt: string) => void;
+  onStop?: () => void;
   disabled?: boolean;
 }
 
 const ChatComposer: React.FC<ChatComposerProps> = ({
   status,
   onSendMessage,
+  onStop,
   disabled = false
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -316,30 +337,31 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             ))}
           </div>
         )}
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            alignItems: "flex-end"
-          }}
-        >
-          <TextareaAutosize
-            className="chat-input"
-            id="chat-prompt"
-            aria-labelledby="chat-prompt"
-            ref={textareaRef}
-            value={prompt}
-            onChange={handleOnChange}
-            onKeyDown={handleKeyDown}
-            disabled={isDisabled}
-            minRows={1}
-            maxRows={4}
-            placeholder="Type your message..."
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck="false"
-            autoComplete="off"
-          />
+        <TextareaAutosize
+          className="chat-input"
+          id="chat-prompt"
+          aria-labelledby="chat-prompt"
+          ref={textareaRef}
+          value={prompt}
+          onChange={handleOnChange}
+          onKeyDown={handleKeyDown}
+          disabled={isDisabled}
+          minRows={1}
+          maxRows={4}
+          placeholder="Type your message..."
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck="false"
+          autoComplete="off"
+        />
+        <div className="button-container">
+          {status === "loading" && onStop && (
+            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
+              <Button className="stop-button" onClick={onStop}>
+                <StopCircleOutlinedIcon fontSize="small" />
+              </Button>
+            </Tooltip>
+          )}
           <Tooltip
             enterDelay={TOOLTIP_ENTER_DELAY}
             title={
@@ -350,7 +372,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             }
           >
             <Button
-              className="chat-send-button"
+              className="send-button"
               onClick={() => {
                 if (!isDisabled && prompt.trim() !== "") {
                   handleSend();

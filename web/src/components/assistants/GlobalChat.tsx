@@ -35,7 +35,8 @@ const GlobalChat: React.FC = () => {
     createNewThread,
     threads,
     switchThread,
-    deleteThread
+    deleteThread,
+    stopGeneration
   } = useGlobalChatStore();
 
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
@@ -194,18 +195,13 @@ const GlobalChat: React.FC = () => {
 
         "&:hover": {
           backgroundColor: theme.palette.c_gray2,
-
           ".delete-button": {
             opacity: 1
-          },
-
-          ".date": {
-            opacity: 0
           }
         },
 
         "&.selected": {
-          backgroundColor: theme.palette.c_gray2,
+          backgroundColor: theme.palette.c_gray1,
           borderLeft: `2px solid ${theme.palette.c_hl1}`
         }
       },
@@ -377,6 +373,7 @@ const GlobalChat: React.FC = () => {
             selectedTools={selectedTools}
             onToolsChange={setSelectedTools}
             onModelChange={(modelId) => setSelectedModel(modelId)}
+            onStop={stopGeneration}
           />
         </Box>
       </Box>
