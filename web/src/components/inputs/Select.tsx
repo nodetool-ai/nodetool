@@ -106,6 +106,7 @@ const menuStyles = (theme: any) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
+      backgroundColor: theme.palette.c_node_bg,
 
       "&:hover": {
         borderColor: theme.palette.c_gray4
