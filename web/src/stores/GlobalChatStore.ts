@@ -100,7 +100,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
     (set, get) => ({
       // Connection state
       status: "disconnected",
-      statusMessage: "",
+      statusMessage: null,
       progress: { current: 0, total: 0 },
       error: null,
       workflowId: null,
@@ -169,6 +169,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const arrayBuffer = await event.data.arrayBuffer();
           const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
+          console.log("data", data);
+
           if (data.type === "message") {
             const message = data as Message;
             const threadId = get().currentThreadId;
@@ -187,7 +189,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     },
                     status: "connected",
                     progress: { current: 0, total: 0 },
-                    statusMessage: ""
+                    statusMessage: null
                   };
                 }
                 return state;
@@ -199,20 +201,20 @@ const useGlobalChatStore = create<GlobalChatState>()(
               set({
                 progress: { current: 0, total: 0 },
                 status: "connected",
-                statusMessage: ""
+                statusMessage: null
               });
             } else if (update.status === "failed") {
               set({
                 error: update.error,
                 status: "error",
                 progress: { current: 0, total: 0 },
-                statusMessage: update.error || ""
+                statusMessage: update.error || null
               });
             }
           } else if (data.type === "node_update") {
             const update = data as NodeUpdate;
             if (update.status === "completed") {
-              set({ progress: { current: 0, total: 0 }, statusMessage: "" });
+              set({ progress: { current: 0, total: 0 }, statusMessage: null });
             } else {
               set({ statusMessage: update.node_name });
             }
@@ -231,6 +233,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     content: (lastMessage.content || "") + chunk.content
                   };
                   set((state) => ({
+                    statusMessage: undefined,
                     threads: {
                       ...state.threads,
                       [threadId]: {
@@ -249,6 +252,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     workflow_id: get().workflowId
                   };
                   set((state) => ({
+                    statusMessage: undefined,
                     threads: {
                       ...state.threads,
                       [threadId]: {
@@ -260,7 +264,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   }));
                 }
                 if (chunk.done) {
-                  set({ status: "connected" });
+                  set({ status: "connected", statusMessage: undefined });
                 }
               }
             }
@@ -284,6 +288,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                       content: lastMessage.content + (update.value as string)
                     };
                     set((state) => ({
+                      statusMessage: undefined,
                       threads: {
                         ...state.threads,
                         [threadId]: {
@@ -328,6 +333,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     name: "assistant"
                   } as Message;
                   set((state) => ({
+                    statusMessage: undefined,
                     threads: {
                       ...state.threads,
                       [threadId]: {
@@ -580,7 +586,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set({
             status: "connected",
             progress: { current: 0, total: 0 },
-            statusMessage: ""
+            statusMessage: null
           });
         }
       }
