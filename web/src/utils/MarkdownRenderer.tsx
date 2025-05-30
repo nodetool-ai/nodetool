@@ -28,7 +28,7 @@ const styles = (theme: any) =>
       margin: "0.25em 0 .75em 0"
     },
     strong: {
-      fontWeight: "500"
+      fontWeight: "600"
     },
     pre: {
       width: "90%",
