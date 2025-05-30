@@ -279,16 +279,16 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
           e.preventDefault();
-          setPrompt(prompt + "\n");
+          setPrompt((p) => p + "\n");
           return;
         }
-        if (status === "connected" && !metaKeyPressed && !altKeyPressed) {
+        if (!metaKeyPressed && !altKeyPressed) {
           e.preventDefault();
           handleSend();
         }
       }
     },
-    [status, prompt, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
   );
 
   const removeFile = useCallback((index: number) => {
