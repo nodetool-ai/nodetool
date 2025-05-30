@@ -25,7 +25,6 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import ChatComposer from "../assistants/ChatComposer";
 import ChatToolBar from "../assistants/ChatToolBar";
 import { MessageContent } from "../../stores/ApiTypes";
-import ThemeNodes from "../themes/ThemeNodes";
 
 const styles = (theme: any) =>
   css({
@@ -52,6 +51,7 @@ const styles = (theme: any) =>
     },
 
     ".section-title": {
+      color: theme.palette.c_gray6,
       marginBottom: theme.spacing(3)
     },
 
@@ -203,7 +203,7 @@ const styles = (theme: any) =>
       padding: ".2em .5em .5em 0",
       color: theme.palette.c_white,
       backgroundColor: theme.palette.c_gray1,
-      fontSize: "var(--font-size-normal)"
+      fontSize: "var(--fontSizeNormal)"
     },
 
     ".header-controls": {
@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box css={styles(ThemeNodes)}>
+    <Box css={styles(ThemeNodetool)}>
       {/* Recent Workflows Section */}
       <Box className="section workflows-section">
         <Box className="header-controls">

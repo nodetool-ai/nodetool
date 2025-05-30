@@ -10,7 +10,7 @@
   padding: 0.3em 0.5em;
   background: var(--c_black);
   color: var(--c_white);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   /*border: 1px solid var(--c_gray0);*/
   /*box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);*/
   box-shadow: none !important;
@@ -109,7 +109,7 @@
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
   fill: #000;
-  font-size: var(--font-size-tinyer);
+  font-size: var(--fontSizeTinyer);
   transition: all 0.8s;
 }
 

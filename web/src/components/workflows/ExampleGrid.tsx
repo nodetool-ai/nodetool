@@ -120,7 +120,7 @@ const styles = (theme: any) =>
       position: "absolute",
       bottom: "0",
       left: "0",
-      fontSize: "var(--font-size-small)",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.2",
       display: "-webkit-box",
       backgroundColor: theme.palette.c_gray1,

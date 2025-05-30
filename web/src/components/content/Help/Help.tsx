@@ -101,7 +101,7 @@ const helpStyles = (theme: any) =>
     ".tabpanel": {
       height: "calc(100% - 40px)",
       padding: "1em 0",
-      fontSize: "var(--font-size-big)"
+      fontSize: "var(--fontSizeBig)"
     },
     ".tabpanel-content": {
       height: "100%",
@@ -147,7 +147,7 @@ const helpStyles = (theme: any) =>
     },
     ".explanation": {
       marginBottom: "1em",
-      fontSize: "var(--font-size-normal)",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.palette.c_gray5
     }
   });

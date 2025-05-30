@@ -95,7 +95,7 @@ const styles = (theme: any) =>
       },
       "& .pipeline-tag": {
         color: "var(--c_gray1)",
-        fontSize: "var(--font-size-small)",
+        fontSize: "var(--fontSizeSmall)",
         fontWeight: "bold",
         height: "1.5em",
         padding: "0"
