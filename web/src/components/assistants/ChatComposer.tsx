@@ -16,9 +16,9 @@ const styles = (theme: any) =>
       width: "100%",
       backgroundColor: theme.palette.c_gray2,
       border: "1px solid",
-      borderColor: theme.palette.c_gray3,
+      borderColor: theme.palette.c_gray1,
       display: "flex",
-      borderRadius: "20px",
+      borderRadius: "12px",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
       flexDirection: "column",
       alignItems: "stretch",
@@ -41,7 +41,7 @@ const styles = (theme: any) =>
       flexGrow: 1,
       outline: "none",
       border: "1px solid transparent",
-      borderRadius: "20px",
+      borderRadius: "12px",
       padding: "1em 1em",
       margin: "0",
       transition: "border 0.2s ease-in-out",
@@ -49,7 +49,7 @@ const styles = (theme: any) =>
         color: theme.palette.c_gray3
       },
       "&:focus": {
-        border: "1px solid" + theme.palette.c_gray5
+        border: "1px solid" + theme.palette.c_gray3
       }
     },
 
@@ -98,7 +98,7 @@ const styles = (theme: any) =>
         }
       },
 
-      "img": {
+      img: {
         width: "100%",
         height: "auto",
         borderRadius: "4px"
@@ -282,11 +282,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
           setPrompt(prompt + "\n");
           return;
         }
-        if (
-          status === "connected" &&
-          !metaKeyPressed &&
-          !altKeyPressed
-        ) {
+        if (status === "connected" && !metaKeyPressed && !altKeyPressed) {
           e.preventDefault();
           handleSend();
         }
@@ -320,7 +316,13 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             ))}
           </div>
         )}
-        <div style={{ position: "relative", display: "flex", alignItems: "flex-end" }}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "flex-end"
+          }}
+        >
           <TextareaAutosize
             className="chat-input"
             id="chat-prompt"

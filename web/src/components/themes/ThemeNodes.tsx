@@ -429,6 +429,9 @@ const ThemeNodes: Theme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           fontFamily: theme.fontFamily2,
+          "&.MuiButtonBase-root.MuiToggleButton-root": {
+            lineHeight: "1.2em !important"
+          },
           "&.MuiToggleButton-sizeSmall.Mui-selected": {
             color: theme.palette.c_white,
             backgroundColor: theme.palette.c_gray1

@@ -254,12 +254,15 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         >
           <IconButton
             ref={buttonRef}
-            className={`tools-button ${selectedTools.length > 0 ? "active" : ""}`}
+            className={`tools-button ${
+              selectedTools.length > 0 ? "active" : ""
+            }`}
             onClick={handleClick}
             size="small"
             sx={(theme) => ({
               backgroundColor: theme.palette.c_gray2,
               color: theme.palette.c_white,
+              padding: " .5em",
               border: `1px solid ${theme.palette.c_gray3}`,
               "&:hover": {
                 backgroundColor: theme.palette.c_gray3,
@@ -294,7 +297,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           <Typography key={`header-${category}`} className="category-header">
             {category}
           </Typography>,
-          ...groupedTools[category]?.map((tool) => {
+          ...(groupedTools[category]?.map((tool) => {
             const isSelected = selectedTools.includes(tool.id);
             return (
               <MenuItem
@@ -308,14 +311,20 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
                   {tool.icon}
                 </ListItemIcon>
                 <ListItemText
-                  primary={<span className={`tool-name ${isSelected ? "selected" : ""}`}>{tool.name}</span>}
+                  primary={
+                    <span
+                      className={`tool-name ${isSelected ? "selected" : ""}`}
+                    >
+                      {tool.name}
+                    </span>
+                  }
                   secondary={
                     <span className="tool-description">{tool.description}</span>
                   }
                 />
               </MenuItem>
             );
-          }) || []
+          }) || [])
         ])}
       </Menu>
     </>
