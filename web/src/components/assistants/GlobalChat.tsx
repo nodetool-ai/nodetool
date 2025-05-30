@@ -262,7 +262,10 @@ const GlobalChat: React.FC = () => {
       ".chat-container": {
         flex: 1,
         overflow: "hidden",
-        padding: theme.spacing(2)
+        padding: "1em",
+        marginBottom: "2em",
+        maxWidth: "1000px",
+        margin: "0 auto"
       }
     });
 

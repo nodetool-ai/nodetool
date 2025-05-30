@@ -14,7 +14,8 @@
   height: 100%;
   background: #202123;
   color: white;
-  max-width: 100%;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -134,7 +135,7 @@
   }
 
   .chat-container {
-    max-width: 1000px;
+    max-width: 1100px;
     margin: 0 auto;
   }
 
