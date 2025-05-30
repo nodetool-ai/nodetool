@@ -28,35 +28,6 @@ const styles = (theme: any) =>
       flexDirection: "column",
       padding: "1em"
     },
-    ".info-display-container": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-end",
-      textAlign: "right",
-      padding: "0 1em 0.5em 1em"
-    },
-    ".model-name-display": {
-      fontSize: "var(--fontSizeNormal)",
-      marginBottom: "0.5em",
-      padding: "0 .5em",
-      color: theme.palette.text.secondary
-      // fontWeight: "bold"
-    },
-    ".tool-tags-container": {
-      display: "flex",
-      maxWidth: "800px",
-      flexWrap: "wrap",
-      justifyContent: "flex-end"
-    },
-    ".tool-tag": {
-      backgroundColor: theme.palette.c_gray2,
-      padding: "2px 6px",
-      margin: "2px",
-      borderRadius: "4px",
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.palette.text.primary,
-      lineHeight: "1.2"
-    },
     ".chat-controls": {
       padding: "0 1em",
       marginTop: "auto",
@@ -139,27 +110,6 @@ const ChatView = ({
         progressMessage={progressMessage}
       />
 
-      <Box className="info-display-container">
-        {selectedModelName && (
-          <Typography
-            variant="caption"
-            className="model-name-display"
-            sx={{ mt: selectedTools.length > 0 ? 0.25 : 0 }}
-          >
-            {selectedModelName}
-          </Typography>
-        )}
-        {selectedTools.length > 0 && (
-          <Box className="tool-tags-container">
-            {selectedTools.map((tool) => (
-              <Box key={tool} className="tool-tag">
-                {formatToolName(tool)}
-              </Box>
-            ))}
-          </Box>
-        )}
-      </Box>
-
       <ChatInputSection
         status={status}
         onSendMessage={handleSendMessage}
@@ -176,4 +126,4 @@ const ChatView = ({
 
 export default ChatView;
 
-export { Progress } from "./ChatThreadView";
+export { Progress } from "./components/Progress";

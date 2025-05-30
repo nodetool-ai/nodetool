@@ -153,11 +153,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
               className={`select-model-button ${selectedModel ? "active" : ""}`}
               sx={{
                 border: "1px solid transparent",
-                backgroundColor: "var(--c_gray2)",
                 color: "var(--c_white)",
                 padding: "0.25em 0.75em",
                 "&:hover": {
-                  border: "1px solid var(--c_hl1)",
                   backgroundColor: "var(--c_gray3)"
                 }
               }}
