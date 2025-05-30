@@ -57,13 +57,15 @@ const styles = (theme: any) =>
     "li.user": {
       width: "60%",
       marginLeft: "auto",
+      padding: "0.2em",
       color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray3,
+      backgroundColor: theme.palette.c_gray2,
+      opacity: 0.9,
       borderRadius: "20px"
     },
 
     "li .markdown": {
-      padding: 0
+      padding: "1em"
     },
 
     "li.assistant": {
@@ -72,6 +74,7 @@ const styles = (theme: any) =>
 
     "li pre": {
       fontFamily: theme.fontFamily2,
+      width: "100%",
       backgroundColor: "rgba(0,0,0, 0.8)",
       padding: "0.5em"
     },
