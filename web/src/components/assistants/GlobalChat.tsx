@@ -81,7 +81,6 @@ const GlobalChat: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount/unmount
 
-
   const handleNewChat = useCallback(() => {
     createNewThread();
     // Reset tools when starting a new chat
@@ -168,7 +167,7 @@ const GlobalChat: React.FC = () => {
         width: "100%",
         padding: "0.5em 1em",
         borderRadius: "8px",
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: "var(--c_gray1)",
         color: theme.palette.c_white,
         textTransform: "none",
         justifyContent: "flex-start",
@@ -257,11 +256,11 @@ const GlobalChat: React.FC = () => {
       flexDirection: "column",
 
       ".header": {
-        padding: theme.spacing(1),
+        padding: "0 1em",
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(2),
-        borderBottom: `1px solid ${theme.palette.c_gray2}`
+        boxShadow: "2px 0 10px 0 rgba(0, 0, 0, 0.7)"
       },
 
       ".chat-container": {
