@@ -10,6 +10,10 @@ import {
   Tooltip,
   Button
 } from "@mui/material";
+import Drawer from "@mui/material/Drawer";
+import MenuIcon from "@mui/icons-material/Menu";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ChatView from "./ChatView";
@@ -41,6 +45,9 @@ const GlobalChat: React.FC = () => {
 
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const mountedRef = useRef(false);
   const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messages = getCurrentMessages();
@@ -86,7 +93,15 @@ const GlobalChat: React.FC = () => {
     createNewThread();
     // Reset tools when starting a new chat
     setSelectedTools([]);
-  }, [createNewThread]);
+    if (isMobile) setDrawerOpen(false);
+  }, [createNewThread, isMobile]);
+
+  // Close the drawer automatically when switching to desktop view
+  useEffect(() => {
+    if (!isMobile) {
+      setDrawerOpen(false);
+    }
+  }, [isMobile]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -287,18 +302,87 @@ const GlobalChat: React.FC = () => {
     <Box
       sx={{
         height: "100vh",
-        display: "flex"
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row"
       }}
     >
       {/* Thread List Sidebar */}
-      <Box css={sidebarStyles}>
-        <Box className="new-chat-section">
-          <Tooltip title="New Chat">
-            <Button
-              className="new-chat-button"
-              onClick={handleNewChat}
-              startIcon={<AddIcon />}
-            >
+      {isMobile ? (
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          PaperProps={{ sx: { width: 260 } }}
+        >
+          <Box css={sidebarStyles} sx={{ height: "100%" }}>
+            <Box className="new-chat-section">
+              <Tooltip title="New Chat">
+                <Button
+                  className="new-chat-button"
+                  onClick={handleNewChat}
+                  startIcon={<AddIcon />}
+                >
+                  New Chat
+                </Button>
+              </Tooltip>
+            </Box>
+
+            <ul className="thread-list">
+              {!threads || Object.keys(threads).length === 0 ? (
+                <li
+                  style={{
+                    padding: "2em",
+                    textAlign: "center",
+                    color: "#666",
+                    fontSize: "0.9em"
+                  }}
+                >
+                  No conversations yet. Click &ldquo;New Chat&rdquo; to start.
+                </li>
+              ) : (
+                Object.entries(threads)
+                  .sort((a, b) => b[1].updatedAt.localeCompare(a[1].updatedAt))
+                  .map(([threadId, thread]) => (
+                    <li
+                      key={threadId}
+                      className={`thread-item ${
+                        threadId === currentThreadId ? "selected" : ""
+                      }`}
+                      onClick={() => {
+                        switchThread(threadId);
+                        if (isMobile) setDrawerOpen(false);
+                      }}
+                    >
+                      <Typography className="thread-title">
+                        {thread.title || getThreadPreview(threadId)}
+                      </Typography>
+                      <Typography className="date">
+                        {relativeTime(thread.updatedAt)}
+                      </Typography>
+                      <IconButton
+                        className="delete-button"
+                        size="small"
+                        onClick={(e) => handleDeleteThread(e, threadId)}
+                        data-microtip-position="left"
+                        aria-label="Delete conversation"
+                        role="tooltip"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </li>
+                  ))
+              )}
+            </ul>
+          </Box>
+        </Drawer>
+      ) : (
+        <Box css={sidebarStyles}>
+          <Box className="new-chat-section">
+            <Tooltip title="New Chat">
+              <Button
+                className="new-chat-button"
+                onClick={handleNewChat}
+                startIcon={<AddIcon />}
+              >
               New Chat
             </Button>
           </Tooltip>
@@ -325,7 +409,10 @@ const GlobalChat: React.FC = () => {
                   className={`thread-item ${
                     threadId === currentThreadId ? "selected" : ""
                   }`}
-                  onClick={() => switchThread(threadId)}
+                  onClick={() => {
+                    switchThread(threadId);
+                    if (isMobile) setDrawerOpen(false);
+                  }}
                 >
                   <Typography className="thread-title">
                     {thread.title || getThreadPreview(threadId)}
@@ -347,11 +434,17 @@ const GlobalChat: React.FC = () => {
               ))
           )}
         </ul>
-      </Box>
+        </Box>
+      )}
 
       {/* Main Chat Area */}
       <Box css={mainAreaStyles}>
         <Box className="chat-header">
+          {isMobile && (
+            <IconButton onClick={() => setDrawerOpen(true)}>
+              <MenuIcon />
+            </IconButton>
+          )}
           <BackToDashboardButton />
           <BackToEditorButton />
         </Box>

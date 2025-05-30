@@ -287,6 +287,21 @@ const styles = (theme: any) =>
         gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
         gap: theme.spacing(2)
       }
+    },
+
+    "@media (max-width: 480px)": {
+      "&": {
+        padding: theme.spacing(1),
+        gap: theme.spacing(1)
+      },
+      ".section": {
+        padding: theme.spacing(1)
+      },
+      ".workflow-controls": {
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: theme.spacing(1)
+      }
     }
   });
 
