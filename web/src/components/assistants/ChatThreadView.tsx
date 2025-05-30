@@ -44,7 +44,10 @@ const styles = (theme: any) =>
 
     "li.chat-message p": {
       margin: "0.2em 0",
-      fontSize: theme.fontSizeBig
+      fontSize: theme.fontSizeNormal,
+      lineHeight: "1.5em",
+      fontWeight: "300",
+      color: theme.palette.c_white
     },
 
     "li.user": {
