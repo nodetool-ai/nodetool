@@ -154,14 +154,12 @@ const GlobalChat: React.FC = () => {
     css({
       width: "260px",
       height: "100%",
-      borderRight: `1px solid ${theme.palette.c_gray2}`,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.palette.c_gray0,
 
       ".new-chat-section": {
-        padding: theme.spacing(2),
-        borderBottom: `1px solid ${theme.palette.c_gray2}`
+        padding: theme.spacing(2)
       },
 
       ".new-chat-button": {
