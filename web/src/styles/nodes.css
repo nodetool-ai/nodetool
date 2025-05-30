@@ -229,8 +229,7 @@
 
 /* Node selection */
 .react-flow__node.selected {
-  box-shadow: 0 0 0 2px var(--c_white),
-    0.15em 0.15em 1.2em 0px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px var(--c_white), 0.1em 0.1em 0.5em 0px rgba(0, 0, 0, 0.6);
 }
 
 /* Compact nodes */
