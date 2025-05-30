@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
-  IconButton,
+  Button,
   Menu,
   MenuItem,
   Typography,
@@ -10,8 +10,7 @@ import {
   Tooltip,
   Divider,
   ListItemIcon,
-  ListItemText,
-  Badge
+  ListItemText
 } from "@mui/material";
 import { isEqual } from "lodash";
 import {
@@ -247,42 +246,31 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Badge
-          className="tools-badge"
-          sx={{
-            "& .MuiBadge-badge": {
-              top: "5px"
+        <Button
+          ref={buttonRef}
+          className={`tools-button ${selectedTools.length > 0 ? "active" : ""}`}
+          onClick={handleClick}
+          size="small"
+          startIcon={<Build fontSize="small" />}
+          sx={(theme) => ({
+            backgroundColor: theme.palette.c_gray2,
+            color: theme.palette.c_white,
+            padding: "0.25em 0.75em",
+            border: `1px solid ${theme.palette.c_gray3}`,
+            "&:hover": {
+              backgroundColor: theme.palette.c_gray3,
+              borderColor: theme.palette.c_gray4
+            },
+            "&.active": {
+              borderColor: theme.palette.c_hl1,
+              color: theme.palette.c_hl1
             }
-          }}
-          badgeContent={selectedTools.length}
-          color="primary"
-          invisible={selectedTools.length === 0}
+          })}
         >
-          <IconButton
-            ref={buttonRef}
-            className={`tools-button ${
-              selectedTools.length > 0 ? "active" : ""
-            }`}
-            onClick={handleClick}
-            size="small"
-            sx={(theme) => ({
-              backgroundColor: theme.palette.c_gray2,
-              color: theme.palette.c_white,
-              padding: " .5em",
-              border: `1px solid ${theme.palette.c_gray3}`,
-              "&:hover": {
-                backgroundColor: theme.palette.c_gray3,
-                borderColor: theme.palette.c_gray4
-              },
-              "&.active": {
-                borderColor: theme.palette.c_hl1,
-                color: theme.palette.c_hl1
-              }
-            })}
-          >
-            <Build fontSize="small" />
-          </IconButton>
-        </Badge>
+          {selectedTools.length > 0
+            ? `${selectedTools.length} Tools`
+            : "Tools"}
+        </Button>
       </Tooltip>
       <Menu
         anchorEl={anchorEl}

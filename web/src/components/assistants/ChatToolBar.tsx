@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
-  IconButton,
+  Button,
   Menu,
   MenuItem,
   ListItemText,
@@ -148,13 +148,14 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
             }
             enterDelay={TOOLTIP_ENTER_DELAY}
           >
-            <IconButton
+            <Button
               ref={buttonRef}
               className={`select-model-button ${selectedModel ? "active" : ""}`}
               sx={{
                 border: "1px solid transparent",
                 backgroundColor: "var(--c_gray2)",
-                padding: ".5em",
+                color: "var(--c_white)",
+                padding: "0.25em 0.75em",
                 "&:hover": {
                   border: "1px solid var(--c_hl1)",
                   backgroundColor: "var(--c_gray3)"
@@ -162,19 +163,17 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
               }}
               onClick={handleClick}
               size="small"
+              startIcon={
+                <SmartToyIcon
+                  fontSize="small"
+                  sx={{
+                    color: "var(--c_gray5)"
+                  }}
+                />
+              }
             >
-              <SmartToyIcon
-                fontSize="small"
-                sx={{
-                  color: "var(--c_gray5)",
-                  border: "1px solid transparent",
-                  "&:hover": {
-                    border: "1px solid var(--c_hl1)",
-                    color: "var(--c_white)"
-                  }
-                }}
-              />
-            </IconButton>
+              {currentSelectedModelDetails?.name || selectedModel || "Model"}
+            </Button>
           </Tooltip>
           <Menu
             anchorEl={anchorEl}
