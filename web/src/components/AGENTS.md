@@ -33,14 +33,16 @@ Components for managing assets (files, folders, etc.):
 - `Dropzone.tsx`: Drag and drop file upload area
 - `FolderTree.tsx`: Hierarchical folder navigation
 
-## Assistant Components (`/assistants`)
+## Chat Components (`/chat`)
 
-Components for AI assistants and chat interfaces:
+Components for chat interfaces:
 - `ChatView.tsx`: Generic chat interface
 - `HelpChat.tsx`: Help chat assistant
 - `WorkflowChat.tsx`: Workflow-specific chat
-- `WorkflowGenerator.tsx`: AI-assisted workflow creation
-- `/chat`: Chat UI sub-components (container, controls, header)
+- `GlobalChat.tsx`: Global chat interface
+- `ToolsSelector.tsx`: Tool selection dropdown
+- `ChatComposer.tsx`: Message composition component
+- `/ui`: Chat UI sub-components (container, controls, header)
 
 ## Audio Components (`/audio`)
 
