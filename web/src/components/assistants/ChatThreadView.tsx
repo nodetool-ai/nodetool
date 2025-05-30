@@ -1,7 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import React, { useRef, useEffect, useCallback, useState } from "react";
-import { LinearProgress, Typography, Button } from "@mui/material";
+import { LinearProgress, Typography, Button, IconButton } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import {
   Message,
   MessageContent,
@@ -23,18 +25,33 @@ const textPulse = keyframes`
   100% { opacity: 0.7; }
 `;
 
-const styles = (theme: any) =>
-  css({
+const styles = (theme: any) => ({
+  chatThreadViewRoot: css({
     width: "100%",
     flexGrow: 1,
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    marginBottom: "1em"
+  }),
+  scrollableMessageWrapper: css({
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "center",
     overflowY: "auto",
-    listStyleType: "none",
-    padding: ".5em",
-    marginBottom: "1em",
-    paddingRight: "2em",
-    borderRadius: "1em",
-    marginRight: "1em",
     backgroundColor: theme.palette.c_gray1,
+    borderRadius: "1em",
+    padding: "0 .5em",
+    position: "relative"
+  }),
+  chatMessagesList: css({
+    listStyleType: "none",
+    maxWidth: "1000px",
+    padding: "2em 0 0",
+    margin: "0",
 
     "li.chat-message": {
       width: "100%",
@@ -131,7 +148,28 @@ const styles = (theme: any) =>
       width: "80%",
       marginBottom: "0.5em"
     }
-  });
+  }),
+  scrollToBottomButton: css({
+    position: "absolute",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 10,
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    padding: 0,
+    backgroundColor: theme.palette.c_gray3,
+    color: theme.palette.c_white,
+    transition: "opacity 0.4s ease",
+    "&:hover": {
+      backgroundColor: `${theme.palette.c_gray4} !important`
+    },
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  })
+});
 
 interface ProgressProps {
   progress: number;
@@ -319,73 +357,138 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   total,
   progressMessage
 }) => {
-  const messagesListRef = useRef<HTMLUListElement | null>(null);
+  const theme = useTheme();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
-  const [loadingThoughts, setLoadingThoughts] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
-  const scrollToBottom = useCallback(() => {
-    if (messagesListRef.current) {
-      const messagesList = messagesListRef.current;
-      const lastMessage = messagesList.lastChild as HTMLLIElement;
-      if (lastMessage) {
-        lastMessage.scrollIntoView({ behavior: "smooth" });
+  const SCROLL_THRESHOLD = 50;
+
+  const componentStyles = styles(theme);
+
+  const handleScroll = useCallback(() => {
+    const element = scrollRef.current;
+    if (element) {
+      const nearBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight <
+        SCROLL_THRESHOLD;
+      setIsNearBottom(nearBottom);
+      if (!nearBottom && !userHasScrolledUp) {
+        setUserHasScrolledUp(true);
+      } else if (nearBottom && userHasScrolledUp) {
+        setUserHasScrolledUp(false);
       }
     }
-  }, []);
+  }, [userHasScrolledUp]);
+
+  const scrollToBottom = useCallback(
+    (force = false) => {
+      if (scrollRef.current) {
+        if (force || isNearBottom) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          setUserHasScrolledUp(false);
+          setIsNearBottom(true);
+        }
+      }
+    },
+    [isNearBottom]
+  );
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    const element = scrollRef.current;
+    if (element) {
+      element.addEventListener("scroll", handleScroll);
+      return () => {
+        element.removeEventListener("scroll", handleScroll);
+      };
+    }
+  }, [handleScroll]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === "user") {
+        scrollToBottom(true);
+        return;
+      }
+    }
+    if (status === "loading" || status === "connected" || messages.length > 0) {
+      if (isNearBottom && !userHasScrolledUp) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, status, scrollToBottom, isNearBottom, userHasScrolledUp]);
 
   const handleToggleThought = useCallback((key: string) => {
-    setLoadingThoughts((prev) => ({ ...prev, [key]: true }));
-
-    setTimeout(() => {
-      setExpandedThoughts((prev) => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-      setLoadingThoughts((prev) => ({ ...prev, [key]: false }));
-    }, 500);
+    setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   return (
-    <ul className="chat-messages" ref={messagesListRef} css={styles}>
-      {messages.map((msg, index) => (
-        <MessageView
-          key={msg.id || `msg-${index}`}
-          message={msg}
-          expandedThoughts={expandedThoughts}
-          onToggleThought={handleToggleThought}
-        />
-      ))}
-      {status === "loading" && progress === 0 && (
-        <li key="loading-indicator">
-          <LoadingIndicator />
-        </li>
-      )}
-      {progress > 0 && (
-        <li key="progress-indicator">
-          <Progress progress={progress} total={total} />
-        </li>
-      )}
-      {progressMessage && (
-        <li key="progress-message" className="node-status">
-          <span
-            css={css`
-              display: inline;
-              animation: ${textPulse} 1.8s ease-in-out infinite;
-            `}
-          >
-            {progressMessage}
-          </span>
-        </li>
-      )}
-    </ul>
+    <div
+      css={componentStyles.chatThreadViewRoot}
+      className="chat-thread-view-root"
+    >
+      <div
+        ref={scrollRef}
+        css={componentStyles.scrollableMessageWrapper}
+        className="scrollable-message-wrapper"
+      >
+        <ul
+          css={componentStyles.chatMessagesList}
+          className="chat-messages-list"
+        >
+          {messages.map((msg, index) => (
+            <MessageView
+              key={msg.id || `msg-${index}`}
+              message={msg}
+              expandedThoughts={expandedThoughts}
+              onToggleThought={handleToggleThought}
+            />
+          ))}
+          {status === "loading" && progress === 0 && (
+            <li key="loading-indicator" className="chat-message-list-item">
+              <LoadingIndicator />
+            </li>
+          )}
+          {progress > 0 && (
+            <li key="progress-indicator" className="chat-message-list-item">
+              <Progress progress={progress} total={total} />
+            </li>
+          )}
+          {progressMessage && (
+            <li
+              key="progress-message"
+              className="node-status chat-message-list-item"
+            >
+              <span
+                css={css`
+                  display: inline;
+                  animation: ${textPulse} 1.8s ease-in-out infinite;
+                `}
+              >
+                {progressMessage}
+              </span>
+            </li>
+          )}
+        </ul>
+      </div>
+      <IconButton
+        css={componentStyles.scrollToBottomButton}
+        className="scroll-to-bottom-button"
+        onClick={() => scrollToBottom(true)}
+        size="small"
+        style={{
+          opacity: isNearBottom ? 0 : 0.8,
+          pointerEvents: isNearBottom ? "none" : "auto"
+        }}
+        disableRipple
+      >
+        <ArrowDownwardIcon />
+      </IconButton>
+    </div>
   );
 };
 

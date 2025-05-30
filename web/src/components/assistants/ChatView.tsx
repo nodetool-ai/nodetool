@@ -5,6 +5,7 @@ import { Message, MessageContent } from "../../stores/ApiTypes";
 import ChatThreadView from "./ChatThreadView";
 import ChatComposer from "./ChatComposer";
 import ChatToolBar from "./ChatToolBar";
+import ChatInputSection from "./ChatInputSection";
 import { Box, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import useModelStore from "../../stores/ModelStore";
@@ -159,24 +160,16 @@ const ChatView = ({
         )}
       </Box>
 
-      <div className="chat-controls">
-        {onToolsChange && (
-          <ChatToolBar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedModel={model}
-            onModelChange={onModelChange}
-          />
-        )}
-        <div className="chat-composer-wrapper">
-          <ChatComposer
-            status={status}
-            onSendMessage={handleSendMessage}
-            onStop={onStop}
-            disabled={status === "loading" || status === "error"}
-          />
-        </div>
-      </div>
+      <ChatInputSection
+        status={status}
+        onSendMessage={handleSendMessage}
+        onStop={onStop}
+        selectedTools={selectedTools}
+        onToolsChange={onToolsChange}
+        selectedModel={model}
+        onModelChange={onModelChange}
+        showToolbar={!!onToolsChange}
+      />
     </div>
   );
 };

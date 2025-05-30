@@ -22,8 +22,7 @@ import { truncateString } from "../../utils/truncateString";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import ChatComposer from "../assistants/ChatComposer";
-import ChatToolBar from "../assistants/ChatToolBar";
+import ChatInputSection from "../assistants/ChatInputSection";
 import { MessageContent } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
@@ -559,13 +558,14 @@ const Dashboard: React.FC = () => {
       {/* Chat Input Section */}
       <Box className="section chat-section">
         <Typography className="section-title">Quick Chat</Typography>
-        <ChatToolBar
+        <ChatInputSection
+          status={status as any}
+          onSendMessage={handleSendChat}
           selectedTools={selectedTools}
           onToolsChange={setSelectedTools}
           selectedModel={selectedModel}
           onModelChange={handleModelChange}
         />
-        <ChatComposer status={status} onSendMessage={handleSendChat} />
       </Box>
     </Box>
   );
