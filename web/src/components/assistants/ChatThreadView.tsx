@@ -359,6 +359,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 }) => {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
@@ -375,7 +376,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       const nearBottom =
         element.scrollHeight - element.scrollTop - element.clientHeight <
         SCROLL_THRESHOLD;
-      setIsNearBottom(nearBottom);
       if (!nearBottom && !userHasScrolledUp) {
         setUserHasScrolledUp(true);
       } else if (nearBottom && userHasScrolledUp) {
@@ -386,9 +386,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   const scrollToBottom = useCallback(
     (force = false) => {
-      if (scrollRef.current) {
+      const el = bottomRef.current;
+      if (el) {
         if (force || isNearBottom) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          el.scrollIntoView({ behavior: force ? "smooth" : "auto" });
           setUserHasScrolledUp(false);
           setIsNearBottom(true);
         }
@@ -396,6 +397,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     },
     [isNearBottom]
   );
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    const bottomEl = bottomRef.current;
+    if (!scrollEl || !bottomEl) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsNearBottom(entry.isIntersecting),
+      { root: scrollEl, threshold: 0.1 }
+    );
+    observer.observe(bottomEl);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -473,6 +486,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               </span>
             </li>
           )}
+          <div ref={bottomRef} style={{ height: 1 }} />
         </ul>
       </div>
       <IconButton
