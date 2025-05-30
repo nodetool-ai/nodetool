@@ -34,17 +34,14 @@ export const createStyles = (theme: any) =>
       overflowY: "auto",
       flex: 1,
       outline: "none",
-      border: "1px solid transparent",
-      borderRadius: "16px",
+      border: "0",
+      borderColor: "transparent",
       padding: ".5em 1em .5em .5em",
       margin: "0",
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.palette.c_gray3
-      },
-      "&:focus": {
-        border: "1px solid" + theme.palette.c_gray3
       }
     },
 
@@ -82,49 +79,60 @@ export const createStyles = (theme: any) =>
     ".file-preview-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "8px",
-      padding: "8px",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`
+      gap: "4px",
+      padding: "4px 8px"
     },
 
     ".file-preview": {
       position: "relative",
-      padding: "8px",
-      maxWidth: "100px",
+      maxWidth: "24px",
+      maxHeight: "24px",
 
       ".remove-button": {
         position: "absolute",
-        top: 0,
-        right: 0,
-        padding: "2px 6px",
-        background: "rgba(0, 0, 0, 0.5)",
+        top: -4,
+        right: -4,
+        padding: "0px 4px",
+        background: "rgba(0, 0, 0, 0.7)",
         borderRadius: "50%",
         cursor: "pointer",
         color: "white",
-        fontSize: "16px",
-        lineHeight: "1",
+        fontSize: "14px",
+        lineHeight: "1.2",
         "&:hover": {
-          background: "rgba(0, 0, 0, 0.8)"
+          background: "rgba(0, 0, 0, 0.9)"
         }
       },
 
       img: {
-        width: "100%",
-        height: "auto",
+        width: "24px",
+        height: "24px",
+        objectFit: "cover",
         borderRadius: "4px"
       },
 
       ".file-icon-wrapper": {
-        background: "rgba(255, 255, 255, 0.1)",
-        padding: "8px",
+        padding: "4px",
         borderRadius: "4px",
         textAlign: "center",
+        width: "24px",
+        height: "24px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+
+        svg: {
+          fontSize: "24px"
+        },
 
         ".file-name": {
-          fontSize: "0.8em",
+          fontSize: "0.65em",
           overflow: "hidden",
           textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
+          whiteSpace: "nowrap",
+          maxWidth: "52px",
+          marginTop: "2px"
         }
       }
     }
