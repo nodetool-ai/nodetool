@@ -53,10 +53,14 @@ const styles = (theme: any) =>
       }
     },
     "button.logo": {
-      padding: "4px 8px",
+      padding: "0 4px",
+      marginTop: "8px",
       "&:hover": {
         backgroundColor: "transparent",
         opacity: 0.8
+      },
+      "& svg": {
+        color: "var(--c_warn)"
       }
     },
     ".navigate": {

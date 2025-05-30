@@ -50,7 +50,6 @@ const styles = (theme: any) =>
       overflowY: "hidden",
       padding: "0 10px",
       paddingLeft: "40px",
-      paddingTop: "4px",
       paddingRight: "138px",
       whiteSpace: "nowrap",
       scrollbarWidth: "none",

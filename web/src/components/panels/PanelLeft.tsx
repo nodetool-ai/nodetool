@@ -85,12 +85,12 @@ const styles = (theme: any) =>
       overflowY: "auto"
     },
     ".vertical-toolbar": {
-      width: "60px",
+      width: "50px",
       display: "flex",
       flexDirection: "column",
       backgroundColor: "transparent",
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "18px",
+        padding: "14px",
         borderRadius: "5px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
