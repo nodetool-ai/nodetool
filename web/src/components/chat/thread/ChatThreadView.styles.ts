@@ -38,11 +38,11 @@ export const createStyles = (theme: any) => ({
     },
 
     "li.chat-message p": {
-      margin: "0.2em 0",
-      fontSize: theme.fontSizeNormal,
-      lineHeight: "1.5em",
-      fontWeight: "300",
-      color: theme.palette.c_white
+      // margin: "0.2em 0"
+      // fontSize: theme.fontSizeNormal,
+      // lineHeight: "1.5em"
+      // fontWeight: "300"
+      // color: theme.palette.c_white
     },
 
     "li.user": {
@@ -60,19 +60,19 @@ export const createStyles = (theme: any) => ({
     },
 
     "li.assistant": {
-      color: theme.palette.c_white
+      // color: theme.palette.c_white
     },
 
     "li pre": {
-      fontFamily: theme.fontFamily2,
-      width: "100%",
-      backgroundColor: "rgba(0,0,0, 0.8)",
-      padding: "0.5em"
+      // fontFamily: theme.fontFamily2,
+      // width: "100%",
+      // backgroundColor: "rgba(0,0,0, 0.8)",
+      // padding: "0.5em"
     },
 
     "li pre code": {
-      fontFamily: theme.fontFamily2,
-      color: theme.palette.c_white
+      // fontFamily: theme.fontFamily2,
+      // color: theme.palette.c_white
     },
 
     "li a": {
@@ -80,7 +80,8 @@ export const createStyles = (theme: any) => ({
     },
 
     "li a:hover": {
-      color: `${theme.c_gray4} !important`
+      color: "var(--palette-primary-light) !important",
+      textDecoration: "none"
     },
 
     ".loading-container": {
