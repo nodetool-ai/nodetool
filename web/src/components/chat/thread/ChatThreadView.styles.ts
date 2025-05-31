@@ -23,6 +23,7 @@ export const createStyles = (theme: any) => ({
   chatMessagesList: css({
     listStyleType: "none",
     maxWidth: "1000px",
+    width: "100%",
     padding: "2em 0 0",
     margin: "0",
 
