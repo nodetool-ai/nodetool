@@ -49,7 +49,7 @@ import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDown
 import { MenuProvider } from "./providers/MenuProvider";
 
 import log from "loglevel";
-import GlobalChat from "./components/chat/GlobalChat";
+import GlobalChat from "./components/chat/containers/GlobalChat";
 import Dashboard from "./components/dashboard/Dashboard";
 
 (window as any).log = log;

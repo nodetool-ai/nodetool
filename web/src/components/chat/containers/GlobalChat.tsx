@@ -1,19 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import "../../styles/microtip.css";
 import { Box, Alert, IconButton, Typography } from "@mui/material";
 import Drawer from "@mui/material/Drawer";
 import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import ChatView from "./ChatView";
-import ThreadList from "./ThreadList";
-import BackToEditorButton from "../panels/BackToEditorButton";
-import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { Message } from "../../stores/ApiTypes";
-import { DEFAULT_MODEL } from "../../config/constants";
+import ThreadList from "../thread/ThreadList";
+import BackToEditorButton from "../../panels/BackToEditorButton";
+import BackToDashboardButton from "../../dashboard/BackToDashboardButton";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { Message } from "../../../stores/ApiTypes";
+import { DEFAULT_MODEL } from "../../../config/constants";
 
 const GlobalChat: React.FC = () => {
   const {
@@ -37,45 +36,27 @@ const GlobalChat: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const mountedRef = useRef(false);
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messages = getCurrentMessages();
 
   // Handle connection lifecycle
   useEffect(() => {
-    mountedRef.current = true;
-
     // Ensure we have a thread
     if (!currentThreadId) {
       createNewThread();
     }
 
-    // Delay connection attempt to avoid StrictMode double-invocation issues
+    // Connect on mount if not already connected
     if (status === "disconnected") {
-      connectionTimeoutRef.current = setTimeout(() => {
-        if (mountedRef.current) {
-          connect().catch((error) => {
-            console.error("Failed to connect to global chat:", error);
-          });
-        }
-      }, 100);
+      connect().catch((error) => {
+        console.error("Failed to connect to global chat:", error);
+      });
     }
 
     return () => {
-      mountedRef.current = false;
-
-      // Clear any pending connection timeout
-      if (connectionTimeoutRef.current) {
-        clearTimeout(connectionTimeoutRef.current);
-        connectionTimeoutRef.current = null;
-      }
-
-      // Only disconnect if we're actually connected
-      if (status === "connected" || status === "connecting") {
-        disconnect();
-      }
+      // Disconnect on unmount
+      disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount/unmount
@@ -101,7 +82,7 @@ const GlobalChat: React.FC = () => {
         return;
       }
 
-      if (status !== "connected") {
+      if (status !== "connected" && status !== "reconnecting") {
         console.error("Not connected to chat service");
         return;
       }
@@ -158,8 +139,6 @@ const GlobalChat: React.FC = () => {
     [deleteThread]
   );
 
-  const sidebarStyles = (theme: any) => css({});
-
   const mainAreaStyles = (theme: any) =>
     css({
       flex: 1,
@@ -176,11 +155,7 @@ const GlobalChat: React.FC = () => {
 
       ".chat-container": {
         flex: 1,
-        overflow: "hidden",
-        padding: "1em",
-        marginBottom: "2em",
-        maxWidth: "1000px",
-        margin: "0 auto"
+        overflow: "hidden"
       }
     });
 
@@ -250,9 +225,14 @@ const GlobalChat: React.FC = () => {
           <BackToEditorButton />
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mx: 2, my: 1 }}>
-            {error}
+        {(error || status === "reconnecting") && (
+          <Alert 
+            severity={status === "reconnecting" ? "info" : "error"} 
+            sx={{ mx: 2, my: 1 }}
+          >
+            {status === "reconnecting" 
+              ? statusMessage || "Reconnecting to chat service..."
+              : error}
           </Alert>
         )}
 

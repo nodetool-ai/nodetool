@@ -15,10 +15,10 @@ import {
 } from "@mui/material";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import CheckIcon from "@mui/icons-material/Check";
-import ToolsSelector from "./ToolsSelector";
+import ToolsSelector from "../composer/ToolsSelector";
 import { useQuery } from "@tanstack/react-query";
-import useModelStore from "../../stores/ModelStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import useModelStore from "../../../stores/ModelStore";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const styles = (theme: any) =>
   css({
@@ -64,7 +64,7 @@ const menuStyles = (theme: any) =>
 
 interface ChatToolBarProps {
   selectedTools: string[];
-  onToolsChange: (tools: string[]) => void;
+  onToolsChange?: (tools: string[]) => void;
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
 }
@@ -153,11 +153,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
               className={`select-model-button ${selectedModel ? "active" : ""}`}
               sx={{
                 border: "1px solid transparent",
-                backgroundColor: "var(--c_gray2)",
                 color: "var(--c_white)",
                 padding: "0.25em 0.75em",
                 "&:hover": {
-                  border: "1px solid var(--c_hl1)",
                   backgroundColor: "var(--c_gray3)"
                 }
               }}
@@ -234,7 +232,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
           </Menu>
         </>
       )}
-      <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+      {onToolsChange && (
+        <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+      )}
     </div>
   );
 };

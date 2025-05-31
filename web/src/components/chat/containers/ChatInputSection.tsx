@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import ChatComposer from "./ChatComposer";
-import ChatToolBar from "./ChatToolBar";
-import { MessageContent } from "../../stores/ApiTypes";
+import ChatComposer from "../composer/ChatComposer";
+import ChatToolBar from "../controls/ChatToolBar";
+import { MessageContent } from "../../../stores/ApiTypes";
 
 const styles = css({
   ".chat-controls": {
-    padding: "0 1em",
+    padding: "0.5em 0.5em",
     marginTop: "auto",
     zIndex: 1,
     display: "flex",
@@ -21,7 +21,14 @@ const styles = css({
 });
 
 type ChatInputSectionProps = {
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   onSendMessage: (
     content: MessageContent[],
     prompt: string
@@ -31,7 +38,6 @@ type ChatInputSectionProps = {
   onToolsChange?: (tools: string[]) => void;
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
-  showToolbar?: boolean; // To conditionally render ChatToolBar
 };
 
 const ChatInputSection = ({
@@ -41,20 +47,17 @@ const ChatInputSection = ({
   selectedTools,
   onToolsChange,
   selectedModel,
-  onModelChange,
-  showToolbar = true // Default to true
+  onModelChange
 }: ChatInputSectionProps) => {
   return (
     <div css={styles}>
       <div className="chat-controls">
-        {showToolbar && onToolsChange && (
-          <ChatToolBar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-          />
-        )}
+        <ChatToolBar
+          selectedTools={selectedTools}
+          onToolsChange={onToolsChange}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+        />
         <div className="chat-composer-wrapper">
           <ChatComposer
             status={status}
