@@ -1,15 +1,12 @@
+/** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import { createStyles } from "./EmptyThreadList.styles";
 
 export const EmptyThreadList: React.FC = () => {
+  const theme = useTheme();
   return (
-    <li
-      style={{
-        padding: "2em",
-        textAlign: "center",
-        color: "#666",
-        fontSize: "0.9em"
-      }}
-    >
+    <li css={createStyles(theme)}>
       No conversations yet. Click &ldquo;New Chat&rdquo; to start.
     </li>
   );

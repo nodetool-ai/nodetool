@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useRef, useState, useCallback } from "react";
+import { useTheme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
@@ -29,6 +30,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   onStop,
   disabled = false
 }) => {
+  const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
@@ -90,7 +92,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const isDisabled = disabled || status === "loading" || status === "error";
 
   return (
-    <div css={createStyles}>
+    <div css={createStyles(theme)}>
       <div
         className={`compose-message ${isDragging ? "dragging" : ""}`}
         onDragOver={handleDragOver}
