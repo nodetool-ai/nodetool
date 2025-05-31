@@ -90,9 +90,10 @@ export function relativeTime(date: Date | string): string {
 }
 
 export function getTimestampForFilename(includeTime: boolean = true): string {
+  const now = DateTime.now().toUTC();
   if (includeTime) {
-    return DateTime.now().toFormat("yyyy-MM-dd_HH-mm-ss");
+    return now.toFormat("yyyy-MM-dd_HH-mm-ss");
   } else {
-    return DateTime.now().toFormat("yyyy-MM-dd");
+    return now.toFormat("yyyy-MM-dd");
   }
 }
