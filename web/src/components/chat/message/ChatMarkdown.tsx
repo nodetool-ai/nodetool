@@ -4,6 +4,8 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import "../../../styles/markdown/github-markdown-dark.css";
+// import "../../../styles/markdown/github-markdown-light.css";
 
 interface ChatMarkdownProps {
   content: string;
@@ -11,18 +13,17 @@ interface ChatMarkdownProps {
 
 const styles = (theme: any) =>
   css({
-    p: { margin: "0.25em 0" },
+    backgroundColor: "transparent !important",
     pre: {
-      backgroundColor: theme.palette.c_gray0,
-      padding: "0.5em",
-      borderRadius: "4px",
+      borderRadius: "8px",
+      maxHeight: "80vh",
       overflow: "auto"
     }
   });
 
 const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   return (
-    <div css={styles} className="markdown">
+    <div css={styles} className="markdown markdown-body">
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
         {content || ""}
       </ReactMarkdown>
