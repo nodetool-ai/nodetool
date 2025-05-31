@@ -25,7 +25,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
-import { Button, ButtonGroup, Container, Tooltip } from "@mui/material";
+import { Button, Container, Tooltip } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
@@ -33,6 +33,7 @@ import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import AssetViewer from "../assets/AssetViewer";
+import CopyValueButton from "./CopyValueButton";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import ArrayView from "./ArrayView"; // We'll create this component
 import TaskPlanView from "./TaskPlanView";
@@ -40,6 +41,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
+import renderSVGDocument from "./SvgRenderer";
 export type OutputRendererProps = {
   value: any;
 };
@@ -88,90 +90,6 @@ function generateAssetGridContent(
 
   return <AssetGridContent assets={assets} onDoubleClick={onDoubleClick} />;
 }
-
-const convertStyleStringToObject = (
-  styleString: string
-): React.CSSProperties => {
-  if (!styleString) return {};
-  return styleString
-    .split(";")
-    .filter((style) => style.trim())
-    .reduce((acc, style) => {
-      const [property, value] = style.split(":").map((str) => str.trim());
-      // Convert kebab-case to camelCase
-      const camelProperty = property.replace(/-([a-z])/g, (g) =>
-        g[1].toUpperCase()
-      );
-      return { ...acc, [camelProperty]: value };
-    }, {});
-};
-
-const renderSvgElement = (value: SVGElement): React.ReactElement => {
-  const attributes = value.attributes || {};
-
-  // Convert style string to object if present
-  const style = attributes.style
-    ? convertStyleStringToObject(attributes.style)
-    : undefined;
-
-  // Create props object from attributes
-  const svgProps = {
-    ...value.attributes,
-    // Ensure React-compatible attribute names
-    className: attributes.class,
-    xmlSpace: attributes["xml:space"],
-    xmlLang: attributes["xml:lang"],
-    style // Override style with converted object
-  };
-
-  // Handle children differently based on type
-  const children = [
-    // Add text/SVG content if present
-    value.content &&
-      (typeof value.content === "string" &&
-      value.content.trim().startsWith("<") ? (
-        <div dangerouslySetInnerHTML={{ __html: value.content }} />
-      ) : (
-        value.content
-      )),
-    // Render child SVG elements
-    ...(value.children || []).map(renderSvgElement)
-  ].filter(Boolean);
-
-  return createElement(value.name || "svg", svgProps, ...children);
-};
-
-const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
-  const docAttributes = {
-    xmlns: "http://www.w3.org/2000/svg",
-    version: "1.1",
-    width: "100%",
-    height: "100%"
-  };
-
-  // Extract actual SVG content from nested structure
-  const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] => {
-    return elements.map((element) => {
-      if (element.content && typeof element.content === "string") {
-        // Extract the inner SVG content using regex
-        const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
-        if (match && match[1]) {
-          // Return just the inner content
-          return (
-            <g
-              key={element.name}
-              dangerouslySetInnerHTML={{ __html: match[1] }}
-            />
-          );
-        }
-      }
-      return renderSvgElement(element);
-    });
-  };
-
-  const children = extractSVGContent(value);
-  return createElement("svg", docAttributes, ...children);
-};
 
 const styles = (theme: any) =>
   css({
@@ -453,19 +371,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         const boolStr = String(value).toUpperCase();
         return (
           <div className="output value nodrag noscroll" css={styles}>
-            <ButtonGroup className="actions">
-              <Tooltip
-                title="Copy to Clipboard"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <Button
-                  size="small"
-                  onClick={() => handleCopyToClipboard(boolStr)}
-                >
-                  Copy
-                </Button>
-              </Tooltip>
-            </ButtonGroup>
+            <CopyValueButton onCopy={() => handleCopyToClipboard(boolStr)} />
             <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
           </div>
         );
@@ -501,19 +407,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               value !== undefined &&
               value.toString() !== "" && (
                 <>
-                  <ButtonGroup className="actions">
-                    <Tooltip
-                      title="Copy to Clipboard"
-                      enterDelay={TOOLTIP_ENTER_DELAY}
-                    >
-                      <Button
-                        size="small"
-                        onClick={() => handleCopyToClipboard(value?.toString())}
-                      >
-                        Copy
-                      </Button>
-                    </Tooltip>
-                  </ButtonGroup>
+                  <CopyValueButton
+                    onCopy={() => handleCopyToClipboard(value?.toString())}
+                  />
                   <MarkdownRenderer content={value?.toString()} />
                 </>
               )}

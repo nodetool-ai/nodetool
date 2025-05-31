@@ -1,0 +1,68 @@
+/** @jsxImportSource @emotion/react */
+import React, { createElement } from "react";
+import { SVGElement } from "../../stores/ApiTypes";
+
+export const convertStyleStringToObject = (
+  styleString: string
+): React.CSSProperties => {
+  if (!styleString) return {};
+  return styleString
+    .split(";")
+    .filter((style) => style.trim())
+    .reduce((acc, style) => {
+      const [property, value] = style.split(":").map((str) => str.trim());
+      const camelProperty = property.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      return { ...acc, [camelProperty]: value };
+    }, {});
+};
+
+export const renderSvgElement = (value: SVGElement): React.ReactElement => {
+  const attributes = value.attributes || {};
+  const style = attributes.style ? convertStyleStringToObject(attributes.style) : undefined;
+
+  const svgProps = {
+    ...value.attributes,
+    className: attributes.class,
+    xmlSpace: attributes["xml:space"],
+    xmlLang: attributes["xml:lang"],
+    style
+  };
+
+  const children = [
+    value.content &&
+      (typeof value.content === "string" && value.content.trim().startsWith("<") ? (
+        <div dangerouslySetInnerHTML={{ __html: value.content }} />
+      ) : (
+        value.content
+      )),
+    ...(value.children || []).map(renderSvgElement)
+  ].filter(Boolean);
+
+  return createElement(value.name || "svg", svgProps, ...children);
+};
+
+export const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
+  const docAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    version: "1.1",
+    width: "100%",
+    height: "100%"
+  };
+
+  const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] => {
+    return elements.map((element) => {
+      if (element.content && typeof element.content === "string") {
+        const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
+        if (match && match[1]) {
+          return <g key={element.name} dangerouslySetInnerHTML={{ __html: match[1] }} />;
+        }
+      }
+      return renderSvgElement(element);
+    });
+  };
+
+  const children = extractSVGContent(value);
+  return createElement("svg", docAttributes, ...children);
+};
+
+export default renderSVGDocument;

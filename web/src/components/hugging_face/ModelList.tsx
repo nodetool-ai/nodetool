@@ -2,38 +2,19 @@
 import { css } from "@emotion/react";
 
 import React, { useState, useMemo, useCallback } from "react";
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Grid,
-  Typography,
-  List,
-  ListItemText,
-  ListItemButton,
-  ToggleButton,
-  ToggleButtonGroup
-} from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
-import ModelCard from "./ModelCard";
-import ModelListItem from "./ModelListItem";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle
-} from "@mui/material";
+
+import ModelListSidebar from "./subcomponents/ModelListSidebar";
+import ModelListContent from "./subcomponents/ModelListContent";
+import ModelDeleteDialog from "./subcomponents/ModelDeleteDialog";
 import { LlamaModel, UnifiedModel } from "../../stores/ApiTypes";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   prettifyModelType,
   groupModelsByType,
   sortModelTypes
 } from "./ModelUtils";
-import SearchInput from "../search/SearchInput";
 
 const styles = (theme: any) =>
   css({
@@ -335,224 +316,35 @@ const ModelList: React.FC = () => {
       setSelectedModelType("All");
     }
   };
-
-  const renderModels = (models: UnifiedModel[]) => {
-    if (models.length === 0) {
-      return (
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          No models found for &quot;{modelSearchTerm}&quot;
-        </Typography>
-      );
-    }
-
-    if (viewMode === "grid") {
-      return (
-        <Grid className="model-grid-container" container spacing={3}>
-          {models.map((model: UnifiedModel) => (
-            <Grid
-              className="model-grid-item"
-              item
-              xs={12}
-              sm={12}
-              md={6}
-              lg={4}
-              xl={3}
-              key={model.id}
-            >
-              <ModelCard
-                model={model}
-                handleDelete={
-                  model.type !== "llama_model" ? handleDeleteClick : () => {}
-                }
-              />
-            </Grid>
-          ))}
-        </Grid>
-      );
-    } else {
-      return (
-        <List>
-          {models.map((model: UnifiedModel) => (
-            <ModelListItem
-              key={model.id}
-              model={model}
-              handleDelete={
-                model.type !== "llama_model" ? handleDeleteClick : () => {}
-              }
-            />
-          ))}
-        </List>
-      );
-    }
-  };
-
-  if (
-    (modelSource === "downloaded" && (hfLoading || ollamaLoading)) ||
-    (modelSource === "recommended" && recommendedLoading)
-  ) {
-    return (
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          textAlign: "center"
-        }}
-      >
-        <CircularProgress />
-        <Typography variant="h4" mt={2}>
-          Loading models
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (
-    (modelSource === "downloaded" && hfError) ||
-    (modelSource === "recommended" && recommendedError)
-  ) {
-    return (
-      <>
-        <Typography variant="h3">Could not load models.</Typography>
-        {hfError && modelSource === "downloaded" && (
-          <Typography variant="body2" color="error">
-            HuggingFace Error: {hfError.message}
-          </Typography>
-        )}
-        {ollamaError && modelSource === "downloaded" && (
-          <Typography variant="body2" color="error">
-            Ollama Error: {ollamaError.message}
-          </Typography>
-        )}
-        {recommendedError && modelSource === "recommended" && (
-          <Typography variant="body2" color="error">
-            {recommendedError.message}
-          </Typography>
-        )}
-      </>
-    );
-  }
-
   return (
+
     <Box className="huggingface-model-list" css={styles}>
-      <Box className="sidebar">
-        <Box
-          className="model-list-header"
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2
-          }}
-        >
-          <SearchInput
-            focusOnTyping={true}
-            focusSearchInput={false}
-            maxWidth={"9em"}
-            onSearchChange={setModelSearchTerm}
-            searchTerm={modelSearchTerm}
-          />
-          <ToggleButtonGroup
-            value={modelSource}
-            exclusive
-            onChange={handleModelSourceChange}
-            aria-label="model source"
-            size="small"
-            sx={{ marginLeft: 1 }}
-          >
-            <ToggleButton value="downloaded">Downloaded</ToggleButton>
-            <ToggleButton value="recommended">Recommended</ToggleButton>
-          </ToggleButtonGroup>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="view mode"
-          >
-            <ToggleButton value="grid" aria-label="grid view">
-              <ViewModuleIcon />
-            </ToggleButton>
-            <ToggleButton value="list" aria-label="list view">
-              <ViewListIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-        <List>
-          {modelTypes.map((type) => (
-            <ListItemButton
-              className="model-type-button"
-              key={type}
-              selected={selectedModelType === type}
-              onClick={() => handleModelTypeChange(type)}
-            >
-              <ListItemText primary={prettifyModelType(type)} />
-            </ListItemButton>
-          ))}
-        </List>
-      </Box>
+      <ModelListSidebar
+        modelTypes={modelTypes}
+        selectedModelType={selectedModelType}
+        onModelTypeChange={handleModelTypeChange}
+        modelSource={modelSource}
+        onModelSourceChange={handleModelSourceChange}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        modelSearchTerm={modelSearchTerm}
+        onSearchChange={setModelSearchTerm}
+      />
 
-      <Box className="content">
-        {deleteHFModelMutation.isPending && <CircularProgress />}
-        {deleteHFModelMutation.isError && (
-          <Typography color="error">
-            {deleteHFModelMutation.error.message}
-          </Typography>
-        )}
-        {deleteHFModelMutation.isSuccess && (
-          <Typography color="success">Model deleted successfully</Typography>
-        )}
+      <ModelListContent
+        filteredModels={filteredModels}
+        viewMode={viewMode}
+        selectedModelType={selectedModelType}
+        modelSearchTerm={modelSearchTerm}
+        onDelete={handleDeleteClick}
+        modelTypes={modelTypes}
+      />
 
-        {selectedModelType === "All" ? (
-          <>
-            {modelSearchTerm && (
-              <Typography variant="h3">
-                Searching models for &quot;{modelSearchTerm}&quot;
-              </Typography>
-            )}
-            {modelTypes
-              .slice(1)
-              .filter((modelType) => filteredModels[modelType]?.length > 0)
-              .map((modelType) => (
-                <Box className="model-list-section" key={modelType} mt={2}>
-                  <Typography variant="h2">
-                    {prettifyModelType(modelType)}
-                  </Typography>
-                  {renderModels(filteredModels[modelType] || [])}
-                </Box>
-              ))}
-          </>
-        ) : (
-          <Box className="model-list-section" mt={2}>
-            <Typography variant="h2">
-              {prettifyModelType(selectedModelType)}
-            </Typography>
-            {renderModels(Object.values(filteredModels)[0])}
-          </Box>
-        )}
-
-        <Dialog
-          open={!!modelToDelete}
-          onClose={handleCancelDelete}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogTitle id="alert-dialog-title">
-            {"Confirm Deletion"}
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText id="alert-dialog-description">
-              Delete {modelToDelete}?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelDelete}>Cancel</Button>
-            <Button onClick={handleConfirmDelete} autoFocus>
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
+      <ModelDeleteDialog
+        modelToDelete={modelToDelete}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </Box>
   );
 };
