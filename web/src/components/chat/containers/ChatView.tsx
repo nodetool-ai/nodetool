@@ -40,7 +40,14 @@ const styles = (theme: any) =>
   });
 
 type ChatViewProps = {
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   progress: number;
   total: number;
   messages: Array<Message>;

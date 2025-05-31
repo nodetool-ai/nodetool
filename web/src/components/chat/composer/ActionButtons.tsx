@@ -5,7 +5,14 @@ import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   onSend: () => void;
   onStop?: () => void;
   isDisabled: boolean;

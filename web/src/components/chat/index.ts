@@ -10,8 +10,11 @@ export * from "./thread";
 // Message components
 export * from "./message";
 
-// UI components
-export * from "./ui";
+// Controls components
+export * from "./controls";
+
+// Feedback components
+export * from "./feedback";
 
 // Hooks
 export * from "./hooks";
