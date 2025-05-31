@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useMemo } from "react";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+import ThemeChat from "../ChatTheme";
 import { Message, MessageContent } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
@@ -91,25 +93,27 @@ const ChatView = ({
   );
 
   return (
-    <div className="chat-view" css={styles}>
-      <ChatThreadView
-        messages={messages}
-        status={status}
-        progress={progress}
-        total={total}
-        progressMessage={progressMessage}
-      />
+    <MuiThemeProvider theme={ThemeChat}>
+      <div className="chat-view" css={styles}>
+        <ChatThreadView
+          messages={messages}
+          status={status}
+          progress={progress}
+          total={total}
+          progressMessage={progressMessage}
+        />
 
-      <ChatInputSection
-        status={status}
-        onSendMessage={handleSendMessage}
-        onStop={onStop}
-        selectedTools={selectedTools}
-        onToolsChange={onToolsChange}
-        selectedModel={model}
-        onModelChange={onModelChange}
-      />
-    </div>
+        <ChatInputSection
+          status={status}
+          onSendMessage={handleSendMessage}
+          onStop={onStop}
+          selectedTools={selectedTools}
+          onToolsChange={onToolsChange}
+          selectedModel={model}
+          onModelChange={onModelChange}
+        />
+      </div>
+    </MuiThemeProvider>
   );
 };
 
