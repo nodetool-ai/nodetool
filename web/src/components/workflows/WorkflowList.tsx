@@ -11,8 +11,7 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { useWorkflowApi } from "../../hooks/useWorkflowApi";
 import { isEqual } from "lodash";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -55,18 +54,6 @@ const styles = (theme: any) =>
     }
   });
 
-const loadWorkflows = async (cursor?: string, limit?: number) => {
-  cursor = cursor || "";
-  const { data, error } = await client.GET("/api/workflows/", {
-    params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags" }
-    }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workflows");
-  }
-  return data;
-};
 
 const WorkflowList = () => {
   const [filterValue, setFilterValue] = useState("");
@@ -85,6 +72,8 @@ const WorkflowList = () => {
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 200;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
+
+  const { loadWorkflows } = useWorkflowApi();
 
   const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
     {
