@@ -14,6 +14,7 @@ import {
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import ChatIcon from "@mui/icons-material/Chat";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -48,6 +49,49 @@ const styles = (theme: any) =>
     ".dashboard-button": {
       position: "absolute",
       left: "-520px",
+      top: "-8px",
+      width: "48px",
+      height: "40px",
+      backgroundColor: `${theme.palette.c_gray1}ee`,
+      color: theme.palette.c_hl1,
+      border: `2px solid ${theme.palette.c_gray3}`,
+      borderRadius: "12px",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      backdropFilter: "blur(10px)",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2,
+        borderColor: theme.palette.c_hl1,
+        transform: "translateY(-2px) scale(1.05)",
+        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
+        color: theme.palette.c_white
+      },
+      "&:active": {
+        transform: "translateY(0) scale(0.98)"
+      },
+      "& svg": {
+        fontSize: "26px",
+        filter: "drop-shadow(0 0 4px rgba(0,0,0,0.3))"
+      },
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "-2px",
+        left: "-2px",
+        right: "-2px",
+        bottom: "-2px",
+        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        borderRadius: "14px",
+        opacity: 0,
+        transition: "opacity 0.3s ease",
+        zIndex: -1
+      },
+      "&:hover::before": {
+        opacity: 1
+      }
+    },
+    ".chat-button": {
+      position: "absolute",
+      left: "-580px",
       top: "-8px",
       width: "48px",
       height: "40px",
@@ -227,10 +271,10 @@ const styles = (theme: any) =>
       "100%": { transform: "rotate(360deg)" }
     },
     "@keyframes dashboardPulse": {
-      "0%, 100%": { 
+      "0%, 100%": {
         boxShadow: `0 0 0 0 ${theme.palette.c_hl1}40`
       },
-      "50%": { 
+      "50%": {
         boxShadow: `0 0 0 8px ${theme.palette.c_hl1}00`
       }
     },
@@ -267,14 +311,14 @@ const useGlobalHotkeys = (callback: () => void) => {
 
 const DashboardButton = memo(function DashboardButton() {
   const navigate = useNavigate();
-  
+
   const handleClick = useCallback(() => {
     navigate("/dashboard");
   }, [navigate]);
 
   return (
-    <Tooltip 
-      title="Go to Dashboard" 
+    <Tooltip
+      title="Go to Dashboard"
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="right"
     >
@@ -284,6 +328,26 @@ const DashboardButton = memo(function DashboardButton() {
         tabIndex={-1}
       >
         <DashboardIcon />
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const ChatButton = memo(function ChatButton() {
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Go to Chat"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="right"
+    >
+      <IconButton className="chat-button" onClick={handleClick} tabIndex={-1}>
+        <ChatIcon />
       </IconButton>
     </Tooltip>
   );
@@ -659,6 +723,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
       {path.startsWith("/editor") && (
         <div className="actions" css={styles}>
           <DashboardButton />
+          <ChatButton />
           <>
             <NodeMenuButton />
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
@@ -668,7 +733,9 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {isLocalhost && workflow?.settings?.run_mode === "app" && <RunAsAppButton />}
+            {isLocalhost && workflow?.settings?.run_mode === "app" && (
+              <RunAsAppButton />
+            )}
           </>
         </div>
       )}

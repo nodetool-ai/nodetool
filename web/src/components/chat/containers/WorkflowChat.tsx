@@ -1,10 +1,10 @@
 import React, { memo, useState, useCallback } from "react";
 import { Box } from "@mui/material";
 import { isEqual } from "lodash";
-import { useWorkflowChat } from "./hooks/useWorkflowChat";
-import ChatContainer from "./ui/ChatContainer";
-import ChatControls from "./ui/ChatControls";
-import ChatContent from "./ui/ChatContent";
+import { useWorkflowChat } from "../hooks/useWorkflowChat";
+import ChatContainer from "./ChatContainer";
+import ChatControls from "../controls/ChatControls";
+import ChatContent from "./ChatContent";
 
 interface WorkflowChatProps {
   workflow_id: string;

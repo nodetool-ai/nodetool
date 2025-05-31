@@ -3,7 +3,7 @@ import { Box, Alert } from "@mui/material";
 import { isEqual } from "lodash";
 import { Message } from "../../../stores/ApiTypes";
 import useWorkflowChatStore from "../../../stores/WorkflowChatStore";
-import ChatView from "../ChatView";
+import ChatView from "./ChatView";
 
 interface ChatContentProps {
   handleSendMessage: (message: Message) => Promise<void>;

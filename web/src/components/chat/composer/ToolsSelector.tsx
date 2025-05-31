@@ -29,17 +29,10 @@ import {
   Work,
   Build
 } from "@mui/icons-material";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const menuStyles = (theme: any) =>
   css({
-    "& .MuiPaper-root": {
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray3}`,
-      minWidth: "320px",
-      maxHeight: "500px"
-    },
-
     ".category-header": {
       padding: "8px 16px",
       backgroundColor: theme.palette.c_gray2,
@@ -236,6 +229,13 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     }, {});
   }, []);
 
+  const selectedToolIcons = useMemo(() => {
+    return selectedTools
+      .map((toolId) => TOOLS.find((tool) => tool.id === toolId))
+      .filter(Boolean)
+      .slice(0, 3); // Show max 3 icons to avoid overflow
+  }, [selectedTools]);
+
   return (
     <>
       <Tooltip
@@ -251,12 +251,36 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           className={`tools-button ${selectedTools.length > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={<Build fontSize="small" />}
+          startIcon={
+            selectedToolIcons.length > 0 ? (
+              <Box sx={{ display: "flex", gap: "2px" }}>
+                {selectedToolIcons.map((tool) => (
+                  <Box
+                    key={tool!.id}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      "& > svg": { fontSize: "16px" }
+                    }}
+                  >
+                    {tool!.icon}
+                  </Box>
+                ))}
+                {selectedTools.length > 3 && (
+                  <Typography
+                    variant="caption"
+                    sx={{ fontSize: "12px", ml: 0.5 }}
+                  >
+                    +{selectedTools.length - 3}
+                  </Typography>
+                )}
+              </Box>
+            ) : (
+              <Build fontSize="small" />
+            )
+          }
           sx={(theme) => ({
-            backgroundColor: theme.palette.c_gray2,
             color: theme.palette.c_white,
-            padding: "0.25em 0.75em",
-            border: `1px solid ${theme.palette.c_gray3}`,
             "&:hover": {
               backgroundColor: theme.palette.c_gray3,
               borderColor: theme.palette.c_gray4
@@ -266,11 +290,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               color: theme.palette.c_hl1
             }
           })}
-        >
-          {selectedTools.length > 0
-            ? `${selectedTools.length} Tools`
-            : "Tools"}
-        </Button>
+        ></Button>
       </Tooltip>
       <Menu
         anchorEl={anchorEl}
