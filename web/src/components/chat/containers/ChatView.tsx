@@ -108,7 +108,6 @@ const ChatView = ({
         onToolsChange={onToolsChange}
         selectedModel={model}
         onModelChange={onModelChange}
-        showToolbar={!!onToolsChange}
       />
     </div>
   );
