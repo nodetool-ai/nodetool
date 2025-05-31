@@ -1,0 +1,24 @@
+.markdown-body {
+  color-scheme: dark;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.markdown-body a {
+  color: #58a6ff;
+}
+
+.markdown-body pre {
+  background-color: #161b22;
+  padding: 16px;
+  overflow: auto;
+  border-radius: 6px;
+}
+
+.markdown-body code {
+  background-color: rgba(110,118,129,0.4);
+  padding: .2em .4em;
+  border-radius: 6px;
+}
