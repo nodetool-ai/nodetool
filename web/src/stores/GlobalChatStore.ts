@@ -209,6 +209,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             socket, 
             status: "connected", 
             error: null,
+            statusMessage: null,  // Clear the reconnection message
             reconnectAttempts: 0,
             reconnectDelay: INITIAL_RECONNECT_DELAY
           });
@@ -297,7 +298,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   };
                   set((state) => ({
                     status: "streaming",
-                    statusMessage: undefined,
+                    statusMessage: null,
                     threads: {
                       ...state.threads,
                       [threadId]: {
@@ -317,7 +318,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   };
                   set((state) => ({
                     status: "streaming",
-                    statusMessage: undefined,
+                    statusMessage: null,
                     threads: {
                       ...state.threads,
                       [threadId]: {
@@ -329,7 +330,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   }));
                 }
                 if (chunk.done) {
-                  set({ status: "connected", statusMessage: undefined });
+                  set({ status: "connected", statusMessage: null });
                 }
               }
             }
@@ -402,7 +403,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   } as Message;
                   set((state) => ({
                     status: "streaming",
-                    statusMessage: undefined,
+                    statusMessage: null,
                     threads: {
                       ...state.threads,
                       [threadId]: {
