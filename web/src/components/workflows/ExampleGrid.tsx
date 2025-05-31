@@ -6,14 +6,9 @@ import {
   CircularProgress,
   Button,
   Tooltip,
-  TextField,
-  Switch,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
   Fade
 } from "@mui/material";
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -22,19 +17,18 @@ import { css } from "@emotion/react";
 import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
 import { findMatchingNodesInWorkflows } from "../../utils/findMatchingNodesInWorkflows";
 import { SearchResult as FrontendSearchResult } from "../../types/search";
-import { Clear as ClearIcon } from "@mui/icons-material";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY,
   SEARCH_DEBOUNCE_MS
 } from "../../config/constants";
-import Fuse from "fuse.js";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToEditorButton from "../panels/BackToEditorButton";
-import { BASE_URL } from "../../stores/ApiClient";
-import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
+import SearchBar from "./SearchBar";
+import TagFilter from "./TagFilter";
+import WorkflowCard from "./WorkflowCard";
 
 const styles = (theme: any) =>
   css({
@@ -547,123 +541,35 @@ const ExampleGrid = () => {
     navigate({ search: newSearchParams.toString() });
   };
 
+  const handleInputChange = (newInputValue: string) => {
+    setInputValue(newInputValue);
+    if (newInputValue.trim()) {
+      setSelectedTag(null);
+      if (newInputValue.length > 1) {
+        setSearchResults([]);
+      }
+    } else {
+      handleClearSearch();
+    }
+  };
+
   return (
     <div className="workflow-grid" css={styles}>
       <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
         <BackToEditorButton />
       </Tooltip>
-      <Box className="tag-menu">
-        <div className="button-row">
-          <Tooltip
-            title="Basic examples to get started"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            leaveDelay={TOOLTIP_LEAVE_DELAY}
-          >
-            <Button
-              onClick={() => setSelectedTag("getting-started")}
-              variant="outlined"
-              className={selectedTag === "getting-started" ? "selected" : ""}
-            >
-              Getting Started
-            </Button>
-          </Tooltip>
-          {Object.keys(groupedWorkflows)
-            .filter((tag) => tag !== "start")
-            .sort((a, b) => a.localeCompare(b))
-            .map((tag) => (
-              <Tooltip
-                key={tag}
-                title={`Show ${tag} examples`}
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                leaveDelay={TOOLTIP_LEAVE_DELAY}
-              >
-                <Button
-                  onClick={() => setSelectedTag(tag)}
-                  variant="outlined"
-                  className={selectedTag === tag ? "selected" : ""}
-                >
-                  {tag}
-                </Button>
-              </Tooltip>
-            ))}
-          <Tooltip
-            title="Show all example workflows"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            leaveDelay={TOOLTIP_LEAVE_DELAY}
-          >
-            <Button
-              onClick={() => setSelectedTag(null)}
-              className={selectedTag === null ? "selected" : ""}
-            >
-              SHOW ALL
-            </Button>
-          </Tooltip>
-        </div>
-      </Box>
-      <Box className="search-container">
-        <TextField
-          className="search-field"
-          style={{
-            transition: "background-color 0.3s ease",
-            backgroundColor: nodesOnlySearch
-              ? "var(--palette-primary-dark)"
-              : "transparent"
-          }}
-          placeholder={
-            nodesOnlySearch
-              ? "Find examples that use a specific node..."
-              : "Find examples by name or description..."
-          }
-          variant="outlined"
-          size="small"
-          value={inputValue}
-          onChange={(e) => {
-            const newInputValue = e.target.value;
-            setInputValue(newInputValue);
-            if (newInputValue.trim()) {
-              setSelectedTag(null);
-              if (newInputValue.length > 1) {
-                setSearchResults([]);
-              }
-            } else {
-              handleClearSearch();
-            }
-          }}
-          slotProps={{
-            input: {
-              endAdornment: inputValue && (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="clear search"
-                    onClick={handleClearSearch}
-                    edge="end"
-                    size="small"
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              )
-            }
-          }}
-        />
-        <Tooltip
-          title="Search for Nodes used in the example workflows"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          leaveDelay={TOOLTIP_LEAVE_DELAY}
-        >
-          <FormControlLabel
-            className="search-switch"
-            control={
-              <Switch
-                checked={nodesOnlySearch}
-                onChange={(e) => setNodesOnlySearch(e.target.checked)}
-                size="small"
-              />
-            }
-            label="Node Search"
-          />
-        </Tooltip>
-      </Box>
+      <TagFilter
+        tags={groupedWorkflows}
+        selectedTag={selectedTag}
+        onSelectTag={setSelectedTag}
+      />
+      <SearchBar
+        inputValue={inputValue}
+        nodesOnlySearch={nodesOnlySearch}
+        onInputChange={handleInputChange}
+        onToggleNodeSearch={setNodesOnlySearch}
+        onClear={handleClearSearch}
+      />
       <Box className="container">
         {(isLoadingExamples || isFetchingSearchData) && (
           <div className="loading-indicator">
@@ -692,76 +598,14 @@ const ExampleGrid = () => {
             const isLoading = loadingWorkflowId === workflow.id;
 
             return (
-              <Box
+              <WorkflowCard
                 key={workflow.id}
-                className={`workflow ${isLoading ? "loading" : ""}`}
-                onClick={() => onClickWorkflow(workflow)}
-              >
-                {isLoading && (
-                  <Fade in={true}>
-                    <Box className="loading-overlay">
-                      <CircularProgress size={40} color="secondary" />
-                      <Typography className="loading-text">
-                        Creating new workflow from example...
-                      </Typography>
-                    </Box>
-                  </Fade>
-                )}
-                <Typography variant="h3" component={"h3"}>
-                  {workflow.name}
-                </Typography>
-                <Box className="image-wrapper">
-                  <img
-                    width="200px"
-                    src={
-                      BASE_URL +
-                      "/api/assets/packages/" +
-                      workflow.package_name +
-                      "/" +
-                      workflow.name +
-                      ".jpg"
-                    }
-                    alt={" "}
-                  />
-                  <Typography className="package-name" component={"p"}>
-                    {workflow.package_name
-                      ?.replace("nodetool-", "")
-                      .toUpperCase()}
-                  </Typography>
-                  {nodesOnlySearch && matchedNodes.length > 0 && (
-                    <Box
-                      className="matched-nodes"
-                      sx={{
-                        mt: 1,
-                        display: "flex",
-                        gap: 0.5,
-                        flexWrap: "wrap"
-                      }}
-                    >
-                      {matchedNodes.map(
-                        (match: { text: string }, idx: number) => (
-                          <Typography key={idx} className="matched-item">
-                            {getNodeDisplayName(match.text) && (
-                              <>
-                                <span className="matched-item-name">
-                                  {getNodeDisplayName(match.text)}
-                                </span>
-                              </>
-                            )}
-                            <span className="matched-item-namespace">
-                              {getNodeNamespace(match.text)}
-                            </span>
-                          </Typography>
-                        )
-                      )}
-                    </Box>
-                  )}
-                </Box>
-
-                <Typography className="description">
-                  {workflow.description}
-                </Typography>
-              </Box>
+                workflow={workflow}
+                matchedNodes={matchedNodes}
+                nodesOnlySearch={nodesOnlySearch}
+                isLoading={isLoading}
+                onClick={onClickWorkflow}
+              />
             );
           })}
         {filteredWorkflows.length === 0 &&
