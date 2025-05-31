@@ -10,7 +10,7 @@ import ChatView from "./ChatView";
 import ThreadList from "../thread/ThreadList";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../dashboard/BackToDashboardButton";
-import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { useChatSocket } from "../../../hooks/useChatSocket";
 import { Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 
@@ -31,7 +31,7 @@ const GlobalChat: React.FC = () => {
     switchThread,
     deleteThread,
     stopGeneration
-  } = useGlobalChatStore();
+  } = useChatSocket();
 
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
