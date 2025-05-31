@@ -1,0 +1,16 @@
+/* markdown overrides */
+*::selection,
+p::selection,
+input::selection,
+code::selection,
+textarea::selection,
+h1::selection,
+h2::selection,
+h3::selection,
+h4::selection,
+h5::selection,
+h6::selection,
+label::selection,
+img::selection {
+  background-color: var(--c_selection);
+}

@@ -8,6 +8,7 @@ import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
 import { okaidia } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "../../../styles/markdown/github-markdown-dark.css";
 // import "../../../styles/markdown/github-markdown-light.css";
+import "../../../styles/markdown/nodetool-markdown.css";
 
 interface ChatMarkdownProps {
   content: string;
@@ -37,6 +38,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
                 style={okaidia}
                 language={match[1]}
                 PreTag="div"
+                customStyle={{ background: "transparent" }}
                 {...props}
               >
                 {String(children).replace(/\n$/, "")}
