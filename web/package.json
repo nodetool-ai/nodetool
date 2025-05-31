@@ -46,6 +46,7 @@
     "lodash.debounce": "^4.0.8",
     "loglevel": "^1.9.2",
     "luxon": "^3.5.0",
+    "mock-socket": "^9.3.1",
     "mui-color-input": "^5.0.1",
     "openapi-fetch": "^0.13.3",
     "openapi-typescript": "^7.4.4",
