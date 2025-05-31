@@ -30,7 +30,7 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
         }}
         data-microtip-position="left"
         aria-label="Delete conversation"
-        role="tooltip"
+        role="button"
       >
         <DeleteIcon />
       </IconButton>
