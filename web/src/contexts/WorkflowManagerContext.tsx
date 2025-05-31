@@ -22,11 +22,18 @@ import { client } from "../stores/ApiClient";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import React from "react";
-import { debounce, omit } from "lodash";
+import { omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 import { QueryClient } from "@tanstack/react-query";
-import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
+import { useWebSocketUpdatesStore } from "../hooks/useWebSocketUpdatesStore";
+import {
+  getCurrentWorkflow,
+  getOpenWorkflows,
+  setCurrentWorkflow,
+  setOpenWorkflows,
+  removeOpenWorkflow
+} from "../utils/workflowStorage";
 
 // -----------------------------------------------------------------
 // TYPES
@@ -94,51 +101,8 @@ const WorkflowManagerContext = createContext<WorkflowManagerStore | null>(null);
 // LOCAL STORAGE UTILITIES
 // -----------------------------------------------------------------
 
-// Storage keys for persisting workflow state in localStorage.
-const STORAGE_KEYS = {
-  CURRENT_WORKFLOW: "currentWorkflowId",
-  OPEN_WORKFLOWS: "openWorkflows"
-} as const;
-
-// Provides a set of utility functions to interact with localStorage,
-// including debounced writes to avoid excessive operations.
-const storage = {
-  // Retrieve the current workflow ID from localStorage.
-  getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),
-
-  // Retrieve the list of open workflow IDs.
-  getOpenWorkflows: (): string[] =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"),
-
-  // Debounced setter for the current workflow ID.
-  setCurrentWorkflow: debounce((workflowId: string) => {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_WORKFLOW, workflowId);
-  }, 100),
-
-  // Debounced setter for the array of open workflows.
-  setOpenWorkflows: debounce((workflowIds: string[]) => {
-    localStorage.setItem(
-      STORAGE_KEYS.OPEN_WORKFLOWS,
-      JSON.stringify(workflowIds)
-    );
-  }, 100),
-
-  // Adds a workflow ID to the list of open workflows.
-  addOpenWorkflow: (workflowId: string) => {
-    const currentWorkflows = storage.getOpenWorkflows();
-    if (!currentWorkflows.includes(workflowId)) {
-      const updatedWorkflows = [...currentWorkflows, workflowId];
-      storage.setOpenWorkflows(updatedWorkflows);
-    }
-  },
-
-  // Removes a workflow ID from the list of open workflows.
-  removeOpenWorkflow: (workflowId: string) => {
-    const currentWorkflows = storage.getOpenWorkflows();
-    const updatedWorkflows = currentWorkflows.filter((id) => id !== workflowId);
-    storage.setOpenWorkflows(updatedWorkflows);
-  }
-};
+// Utilities for persisting workflow state are located in
+// `src/utils/workflowStorage.ts`.
 
 // -----------------------------------------------------------------
 // CUSTOM HOOK
@@ -178,7 +142,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
     return {
       nodeStores: {},
       openWorkflows: [],
-      currentWorkflowId: storage.getCurrentWorkflow() || null,
+      currentWorkflowId: getCurrentWorkflow() || null,
       loadingStates: {},
       error: null,
       queryClient: queryClient,
@@ -433,7 +397,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to set as current
        */
       setCurrentWorkflowId: (workflowId: string) => {
-        storage.setCurrentWorkflow(workflowId);
+        setCurrentWorkflow(workflowId);
         set({ currentWorkflowId: workflowId });
       },
 
@@ -469,11 +433,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return;
         }
         // Update the open workflows in localStorage.
-        const openWorkflows = storage.getOpenWorkflows();
+        const openWorkflows = getOpenWorkflows();
 
         if (!openWorkflows.includes(workflow.id)) {
           const updatedWorkflows = [...openWorkflows, workflow.id];
-          storage.setOpenWorkflows(updatedWorkflows);
+          setOpenWorkflows(updatedWorkflows);
         }
 
         set((state) => {
@@ -518,7 +482,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
-        storage.removeOpenWorkflow(workflowId);
+        removeOpenWorkflow(workflowId);
 
         set((state) => {
           const { [workflowId]: removed, ...remaining } = state.nodeStores;
@@ -736,30 +700,17 @@ export const WorkflowManagerProvider: React.FC<{
   children: React.ReactNode;
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
-  const [store] = useState(() => {
-    const workflowManagerStore = createWorkflowManagerStore(queryClient);
-    return workflowManagerStore;
-  });
+  const [store] = useState(() => createWorkflowManagerStore(queryClient));
 
-  const [webSocketStore] = useState(() => {
-    return createWebSocketUpdatesStore();
-  });
+  // establish WebSocket connection for system updates
+  useWebSocketUpdatesStore();
 
   useEffect(() => {
-    // Connect to the WebSocket server
-    webSocketStore.getState().connect();
-
-    // Restore workflows that were previously open from localStorage
-    const openWorkflows = storage.getOpenWorkflows();
+    const openWorkflows = getOpenWorkflows();
     openWorkflows.forEach((workflowId: string) => {
       store.getState().fetchWorkflow(workflowId);
     });
-
-    // Cleanup: disconnect WebSocket on component unmount
-    return () => {
-      webSocketStore.getState().disconnect();
-    };
-  }, [store, webSocketStore]);
+  }, [store]);
 
   return (
     <WorkflowManagerContext.Provider value={store}>
