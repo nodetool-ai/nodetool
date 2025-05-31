@@ -233,8 +233,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const arrayBuffer = await event.data.arrayBuffer();
           const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
 
-          console.log("data", data);
-
           if (data.type === "message") {
             const message = data as Message;
             const threadId = get().currentThreadId;
@@ -745,7 +743,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         currentThreadId: state.currentThreadId || null
       }),
       onRehydrateStorage: () => (state) => {
-        console.log("GlobalChatStore hydrated:", state);
+        // State has been rehydrated from storage
       }
     }
   )
