@@ -1,12 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 
 // components
 import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
 // mui
-import { Button, Tooltip, Toolbar, Typography, Box } from "@mui/material";
+import {
+  Button,
+  Tooltip,
+  Toolbar,
+  Typography,
+  Box,
+  IconButton
+} from "@mui/material";
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
@@ -14,13 +21,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 // constants
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import ChatIcon from "@mui/icons-material/Chat";
 
 const styles = (theme: any) =>
   css({
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--c_gray1)"
+      backgroundColor: "var(--c_gray1)",
+      paddingLeft: "8px"
     },
     ".toolbar": {
       overflow: "visible",
@@ -36,31 +46,29 @@ const styles = (theme: any) =>
     ".nodetool-logo": {
       margin: "1px 0.75em 0 0"
     },
-    button: {
+    ".MuiIconButton-root": {
+      width: "32px",
+      height: "32px",
+      padding: "6px",
       color: theme.palette.c_white,
-      padding: "5px 5px",
-      minWidth: "auto",
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"
       },
-      svg: {
+      "& svg": {
         display: "block",
         width: "20px",
         height: "20px",
-        fontSize: "12px"
+        fontSize: "20px"
       }
     },
-    "button.logo": {
-      padding: "0 4px",
-      marginTop: "8px",
-      "&:hover": {
-        backgroundColor: "transparent",
-        opacity: 0.8
-      },
+    ".logo-button": {
       "& svg": {
         color: "var(--c_warn)"
+      },
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".navigate": {
@@ -79,6 +87,77 @@ const styles = (theme: any) =>
     }
   });
 
+const LogoButton = memo(function LogoButton() {
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    navigate("/welcome");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Open Welcome Screen"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="right"
+    >
+      <IconButton className="logo-button" onClick={handleClick} tabIndex={-1}>
+        <Logo
+          width="20px"
+          height="20px"
+          fontSize="1em"
+          borderRadius="4px"
+          small={true}
+          singleLine={true}
+        />
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const DashboardButton = memo(function DashboardButton() {
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Go to Dashboard"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="right"
+    >
+      <IconButton
+        className="dashboard-button"
+        onClick={handleClick}
+        tabIndex={-1}
+      >
+        <DashboardIcon />
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const ChatButton = memo(function ChatButton() {
+  const navigate = useNavigate();
+
+  const handleClick = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Go to Chat"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="right"
+    >
+      <IconButton className="chat-button" onClick={handleClick} tabIndex={-1}>
+        <ChatIcon />
+      </IconButton>
+    </Tooltip>
+  );
+});
+
 const AppHeader: React.FC = memo(function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
@@ -87,37 +166,9 @@ const AppHeader: React.FC = memo(function AppHeader() {
     <div css={styles} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
-          <Tooltip
-            placement="right"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            title={
-              <div style={{ textAlign: "center" }}>
-                <Typography variant="inherit">Open Welcome Screen</Typography>
-              </div>
-            }
-          >
-            <Button
-              className="logo"
-              tabIndex={-1}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/welcome");
-              }}
-              sx={{
-                lineHeight: "1em",
-                display: { xs: "none", sm: "block" }
-              }}
-            >
-              <Logo
-                width="80px"
-                height="24px"
-                fontSize="1em"
-                borderRadius="20px"
-                small={true}
-                singleLine={true}
-              />
-            </Button>
-          </Tooltip>
+          <LogoButton />
+          <DashboardButton />
+          <ChatButton />
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
         <Alert />

@@ -308,51 +308,6 @@ const useGlobalHotkeys = (callback: () => void) => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 };
-
-const DashboardButton = memo(function DashboardButton() {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/dashboard");
-  }, [navigate]);
-
-  return (
-    <Tooltip
-      title="Go to Dashboard"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="right"
-    >
-      <IconButton
-        className="dashboard-button"
-        onClick={handleClick}
-        tabIndex={-1}
-      >
-        <DashboardIcon />
-      </IconButton>
-    </Tooltip>
-  );
-});
-
-const ChatButton = memo(function ChatButton() {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/chat");
-  }, [navigate]);
-
-  return (
-    <Tooltip
-      title="Go to Chat"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="right"
-    >
-      <IconButton className="chat-button" onClick={handleClick} tabIndex={-1}>
-        <ChatIcon />
-      </IconButton>
-    </Tooltip>
-  );
-});
-
 const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -722,8 +677,6 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
       <Box sx={{ flexGrow: 1 }} />
       {path.startsWith("/editor") && (
         <div className="actions" css={styles}>
-          <DashboardButton />
-          <ChatButton />
           <>
             <NodeMenuButton />
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />
