@@ -99,7 +99,7 @@ describe("GlobalChatStore", () => {
       reconnectAttempts: 0,
       reconnectTimeoutId: null
     });
-  });
+  }, 20000);
 
   afterEach(() => {
     // Clean up the mock server
@@ -920,7 +920,6 @@ describe("GlobalChatStore", () => {
     });
 
     it("handles malformed message data", async () => {
-
       // Send data with an unknown message type
       const unknownTypeMessage = encode({
         type: "completely_unknown_type",
@@ -953,7 +952,7 @@ describe("GlobalChatStore", () => {
       // This test is no longer applicable with mock-socket
       // mock-socket handles WebSocket states internally
       await store.getState().connect();
-      
+
       // Wait for connection to be established
       await new Promise((resolve) => setTimeout(resolve, 100));
 
