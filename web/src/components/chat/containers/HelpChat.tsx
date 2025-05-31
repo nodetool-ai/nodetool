@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
-import { Box, Typography, Button, Stack, Alert } from "@mui/material";
+import { Button, Stack, Alert } from "@mui/material";
 import { useTutorialStore } from "../../../stores/TutorialStore";
 import { ChatHeader } from "./ChatHeader";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import useHelpChatStore from "../../../stores/HelpChatStore";
-import LanguageModelSelect from "../../properties/LanguageModelSelect";
 
 const CONVERSATION_STARTERS = [
   {
@@ -91,21 +90,14 @@ const HelpChat: React.FC = () => {
         description="Help Chat"
       />
 
-      <Box sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          Model:
-        </Typography>
-        <Box sx={{ flexGrow: 1 }}>
-          <LanguageModelSelect
-            value={selectedModel}
-            onChange={handleModelChange}
-          />
-        </Box>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mx: 2, my: 1 }}>
-          {error}
+      {(error || status === "reconnecting") && (
+        <Alert
+          severity={status === "reconnecting" ? "info" : "error"}
+          sx={{ mx: 2, my: 1 }}
+        >
+          {status === "reconnecting"
+            ? progressMessage || "Reconnecting to help chat..."
+            : error}
         </Alert>
       )}
 
@@ -147,6 +139,7 @@ const HelpChat: React.FC = () => {
 
       <ChatView
         model={selectedModel}
+        onModelChange={handleModelChange}
         status={status}
         messages={messages}
         sendMessage={sendMessage}

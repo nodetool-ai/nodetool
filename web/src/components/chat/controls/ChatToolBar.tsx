@@ -64,7 +64,7 @@ const menuStyles = (theme: any) =>
 
 interface ChatToolBarProps {
   selectedTools: string[];
-  onToolsChange: (tools: string[]) => void;
+  onToolsChange?: (tools: string[]) => void;
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
 }
@@ -232,7 +232,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
           </Menu>
         </>
       )}
-      <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+      {onToolsChange && (
+        <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+      )}
     </div>
   );
 };

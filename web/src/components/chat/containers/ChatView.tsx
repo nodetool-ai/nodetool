@@ -22,8 +22,7 @@ const styles = (theme: any) =>
       width: "100%",
       display: "flex",
       flexGrow: 1,
-      flexDirection: "column",
-      padding: "1em"
+      flexDirection: "column"
     },
     ".chat-controls": {
       padding: "0 1em",
@@ -73,19 +72,6 @@ const ChatView = ({
   onModelChange,
   onStop
 }: ChatViewProps) => {
-  const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
-  const { data: availableModels } = useQuery({
-    queryKey: ["models"],
-    queryFn: async () => await loadLanguageModels(),
-    staleTime: Infinity
-  });
-
-  const selectedModelName = useMemo(() => {
-    if (!availableModels || !model) return null;
-    const modelDetails = availableModels.find((m) => m.id === model);
-    return modelDetails?.name || model;
-  }, [availableModels, model]);
-
   const handleSendMessage = useCallback(
     async (content: MessageContent[], prompt: string) => {
       try {
