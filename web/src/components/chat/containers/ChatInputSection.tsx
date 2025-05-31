@@ -21,7 +21,14 @@ const styles = css({
 });
 
 type ChatInputSectionProps = {
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   onSendMessage: (
     content: MessageContent[],
     prompt: string

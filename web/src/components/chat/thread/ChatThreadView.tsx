@@ -12,7 +12,14 @@ import { textPulse } from "../styles/animations";
 
 interface ChatThreadViewProps {
   messages: Message[];
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   progress: number;
   total: number;
   progressMessage: string | null;

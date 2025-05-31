@@ -10,7 +10,14 @@ import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { createStyles } from "./ChatComposer.styles";
 
 interface ChatComposerProps {
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status:
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting";
   onSendMessage: (content: MessageContent[], prompt: string) => void;
   onStop?: () => void;
   disabled?: boolean;
