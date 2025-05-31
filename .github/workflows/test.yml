@@ -1,4 +1,4 @@
-name: Lint and Test
+name: Test
 
 on:
   push:
@@ -18,7 +18,7 @@ on:
 
 jobs:
   web:
-    name: Web Lint and Test
+    name: Web Test
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Install web dependencies
@@ -46,14 +46,14 @@ jobs:
         run: |
           cd web
           npm run lint
-          
+
       - name: Run Tests
         run: |
           cd web
           npm test
 
   electron:
-    name: Electron Lint
+    name: Electron Test
     runs-on: ubuntu-latest
 
     steps:
@@ -64,7 +64,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: electron/package-lock.json
 
       - name: Install electron dependencies
@@ -82,10 +82,15 @@ jobs:
           cd electron
           npm run lint
 
+      - name: Run Tests
+        run: |
+          cd electron
+          npm test
+
   apps:
-    name: Apps Lint
+    name: Apps Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -94,7 +99,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "20"
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: apps/package-lock.json
 
       - name: Install mini apps dependencies
@@ -111,3 +116,8 @@ jobs:
         run: |
           cd apps
           npm run lint
+
+      - name: Run Tests
+        run: |
+          cd electron
+          npm test
