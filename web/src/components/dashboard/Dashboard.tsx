@@ -22,7 +22,7 @@ import { truncateString } from "../../utils/truncateString";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import ChatInputSection from "../chat/ChatInputSection";
+import ChatInputSection from "../chat/containers/ChatInputSection";
 import { MessageContent } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
