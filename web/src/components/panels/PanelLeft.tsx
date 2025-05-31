@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import HelpChat from "../assistants/HelpChat";
+import HelpChat from "../chat/containers/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback } from "react";
@@ -30,9 +30,11 @@ const styles = (theme: any) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
+      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      backgroundColor: "var(--c_gray1)",
       direction: "ltr",
       position: "absolute",
       overflowX: "hidden",
@@ -73,11 +75,6 @@ const styles = (theme: any) =>
         }
       }
     },
-    ".MuiDrawer-paper": {
-      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-      width: "auto",
-      backgroundColor: theme.palette.c_gray0
-    },
     ".panel-tabs ": {
       minHeight: "2em"
     },
@@ -88,12 +85,12 @@ const styles = (theme: any) =>
       overflowY: "auto"
     },
     ".vertical-toolbar": {
-      width: "60px",
+      width: "50px",
       display: "flex",
       flexDirection: "column",
       backgroundColor: "transparent",
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "18px",
+        padding: "14px",
         borderRadius: "5px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",

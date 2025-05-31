@@ -15,14 +15,15 @@
 }
 
 .react-flow__node {
-  font-size: var(--font-size-small);
+  font-size: var(--fontSizeSmall);
   width: auto;
   cursor: default !important;
   padding: 0;
-  border-radius: 0.3em;
+  border: 1px solid var(--c_gray2);
+  border-radius: 3px 3px 4px 4px;
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
-  box-shadow: 0.1em 0.1em 0.4em 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
 }
 
 /* Node header */
@@ -36,8 +37,9 @@
   background-color: var(--c_node_header_bg);
   color: var(--c_white);
   margin: 0;
-  border-radius: 0.3em 0.3em 0 0;
+  border-radius: 2px 2px 0 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
 }
 
 .node-drag-handle {
@@ -58,6 +60,7 @@
 
 .react-flow__node .node-header svg.MuiSvgIcon-root {
   scale: 0.8;
+  border: 0;
   opacity: 1;
 }
 
@@ -72,7 +75,7 @@
   line-height: 1em;
   color: var(--c_white);
   font-family: var(--font-family-1);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   font-feature-settings: "smcp";
   padding: 0.5em 0 0.5em 0.7em;
 }
@@ -98,7 +101,7 @@
   border: none;
   outline: none;
   resize: none;
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   line-height: 1.1em;
   font-weight: 300;
   font-family: var(--font-family-1);
@@ -131,7 +134,7 @@
   bottom: 0;
   width: 100%;
   color: var(--c_white);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   line-height: 1.1em;
   font-weight: 300;
   font-style: italic;
@@ -407,7 +410,7 @@
   background-color: transparent;
   color: var(--c_gray5);
   font-family: var(--font-family-1);
-  font-size: var(--font-size-smaller);
+  font-size: var(--fontSizeSmaller);
   text-transform: uppercase;
   text-align: left;
   flex-grow: 1;

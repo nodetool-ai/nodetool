@@ -42,7 +42,7 @@ const styles = css({
   ".MuiAlert-message": {
     padding: "0.5em 2em 0.2em 0",
     lineHeight: "1.2em",
-    fontSize: "var(--font-size-big)",
+    fontSize: "var(--fontSizeBig)",
     overflowX: "hidden",
     overflowY: "auto",
     maxHeight: "80px",

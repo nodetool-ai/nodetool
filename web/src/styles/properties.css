@@ -34,7 +34,7 @@
 .node-property code {
   display: block;
   margin: 0.6em 0 0;
-  font-size: var(--font-size-smaller);
+  font-size: var(--fontSizeSmaller);
   background-color: var(--c_gray1);
   padding: 0.1em 0.2em;
   user-select: text;
@@ -71,13 +71,13 @@
   padding-right: 1em;
   opacity: 1;
   border-bottom: 2px solid var(--c_hl1) !important;
-   background-color: var(--c_gray3) !important;
+  background-color: var(--c_gray3) !important;
   /* opacity: 0.4; */
 }
 
 /* Textarea */
 .node-property .MuiTextField-root textarea {
-  font-size: var(--font-size-smaller);
+  font-size: var(--fontSizeSmaller);
 }
 
 .node-property textarea {
@@ -88,7 +88,7 @@
   margin-top: 0.2em;
   padding: 0.2em 0.5em;
   font-family: var(--font_family);
-  font-size: var(--font-size-tiny);
+  font-size: var(--fontSizeTiny);
   line-height: 1.1em;
   color: var(--c_white);
   background-color: var(--c_gray2);
@@ -124,7 +124,7 @@
   line-height: 1.1em;
   font-family: var(--font_family2);
   word-spacing: -2px;
-  font-size: var(--font-size-tiny);
+  font-size: var(--fontSizeTiny);
   color: var(--c_gray4);
 }
 
@@ -154,9 +154,9 @@
 .property-label label {
   display: block;
   font-weight: 300;
-  color: var(--c_gray6);
+  color: var(--c_gray4);
   font-family: var(--font-family-1);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   padding: 0;
   margin: 0;
   line-height: 1.12em;
@@ -199,7 +199,7 @@
   border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-weight: 300;
-  font-size: var(--font-size-smaller);
+  font-size: var(--fontSizeSmaller);
   line-height: 1.2em;
   height: 1.2em;
 }
@@ -240,7 +240,7 @@
   cursor: inherit;
   line-height: inherit;
   outline: none;
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
 }
 
 .node-property select option:checked,
@@ -258,7 +258,7 @@
   color: var(--c_white);
   border-radius: 0.1em;
   font-family: var(--font-family-1);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   /* box-sizing: content-box; */
 }
 .enum-property select:hover,
@@ -274,7 +274,7 @@
 .model-property select option {
   background-color: var(--c_gray1);
   padding: 2em 1em;
-  font-size: var(--font-size-bigger);
+  font-size: var(--fontSizeBigger);
 }
 
 /* NUMBER */
@@ -292,7 +292,7 @@
 
 .number-input .value {
   margin-top: 3px;
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
 }
 
 .number-input .slider-value {
@@ -350,7 +350,7 @@
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--font-size-normal);
+  font-size: var(--fontSizeNormal);
   line-height: 1.5em;
   height: 12px;
   top: 2px;

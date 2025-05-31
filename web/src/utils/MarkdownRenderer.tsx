@@ -19,12 +19,16 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       height: "100%",
-      padding: "1em 1em 2em 1em"
+      padding: "1em 1em 2em 1em",
+      fontWeight: "300"
     },
     p: {
       width: "100%",
       lineHeight: "1.2em",
-      margin: "0.25em 0 .5em 0"
+      margin: "0.25em 0 .75em 0"
+    },
+    strong: {
+      fontWeight: "600"
     },
     pre: {
       width: "90%",
@@ -45,7 +49,11 @@ const styles = (theme: any) =>
       padding: "0.5em"
     },
     "li, ol": {
-      paddingLeft: "1em"
+      paddingLeft: "1em",
+      marginBottom: "0.5em"
+    },
+    ".markdown": {
+      padding: "1em"
     }
   });
 

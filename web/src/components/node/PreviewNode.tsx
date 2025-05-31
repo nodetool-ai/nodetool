@@ -111,7 +111,7 @@ const styles = (theme: any) =>
         top: "50px",
         left: "50%",
         width: "80%",
-        fontSize: "var(--font-size-smaller)",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: "300",
         transform: "translate(-50%, -50%)",
         zIndex: 0,

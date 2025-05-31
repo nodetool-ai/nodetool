@@ -7,14 +7,17 @@ import {
   MenuItem,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  IconButton
 } from "@mui/material";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import ChatIcon from "@mui/icons-material/Chat";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -42,6 +45,92 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translateX(-50%)",
       backgroundColor: theme.palette.c_gray1
+    },
+    ".dashboard-button": {
+      position: "absolute",
+      left: "-520px",
+      top: "-8px",
+      width: "48px",
+      height: "40px",
+      backgroundColor: `${theme.palette.c_gray1}ee`,
+      color: theme.palette.c_hl1,
+      border: `2px solid ${theme.palette.c_gray3}`,
+      borderRadius: "12px",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      backdropFilter: "blur(10px)",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2,
+        borderColor: theme.palette.c_hl1,
+        transform: "translateY(-2px) scale(1.05)",
+        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
+        color: theme.palette.c_white
+      },
+      "&:active": {
+        transform: "translateY(0) scale(0.98)"
+      },
+      "& svg": {
+        fontSize: "26px",
+        filter: "drop-shadow(0 0 4px rgba(0,0,0,0.3))"
+      },
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "-2px",
+        left: "-2px",
+        right: "-2px",
+        bottom: "-2px",
+        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        borderRadius: "14px",
+        opacity: 0,
+        transition: "opacity 0.3s ease",
+        zIndex: -1
+      },
+      "&:hover::before": {
+        opacity: 1
+      }
+    },
+    ".chat-button": {
+      position: "absolute",
+      left: "-580px",
+      top: "-8px",
+      width: "48px",
+      height: "40px",
+      backgroundColor: `${theme.palette.c_gray1}ee`,
+      color: theme.palette.c_hl1,
+      border: `2px solid ${theme.palette.c_gray3}`,
+      borderRadius: "12px",
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      backdropFilter: "blur(10px)",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2,
+        borderColor: theme.palette.c_hl1,
+        transform: "translateY(-2px) scale(1.05)",
+        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
+        color: theme.palette.c_white
+      },
+      "&:active": {
+        transform: "translateY(0) scale(0.98)"
+      },
+      "& svg": {
+        fontSize: "26px",
+        filter: "drop-shadow(0 0 4px rgba(0,0,0,0.3))"
+      },
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "-2px",
+        left: "-2px",
+        right: "-2px",
+        bottom: "-2px",
+        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        borderRadius: "14px",
+        opacity: 0,
+        transition: "opacity 0.3s ease",
+        zIndex: -1
+      },
+      "&:hover::before": {
+        opacity: 1
+      }
     },
     "&.actions": {
       fontSize: "12px",
@@ -180,6 +269,25 @@ const styles = (theme: any) =>
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
       "100%": { transform: "rotate(360deg)" }
+    },
+    "@keyframes dashboardPulse": {
+      "0%, 100%": {
+        boxShadow: `0 0 0 0 ${theme.palette.c_hl1}40`
+      },
+      "50%": {
+        boxShadow: `0 0 0 8px ${theme.palette.c_hl1}00`
+      }
+    },
+    ".dashboard-button::after": {
+      content: '""',
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: "100%",
+      height: "100%",
+      borderRadius: "12px",
+      animation: "dashboardPulse 2s infinite"
     }
   });
 
@@ -200,7 +308,6 @@ const useGlobalHotkeys = (callback: () => void) => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 };
-
 const NodeMenuButton = memo(function NodeMenuButton() {
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -579,7 +686,9 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {isLocalhost && workflow?.settings?.run_mode === "app" && <RunAsAppButton />}
+            {isLocalhost && workflow?.settings?.run_mode === "app" && (
+              <RunAsAppButton />
+            )}
           </>
         </div>
       )}

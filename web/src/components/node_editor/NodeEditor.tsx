@@ -19,7 +19,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import WorkflowChat from "../assistants/WorkflowChat";
+import WorkflowChat from "../chat/containers/WorkflowChat";
 import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";

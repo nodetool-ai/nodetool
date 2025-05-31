@@ -17,14 +17,31 @@ import log from "loglevel";
 import { decode, encode } from "@msgpack/msgpack";
 import { supabase } from "../lib/supabaseClient";
 
+type ChatStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "reconnecting";
+
 type HelpChatState = {
   socket: WebSocket | null;
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status: ChatStatus;
   messages: Message[];
   progressMessage: string | null;
   progress: number;
   total: number;
   error: string | null;
+  
+  // Reconnection state
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  reconnectDelay: number;
+  isIntentionalDisconnect: boolean;
+  reconnectTimeoutId: NodeJS.Timeout | null;
+  messageQueue: Message[];
+  
   connect: () => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
@@ -43,6 +60,12 @@ export type MsgpackData =
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate;
+
+// Reconnection constants
+const INITIAL_RECONNECT_DELAY = 1000; // 1 second
+const MAX_RECONNECT_DELAY = 30000; // 30 seconds
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_BACKOFF_FACTOR = 1.5; // Less aggressive than doubling
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   const dataUri = URL.createObjectURL(new Blob([data]));
@@ -83,6 +106,14 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
   error: null,
   progress: 0,
   total: 0,
+  
+  // Reconnection state
+  reconnectAttempts: 0,
+  maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+  reconnectDelay: INITIAL_RECONNECT_DELAY,
+  isIntentionalDisconnect: false,
+  reconnectTimeoutId: null,
+  messageQueue: [],
   addMessages: (messages: Message[]) => {
     set((state) => ({
       messages: [...state.messages, ...messages]
@@ -91,11 +122,30 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
   connect: async () => {
     log.info("Connecting to help chat");
 
+    // Clear any pending reconnection
+    const { reconnectTimeoutId } = get();
+    if (reconnectTimeoutId) {
+      clearTimeout(reconnectTimeoutId);
+      set({ reconnectTimeoutId: null });
+    }
+
     if (get().socket) {
       get().disconnect();
     }
 
-    set({ status: "connecting", error: null });
+    // Reset reconnection state on manual connect
+    const isReconnecting = get().status === "reconnecting";
+    
+    set({
+      status: isReconnecting ? "reconnecting" : "connecting",
+      error: null,
+      isIntentionalDisconnect: false,
+      // Don't reset attempts if reconnecting
+      ...(isReconnecting ? {} : {
+        reconnectAttempts: 0,
+        reconnectDelay: INITIAL_RECONNECT_DELAY
+      })
+    });
 
     // Get authentication token if not connecting to localhost
     let wsUrl = CHAT_URL;
@@ -128,7 +178,31 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
     const socket = new WebSocket(wsUrl);
     socket.onopen = () => {
       log.info("Help Chat WebSocket connected");
-      set({ socket, status: "connected", error: null });
+      const state = get();
+      
+      // Reset reconnection state on successful connection
+      set({ 
+        socket, 
+        status: "connected", 
+        error: null,
+        progressMessage: null,  // Clear any reconnection message
+        reconnectAttempts: 0,
+        reconnectDelay: INITIAL_RECONNECT_DELAY
+      });
+
+      // Process any queued messages
+      if (state.messageQueue.length > 0) {
+        log.info(`Processing ${state.messageQueue.length} queued messages`);
+        const queue = [...state.messageQueue];
+        set({ messageQueue: [] });
+        
+        // Send queued messages
+        queue.forEach(message => {
+          get().sendMessage(message).catch(error => {
+            log.error("Failed to send queued message:", error);
+          });
+        });
+      }
     };
 
     socket.onmessage = async (event) => {
@@ -258,13 +332,68 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
     socket.onclose = (event) => {
       log.info("Help Chat WebSocket disconnected", {
         code: event.code,
-        reason: event.reason
+        reason: event.reason,
+        wasClean: event.wasClean
       });
-      set({
-        socket: null,
-        status: "disconnected",
-        error: event.reason || "Connection closed"
-      });
+
+      const state = get();
+      
+      // Check if this was an intentional disconnect
+      if (state.isIntentionalDisconnect) {
+        set({
+          socket: null,
+          status: "disconnected",
+          error: null
+        });
+        return;
+      }
+
+      // Check if we should attempt reconnection
+      const shouldReconnect = 
+        !event.wasClean && 
+        state.reconnectAttempts < state.maxReconnectAttempts &&
+        // Don't reconnect on authentication errors
+        event.code !== 1008 && // Policy violation
+        event.code !== 4001 && // Unauthorized
+        event.code !== 4003;   // Forbidden
+
+      if (shouldReconnect) {
+        // Calculate next delay with exponential backoff
+        const nextDelay = Math.min(
+          state.reconnectDelay * RECONNECT_BACKOFF_FACTOR,
+          MAX_RECONNECT_DELAY
+        );
+
+        set({
+          socket: null,
+          status: "reconnecting",
+          reconnectAttempts: state.reconnectAttempts + 1,
+          reconnectDelay: nextDelay,
+          progressMessage: `Reconnecting... (attempt ${state.reconnectAttempts + 1}/${state.maxReconnectAttempts})`,
+          error: null
+        });
+
+        log.info(`Scheduling reconnection attempt ${state.reconnectAttempts + 1} in ${nextDelay}ms`);
+
+        const timeoutId = setTimeout(() => {
+          // Check if we're still supposed to reconnect
+          if (!get().isIntentionalDisconnect) {
+            get().connect().catch(error => {
+              log.error("Reconnection attempt failed:", error);
+            });
+          }
+        }, nextDelay);
+
+        set({ reconnectTimeoutId: timeoutId });
+      } else {
+        // Max attempts reached or permanent error
+        set({
+          socket: null,
+          status: "disconnected",
+          error: event.reason || "Connection closed unexpectedly",
+          progressMessage: null
+        });
+      }
     };
 
     set({ socket });
@@ -286,20 +415,51 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
   },
 
   disconnect: () => {
-    const { socket } = get();
+    const { socket, reconnectTimeoutId } = get();
+    
+    // Mark as intentional disconnect
+    set({ isIntentionalDisconnect: true });
+    
+    // Clear any pending reconnection
+    if (reconnectTimeoutId) {
+      clearTimeout(reconnectTimeoutId);
+      set({ reconnectTimeoutId: null });
+    }
+    
     if (socket) {
       socket.close();
-      set({ socket: null });
     }
+    
+    set({ 
+      socket: null, 
+      status: "disconnected",
+      error: null,
+      progressMessage: null,
+      reconnectAttempts: 0,
+      reconnectDelay: INITIAL_RECONNECT_DELAY
+    });
   },
 
   sendMessage: async (message: Message) => {
-    const { socket } = get();
+    const { socket, status } = get();
 
     set({ error: null });
 
+    // Handle offline/disconnected state
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return;
+      if (status === "reconnecting") {
+        // Queue message for later delivery
+        log.info("Queueing message while reconnecting");
+        set(state => ({
+          messageQueue: [...state.messageQueue, message]
+        }));
+        return;
+      } else {
+        // Try to reconnect if disconnected
+        log.warn("Cannot send message: not connected");
+        set({ error: "Not connected to chat service" });
+        return;
+      }
     }
 
     set((state) => ({
@@ -314,5 +474,37 @@ const useHelpChatStore = create<HelpChatState>((set, get) => ({
     set({ messages: [] });
   }
 }));
+
+// Network status monitoring
+if (typeof window !== "undefined") {
+  // Listen for online/offline events
+  window.addEventListener("online", () => {
+    const state = useHelpChatStore.getState();
+    if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
+      log.info("Network came online, attempting to reconnect help chat...");
+      state.connect().catch(error => {
+        log.error("Failed to reconnect help chat after network online:", error);
+      });
+    }
+  });
+
+  window.addEventListener("offline", () => {
+    log.info("Network went offline (help chat)");
+    // The WebSocket will close automatically, triggering our reconnection logic
+  });
+
+  // Visibility change handling - reconnect when tab becomes visible
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      const state = useHelpChatStore.getState();
+      if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
+        log.info("Tab became visible, checking help chat connection...");
+        state.connect().catch(error => {
+          log.error("Failed to reconnect help chat after tab visible:", error);
+        });
+      }
+    }
+  });
+}
 
 export default useHelpChatStore;

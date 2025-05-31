@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import { ResetButton } from "./ResetButton";
-import { MinimizeButton } from "./MinimizeButton";
+import { ResetButton } from "../controls/ResetButton";
+import { MinimizeButton } from "../controls/MinimizeButton";
 
 interface ChatHeaderProps {
   isMinimized: boolean;

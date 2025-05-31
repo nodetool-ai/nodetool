@@ -7,11 +7,14 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: any) =>
   css({
-    width: "100%",
+    width: "fit-content",
     backgroundColor: theme.palette.c_gray0,
     "&:hover": {
       color: theme.palette.c_white,
-      boxShadow: `0 0 30px ${theme.palette.c_hl1}80`
+      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+    },
+    ".back-to-editor": {
+      width: "fit-content"
     }
   });
 

@@ -327,6 +327,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
         );
         if (error) {
+          console.error(
+            "[WorkflowManagerContext] searchExamples error:",
+            error
+          );
           throw createErrorMessage(error, "Failed to search examples");
         }
         return data;
@@ -733,7 +737,6 @@ export const WorkflowManagerProvider: React.FC<{
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => {
-    console.log("Creating workflow manager store");
     const workflowManagerStore = createWorkflowManagerStore(queryClient);
     return workflowManagerStore;
   });
