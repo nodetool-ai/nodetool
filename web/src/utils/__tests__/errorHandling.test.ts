@@ -25,12 +25,12 @@ describe('createErrorMessage', () => {
   });
 
   it('handles unknown error types', () => {
-    const result = createErrorMessage(42, 'Unknown');
+    const result = createErrorMessage(42 as any, 'Unknown');
     expect(result).toBeInstanceOf(AppError);
     expect(result.message).toBe('Unknown');
     expect((result as AppError).detail).toBeUndefined();
   });
-
+  
   it('handles error objects with non-string detail', () => {
     const err = { detail: { nested: 'object' } };
     const result = createErrorMessage(err, 'Failed');
