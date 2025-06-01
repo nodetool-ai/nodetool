@@ -38,7 +38,10 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
                 style={okaidia}
                 language={match[1]}
                 PreTag="div"
-                customStyle={{ background: "transparent" }}
+                customStyle={{
+                  background: "transparent",
+                  fontFamily: '"JetBrains Mono", monospace'
+                }}
                 {...props}
               >
                 {String(children).replace(/\n$/, "")}
