@@ -43,31 +43,33 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           </Button>
         </Tooltip>
       )}
-      <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        title={
-          <div style={{ textAlign: "center" }}>
-            <Typography variant="inherit">Send Message</Typography>
-            <Typography variant="inherit">[Enter]</Typography>
-          </div>
-        }
-      >
-        <Button
-          className="send-button"
-          onClick={() => {
-            if (!isDisabled && hasContent) {
-              onSend();
-            }
-          }}
-          sx={{
-            "& .MuiSvgIcon-root": {
-              filter: !hasContent ? "saturate(0)" : "none"
-            }
-          }}
+      {!(status === "loading" && onStop) && (
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title={
+            <div style={{ textAlign: "center" }}>
+              <Typography variant="inherit">Send Message</Typography>
+              <Typography variant="inherit">[Enter]</Typography>
+            </div>
+          }
         >
-          <SendIcon fontSize="small" />
-        </Button>
-      </Tooltip>
+          <Button
+            className="send-button"
+            onClick={() => {
+              if (!isDisabled && hasContent) {
+                onSend();
+              }
+            }}
+            sx={{
+              "& .MuiSvgIcon-root": {
+                filter: !hasContent ? "saturate(0)" : "none"
+              }
+            }}
+          >
+            <SendIcon fontSize="small" />
+          </Button>
+        </Tooltip>
+      )}
     </div>
   );
 };
