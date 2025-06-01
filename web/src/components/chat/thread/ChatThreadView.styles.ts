@@ -34,7 +34,16 @@ export const createStyles = (theme: any) => ({
       listStyleType: "none",
       marginBottom: "1em",
       padding: "0.5em 1em",
-      borderRadius: "4px"
+      borderRadius: "4px",
+      position: "relative"
+    },
+
+    "li.chat-message .copy-button": {
+      position: "absolute",
+      top: "8px",
+      right: "8px",
+      zIndex: 1,
+      cursor: "pointer"
     },
 
     "li.chat-message p": {

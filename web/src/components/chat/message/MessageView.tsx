@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Message,
   MessageContent,
@@ -9,6 +9,9 @@ import ChatMarkdown from "./ChatMarkdown";
 import { ThoughtSection } from "./thought/ThoughtSection";
 import { MessageContentRenderer } from "./MessageContentRenderer";
 import { parseThoughtContent, getMessageClass } from "../utils/messageUtils";
+import { useClipboard } from "../../../hooks/browser/useClipboard";
+import { IconButton } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 interface MessageViewProps {
   message: Message;
@@ -22,6 +25,21 @@ export const MessageView: React.FC<MessageViewProps> = ({
   onToggleThought
 }) => {
   const messageClass = getMessageClass(message.role);
+  const { writeClipboard } = useClipboard();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleCopy = () => {
+    let textToCopy = "";
+    if (typeof message.content === "string") {
+      textToCopy = message.content;
+    } else if (Array.isArray(message.content)) {
+      textToCopy = message.content
+        .filter((c) => c.type === "text")
+        .map((c) => (c as MessageTextContent).text)
+        .join("\n");
+    }
+    writeClipboard(textToCopy, true);
+  };
 
   const renderContent = (content: string, index: number) => {
     const parsedThought = parseThoughtContent(content);
@@ -49,8 +67,40 @@ export const MessageView: React.FC<MessageViewProps> = ({
     | Array<MessageTextContent | MessageImageContent>
     | string;
 
+  const copyButtonStyle: React.CSSProperties = {
+    position: "absolute",
+    zIndex: 1
+  };
+
+  let showCopyButton = false;
+
+  if (message.role === "user") {
+    copyButtonStyle.bottom = "0px";
+    copyButtonStyle.right = "0px";
+    showCopyButton = isHovered;
+  } else if (message.role === "assistant") {
+    copyButtonStyle.bottom = "0px";
+    copyButtonStyle.left = "0px";
+    showCopyButton = true;
+  }
+
   return (
-    <li className={messageClass}>
+    <li
+      className={messageClass}
+      style={{ position: "relative" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {showCopyButton && (
+        <IconButton
+          onClick={handleCopy}
+          size="small"
+          style={copyButtonStyle}
+          title="Copy to clipboard"
+        >
+          <ContentCopyIcon sx={{ fontSize: "0.875rem" }} />
+        </IconButton>
+      )}
       {typeof message.content === "string" &&
         renderContent(
           message.content,
