@@ -9,7 +9,7 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-const MAX_ROWS = 8;
+const MAX_ROWS = 15;
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
     {

@@ -29,7 +29,8 @@ const styles = (theme: any) =>
 
 const menuStyles = (theme: any) =>
   css({
-    "& .MuiPaper-root": {
+    marginBottom: ".5em",
+    "& button": {
       backgroundColor: theme.palette.c_gray1,
       border: `1px solid ${theme.palette.c_gray3}`,
       minWidth: "280px",
@@ -174,6 +175,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
             </Button>
           </Tooltip>
           <Menu
+            className="model-menu"
             anchorEl={anchorEl}
             open={open}
             onClose={handleClose}

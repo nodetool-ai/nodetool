@@ -13,11 +13,12 @@ export const createStyles = (theme: any) =>
       border: "1px solid",
       borderColor: theme.palette.c_gray1,
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-end",
       borderRadius: "16px",
       marginLeft: "1em",
+      marginRight: "1em",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-      padding: "0px 6px 0px 12px",
+      padding: "6px 6px 0px 12px",
 
       "&.dragging": {
         borderColor: theme.palette.c_hl1,
@@ -27,7 +28,7 @@ export const createStyles = (theme: any) =>
 
     ".compose-message textarea": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
       color: theme.palette.c_white,
       resize: "none",
@@ -37,7 +38,7 @@ export const createStyles = (theme: any) =>
       border: "0",
       borderColor: "transparent",
       padding: ".5em 1em .5em .5em",
-      margin: "0",
+      marginBottom: ".5em",
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
@@ -48,6 +49,7 @@ export const createStyles = (theme: any) =>
     ".compose-message button": {
       position: "absolute",
       bottom: "8px",
+      right: "-1em",
       width: "40px",
       height: "40px",
       backgroundColor: "transparent",

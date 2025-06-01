@@ -25,7 +25,7 @@ const styles = css({
     marginTop: "auto",
     zIndex: 1,
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-end",
     gap: "8px"
   },
   ".chat-composer-wrapper": {
