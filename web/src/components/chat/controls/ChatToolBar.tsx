@@ -24,12 +24,12 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
+    marginBottom: ".5em",
     gap: ".5em"
   });
 
 const menuStyles = (theme: any) =>
   css({
-    marginBottom: ".5em",
     "& button": {
       backgroundColor: theme.palette.c_gray1,
       border: `1px solid ${theme.palette.c_gray3}`,
