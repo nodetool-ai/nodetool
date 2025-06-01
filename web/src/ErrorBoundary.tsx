@@ -39,7 +39,8 @@ const errorBoundaryStyles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       margin: "4em 0 0",
-      padding: "2em 3em"
+      padding: "2em 3em",
+      whiteSpace: "pre-wrap"
     },
 
     ".issue-tracker-link": {
@@ -76,7 +77,9 @@ const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
 
   const errorMessage =
-    error instanceof Error ? error.message : "An unknown error occurred";
+    error instanceof Error
+      ? error.message
+      : `An unknown error occurred\n${JSON.stringify(error)}\n`;
   const stackTrace =
     error instanceof Error ? error.stack : "No stack trace available";
 
