@@ -78,9 +78,6 @@ describe("GlobalChatStore", () => {
       data: { session: null }
     });
 
-    // Create a new mock server for each test - this automatically mocks global WebSocket
-    mockServer = new Server("ws://test/chat");
-
     // Ensure any existing socket is closed
     const currentSocket = store.getState().socket;
     if (currentSocket) {
@@ -99,11 +96,13 @@ describe("GlobalChatStore", () => {
       reconnectAttempts: 0,
       reconnectTimeoutId: null
     });
-  }, 20000);
+  });
 
   afterEach(() => {
     // Clean up the mock server
-    mockServer.stop();
+    // if (mockServer) { // Removing this as individual blocks will handle their servers
+    //   mockServer.stop();
+    // }
   });
 
   it("createNewThread creates thread and sets currentThreadId", () => {
@@ -115,50 +114,55 @@ describe("GlobalChatStore", () => {
   });
 
   it("sendMessage adds message to thread and sends via socket", async () => {
-    // Track sent messages
-    let sentData: any;
-    mockServer.on("connection", (socket) => {
-      socket.on("message", (data) => {
-        if (data instanceof ArrayBuffer) {
-          sentData = decode(new Uint8Array(data));
-        } else if (data instanceof Uint8Array) {
-          sentData = decode(data);
-        }
+    mockServer = new Server("ws://test/chat"); // Initialize server for this test
+    try {
+      // Track sent messages
+      let sentData: any;
+      mockServer.on("connection", (socket) => {
+        socket.on("message", (data) => {
+          if (data instanceof ArrayBuffer) {
+            sentData = decode(new Uint8Array(data));
+          } else if (data instanceof Uint8Array) {
+            sentData = decode(data);
+          }
+        });
       });
-    });
 
-    // Connect first to establish WebSocket
-    await store.getState().connect();
+      // Connect first to establish WebSocket
+      await store.getState().connect();
 
-    // Wait for connection to be established
-    await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for connection to be established
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const msg: Message = {
-      role: "user",
-      type: "message",
-      content: "hello"
-    } as Message;
+      const msg: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
 
-    await store.getState().sendMessage(msg);
+      await store.getState().sendMessage(msg);
 
-    const threadId = store.getState().currentThreadId as string;
-    expect(threadId).toBeTruthy();
-    expect(store.getState().threads[threadId]).toBeDefined();
-    expect(store.getState().threads[threadId].messages[0]).toEqual({
-      ...msg,
-      workflow_id: undefined,
-      thread_id: threadId
-    });
-    expect(store.getState().status).toBe("loading");
+      const threadId = store.getState().currentThreadId as string;
+      expect(threadId).toBeTruthy();
+      expect(store.getState().threads[threadId]).toBeDefined();
+      expect(store.getState().threads[threadId].messages[0]).toEqual({
+        ...msg,
+        workflow_id: undefined,
+        thread_id: threadId
+      });
+      expect(store.getState().status).toBe("loading");
 
-    // Wait a bit for the message to be sent
-    await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait a bit for the message to be sent
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(sentData).toEqual({
-      ...msg,
-      workflow_id: null,
-      thread_id: threadId
-    });
+      expect(sentData).toEqual({
+        ...msg,
+        workflow_id: null,
+        thread_id: threadId
+      });
+    } finally {
+      if (mockServer) mockServer.stop(); // Clean up server for this test
+    }
   });
 
   it("switchThread does nothing for invalid id", () => {
@@ -176,6 +180,14 @@ describe("GlobalChatStore", () => {
   });
 
   describe("WebSocket Connection", () => {
+    beforeEach(() => {
+      mockServer = new Server("ws://test/chat");
+    });
+
+    afterEach(() => {
+      if (mockServer) mockServer.stop();
+    });
+
     it("connect establishes WebSocket connection", async () => {
       await store.getState().connect();
       const state = store.getState();
@@ -256,14 +268,20 @@ describe("GlobalChatStore", () => {
   describe("Message Handling", () => {
     beforeEach(async () => {
       // Create a fresh server for message handling tests
-      if (mockServer) {
-        mockServer.stop();
-      }
       mockServer = new Server("ws://test/chat");
 
       await store.getState().connect();
+      // Add a small delay to allow WebSocket to stabilize with mock-socket
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       store.getState().createNewThread();
-    }, 10000);
+    }, 30000); // Reverted timeout to 30 seconds
+
+    afterEach(() => {
+      if (mockServer) {
+        mockServer.stop();
+      }
+    });
 
     it("handles incoming message updates", async () => {
       const message: Message = {
@@ -609,6 +627,7 @@ describe("GlobalChatStore", () => {
     let sentData: any;
 
     beforeEach(async () => {
+      mockServer = new Server("ws://test/chat"); // Initialize server
       // Track sent messages
       sentData = undefined;
       mockServer.on("connection", (socket) => {
@@ -623,6 +642,10 @@ describe("GlobalChatStore", () => {
 
       await store.getState().connect();
       socket = store.getState().socket;
+    });
+
+    afterEach(() => {
+      if (mockServer) mockServer.stop(); // Clean up server
     });
 
     it("sendMessage creates thread if none exists", async () => {
@@ -719,6 +742,7 @@ describe("GlobalChatStore", () => {
     let sentData: any;
 
     beforeEach(async () => {
+      mockServer = new Server("ws://test/chat"); // Initialize server
       // Track sent messages
       sentData = undefined;
       mockServer.on("connection", (socket) => {
@@ -733,6 +757,10 @@ describe("GlobalChatStore", () => {
 
       await store.getState().connect();
       store.getState().createNewThread();
+    });
+
+    afterEach(() => {
+      if (mockServer) mockServer.stop(); // Clean up server
     });
 
     it("sends stop signal and resets state", async () => {
@@ -786,6 +814,14 @@ describe("GlobalChatStore", () => {
   });
 
   describe("Authentication and Non-localhost", () => {
+    beforeEach(() => {
+      mockServer = new Server("ws://test/chat"); // Initialize server
+    });
+
+    afterEach(() => {
+      if (mockServer) mockServer.stop(); // Clean up server
+    });
+
     it("adds authentication token to WebSocket URL when session exists", async () => {
       // In localhost mode, authentication is not used, so this test just verifies connection works
       const mockSession = {
@@ -839,15 +875,19 @@ describe("GlobalChatStore", () => {
   describe("Edge Cases and Error Handling", () => {
     beforeEach(async () => {
       // Create a fresh server for edge case tests
-      if (mockServer) {
-        mockServer.stop();
-      }
+      // if (mockServer) { // This check and stop is removed as this block now owns its server
+      //   mockServer.stop();
+      // }
       mockServer = new Server("ws://test/chat");
 
       await store.getState().connect();
       // Wait for connection to be established
       await new Promise((resolve) => setTimeout(resolve, 100));
-    }, 10000);
+    });
+
+    afterEach(() => {
+      if (mockServer) mockServer.stop(); // Clean up server
+    });
 
     it.skip("handles message for non-existent thread", async () => {
       store.setState({ currentThreadId: "non-existent" });

@@ -157,17 +157,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Reset reconnection state on manual connect
         const isReconnecting = get().status === "reconnecting";
-        
+
         set({
           workflowId: workflowId || null,
           status: isReconnecting ? "reconnecting" : "connecting",
           error: null,
           isIntentionalDisconnect: false,
           // Don't reset attempts if reconnecting
-          ...(isReconnecting ? {} : {
-            reconnectAttempts: 0,
-            reconnectDelay: INITIAL_RECONNECT_DELAY
-          })
+          ...(isReconnecting
+            ? {}
+            : {
+                reconnectAttempts: 0,
+                reconnectDelay: INITIAL_RECONNECT_DELAY
+              })
         });
 
         // Get authentication token if not connecting to localhost
@@ -203,13 +205,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
         socket.onopen = () => {
           log.info("Global Chat WebSocket connected");
           const state = get();
-          
+
           // Reset reconnection state on successful connection
-          set({ 
-            socket, 
-            status: "connected", 
+          set({
+            socket,
+            status: "connected",
             error: null,
-            statusMessage: null,  // Clear the reconnection message
+            statusMessage: null, // Clear the reconnection message
             reconnectAttempts: 0,
             reconnectDelay: INITIAL_RECONNECT_DELAY
           });
@@ -219,12 +221,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
             log.info(`Processing ${state.messageQueue.length} queued messages`);
             const queue = [...state.messageQueue];
             set({ messageQueue: [] });
-            
+
             // Send queued messages
-            queue.forEach(message => {
-              get().sendMessage(message).catch(error => {
-                log.error("Failed to send queued message:", error);
-              });
+            queue.forEach((message) => {
+              get()
+                .sendMessage(message)
+                .catch((error) => {
+                  log.error("Failed to send queued message:", error);
+                });
             });
           }
         };
@@ -450,7 +454,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
 
           const state = get();
-          
+
           // Check if this was an intentional disconnect
           if (state.isIntentionalDisconnect) {
             set({
@@ -462,13 +466,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
 
           // Check if we should attempt reconnection
-          const shouldReconnect = 
-            !event.wasClean && 
+          const shouldReconnect =
+            !event.wasClean &&
             state.reconnectAttempts < state.maxReconnectAttempts &&
             // Don't reconnect on authentication errors
             event.code !== 1008 && // Policy violation
             event.code !== 4001 && // Unauthorized
-            event.code !== 4003;   // Forbidden
+            event.code !== 4003; // Forbidden
 
           if (shouldReconnect) {
             // Calculate next delay with exponential backoff
@@ -482,18 +486,26 @@ const useGlobalChatStore = create<GlobalChatState>()(
               status: "reconnecting",
               reconnectAttempts: state.reconnectAttempts + 1,
               reconnectDelay: nextDelay,
-              statusMessage: `Reconnecting... (attempt ${state.reconnectAttempts + 1}/${state.maxReconnectAttempts})`,
+              statusMessage: `Reconnecting... (attempt ${
+                state.reconnectAttempts + 1
+              }/${state.maxReconnectAttempts})`,
               error: null
             });
 
-            log.info(`Scheduling reconnection attempt ${state.reconnectAttempts + 1} in ${nextDelay}ms`);
+            log.info(
+              `Scheduling reconnection attempt ${
+                state.reconnectAttempts + 1
+              } in ${nextDelay}ms`
+            );
 
             const timeoutId = setTimeout(() => {
               // Check if we're still supposed to reconnect
               if (!get().isIntentionalDisconnect) {
-                get().connect(state.workflowId || undefined).catch(error => {
-                  log.error("Reconnection attempt failed:", error);
-                });
+                get()
+                  .connect(state.workflowId || undefined)
+                  .catch((error) => {
+                    log.error("Reconnection attempt failed:", error);
+                  });
               }
             }, nextDelay);
 
@@ -515,7 +527,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const timeout = setTimeout(() => {
             clearInterval(interval);
             reject(new Error("Connection timeout"));
-          }, 10000); // 10 second timeout
+          }, 30000); // 30 second timeout
 
           const interval = setInterval(() => {
             if (socket.readyState === WebSocket.OPEN) {
@@ -529,22 +541,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       disconnect: () => {
         const { socket, reconnectTimeoutId } = get();
-        
+
         // Mark as intentional disconnect
         set({ isIntentionalDisconnect: true });
-        
+
         // Clear any pending reconnection
         if (reconnectTimeoutId) {
           clearTimeout(reconnectTimeoutId);
           set({ reconnectTimeoutId: null });
         }
-        
+
         if (socket && socket.readyState === WebSocket.OPEN) {
           socket.close();
         }
-        
-        set({ 
-          socket: null, 
+
+        set({
+          socket: null,
           status: "disconnected",
           error: null,
           statusMessage: null,
@@ -563,7 +575,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (status === "reconnecting") {
             // Queue message for later delivery
             log.info("Queueing message while reconnecting");
-            set(state => ({
+            set((state) => ({
               messageQueue: [...state.messageQueue, message]
             }));
             return;
@@ -756,7 +768,7 @@ if (typeof window !== "undefined") {
     const state = useGlobalChatStore.getState();
     if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
       log.info("Network came online, attempting to reconnect...");
-      state.connect(state.workflowId || undefined).catch(error => {
+      state.connect(state.workflowId || undefined).catch((error) => {
         log.error("Failed to reconnect after network online:", error);
       });
     }
@@ -773,7 +785,7 @@ if (typeof window !== "undefined") {
       const state = useGlobalChatStore.getState();
       if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
         log.info("Tab became visible, checking connection...");
-        state.connect(state.workflowId || undefined).catch(error => {
+        state.connect(state.workflowId || undefined).catch((error) => {
           log.error("Failed to reconnect after tab visible:", error);
         });
       }
