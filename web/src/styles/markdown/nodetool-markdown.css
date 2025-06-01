@@ -14,3 +14,11 @@ label::selection,
 img::selection {
   background-color: var(--c_selection);
 }
+
+.markdown-body pre,
+.markdown-body code,
+.markdown-body pre>div,
+.markdown-body pre>div code,
+.markdown-body pre>div span {
+  font-family: "JetBrains Mono !important", monospace !important;
+}
