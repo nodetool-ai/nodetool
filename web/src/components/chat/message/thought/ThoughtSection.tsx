@@ -32,14 +32,14 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = ({
   return (
     <>
       {textBefore && <ChatMarkdown content={textBefore} />}
-      <div>
+      <div className="thought-section-container">
         <ThoughtToggle
           isExpanded={isExpanded}
           hasClosingTag={hasClosingTag}
           onClick={onToggle}
         />
         {isExpanded && (
-          <div css={thoughtContentStyles}>
+          <div className="thought-section-content" css={thoughtContentStyles}>
             <ChatMarkdown content={thoughtContent} />
           </div>
         )}
