@@ -72,12 +72,12 @@ export const MessageView: React.FC<MessageViewProps> = ({
   let showCopyButton = false;
 
   if (message.role === "user") {
-    copyButtonStyle.bottom = "0px";
-    copyButtonStyle.right = "0px";
+    copyButtonStyle.bottom = ".5em";
+    copyButtonStyle.right = "0.5em";
     showCopyButton = isHovered;
   } else if (message.role === "assistant") {
-    copyButtonStyle.bottom = "0px";
-    copyButtonStyle.left = "0px";
+    copyButtonStyle.bottom = "-5px";
+    copyButtonStyle.left = "1.5em";
     showCopyButton = true;
   }
 
