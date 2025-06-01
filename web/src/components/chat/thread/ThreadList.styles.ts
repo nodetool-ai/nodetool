@@ -6,7 +6,7 @@ export const createStyles = (theme: any) =>
     height: "100%",
     display: "flex",
     flexDirection: "column",
-    backgroundColor: theme.palette.c_gray0,
+    backgroundColor: "var(--palette-background-paper)",
 
     ".new-chat-section": { padding: theme.spacing(2) },
 
@@ -43,7 +43,7 @@ export const createStyles = (theme: any) =>
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.c_gray1,
+        backgroundColor: theme.palette.c_gray0,
         borderLeft: `2px solid ${theme.palette.c_hl1}`
       }
     },
