@@ -47,6 +47,7 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 import { MenuProvider } from "./providers/MenuProvider";
+import LayoutTest from "./components/LayoutTest";
 
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
@@ -158,6 +159,10 @@ function getRoutes() {
           <OpenOrCreateDialog />
         </ProtectedRoute>
       )
+    },
+    {
+      path: "/layout-test",
+      element: <LayoutTest />
     }
   ];
 
