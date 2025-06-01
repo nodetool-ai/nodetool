@@ -1,20 +1,20 @@
 /* markdown overrides */
 
 /* selection */
-*::selection,
-p::selection,
-input::selection,
-code::selection,
-textarea::selection,
-h1::selection,
-h2::selection,
-h3::selection,
-h4::selection,
-h5::selection,
-h6::selection,
-label::selection,
-img::selection {
-  background-color: var(--c_selection);
+.markdown-body *::selection,
+.markdown-body p::selection,
+.markdown-body input::selection,
+.markdown-body code::selection,
+.markdown-body textarea::selection,
+.markdown-body h1::selection,
+.markdown-body h2::selection,
+.markdown-body h3::selection,
+.markdown-body h4::selection,
+.markdown-body h5::selection,
+.markdown-body h6::selection,
+.markdown-body label::selection,
+.markdown-body img::selection {
+  background-color: var(--c_selection) ;
 }
 
 /* code */
