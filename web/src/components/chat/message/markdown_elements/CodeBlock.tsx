@@ -28,20 +28,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   _isFromPre,
   ...props
 }) => {
-  // <<< DEBUGGING LOGS START >>>
-  console.log("CodeBlock Rendered - Props:", {
-    inline,
-    className,
-    children,
-    node_tagName: node?.tagName,
-    node_parent_tagName: node?.parent?.tagName,
-    node_parent_className: node?.parent?.properties?.className
-    // Log the whole node and parent for deeper inspection if needed
-    // node_DEBUG: JSON.parse(JSON.stringify(node || {})), // Be careful with circular refs
-    // parent_node_DEBUG: JSON.parse(JSON.stringify(node?.parent || {})),
-  });
-  // <<< DEBUGGING LOGS END >>>
-
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
 

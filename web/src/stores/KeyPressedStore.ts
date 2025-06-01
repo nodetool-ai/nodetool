@@ -16,6 +16,18 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 
+// Allowed key combinations for HTMLTextAreaElement
+const ALLOWED_TEXTAREA_COMBOS: Array<{
+  key: string;
+  shiftKey?: boolean;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+  metaKey?: boolean;
+}> = [
+  { key: "Enter", shiftKey: true }
+  // Add other allowed combinations here if needed
+];
+
 interface ComboOptions {
   preventDefault?: boolean;
   callback?: () => void;
@@ -126,14 +138,12 @@ const initKeyListeners = () => {
     const { key, shiftKey, ctrlKey, altKey, metaKey, repeat } = event;
     const normalizedKey = key.toLowerCase();
 
+    // Existing checks for input elements and Slate editor
     if (
       event &&
       (event.target instanceof HTMLInputElement ||
         (event.target as HTMLElement)?.classList?.contains("select-header"))
     ) {
-      return;
-    }
-    if (event.target instanceof HTMLTextAreaElement) {
       return;
     }
     if (
@@ -143,24 +153,85 @@ const initKeyListeners = () => {
       return;
     }
 
-    // Prevent key repeat events
-    if (isPressed && repeat) return;
+    // New logic for HTMLTextAreaElement
+    if (event.target instanceof HTMLTextAreaElement) {
+      const isEventKeyAModifier = ["shift", "control", "alt", "meta"].includes(
+        normalizedKey
+      );
 
-    const { setKeysPressed, pressedKeys } = useKeyPressedStore.getState();
+      if (isEventKeyAModifier) {
+        // Always process modifier key events from textareas to update their state in the store
+        // console.log(
+        //   "TextArea (Modifier Key Event):",
+        //   normalizedKey,
+        //   "Pressed:",
+        //   isPressed,
+        //   "Shift Held:",
+        //   shiftKey
+        // );
+      } else {
+        // For non-modifier keys (e.g., 'Enter', 'a'), check against allowed combos
+        const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
+          (combo) =>
+            event.key === combo.key && // Check the main key
+            event.shiftKey === (combo.shiftKey || false) && // Check shift (default to false if not specified in combo)
+            event.ctrlKey === (combo.ctrlKey || false) && // Future: Check ctrl
+            event.altKey === (combo.altKey || false) && // Future: Check alt
+            event.metaKey === (combo.metaKey || false) // Future: Check meta
+        );
+        // console.log(
+        //   "TextArea (Non-Modifier Key Event):",
+        //   "Key:",
+        //   event.key,
+        //   "Shift Held:",
+        //   event.shiftKey,
+        //   "Is Combination Allowed:",
+        //   isCombinationAllowed
+        // );
+        if (!isCombinationAllowed) {
+          return; // Block if not an allowed combination for textareas
+        }
+      }
+    }
 
-    // Create a new object with all currently pressed keys set to false
-    const keysToUpdate = Array.from(pressedKeys).reduce((acc, key) => {
-      acc[key] = false;
-      return acc;
-    }, {} as Record<string, boolean>);
+    // Prevent key repeat events for non-modifier keys
+    if (
+      isPressed &&
+      repeat &&
+      !["shift", "control", "alt", "meta"].includes(normalizedKey)
+    ) {
+      // console.log("Repeat event blocked for:", normalizedKey);
+      return;
+    }
 
-    // Update the key that triggered this event
+    const { setKeysPressed } = useKeyPressedStore.getState();
+    const keysToUpdate: Record<string, boolean> = {};
+
+    // Set the state for the actual key from the event
     keysToUpdate[normalizedKey] = isPressed;
+
+    // Always update the global state of modifier keys based on the event's properties
     keysToUpdate["shift"] = shiftKey;
     keysToUpdate["control"] = ctrlKey;
     keysToUpdate["alt"] = altKey;
     keysToUpdate["meta"] = metaKey;
 
+    // If a modifier key itself is being released, ensure its specific entry is false
+    if (
+      !isPressed &&
+      ["shift", "control", "alt", "meta"].includes(normalizedKey)
+    ) {
+      keysToUpdate[normalizedKey] = false;
+    }
+
+    // console.log(
+    //   "Calling setKeysPressed with:",
+    //   JSON.stringify(keysToUpdate),
+    //   "for event key:",
+    //   normalizedKey,
+    //   "isPressed:",
+    //   isPressed
+    // );
     setKeysPressed(keysToUpdate, event);
   };
 
