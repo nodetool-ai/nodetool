@@ -6,8 +6,22 @@ import ChatToolBar from "../controls/ChatToolBar";
 import { MessageContent } from "../../../stores/ApiTypes";
 
 const styles = css({
+  width: "calc(100% - 1em)",
+  minHeight: "60px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "var(--palette-background-default)",
+  padding: "1.5em 0.5em",
+
   ".chat-controls": {
-    padding: "0.5em 0.5em",
+    maxWidth: "1100px",
+    position: "absolute",
+    bottom: "1em",
+    width: "100%",
+    left: "50%",
+    transform: "translateX(-50%)",
     marginTop: "auto",
     zIndex: 1,
     display: "flex",
@@ -50,7 +64,7 @@ const ChatInputSection = ({
   onModelChange
 }: ChatInputSectionProps) => {
   return (
-    <div css={styles}>
+    <div className="chat-input-section" css={styles}>
       <div className="chat-controls">
         <ChatToolBar
           selectedTools={selectedTools}
