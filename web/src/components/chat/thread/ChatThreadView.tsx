@@ -40,6 +40,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }>({});
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
+  const isSmoothScrollingToBottom = useRef(false);
+  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const SCROLL_THRESHOLD = 50;
 
@@ -56,6 +58,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       } else if (nearBottom && userHasScrolledUp) {
         setUserHasScrolledUp(false);
       }
+      isSmoothScrollingToBottom.current = false;
     }
   }, [userHasScrolledUp]);
 
@@ -64,7 +67,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       const el = bottomRef.current;
       if (el) {
         if (force || isNearBottom) {
-          el.scrollIntoView({ behavior: force ? "smooth" : "auto" });
+          if (force) {
+            el.scrollIntoView({ behavior: "smooth" });
+            isSmoothScrollingToBottom.current = true;
+          } else {
+            if (!isSmoothScrollingToBottom.current) {
+              el.scrollIntoView({ behavior: "auto" });
+            }
+          }
           setUserHasScrolledUp(false);
           setIsNearBottom(true);
         }
@@ -78,7 +88,12 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const bottomEl = bottomRef.current;
     if (!scrollEl || !bottomEl) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setIsNearBottom(entry.isIntersecting),
+      ([entry]) => {
+        setIsNearBottom(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          isSmoothScrollingToBottom.current = false;
+        }
+      },
       { root: scrollEl, threshold: 0.1 }
     );
     observer.observe(bottomEl);
@@ -96,19 +111,42 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [handleScroll]);
 
   useEffect(() => {
+    // Clear any pending auto-scroll timeout when dependencies change or component unmounts.
+    if (autoScrollTimeoutRef.current) {
+      clearTimeout(autoScrollTimeoutRef.current);
+    }
+
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === "user") {
+        // User's own message, scroll immediately and smoothly.
         scrollToBottom(true);
-        return;
+        return; // Don't proceed to debounced auto-scroll for user messages.
       }
     }
+
+    // This is for assistant messages or initial load/connection status changes.
     if (status === "loading" || status === "connected" || messages.length > 0) {
-      if (isNearBottom && !userHasScrolledUp) {
-        scrollToBottom();
-      }
+      // Set a timeout to debounce the auto-scroll.
+      autoScrollTimeoutRef.current = setTimeout(() => {
+        if (
+          isNearBottom &&
+          !userHasScrolledUp &&
+          !isSmoothScrollingToBottom.current
+        ) {
+          scrollToBottom(); // Defaults to force=false (behavior: "auto")
+        }
+      }, 2000); // 2-second debounce
     }
-  }, [messages, status, scrollToBottom, isNearBottom, userHasScrolledUp]);
+
+    // Cleanup function to clear the timeout if the component unmounts
+    // or if the effect re-runs before the timeout fires.
+    return () => {
+      if (autoScrollTimeoutRef.current) {
+        clearTimeout(autoScrollTimeoutRef.current);
+      }
+    };
+  }, [messages, status, scrollToBottom, isNearBottom, userHasScrolledUp]); // isSmoothScrollingToBottom is a ref, not in deps
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
