@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React from "react";
 import { Button, Tooltip, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
@@ -19,6 +21,12 @@ interface ActionButtonsProps {
   hasContent: boolean;
 }
 
+const styles = css({
+  ".send-button": {
+    marginBottom: "-5px"
+  }
+});
+
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
   status,
   onSend,
@@ -27,7 +35,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   hasContent
 }) => {
   return (
-    <div className="button-container">
+    <div className="chat-action-buttons" css={styles}>
       {status === "loading" && onStop && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <Button className="stop-button" onClick={onStop}>

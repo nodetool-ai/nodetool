@@ -233,7 +233,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     return selectedTools
       .map((toolId) => TOOLS.find((tool) => tool.id === toolId))
       .filter(Boolean)
-      .slice(0, 3); // Show max 3 icons to avoid overflow
+      .slice(0, 3);
   }, [selectedTools]);
 
   return (
