@@ -9,8 +9,18 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
+const MAX_ROWS = 8;
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
-  ({ value, onChange, onKeyDown, disabled, placeholder = "Type your message..." }, ref) => {
+  (
+    {
+      value,
+      onChange,
+      onKeyDown,
+      disabled,
+      placeholder = "Type your message..."
+    },
+    ref
+  ) => {
     return (
       <TextareaAutosize
         className="chat-input"
@@ -22,7 +32,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
         onKeyDown={onKeyDown}
         disabled={disabled}
         minRows={1}
-        maxRows={4}
+        maxRows={MAX_ROWS}
         placeholder={placeholder}
         autoCorrect="off"
         autoCapitalize="none"

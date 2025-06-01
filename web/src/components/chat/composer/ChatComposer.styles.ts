@@ -26,7 +26,7 @@ export const createStyles = (theme: any) =>
     },
 
     ".compose-message textarea": {
-      fontFamily: theme.fontFamily2,
+      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       backgroundColor: "transparent",
       color: theme.palette.c_white,
