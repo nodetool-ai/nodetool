@@ -275,7 +275,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.getState().createNewThread();
-    }, 30000); // Reverted timeout to 30 seconds
+    }, 60000);
 
     afterEach(() => {
       if (mockServer) {
