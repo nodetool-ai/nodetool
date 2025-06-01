@@ -76,17 +76,19 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
-          e.preventDefault();
-          setPrompt((p) => p + "\n");
+          // Allow default behavior (newline insertion)
+          // We don't call e.preventDefault() here
+          // We also don't need to manually setPrompt or manage cursor
           return;
         }
+        // For Enter without Shift (and without Meta/Alt), send the message
         if (!metaKeyPressed && !altKeyPressed) {
-          e.preventDefault();
+          e.preventDefault(); // Prevent default form submission or newline in some cases
           handleSend();
         }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend] // Removed prompt from dependencies
   );
 
   const isDisabled = disabled || status === "loading" || status === "error";
