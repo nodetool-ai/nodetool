@@ -33,7 +33,10 @@ const GlobalChat: React.FC = () => {
     stopGeneration
   } = useGlobalChatStore();
 
-  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    return savedModel || DEFAULT_MODEL;
+  });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -74,6 +77,11 @@ const GlobalChat: React.FC = () => {
       setDrawerOpen(false);
     }
   }, [isMobile]);
+
+  // Save selectedModel to localStorage
+  useEffect(() => {
+    localStorage.setItem("selectedModel", selectedModel);
+  }, [selectedModel]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -226,11 +234,11 @@ const GlobalChat: React.FC = () => {
         </Box>
 
         {(error || status === "reconnecting") && (
-          <Alert 
-            severity={status === "reconnecting" ? "info" : "error"} 
+          <Alert
+            severity={status === "reconnecting" ? "info" : "error"}
             sx={{ mx: 2, my: 1 }}
           >
-            {status === "reconnecting" 
+            {status === "reconnecting"
               ? statusMessage || "Reconnecting to chat service..."
               : error}
           </Alert>
