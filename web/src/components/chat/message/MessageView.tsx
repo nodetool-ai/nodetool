@@ -9,9 +9,7 @@ import ChatMarkdown from "./ChatMarkdown";
 import { ThoughtSection } from "./thought/ThoughtSection";
 import { MessageContentRenderer } from "./MessageContentRenderer";
 import { parseThoughtContent, getMessageClass } from "../utils/messageUtils";
-import { useClipboard } from "../../../hooks/browser/useClipboard";
-import { IconButton } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 
 interface MessageViewProps {
   message: Message;
@@ -25,7 +23,6 @@ export const MessageView: React.FC<MessageViewProps> = ({
   onToggleThought
 }) => {
   const messageClass = getMessageClass(message.role);
-  const { writeClipboard } = useClipboard();
   const [isHovered, setIsHovered] = useState(false);
 
   const handleCopy = () => {
@@ -38,7 +35,7 @@ export const MessageView: React.FC<MessageViewProps> = ({
         .map((c) => (c as MessageTextContent).text)
         .join("\n");
     }
-    writeClipboard(textToCopy, true);
+    return textToCopy;
   };
 
   const renderContent = (content: string, index: number) => {
@@ -92,14 +89,12 @@ export const MessageView: React.FC<MessageViewProps> = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       {showCopyButton && (
-        <IconButton
-          onClick={handleCopy}
+        <CopyToClipboardButton
+          textToCopy={handleCopy()}
           size="small"
           style={copyButtonStyle}
           title="Copy to clipboard"
-        >
-          <ContentCopyIcon sx={{ fontSize: "0.875rem" }} />
-        </IconButton>
+        />
       )}
       {typeof message.content === "string" &&
         renderContent(

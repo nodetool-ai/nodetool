@@ -4,11 +4,10 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { okaidia } from "react-syntax-highlighter/dist/esm/styles/prism";
 import "../../../styles/markdown/github-markdown-dark.css";
 // import "../../../styles/markdown/github-markdown-light.css";
 import "../../../styles/markdown/nodetool-markdown.css";
+import { CodeBlock } from "./markdown_elements/CodeBlock";
 
 interface ChatMarkdownProps {
   content: string;
@@ -17,8 +16,24 @@ interface ChatMarkdownProps {
 const styles = (theme: any) =>
   css({
     backgroundColor: "transparent !important",
+    ".code-block-header": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: "var(--c_gray1)",
+      color: "var(--c_gray5)",
+      paddingTop: "5px",
+      paddingBottom: "5px",
+      paddingLeft: "1em",
+      paddingRight: "1em",
+      borderTopLeftRadius: "8px",
+      borderTopRightRadius: "8px"
+    },
     pre: {
       borderRadius: "8px",
+      borderTopLeftRadius: "0px",
+      borderTopRightRadius: "0px",
+      marginTop: "0px",
       maxHeight: "80vh",
       overflow: "auto"
     }
@@ -31,27 +46,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          code({ node, inline, className, children, ...props }: any) {
-            const match = /language-(\w+)/.exec(className || "");
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={okaidia}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{
-                  background: "transparent",
-                  fontFamily: '"JetBrains Mono", monospace'
-                }}
-                {...props}
-              >
-                {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          }
+          code: (props) => <CodeBlock {...props} />
         }}
       >
         {content || ""}
