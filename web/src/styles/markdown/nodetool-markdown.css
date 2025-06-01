@@ -26,6 +26,13 @@
   font-family: "JetBrains Mono !important", monospace !important;
 }
 
+.markdown-body .highlight pre,
+.markdown-body pre {
+  padding: 0;
+}
+
+
+
 /* list */
 ol > li {
   list-style-type: auto !important;

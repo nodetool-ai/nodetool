@@ -8,6 +8,7 @@ import "../../../styles/markdown/github-markdown-dark.css";
 // import "../../../styles/markdown/github-markdown-light.css";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
+import { PreRenderer } from "./markdown_elements/PreRenderer";
 
 interface ChatMarkdownProps {
   content: string;
@@ -46,7 +47,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          code: (props) => <CodeBlock {...props} />
+          code: (props) => <CodeBlock {...props} />,
+          pre: (props) => <PreRenderer {...props} />
         }}
       >
         {content || ""}

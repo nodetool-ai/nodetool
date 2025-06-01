@@ -59,6 +59,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
 
   return (
     <IconButton
+      className="copy-to-clipboard-button"
       onClick={handleCopy}
       size={size}
       title={title}
