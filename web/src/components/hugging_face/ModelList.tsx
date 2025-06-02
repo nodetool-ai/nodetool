@@ -552,11 +552,12 @@ const ModelList: React.FC = () => {
             <SearchInput
               focusOnTyping={true}
               focusSearchInput={false}
-              maxWidth={"9em"}
+              width={300}
+              maxWidth={"300px"}
               onSearchChange={setModelSearchTerm}
               searchTerm={modelSearchTerm}
             />
-            <ToggleButtonGroup
+            {/* <ToggleButtonGroup
               className="toggle-button-group-view-mode"
               value={viewMode}
               exclusive
@@ -570,7 +571,7 @@ const ModelList: React.FC = () => {
               <ToggleButton value="list" aria-label="list view">
                 <ViewListIcon />
               </ToggleButton>
-            </ToggleButtonGroup>
+            </ToggleButtonGroup> */}
           </Box>
           <Box sx={{ width: "100%" }}>
             <ToggleButtonGroup
