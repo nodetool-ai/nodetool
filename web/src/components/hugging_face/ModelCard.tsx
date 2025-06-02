@@ -181,7 +181,7 @@ const styles = (theme: any) =>
       transition: "transform 0.125s ease-in, filter 0.2s ease-in",
       "&:hover": {
         backgroundColor: "transparent",
-        transform: "scale(1.5)",
+        transform: "scale(1.25)",
         filter: "saturate(1)"
       }
     },

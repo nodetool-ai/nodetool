@@ -120,6 +120,22 @@ const styles = (theme: any) =>
     },
     ".model-type-button.Mui-selected span": {
       color: theme.palette.c_hl1
+    },
+    ".model-external-link-icon": {
+      boxShadow: "none",
+      cursor: "pointer",
+      padding: "1em",
+      backgroundColor: "transparent",
+      filter: "saturate(0)",
+      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+      "&:hover": {
+        backgroundColor: "transparent",
+        transform: "scale(1.25)",
+        filter: "saturate(1)"
+      }
+    },
+    ".model-external-link-icon img": {
+      cursor: "pointer"
     }
   });
 
