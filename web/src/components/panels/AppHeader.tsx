@@ -30,7 +30,8 @@ const styles = (theme: any) =>
       width: "100%",
       overflow: "visible",
       backgroundColor: "var(--c_gray1)",
-      paddingLeft: "8px"
+      paddingLeft: "8px",
+      borderBottom: "1px solid var(--c_gray2)"
     },
     ".toolbar": {
       overflow: "visible",
