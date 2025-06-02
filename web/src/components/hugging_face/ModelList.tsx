@@ -338,31 +338,17 @@ const ModelList: React.FC = () => {
   });
 
   const handleDeleteClick = (modelId: string) => {
-    console.log("[ModelList] handleDeleteClick - modelId:", modelId);
     setModelToDelete(modelId);
   };
 
   const handleConfirmDelete = () => {
-    console.log(
-      "[ModelList] handleConfirmDelete - modelToDelete:",
-      modelToDelete
-    );
     if (modelToDelete) {
       const isOllama = ollamaModels?.find((m) => m.id === modelToDelete);
-      console.log("[ModelList] handleConfirmDelete - isOllama:", isOllama);
       if (isOllama) {
         // TODO: Implement Ollama model deletion. This will require a new API endpoint
         // and a function similar to deleteHFModel but for Ollama models.
         // For now, we'll just log a message.
-        console.log(
-          "[ModelList] Attempting to delete Ollama model:",
-          modelToDelete
-        );
       } else {
-        console.log(
-          "[ModelList] Attempting to delete HF model:",
-          modelToDelete
-        );
         deleteHFModel(modelToDelete);
       }
     }
@@ -370,33 +356,22 @@ const ModelList: React.FC = () => {
   };
 
   const handleCancelDelete = () => {
-    console.log("[ModelList] handleCancelDelete");
     setModelToDelete(null);
   };
 
   const handleShowInExplorer = async (modelId: string) => {
-    console.log("[ModelList] handleShowInExplorer - modelId:", modelId);
     if (modelId) {
       const model =
         ollamaModels?.find((m) => m.id === modelId) ||
         hfModels?.find((m) => m.id === modelId);
-      console.log("[ModelList] handleShowInExplorer - found model:", model);
 
       let pathToOpen = model?.path; // Prefer specific model path
 
       if (model?.type === "llama_model" && !pathToOpen) {
-        console.log(
-          "[ModelList] Ollama model specific path missing, trying base path. Base path:",
-          ollamaBasePath
-        );
         pathToOpen = ollamaBasePath; // Fallback to Ollama base path
       }
 
       if (pathToOpen) {
-        console.log(
-          "[ModelList] handleShowInExplorer - path to open:",
-          pathToOpen
-        );
         try {
           await client.POST("/api/models/open_in_explorer", {
             params: { query: { path: pathToOpen } }
@@ -404,23 +379,18 @@ const ModelList: React.FC = () => {
         } catch (error) {
           console.error("[ModelList] Failed to open in explorer:", error);
         }
-      } else {
-        console.log(
-          "[ModelList] handleShowInExplorer - No path found (specific or base) for modelId:",
-          modelId
-        );
       }
     }
   };
 
-  const handleViewModeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newViewMode: "grid" | "list" | null
-  ) => {
-    if (newViewMode !== null) {
-      setViewMode(newViewMode);
-    }
-  };
+  // const handleViewModeChange = (
+  //   event: React.MouseEvent<HTMLElement>,
+  //   newViewMode: "grid" | "list" | null
+  // ) => {
+  //   if (newViewMode !== null) {
+  //     setViewMode(newViewMode);
+  //   }
+  // };
 
   const handleModelSourceChange = (
     event: React.MouseEvent<HTMLElement>,
