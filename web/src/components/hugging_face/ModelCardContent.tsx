@@ -79,7 +79,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
               variant="h5"
               style={{ color: ThemeNodetool.palette.c_warning }}
             >
-              Failed to find matching repository:
+              No matching repository found.
             </Typography>
             <Button
               className="button-link"
