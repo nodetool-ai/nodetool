@@ -33,12 +33,12 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
-      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+      borderRight: "1px solid var(--c_gray2)",
       backgroundColor: "var(--c_gray1)",
       direction: "ltr",
       position: "absolute",
-      overflowX: "hidden",
-      overflowY: "auto",
+      overflow: "hidden",
       width: "100%",
       padding: "0",
       top: "72px",
