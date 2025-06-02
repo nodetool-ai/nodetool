@@ -18,14 +18,33 @@ export const createStyles = (theme: any) => ({
     alignItems: "center",
     overflowY: "auto",
     padding: "0 .5em",
-    position: "relative"
+    marginTop: ".2em",
+    marginRight: ".1em",
+    position: "relative",
+    scrollbarWidth: "auto",
+    scrollbarColor: "var(--c_gray2) transparent",
+
+    "&::-webkit-scrollbar": {
+      width: "12px !important"
+    },
+    "&::-webkit-scrollbar-track": {
+      background: "transparent !important"
+    },
+    "&::-webkit-scrollbar-thumb": {
+      background: "var(--c_gray2) !important",
+      borderRadius: "4px"
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      background: "var(--c_warn) !important"
+    }
   }),
   chatMessagesList: css({
     listStyleType: "none",
-    maxWidth: "1000px",
+    maxWidth: "1100px",
     width: "100%",
-    padding: "2em 0 0",
+    padding: "2em 1em",
     margin: "0",
+    // backgroundColor: "var(--palette-background-paper)",
 
     "li.chat-message": {
       width: "100%",
@@ -65,7 +84,7 @@ export const createStyles = (theme: any) => ({
     },
 
     "li .markdown": {
-      padding: "1em"
+      padding: ".5em 1em"
     },
 
     "li.assistant": {
