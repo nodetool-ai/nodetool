@@ -18,7 +18,8 @@ import {
   renderModelSecondaryInfo,
   renderModelActions,
   HuggingFaceLink,
-  OllamaLink
+  OllamaLink,
+  getShortModelName
 } from "./ModelUtils";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useModelInfo } from "./ModelUtils";
@@ -74,7 +75,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
           <div className="model-info-container">
             <div className="model-header">
               <Typography component="span" className="model-name">
-                {formatId(model.id)}
+                {getShortModelName(model.id)}
               </Typography>
             </div>
             <div className="model-details">
@@ -114,7 +115,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         <div className="model-info-container">
           <div className="model-header">
             <Typography component="span" className="model-name">
-              {model.repo_id ? model.repo_id : model.id}
+              {getShortModelName(model.repo_id ? model.repo_id : model.id)}
             </Typography>
             {model.path && (
               <Typography component="span" className="model-path">

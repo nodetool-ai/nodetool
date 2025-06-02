@@ -109,6 +109,15 @@ export function formatId(id: string) {
   return <span className="repo">{id}</span>;
 }
 
+export const getShortModelName = (fullName: string | undefined): string => {
+  if (!fullName) return "";
+  const lastSlashIndex = fullName.lastIndexOf("/");
+  if (lastSlashIndex !== -1 && lastSlashIndex < fullName.length - 1) {
+    return fullName.substring(lastSlashIndex + 1);
+  }
+  return fullName;
+};
+
 export const modelSize = (model: UnifiedModel) =>
   ((model.size_on_disk ?? 0) / 1024 / 1024).toFixed(2).toString() + " MB";
 
