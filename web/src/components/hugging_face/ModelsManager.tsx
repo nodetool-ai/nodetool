@@ -80,6 +80,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       }}
       sx={{
         "& .MuiDialog-paper": {
+          width: "90%",
           maxWidth: "90vw",
           margin: "auto"
         }

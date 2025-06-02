@@ -65,8 +65,7 @@ const styles = (theme: any) =>
       height: "95%",
       flexGrow: 1,
       overflowY: "auto",
-      padding: theme.spacing(2),
-      paddingBottom: "4em"
+      padding: "0 0 4em 1em"
     },
     ".model-list-section": {
       marginBottom: theme.spacing(15)
