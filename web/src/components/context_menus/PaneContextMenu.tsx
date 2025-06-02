@@ -11,7 +11,6 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
-import LoopIcon from "@mui/icons-material/Loop";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -22,7 +21,6 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
@@ -91,11 +89,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       closeContextMenu();
     },
     [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
-  const createLoopNode = useCreateLoopNode();
-  const loopMetadata = useMetadataStore((state) =>
-    state.getMetadata("nodetool.group.Loop")
   );
 
   const addInputNode = useCallback(

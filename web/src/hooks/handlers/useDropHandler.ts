@@ -7,11 +7,7 @@ import { useFileHandlers } from "./dropHandlerUtils";
 import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
-import { useCreateLoopNode } from "../nodes/useCreateLoopNode";
 import { useNodes } from "../../contexts/NodeContext";
-import { useIsGroupable } from "../nodes/useIsGroupable";
-import { NodeData } from "../../stores/NodeData";
-import { Node } from "@xyflow/react";
 // File type detection
 function detectFileType(file: File): string {
   switch (file.type) {
@@ -48,11 +44,6 @@ export const useDropHandler = () => {
     (state) => state.addNotification
   );
   const addNodeFromAsset = useAddNodeFromAsset();
-  const createLoopNode = useCreateLoopNode();
-  const { isGroup } = useIsGroupable();
-  const { findNode } = useNodes((state) => ({
-    findNode: state.findNode
-  }));
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -70,12 +61,8 @@ export const useDropHandler = () => {
       const nodeJSON = event.dataTransfer.getData("create-node");
       const node = nodeJSON ? (JSON.parse(nodeJSON) as NodeMetadata) : null;
       if (node !== null) {
-        if (node.node_type === "nodetool.group.Loop") {
-          createLoopNode(node, position);
-        } else {
-          const newNode = createNode(node, position);
-          addNode(newNode);
-        }
+        const newNode = createNode(node, position);
+        addNode(newNode);
         return;
       }
 
@@ -134,8 +121,7 @@ export const useDropHandler = () => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
-      addNotification,
-      createLoopNode
+      addNotification
     ]
   );
 
