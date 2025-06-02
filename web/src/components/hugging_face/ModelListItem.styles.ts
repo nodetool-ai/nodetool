@@ -52,7 +52,10 @@ const modelListItemStyles = (theme: any) =>
         overflow: "hidden",
         textOverflow: "ellipsis"
       },
-
+      "& .model-path": {
+        display: "block",
+        fontSize: "var(--fontSizeSmaller)"
+      },
       "& .model-details": {
         flex: 1,
         gap: "0.2em",
@@ -114,22 +117,6 @@ const modelListItemStyles = (theme: any) =>
         right: "unset",
         left: "1em"
       }
-    },
-
-    ".model-external-link-icon": {
-      boxShadow: "none",
-      cursor: "pointer",
-      backgroundColor: "transparent",
-      filter: "saturate(0)",
-      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
-      "&:hover": {
-        backgroundColor: "transparent",
-        transform: "scale(1.5)",
-        filter: "saturate(1)"
-      }
-    },
-    ".model-external-link-icon img": {
-      cursor: "pointer"
     }
   });
 

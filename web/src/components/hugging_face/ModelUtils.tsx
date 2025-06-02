@@ -1,11 +1,12 @@
 import React from "react";
-import { UnifiedModel } from "../../stores/ApiTypes";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import DeleteButton from "../buttons/DeleteButton";
 import { Check } from "@mui/icons-material";
 import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
+import FolderIcon from "@mui/icons-material/Folder";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHuggingFaceRepoInfo } from "../../utils/huggingFaceUtils";
 
@@ -86,7 +87,8 @@ export const prettifyModelType = (type: string) => {
 
 export interface ModelComponentProps {
   model: UnifiedModel;
-  handleDelete?: (repoId: string) => void;
+  handleModelDelete?: (modelId: string) => void;
+  handleShowInExplorer?: (modelId: string) => void;
   onDownload?: () => void;
   compactView?: boolean;
 }
@@ -113,6 +115,23 @@ export const modelSize = (model: UnifiedModel) =>
 export const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({
   onClick
 }) => <>{!isProduction && <DeleteButton onClick={onClick} />}</>;
+
+export const ModelShowInExplorerButton: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ onClick, disabled }) => (
+  <Tooltip title="Show in File Explorer">
+    <span>
+      <Button
+        onClick={onClick}
+        disabled={disabled}
+        sx={{ minWidth: "auto", padding: "6px" }}
+      >
+        <FolderIcon />
+      </Button>
+    </span>
+  </Tooltip>
+);
 
 export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
@@ -226,24 +245,20 @@ export const renderModelActions = (
       <ModelDownloadButton onClick={props.onDownload} />
     )}
     {downloaded && (
-      <Button
-        // variant="outlined"
-        disabled
-        className="model-downloaded-button"
-        sx={{
-          fontSize: "0.8em",
-          padding: "0.5em",
-          marginLeft: "0.5em",
-          backgroundColor: "#252525",
-          color: "#fff !important"
-        }}
-      >
-        <Check sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
-        DOWNLOADED
-      </Button>
+      <Tooltip title="Downloaded">
+        <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
+      </Tooltip>
     )}
-    {props.handleDelete && (
-      <ModelDeleteButton onClick={() => props.handleDelete!(props.model.id)} />
+    {props.handleShowInExplorer && (
+      <ModelShowInExplorerButton
+        onClick={() => props.handleShowInExplorer!(props.model.id)}
+        disabled={!props.model.path}
+      />
+    )}
+    {props.handleModelDelete && (
+      <ModelDeleteButton
+        onClick={() => props.handleModelDelete!(props.model.id)}
+      />
     )}
   </Box>
 );
