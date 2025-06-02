@@ -152,9 +152,9 @@ export const paletteLight: PaletteOptions = {
   c_link_visited: "#5856D6",
 
   /* Scrollbar*/
-  c_scroll_bg: "#F0F0F0",
-  c_scroll_hover: "#DCDCDC",
-  c_scroll_thumb: "#C0C0C0",
+  c_scroll_bg: "transparent",
+  c_scroll_hover: "#545454",
+  c_scroll_thumb: "#494949",
 
   /* Node specific - adjust for light theme */
   c_node_bg: "#FFFFFF",
