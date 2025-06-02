@@ -158,7 +158,7 @@ const GlobalChat: React.FC = () => {
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(2),
-        boxShadow: "2px 0 10px 0 rgba(0, 0, 0, 0.7)"
+        boxShadow: "2px 0 25px 0 rgba(0, 0, 0, 0.3)"
       },
 
       ".chat-container": {

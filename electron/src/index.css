@@ -16,7 +16,7 @@
 /* Firefox 64+ */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--c_scroll_thumb) var(--c_scroll_bg);
+  scrollbar-color: var(--c_scroll_thumb) transparent;
 }
 @font-face {
   font-family: "Inter";
