@@ -26,11 +26,11 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
-
 const ModelListItem: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
-  handleDelete,
+  handleModelDelete,
+  handleShowInExplorer,
   compactView = false
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
@@ -95,7 +95,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
               {renderModelActions(
-                { model, handleDelete, onDownload },
+                { model, handleModelDelete, onDownload, handleShowInExplorer },
                 downloaded
               )}
             </div>
@@ -172,7 +172,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
-              { model, handleDelete, onDownload },
+              { model, handleModelDelete, onDownload, handleShowInExplorer },
               downloaded
             )}
           </div>

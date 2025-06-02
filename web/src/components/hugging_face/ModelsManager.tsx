@@ -10,7 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 const styles = (theme: any) =>
   css({
-    backgroundColor: theme.palette.c_gray1,
+    margin: "2em 0 0",
     "&.models-manager": {
       display: "flex",
       gap: "1em",
@@ -69,15 +69,27 @@ interface ModelsManagerProps {
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   return (
     <Dialog
+      css={styles}
+      className="models-manager-dialog"
       open={open}
       onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      BackdropProps={{
-        style: { backgroundColor: "rgba(0, 0, 0, 0.7)" }
+      slotProps={{
+        backdrop: {
+          style: { backgroundColor: "#11111122" }
+        }
+      }}
+      sx={{
+        "& .MuiDialog-paper": {
+          maxWidth: "90vw",
+          margin: "auto"
+        }
       }}
     >
-      <DialogContent css={styles}>
+      <DialogContent
+        sx={{
+          backgroundColor: "var(--c_gray1)"
+        }}
+      >
         <IconButton
           aria-label="close"
           onClick={onClose}
