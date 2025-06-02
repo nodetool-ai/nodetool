@@ -1,6 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback, useState } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  useMemo
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import { Message } from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
@@ -25,6 +31,73 @@ interface ChatThreadViewProps {
   progressMessage: string | null;
 }
 
+const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
+const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
+
+// Define props for the memoized list content component
+interface MemoizedMessageListContentProps
+  extends Omit<ChatThreadViewProps, "theme"> {
+  expandedThoughts: { [key: string]: boolean };
+  onToggleThought: (key: string) => void;
+  bottomRef: React.RefObject<HTMLDivElement>; // Pass the ref here
+  // Add componentStyles if needed directly, or rely on ChatThreadView's styles
+  componentStyles: ReturnType<typeof createStyles>;
+}
+
+const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
+  ({
+    messages,
+    status,
+    progress,
+    total,
+    progressMessage,
+    expandedThoughts,
+    onToggleThought,
+    bottomRef,
+    componentStyles
+  }) => {
+    return (
+      <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
+        {messages.map((msg, index) => (
+          <MessageView
+            key={msg.id || `msg-${index}`}
+            message={msg}
+            expandedThoughts={expandedThoughts}
+            onToggleThought={onToggleThought}
+          />
+        ))}
+        {status === "loading" && progress === 0 && (
+          <li key="loading-indicator" className="chat-message-list-item">
+            <LoadingIndicator />
+          </li>
+        )}
+        {progress > 0 && (
+          <li key="progress-indicator" className="chat-message-list-item">
+            <Progress progress={progress} total={total} />
+          </li>
+        )}
+        {progressMessage && (
+          <li
+            key="progress-message"
+            className="node-status chat-message-list-item"
+          >
+            <span
+              css={css`
+                display: inline;
+                animation: ${textPulse} 1.8s ease-in-out infinite;
+              `}
+            >
+              {progressMessage}
+            </span>
+          </li>
+        )}
+        <div ref={bottomRef} style={{ height: 1 }} />
+      </ul>
+    );
+  }
+);
+MemoizedMessageListContent.displayName = "MemoizedMessageListContent";
+
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
   status,
@@ -38,115 +111,119 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
-  const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
-  const [isNearBottom, setIsNearBottom] = useState(true);
-  const isSmoothScrollingToBottom = useRef(false);
+  const userHasScrolledUpRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const lastUserScrollTimeRef = useRef<number>(0);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showScrollToBottomButton, setShowScrollToBottomButton] =
+    useState(false);
 
   const SCROLL_THRESHOLD = 50;
 
-  const componentStyles = createStyles(theme);
-
-  const handleScroll = useCallback(() => {
-    const element = scrollRef.current;
-    if (element) {
-      const nearBottom =
-        element.scrollHeight - element.scrollTop - element.clientHeight <
-        SCROLL_THRESHOLD;
-      if (!nearBottom && !userHasScrolledUp) {
-        setUserHasScrolledUp(true);
-      } else if (nearBottom && userHasScrolledUp) {
-        setUserHasScrolledUp(false);
-      }
-      isSmoothScrollingToBottom.current = false;
-    }
-  }, [userHasScrolledUp]);
-
-  const scrollToBottom = useCallback(
-    (force = false) => {
-      const el = bottomRef.current;
-      if (el) {
-        if (force || isNearBottom) {
-          if (force) {
-            el.scrollIntoView({ behavior: "smooth" });
-            isSmoothScrollingToBottom.current = true;
-          } else {
-            if (!isSmoothScrollingToBottom.current) {
-              el.scrollIntoView({ behavior: "auto" });
-            }
-          }
-          setUserHasScrolledUp(false);
-          setIsNearBottom(true);
-        }
-      }
-    },
-    [isNearBottom]
-  );
+  const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
-    const scrollEl = scrollRef.current;
-    const bottomEl = bottomRef.current;
-    if (!scrollEl || !bottomEl) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsNearBottom(entry.isIntersecting);
-        if (entry.isIntersecting) {
-          isSmoothScrollingToBottom.current = false;
-        }
-      },
-      { root: scrollEl, threshold: 0.1 }
-    );
-    observer.observe(bottomEl);
-    return () => observer.disconnect();
+    lastUserScrollTimeRef.current = Date.now();
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    lastUserScrollTimeRef.current = Date.now();
+    const element = scrollRef.current;
+    if (!element) return;
+
+    const calculatedIsNearBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight <
+      SCROLL_THRESHOLD;
+
+    const previousUserHasScrolledUp = userHasScrolledUpRef.current;
+    if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
+      userHasScrolledUpRef.current = true;
+    } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
+      userHasScrolledUpRef.current = false;
+    }
+
+    if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
+      const shouldBeVisible =
+        !isNearBottomRef.current && userHasScrolledUpRef.current;
+      if (shouldBeVisible !== showScrollToBottomButton) {
+        setShowScrollToBottomButton(shouldBeVisible);
+      }
+    }
+  }, [SCROLL_THRESHOLD, showScrollToBottomButton]);
+
+  const scrollToBottom = useCallback(() => {
+    const el = bottomRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+      userHasScrolledUpRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
-    const element = scrollRef.current;
-    if (element) {
-      element.addEventListener("scroll", handleScroll);
-      return () => {
-        element.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [handleScroll]);
+    const scrollElement = scrollRef.current;
+    const bottomElement = bottomRef.current;
+    if (!scrollElement || !bottomElement) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const wasNearBottom = isNearBottomRef.current;
+        isNearBottomRef.current = entry.isIntersecting;
+
+        if (isNearBottomRef.current !== wasNearBottom) {
+          const shouldBeVisible =
+            !isNearBottomRef.current && userHasScrolledUpRef.current;
+          if (shouldBeVisible !== showScrollToBottomButton) {
+            setShowScrollToBottomButton(shouldBeVisible);
+          }
+        }
+      },
+      { root: scrollElement, threshold: 0.1 }
+    );
+
+    observer.observe(bottomElement);
+    return () => {
+      observer.disconnect();
+    };
+  }, [showScrollToBottomButton]);
 
   useEffect(() => {
-    // Clear any pending auto-scroll timeout when dependencies change or component unmounts.
     if (autoScrollTimeoutRef.current) {
       clearTimeout(autoScrollTimeoutRef.current);
     }
 
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === "user") {
-        // User's own message, scroll immediately and smoothly.
-        scrollToBottom(true);
-        return; // Don't proceed to debounced auto-scroll for user messages.
-      }
+    const lastMessage =
+      messages.length > 0 ? messages[messages.length - 1] : null;
+
+    if (lastMessage?.role === "user") {
+      scrollToBottom();
+      return;
     }
 
-    // This is for assistant messages or initial load/connection status changes.
-    if (status === "loading" || status === "connected" || messages.length > 0) {
-      // Set a timeout to debounce the auto-scroll.
+    if (
+      status === "streaming" ||
+      (lastMessage && lastMessage.role !== "user")
+    ) {
       autoScrollTimeoutRef.current = setTimeout(() => {
+        const userIsIdle =
+          Date.now() - lastUserScrollTimeRef.current >
+          USER_SCROLL_IDLE_THRESHOLD_MS;
+
         if (
-          isNearBottom &&
-          !userHasScrolledUp &&
-          !isSmoothScrollingToBottom.current
+          !userHasScrolledUpRef.current &&
+          userIsIdle &&
+          isNearBottomRef.current
         ) {
-          scrollToBottom(); // Defaults to force=false (behavior: "auto")
+          scrollToBottom();
         }
-      }, 2000); // 2-second debounce
+      }, ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS);
     }
 
-    // Cleanup function to clear the timeout if the component unmounts
-    // or if the effect re-runs before the timeout fires.
     return () => {
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
       }
     };
-  }, [messages, status, scrollToBottom, isNearBottom, userHasScrolledUp]); // isSmoothScrollingToBottom is a ref, not in deps
+  }, [messages, status, scrollToBottom]);
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -161,50 +238,23 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ref={scrollRef}
         css={componentStyles.scrollableMessageWrapper}
         className="scrollable-message-wrapper"
+        onScroll={handleScroll}
       >
-        <ul
-          css={componentStyles.chatMessagesList}
-          className="chat-messages-list"
-        >
-          {messages.map((msg, index) => (
-            <MessageView
-              key={msg.id || `msg-${index}`}
-              message={msg}
-              expandedThoughts={expandedThoughts}
-              onToggleThought={handleToggleThought}
-            />
-          ))}
-          {status === "loading" && progress === 0 && (
-            <li key="loading-indicator" className="chat-message-list-item">
-              <LoadingIndicator />
-            </li>
-          )}
-          {progress > 0 && (
-            <li key="progress-indicator" className="chat-message-list-item">
-              <Progress progress={progress} total={total} />
-            </li>
-          )}
-          {progressMessage && (
-            <li
-              key="progress-message"
-              className="node-status chat-message-list-item"
-            >
-              <span
-                css={css`
-                  display: inline;
-                  animation: ${textPulse} 1.8s ease-in-out infinite;
-                `}
-              >
-                {progressMessage}
-              </span>
-            </li>
-          )}
-          <div ref={bottomRef} style={{ height: 1 }} />
-        </ul>
+        <MemoizedMessageListContent
+          messages={messages}
+          status={status}
+          progress={progress}
+          total={total}
+          progressMessage={progressMessage}
+          expandedThoughts={expandedThoughts}
+          onToggleThought={handleToggleThought}
+          bottomRef={bottomRef}
+          componentStyles={componentStyles}
+        />
       </div>
       <ScrollToBottomButton
-        isVisible={!isNearBottom}
-        onClick={() => scrollToBottom(true)}
+        isVisible={showScrollToBottomButton}
+        onClick={scrollToBottom}
       />
     </div>
   );
