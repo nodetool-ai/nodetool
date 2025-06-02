@@ -84,7 +84,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
                   "Model not downloaded."
                 ) : (
                   <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                    Failed to find matching repository.
+                    No matching repository found.
                   </span>
                 )}
               </Typography>

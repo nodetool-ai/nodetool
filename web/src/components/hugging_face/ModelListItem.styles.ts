@@ -49,6 +49,8 @@ const modelListItemStyles = (theme: any) =>
         flexGrow: 1,
         textTransform: "uppercase",
         fontSize: "var(--fontSizeBig)",
+        fontWeight: "400",
+        color: "var(--palette-primary-light)",
         overflow: "hidden",
         textOverflow: "ellipsis"
       },
