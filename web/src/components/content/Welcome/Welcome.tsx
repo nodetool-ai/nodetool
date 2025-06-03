@@ -472,8 +472,9 @@ const Welcome = () => {
                 >
                   <Typography variant="h2">Local Models</Typography>
                   <p>
-                    To view the examples, we recommend the following models, all
-                    of which should work on M1 Macs or smaller NVIDIA GPUs.
+                    To run many of the examples, we recommend the following
+                    models, all of which should work on M1 Macs or smaller
+                    NVIDIA GPUs.
                   </p>
                   <ul>
                     <li>
