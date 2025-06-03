@@ -8,142 +8,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
-
-const remoteSettingsStyles = (theme: any): SerializedStyles => {
-  return css`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding-top: 1em;
-
-    .save-button-container {
-      position: absolute;
-      top: 49px;
-      right: 10px;
-      z-index: 100;
-      margin: 0;
-      padding: 0.75em 0;
-      display: flex;
-      justify-content: center;
-      width: 100%;
-    }
-
-    .save-button {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      padding: 0.6em 2.5em;
-      font-family: ${theme.fontFamily2};
-      word-spacing: -0.2em;
-      color: ${theme.palette.primary.contrastText};
-      background-color: ${theme.palette.c_hl1};
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-      border-radius: 0.3em;
-      text-transform: none;
-      font-size: ${theme.fontSizeNormal};
-      transition: all 0.2s ease;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-    }
-
-    .show-hide-button {
-      color: red;
-      min-width: 18em;
-      margin-top: 0.5em;
-      padding: 0.5em;
-    }
-
-    h1 {
-      font-size: ${theme.fontSizeGiant};
-      margin: 1.5em 0 0.5em 0;
-      padding: 0;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: ${theme.palette.c_white};
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 0.2em;
-    }
-
-    h2 {
-      font-size: ${theme.fontSizeBigger};
-      margin: 1.5em 0 0.5em 0;
-      padding: 0;
-      font-weight: 500;
-      color: ${theme.palette.c_hl1};
-      position: relative;
-      display: inline-block;
-    }
-
-    .secrets {
-      display: flex;
-      align-items: center;
-      gap: 0.8em;
-      background-color: rgba(255, 152, 0, 0.1);
-      padding: 0.8em 1.2em;
-      border-radius: 6px;
-      margin: 1em 0 2em;
-      border-left: 3px solid #ff9800;
-    }
-
-    .description {
-      margin-top: 1em;
-      opacity: 0.8;
-      font-size: 0.9em;
-      line-height: 1.5;
-    }
-
-    a {
-      color: ${theme.palette.primary.main};
-      text-decoration: none;
-      transition: color 0.2s ease;
-
-      &:hover {
-        color: ${theme.palette.primary.light};
-        text-decoration: underline;
-      }
-    }
-
-    .settings-section {
-      backgroundcolor: rgba(30, 30, 30, 0.4);
-      backdropfilter: blur(5px);
-      borderradius: 8px;
-      padding: 1.2em;
-      margin: 1.5em 0 1.5em 0;
-      boxshadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      border: 1px solid ${theme.palette.c_gray2};
-      width: 100%;
-      display: flex;
-      flexdirection: column;
-      gap: 0.8em;
-    }
-
-    .settings-item {
-      display: flex;
-      flexdirection: column;
-      gap: 0.8em;
-
-      &.large {
-        gap: 1em;
-      }
-
-      .MuiTextField-root {
-        width: 100%;
-      }
-    }
-
-    .settings-main-content {
-      padding: 1em 2em;
-      max-width: 800px;
-      margin: 0 auto;
-      width: 100%;
-    }
-  `;
-};
+import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 
 const ExternalLinkButton = ({
   href,
@@ -229,6 +94,15 @@ const RemoteSettings = () => {
     return groups;
   }, [data, storeSettingsByGroup]);
 
+  const displayedSettingsByGroup = useMemo(() => {
+    if (!settingsByGroup) return new Map<string, any[]>();
+
+    const filteredEntries = Array.from(settingsByGroup.entries()).filter(
+      ([groupName]) => groupName !== "Folders" // Always exclude "Folders"
+    );
+    return new Map(filteredEntries);
+  }, [settingsByGroup]);
+
   const updateSettingsMutation = useMutation({
     mutationFn: ({ settings, secrets }: { settings: any; secrets: any }) =>
       updateSettings(settings, secrets),
@@ -280,75 +154,82 @@ const RemoteSettings = () => {
           Loading settings...
         </Typography>
       )}
-      {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
-        <div
-          className="remote-settings-content"
-          css={remoteSettingsStyles(ThemeNodetool)}
-        >
-          <div className="settings-main-content">
-            <Typography variant="h1">Settings</Typography>
+      {isSuccess &&
+        displayedSettingsByGroup &&
+        displayedSettingsByGroup.size > 0 && (
+          <div
+            className="remote-settings-content"
+            css={getSharedSettingsStyles(ThemeNodetool)}
+          >
+            <div className="settings-main-content">
+              <Typography variant="h1">Settings</Typography>
 
-            <div className="secrets">
-              <WarningIcon sx={{ color: "#ff9800" }} />
-              <Typography>
-                Keep your keys and tokens secure and do not share them publicly
-              </Typography>
-            </div>
+              <div className="secrets">
+                <WarningIcon sx={{ color: "#ff9800" }} />
+                <Typography>
+                  Keep your keys and tokens secure and do not share them
+                  publicly
+                </Typography>
+              </div>
 
-            {/* Render settings grouped by their group field */}
-            {Array.from(settingsByGroup.entries()).map(
-              ([groupName, groupSettings]) => (
-                <div key={groupName} className="settings-section">
-                  <Typography
-                    variant="h2"
-                    id={groupName.toLowerCase().replace(/\s+/g, "-")}
-                  >
-                    {groupName}
-                  </Typography>
-                  {groupSettings.map((setting) => (
-                    <div key={setting.env_var} className="settings-item large">
-                      <TextField
-                        type={setting.is_secret ? "text" : "text"}
-                        autoComplete="off"
-                        id={`${setting.env_var.toLowerCase()}-input`}
-                        label={setting.env_var.replace(/_/g, " ")}
-                        value={settingValues[setting.env_var] || ""}
-                        onChange={(e) =>
-                          handleChange(setting.env_var, e.target.value)
-                        }
-                        variant="standard"
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                      {setting.description && (
-                        <Typography className="description">
-                          {setting.description}
-                        </Typography>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
+              {/* Render settings grouped by their group field */}
+              {Array.from(displayedSettingsByGroup.entries()).map(
+                ([groupName, groupSettings]) => (
+                  <div key={groupName} className="settings-section">
+                    <Typography
+                      variant="h2"
+                      id={groupName.toLowerCase().replace(/\s+/g, "-")}
+                    >
+                      {groupName}
+                    </Typography>
+                    {groupSettings.map((setting) => (
+                      <div
+                        key={setting.env_var}
+                        className="settings-item large"
+                      >
+                        <TextField
+                          type={setting.is_secret ? "text" : "text"}
+                          autoComplete="off"
+                          id={`${setting.env_var.toLowerCase()}-input`}
+                          label={setting.env_var.replace(/_/g, " ")}
+                          value={settingValues[setting.env_var] || ""}
+                          onChange={(e) =>
+                            handleChange(setting.env_var, e.target.value)
+                          }
+                          variant="standard"
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                        {setting.description && (
+                          <Typography className="description">
+                            {setting.description}
+                          </Typography>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
 
-            <div className="save-button-container">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                className="save-button"
-                startIcon={<SaveIcon />}
-              >
-                SAVE SETTINGS
-              </Button>
+              <div className="save-button-container">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSave}
+                  className="save-button"
+                  startIcon={<SaveIcon />}
+                >
+                  SAVE SETTINGS
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      {isSuccess && (!settingsByGroup || settingsByGroup.size === 0) && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
-          No settings available
-        </Typography>
-      )}
+        )}
+      {isSuccess &&
+        (!displayedSettingsByGroup || displayedSettingsByGroup.size === 0) && (
+          <Typography sx={{ textAlign: "center", padding: "2em" }}>
+            No settings available
+          </Typography>
+        )}
     </>
   );
 };
@@ -356,34 +237,89 @@ const RemoteSettings = () => {
 export const getRemoteSidebarSections = () => {
   const store = useRemoteSettingsStore.getState();
   const settings = store.settings;
+  // console.log(
+  //   "[APIServicesSidebar] All settings from store:",
+  //   JSON.parse(JSON.stringify(settings || []))
+  // );
 
-  // Group settings by their group field
-  const groupedSettings = settings.reduce((acc, setting) => {
-    acc[setting.group] = acc[setting.group] || [];
-    acc[setting.group].push(setting);
+  const initialGroupedSettings = settings.reduce((acc, setting) => {
+    const groupKey = setting.group || "UnknownGroup";
+    acc[groupKey] = acc[groupKey] || [];
+    acc[groupKey].push(setting);
     return acc;
   }, {} as Record<string, any[]>);
+  // console.log(
+  //   "[APIServicesSidebar] Initial groupedSettings (before filtering 'Folders'):",
+  //   JSON.parse(JSON.stringify(initialGroupedSettings || {}))
+  // );
 
-  // If no settings loaded yet, return default structure
-  if (Object.keys(groupedSettings).length === 0) {
+  const filteredGroupEntries = Object.entries(initialGroupedSettings).filter(
+    ([group]) => {
+      const isFoldersGroup = group === "Folders";
+      // console.log(
+      //   `[APIServicesSidebar] Filtering group: ${group}, Is 'Folders' group: ${isFoldersGroup}, Will be kept: ${!isFoldersGroup}`
+      // );
+      return !isFoldersGroup;
+    }
+  );
+
+  const finalGroupedSettings = Object.fromEntries(filteredGroupEntries);
+  // console.log(
+  //   "[APIServicesSidebar] Final groupedSettings (after filtering 'Folders'):",
+  //   JSON.parse(JSON.stringify(finalGroupedSettings || {}))
+  // );
+
+  if (Object.keys(finalGroupedSettings).length === 0) {
+    // console.log(
+    //   "[APIServicesSidebar] No settings groups left after filtering 'Folders'."
+    // );
     return [
       {
-        category: "Settings",
-        items: [{ id: "settings", label: "Settings" }]
+        category: "API Services", // Fallback category
+        items: [{ id: "no-api-settings", label: "No API Settings" }]
       }
     ];
   }
 
-  return Object.entries(groupedSettings).map(([group, settings]) => ({
-    category: group,
-    items: settings.map((setting) => ({
-      id: setting.env_var,
-      label: setting.env_var
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (char: string) => char.toUpperCase())
-    }))
-  }));
+  return Object.entries(finalGroupedSettings).map(
+    ([groupName, settingsArray]: [string, any[]]) => {
+      const sectionId = groupName.toLowerCase().replace(/\s+/g, "-");
+      // console.log(
+      //   `[APIServicesSidebar] Processing group for sidebar: ${groupName}, generated sectionId: ${sectionId}`
+      // );
+      const items = settingsArray
+        .filter((setting) => {
+          const label = setting.env_var
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (char: string) => char.toUpperCase());
+          const isExcludedLabel =
+            label === "Font Path" || label === "Comfy Folder"; // Explicitly exclude these even if they are in other groups
+          // console.log(
+          //   `[APIServicesSidebar] Filtering item in group ${groupName} - ENV_VAR: ${
+          //     setting.env_var
+          //   }, Generated Label: ${label}, Is Excluded Label: ${isExcludedLabel}, Will be kept: ${!isExcludedLabel}`
+          // );
+          return !isExcludedLabel;
+        })
+        .map((setting) => ({
+          id: sectionId,
+          label: setting.env_var
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (char: string) => char.toUpperCase())
+        }));
+
+      // console.log(
+      //   `[APIServicesSidebar] Group: ${groupName}, Final items for this group:`,
+      //   JSON.parse(JSON.stringify(items || []))
+      // );
+      return {
+        category: groupName,
+        items: items
+      };
+    }
+  );
 };
 
 export default RemoteSettings;
