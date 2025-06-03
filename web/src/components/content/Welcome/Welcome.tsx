@@ -51,7 +51,6 @@ interface TabPanelProps {
   index: TabValue;
 }
 
-
 function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
@@ -473,8 +472,8 @@ const Welcome = () => {
                 >
                   <Typography variant="h2">Local Models</Typography>
                   <p>
-                    We recommend the following models, all of which run well on
-                    M1 Macs or smaller NVIDIA GPUs.
+                    To view the examples, we recommend the following models, all
+                    of which should work on M1 Macs or smaller NVIDIA GPUs.
                   </p>
                   <ul>
                     <li>
