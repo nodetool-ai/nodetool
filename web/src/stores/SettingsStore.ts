@@ -6,7 +6,6 @@ export interface Settings {
   connectionSnap: number;
   panControls: string;
   selectionMode: string;
-  workflowLayout: "grid" | "list";
   workflowOrder: "name" | "date";
   assetsOrder: "name" | "date";
   assetItemSize: number;
@@ -27,7 +26,6 @@ interface SettingsStore {
   updateSettings: (newSettings: Partial<Settings>) => void;
   resetSettings: () => void;
   setSelectionMode: (value: string) => void;
-  setWorkflowLayout: (value: "grid" | "list") => void;
   setWorkflowOrder: (value: "name" | "date") => void;
   setAssetsOrder: (value: "name" | "date") => void;
   setAssetItemSize: (value: number) => void;
@@ -42,7 +40,6 @@ export const defaultSettings: Settings = {
   connectionSnap: 20,
   panControls: "LMB",
   selectionMode: "partial",
-  workflowLayout: "grid",
   workflowOrder: "name",
   assetsOrder: "name",
   assetItemSize: 2,
@@ -89,14 +86,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             selectionMode: value || defaultSettings.selectionMode
-          }
-        })),
-
-      setWorkflowLayout: (value: "grid" | "list") =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            workflowLayout: value || defaultSettings.workflowLayout
           }
         })),
 

@@ -25,6 +25,8 @@ import {
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
+import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
@@ -430,8 +432,8 @@ const Welcome = () => {
                               containerStyle={{
                                 display: "inline-block",
                                 width: "18px",
-                                height: "18px",
-                                marginRight: "4px"
+                                height: "18px"
+                                // marginRight: "4px"
                               }}
                               bgStyle={{
                                 display: "inline-block",
@@ -449,23 +451,58 @@ const Welcome = () => {
                     </ul>
                   </Box>
                   <Typography variant="subtitle1" className="setup-list-title">
-                    2. Use Remote Models, like OpenAI or Anthropic, configure
-                    them in the Settings.
+                    2. Use Remote Models
                   </Typography>
                   <Box className="setup-list-content">
-                    <ul>
-                      <li>
-                        <Typography variant="body2">
-                          Set up API keys to access cloud-based AI models.
-                        </Typography>
-                      </li>
-                      <li>
-                        <Typography variant="body2">
-                          Ideal for more powerful models or when local resources
-                          are limited.
-                        </Typography>
-                      </li>
-                    </ul>
+                    <Typography component="div" sx={{ mt: 2, mb: 1 }}>
+                      <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
+                        2. Use Remote Models
+                      </Typography>
+                      <Typography sx={{ mb: 1, pl: 2 }}>
+                        Services like OpenAI or Anthropic can be configured in
+                        the{" "}
+                        <SettingsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />{" "}
+                        <strong>Settings</strong> icon in the top-right corner).
+                        Set up your API keys there to access these powerful
+                        cloud-based AI models. This option is ideal when you
+                        need capabilities beyond local models or if your local
+                        machine resources are limited.
+                      </Typography>
+                      <Typography sx={{ mb: 1, pl: 2 }}>
+                        Additionally, you can integrate services such as{" "}
+                        <Link
+                          href="https://replicate.com/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Replicate
+                        </Link>
+                        ,{" "}
+                        <Link
+                          href="https://fal.ai/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Fal.ai
+                        </Link>
+                        , or{" "}
+                        <Link
+                          href="https://elevenlabs.io/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          ElevenLabs
+                        </Link>{" "}
+                        by installing their respective packs. Look for the{" "}
+                        <WidgetsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />{" "}
+                        <b>Packs</b> button (in the left panel) to find and
+                        install these.
+                      </Typography>
+                    </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ mt: 2 }}>
                     Choose the option that best suits your needs and project
