@@ -56,9 +56,9 @@ const NotificationButton: React.FC = React.memo(() => {
           tabIndex={-1}
           sx={{
             "& .MuiBadge-badge": {
-              fontSize: "0.7rem",
-              minWidth: "16px",
-              height: "16px",
+              fontSize: "0.75rem",
+              minWidth: "18px",
+              height: "18px",
               padding: "0 4px"
             }
           }}

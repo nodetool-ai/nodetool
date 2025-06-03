@@ -18,7 +18,8 @@ import ModelsManager from "../hugging_face/ModelsManager";
 const styles = (theme: any) =>
   css({
     ".command-icon": {
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
+      padding: "0 .5em"
     }
   });
 
@@ -48,7 +49,7 @@ const RightSideButtons: React.FC = () => {
                 showTooltip={false}
                 bgStyle={{
                   backgroundColor: "transparent",
-                  width: "28px"
+                  width: "24px"
                 }}
               />
             </Button>
