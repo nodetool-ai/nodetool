@@ -113,15 +113,11 @@ const styles = (theme: any) =>
       left: "-4px",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2",
-      display: "-webkit-box",
       backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_gray5,
       padding: "0.2em 0.4em",
-      borderRadius: "0 4px 0 0",
       margin: "0",
-      zIndex: 110,
-      cursor: "cross",
-      pointerEvents: "all"
+      zIndex: 110
     },
     ".workflow .description": {
       fontSize: "0.875rem",
