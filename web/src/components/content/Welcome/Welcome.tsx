@@ -499,9 +499,12 @@ const Welcome = () => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>DeepSeek R1 7B</b> - DeepSeek&apos;s first-generation
-                        of reasoning models with comparable performance to
-                        OpenAI-o1.
+                        <b>DeepSeek R1 7B</b> - DeepSeek-R1 is a family of open
+                        reasoning models with performance approaching that of
+                        leading models, such as O3 and Gemini 2.5 Pro.
+                        <br />
+                        Note:This smaller, distilled version exhibits lower
+                        performance.
                       </Typography>
                     </li>
                     <li>
