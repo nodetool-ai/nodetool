@@ -58,7 +58,7 @@
     "gunzip-maybe": "^1.4.2",
     "js-yaml": "^4.1.0",
     "node-stream-zip": "^1.15.0",
-    "tar-fs": "^3.0.7",
+    "tar-fs": "^3.0.9",
     "ws": "^8.18.0",
     "zustand": "^5.0.3"
   },
