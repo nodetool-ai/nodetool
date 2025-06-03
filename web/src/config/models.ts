@@ -52,42 +52,42 @@ export const llama_models: UnifiedModel[] = [
     id: "deepseek-r1:1.5b",
     name: "Deepseek R1 - 1.5B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
     id: "deepseek-r1:7b",
     name: "Deepseek R1 - 7B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
     id: "deepseek-r1:8b",
     name: "Deepseek R1 - 8B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
     id: "deepseek-r1:14b",
     name: "Deepseek R1 - 14B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
     id: "deepseek-r1:32b",
     name: "Deepseek R1 - 32B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
     id: "deepseek-r1:70b",
     name: "Deepseek R1 - 70B",
     description:
-      "DeepSeek's first-generation of reasoning models with comparable performance to OpenAI-o1, including six dense models distilled from DeepSeek-R1 based on Llama and Qwen.",
+      "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.\nNote: The distilled versions exhibit lower performance.",
     type: "llama_model"
   },
   {
