@@ -73,8 +73,10 @@
   padding: 0;
   overflow: hidden;
   border-radius: 4px;
-  background-color: #0002;
+  border: none;
+  background-color: #fff2;
   box-shadow: none;
+  overflow: visible;
 }
 
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
