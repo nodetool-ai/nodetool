@@ -127,7 +127,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
         options: {
           // URL to redirect to after successful authentication
           // Must be added to your Supabase project's redirect allow list.
-          redirectTo: window.location.origin + "/editor/start"
+          redirectTo: window.location.origin + "/dashboard"
         }
       });
       if (error) throw error;
