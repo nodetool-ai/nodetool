@@ -151,8 +151,8 @@ export const paletteDark: PaletteOptions = {
   c_bg_loop: "#305c9d17",
   c_bg_group: "#9bcfdb17",
   c_editor_bg_color: "#161616",
-  c_editor_grid_color: "#272727",
-  c_editor_axis_color: "#232323",
+  c_editor_grid_color: "#313131",
+  c_editor_axis_color: "#292929",
 
   primary: {
     main: "#77b4e6",
