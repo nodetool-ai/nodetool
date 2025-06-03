@@ -37,6 +37,7 @@ import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { useNavigate } from "react-router-dom";
 import SettingsMenu from "../../menus/SettingsMenu";
+import { IconForType } from "../../../config/data_types";
 
 enum TabValue {
   Overview = 0,
@@ -401,7 +402,8 @@ const Welcome = () => {
                     <ul>
                       <li>
                         <Typography variant="body2">
-                          Download from Hugging Face and run models locally.
+                          Download HuggingFace or Ollama models and run them
+                          locally.
                         </Typography>
                       </li>
                       <li>
@@ -415,8 +417,33 @@ const Welcome = () => {
                       </li>
                       <li>
                         <Typography variant="body2">
-                          Use the <span className="fake-button">Models</span>{" "}
-                          button in the top panel to manage all models.
+                          In the editor view, use the{" "}
+                          <span
+                            style={{
+                              alignItems: "center",
+                              display: "inline-block"
+                            }}
+                          >
+                            <IconForType
+                              iconName="model"
+                              showTooltip={false}
+                              containerStyle={{
+                                display: "inline-block",
+                                width: "18px",
+                                height: "18px",
+                                marginRight: "4px"
+                              }}
+                              bgStyle={{
+                                display: "inline-block",
+                                fontSize: "10px",
+                                backgroundColor: "transparent",
+                                width: "18px",
+                                height: "18px"
+                              }}
+                            />
+                          </span>{" "}
+                          <span className="fake-button">Models</span> button in
+                          the top-right corner to manage all your models.
                         </Typography>
                       </li>
                     </ul>
@@ -453,11 +480,11 @@ const Welcome = () => {
                     }}
                   >
                     <Typography variant="body1">
-                      You can enter the API keys in the
+                      You can enter your API keys in the
                     </Typography>
                     <SettingsMenu buttonText="Settings Menu" />
                     <Typography variant="body1">
-                      in the top right corner.
+                      in the top-right corner.
                     </Typography>
                   </Box>
                 </Box>
