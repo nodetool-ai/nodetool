@@ -89,6 +89,7 @@ export interface ModelComponentProps {
   handleDelete?: (repoId: string) => void;
   onDownload?: () => void;
   compactView?: boolean;
+  showModelStats?: boolean;
 }
 
 export function formatId(id: string) {
