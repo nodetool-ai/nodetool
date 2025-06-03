@@ -109,16 +109,19 @@ const styles = (theme: any) =>
     },
     ".workflow .package-name": {
       position: "absolute",
-      bottom: "0",
-      left: "0",
-      fontSize: "var(--fontSizeSmall)",
+      bottom: "-6px",
+      left: "-4px",
+      fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2",
       display: "-webkit-box",
       backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_gray5,
-      padding: "0.4em 0.5em",
+      padding: "0.2em 0.4em",
       borderRadius: "0 4px 0 0",
-      margin: "0"
+      margin: "0",
+      zIndex: 110,
+      cursor: "cross",
+      pointerEvents: "all"
     },
     ".workflow .description": {
       fontSize: "0.875rem",
@@ -162,7 +165,7 @@ const styles = (theme: any) =>
     ".image-wrapper": {
       width: "200px",
       height: "200px",
-      overflow: "hidden",
+      overflow: "visible",
       position: "relative",
       background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.c_gray1}22)`
     },

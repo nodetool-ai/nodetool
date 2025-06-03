@@ -1,8 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Typography, CircularProgress, Fade } from "@mui/material";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Fade,
+  Tooltip
+} from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/ApiClient";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface WorkflowCardProps {
   workflow: Workflow;
@@ -50,9 +57,34 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           }
           alt={" "}
         />
-        <Typography className="package-name" component={"p"}>
-          {workflow.package_name?.replace("nodetool-", "").toUpperCase()}
-        </Typography>
+        <Tooltip
+          title={
+            <>
+              <span>
+                <b>PACKAGE NAME</b>
+              </span>
+              <br />
+              <span>{workflow.package_name || ""}</span>
+            </>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY * 4}
+          enterNextDelay={TOOLTIP_ENTER_DELAY * 4}
+          placement="right"
+          slotProps={{
+            tooltip: {
+              sx: {
+                display: "inline-block",
+
+                fontSize: "var(--fontSizeSmaller) !important"
+              }
+            }
+          }}
+        >
+          <Typography className="package-name" component={"p"}>
+            {workflow.package_name?.replace("nodetool-", "")?.toUpperCase() ||
+              "N/A"}
+          </Typography>
+        </Tooltip>
         {nodesOnlySearch && matchedNodes.length > 0 && (
           <Box
             className="matched-nodes"
