@@ -26,12 +26,12 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
-
 const ModelListItem: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
   handleDelete,
-  compactView = false
+  compactView = false,
+  showModelStats = true
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
@@ -147,7 +147,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         </div>
 
         <div className="actions-container">
-          {isHuggingFace && (
+          {isHuggingFace && showModelStats && (
             <div className="model-stats">
               <div className="model-stats-item">
                 <Tooltip title="Downloads on HF last month">
