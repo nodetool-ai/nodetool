@@ -606,8 +606,7 @@ const iconStyles = (theme: any) => ({
   "&": {
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
-    position: "relative"
+    alignItems: "center"
   },
   ".icon-bg": {
     width: "100%",
@@ -619,9 +618,7 @@ const iconStyles = (theme: any) => ({
   },
   "& svg": {
     width: "100%",
-    height: "100%",
-    maxWidth: "100%",
-    maxHeight: "100%"
+    height: "100%"
   }
 });
 
