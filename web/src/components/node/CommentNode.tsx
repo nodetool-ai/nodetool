@@ -342,7 +342,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           newPaddingTop +
           newPaddingBottom +
           newBufferY;
-        const newMinHeight = props.data.minHeight || 40;
+        const newMinHeight = 40;
         const recalculatedFinalHeight = Math.max(
           recalculatedNewHeight,
           newMinHeight
