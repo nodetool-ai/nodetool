@@ -205,12 +205,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   };
 
   const handleDownload = async () => {
-    log.info("handleDownload called");
     if (result?.output) {
-      log.info("Result output exists:", result.output);
       try {
         const assetFiles = createAssetFile(result.output, props.id);
-        log.info("Created asset files:", assetFiles);
 
         // Check for Electron's API (could be window.electron or window.api)
         const electronApi = (window as any).electron || (window as any).api;
@@ -298,13 +295,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           ? ThemeNodes.palette.c_node_bg_group
           : ThemeNodes.palette.c_node_bg
       }}
-      className={`preview-node node-drag-handle ${
+      className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
     >
-      <div
-        className={`preview-node-content ${result?.output ? "nowheel" : ""}`}
-      >
+      <div className={`preview-node-conten ${result?.output ? "nowheel" : ""}`}>
         <Handle
           style={{ top: "50%", backgroundColor: "white" }}
           id="value"

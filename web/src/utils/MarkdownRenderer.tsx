@@ -17,6 +17,8 @@ interface MarkdownRendererProps {
 const styles = (theme: any) =>
   css({
     "&": {
+      cursor: "text",
+      userSelect: "text",
       width: "100%",
       height: "100%",
       padding: "1em 1em 2em 1em",
@@ -107,7 +109,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <>
       <div
-        className="output markdown noscroll"
+        className="output markdown nodrag noscroll"
         css={styles}
         ref={containerRef}
         tabIndex={0}
