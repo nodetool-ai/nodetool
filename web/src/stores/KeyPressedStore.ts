@@ -51,28 +51,68 @@ const executeComboCallbacks = (
 ) => {
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
-  const activeElementTag = activeElement ? activeElement.tagName : "null";
 
-  // If an input or textarea is focused, only allow very specific combos
-  if (
+  const options = comboCallbacks.get(pressedKeysString);
+
+  if (!options?.callback || options.active === false) {
+    // No active callback for this combo, or combo is inactive.
+    // Default browser behavior (e.g., typing a character) will occur.
+    return;
+  }
+
+  // An active callback exists for the pressed keys.
+  // Now, check if we should suppress it due to input focus.
+  const isInputFocused =
     activeElement &&
     (activeElement.tagName === "INPUT" ||
       activeElement.tagName === "TEXTAREA" ||
-      activeElement.closest('[data-slate-editor="true"]')) &&
-    pressedKeysString !== "shift+enter" // Example: allow shift+enter explicitly
-  ) {
-    if (pressedKeysString === " ") {
-      return;
+      activeElement.closest('[data-slate-editor="true"]'));
+
+  if (isInputFocused) {
+    // --- Input Focus Handling ---
+
+    // 1. Always allow "shift+enter" to proceed to execution.
+    //    (Add other universally allowed input combos here if needed)
+    if (pressedKeysString === "shift+enter") {
+      // This combo is allowed, so we don't return early.
+      // It will be handled by the execution logic below.
+    } else {
+      // 2. For any other combo, if it's a simple character key press,
+      //    suppress the global combo to allow typing.
+      const isSimpleTypingKey =
+        event &&
+        event.key.length === 1 && // e.g., "a", "F", " ", ","
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey; // Allows Shift+key for capitals/symbols.
+
+      if (isSimpleTypingKey) {
+        // This is a character like 'a', 'f', 'space', etc., intended for typing.
+        // We return here, preventing the global combo's preventDefault and callback.
+        // This allows the character to be typed into the input field.
+        return;
+      }
+
+      // 3. For other combos that are not simple typing keys (e.g., Ctrl+S, function keys, Escape)
+      //    or not explicitly allowed like "shift+enter":
+      //    Generally, suppress these in inputs to avoid conflicts, especially in Slate.
+      //    Slate editor handles its own shortcuts like Ctrl+B, Ctrl+I locally.
+      //    If a global combo (e.g., a global Ctrl+F) is not handled by Slate internally,
+      //    this logic will prevent it from firing when Slate (or other inputs) are focused.
+      return; // Suppress other global combos in focused inputs.
     }
+    // If we reach here while isInputFocused is true, it means the combo is "shift+enter"
+    // (or another combo explicitly designated to run in inputs).
   }
 
-  const options = comboCallbacks.get(pressedKeysString);
-  if (options?.callback && options.active !== false) {
-    if (options.preventDefault && event) {
-      event.preventDefault();
-    }
-    options.callback();
+  // --- Execute The Combo ---
+  // This part runs if:
+  // - Not in an input field, OR
+  // - In an input field AND it's an explicitly allowed combo (e.g., "shift+enter").
+  if (options.preventDefault && event) {
+    event.preventDefault();
   }
+  options.callback();
 };
 
 type KeyPressedState = {
