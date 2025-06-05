@@ -146,11 +146,11 @@
 /* Selected node */
 
 .react-flow .react-flow__node.react-flow__node.selected {
-  outline: 1px solid var(--c_white);
+  outline: 1px solid #fff8;
 }
 
 .react-flow.zoomed-out .react-flow__node.react-flow__node.selected {
-  outline: 4px solid var(--c_white);
+  outline: 4px solid #fff8;
 }
 
 .react-flow__node-default .react-flow__handle-left {

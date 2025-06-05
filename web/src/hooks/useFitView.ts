@@ -9,14 +9,14 @@ export const useFitView = () => {
     selectedNodes: state.getSelectedNodes(),
     setSelectedNodes: state.setSelectedNodes
   }));
-  const TRANSITION_DURATION = 1000;
+  const TRANSITION_DURATION = 800;
   const SECOND_CALL_DELAY = 20;
 
   return useCallback(() => {
     if (selectedNodes.length) {
       setTimeout(() => {
         setSelectedNodes([]);
-      }, 1000);
+      }, TRANSITION_DURATION - 300);
       const nodesById = nodes.reduce((acc, node) => {
         const pos = {
           x: node.position.x,
