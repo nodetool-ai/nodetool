@@ -50,6 +50,22 @@ const executeComboCallbacks = (
   event: KeyboardEvent | undefined
 ) => {
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
+  const activeElement = document.activeElement;
+  const activeElementTag = activeElement ? activeElement.tagName : "null";
+
+  // If an input or textarea is focused, only allow very specific combos
+  if (
+    activeElement &&
+    (activeElement.tagName === "INPUT" ||
+      activeElement.tagName === "TEXTAREA" ||
+      activeElement.closest('[data-slate-editor="true"]')) &&
+    pressedKeysString !== "shift+enter" // Example: allow shift+enter explicitly
+  ) {
+    if (pressedKeysString === " ") {
+      return;
+    }
+  }
+
   const options = comboCallbacks.get(pressedKeysString);
   if (options?.callback && options.active !== false) {
     if (options.preventDefault && event) {
@@ -138,60 +154,53 @@ const initKeyListeners = () => {
     const { key, shiftKey, ctrlKey, altKey, metaKey, repeat } = event;
     const normalizedKey = key.toLowerCase();
 
-    // Existing checks for input elements and Slate editor
-    if (
-      event &&
-      (event.target instanceof HTMLInputElement ||
-        (event.target as HTMLElement)?.classList?.contains("select-header"))
-    ) {
-      return;
-    }
-    if (
-      event.target instanceof HTMLElement &&
-      event.target.closest('[data-slate-editor="true"]')
-    ) {
-      return;
-    }
+    const eventTarget = event.target as HTMLElement;
+    const targetIsInput = eventTarget instanceof HTMLInputElement;
+    const targetIsSelectHeader =
+      eventTarget.classList?.contains("select-header");
+    const targetIsSlateEditor = eventTarget.closest(
+      '[data-slate-editor="true"]'
+    );
+    const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
-    // New logic for HTMLTextAreaElement
-    if (event.target instanceof HTMLTextAreaElement) {
-      const isEventKeyAModifier = ["shift", "control", "alt", "meta"].includes(
-        normalizedKey
-      );
-
-      if (isEventKeyAModifier) {
-        // Always process modifier key events from textareas to update their state in the store
-        // console.log(
-        //   "TextArea (Modifier Key Event):",
-        //   normalizedKey,
-        //   "Pressed:",
-        //   isPressed,
-        //   "Shift Held:",
-        //   shiftKey
-        // );
-      } else {
-        // For non-modifier keys (e.g., 'Enter', 'a'), check against allowed combos
-        const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
-          (combo) =>
-            event.key === combo.key && // Check the main key
-            event.shiftKey === (combo.shiftKey || false) && // Check shift (default to false if not specified in combo)
-            event.ctrlKey === (combo.ctrlKey || false) && // Future: Check ctrl
-            event.altKey === (combo.altKey || false) && // Future: Check alt
-            event.metaKey === (combo.metaKey || false) // Future: Check meta
-        );
-        // console.log(
-        //   "TextArea (Non-Modifier Key Event):",
-        //   "Key:",
-        //   event.key,
-        //   "Shift Held:",
-        //   event.shiftKey,
-        //   "Is Combination Allowed:",
-        //   isCombinationAllowed
-        // );
-        if (!isCombinationAllowed) {
-          return; // Block if not an allowed combination for textareas
+    if (
+      targetIsInput ||
+      targetIsSelectHeader ||
+      targetIsSlateEditor ||
+      targetIsTextarea
+    ) {
+      if (isPressed) {
+        // KeyDown
+        if (targetIsTextarea) {
+          const isEventKeyAModifier = [
+            "shift",
+            "control",
+            "alt",
+            "meta"
+          ].includes(normalizedKey);
+          if (!isEventKeyAModifier) {
+            const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
+              (combo) =>
+                event.key === combo.key &&
+                event.shiftKey === (combo.shiftKey || false) &&
+                event.ctrlKey === (combo.ctrlKey || false) &&
+                event.altKey === (combo.altKey || false) &&
+                event.metaKey === (combo.metaKey || false)
+            );
+            if (!isCombinationAllowed) {
+              return; // Block unallowed keydown in textarea
+            }
+          }
+          // Allow modifier keydowns in textarea to be processed
         }
+        // For other input types (HTMLInputElement, select-header, slate),
+        // allow keydown to proceed to setKeysPressed.
+        // The `executeComboCallbacks` function will be responsible for preventing
+        // unwanted *combo execution* if an input is focused.
       }
+      // For KeyUp (isPressed === false) from any input-like element,
+      // we allow it to proceed to `setKeysPressed` to ensure the key state is cleared.
+      // No 'return' here for keyup.
     }
 
     // Prevent key repeat events for non-modifier keys
@@ -200,7 +209,6 @@ const initKeyListeners = () => {
       repeat &&
       !["shift", "control", "alt", "meta"].includes(normalizedKey)
     ) {
-      // console.log("Repeat event blocked for:", normalizedKey);
       return;
     }
 
@@ -223,15 +231,6 @@ const initKeyListeners = () => {
     ) {
       keysToUpdate[normalizedKey] = false;
     }
-
-    // console.log(
-    //   "Calling setKeysPressed with:",
-    //   JSON.stringify(keysToUpdate),
-    //   "for event key:",
-    //   normalizedKey,
-    //   "isPressed:",
-    //   isPressed
-    // );
     setKeysPressed(keysToUpdate, event);
   };
 
