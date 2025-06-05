@@ -82,7 +82,7 @@ const AssetItemContextMenu = () => {
           }}
           label="Download Selected Assets"
           IconComponent={<DriveFileMoveIcon />}
-          tooltip="Move selected assets to a different folder"
+          tooltip="Download selected assets to your Downloads folder"
         />
         <Divider />
         <ContextMenuItem
