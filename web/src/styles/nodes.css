@@ -24,6 +24,7 @@
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
   box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
+  transition: box-shadow 0.15s ease-in-out;
 }
 
 /* Node header */
@@ -231,7 +232,7 @@
 
 /* Node selection */
 .react-flow__node.selected {
-  box-shadow: 0 0 0 2px var(--c_white),
+  box-shadow: 0 0 0 2px #fffa,
     0.15em 0.15em 1.2em 0px rgba(0, 0, 0, 0.6);
 }
 
