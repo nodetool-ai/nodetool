@@ -28,7 +28,7 @@ const AxisMarker: React.FC = () => {
         ref={horizontalLineRef}
         style={{
           ...lineStyle,
-          width: "5000px",
+          width: "80000px",
           height: "1px"
         }}
       />
@@ -37,7 +37,7 @@ const AxisMarker: React.FC = () => {
         style={{
           ...lineStyle,
           width: "1px",
-          height: "5000px"
+          height: "80000px"
         }}
       />
     </>
