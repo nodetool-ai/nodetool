@@ -66,7 +66,14 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   return (
     <div className="node-footer" style={{ backgroundColor }}>
       <Tooltip
-        title="Click to show in NodeMenu"
+        title={
+          <span>
+            <span>
+              <small>{nodeNamespace}</small>
+            </span>
+            <span style={{ display: "block" }}>Click to show in NodeMenu</span>
+          </span>
+        }
         placement="bottom-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
