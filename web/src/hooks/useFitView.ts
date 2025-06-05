@@ -10,6 +10,8 @@ export const useFitView = () => {
     setSelectedNodes: state.setSelectedNodes
   }));
   const TRANSITION_DURATION = 1000;
+  const SECOND_CALL_DELAY = 20;
+
   return useCallback(() => {
     if (selectedNodes.length) {
       setTimeout(() => {
@@ -79,7 +81,7 @@ export const useFitView = () => {
             duration: TRANSITION_DURATION,
             padding: 0.1
           });
-        }, 10); // 10ms delay
+        }, SECOND_CALL_DELAY);
       });
     }
   }, [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]);
