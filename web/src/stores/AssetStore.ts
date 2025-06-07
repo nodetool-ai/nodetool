@@ -77,7 +77,7 @@ export interface AssetStore {
   loadFolderById: (id: string) => Promise<AssetList>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
-  download: (ids: string[]) => void;
+  download: (ids: string[]) => Promise<boolean>;
   getAssetsRecursive: (folderId: string) => Promise<AssetTreeNode[]>;
 }
 
@@ -342,12 +342,17 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves when the download is complete.
    */
 
-  download: async (ids: string[]) => {
+  download: async (ids: string[]): Promise<boolean> => {
+    log.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
     try {
+      const headers = await authHeader();
+
       const url = `${BASE_URL}/api/assets/download`;
+
       const response = await axios({
         url: url,
         method: "POST",
+        headers,
         data: {
           asset_ids: ids
         },
@@ -386,13 +391,33 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().invalidateQueries(["assets"]);
       return true;
     } catch (error) {
-      log.error("AssetStore download error:", error);
+      log.error(
+        "[AssetStore] CATCH BLOCK: An error occurred during download.",
+        error
+      );
       if (axios.isAxiosError(error)) {
-        log.error(
-          "AssetStore download error:",
-          error.message,
-          error.response?.data
-        );
+        log.error("[AssetStore] Axios error details:", {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        if (error.response?.data instanceof ArrayBuffer) {
+          try {
+            const errorMessage = JSON.parse(
+              new TextDecoder().decode(error.response.data)
+            );
+            log.error(
+              "[AssetStore] Decoded server error message:",
+              errorMessage
+            );
+          } catch (e) {
+            log.error(
+              "[AssetStore] Could not parse error response from ArrayBuffer:",
+              e
+            );
+          }
+        }
       }
       throw error;
     }
