@@ -6,6 +6,7 @@ import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
 import { TextField } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
 const StringProperty = ({
   property,
@@ -49,19 +50,15 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className="string-property">
+      <div
+        className="string-property"
+        style={{ padding: 0, position: "relative" }}
+      >
         <textarea
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           onFocus={handleFocus}
           className="nodrag nowheel"
-          style={{
-            width: "100%",
-            minHeight: "48px",
-            maxHeight: "800px",
-            borderRadius: "4px",
-            fontSize: "var(--fontSizeSmall)"
-          }}
           tabIndex={tabIndex}
           autoComplete="off"
           autoCorrect="off"
@@ -74,6 +71,9 @@ const StringProperty = ({
             }
           }}
         />
+        <div style={{ position: "absolute", top: "1px", right: "3px" }}>
+          <CopyToClipboardButton textToCopy={value || ""} size="small" />
+        </div>
         {isExpanded && (
           <TextEditorModal
             value={value || ""}
@@ -95,7 +95,7 @@ const StringProperty = ({
         id={id}
       />
       {!isConnected && (
-        <div className="container">
+        <div className="container" style={{ position: "relative" }}>
           <input
             type="text"
             id={id}
@@ -109,7 +109,17 @@ const StringProperty = ({
             autoCapitalize="off"
             spellCheck="false"
             tabIndex={tabIndex}
+            style={{ width: "100%", paddingRight: "1em" }}
           />
+          <div
+            style={{
+              position: "absolute",
+              right: "-.2em",
+              top: "0.04em"
+            }}
+          >
+            <CopyToClipboardButton textToCopy={value || ""} size="small" />
+          </div>
         </div>
       )}
     </div>
