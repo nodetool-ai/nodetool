@@ -91,7 +91,7 @@
   font-size: var(--fontSizeTiny);
   line-height: 1.1em;
   color: var(--c_white);
-  background-color: var(--c_gray2);
+  background-color: var(--c_gray1);
   border: 0;
   font-weight: 300;
 }
@@ -170,13 +170,10 @@
 /* STRING */
 .string-property .container {
   position: relative;
-  /* box-sizing: content-box; */
   display: flex;
   gap: 5px;
   align-items: center;
   width: 100%;
-  /* margin-top: 5px; */
-  /* margin-bottom: 2px; */
 }
 
 .value-changed .string-property input {
