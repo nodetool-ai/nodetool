@@ -60,7 +60,7 @@ const StringProperty = ({
             minHeight: "48px",
             maxHeight: "800px",
             borderRadius: "4px",
-            fontSize: "12px"
+            fontSize: "var(--fontSizeSmall)"
           }}
           tabIndex={tabIndex}
           autoComplete="off"
