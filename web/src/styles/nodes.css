@@ -325,6 +325,8 @@
 .react-flow.zoomed-out .node-resize-handle svg {
   width: 60px !important;
   height: 60px !important;
+  bottom: -10px;
+  right: -10px;
 }
 
 @keyframes gradientAnimation {
