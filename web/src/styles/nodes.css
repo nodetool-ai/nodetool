@@ -296,7 +296,6 @@
 .react-flow.zoomed-out .node-header .menu-button,
 .react-flow.zoomed-out .node-footer,
 .react-flow.zoomed-out .node-status,
-.react-flow.zoomed-out .node-resize-handle,
 .react-flow.zoomed-out .api-key-button,
 .react-flow.zoomed-out .title-container,
 .react-flow.zoomed-out .process-timer,
@@ -320,7 +319,12 @@
 .react-flow.zoomed-out .image-output {
   opacity: 1;
   visibility: visible;
-  /* pointer-events: auto; */
+}
+
+.react-flow.zoomed-out .node-resize-handle,
+.react-flow.zoomed-out .node-resize-handle svg {
+  width: 60px !important;
+  height: 60px !important;
 }
 
 @keyframes gradientAnimation {
