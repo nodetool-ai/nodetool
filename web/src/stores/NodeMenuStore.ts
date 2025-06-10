@@ -375,6 +375,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // Fallback dimensions for the first render when the actual dimensions are 0
       const FALLBACK_MENU_WIDTH = 800;
       const FALLBACK_MENU_HEIGHT = 870;
+      // Padding from the window edge when the menu is forced to move
+      const WINDOW_EDGE_OFFSET_X = 10;
+      const WINDOW_EDGE_OFFSET_Y = 75 + 10; // 75px header compensation + 10px padding
 
       // --- Calculation ---
       const actualMenuWidth = menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
@@ -388,11 +391,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // 2. Check if the menu overflows the window edges and adjust
       // Adjust X if it overflows the right edge
       if (visualX + actualMenuWidth > window.innerWidth) {
-        visualX = window.innerWidth - actualMenuWidth;
+        visualX = window.innerWidth - actualMenuWidth - WINDOW_EDGE_OFFSET_X;
       }
       // Adjust Y if it overflows the bottom edge
       if (visualY + actualMenuHeight > window.innerHeight) {
-        visualY = window.innerHeight - actualMenuHeight;
+        visualY = window.innerHeight - actualMenuHeight - WINDOW_EDGE_OFFSET_Y;
       }
 
       // 3. Ensure the final position is not negative
@@ -402,31 +405,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       // 4. Apply the Y-offset compensation to get the final value for the component
       const finalX = visualX;
       const finalY = visualY - Y_OFFSET_COMPENSATION;
-
-      console.log("Positioning Debug:", {
-        mouseX: params.x,
-        mouseY: params.y,
-        visualX,
-        visualY,
-        finalY,
-        Y_OFFSET_COMPENSATION
-      });
-
-      // Debug actual rendered position
-      setTimeout(() => {
-        const menuElement = document.querySelector(".floating-node-menu");
-        if (menuElement) {
-          const rect = menuElement.getBoundingClientRect();
-          console.log("Actual menu position:", {
-            calculatedX: visualX,
-            actualLeft: rect.left,
-            xDifference: rect.left - visualX,
-            calculatedY: visualY,
-            actualTop: rect.top,
-            yDifference: rect.top - visualY
-          });
-        }
-      }, 100);
 
       // Determine if search params have changed
       const searchParamsChanged =
