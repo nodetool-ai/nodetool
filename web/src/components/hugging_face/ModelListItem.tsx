@@ -18,7 +18,8 @@ import {
   renderModelSecondaryInfo,
   renderModelActions,
   HuggingFaceLink,
-  OllamaLink
+  OllamaLink,
+  getShortModelName
 } from "./ModelUtils";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useModelInfo } from "./ModelUtils";
@@ -29,9 +30,9 @@ import modelListItemStyles from "./ModelListItem.styles";
 const ModelListItem: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
-  handleDelete,
+  handleModelDelete,
+  handleShowInExplorer,
   compactView = false,
-  showModelStats = true
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
@@ -74,7 +75,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
           <div className="model-info-container">
             <div className="model-header">
               <Typography component="span" className="model-name">
-                {formatId(model.id)}
+                {getShortModelName(model.id)}
               </Typography>
             </div>
             <div className="model-details">
@@ -83,7 +84,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
                   "Model not downloaded."
                 ) : (
                   <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                    Failed to find matching repository.
+                    No matching repository found.
                   </span>
                 )}
               </Typography>
@@ -95,7 +96,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
               {renderModelActions(
-                { model, handleDelete, onDownload },
+                { model, handleModelDelete, onDownload, handleShowInExplorer },
                 downloaded
               )}
             </div>
@@ -114,7 +115,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         <div className="model-info-container">
           <div className="model-header">
             <Typography component="span" className="model-name">
-              {model.repo_id ? model.repo_id : model.id}
+              {getShortModelName(model.repo_id ? model.repo_id : model.id)}
             </Typography>
             {model.path && (
               <Typography component="span" className="model-path">
@@ -172,7 +173,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
-              { model, handleDelete, onDownload },
+              { model, handleModelDelete, onDownload, handleShowInExplorer },
               downloaded
             )}
           </div>

@@ -7,7 +7,12 @@ import {
   Chip,
   Tooltip
 } from "@mui/material";
-import { formatId, modelSize, renderModelSecondaryInfo } from "./ModelUtils";
+import {
+  formatId,
+  modelSize,
+  renderModelSecondaryInfo,
+  getShortModelName
+} from "./ModelUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import ReadmeDialog from "./ReadmeDialog";
@@ -43,7 +48,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           component="div"
           gutterBottom
         >
-          {formatId(model.id)}
+          {getShortModelName(model.id)}
         </Typography>
 
         {model.path && (
@@ -74,7 +79,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
               variant="h5"
               style={{ color: ThemeNodetool.palette.c_warning }}
             >
-              Failed to find matching repository:
+              No matching repository found.
             </Typography>
             <Button
               className="button-link"
@@ -84,7 +89,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
               target="_blank"
               rel="noopener noreferrer"
             >
-              {model.id}
+              {getShortModelName(model.id)}
             </Button>
           </>
         )}

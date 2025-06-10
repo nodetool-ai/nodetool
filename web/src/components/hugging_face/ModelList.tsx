@@ -58,15 +58,14 @@ const styles = (theme: any) =>
       paddingLeft: "1em"
     },
     ".model-list-header button": {
-      padding: ".1em .5em"
+      // padding: ".1em .5em"
     },
     ".content": {
       width: "80%",
       height: "95%",
       flexGrow: 1,
       overflowY: "auto",
-      padding: theme.spacing(2),
-      paddingBottom: "4em"
+      padding: "0 0 4em 1em"
     },
     ".model-list-section": {
       marginBottom: theme.spacing(15)
@@ -99,7 +98,8 @@ const styles = (theme: any) =>
       paddingTop: theme.spacing(1)
     },
     button: {
-      color: theme.palette.c_gray5
+      color: theme.palette.c_gray5,
+      margin: "0"
     },
     ".model-type-button": {
       backgroundColor: theme.palette.c_gray1,
@@ -120,18 +120,61 @@ const styles = (theme: any) =>
     },
     ".model-type-button.Mui-selected span": {
       color: theme.palette.c_hl1
+    },
+    ".model-external-link-icon": {
+      boxShadow: "none",
+      cursor: "pointer",
+      padding: "1em",
+      backgroundColor: "transparent",
+      filter: "saturate(0)",
+      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+      "&:hover": {
+        backgroundColor: "transparent",
+        transform: "scale(1.25)",
+        filter: "saturate(1)"
+      }
+    },
+    ".model-external-link-icon img": {
+      cursor: "pointer"
     }
   });
 
 const ModelList: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [modelSource, setModelSource] =
-    useState<"downloaded" | "recommended">("downloaded");
+  const [modelSource, setModelSource] = useState<"downloaded" | "recommended">(
+    "downloaded"
+  );
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [modelSearchTerm, setModelSearchTerm] = useState("");
   const [selectedModelType, setSelectedModelType] = useState<string>("All");
+
+  const { data: ollamaBasePathData } = useQuery({
+    queryKey: ["ollamaBasePath"],
+    queryFn: async () => {
+      const { data, error } = await client.GET(
+        "/api/models/ollama_base_path",
+        {}
+      );
+      if (error) {
+        console.error("Failed to fetch Ollama base path:", error);
+        return null; // Or handle error appropriately
+      }
+      if (data?.error) {
+        console.warn(
+          "Error from backend fetching Ollama base path:",
+          data.error
+        );
+        return null;
+      }
+      return data; // data should be { path: string | null }
+    },
+    staleTime: Infinity, // This path is unlikely to change during a session
+    gcTime: Infinity,
+    refetchOnWindowFocus: false
+  });
+  const ollamaBasePath = ollamaBasePathData?.path;
 
   const {
     data: hfModels,
@@ -151,6 +194,7 @@ const ModelList: React.FC = () => {
           type: model.the_model_type,
           name: model.repo_id,
           repo_id: model.repo_id,
+          path: model.path,
           description: "",
           readme: model.readme ?? "",
           size_on_disk: model.size_on_disk
@@ -201,6 +245,7 @@ const ModelList: React.FC = () => {
           type: model.the_model_type,
           name: model.repo_id,
           repo_id: model.repo_id,
+          path: model.path,
           description: "",
           readme: model.readme ?? "",
           size_on_disk: model.size_on_disk
@@ -220,7 +265,9 @@ const ModelList: React.FC = () => {
   );
   const modelTypes = useMemo(() => {
     const sourceGroups =
-      modelSource === "recommended" ? groupedRecommendedModels : groupedHFModels;
+      modelSource === "recommended"
+        ? groupedRecommendedModels
+        : groupedHFModels;
     const types = new Set(Object.keys(sourceGroups));
     types.add("Other");
     types.add("llama_model");
@@ -241,9 +288,13 @@ const ModelList: React.FC = () => {
     };
 
     const groups =
-      modelSource === "recommended" ? groupedRecommendedModels : groupedHFModels;
+      modelSource === "recommended"
+        ? groupedRecommendedModels
+        : groupedHFModels;
     const llama =
-      modelSource === "recommended" ? groupedRecommendedModels["llama_model"] : ollamaModels;
+      modelSource === "recommended"
+        ? groupedRecommendedModels["llama_model"]
+        : ollamaModels;
 
     if (selectedModelType === "All") {
       const allModels = [
@@ -302,29 +353,60 @@ const ModelList: React.FC = () => {
     mutationFn: deleteHFModel
   });
 
-  const handleDeleteClick = (repoId: string) => {
-    setModelToDelete(repoId);
+  const handleDeleteClick = (modelId: string) => {
+    setModelToDelete(modelId);
   };
 
   const handleConfirmDelete = () => {
     if (modelToDelete) {
-      deleteHFModelMutation.mutate(modelToDelete);
-      setModelToDelete(null);
+      const isOllama = ollamaModels?.find((m) => m.id === modelToDelete);
+      if (isOllama) {
+        // TODO: Implement Ollama model deletion. This will require a new API endpoint
+        // and a function similar to deleteHFModel but for Ollama models.
+        // For now, we'll just log a message.
+      } else {
+        deleteHFModel(modelToDelete);
+      }
     }
+    setModelToDelete(null); // Close dialog
   };
 
   const handleCancelDelete = () => {
     setModelToDelete(null);
   };
 
-  const handleViewModeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newViewMode: "grid" | "list" | null
-  ) => {
-    if (newViewMode !== null) {
-      setViewMode(newViewMode);
+  const handleShowInExplorer = async (modelId: string) => {
+    if (modelId) {
+      const model =
+        ollamaModels?.find((m) => m.id === modelId) ||
+        hfModels?.find((m) => m.id === modelId);
+
+      let pathToOpen = model?.path; // Prefer specific model path
+
+      if (model?.type === "llama_model" && !pathToOpen) {
+        pathToOpen = ollamaBasePath; // Fallback to Ollama base path
+      }
+
+      if (pathToOpen) {
+        try {
+          await client.POST("/api/models/open_in_explorer", {
+            params: { query: { path: pathToOpen } }
+          });
+        } catch (error) {
+          console.error("[ModelList] Failed to open in explorer:", error);
+        }
+      }
     }
   };
+
+  // const handleViewModeChange = (
+  //   event: React.MouseEvent<HTMLElement>,
+  //   newViewMode: "grid" | "list" | null
+  // ) => {
+  //   if (newViewMode !== null) {
+  //     setViewMode(newViewMode);
+  //   }
+  // };
 
   const handleModelSourceChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -361,9 +443,8 @@ const ModelList: React.FC = () => {
             >
               <ModelCard
                 model={model}
-                handleDelete={
-                  model.type !== "llama_model" ? handleDeleteClick : () => {}
-                }
+                handleModelDelete={handleDeleteClick}
+                handleShowInExplorer={handleShowInExplorer}
               />
             </Grid>
           ))}
@@ -376,9 +457,8 @@ const ModelList: React.FC = () => {
             <ModelListItem
               key={model.id}
               model={model}
-              handleDelete={
-                model.type !== "llama_model" ? handleDeleteClick : () => {}
-              }
+              handleModelDelete={handleDeleteClick}
+              handleShowInExplorer={handleShowInExplorer}
             />
           ))}
         </List>
@@ -441,42 +521,66 @@ const ModelList: React.FC = () => {
           className="model-list-header"
           sx={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: "column",
+            alignItems: "stretch",
             mb: 2
           }}
         >
-          <SearchInput
-            focusOnTyping={true}
-            focusSearchInput={false}
-            maxWidth={"9em"}
-            onSearchChange={setModelSearchTerm}
-            searchTerm={modelSearchTerm}
-          />
-          <ToggleButtonGroup
-            value={modelSource}
-            exclusive
-            onChange={handleModelSourceChange}
-            aria-label="model source"
-            size="small"
-            sx={{ marginLeft: 1 }}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+              mb: 1
+            }}
           >
-            <ToggleButton value="downloaded">Downloaded</ToggleButton>
-            <ToggleButton value="recommended">Recommended</ToggleButton>
-          </ToggleButtonGroup>
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="view mode"
-          >
-            <ToggleButton value="grid" aria-label="grid view">
-              <ViewModuleIcon />
-            </ToggleButton>
-            <ToggleButton value="list" aria-label="list view">
-              <ViewListIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
+            <SearchInput
+              focusOnTyping={true}
+              focusSearchInput={false}
+              width={300}
+              maxWidth={"300px"}
+              onSearchChange={setModelSearchTerm}
+              searchTerm={modelSearchTerm}
+            />
+            {/* <ToggleButtonGroup
+              className="toggle-button-group-view-mode"
+              value={viewMode}
+              exclusive
+              onChange={handleViewModeChange}
+              aria-label="view mode"
+              size="small"
+            >
+              <ToggleButton value="grid" aria-label="grid view">
+                <ViewModuleIcon />
+              </ToggleButton>
+              <ToggleButton value="list" aria-label="list view">
+                <ViewListIcon />
+              </ToggleButton>
+            </ToggleButtonGroup> */}
+          </Box>
+          <Box sx={{ width: "100%" }}>
+            <ToggleButtonGroup
+              className="toggle-button-group-recommended"
+              value={modelSource}
+              exclusive
+              onChange={handleModelSourceChange}
+              aria-label="model source"
+              size="small"
+              sx={{
+                width: "100%",
+                padding: 0,
+                margin: "1em 0 0 0",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+                gap: 1
+              }}
+            >
+              <ToggleButton value="downloaded">Downloaded</ToggleButton>
+              <ToggleButton value="recommended">Recommended</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
         <List>
           {modelTypes.map((type) => (
@@ -546,6 +650,32 @@ const ModelList: React.FC = () => {
             </DialogContentText>
           </DialogContent>
           <DialogActions>
+            {(() => {
+              const modelForExplorer = modelToDelete
+                ? ollamaModels?.find((m) => m.id === modelToDelete) ||
+                  hfModels?.find((m) => m.id === modelToDelete)
+                : null;
+              let explorerPath = modelForExplorer?.path;
+              let isDisabled = !modelToDelete;
+
+              if (modelForExplorer) {
+                if (modelForExplorer.type === "llama_model" && !explorerPath) {
+                  explorerPath = ollamaBasePath; // Use base path for Ollama if specific path missing
+                }
+                isDisabled = !explorerPath; // Disabled if no path (specific or base for Ollama) found
+              }
+
+              return (
+                <Button
+                  onClick={() =>
+                    modelToDelete && handleShowInExplorer(modelToDelete)
+                  }
+                  disabled={isDisabled}
+                >
+                  Show in Explorer
+                </Button>
+              );
+            })()}
             <Button onClick={handleCancelDelete}>Cancel</Button>
             <Button onClick={handleConfirmDelete} autoFocus>
               Delete

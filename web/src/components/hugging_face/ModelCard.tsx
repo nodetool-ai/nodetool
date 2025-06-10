@@ -9,6 +9,11 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
+import {
+  HuggingFaceLink,
+  OllamaLink,
+  renderModelSecondaryInfo
+} from "./ModelUtils";
 
 const styles = (theme: any) =>
   css({
@@ -138,24 +143,7 @@ const styles = (theme: any) =>
         border: "1px solid" + ThemeNodetool.palette.c_gray0
       }
     },
-    ".model-external-link-icon ": {
-      boxShadow: "none",
-      cursor: "pointer",
-      position: "absolute",
-      right: ".5em",
-      bottom: ".5em",
-      backgroundColor: "transparent",
-      filter: "saturate(0)",
-      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
-      "&:hover": {
-        backgroundColor: "transparent",
-        transform: "scale(1.5)",
-        filter: "saturate(1)"
-      }
-    },
-    ".model-external-link-icon img": {
-      cursor: "pointer"
-    },
+
     ".delete-button": {
       position: "absolute",
       top: ".25em",
@@ -183,13 +171,30 @@ const styles = (theme: any) =>
       "&:hover": {
         color: theme.palette.c_white
       }
+    },
+    ".model-external-link-icon": {
+      boxShadow: "none",
+      cursor: "pointer",
+      padding: "1em",
+      backgroundColor: "transparent",
+      filter: "saturate(0)",
+      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+      "&:hover": {
+        backgroundColor: "transparent",
+        transform: "scale(1.25)",
+        filter: "saturate(1)"
+      }
+    },
+    ".model-external-link-icon img": {
+      cursor: "pointer"
     }
   });
 
 const ModelCard: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
-  handleDelete
+  handleModelDelete,
+  handleShowInExplorer
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
@@ -241,9 +246,10 @@ const ModelCard: React.FC<ModelComponentProps> = ({
         modelData={modelData}
         isHuggingFace={isHuggingFace}
         isOllama={isOllama}
-        handleDelete={handleDelete}
+        handleModelDelete={handleModelDelete}
         onDownload={onDownload}
         downloaded={downloaded}
+        handleShowInExplorer={handleShowInExplorer}
       />
     </Card>
   );
