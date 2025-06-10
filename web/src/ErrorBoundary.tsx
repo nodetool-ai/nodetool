@@ -76,7 +76,9 @@ const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
 
   const errorMessage =
-    error instanceof Error ? error.message : "An unknown error occurred";
+    error instanceof Error
+      ? error.message
+      : "An unknown error occurred" + JSON.stringify(error);
   const stackTrace =
     error instanceof Error ? error.stack : "No stack trace available";
 

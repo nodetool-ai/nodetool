@@ -40,21 +40,28 @@ const modelListItemStyles = (theme: any) =>
       },
 
       "& .model-header": {
-        flex: 2,
-        maxWidth: "400px",
+        flex: 1,
+        maxWidth: "500px",
         lineHeight: "1.2em"
       },
 
       "& .model-name": {
-        fontWeight: "bold",
+        flexGrow: 1,
         textTransform: "uppercase",
-        color: theme.palette.c_hl1,
+        fontSize: "var(--fontSizeBig)",
+        fontWeight: "400",
+        color: "var(--palette-primary-light)",
         overflow: "hidden",
         textOverflow: "ellipsis"
       },
-
+      "& .model-path": {
+        display: "block",
+        color: theme.palette.c_gray5,
+        fontSize: "var(--fontSizeSmaller)"
+      },
       "& .model-details": {
         flex: 1,
+        maxWidth: "250px",
         gap: "0.2em",
         width: "200px",
         display: "flex",
@@ -84,11 +91,13 @@ const modelListItemStyles = (theme: any) =>
       },
 
       "& .model-stats": {
+        fontSize: "var(--fontSizeSmaller)",
+        color: theme.palette.c_gray6,
         display: "flex",
         flexDirection: "column",
         alignItems: "start",
-        minWidth: "200px",
-        gap: "0.5em"
+        minWidth: "100px",
+        gap: "0"
       },
 
       "& .model-stats-item": {
@@ -99,7 +108,7 @@ const modelListItemStyles = (theme: any) =>
 
       "& .model-actions": {
         display: "flex",
-        gap: ".5em",
+        gap: ".1em",
         alignItems: "center"
       },
 
@@ -114,22 +123,6 @@ const modelListItemStyles = (theme: any) =>
         right: "unset",
         left: "1em"
       }
-    },
-
-    ".model-external-link-icon": {
-      boxShadow: "none",
-      cursor: "pointer",
-      backgroundColor: "transparent",
-      filter: "saturate(0)",
-      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
-      "&:hover": {
-        backgroundColor: "transparent",
-        transform: "scale(1.5)",
-        filter: "saturate(1)"
-      }
-    },
-    ".model-external-link-icon img": {
-      cursor: "pointer"
     }
   });
 

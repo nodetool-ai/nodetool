@@ -11,7 +11,8 @@ interface ModelCardActionsProps {
   modelData: any;
   isHuggingFace: boolean;
   isOllama: boolean;
-  handleDelete?: (repoId: string) => void;
+  handleModelDelete?: (modelId: string) => void;
+  handleShowInExplorer?: (modelId: string) => void;
   onDownload?: () => void;
   downloaded: boolean;
 }
@@ -21,13 +22,17 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   modelData,
   isHuggingFace,
   isOllama,
-  handleDelete,
+  handleModelDelete,
+  handleShowInExplorer,
   onDownload,
   downloaded
 }) => {
   return (
     <>
-      {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
+      {renderModelActions(
+        { model, handleModelDelete, onDownload, handleShowInExplorer },
+        downloaded
+      )}
       <CardActions
         className="card-actions"
         sx={{ justifyContent: "space-between", p: 2 }}
