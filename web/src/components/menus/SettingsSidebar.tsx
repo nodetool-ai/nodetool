@@ -71,9 +71,9 @@ const SettingsSidebar = ({
       {sections.map((section, index) => (
         <div key={`section-${index}`}>
           <div className="settings-sidebar-category">{section.category}</div>
-          {section.items.map((item) => (
+          {section.items.map((item, itemIndex) => (
             <div
-              key={item.id}
+              key={`${item.id}-${itemIndex}`}
               className={`settings-sidebar-item ${
                 activeSection === item.id ? "active" : ""
               }`}
