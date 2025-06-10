@@ -162,7 +162,8 @@ export const useNodeEditorShortcuts = (active: boolean) => {
       });
     } catch (error) {
       addNotification({
-        content: error instanceof Error ? error.message : "Failed to save example",
+        content:
+          error instanceof Error ? error.message : "Failed to save example",
         type: "error",
         alert: true
       });
@@ -182,7 +183,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   const altNextTabShortcut = [ControlOrMeta, "Alt", "ArrowRight"];
 
   useCombo([" "], handleOpenNodeMenu);
-  useCombo(["f"], handleFitView);
+  useCombo(["f"], () => handleFitView({ padding: 0.4 }));
   useCombo([ControlOrMeta, "="], handleZoomIn);
   useCombo([ControlOrMeta, "-"], handleZoomOut);
   useCombo(["a"], handleAlign, selectedNodes.length > 0);
@@ -260,7 +261,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
           closeCurrentWorkflow();
           break;
         case "fitView":
-          handleFitView();
+          handleFitView({ padding: 0.5 });
           break;
         case "newTab":
           handleNewWorkflow();

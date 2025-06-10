@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback } from "react";
-import { FitViewOptions, useReactFlow } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 
 import { css, Divider, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -21,6 +21,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
+import { useFitView } from "../../hooks/useFitView";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
@@ -41,24 +42,12 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
   );
+  const fitView = useFitView();
 
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode
   }));
-
-  // fit screen
-  const fitScreen = useCallback(() => {
-    const fitOptions: FitViewOptions = {
-      maxZoom: 8,
-      minZoom: 0.01,
-      padding: 0.5
-    };
-
-    if (reactFlowInstance) {
-      reactFlowInstance.fitView(fitOptions);
-    }
-  }, [reactFlowInstance]);
 
   const addComment = (event: React.MouseEvent) => {
     // Fake metadata for comments
@@ -239,7 +228,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         onClick={(e) => {
           if (e) {
             e.preventDefault();
-            fitScreen();
+            fitView({ padding: 0.5 });
           }
           closeContextMenu();
         }}
