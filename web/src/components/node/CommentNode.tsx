@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { createEditor, Editor } from "slate";
+import { createEditor, Editor, Node as SlateNode } from "slate";
 import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -66,7 +66,8 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       margin: 0,
-      padding: "2.5em 1em 1em 1em",
+      borderRadius: "3px",
+      padding: "1em .5em",
       boxShadow: `inset 0 0 5px 1px #00000011`,
       backgroundColor: "transparent",
       "&:hover": {
@@ -84,7 +85,7 @@ const styles = (theme: any) =>
       height: "100%",
       overflowX: "hidden",
       overflowY: "auto",
-      fontSize: theme.fontSizeBig,
+      fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.1em",
       left: 0,
@@ -109,8 +110,10 @@ const styles = (theme: any) =>
     },
     ".format-buttons": {
       position: "absolute",
-      top: ".5em",
-      right: "3em",
+      top: "-2em",
+      left: "50%",
+      padding: "0.5em 2em",
+      transform: "translateX(-50%)",
       display: "flex",
       gap: "4px",
       zIndex: 1,
@@ -120,13 +123,15 @@ const styles = (theme: any) =>
         padding: "1px 5px",
         minWidth: "20px",
         fontSize: "12px",
-        backgroundColor: hexToRgba(theme.palette.c_white, 0.1),
-        border: `1px solid ${hexToRgba(theme.palette.c_white, 0.2)}`,
+        border: "none",
+        lineHeight: "1.2em",
+        backgroundColor: hexToRgba(theme.palette.c_white, 0.6),
         borderRadius: "3px",
         color: theme.palette.c_black,
         cursor: "pointer",
+        transition: "background-color 0.2s ease",
         "&:hover": {
-          backgroundColor: hexToRgba(theme.palette.c_white, 0.2)
+          backgroundColor: hexToRgba(theme.palette.c_white, 0.8)
         },
         "&.active": {
           backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
@@ -139,18 +144,18 @@ const styles = (theme: any) =>
     },
     ".color-picker-container": {
       position: "absolute",
-      width: "2em",
-      height: "2em",
-      overflow: "hidden",
-      top: ".3em",
-      right: ".5em",
+      top: "0",
+      right: "0",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      width: "2em",
+      height: "2em",
+      overflow: "hidden",
       opacity: 0,
       transition: "opacity 0.2s ease",
       "&:hover": {
-        opacity: 0.9
+        opacity: 1
       }
     },
 
@@ -205,8 +210,9 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const className = `node-drag-handle comment-node ${
     props.data.collapsed ? "collapsed " : ""
   }${props.selected ? "selected" : ""}`.trim();
-  const { updateNodeData } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData
+  const { updateNodeData, updateNode } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData,
+    updateNode: state.updateNode
   }));
   const [editor] = useState(() => withReact(createEditor()));
   const [color, setColor] = useState(
@@ -222,6 +228,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   });
 
   const textColor = getContrastTextColor(color);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textEditorRef = useRef<HTMLDivElement>(null);
 
   const handleChange = useCallback(
     (newValue: Descendant[]) => {
@@ -240,6 +248,140 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     },
     [props.data, props.id, updateNodeData]
   );
+
+  const handleScaleToFit = useCallback(() => {
+    if (textEditorRef.current && containerRef.current) {
+      const textEditorDiv = textEditorRef.current;
+      const containerDiv = containerRef.current;
+
+      // --- Width Calculation (X-axis) ---
+      const MIN_WIDTH = props.data.size?.width
+        ? Math.min(props.data.size.width, 100)
+        : 100;
+      const MAX_WIDTH = 600;
+      const bufferX = 20;
+      let maxContentWidth = 0;
+
+      const tempSpan = document.createElement("span");
+      try {
+        document.body.appendChild(tempSpan);
+        const editorStyle = getComputedStyle(textEditorDiv);
+        tempSpan.style.fontFamily = editorStyle.fontFamily;
+        tempSpan.style.fontSize = editorStyle.fontSize;
+        tempSpan.style.fontWeight = editorStyle.fontWeight;
+        tempSpan.style.fontStyle = editorStyle.fontStyle;
+        tempSpan.style.letterSpacing = editorStyle.letterSpacing;
+        tempSpan.style.whiteSpace = "nowrap";
+        tempSpan.style.visibility = "hidden";
+        tempSpan.style.position = "absolute";
+        tempSpan.style.padding = "0";
+        tempSpan.style.border = "none";
+
+        if (editor.children && editor.children.length > 0) {
+          for (const paragraph of editor.children) {
+            const lineText = SlateNode.string(paragraph);
+            tempSpan.textContent = lineText || " ";
+            maxContentWidth = Math.max(maxContentWidth, tempSpan.offsetWidth);
+          }
+        } else {
+          tempSpan.textContent = " ".repeat(10);
+          maxContentWidth = tempSpan.offsetWidth;
+        }
+      } catch (e) {
+        maxContentWidth = MIN_WIDTH;
+      } finally {
+        if (tempSpan.parentNode === document.body) {
+          document.body.removeChild(tempSpan);
+        }
+      }
+
+      const paddingLeft =
+        parseFloat(getComputedStyle(containerDiv).paddingLeft) || 0;
+      const paddingRight =
+        parseFloat(getComputedStyle(containerDiv).paddingRight) || 0;
+      const newWidth = maxContentWidth + paddingLeft + paddingRight + bufferX;
+      const finalWidth = Math.min(Math.max(newWidth, MIN_WIDTH), MAX_WIDTH);
+
+      // --- Node Update ---
+      const currentDOMHeight = containerDiv.offsetHeight;
+      const currentDOMWidth = containerDiv.offsetWidth;
+
+      const initialWidthNeedsUpdate =
+        Math.abs(currentDOMWidth - finalWidth) > 1;
+
+      if (initialWidthNeedsUpdate) {
+        // Update width first
+        const widthUpdatePayload: Partial<Node<NodeData>> = {
+          width: finalWidth,
+          // Keep current height for now, or use a reasonable temp height
+          height: containerDiv.offsetHeight,
+          data: {
+            ...props.data,
+            size: { width: finalWidth, height: containerDiv.offsetHeight }
+          }
+        };
+        if (updateNode) {
+          updateNode(props.id, widthUpdatePayload);
+        }
+      }
+
+      requestAnimationFrame(() => {
+        // Recalculate height after width has been applied and reflowed
+        const newOriginalTextEditorStyleHeight = textEditorDiv.style.height;
+        textEditorDiv.style.height = "auto";
+        const newContentScrollHeight = textEditorDiv.scrollHeight;
+        textEditorDiv.style.height = newOriginalTextEditorStyleHeight;
+
+        const newPaddingTop =
+          parseFloat(getComputedStyle(containerDiv).paddingTop) || 0;
+        const newPaddingBottom =
+          parseFloat(getComputedStyle(containerDiv).paddingBottom) || 0;
+        const newBufferY = 2;
+        const recalculatedNewHeight =
+          newContentScrollHeight +
+          newPaddingTop +
+          newPaddingBottom +
+          newBufferY;
+        const newMinHeight = 40;
+        const recalculatedFinalHeight = Math.max(
+          recalculatedNewHeight,
+          newMinHeight
+        );
+
+        // Use the updated container height after width change for comparison
+        const updatedDOMHeight = containerDiv.offsetHeight;
+        const heightNeedsUpdateAfterWidth =
+          Math.abs(updatedDOMHeight - recalculatedFinalHeight) > 1;
+
+        // Only update if height still needs adjustment or if width was not updated initially but height does
+        if (
+          heightNeedsUpdateAfterWidth ||
+          (!initialWidthNeedsUpdate &&
+            Math.abs(currentDOMHeight - recalculatedFinalHeight) > 1)
+        ) {
+          const finalSizeForData = {
+            width: finalWidth,
+            height: recalculatedFinalHeight
+          };
+          const nodeUpdatePayload: Partial<Node<NodeData>> = {
+            width: finalWidth,
+            height: recalculatedFinalHeight,
+            data: {
+              ...props.data,
+              size: finalSizeForData
+            }
+          };
+          if (updateNode) {
+            updateNode(props.id, nodeUpdatePayload);
+          }
+        }
+      });
+    }
+  }, [props.id, props.data, updateNode, editor]);
+
+  const handleBlur = useCallback(() => {
+    handleScaleToFit();
+  }, [handleScaleToFit]);
 
   const handleClick = useCallback(() => {
     ReactEditor.focus(editor);
@@ -304,6 +446,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
+      ref={containerRef}
       style={{ backgroundColor: hexToRgba(color, 0.5) }}
       className={className}
       css={styles}
@@ -323,12 +466,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onToggle={toggleMark}
           tooltipText="Make selected text Italic (Ctrl+I) "
         />
-        {/* <FormatButton
-          format="size"
-          label="-"
-          isActive={isMarkActive("size") && Editor.marks(editor)?.size === "-"}
-          onToggle={(format, label) => toggleMark(format, label)}
-        /> */}
         <FormatButton
           format="size"
           label="+"
@@ -336,8 +473,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onToggle={(format, label) => toggleMark(format, label)}
           tooltipText="Increase Font Size for selected text"
         />
+        <FormatButton
+          actionId="fitContent"
+          label="Fit"
+          isActive={false}
+          onAction={handleScaleToFit}
+          tooltipText="Scale node to fit content"
+        />
       </div>
       <div
+        ref={textEditorRef}
         className="text-editor"
         onClick={handleClick}
         css={css`
@@ -354,6 +499,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             className="editable nodrag nowheel"
             onKeyDown={onKeyDown}
             renderLeaf={renderLeaf}
+            onBlur={handleBlur}
           />
         </Slate>
       </div>

@@ -25,6 +25,8 @@ import {
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
+import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
@@ -37,6 +39,7 @@ import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { useNavigate } from "react-router-dom";
 import SettingsMenu from "../../menus/SettingsMenu";
+import { IconForType } from "../../../config/data_types";
 
 enum TabValue {
   Overview = 0,
@@ -50,7 +53,6 @@ interface TabPanelProps {
   value: TabValue;
   index: TabValue;
 }
-
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
@@ -270,7 +272,7 @@ const Welcome = () => {
           </div>
           <Button
             onClick={() => {
-              navigate("/editor/start");
+              navigate("/dashboard");
             }}
             className="start-button"
           >
@@ -402,7 +404,8 @@ const Welcome = () => {
                     <ul>
                       <li>
                         <Typography variant="body2">
-                          Download from Hugging Face and run models locally.
+                          Download HuggingFace or Ollama models and run them
+                          locally.
                         </Typography>
                       </li>
                       <li>
@@ -416,30 +419,90 @@ const Welcome = () => {
                       </li>
                       <li>
                         <Typography variant="body2">
-                          Use the <span className="fake-button">Models</span>{" "}
-                          button in the top panel to manage all models.
+                          In the editor view, use the{" "}
+                          <span
+                            style={{
+                              alignItems: "center",
+                              display: "inline-block"
+                            }}
+                          >
+                            <IconForType
+                              iconName="model"
+                              showTooltip={false}
+                              containerStyle={{
+                                display: "inline-block",
+                                width: "18px",
+                                height: "18px"
+                                // marginRight: "4px"
+                              }}
+                              bgStyle={{
+                                display: "inline-block",
+                                fontSize: "10px",
+                                backgroundColor: "transparent",
+                                width: "18px",
+                                height: "18px"
+                              }}
+                            />
+                          </span>{" "}
+                          <span className="fake-button">Models</span> button in
+                          the top-right corner to manage all your models.
                         </Typography>
                       </li>
                     </ul>
                   </Box>
                   <Typography variant="subtitle1" className="setup-list-title">
-                    2. Use Remote Models, like OpenAI or Anthropic, configure
-                    them in the Settings.
+                    2. Use Remote Models
                   </Typography>
                   <Box className="setup-list-content">
-                    <ul>
-                      <li>
-                        <Typography variant="body2">
-                          Set up API keys to access cloud-based AI models.
-                        </Typography>
-                      </li>
-                      <li>
-                        <Typography variant="body2">
-                          Ideal for more powerful models or when local resources
-                          are limited.
-                        </Typography>
-                      </li>
-                    </ul>
+                    <Typography component="div" sx={{ mt: 2, mb: 1 }}>
+                      <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
+                        2. Use Remote Models
+                      </Typography>
+                      <Typography sx={{ mb: 1, pl: 2 }}>
+                        Services like OpenAI or Anthropic can be configured in
+                        the{" "}
+                        <SettingsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />{" "}
+                        <strong>Settings</strong> icon in the top-right corner).
+                        Set up your API keys there to access these powerful
+                        cloud-based AI models. This option is ideal when you
+                        need capabilities beyond local models or if your local
+                        machine resources are limited.
+                      </Typography>
+                      <Typography sx={{ mb: 1, pl: 2 }}>
+                        Additionally, you can integrate services such as{" "}
+                        <Link
+                          href="https://replicate.com/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Replicate
+                        </Link>
+                        ,{" "}
+                        <Link
+                          href="https://fal.ai/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Fal.ai
+                        </Link>
+                        , or{" "}
+                        <Link
+                          href="https://elevenlabs.io/"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          ElevenLabs
+                        </Link>{" "}
+                        by installing their respective packs. Look for the{" "}
+                        <WidgetsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />{" "}
+                        <b>Packs</b> button (in the left panel) to find and
+                        install these.
+                      </Typography>
+                    </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ mt: 2 }}>
                     Choose the option that best suits your needs and project
@@ -454,11 +517,11 @@ const Welcome = () => {
                     }}
                   >
                     <Typography variant="body1">
-                      You can enter the API keys in the
+                      You can enter your API keys in the
                     </Typography>
                     <SettingsMenu buttonText="Settings Menu" />
                     <Typography variant="body1">
-                      in the top right corner.
+                      in the top-right corner.
                     </Typography>
                   </Box>
                 </Box>
@@ -473,8 +536,9 @@ const Welcome = () => {
                 >
                   <Typography variant="h2">Local Models</Typography>
                   <p>
-                    We recommend the following models, all of which run well on
-                    M1 Macs or smaller NVIDIA GPUs.
+                    To run many of the examples, we recommend the following
+                    models, all of which should work on M1 Macs or smaller
+                    NVIDIA GPUs.
                   </p>
                   <ul>
                     <li>
@@ -499,9 +563,12 @@ const Welcome = () => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>DeepSeek R1 7B</b> - DeepSeek&apos;s first-generation
-                        of reasoning models with comparable performance to
-                        OpenAI-o1.
+                        <b>DeepSeek R1 7B</b> - DeepSeek-R1 is a family of open
+                        reasoning models with performance approaching that of
+                        leading models, such as O3 and Gemini 2.5 Pro.
+                        <br />
+                        Note:This smaller, distilled version exhibits lower
+                        performance.
                       </Typography>
                     </li>
                     <li>

@@ -374,16 +374,15 @@ export const getRemoteSidebarSections = () => {
     ];
   }
 
-  return Object.entries(groupedSettings).map(([group, settings]) => ({
-    category: group,
-    items: settings.map((setting) => ({
-      id: setting.env_var,
-      label: setting.env_var
-        .replace(/_/g, " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (char: string) => char.toUpperCase())
-    }))
-  }));
+  return [
+    {
+      category: "Settings",
+      items: Object.keys(groupedSettings).map((group) => ({
+        id: group.toLowerCase().replace(/\s+/g, "-"), // Match the ID format used in the rendered content
+        label: group
+      }))
+    }
+  ];
 };
 
 export default RemoteSettings;

@@ -150,14 +150,6 @@ function getRoutes() {
           </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
-    },
-    {
-      path: "editor/start",
-      element: (
-        <ProtectedRoute>
-          <OpenOrCreateDialog />
-        </ProtectedRoute>
-      )
     }
   ];
 

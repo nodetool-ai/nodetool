@@ -32,7 +32,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
-  compactView = false
+  compactView = false,
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
@@ -148,7 +148,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         </div>
 
         <div className="actions-container">
-          {isHuggingFace && (
+          {isHuggingFace && showModelStats && (
             <div className="model-stats">
               <div className="model-stats-item">
                 <Tooltip title="Downloads on HF last month">
