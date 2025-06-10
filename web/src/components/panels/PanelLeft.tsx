@@ -374,13 +374,12 @@ const PanelLeft: React.FC = () => {
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
-  const handleViewChange = usePanelStore((state) => state.handleViewChange);
 
   const onViewChange = useCallback(
-    (view: typeof activeView) => {
-      handleViewChange(view);
+    (view: LeftPanelView) => {
+      handlePanelToggle(view);
     },
-    [handleViewChange]
+    [handlePanelToggle]
   );
 
   return (
