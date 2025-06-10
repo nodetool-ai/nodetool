@@ -12,77 +12,83 @@ export const useFitView = () => {
   const TRANSITION_DURATION = 800;
   const SECOND_CALL_DELAY = 20;
 
-  return useCallback(() => {
-    if (selectedNodes.length) {
-      setTimeout(() => {
-        setSelectedNodes([]);
-      }, TRANSITION_DURATION - 300);
-      const nodesById = nodes.reduce((acc, node) => {
-        const pos = {
-          x: node.position.x,
-          y: node.position.y
-        };
-        acc[node.id] = pos;
-        return acc;
-      }, {} as Record<string, XYPosition>);
+  return useCallback(
+    (options?: { padding?: number }) => {
+      const padding = options?.padding ?? 0.2;
+      if (selectedNodes.length) {
+        setTimeout(() => {
+          setSelectedNodes([]);
+        }, TRANSITION_DURATION - 300);
+        const nodesById = nodes.reduce((acc, node) => {
+          const pos = {
+            x: node.position.x,
+            y: node.position.y
+          };
+          acc[node.id] = pos;
+          return acc;
+        }, {} as Record<string, XYPosition>);
 
-      const nodePositions = selectedNodes.map((node) => {
-        const parent = node.parentId ? nodesById[node.parentId] : null;
-        const parentPos = parent
-          ? { x: parent.x, y: parent.y }
-          : { x: 0, y: 0 };
-        return {
-          x: node.position.x + parentPos.x,
-          y: node.position.y + parentPos.y,
-          width: node.measured?.width || 0,
-          height: node.measured?.height || 0
-        };
-      });
-
-      const xMin = Math.min(...nodePositions.map((pos) => pos.x));
-      const xMax = Math.max(...nodePositions.map((pos) => pos.x + pos.width));
-      const yMin = Math.min(...nodePositions.map((pos) => pos.y));
-      const yMax = Math.max(...nodePositions.map((pos) => pos.y + pos.height));
-
-      const padding = 0;
-      const bounds = {
-        x: xMin - padding,
-        y: yMin - padding,
-        width: xMax - xMin + padding * 2,
-        height: yMax - yMin + padding * 2
-      };
-
-      requestAnimationFrame(() => {
-        // First call, now with animation
-        reactFlowInstance.fitBounds(bounds, {
-          duration: TRANSITION_DURATION,
-          padding: 0.2
+        const nodePositions = selectedNodes.map((node) => {
+          const parent = node.parentId ? nodesById[node.parentId] : null;
+          const parentPos = parent
+            ? { x: parent.x, y: parent.y }
+            : { x: 0, y: 0 };
+          return {
+            x: node.position.x + parentPos.x,
+            y: node.position.y + parentPos.y,
+            width: node.measured?.width || 0,
+            height: node.measured?.height || 0
+          };
         });
 
-        // Call it again after a very short delay, also with animation
-        setTimeout(() => {
+        const xMin = Math.min(...nodePositions.map((pos) => pos.x));
+        const xMax = Math.max(...nodePositions.map((pos) => pos.x + pos.width));
+        const yMin = Math.min(...nodePositions.map((pos) => pos.y));
+        const yMax = Math.max(
+          ...nodePositions.map((pos) => pos.y + pos.height)
+        );
+
+        const boundsPadding = 0;
+        const bounds = {
+          x: xMin - boundsPadding,
+          y: yMin - boundsPadding,
+          width: xMax - xMin + boundsPadding * 2,
+          height: yMax - yMin + boundsPadding * 2
+        };
+
+        requestAnimationFrame(() => {
+          // First call, now with animation
           reactFlowInstance.fitBounds(bounds, {
             duration: TRANSITION_DURATION,
-            padding: 0.2
+            padding: padding
           });
-        }, 10); // 10ms delay
-      });
-    } else {
-      requestAnimationFrame(() => {
-        // First call, now with animation
-        reactFlowInstance.fitView({
-          duration: TRANSITION_DURATION,
-          padding: 0.1
-        });
 
-        // Call it again after a very short delay, also with animation
-        setTimeout(() => {
+          // Call it again after a very short delay, also with animation
+          setTimeout(() => {
+            reactFlowInstance.fitBounds(bounds, {
+              duration: TRANSITION_DURATION,
+              padding: padding
+            });
+          }, 10); // 10ms delay
+        });
+      } else {
+        requestAnimationFrame(() => {
+          // First call, now with animation
           reactFlowInstance.fitView({
             duration: TRANSITION_DURATION,
-            padding: 0.1
+            padding: padding
           });
-        }, SECOND_CALL_DELAY);
-      });
-    }
-  }, [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]);
+
+          // Call it again after a very short delay, also with animation
+          setTimeout(() => {
+            reactFlowInstance.fitView({
+              duration: TRANSITION_DURATION,
+              padding: padding
+            });
+          }, SECOND_CALL_DELAY);
+        });
+      }
+    },
+    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]
+  );
 };
