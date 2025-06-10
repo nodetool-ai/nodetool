@@ -26,9 +26,12 @@ import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isProduction } from "../../stores/ApiClient";
-import RemoteSettingsMenu, {
-  getRemoteSidebarSections
+import RemoteSettingsMenuComponent, {
+  getRemoteSidebarSections as getApiServicesSidebarSections
 } from "./RemoteSettingsMenu";
+import FoldersSettings, {
+  getFoldersSidebarSections
+} from "./FoldersSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -398,7 +401,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setConnectionSnap,
     setPanControls,
     setSelectionMode,
-    setWorkflowLayout,
     setTimeFormat,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
@@ -412,7 +414,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setConnectionSnap: state.setConnectionSnap,
     setPanControls: state.setPanControls,
     setSelectionMode: state.setSelectionMode,
-    setWorkflowLayout: state.setWorkflowLayout,
     setTimeFormat: state.setTimeFormat,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup
@@ -487,8 +488,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
-  const remoteSidebarSections = getRemoteSidebarSections();
-
   if (user && (user as any).auth_token) {
     generalSidebarSections.push({
       category: "API",
@@ -547,17 +546,23 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               aria-label="settings tabs"
             >
               <Tab label="General" id="settings-tab-0" />
-              <Tab label="Settings" id="settings-tab-1" />
+              <Tab label="API Services" id="settings-tab-1" />
+              <Tab label="Folders" id="settings-tab-2" />
             </Tabs>
           </div>
 
           <div className="settings-container">
             <SettingsSidebar
+              key={`sidebar-${settingsTab}`}
               activeSection={activeSection}
               sections={
                 settingsTab === 0
                   ? generalSidebarSections
-                  : remoteSidebarSections
+                  : settingsTab === 1
+                  ? getApiServicesSidebarSections()
+                  : settingsTab === 2
+                  ? getFoldersSidebarSections()
+                  : []
               }
               onSectionClick={scrollToSection}
             />
@@ -743,31 +748,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       Display time in 12h or 24h format.
                     </Typography>
                   </div>
-
-                  <div className="settings-item">
-                    <FormControl>
-                      <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
-                      <Select
-                        id={id}
-                        labelId={id}
-                        value={
-                          settings.workflowLayout === "grid" ? "grid" : "list"
-                        }
-                        variant="standard"
-                        onChange={(e) =>
-                          setWorkflowLayout(
-                            e.target.value === "grid" ? "grid" : "list"
-                          )
-                        }
-                      >
-                        <MenuItem value={"grid"}>Grid</MenuItem>
-                        <MenuItem value={"list"}>List</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Typography className="description">
-                      Choose grid or list layout for the Workflow menu.
-                    </Typography>
-                  </div>
                 </div>
 
                 {user && (user as any).auth_token && (
@@ -838,7 +818,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               </TabPanel>
 
               <TabPanel value={settingsTab} index={1}>
-                {!isProduction && <RemoteSettingsMenu />}
+                {!isProduction && <RemoteSettingsMenuComponent />}
+              </TabPanel>
+              <TabPanel value={settingsTab} index={2}>
+                {!isProduction && <FoldersSettings />}
               </TabPanel>
             </div>
           </div>
