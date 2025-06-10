@@ -615,6 +615,10 @@ const iconStyles = (theme: any) => ({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: "4px"
+  },
+  "& svg": {
+    width: "100%",
+    height: "100%"
   }
 });
 

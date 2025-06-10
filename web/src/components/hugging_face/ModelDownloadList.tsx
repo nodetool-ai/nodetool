@@ -7,6 +7,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
+import ModelListItem from "./ModelListItem";
 
 const styles = (theme: any) =>
   css({
@@ -42,18 +43,24 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
             <Grid item xs={12} sm={12} md={12} lg={12} key={index}>
               <Box className="model-container">
                 {!downloads[modelId] && (
-                  <ModelCard
+                  <ModelListItem
+                    key={model.id}
                     model={model}
-                    onDownload={() => {
-                      startDownload(
-                        model.repo_id!,
-                        model.type || "hf.model",
-                        model.path || "",
-                        model.allow_patterns || null,
-                        model.ignore_patterns || null
-                      );
-                    }}
+                    showModelStats={false}
+                    handleDelete={() => {}}
                   />
+                  // <ModelCard
+                  //   model={model}
+                  //   onDownload={() => {
+                  //     startDownload(
+                  //       model.repo_id!,
+                  //       model.type || "hf.model",
+                  //       model.path || "",
+                  //       model.allow_patterns || null,
+                  //       model.ignore_patterns || null
+                  //     );
+                  //   }}
+                  // />
                 )}
                 {downloads[modelId] && <DownloadProgress name={modelId} />}
               </Box>

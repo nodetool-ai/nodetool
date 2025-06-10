@@ -45,8 +45,7 @@ const styles = css({
     fontSize: "var(--fontSizeBig)",
     overflowX: "hidden",
     overflowY: "auto",
-    maxHeight: "80px",
-    wordBreak: "break-all"
+    maxHeight: "80px"
   },
   li: {
     listStyleType: "none",

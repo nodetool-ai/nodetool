@@ -25,6 +25,8 @@ import GridViewIcon from "@mui/icons-material/GridView";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import { Fullscreen } from "@mui/icons-material";
 
+const PANEL_WIDTH_COLLAPSED = "52px";
+
 const styles = (theme: any) =>
   css({
     ".panel-container": {
@@ -33,12 +35,12 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
-      // boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+      borderRight: "1px solid var(--c_gray2)",
       backgroundColor: "var(--c_gray1)",
       direction: "ltr",
       position: "absolute",
-      overflowX: "hidden",
-      overflowY: "auto",
+      overflow: "hidden",
       width: "100%",
       padding: "0",
       top: "72px",
@@ -408,7 +410,7 @@ const PanelLeft: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
-          style: { width: isVisible ? `${panelSize}px` : "60px" }
+          style: { width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED }
         }}
         variant="persistent"
         anchor="left"

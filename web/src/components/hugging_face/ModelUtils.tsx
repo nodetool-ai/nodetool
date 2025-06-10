@@ -91,6 +91,7 @@ export interface ModelComponentProps {
   handleShowInExplorer?: (modelId: string) => void;
   onDownload?: () => void;
   compactView?: boolean;
+  showModelStats?: boolean;
 }
 
 export function formatId(id: string) {
