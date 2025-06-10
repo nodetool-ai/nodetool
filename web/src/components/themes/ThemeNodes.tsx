@@ -90,7 +90,11 @@ const ThemeNodes: Theme = createTheme({
           "&:hover": {
             backgroundColor: theme.palette.c_gray3
           }
-        })
+        }),
+        startIcon: {
+          marginRight: "-1px",
+          marginLeft: "-4px"
+        }
       },
       variants: [
         {
