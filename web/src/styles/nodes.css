@@ -299,7 +299,7 @@
 .react-flow.zoomed-out .api-key-button,
 .react-flow.zoomed-out .title-container,
 .react-flow.zoomed-out .process-timer,
-.react-flow.zoomed-out .comment-node,
+.react-flow.zoomed-out .comment-node > div,
 .react-flow.zoomed-out .node-property-form,
 .react-flow.zoomed-out .react-flow__handle,
 .react-flow.zoomed-out .loop-node .inputs,
