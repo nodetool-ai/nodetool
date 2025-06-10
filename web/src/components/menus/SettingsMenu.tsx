@@ -451,10 +451,29 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+
+    // Use setTimeout to ensure DOM has updated
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+
+      // Always use the main settings-content container as it contains both tabs
+      const container = document.querySelector(".settings-content");
+
+      if (element && container) {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const scrollTop =
+          container.scrollTop + elementRect.top - containerRect.top - 20; // 20px offset for padding
+
+        container.scrollTo({
+          top: scrollTop,
+          behavior: "smooth"
+        });
+      } else if (element) {
+        // Fallback to original method
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 10);
   };
 
   const generalSidebarSections = [

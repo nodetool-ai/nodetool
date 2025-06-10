@@ -95,11 +95,14 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement={"right"}
         >
-          <MenuItem onClick={onClick}>
+          <MenuItem>
             {controlElement ? (
-              controlElement
+              React.cloneElement(controlElement, { onClick })
             ) : (
-              <Button className={`action ${addButtonClassName || ""}`}>
+              <Button
+                className={`action ${addButtonClassName || ""}`}
+                onClick={onClick}
+              >
                 {IconComponent}
                 <span className="label">{label}</span>
               </Button>
@@ -108,11 +111,14 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
         </Tooltip>
       )}
       {!tooltip && (
-        <MenuItem onClick={onClick}>
+        <MenuItem>
           {controlElement ? (
-            controlElement
+            React.cloneElement(controlElement, { onClick })
           ) : (
-            <IconButton className={`action ${addButtonClassName || ""}`}>
+            <IconButton
+              className={`action ${addButtonClassName || ""}`}
+              onClick={onClick}
+            >
               {IconComponent}
               <span className="label">{label}</span>
             </IconButton>
