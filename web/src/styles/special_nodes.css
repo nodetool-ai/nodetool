@@ -73,8 +73,10 @@
   padding: 0;
   overflow: hidden;
   border-radius: 4px;
-  background-color: #0002;
+  border: none;
+  background-color: #fff2;
   box-shadow: none;
+  overflow: visible;
 }
 
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
@@ -144,11 +146,11 @@
 /* Selected node */
 
 .react-flow .react-flow__node.react-flow__node.selected {
-  outline: 1px solid var(--c_white);
+  outline: 1px solid #fff8;
 }
 
 .react-flow.zoomed-out .react-flow__node.react-flow__node.selected {
-  outline: 4px solid var(--c_white);
+  outline: 4px solid #fff8;
 }
 
 .react-flow__node-default .react-flow__handle-left {

@@ -5,6 +5,7 @@ import ContextMenuItem from "./ContextMenuItem";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -28,12 +29,27 @@ const AssetItemContextMenu = () => {
     (state) => state.addNotification
   );
 
-  const handleDownloadAssets = (selectedAssetIds: string[]) => {
+  const handleDownloadAssets = async (selectedAssetIds: string[]) => {
     addNotification({
       type: "info",
-      content: "Download started. This may take a while."
+      content: "Download started. This may take a while.",
+      alert: true
     });
-    download(selectedAssetIds);
+    try {
+      await download(selectedAssetIds);
+      addNotification({
+        type: "success",
+        content: "Download finished successfully.",
+        alert: true
+      });
+    } catch (error) {
+      log.error("Download failed", error);
+      addNotification({
+        type: "error",
+        content: "Download failed. Please check the console for more details.",
+        alert: true
+      });
+    }
   };
 
   if (!menuPosition) return null;
@@ -81,8 +97,8 @@ const AssetItemContextMenu = () => {
             handleDownloadAssets(selectedAssetIds);
           }}
           label="Download Selected Assets"
-          IconComponent={<DriveFileMoveIcon />}
-          tooltip="Move selected assets to a different folder"
+          IconComponent={<FileDownloadIcon />}
+          tooltip="Download selected assets to your Downloads folder"
         />
         <Divider />
         <ContextMenuItem

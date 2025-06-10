@@ -272,7 +272,7 @@ const Welcome = () => {
           </div>
           <Button
             onClick={() => {
-              navigate("/editor/start");
+              navigate("/dashboard");
             }}
             className="start-button"
           >

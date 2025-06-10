@@ -9,12 +9,14 @@ export const useFitView = () => {
     selectedNodes: state.getSelectedNodes(),
     setSelectedNodes: state.setSelectedNodes
   }));
+  const TRANSITION_DURATION = 800;
+  const SECOND_CALL_DELAY = 20;
 
   return useCallback(() => {
     if (selectedNodes.length) {
       setTimeout(() => {
         setSelectedNodes([]);
-      }, 1000);
+      }, TRANSITION_DURATION - 300);
       const nodesById = nodes.reduce((acc, node) => {
         const pos = {
           x: node.position.x,
@@ -50,9 +52,37 @@ export const useFitView = () => {
         height: yMax - yMin + padding * 2
       };
 
-      reactFlowInstance.fitBounds(bounds, { duration: 1000, padding: 0.2 });
+      requestAnimationFrame(() => {
+        // First call, now with animation
+        reactFlowInstance.fitBounds(bounds, {
+          duration: TRANSITION_DURATION,
+          padding: 0.2
+        });
+
+        // Call it again after a very short delay, also with animation
+        setTimeout(() => {
+          reactFlowInstance.fitBounds(bounds, {
+            duration: TRANSITION_DURATION,
+            padding: 0.2
+          });
+        }, 10); // 10ms delay
+      });
     } else {
-      reactFlowInstance.fitView({ duration: 1000, padding: 0.1 });
+      requestAnimationFrame(() => {
+        // First call, now with animation
+        reactFlowInstance.fitView({
+          duration: TRANSITION_DURATION,
+          padding: 0.1
+        });
+
+        // Call it again after a very short delay, also with animation
+        setTimeout(() => {
+          reactFlowInstance.fitView({
+            duration: TRANSITION_DURATION,
+            padding: 0.1
+          });
+        }, SECOND_CALL_DELAY);
+      });
     }
   }, [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]);
 };

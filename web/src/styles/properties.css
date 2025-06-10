@@ -84,16 +84,21 @@
   width: 100%;
   min-width: 100%;
   max-width: 100%;
+  min-height: 48px;
+  max-height: 800px;
   overflow-y: auto !important;
   margin-top: 0.2em;
-  padding: 0.2em 0.5em;
+  padding: 0.5em 1em .5em 0;
   font-family: var(--font_family);
-  font-size: var(--fontSizeTiny);
-  line-height: 1.1em;
-  color: var(--c_white);
-  background-color: var(--c_gray2);
-  border: 0;
+  font-size: var(--fontSizeSmaller);
   font-weight: 300;
+  line-height: 1.3em;
+  color: var(--c_white);
+  background-color: var(--c_gray1);
+  border: 0;
+  border-radius: 4px;
+  outline: none;
+
 }
 
 /* List view */
@@ -170,13 +175,10 @@
 /* STRING */
 .string-property .container {
   position: relative;
-  /* box-sizing: content-box; */
   display: flex;
   gap: 5px;
   align-items: center;
   width: 100%;
-  /* margin-top: 5px; */
-  /* margin-bottom: 2px; */
 }
 
 .value-changed .string-property input {
@@ -513,15 +515,14 @@
 
 .container input {
   flex: 1;
-  padding: em 0.5em;
+  padding: 1em 0.5em;
   border: 1px solid var(--c_gray3);
   border-radius: 4px;
   color: var(--text-primary);
 }
 
 .container input:focus {
-  border-color: var(--c_hl);
-  box-shadow: 0 0 0 2px var(--c_hl25);
+  border-color: var(--palette-primary-light);
 }
 
 /* Property Input Container */

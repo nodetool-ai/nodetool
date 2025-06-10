@@ -24,6 +24,7 @@
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
   box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
+  transition: box-shadow 0.15s ease-in-out;
 }
 
 /* Node header */
@@ -231,7 +232,7 @@
 
 /* Node selection */
 .react-flow__node.selected {
-  box-shadow: 0 0 0 2px var(--c_white),
+  box-shadow: 0 0 0 2px #fffa,
     0.15em 0.15em 1.2em 0px rgba(0, 0, 0, 0.6);
 }
 
@@ -286,7 +287,8 @@
   min-width: 100px;
 }
 
-.react-flow.zoomed-out .node-property,
+.react-flow.zoomed-out .node-property:not(.image),
+.react-flow.zoomed-out .node-property .property-label,
 .react-flow.zoomed-out .audio-controls-container,
 .react-flow.zoomed-out .multi-outputs,
 .react-flow.zoomed-out .node-title,
@@ -294,7 +296,6 @@
 .react-flow.zoomed-out .node-header .menu-button,
 .react-flow.zoomed-out .node-footer,
 .react-flow.zoomed-out .node-status,
-.react-flow.zoomed-out .node-resize-handle,
 .react-flow.zoomed-out .api-key-button,
 .react-flow.zoomed-out .title-container,
 .react-flow.zoomed-out .process-timer,
@@ -303,15 +304,29 @@
 .react-flow.zoomed-out .react-flow__handle,
 .react-flow.zoomed-out .loop-node .inputs,
 .react-flow.zoomed-out .loop-node .outputs,
-.react-flow.zoomed-out .preview-node-content,
 .react-flow.zoomed-out .model-button,
 .react-flow.zoomed-out .expand-button-container,
 .react-flow.zoomed-out .tool-call-container,
-.react-flow.zoomed-out .node-chunk {
+.react-flow.zoomed-out .node-chunk,
+.react-flow.zoomed-out .preview-node-content .output
+  {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+.react-flow.zoomed-out .node-property .image-property,
+.react-flow.zoomed-out .image-output {
+  opacity: 1;
+  visibility: visible;
+}
+
+.react-flow.zoomed-out .node-resize-handle,
+.react-flow.zoomed-out .node-resize-handle svg {
+  width: 60px !important;
+  height: 60px !important;
+  bottom: -10px;
+  right: -10px;
 }
 
 @keyframes gradientAnimation {
