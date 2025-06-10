@@ -52,16 +52,20 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     openNodeMenu: state.openNodeMenu
   }));
 
-  const handleOpenNodeMenu = useCallback(() => {
-    if (metadata) {
-      openNodeMenu({
-        x: 500,
-        y: 200,
-        dropType: metadata.namespace,
-        selectedPath: metadata.namespace.split(".")
-      });
-    }
-  }, [metadata, openNodeMenu]);
+  const handleOpenNodeMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (metadata) {
+        openNodeMenu({
+          x: 500,
+          y: 200,
+          dropType: metadata.namespace,
+          selectedPath: metadata.namespace.split(".")
+        });
+      }
+    },
+    [metadata, openNodeMenu]
+  );
 
   return (
     <div className="node-footer" style={{ backgroundColor }}>
