@@ -37,6 +37,7 @@ import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
+import { useFitView } from "../../hooks/useFitView";
 // constants
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -305,20 +306,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
-  const fitScreen = useCallback(() => {
-    if (reactFlowInstance) {
-      reactFlowInstance.fitView(fitViewOptions);
-      setShouldFitToScreen(false);
-    }
-  }, [reactFlowInstance, setShouldFitToScreen]);
+  const fitView = useFitView();
 
   useEffect(() => {
     if (shouldFitToScreen) {
-      requestAnimationFrame(() => {
-        fitScreen();
-      });
+      fitView();
+      setShouldFitToScreen(false);
     }
-  }, [fitScreen, shouldFitToScreen]);
+  }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
 
   if (loadingState?.isLoading) {
     return (

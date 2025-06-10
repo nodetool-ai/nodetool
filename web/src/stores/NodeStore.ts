@@ -399,7 +399,7 @@ export const createNodeStore = (
           edges: sanitizedEdges,
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
-          shouldFitToScreen: state?.shouldFitToScreen || false,
+          shouldFitToScreen: state?.shouldFitToScreen ?? true,
           connectionAttempted: false,
           setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
