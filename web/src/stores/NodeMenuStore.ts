@@ -368,15 +368,65 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     openNodeMenu: (params: OpenNodeMenuParams) => {
       set({ clickPosition: { x: params.x, y: params.y } });
       const { menuWidth, menuHeight } = get();
-      const maxPosX = window.innerWidth - menuWidth;
-      const maxPosY = window.innerHeight - menuHeight - 40;
-      const constrainedX = Math.min(Math.max(params.x, 0), maxPosX);
-      const minPosY = 0;
-      const menuOffset = 20;
-      const constrainedY = Math.min(
-        Math.max(params.y + menuOffset, minPosY),
-        maxPosY
-      );
+
+      // --- Configuration ---
+      // There's a CSS/layout offset that gets added to our component's final Y position
+      const Y_OFFSET_COMPENSATION = 120;
+      // Fallback dimensions for the first render when the actual dimensions are 0
+      const FALLBACK_MENU_WIDTH = 800;
+      const FALLBACK_MENU_HEIGHT = 870;
+
+      // --- Calculation ---
+      const actualMenuWidth = menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
+      const actualMenuHeight =
+        menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
+
+      // 1. Start with the desired visual position at the mouse cursor
+      let visualX = params.x;
+      let visualY = params.y;
+
+      // 2. Check if the menu overflows the window edges and adjust
+      // Adjust X if it overflows the right edge
+      if (visualX + actualMenuWidth > window.innerWidth) {
+        visualX = window.innerWidth - actualMenuWidth;
+      }
+      // Adjust Y if it overflows the bottom edge
+      if (visualY + actualMenuHeight > window.innerHeight) {
+        visualY = window.innerHeight - actualMenuHeight;
+      }
+
+      // 3. Ensure the final position is not negative
+      visualX = Math.max(0, visualX);
+      visualY = Math.max(0, visualY);
+
+      // 4. Apply the Y-offset compensation to get the final value for the component
+      const finalX = visualX;
+      const finalY = visualY - Y_OFFSET_COMPENSATION;
+
+      console.log("Positioning Debug:", {
+        mouseX: params.x,
+        mouseY: params.y,
+        visualX,
+        visualY,
+        finalY,
+        Y_OFFSET_COMPENSATION
+      });
+
+      // Debug actual rendered position
+      setTimeout(() => {
+        const menuElement = document.querySelector(".floating-node-menu");
+        if (menuElement) {
+          const rect = menuElement.getBoundingClientRect();
+          console.log("Actual menu position:", {
+            calculatedX: visualX,
+            actualLeft: rect.left,
+            xDifference: rect.left - visualX,
+            calculatedY: visualY,
+            actualTop: rect.top,
+            yDifference: rect.top - visualY
+          });
+        }
+      }, 100);
 
       // Determine if search params have changed
       const searchParamsChanged =
@@ -394,7 +444,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({
         isMenuOpen: true,
         searchTerm: params.searchTerm || "",
-        menuPosition: { x: constrainedX, y: constrainedY },
+        menuPosition: { x: finalX, y: finalY },
         dropType: params.dropType || "",
         connectDirection: params.connectDirection || null,
         selectedPath: params.selectedPath || [],
@@ -406,8 +456,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           params.dropType && params.connectDirection === "source"
             ? params.dropType
             : "",
-        menuWidth: 900, // Set default menu width
-        menuHeight: 800 // Set default menu height
+        menuWidth: 800,
+        menuHeight: 870
       });
 
       // Only perform search if any search-related params changed
