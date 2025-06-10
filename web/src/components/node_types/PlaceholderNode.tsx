@@ -59,15 +59,19 @@ const styles = (theme: any) =>
       margin: "8px 0"
     },
     ".search-button": {
-      backgroundColor: theme.palette.c_primary,
+      backgroundColor: "var(--c_gray4)",
+      fontSize: "var(--fontSizeTiny)",
+      lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: theme.palette.c_primary_dark
+        backgroundColor: "var(--c_gray5)"
       }
     },
     ".install-button": {
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: "var(--c_gray4)",
+      fontSize: "var(--fontSizeTiny)",
+      lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: theme.palette.c_hl2
+        backgroundColor: "var(--c_gray5)"
       }
     }
   });
