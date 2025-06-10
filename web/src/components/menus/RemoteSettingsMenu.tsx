@@ -56,7 +56,6 @@ const RemoteSettings = () => {
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
   );
-  console.log(settingValues);
 
   // Initialize setting values from fetched data or store settings
   useMemo(() => {
@@ -237,10 +236,6 @@ const RemoteSettings = () => {
 export const getRemoteSidebarSections = () => {
   const store = useRemoteSettingsStore.getState();
   const settings = store.settings;
-  // console.log(
-  //   "[APIServicesSidebar] All settings from store:",
-  //   JSON.parse(JSON.stringify(settings || []))
-  // );
 
   const initialGroupedSettings = settings.reduce((acc, setting) => {
     const groupKey = setting.group || "UnknownGroup";
@@ -248,31 +243,17 @@ export const getRemoteSidebarSections = () => {
     acc[groupKey].push(setting);
     return acc;
   }, {} as Record<string, any[]>);
-  // console.log(
-  //   "[APIServicesSidebar] Initial groupedSettings (before filtering 'Folders'):",
-  //   JSON.parse(JSON.stringify(initialGroupedSettings || {}))
-  // );
 
   const filteredGroupEntries = Object.entries(initialGroupedSettings).filter(
     ([group]) => {
       const isFoldersGroup = group === "Folders";
-      // console.log(
-      //   `[APIServicesSidebar] Filtering group: ${group}, Is 'Folders' group: ${isFoldersGroup}, Will be kept: ${!isFoldersGroup}`
-      // );
       return !isFoldersGroup;
     }
   );
 
   const finalGroupedSettings = Object.fromEntries(filteredGroupEntries);
-  // console.log(
-  //   "[APIServicesSidebar] Final groupedSettings (after filtering 'Folders'):",
-  //   JSON.parse(JSON.stringify(finalGroupedSettings || {}))
-  // );
 
   if (Object.keys(finalGroupedSettings).length === 0) {
-    // console.log(
-    //   "[APIServicesSidebar] No settings groups left after filtering 'Folders'."
-    // );
     return [
       {
         category: "API Services", // Fallback category
@@ -284,9 +265,6 @@ export const getRemoteSidebarSections = () => {
   return Object.entries(finalGroupedSettings).map(
     ([groupName, settingsArray]: [string, any[]]) => {
       const sectionId = groupName.toLowerCase().replace(/\s+/g, "-");
-      // console.log(
-      //   `[APIServicesSidebar] Processing group for sidebar: ${groupName}, generated sectionId: ${sectionId}`
-      // );
       const items = settingsArray
         .filter((setting) => {
           const label = setting.env_var
@@ -294,12 +272,7 @@ export const getRemoteSidebarSections = () => {
             .toLowerCase()
             .replace(/\b\w/g, (char: string) => char.toUpperCase());
           const isExcludedLabel =
-            label === "Font Path" || label === "Comfy Folder"; // Explicitly exclude these even if they are in other groups
-          // console.log(
-          //   `[APIServicesSidebar] Filtering item in group ${groupName} - ENV_VAR: ${
-          //     setting.env_var
-          //   }, Generated Label: ${label}, Is Excluded Label: ${isExcludedLabel}, Will be kept: ${!isExcludedLabel}`
-          // );
+            label === "Font Path" || label === "Comfy Folder";
           return !isExcludedLabel;
         })
         .map((setting) => ({
@@ -310,10 +283,6 @@ export const getRemoteSidebarSections = () => {
             .replace(/\b\w/g, (char: string) => char.toUpperCase())
         }));
 
-      // console.log(
-      //   `[APIServicesSidebar] Group: ${groupName}, Final items for this group:`,
-      //   JSON.parse(JSON.stringify(items || []))
-      // );
       return {
         category: groupName,
         items: items
