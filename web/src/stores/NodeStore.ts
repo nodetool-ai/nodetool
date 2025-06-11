@@ -198,7 +198,7 @@ export interface NodeStoreState {
 
 export type PartializedNodeStore = Pick<
   NodeStoreState,
-  "workflow" | "nodes" | "edges" | "viewport"
+  "workflow" | "nodes" | "edges"
 >;
 
 export type NodeStore = UseBoundStore<
@@ -1001,8 +1001,8 @@ export const createNodeStore = (
         limit: undo_limit,
         equality: customEquality,
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges, viewport, ...rest } = state;
-          return { workflow, nodes, edges, viewport };
+          const { workflow, nodes, edges, ...rest } = state;
+          return { workflow, nodes, edges };
         }
       }
     )
