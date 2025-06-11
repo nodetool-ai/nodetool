@@ -29,6 +29,47 @@ import { QueryClient } from "@tanstack/react-query";
 import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
 
 // -----------------------------------------------------------------
+// HELPER FUNCTIONS
+// -----------------------------------------------------------------
+
+/**
+ * Determines the next active workflow ID when a workflow is removed.
+ *
+ * @param openWorkflows - The list of currently open workflows.
+ * @param closingWorkflowId - The ID of the workflow being closed.
+ * @param currentWorkflowId - The ID of the currently active workflow.
+ * @returns The ID of the next workflow to be activated, or null if none are left.
+ */
+export const determineNextWorkflowId = (
+  openWorkflows: WorkflowAttributes[],
+  closingWorkflowId: string,
+  currentWorkflowId: string | null
+): string | null => {
+  if (currentWorkflowId !== closingWorkflowId) {
+    return currentWorkflowId;
+  }
+
+  const remainingWorkflows = openWorkflows.filter(
+    (w) => w.id !== closingWorkflowId
+  );
+  if (remainingWorkflows.length === 0) {
+    return null;
+  }
+
+  const closingIndex = openWorkflows.findIndex(
+    (w) => w.id === closingWorkflowId
+  );
+
+  // Try to select the next tab, then the previous one, then the first one.
+  const nextWorkflow =
+    remainingWorkflows[closingIndex] ||
+    remainingWorkflows[closingIndex - 1] ||
+    remainingWorkflows[0];
+
+  return nextWorkflow.id;
+};
+
+// -----------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------
 
@@ -510,10 +551,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const { nodeStores, openWorkflows, currentWorkflowId, loadingStates } =
           get();
 
-        console.log(
-          "[WorkflowManager] Loading states before removal:",
-          loadingStates
-        );
         const newOpenWorkflows = openWorkflows.filter(
           (w) => w.id !== workflowId
         );
@@ -522,42 +559,25 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const newLoadingStates = { ...loadingStates };
         delete newLoadingStates[workflowId];
-        console.log(
-          "[WorkflowManager] Loading states after removal:",
-          newLoadingStates
+
+        const newCurrentId = determineNextWorkflowId(
+          openWorkflows,
+          workflowId,
+          currentWorkflowId
         );
-
-        let newCurrentId: string | null = null;
-        if (currentWorkflowId === workflowId) {
-          const currentIndex = openWorkflows.findIndex(
-            (w) => w.id === workflowId
-          );
-          if (newOpenWorkflows.length > 0) {
-            newCurrentId =
-              newOpenWorkflows[currentIndex]?.id ||
-              newOpenWorkflows[currentIndex - 1]?.id ||
-              null;
-          }
-        }
-
-        // Clean up the node store to prevent memory leaks
-        const storeToCleanup = nodeStores[workflowId];
-        if (storeToCleanup) {
-          storeToCleanup.getState().cleanup();
-        }
 
         set({
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
+          currentWorkflowId: newCurrentId,
           loadingStates: newLoadingStates
         });
-        storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));
+
+        storage.removeOpenWorkflow(workflowId);
 
         if (newCurrentId) {
-          set({ currentWorkflowId: newCurrentId });
           storage.setCurrentWorkflow(newCurrentId);
-        } else if (currentWorkflowId === workflowId) {
-          set({ currentWorkflowId: null });
+        } else {
           localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
         }
       },
