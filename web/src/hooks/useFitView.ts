@@ -4,6 +4,7 @@ import { useNodes } from "../contexts/NodeContext";
 import { NodeData } from "../stores/NodeData";
 
 const EXTRA_LEFT_PADDING = 100;
+const TOP_PADDING_ADJUSTMENT = 50;
 
 function getNodesBounds(
   nodesToBound: Node<NodeData>[],
@@ -44,7 +45,7 @@ export const useFitView = () => {
 
   return useCallback(
     (options?: { padding?: number }) => {
-      const padding = options?.padding ?? 0.2;
+      const padding = options?.padding ?? 0.1;
       const nodesToFit = selectedNodes.length > 0 ? selectedNodes : nodes;
 
       if (nodesToFit.length === 0) {
@@ -78,7 +79,7 @@ export const useFitView = () => {
         x: xMin - EXTRA_LEFT_PADDING,
         y: yMin,
         width: xMax - xMin + EXTRA_LEFT_PADDING,
-        height: yMax - yMin
+        height: yMax - yMin + TOP_PADDING_ADJUSTMENT
       };
 
       requestAnimationFrame(() => {
