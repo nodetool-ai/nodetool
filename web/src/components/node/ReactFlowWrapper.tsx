@@ -122,17 +122,22 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowInstance = useReactFlow();
 
-  // Restore viewport on mount and when workflowId changes
+  // Restore viewport only when the workflow ID changes
   useEffect(() => {
     if (viewport) {
       reactFlowInstance.setViewport(viewport);
     }
-  }, [reactFlowInstance, viewport]);
+  }, [reactFlowInstance, workflowId]);
 
   // Debounced viewport change handler
   const handleViewportChange = useMemo(
     () =>
       debounce((newViewport: Viewport) => {
+        console.log(
+          `%c[ReactFlowWrapper] Saving viewport:`,
+          "color: #6B5B95;",
+          newViewport
+        );
         setViewport(newViewport);
       }, 100),
     [setViewport]
