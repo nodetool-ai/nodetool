@@ -299,19 +299,13 @@ const WindowControls = () => {
 };
 
 const TabsNodeEditor = () => {
-  const {
-    openWorkflows,
-    currentWorkflowId,
-    loadingStates,
-    getNodeStore,
-    getCurrentWorkflow
-  } = useWorkflowManager((state) => ({
-    openWorkflows: state.openWorkflows,
-    currentWorkflowId: state.currentWorkflowId,
-    loadingStates: state.loadingStates,
-    getNodeStore: state.getNodeStore,
-    getCurrentWorkflow: state.getCurrentWorkflow
-  }));
+  const { openWorkflows, currentWorkflowId, loadingStates, getNodeStore } =
+    useWorkflowManager((state) => ({
+      openWorkflows: state.openWorkflows,
+      currentWorkflowId: state.currentWorkflowId,
+      loadingStates: state.loadingStates,
+      getNodeStore: state.getNodeStore
+    }));
 
   const electronDetectionDetails = getIsElectronDetails();
   const isElectron = electronDetectionDetails.isElectron;
@@ -348,19 +342,6 @@ const TabsNodeEditor = () => {
     return undefined;
   }, [currentWorkflowId, getNodeStore]);
 
-  const handleEditClick = useCallback(() => {
-    const currentWorkflow = getCurrentWorkflow();
-    if (currentWorkflow) {
-      setWorkflowToEdit(currentWorkflow);
-    }
-  }, [getCurrentWorkflow]);
-
-  // Fallback to a default theme if no workflow is active
-  const theme = useMemo(() => {
-    const currentWorkflow = getCurrentWorkflow();
-    return generateCSS(currentWorkflow?.settings?.theme);
-  }, [getCurrentWorkflow]);
-
   return (
     <>
       {workflowToEdit && (
@@ -370,7 +351,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={ThemeNodes}>
         <div css={styles}>
           <div className="tabs-container">
             <TabsBar workflows={workflowsForTabs} />
@@ -378,10 +359,12 @@ const TabsNodeEditor = () => {
           </div>
           <div
             className="editor-container"
+            css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
             {activeNodeStore ? (
               <Box
+                key={currentWorkflowId}
                 sx={{
                   overflow: "hidden",
                   position: "absolute",
@@ -407,7 +390,9 @@ const TabsNodeEditor = () => {
                           >
                             <AppHeader />
                             <div className="actions-container">
-                              <AppToolbar setWorkflowToEdit={handleEditClick} />
+                              <AppToolbar
+                                setWorkflowToEdit={setWorkflowToEdit}
+                              />
                             </div>
                             <div className="status-message-container">
                               <StatusMessage />
@@ -434,7 +419,6 @@ const TabsNodeEditor = () => {
                 </ReactFlowProvider>
               </Box>
             ) : (
-              // Render a status message or a loader if no workflow is active
               <StatusMessage />
             )}
           </div>
