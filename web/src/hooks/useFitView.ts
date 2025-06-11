@@ -45,6 +45,7 @@ export const useFitView = () => {
 
   return useCallback(
     (options?: { padding?: number }) => {
+      console.log("%c[useFitView] Triggered", "color: #00A86B;");
       const padding = options?.padding ?? 0.1;
       const nodesToFit = selectedNodes.length > 0 ? selectedNodes : nodes;
 

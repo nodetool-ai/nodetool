@@ -247,20 +247,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
         }
-
-        const workflowWithTags = {
-          ...data,
-          tags: workflow.tags || []
-        };
-
-        // Refresh workflows query cache.
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-
-        if (window.api) {
-          window.api.onCreateWorkflow(workflowWithTags);
-        }
-
-        return workflowWithTags;
+        get().addWorkflow(data);
+        get().setCurrentWorkflowId(data.id);
+        return data;
       },
 
       /**
@@ -433,26 +422,20 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to set as current
        */
       setCurrentWorkflowId: (workflowId: string) => {
-        storage.setCurrentWorkflow(workflowId);
         set({ currentWorkflowId: workflowId });
+        storage.setCurrentWorkflow(workflowId);
       },
 
       // Retrieves the current workflow using its node store.
       getCurrentWorkflow: () => {
-        const workflow = get().nodeStores[get().currentWorkflowId!];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().getWorkflow();
+        const id = get().currentWorkflowId;
+        return id ? get().getWorkflow(id) : undefined;
       },
 
       // Returns a workflow from its node store using the workflow id.
       getWorkflow: (workflowId: string) => {
-        const workflow = get().nodeStores[workflowId];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().getWorkflow();
+        const store = get().nodeStores[workflowId];
+        return store ? store.getState().getWorkflow() : undefined;
       },
 
       // ---------------------------------------------------------------------------------
@@ -464,53 +447,21 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {Workflow} workflow The workflow to add
        */
       addWorkflow: (workflow: Workflow) => {
-        if (!workflow.id) {
-          console.warn("Attempted to add workflow with no ID");
+        const existingStore = get().getNodeStore(workflow.id);
+        if (existingStore) {
+          console.warn(
+            `[WorkflowManager] A store for workflow ${workflow.id} already exists. Skipping creation.`
+          );
           return;
         }
-        // Update the open workflows in localStorage.
-        const openWorkflows = storage.getOpenWorkflows();
 
-        if (!openWorkflows.includes(workflow.id)) {
-          const updatedWorkflows = [...openWorkflows, workflow.id];
-          storage.setOpenWorkflows(updatedWorkflows);
-        }
-
-        set((state) => {
-          const existingIndex = state.openWorkflows.findIndex(
-            (w) => w.id === workflow.id
-          );
-
-          let updatedOpenWorkflows;
-          if (existingIndex >= 0) {
-            updatedOpenWorkflows = [...state.openWorkflows];
-            updatedOpenWorkflows[existingIndex] = omit(workflow, ["graph"]);
-
-            if (state.nodeStores[workflow.id]) {
-              state.nodeStores[workflow.id].setState({
-                workflow: workflow
-              });
-              return {
-                openWorkflows: updatedOpenWorkflows
-              };
-            }
-          } else {
-            updatedOpenWorkflows = [
-              ...state.openWorkflows,
-              omit(workflow, ["graph"])
-            ];
-          }
-          // Create a new node store for the workflow.
-          const nodeStore = createNodeStore(workflow);
-
-          return {
-            openWorkflows: updatedOpenWorkflows,
-            nodeStores: {
-              ...state.nodeStores,
-              [workflow.id]: nodeStore
-            }
-          };
-        });
+        const newStore = createNodeStore(workflow);
+        const workflowAttributes = omit(workflow, "graph");
+        set((state) => ({
+          nodeStores: { ...state.nodeStores, [workflow.id]: newStore },
+          openWorkflows: [...state.openWorkflows, workflowAttributes]
+        }));
+        storage.addOpenWorkflow(workflow.id);
       },
 
       /**
@@ -518,22 +469,46 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
-        storage.removeOpenWorkflow(workflowId);
+        const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
-        set((state) => {
-          const { [workflowId]: removed, ...remaining } = state.nodeStores;
-          const {
-            [workflowId]: removedLoadingState,
-            ...remainingLoadingStates
-          } = state.loadingStates;
-          return {
-            nodeStores: remaining,
-            loadingStates: remainingLoadingStates,
-            openWorkflows: state.openWorkflows.filter(
-              (w) => w.id !== workflowId
-            )
-          };
+        const newOpenWorkflows = openWorkflows.filter(
+          (w) => w.id !== workflowId
+        );
+        const newStores = { ...nodeStores };
+        delete newStores[workflowId];
+
+        let newCurrentId: string | null = null;
+        if (currentWorkflowId === workflowId) {
+          const currentIndex = openWorkflows.findIndex(
+            (w) => w.id === workflowId
+          );
+          if (newOpenWorkflows.length > 0) {
+            newCurrentId =
+              newOpenWorkflows[currentIndex]?.id ||
+              newOpenWorkflows[currentIndex - 1]?.id ||
+              null;
+          }
+        }
+
+        // Clean up the node store to prevent memory leaks
+        const storeToCleanup = nodeStores[workflowId];
+        if (storeToCleanup) {
+          storeToCleanup.getState().cleanup();
+        }
+
+        set({
+          nodeStores: newStores,
+          openWorkflows: newOpenWorkflows
         });
+        storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));
+
+        if (newCurrentId) {
+          set({ currentWorkflowId: newCurrentId });
+          storage.setCurrentWorkflow(newCurrentId);
+        } else if (currentWorkflowId === workflowId) {
+          set({ currentWorkflowId: null });
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
+        }
       },
 
       /**
@@ -609,17 +584,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {WorkflowAttributes} workflow The workflow attributes to update
        */
       updateWorkflow: (workflow: WorkflowAttributes) => {
-        const nodeStore = get().nodeStores[workflow.id];
-        if (!nodeStore) {
-          return;
-        }
-        nodeStore.setState({
-          workflow: workflow
-        });
         set((state) => ({
-          openWorkflows: Object.values(state.nodeStores).map((store) => {
-            return store.getState().workflow;
-          })
+          openWorkflows: state.openWorkflows.map((w) =>
+            w.id === workflow.id ? { ...w, ...workflow } : w
+          )
         }));
       },
 

@@ -124,8 +124,34 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   // Restore viewport only when the workflow ID changes
   useEffect(() => {
+    console.log(
+      `%c[ReactFlowWrapper] Effect triggered for workflow: ${workflowId}`,
+      "color: #FFA500;"
+    );
     if (viewport) {
+      console.log(
+        `%c[ReactFlowWrapper] Restoring viewport for ${workflowId}`,
+        "color: #ADD8E6;"
+      );
       reactFlowInstance.setViewport(viewport);
+    } else {
+      console.log(
+        `%c[ReactFlowWrapper] No saved viewport for ${workflowId}`,
+        "color: #FFC0CB;"
+      );
+      // If no viewport is saved, fit the view, but only if there are nodes.
+      if (nodes.length > 0) {
+        console.log(
+          `%c[ReactFlowWrapper] Fitting view for ${workflowId} (${nodes.length} nodes)`,
+          "color: #90EE90;"
+        );
+        fitView({ padding: 0.8 });
+      } else {
+        console.log(
+          `%c[ReactFlowWrapper] Not fitting view for empty workflow ${workflowId}`,
+          "color: #D3D3D3;"
+        );
+      }
     }
   }, [reactFlowInstance, workflowId]);
 
