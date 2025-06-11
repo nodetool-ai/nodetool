@@ -469,13 +469,26 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
-        const { nodeStores, openWorkflows, currentWorkflowId } = get();
+        console.log(`[WorkflowManager] Removing workflow: ${workflowId}`);
+        const { nodeStores, openWorkflows, currentWorkflowId, loadingStates } =
+          get();
 
+        console.log(
+          "[WorkflowManager] Loading states before removal:",
+          loadingStates
+        );
         const newOpenWorkflows = openWorkflows.filter(
           (w) => w.id !== workflowId
         );
         const newStores = { ...nodeStores };
         delete newStores[workflowId];
+
+        const newLoadingStates = { ...loadingStates };
+        delete newLoadingStates[workflowId];
+        console.log(
+          "[WorkflowManager] Loading states after removal:",
+          newLoadingStates
+        );
 
         let newCurrentId: string | null = null;
         if (currentWorkflowId === workflowId) {
@@ -498,7 +511,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         set({
           nodeStores: newStores,
-          openWorkflows: newOpenWorkflows
+          openWorkflows: newOpenWorkflows,
+          loadingStates: newLoadingStates
         });
         storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));
 
