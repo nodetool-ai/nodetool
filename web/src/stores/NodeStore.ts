@@ -33,7 +33,8 @@ import {
   OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
-  Position
+  Position,
+  Viewport
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
 
@@ -125,6 +126,8 @@ export interface NodeStoreState {
   setShouldAutoLayout: (value: boolean) => void;
   workflow: WorkflowAttributes;
   nodes: Node<NodeData>[];
+  viewport: Viewport | null;
+  setViewport: (viewport: Viewport) => void;
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
@@ -194,7 +197,7 @@ export interface NodeStoreState {
 
 export type PartializedNodeStore = Pick<
   NodeStoreState,
-  "workflow" | "nodes" | "edges"
+  "workflow" | "nodes" | "edges" | "viewport"
 >;
 
 export type NodeStore = UseBoundStore<
@@ -370,6 +373,7 @@ export const createNodeStore = (
           shouldAutoLayout: state?.shouldAutoLayout || false,
           missingModelFiles: [],
           missingModelRepos: [],
+          viewport: null,
           workflow: workflow ? workflow :
              {
                 id: "",
@@ -975,6 +979,9 @@ export const createNodeStore = (
               unsubscribeMetadata = null;
             }
           },
+          setViewport: (viewport: Viewport): void => {
+            set({ viewport: viewport });
+          },
           ...state
         };
       },
@@ -982,8 +989,8 @@ export const createNodeStore = (
         limit: undo_limit,
         equality: customEquality,
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges, ...rest } = state;
-          return { workflow, nodes, edges };
+          const { workflow, nodes, edges, viewport, ...rest } = state;
+          return { workflow, nodes, edges, viewport };
         }
       }
     )
