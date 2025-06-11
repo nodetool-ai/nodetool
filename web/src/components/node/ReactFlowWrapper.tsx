@@ -9,7 +9,8 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
-  Connection
+  Connection,
+  Viewport
 } from "@xyflow/react";
 
 // store
@@ -53,12 +54,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
-import { getMousePosition } from "../../utils/MousePosition";
-declare global {
-  interface Window {
-    __beforeUnloadListenerAdded?: boolean;
-  }
-}
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -102,7 +97,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     shouldFitToScreen,
     setShouldFitToScreen,
     validateConnection,
-    findNode
+    findNode,
+    viewport: storedViewport,
+    setViewport
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -112,8 +109,30 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     shouldFitToScreen: state.shouldFitToScreen,
     setShouldFitToScreen: state.setShouldFitToScreen,
     validateConnection: state.validateConnection,
-    findNode: state.findNode
+    findNode: state.findNode,
+    viewport: state.viewport,
+    setViewport: state.setViewport
   }));
+
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // When the workflow changes, determine initial visibility.
+    // It's visible immediately if a viewport is already stored.
+    setIsVisible(!!storedViewport);
+  }, [workflowId, storedViewport]);
+
+  const reactFlowInstance = useReactFlow();
+
+  const fitView = useFitView();
+
+  // When the user stops moving the canvas, save the new viewport.
+  const handleMoveEnd = useCallback(
+    (event: any, viewport: Viewport) => {
+      setViewport(viewport);
+    },
+    [setViewport]
+  );
 
   const { loadingState } = useWorkflowManager((state) => ({
     loadingState: state.getLoadingState(workflowId)
@@ -290,10 +309,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
-  /* VIEWPORT */
-  const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
-  const reactFlowInstance = useReactFlow();
-
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
@@ -306,14 +321,33 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
-  const fitView = useFitView();
-
   useEffect(() => {
     if (shouldFitToScreen) {
       fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
   }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
+
+  // If there's no saved viewport, and there are nodes, fit the view on mount.
+  useEffect(() => {
+    // If the view is already visible (e.g., from a stored viewport), do nothing.
+    if (isVisible) {
+      return;
+    }
+
+    // For workflows without a stored viewport, fit the view.
+    if (nodes.length > 0) {
+      // Use a timeout to ensure nodes have rendered and have dimensions.
+      setTimeout(() => {
+        fitView({ padding: 0.8 });
+        // Trigger the fade-in after the fitView process starts.
+        setIsVisible(true);
+      }, 100);
+    } else {
+      // If there are no nodes, there's nothing to fit, so just show the canvas.
+      setIsVisible(true);
+    }
+  }, [nodes, isVisible, fitView]);
 
   if (loadingState?.isLoading) {
     return (
@@ -345,7 +379,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         left: 0,
         top: 0,
         right: 0,
-        bottom: 0
+        bottom: 0,
+        opacity: isVisible ? 1 : 0.9,
+        transition: "opacity 100ms ease-in-out"
       }}
     >
       <ReactFlow
@@ -370,7 +406,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         nodeTypes={nodeTypes}
         snapToGrid={true}
         snapGrid={[settings.gridSnap, settings.gridSnap]}
-        defaultViewport={defaultViewport}
+        defaultViewport={storedViewport || undefined}
+        onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
         {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
         elevateEdgesOnSelect={true}

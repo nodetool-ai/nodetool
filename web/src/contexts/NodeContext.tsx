@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import {
   NodeStore,
   NodeStoreState,
@@ -6,48 +6,45 @@ import {
 } from "../stores/NodeStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { useWorkflowManager } from "./WorkflowManagerContext";
 import { TemporalState } from "zundo";
 import { Box } from "@mui/material";
 import { isEqual } from "lodash";
 
 interface NodeContextValue {
   store: NodeStore;
-  workflowId: string;
 }
 
 // Context wrapper around a NodeStore instance. Components can use the custom
 // hooks below to access node state and actions with equality checks to minimize
 // unnecessary re-renders.
-export const NodeContext = createContext<NodeContextValue | null>(null);
+export const NodeContext = createContext<NodeStore | null>(null);
 
 export const useNodes = <T,>(selector: (state: NodeStoreState) => T): T => {
-  const context = useContext(NodeContext);
-  if (!context) {
+  const store = useContext(NodeContext);
+  if (!store) {
     throw new Error("useNodes must be used within a NodeProvider");
   }
-  return useStoreWithEqualityFn(context.store, selector, isEqual);
+  return useStoreWithEqualityFn(store, selector, isEqual);
 };
 
 export const useTemporalNodes = <T,>(
   selector: (state: TemporalState<PartializedNodeStore>) => T
 ): T => {
-  const context = useContext(NodeContext);
-  if (!context) {
+  const store = useContext(NodeContext);
+  if (!store) {
     throw new Error("useTemporalNodes must be used within a NodeProvider");
   }
-  return useStoreWithEqualityFn(context.store.temporal, selector, isEqual);
+  return useStoreWithEqualityFn(store.temporal, selector, isEqual);
 };
 
 export const NodeProvider: React.FC<{
   children: React.ReactNode;
-  workflowId: string;
-}> = ({ children, workflowId }) => {
-  const store = useWorkflowManager((state) => state.getNodeStore(workflowId));
+  createStore: () => NodeStore;
+}> = ({ children, createStore }) => {
+  const store = useMemo(() => createStore(), [createStore]);
 
   // If the store isn't ready yet we display a small loading indicator. This
   // occurs while workflows are being fetched or initialized.
-
   if (!store) {
     return (
       <Box
@@ -74,9 +71,5 @@ export const NodeProvider: React.FC<{
     );
   }
 
-  return (
-    <NodeContext.Provider value={{ store, workflowId }}>
-      {children}
-    </NodeContext.Provider>
-  );
+  return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
 };
