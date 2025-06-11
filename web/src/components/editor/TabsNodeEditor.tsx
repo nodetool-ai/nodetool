@@ -326,7 +326,7 @@ const TabsNodeEditor = () => {
       return getNodeStore(currentWorkflowId);
     }
     return undefined;
-  }, [currentWorkflowId, getNodeStore, openWorkflows]);
+  }, [currentWorkflowId, getNodeStore]);
 
   // Create a combined list of tabs to render
   const tabsToRender = useMemo(() => {
