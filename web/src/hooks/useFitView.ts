@@ -35,11 +35,14 @@ function getNodesBounds(
 
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
-  const { nodes, selectedNodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    selectedNodes: state.getSelectedNodes(),
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
+    (state) => ({
+      nodes: state.nodes,
+      selectedNodes: state.getSelectedNodes(),
+      setSelectedNodes: state.setSelectedNodes,
+      setViewport: state.setViewport
+    })
+  );
   const TRANSITION_DURATION = 800;
   const SECOND_CALL_DELAY = 20;
 
@@ -99,7 +102,18 @@ export const useFitView = () => {
           selectedNodes.length > 0 ? 10 : SECOND_CALL_DELAY
         );
       });
+
+      // After the animation, get the new viewport and save it.
+      setTimeout(() => {
+        const newViewport = reactFlowInstance.getViewport();
+        console.log(
+          "%c[useFitView] Saving new viewport after fit",
+          "color: #00A86B;",
+          newViewport
+        );
+        setViewport(newViewport);
+      }, TRANSITION_DURATION + SECOND_CALL_DELAY + 100); // Wait for animations to finish
     },
-    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]
+    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
   );
 };
