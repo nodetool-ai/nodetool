@@ -48,7 +48,6 @@ export const useFitView = () => {
 
   return useCallback(
     (options?: { padding?: number }) => {
-      console.log("%c[useFitView] Triggered", "color: #00A86B;");
       const padding = options?.padding ?? 0.1;
       const nodesToFit = selectedNodes.length > 0 ? selectedNodes : nodes;
 
@@ -106,11 +105,6 @@ export const useFitView = () => {
       // After the animation, get the new viewport and save it.
       setTimeout(() => {
         const newViewport = reactFlowInstance.getViewport();
-        console.log(
-          "%c[useFitView] Saving new viewport after fit",
-          "color: #00A86B;",
-          newViewport
-        );
         setViewport(newViewport);
       }, TRANSITION_DURATION + SECOND_CALL_DELAY + 100); // Wait for animations to finish
     },
