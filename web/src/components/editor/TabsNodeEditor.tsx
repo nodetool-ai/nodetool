@@ -300,13 +300,18 @@ const WindowControls = () => {
 };
 
 const TabsNodeEditor = () => {
-  const { openWorkflows, currentWorkflowId, loadingStates, getNodeStore } =
+  const { openWorkflows, currentWorkflowId, loadingStates } =
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
       currentWorkflowId: state.currentWorkflowId,
-      loadingStates: state.loadingStates,
-      getNodeStore: state.getNodeStore
+      loadingStates: state.loadingStates
     }));
+
+  const activeNodeStore = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]
+      : undefined
+  );
 
   const electronDetectionDetails = getIsElectronDetails();
   const isElectron = electronDetectionDetails.isElectron;
@@ -335,13 +340,6 @@ const TabsNodeEditor = () => {
   }, [openWorkflows, loadingStates]);
 
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
-
-  const activeNodeStore = useMemo(() => {
-    if (currentWorkflowId) {
-      return getNodeStore(currentWorkflowId);
-    }
-    return undefined;
-  }, [currentWorkflowId, getNodeStore]);
 
   // Create a combined list of tabs to render
   const tabsToRender = useMemo(() => {
@@ -403,11 +401,11 @@ const TabsNodeEditor = () => {
                   flexDirection: "column"
                 }}
               >
-                <ReactFlowProvider>
-                  <ContextMenuProvider active={true}>
-                    <ConnectableNodesProvider active={true}>
-                      <KeyboardProvider active={true}>
-                        <NodeProvider createStore={() => activeNodeStore}>
+                <NodeProvider createStore={() => activeNodeStore}>
+                  <ReactFlowProvider>
+                    <ContextMenuProvider active={true}>
+                      <ConnectableNodesProvider active={true}>
+                        <KeyboardProvider active={true}>
                           <div
                             style={{
                               flexShrink: 0,
@@ -439,11 +437,11 @@ const TabsNodeEditor = () => {
                               active={true}
                             />
                           </div>
-                        </NodeProvider>
-                      </KeyboardProvider>
-                    </ConnectableNodesProvider>
-                  </ContextMenuProvider>
-                </ReactFlowProvider>
+                        </KeyboardProvider>
+                      </ConnectableNodesProvider>
+                    </ContextMenuProvider>
+                  </ReactFlowProvider>
+                </NodeProvider>
               </Box>
             ) : (
               <StatusMessage />

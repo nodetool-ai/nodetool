@@ -703,39 +703,45 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Fetches the workflow data by its ID, updates the loading state and adds the workflow.
       fetchWorkflow: async (workflowId: string) => {
-        const state = get();
-        const nodeStore = state.getNodeStore(workflowId);
-        const loadingState = state.getLoadingState(workflowId);
-
-        // If the workflow is already loaded or currently loading, skip fetch.
-        if (nodeStore || loadingState?.isLoading) {
+        // Do not fetch if already loading
+        if (get().getLoadingState(workflowId)?.isLoading) {
           return;
         }
         console.log("fetching workflow", workflowId);
 
-        state.setLoadingState(workflowId, {
-          isLoading: true,
-          error: null,
-          data: null
-        });
+        // If the workflow is already in the store, just make it current.
+        if (get().getWorkflow(workflowId)) {
+          get().setCurrentWorkflowId(workflowId);
+          return;
+        }
 
-        const { data, error } = await client.GET("/api/workflows/{id}", {
-          params: { path: { id: workflowId } }
-        });
+        get().setLoadingState(workflowId, { isLoading: true });
 
-        if (error) {
-          state.setLoadingState(workflowId, {
-            isLoading: false,
-            error: error as Error,
-            data: null
+        try {
+          const { data, error } = await client.GET("/api/workflows/{id}", {
+            params: { path: { id: workflowId } }
           });
-        } else {
-          state.setLoadingState(workflowId, {
+
+          if (error) {
+            get().setLoadingState(workflowId, {
+              isLoading: false,
+              error: error as Error
+            });
+            return;
+          }
+
+          get().addWorkflow(data);
+          get().setCurrentWorkflowId(data.id);
+          get().setLoadingState(workflowId, { isLoading: false, data });
+        } catch (e) {
+          console.error(
+            `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
+            e
+          );
+          get().setLoadingState(workflowId, {
             isLoading: false,
-            error: null,
-            data
+            error: e as Error
           });
-          state.addWorkflow(data);
         }
       },
 
