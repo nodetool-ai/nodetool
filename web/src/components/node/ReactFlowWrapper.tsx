@@ -121,14 +121,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   // When the user stops moving the canvas, save the new viewport.
   const handleMoveEnd = useCallback(
     (event: any, viewport: Viewport) => {
-      console.log(
-        `%c[ReactFlowWrapper] Saving viewport for ${workflowId}:`,
-        "color: #6B5B95;",
-        viewport
-      );
       setViewport(viewport);
     },
-    [setViewport, workflowId]
+    [setViewport]
   );
 
   const { loadingState } = useWorkflowManager((state) => ({
