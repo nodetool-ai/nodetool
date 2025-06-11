@@ -118,10 +118,10 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     // help text
     ".help-text": {
       position: "absolute",
-      top: "-60px",
+      top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.c_white, 0.3),
+      backgroundColor: hexToRgba(theme.palette.c_white, 0.6),
       color: "var(--c_black)",
       padding: "0.75em 1em",
       borderRadius: "4px",
