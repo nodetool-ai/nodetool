@@ -310,7 +310,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   useEffect(() => {
     if (shouldFitToScreen) {
-      fitView({ padding: 0.5 });
+      fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
   }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
