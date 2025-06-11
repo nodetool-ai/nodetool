@@ -42,7 +42,7 @@ import { useFitView } from "../../hooks/useFitView";
 // constants
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import { isEqual, debounce } from "lodash";
+import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
@@ -54,12 +54,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
-import { getMousePosition } from "../../utils/MousePosition";
-declare global {
-  interface Window {
-    __beforeUnloadListenerAdded?: boolean;
-  }
-}
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -104,7 +98,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     setShouldFitToScreen,
     validateConnection,
     findNode,
-    viewport,
+    viewport: storedViewport,
     setViewport
   } = useNodes((state) => ({
     nodes: state.nodes,
@@ -122,51 +116,19 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowInstance = useReactFlow();
 
-  // Restore viewport only when the workflow ID changes
-  useEffect(() => {
-    console.log(
-      `%c[ReactFlowWrapper] Effect triggered for workflow: ${workflowId}`,
-      "color: #FFA500;"
-    );
-    if (viewport) {
-      console.log(
-        `%c[ReactFlowWrapper] Restoring viewport for ${workflowId}`,
-        "color: #ADD8E6;"
-      );
-      reactFlowInstance.setViewport(viewport);
-    } else {
-      console.log(
-        `%c[ReactFlowWrapper] No saved viewport for ${workflowId}`,
-        "color: #FFC0CB;"
-      );
-      // If no viewport is saved, fit the view, but only if there are nodes.
-      if (nodes.length > 0) {
-        console.log(
-          `%c[ReactFlowWrapper] Fitting view for ${workflowId} (${nodes.length} nodes)`,
-          "color: #90EE90;"
-        );
-        fitView({ padding: 0.8 });
-      } else {
-        console.log(
-          `%c[ReactFlowWrapper] Not fitting view for empty workflow ${workflowId}`,
-          "color: #D3D3D3;"
-        );
-      }
-    }
-  }, [reactFlowInstance, workflowId]);
+  const fitView = useFitView();
 
-  // Debounced viewport change handler
-  const handleViewportChange = useMemo(
-    () =>
-      debounce((newViewport: Viewport) => {
-        console.log(
-          `%c[ReactFlowWrapper] Saving viewport:`,
-          "color: #6B5B95;",
-          newViewport
-        );
-        setViewport(newViewport);
-      }, 100),
-    [setViewport]
+  // When the user stops moving the canvas, save the new viewport.
+  const handleMoveEnd = useCallback(
+    (event: any, viewport: Viewport) => {
+      console.log(
+        `%c[ReactFlowWrapper] Saving viewport for ${workflowId}:`,
+        "color: #6B5B95;",
+        viewport
+      );
+      setViewport(viewport);
+    },
+    [setViewport, workflowId]
   );
 
   const { loadingState } = useWorkflowManager((state) => ({
@@ -344,9 +306,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
-  /* VIEWPORT */
-  const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
-
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
@@ -359,14 +318,22 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
-  const fitView = useFitView();
-
   useEffect(() => {
     if (shouldFitToScreen) {
       fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
   }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
+
+  // If there's no saved viewport, and there are nodes, fit the view on mount.
+  useEffect(() => {
+    if (!storedViewport && nodes.length > 0) {
+      // Use a timeout to ensure nodes have rendered and have dimensions.
+      setTimeout(() => reactFlowInstance.fitView({ padding: 0.8 }), 100);
+    }
+    // This effect should only run once when the component mounts for a new workflow.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId]);
 
   if (loadingState?.isLoading) {
     return (
@@ -423,8 +390,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         nodeTypes={nodeTypes}
         snapToGrid={true}
         snapGrid={[settings.gridSnap, settings.gridSnap]}
-        defaultViewport={defaultViewport}
-        onViewportChange={handleViewportChange}
+        defaultViewport={storedViewport || undefined}
+        onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
         {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
         elevateEdgesOnSelect={true}
