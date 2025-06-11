@@ -7,7 +7,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppToolbar from "../panels/AppToolbar";
-import { Workflow } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -18,6 +18,7 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
+import { NodeStore } from "../../stores/NodeStore";
 
 const styles = (theme: any) =>
   css({
@@ -342,6 +343,32 @@ const TabsNodeEditor = () => {
     return undefined;
   }, [currentWorkflowId, getNodeStore]);
 
+  // Create a combined list of tabs to render
+  const tabsToRender = useMemo(() => {
+    const tabMap = new Map<string, WorkflowAttributes>();
+
+    // Add open workflows
+    openWorkflows.forEach((workflow) => {
+      tabMap.set(workflow.id, workflow);
+    });
+
+    // Add loading placeholders
+    Object.keys(loadingStates).forEach((id) => {
+      if (!tabMap.has(id)) {
+        tabMap.set(id, {
+          id,
+          name: "Loading...",
+          access: "private",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          description: ""
+        });
+      }
+    });
+
+    return Array.from(tabMap.values());
+  }, [openWorkflows, loadingStates]);
+
   return (
     <>
       {workflowToEdit && (
@@ -354,7 +381,7 @@ const TabsNodeEditor = () => {
       <ThemeProvider theme={ThemeNodes}>
         <div css={styles}>
           <div className="tabs-container">
-            <TabsBar workflows={workflowsForTabs} />
+            <TabsBar workflows={tabsToRender} />
             {!isMac && isElectron && <WindowControls />}
           </div>
           <div
