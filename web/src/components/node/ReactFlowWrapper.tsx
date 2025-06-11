@@ -9,7 +9,8 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
-  Connection
+  Connection,
+  Viewport
 } from "@xyflow/react";
 
 // store
@@ -41,7 +42,7 @@ import { useFitView } from "../../hooks/useFitView";
 // constants
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import { isEqual } from "lodash";
+import { isEqual, debounce } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
@@ -102,7 +103,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     shouldFitToScreen,
     setShouldFitToScreen,
     validateConnection,
-    findNode
+    findNode,
+    viewport,
+    setViewport
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -112,8 +115,28 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     shouldFitToScreen: state.shouldFitToScreen,
     setShouldFitToScreen: state.setShouldFitToScreen,
     validateConnection: state.validateConnection,
-    findNode: state.findNode
+    findNode: state.findNode,
+    viewport: state.viewport,
+    setViewport: state.setViewport
   }));
+
+  const reactFlowInstance = useReactFlow();
+
+  // Restore viewport on mount and when workflowId changes
+  useEffect(() => {
+    if (viewport) {
+      reactFlowInstance.setViewport(viewport);
+    }
+  }, [reactFlowInstance, viewport]);
+
+  // Debounced viewport change handler
+  const handleViewportChange = useMemo(
+    () =>
+      debounce((newViewport: Viewport) => {
+        setViewport(newViewport);
+      }, 100),
+    [setViewport]
+  );
 
   const { loadingState } = useWorkflowManager((state) => ({
     loadingState: state.getLoadingState(workflowId)
@@ -292,7 +315,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* VIEWPORT */
   const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
-  const reactFlowInstance = useReactFlow();
 
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
@@ -371,6 +393,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         snapToGrid={true}
         snapGrid={[settings.gridSnap, settings.gridSnap]}
         defaultViewport={defaultViewport}
+        onViewportChange={handleViewportChange}
         panOnDrag={panOnDrag}
         {...(settings.panControls === "RMB" ? { selectionOnDrag: true } : {})}
         elevateEdgesOnSelect={true}
