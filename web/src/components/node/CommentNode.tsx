@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
@@ -118,6 +118,11 @@ const styles = (theme: any) =>
       gap: "4px",
       zIndex: 1,
       opacity: 0,
+      minWidth: "100%",
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: hexToRgba(theme.palette.c_white, 0.05),
+      borderRadius: ".25em .25em 0 0",
       transition: "opacity 0.2s ease",
       "& button": {
         padding: "1px 5px",
@@ -230,10 +235,10 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const textColor = getContrastTextColor(color);
   const containerRef = useRef<HTMLDivElement>(null);
   const textEditorRef = useRef<HTMLDivElement>(null);
+  const contentOnFocusRef = useRef<Descendant[]>();
 
-  const handleChange = useCallback(
-    (newValue: Descendant[]) => {
-      setValue(newValue);
+  const debouncedUpdate = useMemo(
+    () =>
       debounce((newData) => {
         updateNodeData(props.id, {
           ...props.data,
@@ -242,11 +247,18 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             ...newData
           }
         });
-      }, 500)({
+      }, 500),
+    [props.id, props.data, updateNodeData]
+  );
+
+  const handleChange = useCallback(
+    (newValue: Descendant[]) => {
+      setValue(newValue);
+      debouncedUpdate({
         comment: newValue
       });
     },
-    [props.data, props.id, updateNodeData]
+    [debouncedUpdate]
   );
 
   const handleScaleToFit = useCallback(() => {
@@ -379,9 +391,15 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [props.id, props.data, updateNode, editor]);
 
+  const onFocus = () => {
+    contentOnFocusRef.current = editor.children;
+  };
+
   const handleBlur = useCallback(() => {
-    handleScaleToFit();
-  }, [handleScaleToFit]);
+    if (!isEqual(contentOnFocusRef.current, editor.children)) {
+      handleScaleToFit();
+    }
+  }, [handleScaleToFit, editor]);
 
   const handleClick = useCallback(() => {
     ReactEditor.focus(editor);
@@ -473,13 +491,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onToggle={(format, label) => toggleMark(format, label)}
           tooltipText="Increase Font Size for selected text"
         />
-        <FormatButton
-          actionId="fitContent"
-          label="Fit"
-          isActive={false}
-          onAction={handleScaleToFit}
-          tooltipText="Scale node to fit content"
-        />
       </div>
       <div
         ref={textEditorRef}
@@ -494,11 +505,12 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       >
         <Slate editor={editor} onChange={handleChange} initialValue={value}>
           <Editable
-            placeholder="//"
+            placeholder="// type here"
             spellCheck={false}
             className="editable nodrag nowheel"
             onKeyDown={onKeyDown}
             renderLeaf={renderLeaf}
+            onFocus={onFocus}
             onBlur={handleBlur}
           />
         </Slate>
