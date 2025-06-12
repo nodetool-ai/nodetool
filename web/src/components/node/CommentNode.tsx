@@ -85,6 +85,8 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       color: "inherit",
       "& .editor-input": {
+        height: "unset",
+        paddingTop: ".5em",
         fontFamily: theme.fontFamily1,
         fontSize: theme.fontSizeNormal,
         lineHeight: "1.1em",

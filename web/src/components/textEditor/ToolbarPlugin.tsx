@@ -2,8 +2,12 @@
 import { css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from "lexical";
-import { $patchStyleText } from "@lexical/selection";
+import {
+  $getSelectionStyleValueForProperty,
+  $patchStyleText
+} from "@lexical/selection";
 import { memo, useCallback, useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
 
 const toolbarStyles = css`
   display: flex;
@@ -31,8 +35,8 @@ const toolbarStyles = css`
   }
 `;
 
-const FONT_SIZE_LARGE = "1.25em";
-const FONT_SIZE_NORMAL = "1em";
+const FONT_SIZE_LARGE = "var(--fontSizeBigger)";
+const FONT_SIZE_NORMAL = "var(--fontSizeNormal)";
 
 const ToolbarPlugin = () => {
   const [editor] = useLexicalComposerContext();
@@ -47,9 +51,13 @@ const ToolbarPlugin = () => {
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
-      // Update font size by checking the style of the selection
-      const style = selection.style;
-      setIsLargeFont(style.includes(`font-size: ${FONT_SIZE_LARGE}`));
+      // Update font size
+      const fontSize = $getSelectionStyleValueForProperty(
+        selection,
+        "font-size",
+        FONT_SIZE_NORMAL
+      );
+      setIsLargeFont(fontSize === FONT_SIZE_LARGE);
     }
   }, []);
 
@@ -65,10 +73,10 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const currentStyle = selection.style;
-        const isCurrentlyLarge = currentStyle.includes(
-          `font-size: ${FONT_SIZE_LARGE}`
-        );
+        const isCurrentlyLarge =
+          $getSelectionStyleValueForProperty(selection, "font-size", "") ===
+          FONT_SIZE_LARGE;
+
         $patchStyleText(selection, {
           "font-size": isCurrentlyLarge ? FONT_SIZE_NORMAL : FONT_SIZE_LARGE
         });
@@ -104,7 +112,7 @@ const ToolbarPlugin = () => {
         aria-label="Toggle Large Font Size"
         title="Toggle Large Font Size"
       >
-        A+
+        <AddIcon sx={{ fontSize: "1em" }} />
       </button>
     </div>
   );

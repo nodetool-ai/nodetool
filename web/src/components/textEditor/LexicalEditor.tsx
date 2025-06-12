@@ -67,7 +67,7 @@ const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className="nowheel nodrag editor-input"
+            className="editor-input nowheel nodrag "
             spellCheck={false}
           />
         }
