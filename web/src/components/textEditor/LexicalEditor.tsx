@@ -91,8 +91,8 @@ const LexicalPlugins = ({
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className={`editor-input ${
-              isFocused ? "focused nodrag nowheel" : ""
+            className={`editor-input nodrag ${
+              isFocused ? "focused  nowheel" : ""
             }`.trim()}
             spellCheck={false}
             onClick={(e) => e.stopPropagation()}

@@ -100,7 +100,7 @@ const styles = (theme: any) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "rgba(200, 200, 200, 0.05)",
+      backgroundColor: "rgba(240, 240, 240, 0.08)",
       borderRadius: "3px",
       padding: "0.25em 0.5em",
       zIndex: 1,
@@ -111,7 +111,7 @@ const styles = (theme: any) =>
       opacity: 1
     },
     ".format-toolbar-actions": {
-      transition: "opacity 0.2s .2s ease",
+      transition: "opacity .2s .1s ease",
       opacity: 0
     },
     "&.focused .format-toolbar-actions": {
