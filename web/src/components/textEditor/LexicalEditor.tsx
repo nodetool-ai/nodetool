@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { Global, css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 import { EditorState, LexicalEditor } from "lexical";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -61,19 +61,23 @@ interface LexicalPluginsProps {
 }
 
 const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
+  const [isFocused, setIsFocused] = useState(false);
   return (
     <>
       <Global styles={editorStyles} />
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className="editor-input nowheel nodrag "
+            className={`editor-input ${
+              isFocused ? "focused nodrag nowheel" : ""
+            }`.trim()}
             spellCheck={false}
+            onClick={(e) => e.stopPropagation()}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
           />
         }
-        placeholder={
-          <div className="editor-placeholder">Enter some text...</div>
-        }
+        placeholder={<div className="editor-placeholder">{"// ..."}</div>}
         ErrorBoundary={() => null}
       />
       <HistoryPlugin />
