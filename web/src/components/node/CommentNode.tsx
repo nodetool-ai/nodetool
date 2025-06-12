@@ -33,8 +33,7 @@ function getContrastTextColor(hexColor: string): string {
   }
 
   if (hex.length !== 6) {
-    // console.warn("Invalid hex color for contrast calculation:", hexColor);
-    return "#000000"; // Default to black for non-standard hex
+    return "#000000";
   }
 
   const r = parseInt(hex.substring(0, 2), 16);
@@ -42,8 +41,7 @@ function getContrastTextColor(hexColor: string): string {
   const b = parseInt(hex.substring(4, 6), 16);
 
   if (isNaN(r) || isNaN(g) || isNaN(b)) {
-    // console.warn("Error parsing RGB from hex:", hexColor);
-    return "#000000"; // Default to black on parse error
+    return "#000000";
   }
 
   // Calculate luminance
@@ -83,19 +81,15 @@ const styles = (theme: any) =>
       height: "100%",
       maxHeight: "fit-content",
       overflowX: "hidden",
-      color: "inherit",
       "& .editor-input": {
         height: "unset",
         paddingTop: ".5em",
         fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeNormal,
         lineHeight: "1.1em",
-        color: "inherit",
-        caretColor: "inherit"
+        caretColor: "var(--palette-primary-contrastText)"
       },
-      "& .font-size-large": {
-        color: "red"
-        // fontSize: "var(--fontSizeGiant)"
+      "& .editor-input .font-size-large": {
+        fontSize: "var(--fontSizeGiant)"
       }
     },
     ".format-toolbar-container": {
