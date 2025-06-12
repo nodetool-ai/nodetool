@@ -24,13 +24,14 @@ const editorStyles = css`
     color: rgba(0, 0, 0, 0.6);
     position: absolute;
     font-size: var(--fontSizeSmall);
-    top: 0.75em;
-    left: 0;
+    top: 1em;
+    left: 1em;
     pointer-events: none;
   }
   .editor-input p {
     padding-top: 0;
     margin-top: 0;
+    margin-block-end: 0.5em;
   }
 `;
 
