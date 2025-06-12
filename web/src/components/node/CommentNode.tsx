@@ -15,6 +15,10 @@ import { convertSlateToLexical } from "../textEditor/editorUtils";
 import { EditorState } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -60,7 +64,6 @@ export type CustomText = {
   size?: "-" | "+";
 };
 
-// Simplified styles for now
 const styles = (theme: any) =>
   css({
     width: "100%",
@@ -78,8 +81,8 @@ const styles = (theme: any) =>
     ".text-editor-container": {
       width: "100%",
       height: "100%",
+      maxHeight: "fit-content",
       overflowX: "hidden",
-      overflowY: "auto",
       color: "inherit",
       "& .editor-input": {
         fontFamily: theme.fontFamily1,
@@ -92,8 +95,14 @@ const styles = (theme: any) =>
     ".format-toolbar-container": {
       position: "absolute",
       top: "-2.2em",
-      left: "50%",
-      transform: "translateX(-50%)",
+      left: "0",
+      width: "100%",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "rgba(200, 200, 200, 0.1)",
+      borderRadius: "3px",
+      padding: "0.25em 0.5em",
       zIndex: 1,
       opacity: 0,
       transition: "opacity 0.2s ease"
@@ -134,7 +143,16 @@ const initialConfigTemplate = {
   onError: (error: Error) => {
     console.error(error);
   },
-  nodes: [], // Assuming no custom nodes for now
+  nodes: [
+    HeadingNode,
+    QuoteNode,
+    ListNode,
+    ListItemNode,
+    CodeNode,
+    CodeHighlightNode,
+    AutoLinkNode,
+    LinkNode
+  ],
   theme: {}
 };
 

@@ -17,6 +17,8 @@ const editorStyles = css`
     width: 100%;
     padding: 0;
     resize: none;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   .editor-placeholder {
     color: rgba(0, 0, 0, 0.6);
@@ -25,6 +27,10 @@ const editorStyles = css`
     top: 0.75em;
     left: 0;
     pointer-events: none;
+  }
+  .editor-input p {
+    padding-top: 0;
+    margin-top: 0;
   }
 `;
 
