@@ -13,6 +13,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import LexicalEditor from "../textEditor/LexicalEditor";
 import { convertSlateToLexical } from "../textEditor/editorUtils";
 import { EditorState } from "lexical";
+import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -88,15 +89,27 @@ const styles = (theme: any) =>
         height: "100%",
         width: "100%",
         padding: 0,
+        borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
         outline: "none",
-        border: "none",
         resize: "none"
-      },
-      "& .editor-placeholder": {
-        color: "rgba(0, 0, 0, 0.6)",
-        top: "1em",
-        left: ".5em"
       }
+      // "& .editor-placeholder": {
+      //   color: "rgba(0, 0, 0, 0.6)",
+      //   top: ".5em",
+      //   left: ".5em"
+      // }
+    },
+    ".format-toolbar-container": {
+      position: "absolute",
+      top: "-2.2em",
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 1,
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .format-toolbar-container": {
+      opacity: 1
     },
     "&:hover .color-picker-container": {
       opacity: 0.5
@@ -137,7 +150,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       "#ffffff"
   );
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const contentOnFocusRef = useRef<EditorState | null>(null);
 
   const initialEditorState = useMemo(() => {
@@ -179,8 +192,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleScaleToFit = useCallback(() => {
-    if (editorContainerRef.current && containerRef.current) {
-      const editorDiv = editorContainerRef.current.querySelector(
+    if (editorRef.current && containerRef.current) {
+      const editorDiv = editorRef.current.querySelector(
         ".editor-input"
       ) as HTMLDivElement;
       if (!editorDiv) return;
@@ -268,11 +281,17 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }`}
       css={styles(ThemeNodes)}
     >
-      <div ref={editorContainerRef} className="text-editor-container">
+      <div className="text-editor-container">
         <LexicalEditor
+          ref={editorRef}
           initialState={initialEditorState}
           onChange={handleEditorChange}
           onBlur={handleBlur}
+          toolbar={
+            <div className="format-toolbar-container">
+              <ToolbarPlugin />
+            </div>
+          }
         />
       </div>
       <div className="color-picker-container">
