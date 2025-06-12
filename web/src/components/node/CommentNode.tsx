@@ -92,6 +92,10 @@ const styles = (theme: any) =>
         lineHeight: "1.1em",
         color: "inherit",
         caretColor: "inherit"
+      },
+      "& .font-size-large": {
+        color: "red"
+        // fontSize: "var(--fontSizeGiant)"
       }
     },
     ".format-toolbar-container": {
@@ -162,7 +166,11 @@ const initialConfigTemplate = {
     AutoLinkNode,
     LinkNode
   ],
-  theme: {}
+  theme: {
+    text: {
+      large: "font-size-large"
+    }
+  }
 };
 
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {

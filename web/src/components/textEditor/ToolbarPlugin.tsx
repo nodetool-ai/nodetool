@@ -5,7 +5,7 @@ import {
   $getSelection,
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
-  $isTextNode
+  TextNode
 } from "lexical";
 import { memo, useCallback, useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
@@ -13,6 +13,10 @@ import {
   addClassNamesToElement,
   removeClassNamesFromElement
 } from "@lexical/utils";
+import {
+  $patchStyleText,
+  $getSelectionStyleValueForProperty
+} from "@lexical/selection";
 
 const toolbarStyles = css`
   display: flex;
@@ -45,6 +49,7 @@ const ToolbarPlugin = () => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isLargeFont, setIsLargeFont] = useState(false);
+  const FONT_SIZE_LARGE = "var(--fontSizeGiant)";
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -53,18 +58,15 @@ const ToolbarPlugin = () => {
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
-      // Check if any selected nodes have the font-size-large class
-      const nodes = selection.getNodes();
-      const hasLargeFont = nodes.some((node) => {
-        if ($isTextNode(node)) {
-          const dom = editor.getElementByKey(node.getKey());
-          return dom?.classList.contains("font-size-large");
-        }
-        return false;
-      });
-      setIsLargeFont(hasLargeFont);
+      // Check for large font using inline style approach
+      const fontSize = $getSelectionStyleValueForProperty(
+        selection,
+        "font-size",
+        ""
+      );
+      setIsLargeFont(fontSize === "var(--fontSizeBigger)");
     }
-  }, [editor]);
+  }, []);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
@@ -78,21 +80,22 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const nodes = selection.getNodes();
+        const currentFontSize = $getSelectionStyleValueForProperty(
+          selection,
+          "font-size",
+          ""
+        );
+        const isCurrentlyLarge = currentFontSize === FONT_SIZE_LARGE;
 
-        nodes.forEach((node) => {
-          if ($isTextNode(node)) {
-            const dom = editor.getElementByKey(node.getKey());
-
-            if (dom) {
-              if (dom.classList.contains("font-size-large")) {
-                removeClassNamesFromElement(dom, "font-size-large");
-              } else {
-                addClassNamesToElement(dom, "font-size-large");
-              }
-            }
-          }
+        // Use $patchStyleText to properly handle partial text selection
+        // This will automatically split text nodes and apply formatting correctly
+        $patchStyleText(selection, {
+          "font-size": isCurrentlyLarge ? "" : FONT_SIZE_LARGE
         });
+
+        // Optional: If you want to also add CSS classes after the split,
+        // you could register a mutation listener or node transform to apply classes
+        // to newly created text nodes that have the specific inline style
       }
     });
   };
