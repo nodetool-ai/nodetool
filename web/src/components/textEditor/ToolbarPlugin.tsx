@@ -123,12 +123,24 @@ const ToolbarPlugin = () => {
                       dom.removeAttribute("data-large-font-marker");
                       dom.setAttribute("data-large-font", "true");
                       addClassNamesToElement(dom, "font-size-large");
+
+                      // Clean up empty style attribute if it exists
+                      if (dom.getAttribute("style") === "") {
+                        dom.removeAttribute("style");
+                      }
+
                       console.log("Added class and data attribute to:", dom);
                     } else {
                       // Clean up everything
                       dom.removeAttribute("data-large-font-marker");
                       dom.removeAttribute("data-large-font");
                       removeClassNamesFromElement(dom, "font-size-large");
+
+                      // Clean up empty style attribute if it exists
+                      if (dom.getAttribute("style") === "") {
+                        dom.removeAttribute("style");
+                      }
+
                       console.log(
                         "Removed class and data attribute from:",
                         dom
