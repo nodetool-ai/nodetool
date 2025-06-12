@@ -49,7 +49,6 @@ const ToolbarPlugin = () => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isLargeFont, setIsLargeFont] = useState(false);
-  const FONT_SIZE_LARGE = "var(--fontSizeGiant)";
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -93,15 +92,16 @@ const ToolbarPlugin = () => {
           return false;
         });
 
-        // Toggle based on current state, not font-size value
+        // Toggle based on current state
         const shouldApplyLarge = !hasAnyLargeFont;
 
-        // Use $patchStyleText to properly handle partial text selection
+        // Use $patchStyleText with a marker property to trigger text node splitting
+        // but don't use font-size since we want only CSS classes for styling
         $patchStyleText(selection, {
-          "font-size": shouldApplyLarge ? FONT_SIZE_LARGE : ""
+          "data-large-font-marker": shouldApplyLarge ? "true" : ""
         });
 
-        // Apply data attribute and CSS classes based on our intent, not font-size check
+        // Apply CSS classes and data attributes (without inline font-size)
         setTimeout(() => {
           editor.getEditorState().read(() => {
             const newSelection = $getSelection();
@@ -119,10 +119,14 @@ const ToolbarPlugin = () => {
                     );
 
                     if (shouldApplyLarge) {
+                      // Remove the marker and add our actual data attribute and class
+                      dom.removeAttribute("data-large-font-marker");
                       dom.setAttribute("data-large-font", "true");
                       addClassNamesToElement(dom, "font-size-large");
                       console.log("Added class and data attribute to:", dom);
                     } else {
+                      // Clean up everything
+                      dom.removeAttribute("data-large-font-marker");
                       dom.removeAttribute("data-large-font");
                       removeClassNamesFromElement(dom, "font-size-large");
                       console.log(

@@ -34,8 +34,11 @@ const editorStyles = css`
     margin-top: 0;
     margin-block-end: 0.5em;
   }
+  .editor-input {
+    font-size: var(--fontSizeSmall);
+  }
   .editor-input .font-size-large {
-    font-size: var(--fontSizeGiant);
+    font-size: var(--fontSizeBigger);
   }
 `;
 
