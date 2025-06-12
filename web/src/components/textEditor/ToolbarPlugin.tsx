@@ -12,7 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 const toolbarStyles = css`
   display: flex;
   gap: 4px;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(200, 200, 200, 0.1);
   padding: 4px 8px;
   border-radius: 3px;
   button {
@@ -47,11 +47,11 @@ const ToolbarPlugin = () => {
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
-      // Update text format
+      // Text format
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
-      // Update font size
+      // Font size
       const fontSize = $getSelectionStyleValueForProperty(
         selection,
         "font-size",
@@ -78,7 +78,7 @@ const ToolbarPlugin = () => {
           FONT_SIZE_LARGE;
 
         $patchStyleText(selection, {
-          "font-size": isCurrentlyLarge ? FONT_SIZE_NORMAL : FONT_SIZE_LARGE
+          "font-size": isCurrentlyLarge ? "" : FONT_SIZE_LARGE
         });
       }
     });
