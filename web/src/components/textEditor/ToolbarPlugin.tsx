@@ -58,15 +58,18 @@ const ToolbarPlugin = () => {
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
-      // Check for large font using inline style approach
-      const fontSize = $getSelectionStyleValueForProperty(
-        selection,
-        "font-size",
-        ""
-      );
-      setIsLargeFont(fontSize === "var(--fontSizeBigger)");
+      // Check for large font by examining the actual DOM elements
+      const nodes = selection.getNodes();
+      const hasLargeFont = nodes.some((node) => {
+        if (node.getType() === "text") {
+          const dom = editor.getElementByKey(node.getKey());
+          return dom?.getAttribute("data-large-font") === "true";
+        }
+        return false;
+      });
+      setIsLargeFont(hasLargeFont);
     }
-  }, []);
+  }, [editor]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
@@ -80,22 +83,59 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const currentFontSize = $getSelectionStyleValueForProperty(
-          selection,
-          "font-size",
-          ""
-        );
-        const isCurrentlyLarge = currentFontSize === FONT_SIZE_LARGE;
-
-        // Use $patchStyleText to properly handle partial text selection
-        // This will automatically split text nodes and apply formatting correctly
-        $patchStyleText(selection, {
-          "font-size": isCurrentlyLarge ? "" : FONT_SIZE_LARGE
+        // Check current state by looking for existing data attribute
+        const nodes = selection.getNodes();
+        const hasAnyLargeFont = nodes.some((node) => {
+          if (node.getType() === "text") {
+            const dom = editor.getElementByKey(node.getKey());
+            return dom?.getAttribute("data-large-font") === "true";
+          }
+          return false;
         });
 
-        // Optional: If you want to also add CSS classes after the split,
-        // you could register a mutation listener or node transform to apply classes
-        // to newly created text nodes that have the specific inline style
+        // Toggle based on current state, not font-size value
+        const shouldApplyLarge = !hasAnyLargeFont;
+
+        // Use $patchStyleText to properly handle partial text selection
+        $patchStyleText(selection, {
+          "font-size": shouldApplyLarge ? FONT_SIZE_LARGE : ""
+        });
+
+        // Apply data attribute and CSS classes based on our intent, not font-size check
+        setTimeout(() => {
+          editor.getEditorState().read(() => {
+            const newSelection = $getSelection();
+            if ($isRangeSelection(newSelection)) {
+              const nodes = newSelection.getNodes();
+              nodes.forEach((node) => {
+                if (node.getType() === "text") {
+                  const dom = editor.getElementByKey(node.getKey());
+                  if (dom) {
+                    console.log(
+                      "Processing node:",
+                      dom,
+                      "Should apply large:",
+                      shouldApplyLarge
+                    );
+
+                    if (shouldApplyLarge) {
+                      dom.setAttribute("data-large-font", "true");
+                      addClassNamesToElement(dom, "font-size-large");
+                      console.log("Added class and data attribute to:", dom);
+                    } else {
+                      dom.removeAttribute("data-large-font");
+                      removeClassNamesFromElement(dom, "font-size-large");
+                      console.log(
+                        "Removed class and data attribute from:",
+                        dom
+                      );
+                    }
+                  }
+                }
+              });
+            }
+          });
+        }, 0);
       }
     });
   };
