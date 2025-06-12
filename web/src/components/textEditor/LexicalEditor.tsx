@@ -35,7 +35,7 @@ const editorStyles = css`
     margin-block-end: 0.5em;
   }
   .editor-input .font-size-large {
-    margin-bottom: 2.5em;
+    font-size: var(--fontSizeGiant);
   }
 `;
 
