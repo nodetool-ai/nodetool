@@ -1,27 +1,22 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { Global, css } from "@emotion/react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { memo, useEffect } from "react";
+import { EditorState, LexicalEditor } from "lexical";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { EditorState, LexicalEditor } from "lexical";
-import { memo, useEffect, forwardRef } from "react";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-const styles = css`
-  position: relative;
-  .editor-container {
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
+const editorStyles = css`
   .editor-input {
     height: 100%;
     outline: none;
     border: 0;
     cursor: text;
+    width: 100%;
+    padding: 0;
+    resize: none;
   }
   .editor-placeholder {
     color: rgba(0, 0, 0, 0.6);
@@ -33,22 +28,6 @@ const styles = css`
   }
 `;
 
-const initialConfig = {
-  namespace: "LexicalEditor",
-  onError: (error: Error) => {
-    console.error(error);
-  },
-  nodes: [],
-  theme: {}
-};
-
-interface LexicalEditorProps {
-  initialState?: string;
-  onChange: (editorState: EditorState, editor: LexicalEditor) => void;
-  onBlur?: (editorState: EditorState) => void;
-  toolbar?: React.ReactNode;
-}
-
 function BlurPlugin({
   onBlur
 }: {
@@ -56,58 +35,47 @@ function BlurPlugin({
 }) {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
+    const onBlurHandler = () => onBlur(editor.getEditorState());
     return editor.registerRootListener((rootElement, prevRootElement) => {
       if (prevRootElement) {
-        prevRootElement.removeEventListener("blur", () =>
-          onBlur(editor.getEditorState())
-        );
+        prevRootElement.removeEventListener("blur", onBlurHandler);
       }
       if (rootElement) {
-        rootElement.addEventListener("blur", () =>
-          onBlur(editor.getEditorState())
-        );
+        rootElement.addEventListener("blur", onBlurHandler, true);
       }
     });
   }, [editor, onBlur]);
   return null;
 }
 
-const LexicalEditorComponent = memo(
-  forwardRef<HTMLDivElement, LexicalEditorProps>(
-    ({ initialState, onChange, onBlur, toolbar }, ref) => {
-      const editorConfig = {
-        ...initialConfig,
-        editorState: initialState
-      };
+interface LexicalPluginsProps {
+  onChange: (editorState: EditorState, editor: LexicalEditor) => void;
+  onBlur?: (editorState: EditorState) => void;
+}
 
-      return (
-        <div css={styles} ref={ref}>
-          <LexicalComposer initialConfig={editorConfig}>
-            {toolbar}
-            <div className="editor-container">
-              <RichTextPlugin
-                contentEditable={
-                  <ContentEditable
-                    className="nodrag editor-input"
-                    spellCheck={false}
-                  />
-                }
-                placeholder={
-                  <div className="editor-placeholder">Enter some text...</div>
-                }
-                ErrorBoundary={() => null}
-              />
-              <HistoryPlugin />
-              <OnChangePlugin onChange={onChange} />
-              {onBlur && <BlurPlugin onBlur={onBlur} />}
-            </div>
-          </LexicalComposer>
-        </div>
-      );
-    }
-  )
-);
+const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
+  return (
+    <>
+      <Global styles={editorStyles} />
+      <RichTextPlugin
+        contentEditable={
+          <ContentEditable
+            className="nowheel nodrag editor-input"
+            spellCheck={false}
+          />
+        }
+        placeholder={
+          <div className="editor-placeholder">Enter some text...</div>
+        }
+        ErrorBoundary={() => null}
+      />
+      <HistoryPlugin />
+      <OnChangePlugin onChange={onChange} />
+      {onBlur && <BlurPlugin onBlur={onBlur} />}
+    </>
+  );
+});
 
-LexicalEditorComponent.displayName = "LexicalEditorComponent";
+LexicalPlugins.displayName = "LexicalPlugins";
 
-export default LexicalEditorComponent;
+export default LexicalPlugins;

@@ -10,9 +10,10 @@ import ThemeNodes from "../../components/themes/ThemeNodes";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
-import LexicalEditor from "../textEditor/LexicalEditor";
+import LexicalPlugins from "../textEditor/LexicalEditor";
 import { convertSlateToLexical } from "../textEditor/editorUtils";
 import { EditorState } from "lexical";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 
 // Function to calculate contrast color (black or white) for a given hex background
@@ -85,19 +86,8 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeNormal,
         lineHeight: "1.1em",
         color: "inherit",
-        caretColor: "inherit",
-        height: "100%",
-        width: "100%",
-        padding: 0,
-        borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-        outline: "none",
-        resize: "none"
+        caretColor: "inherit"
       }
-      // "& .editor-placeholder": {
-      //   color: "rgba(0, 0, 0, 0.6)",
-      //   top: ".5em",
-      //   left: ".5em"
-      // }
     },
     ".format-toolbar-container": {
       position: "absolute",
@@ -139,6 +129,15 @@ const styles = (theme: any) =>
     }
   });
 
+const initialConfigTemplate = {
+  namespace: "CommentNodeEditor",
+  onError: (error: Error) => {
+    console.error(error);
+  },
+  nodes: [], // Assuming no custom nodes for now
+  theme: {}
+};
+
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
@@ -164,6 +163,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
     return undefined;
   }, [props.data.properties.comment, props.data.properties.comment_lexical]);
+
+  const editorConfig = useMemo(
+    () => ({
+      ...initialConfigTemplate,
+      editorState: initialEditorState
+    }),
+    [initialEditorState]
+  );
 
   const textColor = getContrastTextColor(color);
 
@@ -273,36 +280,31 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   return (
-    <Container
-      ref={containerRef}
-      style={{ backgroundColor: hexToRgba(color, 0.5), color: textColor }}
-      className={`node-drag-handle comment-node ${
-        props.selected ? "selected" : ""
-      }`}
-      css={styles(ThemeNodes)}
-    >
-      <div className="text-editor-container">
-        <LexicalEditor
-          ref={editorRef}
-          initialState={initialEditorState}
-          onChange={handleEditorChange}
-          onBlur={handleBlur}
-          toolbar={
-            <div className="format-toolbar-container">
-              <ToolbarPlugin />
-            </div>
-          }
-        />
-      </div>
-      <div className="color-picker-container">
-        <ColorPicker
-          color={color}
-          onColorChange={handleColorChange}
-          showCustom={false}
-        />
-      </div>
-      <NodeResizeHandle minWidth={30} minHeight={40} />
-    </Container>
+    <LexicalComposer initialConfig={editorConfig}>
+      <Container
+        ref={containerRef}
+        style={{ backgroundColor: hexToRgba(color, 0.5), color: textColor }}
+        className={`node-drag-handle comment-node ${
+          props.selected ? "selected" : ""
+        }`}
+        css={styles(ThemeNodes)}
+      >
+        <div className="format-toolbar-container">
+          <ToolbarPlugin />
+        </div>
+        <div ref={editorRef} className="text-editor-container">
+          <LexicalPlugins onChange={handleEditorChange} onBlur={handleBlur} />
+        </div>
+        <div className="color-picker-container">
+          <ColorPicker
+            color={color}
+            onColorChange={handleColorChange}
+            showCustom={false}
+          />
+        </div>
+        <NodeResizeHandle minWidth={30} minHeight={40} />
+      </Container>
+    </LexicalComposer>
   );
 };
 
