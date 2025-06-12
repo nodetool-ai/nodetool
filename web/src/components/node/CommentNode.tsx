@@ -92,9 +92,6 @@ const styles = (theme: any) =>
         lineHeight: "1.1em",
         color: "inherit",
         caretColor: "inherit"
-      },
-      "& .font-size-large": {
-        fontSize: "var(--fontSizeBigger)"
       }
     },
     ".format-toolbar-container": {
@@ -110,12 +107,13 @@ const styles = (theme: any) =>
       padding: "0.25em 0.5em",
       zIndex: 1,
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: "opacity 0.2s .2s ease"
     },
     "&:hover .format-toolbar-container": {
       opacity: 1
     },
     ".format-toolbar-actions": {
+      transition: "opacity 0.2s .2s ease",
       opacity: 0
     },
     "&.focused .format-toolbar-actions": {

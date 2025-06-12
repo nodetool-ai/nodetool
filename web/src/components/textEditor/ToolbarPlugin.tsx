@@ -1,13 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from "lexical";
 import {
-  $getSelectionStyleValueForProperty,
-  $patchStyleText
-} from "@lexical/selection";
+  $getSelection,
+  $isRangeSelection,
+  FORMAT_TEXT_COMMAND,
+  $isTextNode
+} from "lexical";
 import { memo, useCallback, useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  addClassNamesToElement,
+  removeClassNamesFromElement
+} from "@lexical/utils";
 
 const toolbarStyles = css`
   display: flex;
@@ -35,9 +40,6 @@ const toolbarStyles = css`
   }
 `;
 
-const FONT_SIZE_LARGE = "1.8em";
-const FONT_SIZE_NORMAL = "var(--fontSizeNormal)";
-
 const ToolbarPlugin = () => {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
@@ -51,15 +53,18 @@ const ToolbarPlugin = () => {
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
-      // Font size
-      const fontSize = $getSelectionStyleValueForProperty(
-        selection,
-        "font-size",
-        FONT_SIZE_NORMAL
-      );
-      setIsLargeFont(fontSize === FONT_SIZE_LARGE);
+      // Check if any selected nodes have the font-size-large class
+      const nodes = selection.getNodes();
+      const hasLargeFont = nodes.some((node) => {
+        if ($isTextNode(node)) {
+          const dom = editor.getElementByKey(node.getKey());
+          return dom?.classList.contains("font-size-large");
+        }
+        return false;
+      });
+      setIsLargeFont(hasLargeFont);
     }
-  }, []);
+  }, [editor]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
@@ -73,12 +78,20 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const isCurrentlyLarge =
-          $getSelectionStyleValueForProperty(selection, "font-size", "") ===
-          FONT_SIZE_LARGE;
+        const nodes = selection.getNodes();
 
-        $patchStyleText(selection, {
-          "font-size": isCurrentlyLarge ? "" : FONT_SIZE_LARGE
+        nodes.forEach((node) => {
+          if ($isTextNode(node)) {
+            const dom = editor.getElementByKey(node.getKey());
+
+            if (dom) {
+              if (dom.classList.contains("font-size-large")) {
+                removeClassNamesFromElement(dom, "font-size-large");
+              } else {
+                addClassNamesToElement(dom, "font-size-large");
+              }
+            }
+          }
         });
       }
     });
