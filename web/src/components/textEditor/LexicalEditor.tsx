@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { Global, css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { memo, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { EditorState, LexicalEditor } from "lexical";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -62,10 +62,26 @@ function BlurPlugin({
 interface LexicalPluginsProps {
   onChange: (editorState: EditorState, editor: LexicalEditor) => void;
   onBlur?: (editorState: EditorState) => void;
+  onFocusChange?: (isFocused: boolean) => void;
 }
 
-const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
+const LexicalPlugins = ({
+  onChange,
+  onBlur,
+  onFocusChange
+}: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocusChange?.(true);
+  };
+
+  const handleInternalBlur = () => {
+    setIsFocused(false);
+    onFocusChange?.(false);
+  };
+
   return (
     <>
       <Global styles={editorStyles} />
@@ -77,8 +93,8 @@ const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
             }`.trim()}
             spellCheck={false}
             onClick={(e) => e.stopPropagation()}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleInternalBlur}
           />
         }
         placeholder={
@@ -91,8 +107,6 @@ const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
       {onBlur && <BlurPlugin onBlur={onBlur} />}
     </>
   );
-});
-
-LexicalPlugins.displayName = "LexicalPlugins";
+};
 
 export default LexicalPlugins;

@@ -35,7 +35,7 @@ const toolbarStyles = css`
   }
 `;
 
-const FONT_SIZE_LARGE = "var(--fontSizeBigger)";
+const FONT_SIZE_LARGE = "1.8em";
 const FONT_SIZE_NORMAL = "var(--fontSizeNormal)";
 
 const ToolbarPlugin = () => {
@@ -85,7 +85,7 @@ const ToolbarPlugin = () => {
   };
 
   return (
-    <div css={toolbarStyles}>
+    <div className="format-toolbar-actions" css={toolbarStyles}>
       <button
         onClick={() => {
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");

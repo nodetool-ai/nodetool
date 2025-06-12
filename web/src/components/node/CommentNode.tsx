@@ -112,10 +112,13 @@ const styles = (theme: any) =>
       opacity: 0,
       transition: "opacity 0.2s ease"
     },
-    ".format-toolbar-container:hover ": {
-      backgroundColor: "rgba(200, 200, 200, 0.2)"
-    },
     "&:hover .format-toolbar-container": {
+      opacity: 1
+    },
+    ".format-toolbar-actions": {
+      opacity: 0
+    },
+    "&.focused .format-toolbar-actions": {
       opacity: 1
     },
     "&:hover .color-picker-container": {
@@ -177,6 +180,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const contentOnFocusRef = useRef<EditorState | null>(null);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
 
   const initialEditorState = useMemo(() => {
     const commentData =
@@ -312,14 +316,18 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         style={{ backgroundColor: hexToRgba(color, 0.5), color: textColor }}
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
-        }`}
+        } ${isEditorFocused ? "focused" : ""}`.trim()}
         css={styles(ThemeNodes)}
       >
         <div className="format-toolbar-container">
           <ToolbarPlugin />
         </div>
         <div ref={editorRef} className="text-editor-container">
-          <LexicalPlugins onChange={handleEditorChange} onBlur={handleBlur} />
+          <LexicalPlugins
+            onChange={handleEditorChange}
+            onBlur={handleBlur}
+            onFocusChange={setIsEditorFocused}
+          />
         </div>
         <div className="color-picker-container">
           <ColorPicker
