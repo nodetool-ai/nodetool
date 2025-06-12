@@ -24,8 +24,8 @@ const editorStyles = css`
     color: rgba(0, 0, 0, 0.6);
     position: absolute;
     font-size: var(--fontSizeSmall);
-    top: 1em;
-    left: 1em;
+    top: 1.25em;
+    left: 1.25em;
     pointer-events: none;
   }
   .editor-input p {
