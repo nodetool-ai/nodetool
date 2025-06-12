@@ -105,12 +105,15 @@ const styles = (theme: any) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "rgba(200, 200, 200, 0.1)",
+      backgroundColor: "rgba(200, 200, 200, 0.05)",
       borderRadius: "3px",
       padding: "0.25em 0.5em",
       zIndex: 1,
       opacity: 0,
       transition: "opacity 0.2s ease"
+    },
+    ".format-toolbar-container:hover ": {
+      backgroundColor: "rgba(200, 200, 200, 0.2)"
     },
     "&:hover .format-toolbar-container": {
       opacity: 1

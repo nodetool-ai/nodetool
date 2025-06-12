@@ -12,7 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 const toolbarStyles = css`
   display: flex;
   gap: 4px;
-  background-color: rgba(200, 200, 200, 0.1);
+  background-color: rgba(240, 240, 240, 0.5);
   padding: 4px 8px;
   border-radius: 3px;
   button {
