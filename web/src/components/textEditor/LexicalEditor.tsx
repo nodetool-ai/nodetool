@@ -24,14 +24,18 @@ const editorStyles = css`
     color: rgba(0, 0, 0, 0.6);
     position: absolute;
     font-size: var(--fontSizeSmall);
-    top: 1.25em;
-    left: 1.25em;
+    top: 1.5em;
+    left: 1.5em;
     pointer-events: none;
   }
   .editor-input p {
+    line-height: 1.25em;
     padding-top: 0;
     margin-top: 0;
     margin-block-end: 0.5em;
+  }
+  .editor-input .font-size-large {
+    margin-bottom: 2.5em;
   }
 `;
 
@@ -77,7 +81,9 @@ const LexicalPlugins = memo(({ onChange, onBlur }: LexicalPluginsProps) => {
             onBlur={() => setIsFocused(false)}
           />
         }
-        placeholder={<div className="editor-placeholder">{"// ..."}</div>}
+        placeholder={
+          <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
+        }
         ErrorBoundary={() => null}
       />
       <HistoryPlugin />

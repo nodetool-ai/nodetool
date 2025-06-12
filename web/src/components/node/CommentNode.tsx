@@ -92,6 +92,9 @@ const styles = (theme: any) =>
         lineHeight: "1.1em",
         color: "inherit",
         caretColor: "inherit"
+      },
+      "& .font-size-large": {
+        fontSize: "var(--fontSizeBigger)"
       }
     },
     ".format-toolbar-container": {
