@@ -1,12 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  $getSelection,
-  $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-  LexicalEditor
-} from "lexical";
+import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from "lexical";
+import { $patchStyleText } from "@lexical/selection";
 import { memo, useCallback, useEffect, useState } from "react";
 
 const toolbarStyles = css`
@@ -35,16 +31,25 @@ const toolbarStyles = css`
   }
 `;
 
+const FONT_SIZE_LARGE = "1.25em";
+const FONT_SIZE_NORMAL = "1em";
+
 const ToolbarPlugin = () => {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
+  const [isLargeFont, setIsLargeFont] = useState(false);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
+      // Update text format
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
+
+      // Update font size by checking the style of the selection
+      const style = selection.style;
+      setIsLargeFont(style.includes(`font-size: ${FONT_SIZE_LARGE}`));
     }
   }, []);
 
@@ -55,6 +60,21 @@ const ToolbarPlugin = () => {
       });
     });
   }, [editor, updateToolbar]);
+
+  const toggleFontSize = () => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const currentStyle = selection.style;
+        const isCurrentlyLarge = currentStyle.includes(
+          `font-size: ${FONT_SIZE_LARGE}`
+        );
+        $patchStyleText(selection, {
+          "font-size": isCurrentlyLarge ? FONT_SIZE_NORMAL : FONT_SIZE_LARGE
+        });
+      }
+    });
+  };
 
   return (
     <div css={toolbarStyles}>
@@ -77,6 +97,14 @@ const ToolbarPlugin = () => {
         title="Italic (Ctrl+I)"
       >
         <i>I</i>
+      </button>
+      <button
+        onClick={toggleFontSize}
+        className={isLargeFont ? "active" : ""}
+        aria-label="Toggle Large Font Size"
+        title="Toggle Large Font Size"
+      >
+        A+
       </button>
     </div>
   );
