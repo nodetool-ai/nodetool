@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
@@ -48,6 +48,14 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles);
 
+  // Clear the prompt and files when disconnected
+  useEffect(() => {
+    if (status === "disconnected" || status === "connecting") {
+      setPrompt("");
+      clearFiles();
+    }
+  }, [status, clearFiles]);
+
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       setPrompt(event.target.value);
@@ -56,7 +64,13 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   );
 
   const handleSend = useCallback(() => {
-    if (status !== "loading" && prompt.length > 0) {
+    if (
+      status !== "loading" &&
+      status !== "disconnected" &&
+      status !== "connecting" &&
+      status !== "error" &&
+      prompt.length > 0
+    ) {
       const content: MessageContent[] = [
         {
           type: "text",
@@ -91,7 +105,12 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend] // Removed prompt from dependencies
   );
 
-  const isDisabled = disabled || status === "loading" || status === "error";
+  const isDisabled =
+    disabled ||
+    status === "loading" ||
+    status === "error" ||
+    status === "disconnected" ||
+    status === "connecting";
 
   return (
     <div css={createStyles(theme)}>
@@ -118,6 +137,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
           onChange={handleOnChange}
           onKeyDown={handleKeyDown}
           disabled={isDisabled}
+          placeholder={
+            status === "disconnected" || status === "connecting"
+              ? "Connection required to send messages..."
+              : "Type your message..."
+          }
         />
         <ActionButtons
           status={status}
