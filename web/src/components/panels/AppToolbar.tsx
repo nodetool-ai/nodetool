@@ -213,8 +213,9 @@ const styles = (theme: any) =>
       backgroundColor: `${theme.palette.c_gray2}cc`,
       color: theme.palette.c_hl1,
       minWidth: "40px",
+      height: "26px",
       "&:hover": {
-        boxShadow: `0 0 10px ${theme.palette.c_hl1}cc`,
+        boxShadow: `0 0 4px ${theme.palette.c_hl1}55`,
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
       "&.disabled": {
@@ -520,7 +521,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     >
       <span>
         <Button
-          size="large"
+          // size="small"
           className={`action-button run-stop-button run-workflow ${
             isWorkflowRunning ? "running" : ""
           }`}
@@ -566,7 +567,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button
-        size="large"
+        // size="large"
         className={`action-button run-stop-button stop-workflow ${
           !isWorkflowRunning ? "disabled" : ""
         }`}

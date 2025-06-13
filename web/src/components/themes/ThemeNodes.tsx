@@ -388,13 +388,10 @@ const ThemeNodes: Theme = createTheme({
           margin: "0"
         }),
         icon: ({ theme }) => ({
-          color: theme.palette.c_white,
-          width: ".5em",
-          height: "1em",
-          fontSize: "3em"
-        }),
-        filled: {},
-        outlined: {}
+          color: theme.palette.c_gray4
+        })
+        // filled: {},
+        // outlined: {}
       }
     },
     MuiRadio: {
