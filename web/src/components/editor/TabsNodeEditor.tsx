@@ -255,12 +255,6 @@ const styles = (theme: any) =>
     },
     "& .window-control-button#close-button:hover": {
       backgroundColor: "#e81123"
-    },
-    "& .actions-container": {
-      flexShrink: 0,
-      width: "100%",
-      backgroundColor: theme.palette.c_gray0,
-      borderBottom: `1px solid ${theme.palette.c_gray1}`
     }
   });
 
@@ -389,11 +383,9 @@ const TabsNodeEditor = () => {
                                 }}
                               >
                                 <AppHeader />
-                                <div className="actions-container">
-                                  <AppToolbar
-                                    setWorkflowToEdit={setWorkflowToEdit}
-                                  />
-                                </div>
+                                <AppToolbar
+                                  setWorkflowToEdit={setWorkflowToEdit}
+                                />
                                 <div className="status-message-container">
                                   <StatusMessage />
                                 </div>
