@@ -26,6 +26,7 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import LexicalPlugins from "../textEditor/LexicalEditor";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -69,10 +70,10 @@ const modalStyles = (
 ): CSSObject => ({
   ".modal-overlay": {
     position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
+    top: "72px",
+    left: "51px",
+    width: "calc(100vw - 51px)",
+    height: "calc(100vh - 200px)",
     backgroundColor: "rgba(0, 0, 0, 0.1)",
     zIndex: 10000,
     display: "flex",
@@ -184,24 +185,9 @@ const TextEditorModal = ({
   readOnly = false,
   isLoading = false
 }: TextEditorModalProps) => {
-  console.log("TextEditorModal mounting with props:", {
-    value,
-    propertyName,
-    readOnly,
-    hasOnChange: !!onChange,
-    hasOnClose: !!onClose
-  });
-
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
-
-  useEffect(() => {
-    console.log("TextEditorModal mounted, creating portal");
-    return () => {
-      console.log("TextEditorModal unmounting");
-    };
-  }, []);
 
   const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
   const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
@@ -267,14 +253,7 @@ const TextEditorModal = ({
   );
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    console.log(
-      "Overlay clicked, target:",
-      e.target,
-      "current:",
-      modalOverlayRef.current
-    );
     if (e.target === modalOverlayRef.current) {
-      console.log("Calling onClose from overlay click");
       onClose();
     }
   };
@@ -296,19 +275,7 @@ const TextEditorModal = ({
           <div className="modal-header">
             <h4>{propertyName}</h4>
             <div className="actions">
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                title="Copy to Clipboard"
-              >
-                <button
-                  className="button"
-                  onClick={() => {
-                    writeClipboard(value, true);
-                  }}
-                >
-                  Copy
-                </button>
-              </Tooltip>
+              <CopyToClipboardButton textToCopy={value || ""} size="small" />
               <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | Esc">
                 <button className="button button-close" onClick={onClose}>
                   <CloseIcon />
@@ -360,7 +327,6 @@ const TextEditorModal = ({
     </div>
   );
 
-  console.log("TextEditorModal about to create portal");
   return ReactDOM.createPortal(content, document.body);
 };
 
