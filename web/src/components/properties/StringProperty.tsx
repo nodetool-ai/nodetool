@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import { useState, useCallback, memo, useRef, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -8,6 +9,21 @@ import { TextField, IconButton } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { css } from "@emotion/react";
+
+const buttonContainerStyles = css`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  .string-property:hover & {
+    opacity: 1;
+  }
+`;
 
 const StringProperty = ({
   property,
@@ -46,20 +62,13 @@ const StringProperty = ({
   if (showTextEditor) {
     return (
       <div className="string-property">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            marginBottom: "4px"
-          }}
-        >
+        <div style={{ position: "relative", marginBottom: "4px" }}>
           <PropertyLabel
             name={property.name}
             description={property.description}
             id={id}
           />
-          <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
+          <div css={buttonContainerStyles}>
             <IconButton
               size="small"
               onClick={toggleExpand}
@@ -120,21 +129,14 @@ const StringProperty = ({
 
   return (
     <div className="string-property">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "4px"
-        }}
-      >
+      <div style={{ position: "relative", marginBottom: "4px" }}>
         <PropertyLabel
           name={property.name}
           description={property.description}
           id={id}
         />
         {!isConnected && (
-          <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
+          <div css={buttonContainerStyles}>
             <IconButton
               size="small"
               onClick={toggleExpand}
