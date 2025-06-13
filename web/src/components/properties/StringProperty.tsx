@@ -105,7 +105,7 @@ const StringProperty = ({
             spellCheck="false"
             multiline
             rows={1}
-            maxRows={2}
+            maxRows={4}
             fullWidth
             size="small"
             variant="outlined"
