@@ -352,7 +352,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
-      {planningUpdate && (
+      {planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
