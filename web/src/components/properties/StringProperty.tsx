@@ -4,9 +4,10 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
-import { TextField } from "@mui/material";
+import { TextField, IconButton } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 const StringProperty = ({
   property,
@@ -27,8 +28,12 @@ const StringProperty = ({
     );
   }, [edges, nodeId, property.name]);
 
+  const showTextEditor = !isConnected;
+
   const toggleExpand = useCallback(() => {
-    setIsExpanded((prev) => !prev);
+    setIsExpanded((prev) => {
+      return !prev;
+    });
   }, []);
 
   const handleChange = useCallback(
@@ -38,41 +43,67 @@ const StringProperty = ({
     [onChange]
   );
 
-  const showTextEditor =
-    !isConnected &&
-    (nodeType === "nodetool.constant.String" ||
-      (nodeType === "nodetool.input.StringInput" && property.name == "value") ||
-      (nodeType === "nodetool.text.FormatText" &&
-        property.name === "template") ||
-      (nodeType === "nodetool.text.Template" && property.name === "string") ||
-      (nodeType === "nodetool.list.MapTemplate" &&
-        property.name === "template"));
-
   if (showTextEditor) {
     return (
-      <div
-        className="string-property"
-        style={{ padding: 0, position: "relative" }}
-      >
-        <textarea
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={handleFocus}
-          className="nodrag nowheel"
-          tabIndex={tabIndex}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          ref={(textarea) => {
-            if (textarea) {
-              textarea.style.height = "auto";
-              textarea.style.height = `${textarea.scrollHeight}px`;
-            }
+      <div className="string-property">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "4px"
           }}
-        />
-        <div style={{ position: "absolute", top: "1px", right: "3px" }}>
-          <CopyToClipboardButton textToCopy={value || ""} size="small" />
+        >
+          <PropertyLabel
+            name={property.name}
+            description={property.description}
+            id={id}
+          />
+          <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
+            <IconButton
+              size="small"
+              onClick={toggleExpand}
+              className="nodrag"
+              style={{ padding: "2px" }}
+            >
+              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
+            </IconButton>
+            <CopyToClipboardButton
+              textToCopy={value || ""}
+              size="small"
+              style={{ padding: "2px" }}
+            />
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <textarea
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={handleFocus}
+            className="nodrag nowheel"
+            tabIndex={tabIndex}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            style={{
+              maxHeight: "80px",
+              minHeight: "24px",
+              height: "24px",
+              overflowY: "auto",
+              resize: "none"
+            }}
+            ref={(textarea) => {
+              if (textarea) {
+                textarea.style.height = "24px";
+                const newHeight = Math.min(
+                  Math.max(textarea.scrollHeight, 24),
+                  80
+                );
+                textarea.style.height = `${newHeight}px`;
+              }
+            }}
+          />
         </div>
         {isExpanded && (
           <TextEditorModal
@@ -89,13 +120,39 @@ const StringProperty = ({
 
   return (
     <div className="string-property">
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
-      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "4px"
+        }}
+      >
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        {!isConnected && (
+          <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
+            <IconButton
+              size="small"
+              onClick={toggleExpand}
+              className="nodrag"
+              style={{ padding: "2px" }}
+            >
+              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
+            </IconButton>
+            <CopyToClipboardButton
+              textToCopy={value || ""}
+              size="small"
+              style={{ padding: "2px" }}
+            />
+          </div>
+        )}
+      </div>
       {!isConnected && (
-        <div className="container" style={{ position: "relative" }}>
+        <div style={{ position: "relative" }}>
           <input
             type="text"
             id={id}
@@ -109,17 +166,8 @@ const StringProperty = ({
             autoCapitalize="off"
             spellCheck="false"
             tabIndex={tabIndex}
-            style={{ width: "100%", paddingRight: "1em" }}
+            style={{ width: "100%", height: "24px" }}
           />
-          <div
-            style={{
-              position: "absolute",
-              right: "-.2em",
-              top: "0.04em"
-            }}
-          >
-            <CopyToClipboardButton textToCopy={value || ""} size="small" />
-          </div>
         </div>
       )}
     </div>

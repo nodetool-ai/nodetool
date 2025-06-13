@@ -184,9 +184,24 @@ const TextEditorModal = ({
   readOnly = false,
   isLoading = false
 }: TextEditorModalProps) => {
+  console.log("TextEditorModal mounting with props:", {
+    value,
+    propertyName,
+    readOnly,
+    hasOnChange: !!onChange,
+    hasOnClose: !!onClose
+  });
+
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
+
+  useEffect(() => {
+    console.log("TextEditorModal mounted, creating portal");
+    return () => {
+      console.log("TextEditorModal unmounting");
+    };
+  }, []);
 
   const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
   const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
@@ -252,7 +267,14 @@ const TextEditorModal = ({
   );
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    console.log(
+      "Overlay clicked, target:",
+      e.target,
+      "current:",
+      modalOverlayRef.current
+    );
     if (e.target === modalOverlayRef.current) {
+      console.log("Calling onClose from overlay click");
       onClose();
     }
   };
@@ -338,6 +360,7 @@ const TextEditorModal = ({
     </div>
   );
 
+  console.log("TextEditorModal about to create portal");
   return ReactDOM.createPortal(content, document.body);
 };
 
