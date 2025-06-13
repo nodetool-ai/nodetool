@@ -106,6 +106,14 @@ const ThemeNodes: Theme = createTheme({
         }
       ]
     },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          maxWidth: "100%",
+          maxHeight: "100%"
+        }
+      }
+    },
     MuiTypography: {
       styleOverrides: {
         caption: ({ theme }) => ({

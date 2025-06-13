@@ -41,7 +41,7 @@ const styles = (theme: any) =>
   css({
     "&": {
       position: "absolute",
-      top: "8px",
+      top: "4px",
       left: "50%",
       transform: "translateX(-50%)",
       backgroundColor: theme.palette.c_gray1
@@ -174,7 +174,7 @@ const styles = (theme: any) =>
     ".action-button": {
       flexShrink: 0,
       width: "32px",
-      height: "24px",
+      height: "32px",
       minWidth: "32px",
       padding: "4px",
       color: theme.palette.c_gray6,
@@ -673,8 +673,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   );
 
   return (
-    <>
-      <Box sx={{ flexGrow: 1 }} />
+    <Box sx={{ flexGrow: 1 }}>
       {path.startsWith("/editor") && (
         <div className="actions" css={styles}>
           <>
@@ -692,7 +691,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
           </>
         </div>
       )}
-    </>
+    </Box>
   );
 };
 
