@@ -1,5 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
+import "prismjs/components/prism-core";
+import "prismjs/components/prism-clike";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-markup";
+import "prismjs/components/prism-jsx";
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-tsx";
+import "prismjs/themes/prism.css";
 
 import ReactDOM from "react-dom";
 import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
