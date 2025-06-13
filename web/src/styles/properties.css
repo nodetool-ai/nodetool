@@ -84,8 +84,8 @@
   width: 100%;
   min-width: 100%;
   max-width: 100%;
-  min-height: 48px;
-  max-height: 800px;
+  min-height: 24px;
+  max-height: 200px;
   overflow-y: auto !important;
   margin-top: 0.2em;
   padding: 0.5em 1em .5em 0;

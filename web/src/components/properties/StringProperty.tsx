@@ -17,11 +17,17 @@ const buttonContainerStyles = css`
   top: 50%;
   transform: translateY(-50%);
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
   opacity: 0;
+  background-color: var(--palette-c_gray1);
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
   transition: opacity 0.2s;
   .string-property:hover & {
-    opacity: 1;
+    opacity: 0.8;
   }
 `;
 
@@ -99,7 +105,7 @@ const StringProperty = ({
             spellCheck="false"
             multiline
             rows={1}
-            maxRows={2}
+            maxRows={4}
             fullWidth
             size="small"
             variant="outlined"
@@ -107,22 +113,25 @@ const StringProperty = ({
               "& .MuiOutlinedInput-root": {
                 padding: "0",
                 "& textarea": {
-                  padding: "4px 0"
+                  padding: "4px 0",
+                  resize: "none"
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "transparent"
+                  borderWidth: "0"
                 },
                 "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "1px",
-                  borderColor: "var(--palette-c_gray1)"
+                  borderWidth: "0"
                 },
                 "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "1px",
-                  borderColor: "var(--palette-c_gray2)"
+                  borderWidth: "0"
                 },
                 "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "1px",
-                  borderColor: "var(--palette-c_gray3)"
+                  borderWidth: "0"
+                },
+                "&.Mui-focused": {
+                  "& .MuiOutlinedInput-input": {
+                    backgroundColor: "var(--palette-c_gray2)"
+                  }
                 }
               }
             }}
@@ -150,7 +159,7 @@ const StringProperty = ({
           id={id}
         />
         {!isConnected && (
-          <div css={buttonContainerStyles}>
+          <div className="string-action-buttons" css={buttonContainerStyles}>
             <IconButton
               size="small"
               onClick={toggleExpand}

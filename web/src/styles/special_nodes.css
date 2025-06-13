@@ -87,7 +87,7 @@
 
 .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
   border: 0;
-  outline: 1px solid #555 !important;
+  outline: 1px solid #ccc !important;
   box-shadow: none !important;
 }
 

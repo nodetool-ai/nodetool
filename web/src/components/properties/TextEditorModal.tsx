@@ -1,9 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
+import "prismjs/components/prism-core";
+import "prismjs/components/prism-clike";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-markup";
+import "prismjs/components/prism-jsx";
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-tsx";
+import "prismjs/themes/prism.css";
 
 import ReactDOM from "react-dom";
-import { memo, useEffect, useRef, useState } from "react";
-import TextareaAutosize from "react-textarea-autosize";
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -12,90 +19,35 @@ import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import Prism from "prismjs";
-import "prismjs/themes/prism-tomorrow.css";
-import Editor from "react-simple-code-editor";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-css";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-yaml";
-import "prismjs/components/prism-bash";
+import { EditorState, LexicalEditor, $getRoot } from "lexical";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
+import LexicalPlugins from "../textEditor/LexicalEditor";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
-const autodetectLanguage = (value: string) => {
-  // Check for common language patterns
-  if (!value) return "text";
-
-  const lowerValue = value.toLowerCase();
-
-  // Python indicators
-  if (
-    lowerValue.includes("def ") ||
-    lowerValue.includes("import ") ||
-    lowerValue.includes("class ") ||
-    lowerValue.includes("print(") ||
-    lowerValue.includes("self.") ||
-    lowerValue.includes("__init__")
-  ) {
-    return "python";
-  }
-
-  // JSON indicators
-  if (
-    (value.startsWith("{") && value.endsWith("}")) ||
-    (value.startsWith("[") && value.endsWith("]"))
-  ) {
-    try {
-      JSON.parse(value);
-      return "json";
-    } catch (e) {
-      // Not valid JSON, continue checking other formats
+const initialConfigTemplate = {
+  namespace: "TextEditorModal",
+  onError: (error: Error) => {
+    console.error(error);
+  },
+  nodes: [
+    HeadingNode,
+    QuoteNode,
+    ListNode,
+    ListItemNode,
+    CodeNode,
+    CodeHighlightNode,
+    AutoLinkNode,
+    LinkNode
+  ],
+  theme: {
+    text: {
+      large: "font-size-large"
     }
   }
-
-  // YAML indicators
-  if (
-    lowerValue.includes(": ") &&
-    (lowerValue.includes("- ") || lowerValue.includes("---"))
-  ) {
-    return "yaml";
-  }
-
-  // Markdown indicators
-  if (
-    lowerValue.includes("# ") ||
-    lowerValue.includes("## ") ||
-    lowerValue.includes("**") ||
-    lowerValue.includes("```")
-  ) {
-    return "markdown";
-  }
-
-  // CSS indicators
-  if (
-    lowerValue.includes("{") &&
-    lowerValue.includes("}") &&
-    (lowerValue.includes("px") ||
-      lowerValue.includes("em") ||
-      lowerValue.includes("rgb") ||
-      lowerValue.includes("#"))
-  ) {
-    return "css";
-  }
-
-  // Bash/Shell indicators
-  if (
-    lowerValue.includes("#!/") ||
-    lowerValue.includes("sudo ") ||
-    lowerValue.includes("apt ") ||
-    lowerValue.includes("chmod ")
-  ) {
-    return "bash";
-  }
-
-  // Default to JavaScript
-  return "javascript";
 };
 
 interface TextEditorModalProps {
@@ -118,10 +70,10 @@ const modalStyles = (
 ): CSSObject => ({
   ".modal-overlay": {
     position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
+    top: "72px",
+    left: "51px",
+    width: "calc(100vw - 51px)",
+    height: "calc(100vh - 200px)",
     backgroundColor: "rgba(0, 0, 0, 0.1)",
     zIndex: 10000,
     display: "flex",
@@ -234,28 +186,71 @@ const TextEditorModal = ({
   isLoading = false
 }: TextEditorModalProps) => {
   const theme = useTheme();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
 
   const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
   const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
 
-  useEffect(() => {
-    if (textareaRef.current && !isLoading) {
-      textareaRef.current.focus();
+  // Convert plain text to Lexical format
+  const initialEditorState = useMemo(() => {
+    if (value) {
+      // Create a simple paragraph with the text
+      const editorState = {
+        root: {
+          children: [
+            {
+              children: [
+                {
+                  detail: 0,
+                  format: 0,
+                  mode: "normal",
+                  style: "",
+                  text: value,
+                  type: "text",
+                  version: 1
+                }
+              ],
+              direction: "ltr",
+              format: "",
+              indent: 0,
+              type: "paragraph",
+              version: 1
+            }
+          ],
+          direction: "ltr",
+          format: "",
+          indent: 0,
+          type: "root",
+          version: 1
+        }
+      };
+      return JSON.stringify(editorState);
     }
-  }, [isLoading]);
-
-  useEffect(() => {
-    const editor = document.querySelector(".simple-editor");
-    if (editor) {
-      const editorHeight = editor.scrollHeight;
-      const editorWidth = editor.scrollWidth;
-      setTextareaHeight(editorHeight);
-      setTextareaWidth(editorWidth);
-    }
+    return undefined;
   }, [value]);
+
+  const editorConfig = useMemo(
+    () => ({
+      ...initialConfigTemplate,
+      editorState: initialEditorState,
+      readOnly: readOnly
+    }),
+    [initialEditorState, readOnly]
+  );
+
+  const handleEditorChange = useCallback(
+    (editorState: EditorState) => {
+      if (!readOnly && onChange) {
+        // Convert Lexical state back to plain text
+        const textContent = editorState.read(() => {
+          return $getRoot().getTextContent();
+        });
+        onChange(textContent);
+      }
+    },
+    [onChange, readOnly]
+  );
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -280,19 +275,7 @@ const TextEditorModal = ({
           <div className="modal-header">
             <h4>{propertyName}</h4>
             <div className="actions">
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                title="Copy to Clipboard"
-              >
-                <button
-                  className="button"
-                  onClick={() => {
-                    writeClipboard(value, true);
-                  }}
-                >
-                  Copy
-                </button>
-              </Tooltip>
+              <CopyToClipboardButton textToCopy={value || ""} size="small" />
               <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | Esc">
                 <button className="button button-close" onClick={onClose}>
                   <CloseIcon />
@@ -325,29 +308,17 @@ const TextEditorModal = ({
                 <CircularProgress />
               </div>
             ) : (
-              <Editor
-                value={value}
-                onValueChange={(code) => onChange && onChange(code)}
-                highlight={(code) => {
-                  const language = autodetectLanguage(code);
-                  if (language === "text") {
-                    return code;
-                  }
-                  return Prism.highlight(
-                    code,
-                    Prism.languages[language],
-                    language
-                  );
-                }}
-                textareaClassName="textarea"
-                padding={10}
-                className="editor simple-editor"
-                readOnly={readOnly}
-                style={{
-                  fontFamily: "monospace",
-                  minHeight: "100%"
-                }}
-              />
+              <LexicalComposer initialConfig={editorConfig}>
+                <div
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column"
+                  }}
+                >
+                  <LexicalPlugins onChange={handleEditorChange} />
+                </div>
+              </LexicalComposer>
             )}
           </div>
           <div className="modal-footer"></div>
