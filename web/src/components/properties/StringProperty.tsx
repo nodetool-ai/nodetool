@@ -1,12 +1,29 @@
+/** @jsxImportSource @emotion/react */
 import { useState, useCallback, memo, useRef, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
-import { TextField } from "@mui/material";
+import { TextField, IconButton } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { css } from "@emotion/react";
+
+const buttonContainerStyles = css`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  .string-property:hover & {
+    opacity: 1;
+  }
+`;
 
 const StringProperty = ({
   property,
@@ -27,8 +44,12 @@ const StringProperty = ({
     );
   }, [edges, nodeId, property.name]);
 
+  const showTextEditor = !isConnected;
+
   const toggleExpand = useCallback(() => {
-    setIsExpanded((prev) => !prev);
+    setIsExpanded((prev) => {
+      return !prev;
+    });
   }, []);
 
   const handleChange = useCallback(
@@ -38,41 +59,74 @@ const StringProperty = ({
     [onChange]
   );
 
-  const showTextEditor =
-    !isConnected &&
-    (nodeType === "nodetool.constant.String" ||
-      (nodeType === "nodetool.input.StringInput" && property.name == "value") ||
-      (nodeType === "nodetool.text.FormatText" &&
-        property.name === "template") ||
-      (nodeType === "nodetool.text.Template" && property.name === "string") ||
-      (nodeType === "nodetool.list.MapTemplate" &&
-        property.name === "template"));
-
   if (showTextEditor) {
     return (
-      <div
-        className="string-property"
-        style={{ padding: 0, position: "relative" }}
-      >
-        <textarea
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={handleFocus}
-          className="nodrag nowheel"
-          tabIndex={tabIndex}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          ref={(textarea) => {
-            if (textarea) {
-              textarea.style.height = "auto";
-              textarea.style.height = `${textarea.scrollHeight}px`;
+      <div className="string-property">
+        <div style={{ position: "relative", marginBottom: "4px" }}>
+          <PropertyLabel
+            name={property.name}
+            description={property.description}
+            id={id}
+          />
+          <div css={buttonContainerStyles}>
+            <IconButton
+              size="small"
+              onClick={toggleExpand}
+              className="nodrag"
+              style={{ padding: "2px" }}
+            >
+              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
+            </IconButton>
+            <CopyToClipboardButton
+              textToCopy={value || ""}
+              size="small"
+              style={{ padding: "2px" }}
+            />
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <TextField
+            value={value || ""}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange(e.target.value)
             }
-          }}
-        />
-        <div style={{ position: "absolute", top: "1px", right: "3px" }}>
-          <CopyToClipboardButton textToCopy={value || ""} size="small" />
+            onFocus={handleFocus}
+            className="nodrag nowheel"
+            tabIndex={tabIndex}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            multiline
+            rows={1}
+            maxRows={2}
+            fullWidth
+            size="small"
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                padding: "0",
+                "& textarea": {
+                  padding: "4px 0"
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "transparent"
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray1)"
+                },
+                "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray2)"
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray3)"
+                }
+              }
+            }}
+          />
         </div>
         {isExpanded && (
           <TextEditorModal
@@ -89,13 +143,32 @@ const StringProperty = ({
 
   return (
     <div className="string-property">
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
-      />
+      <div style={{ position: "relative", marginBottom: "4px" }}>
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        {!isConnected && (
+          <div css={buttonContainerStyles}>
+            <IconButton
+              size="small"
+              onClick={toggleExpand}
+              className="nodrag"
+              style={{ padding: "2px" }}
+            >
+              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
+            </IconButton>
+            <CopyToClipboardButton
+              textToCopy={value || ""}
+              size="small"
+              style={{ padding: "2px" }}
+            />
+          </div>
+        )}
+      </div>
       {!isConnected && (
-        <div className="container" style={{ position: "relative" }}>
+        <div style={{ position: "relative" }}>
           <input
             type="text"
             id={id}
@@ -109,17 +182,8 @@ const StringProperty = ({
             autoCapitalize="off"
             spellCheck="false"
             tabIndex={tabIndex}
-            style={{ width: "100%", paddingRight: "1em" }}
+            style={{ width: "100%", height: "24px" }}
           />
-          <div
-            style={{
-              position: "absolute",
-              right: "-.2em",
-              top: "0.04em"
-            }}
-          >
-            <CopyToClipboardButton textToCopy={value || ""} size="small" />
-          </div>
         </div>
       )}
     </div>
