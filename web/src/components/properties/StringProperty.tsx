@@ -85,9 +85,11 @@ const StringProperty = ({
           </div>
         </div>
         <div style={{ position: "relative" }}>
-          <textarea
+          <TextField
             value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange(e.target.value)
+            }
             onFocus={handleFocus}
             className="nodrag nowheel"
             tabIndex={tabIndex}
@@ -95,21 +97,33 @@ const StringProperty = ({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
-            style={{
-              maxHeight: "80px",
-              minHeight: "24px",
-              height: "24px",
-              overflowY: "auto",
-              resize: "none"
-            }}
-            ref={(textarea) => {
-              if (textarea) {
-                textarea.style.height = "24px";
-                const newHeight = Math.min(
-                  Math.max(textarea.scrollHeight, 24),
-                  80
-                );
-                textarea.style.height = `${newHeight}px`;
+            multiline
+            rows={1}
+            maxRows={2}
+            fullWidth
+            size="small"
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                padding: "0",
+                "& textarea": {
+                  padding: "4px 0"
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "transparent"
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray1)"
+                },
+                "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray2)"
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "1px",
+                  borderColor: "var(--palette-c_gray3)"
+                }
               }
             }}
           />
