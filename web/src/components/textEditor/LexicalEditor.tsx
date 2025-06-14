@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Global, css } from "@emotion/react";
+import { Global, css, useTheme } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useState } from "react";
 import { EditorState, LexicalEditor } from "lexical";
@@ -8,39 +8,38 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 
-const editorStyles = css`
-  .editor-input {
-    height: 100%;
-    outline: none;
-    border: 0;
-    cursor: text;
-    width: 100%;
-    padding: 0;
-    resize: none;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-  .editor-placeholder {
-    color: rgba(0, 0, 0, 0.6);
-    position: absolute;
-    font-size: var(--fontSizeSmall);
-    top: 1.5em;
-    left: 1.5em;
-    pointer-events: none;
-  }
-  .editor-input p {
-    line-height: 1.25em;
-    padding-top: 0;
-    margin-top: 0;
-    margin-block-end: 0.5em;
-  }
-  .editor-input {
-    font-size: var(--fontSizeSmall);
-  }
-  .editor-input .font-size-large {
-    font-size: var(--fontSizeBigger);
-  }
-`;
+const styles = (theme: any) =>
+  css({
+    ".editor-input": {
+      height: "100%",
+      outline: "none",
+      border: 0,
+      cursor: "text",
+      width: "100%",
+      padding: 0,
+      resize: "none",
+      overflowX: "hidden",
+      overflowY: "auto",
+      fontSize: theme.fontSizeSmall,
+      p: {
+        lineHeight: "1.25em",
+        paddingTop: 0,
+        marginTop: 0,
+        marginBlockEnd: "0.5em"
+      },
+      ".font-size-large": {
+        fontSize: theme.fontSizeBigger
+      }
+    },
+    ".editor-placeholder": {
+      color: "rgba(0, 0, 0, 0.6)",
+      position: "absolute",
+      fontSize: theme.fontSizeSmall,
+      top: "1.5em",
+      left: "1.5em",
+      pointerEvents: "none"
+    }
+  });
 
 function BlurPlugin({
   onBlur
@@ -74,6 +73,7 @@ const LexicalPlugins = ({
   onFocusChange
 }: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
+  const theme = useTheme();
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -87,7 +87,7 @@ const LexicalPlugins = ({
 
   return (
     <>
-      <Global styles={editorStyles} />
+      <Global styles={styles(theme)} />
       <RichTextPlugin
         contentEditable={
           <ContentEditable

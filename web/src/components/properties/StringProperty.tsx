@@ -5,31 +5,46 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { isEqual } from "lodash";
 import { useFocusPan } from "../../hooks/useFocusPan";
-import { TextField, IconButton } from "@mui/material";
+import { TextField, IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { css } from "@emotion/react";
+import { css, useTheme } from "@emotion/react";
 
-const buttonContainerStyles = css`
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  opacity: 0;
-  background-color: var(--palette-c_gray1);
-  border-radius: 4px;
-  padding: 0;
-  margin: 0;
-  transition: opacity 0.2s;
-  .string-property:hover & {
-    opacity: 0.8;
-  }
-`;
+const styles = (theme: any) =>
+  css({
+    "& .string-action-buttons": {
+      position: "absolute",
+      right: 0,
+      top: "50%",
+      transform: "translateY(-50%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: ".5em",
+      opacity: 0,
+      backgroundColor: theme.palette.c_gray1,
+      borderRadius: "4px",
+      padding: 0,
+      margin: 0,
+      transition: "opacity 0.2s",
+      pointerEvents: "none",
+      "& .MuiIconButton-root": {
+        margin: 0,
+        padding: 0
+      }
+    },
+    "& .MuiInputBase-root": {
+      width: "calc(100% - .5em)"
+    },
+    "& .MuiInputBase-input": {
+      minHeight: "1.25em"
+    },
+    "&.string-property:hover .string-action-buttons": {
+      opacity: 0.8,
+      pointerEvents: "auto"
+    }
+  });
 
 const StringProperty = ({
   property,
@@ -40,8 +55,10 @@ const StringProperty = ({
   nodeId,
   nodeType
 }: PropertyProps) => {
+  const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const handleFocus = useFocusPan(nodeId);
   const edges = useNodes((state) => state.edges);
   const isConnected = useMemo(() => {
@@ -67,26 +84,28 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className="string-property">
+      <div className="string-property" css={styles(theme)}>
         <div style={{ position: "relative", marginBottom: "4px" }}>
           <PropertyLabel
             name={property.name}
             description={property.description}
             id={id}
           />
-          <div css={buttonContainerStyles}>
-            <IconButton
-              size="small"
-              onClick={toggleExpand}
-              className="nodrag"
-              style={{ padding: "2px" }}
-            >
-              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
-            </IconButton>
+          <div className="string-action-buttons">
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton
+                size="small"
+                onClick={toggleExpand}
+                // className="nodrag"
+                // style={{ padding: "2px" }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.75rem" }} />
+              </IconButton>
+            </Tooltip>
             <CopyToClipboardButton
               textToCopy={value || ""}
               size="small"
-              style={{ padding: "2px" }}
+              // style={{ padding: "2px" }}
             />
           </div>
         </div>
@@ -96,8 +115,12 @@ const StringProperty = ({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               onChange(e.target.value)
             }
-            onFocus={handleFocus}
-            className="nodrag nowheel"
+            onFocus={(e) => {
+              handleFocus(e);
+              setIsFocused(true);
+            }}
+            onBlur={() => setIsFocused(false)}
+            className={`nodrag ${isFocused ? "nowheel" : ""}`}
             tabIndex={tabIndex}
             autoComplete="off"
             autoCorrect="off"
@@ -151,7 +174,7 @@ const StringProperty = ({
   }
 
   return (
-    <div className="string-property">
+    <div className="string-property" css={styles(theme)}>
       <div style={{ position: "relative", marginBottom: "4px" }}>
         <PropertyLabel
           name={property.name}
@@ -159,20 +182,8 @@ const StringProperty = ({
           id={id}
         />
         {!isConnected && (
-          <div className="string-action-buttons" css={buttonContainerStyles}>
-            <IconButton
-              size="small"
-              onClick={toggleExpand}
-              className="nodrag"
-              style={{ padding: "2px" }}
-            >
-              <OpenInFullIcon sx={{ fontSize: "0.875rem" }} />
-            </IconButton>
-            <CopyToClipboardButton
-              textToCopy={value || ""}
-              size="small"
-              style={{ padding: "2px" }}
-            />
+          <div className="string-action-buttons">
+            <CopyToClipboardButton textToCopy={value || ""} size="small" />
           </div>
         )}
       </div>
