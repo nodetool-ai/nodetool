@@ -38,7 +38,16 @@ const styles = (theme: any) =>
       width: "calc(100% - .5em)"
     },
     "& .MuiInputBase-input": {
-      minHeight: "1.25em"
+      minHeight: "1.25em",
+      padding: "0.25em 0",
+      lineHeight: "1.25em"
+    },
+    "& .MuiOutlinedInput-root": {
+      "& textarea": {
+        minHeight: "1.25em",
+        padding: "0.25em 0",
+        lineHeight: "1.25em"
+      }
     },
     "&.string-property:hover .string-action-buttons": {
       opacity: 0.8,
@@ -127,8 +136,8 @@ const StringProperty = ({
             autoCapitalize="off"
             spellCheck="false"
             multiline
-            rows={1}
-            maxRows={4}
+            minRows={1}
+            maxRows={2}
             fullWidth
             size="small"
             variant="outlined"
@@ -136,8 +145,11 @@ const StringProperty = ({
               "& .MuiOutlinedInput-root": {
                 padding: "0",
                 "& textarea": {
-                  padding: "4px 0",
-                  resize: "none"
+                  padding: "0.25em 0",
+                  resize: "none",
+                  minHeight: "1.25em",
+                  lineHeight: "1.25em",
+                  border: "1px solid var(--palette-c_gray2)"
                 },
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderWidth: "0"
