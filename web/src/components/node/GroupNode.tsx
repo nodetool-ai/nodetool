@@ -79,7 +79,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       },
       input: {
         width: "fit-content",
-        maxWidth: "calc(100% - 80px)",
+        maxWidth: "100%",
         overflow: "hidden",
         backgroundColor: "transparent",
         outline: "none",
