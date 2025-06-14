@@ -63,118 +63,115 @@ interface TextEditorModalProps {
 import { CSSObject } from "@emotion/react";
 import Markdown from "react-markdown";
 
-const modalStyles = (
-  theme: any,
-  textareaHeight: number,
-  textareaWidth: number
-): CSSObject => ({
-  ".modal-overlay": {
-    position: "fixed",
-    top: "72px",
-    left: "51px",
-    width: "calc(100vw - 51px)",
-    height: "calc(100vh - 200px)",
-    backgroundColor: "rgba(0, 0, 0, 0.1)",
-    zIndex: 10000,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  ".modal-content": {
-    backgroundColor: theme.palette.c_gray1,
-    color: theme.palette.c_gray6,
-    fontSize: theme.fontSizeBigger,
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    position: "relative",
-    borderTop: `.7em solid ${theme.palette.c_black}`,
-    borderRight: `.7em solid ${theme.palette.c_black}`,
-    borderLeft: `.7em solid ${theme.palette.c_black}`
-  },
-  ".modal-header": {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "1em 0 1em 1em",
-    height: "1.5em",
-    backgroundColor: theme.palette.c_gray0
-  },
-  ".modal-header h4": {
-    cursor: "default",
-    fontWeight: "normal",
-    margin: 0
-  },
-  ".description": {
-    padding: "1em 1em .5em 1.5em",
-    fontSize: theme.fontSizeTiny,
-    color: theme.palette.c_gray6,
-    fontFamily: theme.fontFamily2,
-    wordSpacing: "-0.2em",
-    lineHeight: "1.2",
-    backgroundColor: theme.palette.c_gray1
-  },
-  ".modal-body": {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    padding: ".5em",
-    backgroundColor: theme.palette.c_gray1,
-    height: "100%",
-    overflow: "hidden"
-  },
-  ".modal-body .editor": {
-    flex: 1,
-    width: "100%",
-    fontFamily: theme.fontFamily1,
-    fontSize: theme.fontSizeSmall,
-    lineHeight: "1.2",
-    color: theme.palette.c_white,
-    backgroundColor: theme.palette.c_gray2,
-    outline: "none",
-    overflow: "auto !important",
-    whiteSpace: "pre-wrap",
-    height: "100vh",
-    ["& pre"]: {
-      height: "100vh",
-      whiteSpace: "pre !important",
-      overflowWrap: "break-word"
+const styles = (theme: any) =>
+  css({
+    ".modal-overlay": {
+      position: "fixed",
+      top: "72px",
+      left: "51px",
+      width: "calc(100vw - 51px)",
+      height: "calc(100vh - 200px)",
+      backgroundColor: "rgba(0, 0, 0, 0.1)",
+      zIndex: 10000,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center"
     },
-    ["& textarea"]: {
-      whiteSpace: "pre !important",
-      overflowWrap: "break-word",
-      height: `${textareaHeight}px !important`,
-      width: `${textareaWidth}px !important`
+    ".modal-content": {
+      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.c_gray6,
+      fontSize: theme.fontSizeBigger,
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      borderTop: `.7em solid ${theme.palette.c_black}`,
+      borderRight: `.7em solid ${theme.palette.c_black}`,
+      borderLeft: `.7em solid ${theme.palette.c_black}`
+    },
+    ".modal-header": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "1em 0 1em 1em",
+      height: "1.5em",
+      backgroundColor: theme.palette.c_gray0,
+      h4: {
+        cursor: "default",
+        fontWeight: "normal",
+        margin: 0
+      }
+    },
+    ".description": {
+      padding: "1em 1em .5em 1.5em",
+      fontSize: theme.fontSizeTiny,
+      color: theme.palette.c_gray6,
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-0.2em",
+      lineHeight: "1.2",
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".modal-body": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      padding: ".5em",
+      backgroundColor: theme.palette.c_gray1,
+      height: "100%",
+      overflow: "hidden",
+      ".editor": {
+        flex: 1,
+        width: "100%",
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeSmall,
+        lineHeight: "1.2",
+        color: theme.palette.c_white,
+        backgroundColor: theme.palette.c_gray2,
+        outline: "none",
+        overflow: "auto !important",
+        whiteSpace: "pre-wrap",
+        height: "100vh",
+        pre: {
+          height: "100vh",
+          whiteSpace: "pre !important",
+          overflowWrap: "break-word"
+        },
+        textarea: {
+          whiteSpace: "pre !important",
+          overflowWrap: "break-word",
+          height: "100vh !important",
+          width: "100% !important"
+        }
+      }
+    },
+    ".actions": {
+      display: "flex",
+      gap: "1em"
+    },
+    ".button": {
+      padding: "8px 12px",
+      cursor: "pointer",
+      backgroundColor: theme.palette.c_gray1,
+      color: "#fff",
+      textTransform: "uppercase",
+      border: "none",
+      borderRadius: 0,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".button-close": {
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".modal-footer": {
+      display: "flex",
+      width: "100%",
+      height: ".7em",
+      justifyContent: "flex-end",
+      backgroundColor: theme.palette.c_gray0
     }
-  },
-  ".actions": {
-    display: "flex",
-    gap: "1em"
-  },
-  ".button": {
-    padding: "8px 12px",
-    cursor: "pointer",
-    backgroundColor: theme.palette.c_gray1,
-    color: "#fff",
-    textTransform: "uppercase",
-    border: "none",
-    borderRadius: "0"
-  },
-  ".button:hover": {
-    backgroundColor: theme.palette.c_gray2
-  },
-  ".button-close": {
-    backgroundColor: theme.palette.c_gray1
-  },
-  ".modal-footer": {
-    display: "flex",
-    width: "100%",
-    height: ".7em",
-    justifyContent: "flex-end",
-    backgroundColor: theme.palette.c_gray0
-  }
-});
+  });
 
 const TextEditorModal = ({
   value,
@@ -261,10 +258,7 @@ const TextEditorModal = ({
   useCombo(["escape"], onClose);
 
   const content = (
-    <div
-      css={modalStyles(theme, textareaHeight, textareaWidth)}
-      className={readOnly ? "read-only" : ""}
-    >
+    <div css={styles(theme)} className={readOnly ? "read-only" : ""}>
       <div
         className="modal-overlay"
         role="presentation"
