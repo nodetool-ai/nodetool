@@ -22,6 +22,7 @@ import { Tooltip } from "@mui/material";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
+const GROUP_COLOR_OPACITY = 0.5;
 
 const styles = (theme: any, minWidth: number, minHeight: number) =>
   css({
@@ -121,7 +122,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.c_white, 0.6),
+      backgroundColor: hexToRgba(theme.palette.c_white, GROUP_COLOR_OPACITY),
       color: "var(--c_black)",
       padding: "0.75em 1em",
       borderRadius: "4px",
@@ -318,7 +319,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
-        backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
+        backgroundColor: hexToRgba(
+          color || ThemeNodes.palette.c_bg_group,
+          GROUP_COLOR_OPACITY
+        )
       }}
     >
       <Tooltip
