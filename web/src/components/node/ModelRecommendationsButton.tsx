@@ -44,8 +44,8 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
               width: "90%",
               fontSize: ThemeNodetool.fontSizeSmall,
               color: ThemeNodetool.palette.c_gray5,
-              margin: ".5em 0",
-              padding: ".5em .5em",
+              margin: ".25em 0",
+              padding: ".25em",
               border: `1px solid ${ThemeNodetool.palette.c_gray2}`,
               lineHeight: "1.1em",
               borderRadius: ".5em",
@@ -67,11 +67,11 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
                 backgroundColor: "transparent"
               }}
               svgProps={{
-                width: "1.3em",
-                height: "1.3em"
+                width: "1em",
+                height: "1em"
               }}
             />
-            Recommended models
+            Models
           </Button>
         </div>
       </Tooltip>
