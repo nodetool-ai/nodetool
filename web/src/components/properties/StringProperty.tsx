@@ -165,7 +165,7 @@ const StringProperty = ({
                 },
                 "&.Mui-focused": {
                   "& .MuiOutlinedInput-input": {
-                    backgroundColor: "var(--palette-c_gray2)"
+                    backgroundColor: "var(--palette-c_gray0)"
                   }
                 }
               }
