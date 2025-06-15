@@ -67,7 +67,8 @@ const executeComboCallbacks = (
     (activeElement.tagName === "INPUT" ||
       activeElement.tagName === "TEXTAREA" ||
       activeElement.closest('[data-slate-editor="true"]') ||
-      activeElement.closest(".text-editor-container"));
+      activeElement.closest(".text-editor-container") ||
+      activeElement.closest(".editor-input"));
 
   if (isInputFocused) {
     // --- Input Focus Handling ---
