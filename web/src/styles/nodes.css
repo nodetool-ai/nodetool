@@ -517,3 +517,10 @@
   width: 100%;
   overflow-x: scroll;
 }
+
+/* Constant.String */
+
+.react-flow__node-nodetool\.constant\.String .node-property .string-property textarea {
+  resize: vertical;
+  max-height: 1000px !important;
+}
