@@ -104,13 +104,14 @@ const styles = (theme: any) =>
       }
     },
     ".description": {
-      padding: "1em 1em .5em 1.5em",
+      padding: "0",
+      margin: "0",
       fontSize: theme.fontSizeTiny,
       color: theme.palette.c_gray6,
       fontFamily: theme.fontFamily2,
       wordSpacing: "-0.2em",
-      lineHeight: "1.2",
-      backgroundColor: theme.palette.c_gray1
+      lineHeight: "1.2"
+      // backgroundColor: theme.palette.c_gray1
     },
     ".modal-body": {
       flex: 1,
@@ -267,7 +268,21 @@ const TextEditorModal = ({
       >
         <div className="modal-content" role="dialog" aria-modal="true">
           <div className="modal-header">
-            <h4>{propertyName}</h4>
+            <div className="title-and-description">
+              <h4 className="title">{propertyName}</h4>
+              {propertyDescription && (
+                <div
+                  className="description"
+                  style={{
+                    color: readOnly
+                      ? ThemeNodes.palette.c_warning
+                      : ThemeNodes.palette.c_white
+                  }}
+                >
+                  <Markdown>{propertyDescription}</Markdown>
+                </div>
+              )}
+            </div>
             <div className="actions">
               <CopyToClipboardButton textToCopy={value || ""} size="small" />
               <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | Esc">
@@ -277,18 +292,6 @@ const TextEditorModal = ({
               </Tooltip>
             </div>
           </div>
-          {propertyDescription && (
-            <div
-              className="description"
-              style={{
-                color: readOnly
-                  ? ThemeNodes.palette.c_warning
-                  : ThemeNodes.palette.c_white
-              }}
-            >
-              <Markdown>{propertyDescription}</Markdown>
-            </div>
-          )}
           <div className="modal-body">
             {isLoading ? (
               <div
