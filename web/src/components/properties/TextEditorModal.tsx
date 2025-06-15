@@ -25,8 +25,19 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  UNDO_COMMAND,
+  REDO_COMMAND,
+  CAN_UNDO_COMMAND,
+  CAN_REDO_COMMAND
+} from "lexical";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import EditorToolbar from "../textEditor/EditorToolbar";
+import EditorStatusBar from "../textEditor/EditorStatusBar";
+import FindReplaceBar from "../textEditor/FindReplaceBar";
+import EditorController from "../textEditor/EditorController";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -58,6 +69,9 @@ interface TextEditorModalProps {
   propertyDescription?: string;
   readOnly?: boolean;
   isLoading?: boolean;
+  showToolbar?: boolean;
+  showStatusBar?: boolean;
+  showFindReplace?: boolean;
 }
 
 import { CSSObject } from "@emotion/react";
@@ -86,7 +100,6 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      border: `.7em solid ${theme.palette.c_black}`,
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
     },
     ".modal-header": {
@@ -141,19 +154,34 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.c_gray2,
         outline: "none",
         overflow: "auto !important",
-        whiteSpace: "pre-wrap",
         height: "100vh",
         borderRadius: "4px",
         pre: {
           height: "100vh",
-          whiteSpace: "pre !important",
           overflowWrap: "break-word"
         },
         textarea: {
-          whiteSpace: "pre !important",
           overflowWrap: "break-word",
           height: "100vh !important",
           width: "100% !important"
+        },
+        "&.word-wrap": {
+          whiteSpace: "pre-wrap",
+          pre: {
+            whiteSpace: "pre-wrap !important"
+          },
+          textarea: {
+            whiteSpace: "pre-wrap !important"
+          }
+        },
+        "&.no-wrap": {
+          whiteSpace: "pre",
+          pre: {
+            whiteSpace: "pre !important"
+          },
+          textarea: {
+            whiteSpace: "pre !important"
+          }
         }
       }
     },
@@ -221,7 +249,10 @@ const TextEditorModal = ({
   propertyName,
   propertyDescription,
   readOnly = false,
-  isLoading = false
+  isLoading = false,
+  showToolbar = true,
+  showStatusBar = true,
+  showFindReplace = true
 }: TextEditorModalProps) => {
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
@@ -230,51 +261,45 @@ const TextEditorModal = ({
   const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
   const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
 
-  // Convert plain text to Lexical format
-  const initialEditorState = useMemo(() => {
-    if (value) {
-      // Create a simple paragraph with the text
-      const editorState = {
-        root: {
-          children: [
-            {
-              children: [
-                {
-                  detail: 0,
-                  format: 0,
-                  mode: "normal",
-                  style: "",
-                  text: value,
-                  type: "text",
-                  version: 1
-                }
-              ],
-              direction: "ltr",
-              format: "",
-              indent: 0,
-              type: "paragraph",
-              version: 1
-            }
-          ],
-          direction: "ltr",
-          format: "",
-          indent: 0,
-          type: "root",
-          version: 1
-        }
-      };
-      return JSON.stringify(editorState);
-    }
-    return undefined;
-  }, [value]);
+  // Editor state management
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const [wordWrapEnabled, setWordWrapEnabled] = useState(true);
+  const [codeHighlightEnabled, setCodeHighlightEnabled] = useState(false);
+  const [findReplaceVisible, setFindReplaceVisible] = useState(false);
+  const [currentText, setCurrentText] = useState(value || "");
+
+  // Editor function refs
+  const [undoFn, setUndoFn] = useState<(() => void) | null>(null);
+  const [redoFn, setRedoFn] = useState<(() => void) | null>(null);
+  const [findFn, setFindFn] = useState<
+    | ((searchTerm: string) => { totalMatches: number; currentMatch: number })
+    | null
+  >(null);
+  const [replaceFn, setReplaceFn] = useState<
+    | ((searchTerm: string, replaceTerm: string, replaceAll?: boolean) => void)
+    | null
+  >(null);
+  const [navigateFn, setNavigateFn] = useState<
+    | ((direction: "next" | "previous") => {
+        currentMatch: number;
+        totalMatches: number;
+      })
+    | null
+  >(null);
+
+  // Search state
+  const [searchResults, setSearchResults] = useState({
+    currentMatch: 0,
+    totalMatches: 0
+  });
 
   const editorConfig = useMemo(
     () => ({
       ...initialConfigTemplate,
-      editorState: initialEditorState,
       readOnly: readOnly
     }),
-    [initialEditorState, readOnly]
+    [readOnly]
   );
 
   const handleEditorChange = useCallback(
@@ -284,11 +309,70 @@ const TextEditorModal = ({
         const textContent = editorState.read(() => {
           return $getRoot().getTextContent();
         });
+        setCurrentText(textContent);
         onChange(textContent);
       }
     },
     [onChange, readOnly]
   );
+
+  // Toolbar handlers
+  const handleUndo = useCallback(() => {
+    if (undoFn) {
+      undoFn();
+    }
+  }, [undoFn]);
+
+  const handleRedo = useCallback(() => {
+    if (redoFn) {
+      redoFn();
+    }
+  }, [redoFn]);
+
+  const handleToggleWordWrap = useCallback(() => {
+    setWordWrapEnabled((prev) => !prev);
+  }, []);
+
+  const handleToggleCodeHighlight = useCallback(() => {
+    setCodeHighlightEnabled((prev) => !prev);
+  }, []);
+
+  const handleToggleFind = useCallback(() => {
+    setFindReplaceVisible((prev: boolean) => !prev);
+  }, []);
+
+  const handleFind = useCallback(
+    (searchTerm: string) => {
+      if (findFn) {
+        const results = findFn(searchTerm);
+        setSearchResults(results);
+      }
+    },
+    [findFn]
+  );
+
+  const handleReplace = useCallback(
+    (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
+      if (replaceFn) {
+        replaceFn(searchTerm, replaceTerm, replaceAll);
+      }
+    },
+    [replaceFn]
+  );
+
+  const handleNavigateNext = useCallback(() => {
+    if (navigateFn) {
+      const results = navigateFn("next");
+      setSearchResults(results);
+    }
+  }, [navigateFn]);
+
+  const handleNavigatePrevious = useCallback(() => {
+    if (navigateFn) {
+      const results = navigateFn("previous");
+      setSearchResults(results);
+    }
+  }, [navigateFn]);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -335,6 +419,32 @@ const TextEditorModal = ({
               </Tooltip>
             </div>
           </div>
+          {showToolbar && (
+            <EditorToolbar
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onToggleWordWrap={handleToggleWordWrap}
+              onToggleFind={handleToggleFind}
+              onToggleCodeHighlight={handleToggleCodeHighlight}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              wordWrapEnabled={wordWrapEnabled}
+              codeHighlightEnabled={codeHighlightEnabled}
+              readOnly={readOnly}
+            />
+          )}
+
+          <FindReplaceBar
+            onFind={handleFind}
+            onReplace={handleReplace}
+            onClose={() => setFindReplaceVisible(false)}
+            onNext={handleNavigateNext}
+            onPrevious={handleNavigatePrevious}
+            currentMatch={searchResults.currentMatch}
+            totalMatches={searchResults.totalMatches}
+            isVisible={showFindReplace && findReplaceVisible}
+          />
+
           <div className="modal-body">
             {isLoading ? (
               <div
@@ -356,11 +466,26 @@ const TextEditorModal = ({
                     flexDirection: "column"
                   }}
                 >
+                  <EditorController
+                    onCanUndoChange={setCanUndo}
+                    onCanRedoChange={setCanRedo}
+                    onTextChange={setCurrentText}
+                    onUndoCommand={setUndoFn}
+                    onRedoCommand={setRedoFn}
+                    onFindCommand={setFindFn}
+                    onReplaceCommand={setReplaceFn}
+                    onNavigateCommand={setNavigateFn}
+                    initialContent={value}
+                  />
                   <LexicalPlugins onChange={handleEditorChange} />
                 </div>
               </LexicalComposer>
             )}
           </div>
+
+          {showStatusBar && (
+            <EditorStatusBar text={currentText} readOnly={readOnly} />
+          )}
           <div className="modal-footer"></div>
         </div>
       </div>
