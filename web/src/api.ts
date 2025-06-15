@@ -410,6 +410,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/ollama_base_path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ollama Base Path Endpoint
+         * @description Retrieves the Ollama models directory path.
+         *
+         *     The path is determined by the `_get_ollama_models_dir` helper function, which
+         *     includes OS-specific lookup and caching.
+         *
+         *     Args:
+         *         user (str): The current user, injected by FastAPI dependency.
+         *
+         *     Returns:
+         *         dict: A dictionary containing the path if found (e.g., {"path": "/path/to/ollama/models"}),
+         *               or an error message if not found (e.g., {"status": "error", "message": "..."}).
+         */
+        get: operations["get_ollama_base_path_endpoint_api_models_ollama_base_path_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/pull_ollama_model": {
         parameters: {
             query?: never;
@@ -421,6 +451,40 @@ export interface paths {
         put?: never;
         /** Pull Ollama Model */
         post: operations["pull_ollama_model_api_models_pull_ollama_model_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/open_in_explorer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open In Explorer
+         * @description Opens the specified path in the system's default file explorer.
+         *
+         *     Security measures:
+         *     - The requested path must be within a pre-configured list of safe root directories
+         *       (e.g., Ollama models directory, Hugging Face cache).
+         *     - The input path is sanitized using `shlex.quote` for non-Windows platforms before
+         *       being passed to subprocess commands to prevent command injection.
+         *
+         *     Args:
+         *         path (str): The path to open in the file explorer.
+         *         user (str): The current user, injected by FastAPI dependency.
+         *
+         *     Returns:
+         *         dict: A dictionary indicating success (e.g., {"status": "success", "path": "/validated/path"})
+         *               or an error (e.g., {"status": "error", "message": "..."}).
+         */
+        post: operations["open_in_explorer_api_models_open_in_explorer_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1211,9 +1275,7 @@ export interface components {
             /** Content Type */
             content_type: string;
             /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            } | null;
+            metadata?: Record<string, never> | null;
             /** Created At */
             created_at: string;
             /** Get Url */
@@ -1285,9 +1347,7 @@ export interface components {
             /** Data */
             data?: string | null;
             /** Metadata */
-            metadata?: {
-                [key: string]: unknown;
-            } | null;
+            metadata?: Record<string, never> | null;
             /** Duration */
             duration?: number | null;
         };
@@ -1341,6 +1401,8 @@ export interface components {
             repo_id: string;
             /** Repo Type */
             repo_type: string;
+            /** Path */
+            path: string;
             /** Size On Disk */
             size_on_disk: number;
             /** The Model Type */
@@ -1419,9 +1481,7 @@ export interface components {
             /** Count */
             count: number;
             /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
+            metadata: Record<string, never>;
             /** Workflow Name */
             workflow_name?: string | null;
         };
@@ -2704,9 +2764,7 @@ export interface components {
             /** Message */
             message?: string | null;
             /** Result */
-            result?: {
-                [key: string]: unknown;
-            } | null;
+            result?: Record<string, never> | null;
             /** Error */
             error?: string | null;
         };
@@ -2765,40 +2823,7 @@ export interface components {
              */
             digest: string;
             /** Details */
-            details?: {
-                [key: string]: unknown;
-            };
-        };
-        /**
-         * LogEntry
-         * @description A log entry for a subtask.
-         */
-        LogEntry: {
-            /**
-             * Type
-             * @default log_entry
-             * @constant
-             */
-            type: "log_entry";
-            /**
-             * Message
-             * @description The message of the log entry
-             * @default
-             */
-            message: string;
-            /**
-             * Level
-             * @description The level of the log entry
-             * @default info
-             * @enum {string}
-             */
-            level: "debug" | "info" | "warning" | "error";
-            /**
-             * Timestamp
-             * @description The timestamp of the log entry
-             * @default 0
-             */
-            timestamp: number;
+            details?: Record<string, never>;
         };
         /**
          * Message
@@ -3043,13 +3068,9 @@ export interface components {
             /** Model-Index */
             "model-index"?: unknown | null;
             /** Config */
-            config?: {
-                [key: string]: unknown;
-            } | null;
+            config?: Record<string, never> | null;
             /** Carddata */
-            cardData?: {
-                [key: string]: unknown;
-            } | null;
+            cardData?: Record<string, never> | null;
             /** Siblings */
             siblings?: components["schemas"]["Sibling"][] | null;
             /** Spaces */
@@ -3117,80 +3138,35 @@ export interface components {
             /** Ui Properties */
             ui_properties?: unknown;
             /** Dynamic Properties */
-            dynamic_properties?: {
-                [key: string]: unknown;
-            };
+            dynamic_properties?: Record<string, never>;
         };
         /**
          * NodeMetadata
          * @description Metadata for a node.
          */
         NodeMetadata: {
-            /**
-             * Title
-             * @description UI Title of the node
-             */
+            /** Title */
             title: string;
-            /**
-             * Description
-             * @description UI Description of the node
-             */
+            /** Description */
             description: string;
-            /**
-             * Namespace
-             * @description Namespace of the node
-             */
+            /** Namespace */
             namespace: string;
-            /**
-             * Node Type
-             * @description Fully qualified type of the node
-             */
+            /** Node Type */
             node_type: string;
-            /**
-             * Layout
-             * @description UI Layout of the node
-             * @default default
-             */
+            /** Layout */
             layout: string;
-            /**
-             * Properties
-             * @description Properties of the node
-             */
-            properties?: components["schemas"]["Property"][];
-            /**
-             * Outputs
-             * @description Outputs of the node
-             */
-            outputs?: components["schemas"]["OutputSlot"][];
-            /**
-             * The Model Info
-             * @description HF Model info for the node
-             */
-            the_model_info?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Recommended Models
-             * @description Recommended models for the node
-             */
-            recommended_models?: components["schemas"]["HuggingFaceModel"][];
-            /**
-             * Basic Fields
-             * @description Basic fields of the node
-             */
-            basic_fields?: string[];
-            /**
-             * Is Dynamic
-             * @description Whether the node is dynamic
-             * @default false
-             */
+            /** Properties */
+            properties: components["schemas"]["Property"][];
+            /** Outputs */
+            outputs: components["schemas"]["OutputSlot"][];
+            /** The Model Info */
+            the_model_info: Record<string, never>;
+            /** Recommended Models */
+            recommended_models: components["schemas"]["HuggingFaceModel"][];
+            /** Basic Fields */
+            basic_fields: string[];
+            /** Is Dynamic */
             is_dynamic: boolean;
-            /**
-             * Is Streaming
-             * @description Whether the node is streaming
-             * @default false
-             */
-            is_streaming: boolean;
         };
         /**
          * NodeProgress
@@ -3235,9 +3211,7 @@ export interface components {
         /** NodeSearchResponse */
         NodeSearchResponse: {
             /** Nodes */
-            nodes: {
-                [key: string]: unknown;
-            }[];
+            nodes: Record<string, never>[];
             /** Count */
             count: number;
         };
@@ -3266,13 +3240,9 @@ export interface components {
             /** Logs */
             logs?: string | null;
             /** Result */
-            result?: {
-                [key: string]: unknown;
-            } | null;
+            result?: Record<string, never> | null;
             /** Properties */
-            properties?: {
-                [key: string]: unknown;
-            } | null;
+            properties?: Record<string, never> | null;
         };
         /**
          * OutputSlot
@@ -3317,9 +3287,7 @@ export interface components {
              * Metadata
              * @default {}
              */
-            metadata: {
-                [key: string]: unknown;
-            };
+            metadata: Record<string, never>;
         };
         /** PackageAsset */
         PackageAsset: {
@@ -3500,9 +3468,7 @@ export interface components {
              * Config
              * @default {}
              */
-            config: {
-                [key: string]: unknown;
-            };
+            config: Record<string, never>;
         };
         /**
          * Prediction
@@ -3534,9 +3500,7 @@ export interface components {
             /** Status */
             status: string;
             /** Params */
-            params?: {
-                [key: string]: unknown;
-            };
+            params?: Record<string, never>;
             /** Data */
             data?: unknown | null;
             /** Cost */
@@ -3565,9 +3529,7 @@ export interface components {
             /** Node Id */
             node_id: string;
             /** Params */
-            params?: {
-                [key: string]: unknown;
-            };
+            params?: Record<string, never>;
             /** Version */
             version?: string | null;
             /** Workflow Id */
@@ -3680,9 +3642,7 @@ export interface components {
             /** Api Url */
             api_url?: string | null;
             /** Env */
-            env?: {
-                [key: string]: unknown;
-            } | null;
+            env?: Record<string, never> | null;
             graph?: components["schemas"]["Graph"] | null;
             /**
              * Explicit Types
@@ -3696,9 +3656,7 @@ export interface components {
              * Params
              * @default {}
              */
-            params: {
-                [key: string]: unknown;
-            };
+            params: Record<string, never>;
         };
         /**
          * SVGElement
@@ -3751,13 +3709,9 @@ export interface components {
         /** SettingsUpdateRequest */
         SettingsUpdateRequest: {
             /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
+            settings: Record<string, never>;
             /** Secrets */
-            secrets: {
-                [key: string]: unknown;
-            };
+            secrets: Record<string, never>;
         };
         /** Sibling */
         Sibling: {
@@ -3790,9 +3744,8 @@ export interface components {
             /**
              * Id
              * @description Unique identifier for the subtask
-             * @default
              */
-            id: string;
+            id?: string;
             /**
              * Model
              * @description The model to use for the subtask
@@ -3804,11 +3757,10 @@ export interface components {
              */
             content: string;
             /**
-             * Logs
-             * @description The logs of the subtask
-             * @default []
+             * Output File
+             * @description The file path where the subtask will save its output
              */
-            logs: components["schemas"]["LogEntry"][];
+            output_file: string;
             /**
              * Max Iterations
              * @description The maximum number of iterations for the subtask
@@ -3816,11 +3768,10 @@ export interface components {
              */
             max_iterations: number;
             /**
-             * Max Tool Calls
-             * @description The maximum number of tool calls for the subtask
-             * @default 10
+             * Batch Processing
+             * @description Configuration for batch processing of list items. Contains fields like enabled, batch_size, start_index, end_index, total_items
              */
-            max_tool_calls: number;
+            batch_processing?: Record<string, never> | null;
             /**
              * Completed
              * @description Whether the subtask is completed
@@ -3840,11 +3791,17 @@ export interface components {
              */
             end_time: number;
             /**
-             * Input Tasks
-             * @description The input tasks for the subtask
+             * Input Files
+             * @description The input files for the subtask
              * @default []
              */
-            input_tasks: string[];
+            input_files: string[];
+            /**
+             * Output Type
+             * @description The type of the output of the subtask
+             * @default string
+             */
+            output_type: string;
             /**
              * Output Schema
              * @description The JSON schema of the output of the subtask
@@ -3907,12 +3864,6 @@ export interface components {
              * @constant
              */
             type: "task";
-            /**
-             * Id
-             * @description Unique identifier for the task
-             * @default
-             */
-            id: string;
             /**
              * Title
              * @description The title of the task
@@ -3984,7 +3935,7 @@ export interface components {
          * @description Enum for different task update event types.
          * @enum {string}
          */
-        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "max_tool_calls_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
+        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
         /** TextRef */
         TextRef: {
             /**
@@ -4019,9 +3970,7 @@ export interface components {
              * Args
              * @default {}
              */
-            args: {
-                [key: string]: unknown;
-            };
+            args: Record<string, never>;
             /** Result */
             result?: unknown;
             /** Subtask Id */
@@ -4048,9 +3997,7 @@ export interface components {
             /** Name */
             name: string;
             /** Args */
-            args: {
-                [key: string]: unknown;
-            };
+            args: Record<string, never>;
             /** Message */
             message?: string | null;
         };
@@ -4132,13 +4079,9 @@ export interface components {
             thumbnail_url?: string | null;
             graph: components["schemas"]["Graph"];
             /** Input Schema */
-            input_schema?: {
-                [key: string]: unknown;
-            } | null;
+            input_schema?: Record<string, never> | null;
             /** Output Schema */
-            output_schema?: {
-                [key: string]: unknown;
-            } | null;
+            output_schema?: Record<string, never> | null;
             /** Settings */
             settings?: {
                 [key: string]: string | boolean | number | null;
@@ -4189,9 +4132,7 @@ export interface components {
             access: string;
             graph?: components["schemas"]["Graph"] | null;
             /** Comfy Workflow */
-            comfy_workflow?: {
-                [key: string]: unknown;
-            } | null;
+            comfy_workflow?: Record<string, never> | null;
             /** Settings */
             settings?: {
                 [key: string]: string | boolean | number | null;
@@ -5056,9 +4997,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    } | null;
+                    "application/json": Record<string, never> | null;
                 };
             };
             /** @description Validation Error */
@@ -5146,10 +5085,78 @@ export interface operations {
             };
         };
     };
+    get_ollama_base_path_endpoint_api_models_ollama_base_path_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pull_ollama_model_api_models_pull_ollama_model_post: {
         parameters: {
             query: {
                 model_name: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_in_explorer_api_models_open_in_explorer_post: {
+        parameters: {
+            query: {
+                path: string;
             };
             header?: {
                 authorization?: string | null;
@@ -5268,9 +5275,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
-                        [key: string]: unknown;
-                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"];
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | Record<string, never> | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"];
                 };
             };
         };
