@@ -39,6 +39,7 @@ import { css } from "@emotion/react";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
+import useMetadataStore from "../../stores/MetadataStore";
 
 export type PropertyProps = {
   property: Property;
@@ -246,6 +247,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       findNode: state.findNode
     })
   );
+  const metadata = useMetadataStore((state) => state.metadata);
+
   const onChange = useCallback(
     (value: any) => {
       if (isDynamicProperty) {
@@ -304,17 +307,61 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   // Reset property to default value
-  // const onContextMenu = useCallback(
-  //   (event: React.MouseEvent<HTMLDivElement>) => {
-  //     event.preventDefault();
-  //     if (controlKeyPressed) {
-  //       onChange(property.default);
-  //     } else {
-  //       handlePropertyContextMenu(event, property);
-  //     }
-  //   },
-  //   [controlKeyPressed, onChange, property, handlePropertyContextMenu]
-  // );
+  const onContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (controlKeyPressed) {
+        // Reset to default value with Ctrl+Right-click
+        const node = findNode(id);
+        if (!node) return;
+
+        if (isDynamicProperty) {
+          // For dynamic properties, get default from metadata
+          const nodeMetadata = metadata?.[node.type as string];
+          if (nodeMetadata) {
+            const propertyDef = nodeMetadata.properties.find(
+              (prop: Property) => prop.name === property.name
+            );
+            if (propertyDef && node.data.dynamic_properties) {
+              const updatedDynamicProperties = {
+                ...node.data.dynamic_properties,
+                [property.name]: propertyDef.default
+              };
+              updateNodeData(id, {
+                dynamic_properties: updatedDynamicProperties
+              });
+            }
+          }
+        } else {
+          // For regular properties, get default from metadata or property
+          const nodeMetadata = metadata?.[node.type as string];
+          if (nodeMetadata) {
+            const propertyDef = nodeMetadata.properties.find(
+              (prop: Property) => prop.name === property.name
+            );
+            const defaultValue = propertyDef?.default ?? property.default;
+            updateNodeProperties(id, { [property.name]: defaultValue });
+          } else {
+            // Fallback to property.default if metadata not available
+            updateNodeProperties(id, { [property.name]: property.default });
+          }
+        }
+      } else {
+        handlePropertyContextMenu(event, property);
+      }
+    },
+    [
+      controlKeyPressed,
+      findNode,
+      id,
+      isDynamicProperty,
+      metadata,
+      property,
+      updateNodeData,
+      updateNodeProperties,
+      handlePropertyContextMenu
+    ]
+  );
 
   const className =
     value === property.default ? "value-default" : "value-changed";
@@ -363,7 +410,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   return (
     <div
       className={`${className} property-input-container`}
-      // onContextMenu={onContextMenu}
+      onContextMenu={onContextMenu}
     >
       {inputField}
       {(isDynamicProperty || onDeleteProperty) && !isEditingName && (
