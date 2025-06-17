@@ -10,11 +10,12 @@ import { NodeProvider } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import ThemeNodes from "../themes/ThemeNodes";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+import ThemeNodes from "../themes/ThemeNodes";
 // icons
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CodeIcon from "@mui/icons-material/Code";
+import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -71,7 +72,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       backgroundColor: "transparent",
       "& .MuiIconButton-root": {
-        padding: "5px 4px 0 10px",
+        padding: "5px 4px 0 5px",
         borderRadius: "5px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
@@ -100,7 +101,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           onClick={handlePanelToggle}
           className={panelVisible ? "active" : ""}
         >
-          <InfoOutlinedIcon />
+          <CenterFocusWeakIcon />
         </IconButton>
       </Tooltip>
     </div>
@@ -167,9 +168,9 @@ const PanelRight: React.FC = () => {
             <ContextMenuProvider active={isVisible}>
               <ReactFlowProvider>
                 <NodeProvider workflowId={currentWorkflowId}>
-                  <MuiThemeProvider theme={ThemeNodes}>
-                    <Inspector />
-                  </MuiThemeProvider>
+                  {/* <MuiThemeProvider theme={ThemeNodes}> */}
+                  <Inspector />
+                  {/* </MuiThemeProvider> */}
                 </NodeProvider>
               </ReactFlowProvider>
             </ContextMenuProvider>
