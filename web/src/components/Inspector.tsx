@@ -128,18 +128,22 @@ const styles = (theme: any) =>
   });
 
 const Inspector: React.FC = () => {
-  const { getSelectedNodes, findNode } = useNodes((state) => ({
-    getSelectedNodes: state.getSelectedNodes,
-    findNode: state.findNode
-  }));
+  const { selectedNode, metadata } = useNodes((state) => {
+    const selectedNodes = state.getSelectedNodes();
+    const node = selectedNodes.length === 1 ? selectedNodes[0] : null;
+    const md = node
+      ? useMetadataStore.getState().getMetadata(node.type as string)
+      : null;
+    return { selectedNode: node, metadata: md };
+  });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const selectedNode = getSelectedNodes()[0];
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(selectedNode?.type ?? "")
-  );
 
-  if (!selectedNode || !metadata) {
-    return <Typography>Select a node to edit</Typography>;
+  if (!selectedNode) {
+    return <Typography>Select a single node to edit</Typography>;
+  }
+
+  if (!metadata) {
+    return <Typography>No metadata available for this node</Typography>;
   }
 
   const handleOpenNodeMenu = () => {
@@ -156,11 +160,12 @@ const Inspector: React.FC = () => {
         <div className="inspector-header">
           <div className="title">{metadata.title}</div>
         </div>
+        {/* Base properties */}
         {metadata.properties.map((property, index) => (
           <PropertyField
             key={`inspector-${property.name}-${selectedNode.id}`}
             id={selectedNode.id}
-            value={selectedNode.data}
+            value={selectedNode.data.properties[property.name]}
             property={property}
             propertyIndex={index.toString()}
             showHandle={false}
@@ -169,6 +174,33 @@ const Inspector: React.FC = () => {
             layout=""
           />
         ))}
+
+        {/* Dynamic properties, if any */}
+        {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+          ([name, value], index) => (
+            <PropertyField
+              key={`inspector-dynamic-${name}-${selectedNode.id}`}
+              id={selectedNode.id}
+              value={value}
+              property={
+                {
+                  name,
+                  type: {
+                    type: "any",
+                    optional: false,
+                    type_args: []
+                  }
+                } as any
+              }
+              propertyIndex={`dynamic-${index}`}
+              showHandle={false}
+              isInspector={true}
+              nodeType="inspector"
+              layout=""
+              isDynamicProperty={true}
+            />
+          )
+        )}
       </div>
       <div className="bottom">
         <div className="description">{metadata.description}</div>
