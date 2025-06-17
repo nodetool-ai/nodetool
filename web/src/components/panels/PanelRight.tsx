@@ -7,6 +7,10 @@ import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo } from "react";
 import { isEqual } from "lodash";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { NodeProvider } from "../../contexts/NodeContext";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import { ReactFlowProvider } from "@xyflow/react";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -116,12 +120,20 @@ const styles = (theme: any) =>
     }
   });
 
-const VerticalToolbar = memo(function VerticalToolbar({ handlePanelToggle }: { handlePanelToggle: () => void }) {
+const VerticalToolbar = memo(function VerticalToolbar({
+  handlePanelToggle
+}: {
+  handlePanelToggle: () => void;
+}) {
   const panelVisible = useRightPanelStore((state) => state.panel.isVisible);
   return (
     <div className="vertical-toolbar">
       <Tooltip title="Inspector" placement="left">
-        <IconButton tabIndex={-1} onClick={handlePanelToggle} className={panelVisible ? "active" : ""}>
+        <IconButton
+          tabIndex={-1}
+          onClick={handlePanelToggle}
+          className={panelVisible ? "active" : ""}
+        >
           <InfoOutlinedIcon />
         </IconButton>
       </Tooltip>
@@ -130,6 +142,9 @@ const VerticalToolbar = memo(function VerticalToolbar({ handlePanelToggle }: { h
 });
 
 const PanelRight: React.FC = () => {
+  const { currentWorkflowId } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId
+  }));
   const {
     ref: panelRef,
     size: panelSize,
@@ -140,7 +155,11 @@ const PanelRight: React.FC = () => {
   } = useResizeRightPanel("right");
 
   return (
-    <div css={styles} className="panel-container" style={{ width: isVisible ? `${panelSize}px` : "60px" }}>
+    <div
+      css={styles}
+      className="panel-container"
+      style={{ width: isVisible ? `${panelSize}px` : "60px" }}
+    >
       <IconButton
         disableRipple={true}
         className={"panel-button panel-button-right"}
@@ -168,8 +187,18 @@ const PanelRight: React.FC = () => {
         open={true}
       >
         <div className="panel-content panel-right">
-          <VerticalToolbar handlePanelToggle={() => handlePanelToggle("inspector")}/>
-          {isVisible && <Inspector />}
+          <VerticalToolbar
+            handlePanelToggle={() => handlePanelToggle("inspector")}
+          />
+          {isVisible && currentWorkflowId && (
+            <ContextMenuProvider active={isVisible}>
+              <ReactFlowProvider>
+                <NodeProvider workflowId={currentWorkflowId}>
+                  <Inspector />
+                </NodeProvider>
+              </ReactFlowProvider>
+            </ContextMenuProvider>
+          )}
         </div>
       </Drawer>
     </div>
