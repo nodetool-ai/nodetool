@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 const DEFAULT_PANEL_SIZE = 400;
 const MIN_DRAG_SIZE = 60;
-const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE;
+const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
 const MAX_PANEL_SIZE = 800;
 
 export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
@@ -58,6 +58,8 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
       };
 
       const handleMouseUp = () => {
+        const currentSize = usePanelStore.getState().panel.panelSize;
+
         if (!hasMoved) {
           // If we didn't move, treat it as a click and toggle the current view
           actions.handleViewChange(panel.activeView);
@@ -65,7 +67,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
           // Ensure final size respects minimum and collapse if below threshold
           let finalSize = Math.max(
             MIN_DRAG_SIZE,
-            panel.panelSize || DEFAULT_PANEL_SIZE
+            currentSize || DEFAULT_PANEL_SIZE
           );
 
           let visible = true;
@@ -74,7 +76,7 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
             visible = false;
           }
 
-          if (finalSize !== panel.panelSize) {
+          if (finalSize !== currentSize) {
             actions.setSize(finalSize);
           }
           actions.setVisibility(visible);

@@ -17,6 +17,7 @@ const styles = (theme: any) =>
       justifyContent: "flex-start",
       backgroundColor: theme.palette.c_gray1,
       padding: "0",
+      width: "100%",
       maxWidth: "500px",
       minHeight: "100%",
       height: "auto",
@@ -139,9 +140,16 @@ const Inspector: React.FC = () => {
 
   if (!selectedNode) {
     return (
-      <Typography sx={{ color: "var(--c_gray4)", p: ".5em 1.5em" }}>
-        Select a node to edit
-      </Typography>
+      <div className="inspector" css={styles}>
+        <div className="top">
+          <div className="inspector-header">
+            <div className="title" style={{ color: "var(--c_gray4)" }}>
+              Select a node to edit
+            </div>
+          </div>
+        </div>
+        <div className="bottom"></div>
+      </div>
     );
   }
 

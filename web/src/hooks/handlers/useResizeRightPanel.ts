@@ -1,12 +1,17 @@
 import { useCallback, useRef } from "react";
-import { useRightPanelStore, RightPanelView } from "../../stores/RightPanelStore";
+import {
+  useRightPanelStore,
+  RightPanelView
+} from "../../stores/RightPanelStore";
 
 const DEFAULT_PANEL_SIZE = 300;
 const MIN_DRAG_SIZE = 60;
-const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE;
-const MAX_PANEL_SIZE = 600;
+const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
+const MAX_PANEL_SIZE = 400;
 
-export const useResizeRightPanel = (panelPosition: "left" | "right" = "right") => {
+export const useResizeRightPanel = (
+  panelPosition: "left" | "right" = "right"
+) => {
   const panel = useRightPanelStore((state) => state.panel);
   const startDragX = useRef(0);
   const startDragSize = useRef(0);
@@ -56,10 +61,15 @@ export const useResizeRightPanel = (panelPosition: "left" | "right" = "right") =
       };
 
       const handleMouseUp = () => {
+        const currentSize = useRightPanelStore.getState().panel.panelSize;
+
         if (!hasMoved) {
           actions.handleViewChange(panel.activeView);
         } else {
-          let finalSize = Math.max(MIN_DRAG_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE);
+          let finalSize = Math.max(
+            MIN_DRAG_SIZE,
+            currentSize || DEFAULT_PANEL_SIZE
+          );
 
           let visible = true;
           if (finalSize < MIN_PANEL_SIZE) {
@@ -67,7 +77,7 @@ export const useResizeRightPanel = (panelPosition: "left" | "right" = "right") =
             visible = false;
           }
 
-          if (finalSize !== panel.panelSize) {
+          if (finalSize !== currentSize) {
             actions.setSize(finalSize);
           }
           actions.setVisibility(visible);
