@@ -57,7 +57,13 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   const lines = description.split("\n");
   const firstLine = lines[0] || "";
   const tagsLine = lines.length > 1 ? lines[1] : "";
-  const restOfDescription = lines.length > 2 ? lines.slice(2).join("\n") : "";
+  const restOfDescription =
+    lines.length > 2
+      ? lines
+          .slice(2)
+          .map((line) => line.trim())
+          .join("\n")
+      : "";
 
   const tags = tagsLine
     ? tagsLine
