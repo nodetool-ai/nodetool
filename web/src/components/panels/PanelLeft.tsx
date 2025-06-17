@@ -43,7 +43,7 @@ const styles = (theme: any) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "73px",
+      top: "72px",
       height: "calc(-72px + 100vh)"
     },
 
