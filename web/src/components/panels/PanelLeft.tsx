@@ -36,14 +36,15 @@ const styles = (theme: any) =>
     },
     ".panel-left": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      borderRight: "1px solid var(--c_gray2)",
-      backgroundColor: "var(--c_gray1)",
+      // borderRight: "1px solid var(--c_gray2)",
+      border: "none",
+      backgroundColor: "var(--palette-c_editor_bg_color)",
       direction: "ltr",
       position: "absolute",
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "72px",
+      top: "73px",
       height: "calc(-72px + 100vh)"
     },
 
@@ -269,7 +270,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
-      <Tooltip title="Close Panel" placement="right">
+      <Tooltip title="Toggle Panel" placement="right">
         <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
         </IconButton>
@@ -292,7 +293,7 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%" }}
+          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
         >
           <Tooltip title="Fullscreen" placement="right">
             <Button
@@ -319,7 +320,7 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "auto",
-            margin: "0 20px"
+            margin: "0"
           }}
         >
           <h3>Workflows</h3>

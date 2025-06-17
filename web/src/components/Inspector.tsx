@@ -107,8 +107,9 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".description": {
+      color: "var(--c_gray6)",
+      fontSize: theme.fontSizeSmall,
       paddingRight: "0.5em",
-
       maxHeight: "400px",
       marginTop: "auto",
       overflowY: "auto"
