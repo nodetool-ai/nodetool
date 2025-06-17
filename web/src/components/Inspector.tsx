@@ -139,7 +139,11 @@ const Inspector: React.FC = () => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
 
   if (!selectedNode) {
-    return <Typography>Select a single node to edit</Typography>;
+    return (
+      <Typography sx={{ p: "1em 1.5em" }}>
+        Select a single node to edit
+      </Typography>
+    );
   }
 
   if (!metadata) {
