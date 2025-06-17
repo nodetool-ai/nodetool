@@ -11,6 +11,8 @@ import { NodeProvider } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
+import ThemeNodes from "../themes/ThemeNodes";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -180,13 +182,15 @@ const PanelRight: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
-          style: { width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED }
+          style: {
+            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
+          }
         }}
         variant="persistent"
         anchor="right"
         open={true}
       >
-        <div className="panel-content panel-right">
+        <div className="panel-content">
           <VerticalToolbar
             handlePanelToggle={() => handlePanelToggle("inspector")}
           />
@@ -194,7 +198,9 @@ const PanelRight: React.FC = () => {
             <ContextMenuProvider active={isVisible}>
               <ReactFlowProvider>
                 <NodeProvider workflowId={currentWorkflowId}>
-                  <Inspector />
+                  <MuiThemeProvider theme={ThemeNodes}>
+                    <Inspector />
+                  </MuiThemeProvider>
                 </NodeProvider>
               </ReactFlowProvider>
             </ContextMenuProvider>
