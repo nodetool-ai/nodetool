@@ -29,9 +29,8 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--c_gray1)",
-      paddingLeft: "8px",
-      borderBottom: "1px solid var(--c_gray2)"
+      backgroundColor: "var(--c_gray0)22",
+      paddingLeft: "8px"
     },
     ".toolbar": {
       overflow: "visible",
