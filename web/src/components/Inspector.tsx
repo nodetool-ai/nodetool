@@ -6,6 +6,7 @@ import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
+import NodeDescription from "./node/NodeDescription";
 
 const styles = (theme: any) =>
   css({
@@ -36,11 +37,12 @@ const styles = (theme: any) =>
       overflowX: "hidden"
     },
     ".bottom": {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       gap: "1em",
       width: "100%",
-      padding: "0.5em 0",
+      padding: "0.5em ",
       marginTop: "auto",
       flexShrink: 0
     },
@@ -52,7 +54,8 @@ const styles = (theme: any) =>
       padding: 0,
       width: "100%",
       minWidth: "180px",
-      maxWidth: "300px"
+      maxWidth: "300px",
+      marginBottom: "1em"
     },
     ".node-property .MuiTextField-root textarea": {
       fontSize: theme.fontSizeNormal
@@ -104,23 +107,21 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".description": {
-      maxHeight: "12em",
-      lineHeight: "1.25em",
-      fontWeight: "lighter",
-      overflowY: "auto",
-      color: theme.palette.c_white,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      marginTop: "auto"
+      paddingRight: "0.5em",
+
+      maxHeight: "400px",
+      marginTop: "auto",
+      overflowY: "auto"
     },
     ".namespace": {
-      maxHeight: "4em",
-      justifyContent: "flex-start",
+      justifyContent: "center",
       overflowY: "auto",
-      paddingLeft: "0",
       marginBottom: ".75em",
-
-      wordBreak: "break-all",
+      width: "100%",
+      textAlign: "center",
+      overflow: "hidden",
+      wordBreak: "break-word",
+      lineHeight: "1.25em",
       color: theme.palette.c_hl1,
       textTransform: "uppercase",
       fontSize: theme.fontSizeSmaller
@@ -162,6 +163,14 @@ const Inspector: React.FC = () => {
       x: 500,
       y: 200,
       dropType: metadata.namespace
+    });
+  };
+
+  const handleTagClick = (tag: string) => {
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      searchTerm: tag
     });
   };
 
@@ -214,9 +223,21 @@ const Inspector: React.FC = () => {
         )}
       </div>
       <div className="bottom">
-        <div className="description">{metadata.description}</div>
+        <NodeDescription
+          className="description"
+          description={metadata.description}
+          onTagClick={handleTagClick}
+        />
         <Tooltip title="Show in NodeMenu" placement="top-start">
-          <Button className="namespace" onClick={handleOpenNodeMenu}>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              padding: ".5em"
+            }}
+            className="namespace"
+            onClick={handleOpenNodeMenu}
+          >
             {metadata.namespace}
           </Button>
         </Tooltip>
