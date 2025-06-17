@@ -66,7 +66,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         className="copy-to-clipboard-button"
         onClick={handleCopy}
         size={size}
-        // title={title}
+        title={title}
         sx={{ color: "var(--c_gray4)" }}
         {...props}
       >

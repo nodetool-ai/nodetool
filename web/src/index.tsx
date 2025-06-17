@@ -12,6 +12,7 @@ import {
 import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
+import PanelRight from "./components/panels/PanelRight";
 
 import { CircularProgress, CssBaseline } from "@mui/material";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
@@ -146,6 +147,7 @@ function getRoutes() {
             >
               <PanelLeft />
               <TabsNodeEditor />
+              <PanelRight />
             </div>
           </FetchCurrentWorkflow>
         </ProtectedRoute>
