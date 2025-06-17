@@ -36,7 +36,6 @@ const styles = (theme: any) =>
     },
     ".panel-left": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      // borderRight: "1px solid var(--c_gray2)",
       border: "none",
       backgroundColor: "var(--palette-c_editor_bg_color)",
       direction: "ltr",
