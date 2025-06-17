@@ -6,13 +6,15 @@ import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo } from "react";
 import { isEqual } from "lodash";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { NodeProvider } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+// icons
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CodeIcon from "@mui/icons-material/Code";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -69,55 +71,17 @@ const styles = (theme: any) =>
       flexDirection: "column",
       backgroundColor: "transparent",
       "& .MuiIconButton-root": {
-        padding: "14px",
+        padding: "5px 4px 0 10px",
         borderRadius: "5px",
         position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-
-        "&.active": {
-          backgroundColor: `${theme.palette.action.selected}88`,
-          boxShadow: `0 0 15px ${theme.palette.primary.main}40`,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: "3px",
-            backgroundColor: theme.palette.primary.main,
-            boxShadow: `0 0 10px ${theme.palette.primary.main}`
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}40, transparent)`,
-            borderRadius: "5px"
-          }
-        },
-        "&:hover": {
-          backgroundColor: `${theme.palette.action.hover}88`,
-          boxShadow: `0 0 15px ${theme.palette.action.hover}40`,
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}20, transparent)`,
-            borderRadius: "2px"
-          }
-        }
+        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
       }
     },
     ".panel-content": {
       display: "flex",
       flex: 1,
       height: "100%",
+      marginTop: "10px",
       border: "0"
     }
   });
@@ -173,17 +137,22 @@ const PanelRight: React.FC = () => {
           handleMouseDown(e);
         }}
         style={{
+          padding: isVisible ? "18px" : "2px",
           right: isVisible ? `${Math.max(panelSize + 14, 25)}px` : "0px"
         }}
       >
-        <InfoOutlinedIcon />
+        {/* <InfoOutlinedIcon /> */}
+        <CodeIcon />
       </IconButton>
       <Drawer
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
           style: {
-            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
+            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
+            height: isVisible ? "calc(100vh - 72px)" : "50px",
+            borderWidth: isVisible ? "1px" : "0px",
+            backgroundColor: isVisible ? "var(--c_gray1)" : "transparent"
           }
         }}
         variant="persistent"
