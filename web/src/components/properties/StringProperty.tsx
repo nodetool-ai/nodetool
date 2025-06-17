@@ -62,13 +62,15 @@ const StringProperty = ({
   onChange,
   tabIndex,
   nodeId,
-  nodeType
+  nodeType,
+  isInspector
 }: PropertyProps) => {
   const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const handleFocus = useFocusPan(nodeId);
+  const focusHandler = useFocusPan(nodeId);
+  const handleFocus = isInspector ? () => {} : focusHandler;
   const edges = useNodes((state) => state.edges);
   const isConnected = useMemo(() => {
     return edges.some(
@@ -101,7 +103,7 @@ const StringProperty = ({
             id={id}
           />
           <div className="string-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom">
+            <Tooltip title="Open Editor" placement="bottom" tabIndex={-1}>
               <IconButton
                 size="small"
                 onClick={toggleExpand}

@@ -1,16 +1,22 @@
 import { useCallback, useRef } from "react";
-import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
-const DEFAULT_PANEL_SIZE = 400;
+import {
+  useRightPanelStore,
+  RightPanelView
+} from "../../stores/RightPanelStore";
+
+const DEFAULT_PANEL_SIZE = 300;
 const MIN_DRAG_SIZE = 60;
 const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
-const MAX_PANEL_SIZE = 800;
+const MAX_PANEL_SIZE = 400;
 
-export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
-  const panel = usePanelStore((state) => state.panel);
+export const useResizeRightPanel = (
+  panelPosition: "left" | "right" = "right"
+) => {
+  const panel = useRightPanelStore((state) => state.panel);
   const startDragX = useRef(0);
   const startDragSize = useRef(0);
 
-  const actions = usePanelStore(
+  const actions = useRightPanelStore(
     useCallback(
       (state) => ({
         setSize: state.setSize,
@@ -24,9 +30,6 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
   );
 
   const ref = useRef<HTMLDivElement>(null);
-  const lastSizeRef = useRef(
-    Math.max(MIN_PANEL_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE)
-  );
   const dragThreshold = 20;
 
   const handleMouseDown = useCallback(
@@ -58,13 +61,11 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
       };
 
       const handleMouseUp = () => {
-        const currentSize = usePanelStore.getState().panel.panelSize;
+        const currentSize = useRightPanelStore.getState().panel.panelSize;
 
         if (!hasMoved) {
-          // If we didn't move, treat it as a click and toggle the current view
           actions.handleViewChange(panel.activeView);
         } else {
-          // Ensure final size respects minimum and collapse if below threshold
           let finalSize = Math.max(
             MIN_DRAG_SIZE,
             currentSize || DEFAULT_PANEL_SIZE
@@ -97,17 +98,14 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
     [panelPosition, panel.panelSize, panel.activeView, actions]
   );
 
-  // Update lastSizeRef when panel is open
-  if (panel.panelSize > MIN_DRAG_SIZE) {
-    lastSizeRef.current = panel.panelSize;
-  }
-
   return {
     ref,
     size: panel.panelSize,
     isVisible: panel.isVisible,
     isDragging: panel.isDragging || false,
     handleMouseDown,
-    handlePanelToggle: (view: LeftPanelView) => actions.handleViewChange(view)
+    handlePanelToggle: (view: RightPanelView) => actions.handleViewChange(view)
   };
 };
+
+export default useResizeRightPanel;

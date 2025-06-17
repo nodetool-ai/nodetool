@@ -47,7 +47,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                     key={model.id}
                     model={model}
                     showModelStats={false}
-                    handleDelete={() => {}}
+                    handleModelDelete={() => {}}
                   />
                   // <ModelCard
                   //   model={model}

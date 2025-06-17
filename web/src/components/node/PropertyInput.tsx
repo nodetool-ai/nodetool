@@ -238,7 +238,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isDynamicProperty,
   onDeleteProperty,
   onUpdateProperty,
-  onUpdatePropertyName
+  onUpdatePropertyName,
+  isInspector
 }: PropertyInputProps) => {
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
@@ -282,7 +283,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeType: nodeType,
     nodeId: id,
     onChange: onChange,
-    tabIndex: tabIndex
+    tabIndex: tabIndex,
+    isInspector: isInspector
   };
 
   // Property Context Menu
