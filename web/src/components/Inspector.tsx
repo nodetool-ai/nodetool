@@ -55,7 +55,7 @@ const styles = (theme: any) =>
       width: "100%",
       minWidth: "180px",
       maxWidth: "300px",
-      marginBottom: "1em"
+      marginBottom: ".1em"
     },
     ".node-property .MuiTextField-root textarea": {
       fontSize: theme.fontSizeNormal
