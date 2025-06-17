@@ -168,9 +168,9 @@ const PanelRight: React.FC = () => {
             <ContextMenuProvider active={isVisible}>
               <ReactFlowProvider>
                 <NodeProvider workflowId={currentWorkflowId}>
-                  {/* <MuiThemeProvider theme={ThemeNodes}> */}
-                  <Inspector />
-                  {/* </MuiThemeProvider> */}
+                  <MuiThemeProvider theme={ThemeNodes}>
+                    <Inspector />
+                  </MuiThemeProvider>
                 </NodeProvider>
               </ReactFlowProvider>
             </ContextMenuProvider>
