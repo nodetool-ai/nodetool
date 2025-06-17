@@ -16,12 +16,11 @@ const styles = (theme: any) =>
       alignItems: "flex-start",
       justifyContent: "flex-start",
       backgroundColor: theme.palette.c_gray1,
-      padding: ".25em",
+      padding: "0",
       maxWidth: "500px",
       minHeight: "100%",
       height: "auto",
-      overflowY: "auto",
-      paddingBottom: "1em"
+      overflowY: "auto"
     },
     ".top": {
       display: "flex",
@@ -140,8 +139,8 @@ const Inspector: React.FC = () => {
 
   if (!selectedNode) {
     return (
-      <Typography sx={{ p: "1em 1.5em" }}>
-        Select a single node to edit
+      <Typography sx={{ color: "var(--c_gray4)", p: ".5em 1.5em" }}>
+        Select a node to edit
       </Typography>
     );
   }
