@@ -41,7 +41,7 @@ const styles = (theme: any) =>
       position: "relative",
       height: "40px",
       minHeight: "40px",
-      padding: "0 12px",
+      padding: "0 2px 0 12px",
       border: "0"
     },
     ".nodetool-logo": {

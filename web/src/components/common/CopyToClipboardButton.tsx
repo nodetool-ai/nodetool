@@ -63,10 +63,10 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   return (
     <Tooltip title={title} placement={tooltipPlacement}>
       <IconButton
+        tabIndex={-1}
         className="copy-to-clipboard-button"
         onClick={handleCopy}
         size={size}
-        // title={title}
         sx={{ color: "var(--c_gray4)" }}
         {...props}
       >
