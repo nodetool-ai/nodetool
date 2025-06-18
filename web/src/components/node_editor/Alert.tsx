@@ -54,8 +54,8 @@ const styles = css({
   ".copy-button": {
     position: "absolute",
     opacity: 0.8,
-    top: "10px",
-    right: "28px"
+    top: "13px",
+    right: "30px"
   },
   li: {
     listStyleType: "none",
@@ -204,7 +204,7 @@ const Alert: React.FC = () => {
           <CSSTransition
             key={notification.id}
             nodeRef={nodeRef}
-            timeout={300}
+            timeout={30000}
             classNames="alert"
             onExited={() => {
               delete nodeRefs.current[notification.id];
