@@ -13,7 +13,6 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import ThemeNodes from "../themes/ThemeNodes";
 // icons
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 
@@ -21,6 +20,8 @@ const PANEL_WIDTH_COLLAPSED = "52px";
 
 const styles = (theme: any) =>
   css({
+    position: "absolute",
+    right: "0",
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
@@ -28,7 +29,7 @@ const styles = (theme: any) =>
     },
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      borderLeft: "1px solid var(--c_gray2)",
+      borderLeft: "none",
       backgroundColor: "var(--c_gray1)",
       position: "absolute",
       overflow: "hidden",
@@ -39,9 +40,9 @@ const styles = (theme: any) =>
     },
 
     ".panel-button": {
+      width: "30px",
       position: "absolute",
       zIndex: 1200,
-      width: "40px",
       height: "calc(100vh - 75px)",
       backgroundColor: "transparent",
       border: 0,
@@ -59,7 +60,7 @@ const styles = (theme: any) =>
       },
 
       "&:hover": {
-        backgroundColor: "#33333344",
+        backgroundColor: "var(--c_gray1)",
         "& svg": {
           opacity: 1,
           fontSize: "1em !important"
@@ -138,8 +139,8 @@ const PanelRight: React.FC = () => {
           handleMouseDown(e);
         }}
         style={{
-          padding: isVisible ? "18px" : "2px",
-          right: isVisible ? `${Math.max(panelSize + 14, 25)}px` : "0px"
+          padding: isVisible ? "6px" : "2px",
+          right: isVisible ? `${Math.max(panelSize + 12, 30)}px` : "12px"
         }}
       >
         {/* <InfoOutlinedIcon /> */}
