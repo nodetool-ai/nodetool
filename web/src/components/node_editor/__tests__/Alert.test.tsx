@@ -4,7 +4,7 @@ import Alert from "../Alert";
 
 jest.useFakeTimers();
 
-const mockWriteClipboard = jest.fn();
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("../../../hooks/browser/useClipboard", () => ({
   useClipboard: () => ({ writeClipboard: mockWriteClipboard })
@@ -50,7 +50,9 @@ describe("Alert", () => {
   it("renders notifications and copies content", async () => {
     renderWithStore([notification]);
     expect(screen.getByText("Error message")).toBeInTheDocument();
-    const btn = await screen.findByTitle("Copy to clipboard");
+    const btn = await screen.findByRole("button", {
+      name: "Copy to clipboard"
+    });
     fireEvent.click(btn);
     expect(mockWriteClipboard).toHaveBeenCalledWith("Error message", true);
   });
