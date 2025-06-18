@@ -204,7 +204,7 @@ const Alert: React.FC = () => {
           <CSSTransition
             key={notification.id}
             nodeRef={nodeRef}
-            timeout={30000}
+            timeout={300}
             classNames="alert"
             onExited={() => {
               delete nodeRefs.current[notification.id];
@@ -221,38 +221,13 @@ const Alert: React.FC = () => {
               >
                 {notification.content}
               </MUIAlert>
-              {notification.dismissable ||
-                (notification.type === "error" && (
-                  <CopyToClipboardButton
-                    textToCopy={notification.content}
-                    className="copy-button"
-                    title="Copy to clipboard"
-                  />
-
-                  // <IconButton
-                  //   className="copy-button"
-                  //   size="small"
-                  //   onClick={() => handleCopy(notification.content)}
-                  //   title="Copy to clipboard"
-                  //   sx={{
-                  //     position: "absolute",
-                  //     bottom: "0.3em",
-                  //     right: "1.75em",
-                  //     width: "1.5em",
-                  //     height: "1.5em",
-                  //     padding: "0.2em",
-                  //     opacity: 0.2,
-                  //     color: "black",
-                  //     lineHeight: "1.2em",
-                  //     transition: "opacity 0.2s ease",
-                  //     "&:hover": {
-                  //       opacity: 1
-                  //     }
-                  //   }}
-                  // >
-                  //   <ContentCopyIcon fontSize="small" />
-                  // </IconButton>
-                ))}
+              {(notification.dismissable || notification.type === "error") && (
+                <CopyToClipboardButton
+                  textToCopy={notification.content}
+                  className="copy-button"
+                  title="Copy to clipboard"
+                />
+              )}
             </li>
           </CSSTransition>
         );
