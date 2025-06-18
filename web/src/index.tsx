@@ -52,6 +52,7 @@ import { MenuProvider } from "./providers/MenuProvider";
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
 import Dashboard from "./components/dashboard/Dashboard";
+import Alert from "./components/node_editor/Alert";
 
 (window as any).log = log;
 
@@ -148,6 +149,7 @@ function getRoutes() {
               <PanelLeft />
               <TabsNodeEditor />
               <PanelRight />
+              <Alert />
             </div>
           </FetchCurrentWorkflow>
         </ProtectedRoute>

@@ -3,17 +3,9 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 
 // components
-import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
 // mui
-import {
-  Button,
-  Tooltip,
-  Toolbar,
-  Typography,
-  Box,
-  IconButton
-} from "@mui/material";
+import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
@@ -159,8 +151,8 @@ const ChatButton = memo(function ChatButton() {
 });
 
 const AppHeader: React.FC = memo(function AppHeader() {
-  const navigate = useNavigate();
-  const path = useLocation().pathname;
+  // const navigate = useNavigate();
+  // const path = useLocation().pathname;
 
   return (
     <div css={styles} className="app-header">
@@ -171,7 +163,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <ChatButton />
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
-        <Alert />
         <RightSideButtons />
       </Toolbar>
     </div>
