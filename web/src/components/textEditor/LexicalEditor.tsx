@@ -11,6 +11,9 @@ import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 
 const styles = (theme: any) =>
   css({
+    "::highlight(findMatches)": {
+      backgroundColor: "rgba(255, 255, 0, 0.4)"
+    },
     ".editor-input": {
       height: "100%",
       outline: "none",
