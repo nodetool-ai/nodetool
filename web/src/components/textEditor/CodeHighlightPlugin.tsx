@@ -11,7 +11,6 @@ if (typeof (globalThis as any).Prism === "undefined") {
 }
 
 // Load additional languages (tree-shaken by bundler if unused)
-import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
 import "prismjs/components/prism-typescript";
