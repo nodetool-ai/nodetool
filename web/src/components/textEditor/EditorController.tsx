@@ -122,6 +122,44 @@ const EditorController = ({
   }, [editor]);
 
   useEffect(() => {
+    // Utility: given a global char index, create a DOM Range covering the match
+    const highlightMatch = (matchStart: number, matchLength: number) => {
+      const rootElement = editor.getRootElement();
+      if (!rootElement) return;
+
+      // Build a list of all text nodes in order
+      const walker = document.createTreeWalker(
+        rootElement,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+      let node: Node | null = null;
+      let charCount = 0;
+
+      while ((node = walker.nextNode())) {
+        const textContent = node.textContent || "";
+        const nextCharCount = charCount + textContent.length;
+
+        if (matchStart < nextCharCount) {
+          // The match begins somewhere in this node
+          const range = document.createRange();
+          const startOffset = matchStart - charCount;
+          const endOffset = startOffset + matchLength;
+          range.setStart(node, startOffset);
+          range.setEnd(node, endOffset);
+
+          const sel = window.getSelection();
+          if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          break;
+        }
+
+        charCount = nextCharCount;
+      }
+    };
+
     const findMatches = (text: string, searchTerm: string): number[] => {
       const matches: number[] = [];
       const lowerText = text.toLowerCase();
@@ -228,6 +266,14 @@ const EditorController = ({
       setCurrentMatches(matches);
       setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
 
+      // Highlight first match if available
+      if (matches.length > 0) {
+        highlightMatch(matches[0], searchTerm.length);
+      } else if (window.getSelection()) {
+        // Clear existing selection when no matches.
+        window.getSelection()?.removeAllRanges();
+      }
+
       return {
         totalMatches: matches.length,
         currentMatch: matches.length > 0 ? 1 : 0
@@ -251,6 +297,11 @@ const EditorController = ({
       }
 
       setCurrentMatchIndex(newIndex);
+
+      // Highlight the chosen match
+      if (currentMatches.length > 0) {
+        highlightMatch(currentMatches[newIndex], currentSearchTerm.length);
+      }
 
       return {
         currentMatch: newIndex + 1,
@@ -328,6 +379,12 @@ const EditorController = ({
             const matches = findMatches(newContent, currentSearchTerm);
             setCurrentMatches(matches);
             setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
+
+            if (matches.length > 0) {
+              highlightMatch(matches[0], currentSearchTerm.length);
+            } else {
+              window.getSelection()?.removeAllRanges();
+            }
           }
         }
       });

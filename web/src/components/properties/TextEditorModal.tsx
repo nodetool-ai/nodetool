@@ -75,7 +75,6 @@ interface TextEditorModalProps {
   showFindReplace?: boolean;
 }
 
-import { CSSObject } from "@emotion/react";
 import Markdown from "react-markdown";
 
 const styles = (theme: any) =>
@@ -125,6 +124,9 @@ const styles = (theme: any) =>
       gap: "0.5em"
     },
     ".description": {
+      width: "calc(100% - 100px)",
+      maxHeight: "110px",
+      overflowY: "auto",
       padding: "0",
       margin: "0",
       fontSize: theme.fontSizeSmaller,
@@ -141,7 +143,6 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       padding: "1em",
-      borderRadius: "1em",
       backgroundColor: theme.palette.c_gray1,
       height: "100%",
       overflow: "hidden",

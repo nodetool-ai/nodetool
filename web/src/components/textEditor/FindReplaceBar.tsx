@@ -29,7 +29,6 @@ const styles = (theme: any) =>
     alignItems: "center",
     padding: "0.5em 1em",
     backgroundColor: theme.palette.c_gray1,
-    borderBottom: `1px solid ${theme.palette.c_gray2}`,
     gap: "0.5em",
     minHeight: "3em",
     ".search-group": {
@@ -132,7 +131,8 @@ const FindReplaceBar = ({
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]); // Only depend on searchTerm
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]); // Only depend on searchTerm to avoid infinite re-renders
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -177,10 +177,7 @@ const FindReplaceBar = ({
           {totalMatches > 0 ? `${currentMatch}/${totalMatches}` : "0/0"}
         </div>
 
-        <Tooltip
-          title="Previous (Shift+Enter)"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
+        <Tooltip title="Previous" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             className="toolbar-button"
             onClick={onPrevious}
@@ -191,7 +188,7 @@ const FindReplaceBar = ({
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Next (Enter)" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title="Next" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             className="toolbar-button"
             onClick={onNext}
