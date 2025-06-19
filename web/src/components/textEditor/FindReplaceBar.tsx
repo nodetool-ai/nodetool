@@ -41,6 +41,7 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.c_gray2,
         color: theme.palette.c_white,
         fontSize: theme.fontSizeSmaller,
+        border: "none",
         height: "2em",
         "& input": {
           padding: "0.5em"
@@ -125,10 +126,9 @@ const FindReplaceBar = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm && searchTerm.trim() && onFind) {
-        console.log("FindReplaceBar calling onFind with:", searchTerm);
         onFind(searchTerm);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
