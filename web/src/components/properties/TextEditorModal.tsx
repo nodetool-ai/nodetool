@@ -435,6 +435,15 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
+  // Close signal from other properties so only one modal active
+  useEffect(() => {
+    const handler = () => {
+      onClose();
+    };
+    window.addEventListener("close-text-editor-modal", handler);
+    return () => window.removeEventListener("close-text-editor-modal", handler);
+  }, [onClose]);
+
   const content = (
     <div
       className={`text-editor-modal ${readOnly ? "read-only" : ""}`}
