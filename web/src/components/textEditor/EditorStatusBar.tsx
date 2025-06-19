@@ -54,7 +54,7 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
   const lineCount = text === "" ? 1 : text.split("\n").length;
 
   return (
-    <div css={styles(theme)}>
+    <div className="editor-status-bar" css={styles(theme)}>
       <div className="stats">
         <div className="stat-item">
           <span className="label">Words:</span>
