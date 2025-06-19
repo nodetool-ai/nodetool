@@ -227,7 +227,12 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <div className="input-label">Input</div>
         </Tooltip>
       </div>
-      <NodeHeader id={props.id} data={props.data} metadataTitle="Loop" />
+      <NodeHeader
+        id={props.id}
+        data={props.data}
+        metadataTitle="Loop"
+        selected={props.selected}
+      />
       {/* {nodeHovered && (
         <div className="info">Hold SPACE key to move nodes out of the loop</div>
       )} */}

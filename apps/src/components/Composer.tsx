@@ -277,6 +277,7 @@ export const Composer: React.FC<ComposerProps> = ({
             }}
           >
             <IconButton
+              tabIndex={-1}
               aria-label="Toggle tools"
               onClick={onToggle}
               variant="ghost"
@@ -378,6 +379,7 @@ export const Composer: React.FC<ComposerProps> = ({
                         }}
                       >
                         <IconButton
+                          tabIndex={-1}
                           aria-label={tool.label}
                           onClick={() => {
                             toggleTool(tool.id);

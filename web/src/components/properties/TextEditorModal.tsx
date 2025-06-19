@@ -71,14 +71,14 @@ const styles = (theme: any) =>
       left: "51px",
       width: "calc(100vw - 51px)",
       height: "calc(100vh - 200px)",
-      backgroundColor: "rgba(0, 0, 0, 0.1)",
+      backgroundColor: "rgba(50, 50, 50, 0.8)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
       alignItems: "center"
     },
     ".modal-content": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray0,
       color: theme.palette.c_gray6,
       fontSize: theme.fontSizeBigger,
       width: "100%",
@@ -86,37 +86,48 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      borderTop: `.7em solid ${theme.palette.c_black}`,
-      borderRight: `.7em solid ${theme.palette.c_black}`,
-      borderLeft: `.7em solid ${theme.palette.c_black}`
+      border: `.7em solid ${theme.palette.c_black}`,
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
     },
     ".modal-header": {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center",
-      padding: "1em 0 1em 1em",
-      height: "1.5em",
+      alignItems: "flex-start",
+      padding: ".5em 1em",
+      minHeight: "2em",
       backgroundColor: theme.palette.c_gray0,
       h4: {
         cursor: "default",
-        fontWeight: "normal",
-        margin: 0
+        fontWeight: "600",
+        margin: "0",
+        fontSize: theme.fontSizeBig,
+        letterSpacing: "0.02em"
       }
     },
+    ".title-and-description": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5em"
+    },
     ".description": {
-      padding: "1em 1em .5em 1.5em",
-      fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_gray6,
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-0.2em",
-      lineHeight: "1.2",
-      backgroundColor: theme.palette.c_gray1
+      padding: "0",
+      margin: "0",
+      fontSize: theme.fontSizeSmaller,
+      p: {
+        color: theme.palette.c_gray5,
+        margin: "0 0 0.5em 0",
+        "&:last-child": {
+          margin: 0
+        }
+      }
     },
     ".modal-body": {
       flex: 1,
       display: "flex",
       flexDirection: "column",
-      padding: ".5em",
+      padding: "1em",
+      borderRadius: "1em",
       backgroundColor: theme.palette.c_gray1,
       height: "100%",
       overflow: "hidden",
@@ -132,6 +143,7 @@ const styles = (theme: any) =>
         overflow: "auto !important",
         whiteSpace: "pre-wrap",
         height: "100vh",
+        borderRadius: "4px",
         pre: {
           height: "100vh",
           whiteSpace: "pre !important",
@@ -147,29 +159,58 @@ const styles = (theme: any) =>
     },
     ".actions": {
       display: "flex",
-      gap: "1em"
+      gap: "1em",
+      alignItems: "flex-start",
+      marginTop: "0.25em"
+    },
+    ".copy-to-clipboard-button": {
+      padding: "10px 14px !important",
+      backgroundColor: `${theme.palette.c_gray2} !important`,
+      color: `${theme.palette.c_white} !important`,
+      borderRadius: "4px !important",
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: "500",
+      transition: "all 0.2s ease",
+      minWidth: "44px",
+      minHeight: "44px",
+      "&:hover": {
+        backgroundColor: `${theme.palette.c_gray3} !important`
+      }
     },
     ".button": {
-      padding: "8px 12px",
+      padding: "10px 14px",
       cursor: "pointer",
-      backgroundColor: theme.palette.c_gray1,
-      color: "#fff",
+      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.c_white,
       textTransform: "uppercase",
       border: "none",
-      borderRadius: 0,
+      borderRadius: "4px",
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: "500",
+      transition: "all 0.2s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: "44px",
+      minHeight: "44px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.c_gray3
       }
     },
     ".button-close": {
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray2,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray3
+      }
     },
     ".modal-footer": {
       display: "flex",
       width: "100%",
-      height: ".7em",
+      marginTop: "1em",
+      height: "2em",
+      borderRadius: ".5em",
       justifyContent: "flex-end",
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.c_gray1
     }
   });
 
@@ -258,7 +299,10 @@ const TextEditorModal = ({
   useCombo(["escape"], onClose);
 
   const content = (
-    <div css={styles(theme)} className={readOnly ? "read-only" : ""}>
+    <div
+      className={`text-editor-modal ${readOnly ? "read-only" : ""}`}
+      css={styles(theme)}
+    >
       <div
         className="modal-overlay"
         role="presentation"
@@ -267,9 +311,23 @@ const TextEditorModal = ({
       >
         <div className="modal-content" role="dialog" aria-modal="true">
           <div className="modal-header">
-            <h4>{propertyName}</h4>
+            <div className="title-and-description">
+              <h4 className="title">{propertyName}</h4>
+              {propertyDescription && (
+                <div
+                  className="description"
+                  style={{
+                    color: readOnly
+                      ? ThemeNodes.palette.c_warning
+                      : ThemeNodes.palette.c_white
+                  }}
+                >
+                  <Markdown>{propertyDescription}</Markdown>
+                </div>
+              )}
+            </div>
             <div className="actions">
-              <CopyToClipboardButton textToCopy={value || ""} size="small" />
+              <CopyToClipboardButton textToCopy={value || ""} />
               <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | Esc">
                 <button className="button button-close" onClick={onClose}>
                   <CloseIcon />
@@ -277,18 +335,6 @@ const TextEditorModal = ({
               </Tooltip>
             </div>
           </div>
-          {propertyDescription && (
-            <div
-              className="description"
-              style={{
-                color: readOnly
-                  ? ThemeNodes.palette.c_warning
-                  : ThemeNodes.palette.c_white
-              }}
-            >
-              <Markdown>{propertyDescription}</Markdown>
-            </div>
-          )}
           <div className="modal-body">
             {isLoading ? (
               <div

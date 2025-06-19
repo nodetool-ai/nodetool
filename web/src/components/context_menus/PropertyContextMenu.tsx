@@ -5,13 +5,10 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodes from "../themes/ThemeNodes";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
 import { useNodes } from "../../contexts/NodeContext";
-
-// TODO: WIP: reset property value to default, already implemented using the shortcut ctrl right-click in components/node/PropertyInput.tsx
-// import { useReactFlow } from "@xyflow/react";
-// import { NodeData } from "../../stores/NodeData";
-// import { useMetadata } from "../../serverState/useMetadata";
-// import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
+import useMetadataStore from "../../stores/MetadataStore";
+import { Property } from "../../stores/ApiTypes";
 
 const PropertyContextMenu: React.FC = () => {
   const {
@@ -31,10 +28,15 @@ const PropertyContextMenu: React.FC = () => {
       isDynamicProperty: state.isDynamicProperty
     };
   });
-  const { findNode, updateNodeData } = useNodes((state) => ({
-    findNode: state.findNode,
-    updateNodeData: state.updateNodeData
-  }));
+  const { findNode, updateNodeData, updateNodeProperties } = useNodes(
+    (state) => ({
+      findNode: state.findNode,
+      updateNodeData: state.updateNodeData,
+      updateNodeProperties: state.updateNodeProperties
+    })
+  );
+  const metadata = useMetadataStore((state) => state.metadata);
+
   if (!menuPosition) return null;
 
   const handleRemoveDynamicProperty = (
@@ -54,15 +56,49 @@ const PropertyContextMenu: React.FC = () => {
     }
     closeContextMenu();
   };
-  //reset
-  // const handleReset = (event?: React.MouseEvent<HTMLElement>) => {
-  //   if (event) {
-  //     event.preventDefault();
-  //     event.stopPropagation();
-  //     // TODO: WIP: reset property value to default, already implemented using the shortcut ctrl right-click in components/node/PropertyInput.tsx
-  //   }
-  //   closeContextMenu();
-  // };
+
+  const handleReset = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (nodeId && handleId) {
+      const node = findNode(nodeId);
+      if (!node) return;
+
+      if (isDynamicProperty) {
+        // For dynamic properties, we need to find the property definition from metadata
+        const nodeMetadata = metadata?.[node.type as string];
+        if (nodeMetadata) {
+          const propertyDef = nodeMetadata.properties.find(
+            (prop: Property) => prop.name === handleId
+          );
+          if (propertyDef && node.data.dynamic_properties) {
+            const updatedDynamicProperties = {
+              ...node.data.dynamic_properties,
+              [handleId]: propertyDef.default
+            };
+            updateNodeData(nodeId, {
+              dynamic_properties: updatedDynamicProperties
+            });
+          }
+        }
+      } else {
+        // For regular properties, get the default value from metadata
+        const nodeMetadata = metadata?.[node.type as string];
+        if (nodeMetadata) {
+          const propertyDef = nodeMetadata.properties.find(
+            (prop: Property) => prop.name === handleId
+          );
+          if (propertyDef) {
+            updateNodeProperties(nodeId, { [handleId]: propertyDef.default });
+          }
+        }
+      }
+    }
+    closeContextMenu();
+  };
 
   return (
     <Menu
@@ -101,6 +137,15 @@ const PropertyContextMenu: React.FC = () => {
         </MenuItem>
       )}
 
+      <Divider />
+      <ContextMenuItem
+        onClick={handleReset}
+        label="Reset To Default Value"
+        addButtonClassName="reset"
+        IconComponent={<SettingsBackupRestoreIcon />}
+        tooltip="Control + Right Click"
+      />
+
       {isDynamicProperty && (
         <>
           <Divider />
@@ -113,14 +158,6 @@ const PropertyContextMenu: React.FC = () => {
           />
         </>
       )}
-      <Divider />
-      {/* <ContextMenuItem
-        onClick={closeContextMenu}
-        label="Reset To Default Value"
-        addButtonClassName="reset"
-        IconComponent={<SettingsBackupRestoreIcon />}
-        tooltip="Control + Right Click"
-      /> */}
     </Menu>
   );
 };

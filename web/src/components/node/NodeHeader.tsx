@@ -3,7 +3,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
 import { memo, useCallback, useMemo } from "react";
 import { isEqual } from "lodash";
-import { titleizeString } from "../../utils/titleizeString";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -14,6 +13,7 @@ export interface NodeHeaderProps {
   showMenu?: boolean;
   data: NodeData;
   backgroundColor?: string;
+  selected?: boolean;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -22,15 +22,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   hasParent,
   data,
   backgroundColor,
-  showMenu = true
+  showMenu = true,
+  selected
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
-
-  // const titleizedType = useMemo(
-  //   () => (metadataTitle ? titleizeString(metadataTitle) : ""),
-  //   [metadataTitle]
-  // );
 
   const handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -57,7 +53,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       }`}
       onClick={handleHeaderClick}
       style={{
-        backgroundColor: backgroundColor
+        backgroundColor: selected ? backgroundColor : "transparent"
       }}
     >
       <span className="node-title">{metadataTitle}</span>
