@@ -34,24 +34,45 @@ const styles = (theme: any) =>
         padding: 0
       }
     },
-    "& .MuiInputBase-root": {
-      width: "calc(100% - .5em)"
-    },
+
     "& .MuiInputBase-input": {
       minHeight: "1.25em",
       padding: "0.25em 0",
       lineHeight: "1.25em"
     },
     "& .MuiOutlinedInput-root": {
+      padding: "0",
       "& textarea": {
+        resize: "none",
         minHeight: "1.25em",
         padding: "0.25em 0",
-        lineHeight: "1.25em"
+        lineHeight: "1.25em",
+        border: "1px solid var(--palette-c_gray2)"
+      },
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderWidth: "0"
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderWidth: "0"
+      },
+      "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
+        borderWidth: "0"
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderWidth: "0"
+      },
+      "&.Mui-focused": {
+        "& .MuiOutlinedInput-input": {
+          backgroundColor: "var(--palette-c_gray2)"
+        }
       }
     },
     "&.string-property:hover .string-action-buttons": {
       opacity: 0.8,
       pointerEvents: "auto"
+    },
+    "& .MuiTextField-root": {
+      padding: "0"
     }
   });
 
@@ -96,28 +117,19 @@ const StringProperty = ({
   if (showTextEditor) {
     return (
       <div className="string-property" css={styles(theme)}>
-        <div style={{ position: "relative", marginBottom: "4px" }}>
+        <div style={{ position: "relative" }}>
           <PropertyLabel
             name={property.name}
             description={property.description}
             id={id}
           />
           <div className="string-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom" tabIndex={-1}>
-              <IconButton
-                size="small"
-                onClick={toggleExpand}
-                // className="nodrag"
-                // style={{ padding: "2px" }}
-              >
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton size="small" onClick={toggleExpand}>
                 <OpenInFullIcon sx={{ fontSize: "0.75rem" }} />
               </IconButton>
             </Tooltip>
-            <CopyToClipboardButton
-              textToCopy={value || ""}
-              size="small"
-              // style={{ padding: "2px" }}
-            />
+            <CopyToClipboardButton textToCopy={value || ""} size="small" />
           </div>
         </div>
         <div style={{ position: "relative" }}>
@@ -143,35 +155,6 @@ const StringProperty = ({
             fullWidth
             size="small"
             variant="outlined"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                padding: "0",
-                "& textarea": {
-                  padding: "0.25em 0",
-                  resize: "none",
-                  minHeight: "1.25em",
-                  lineHeight: "1.25em",
-                  border: "1px solid var(--palette-c_gray2)"
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0"
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0"
-                },
-                "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0"
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderWidth: "0"
-                },
-                "&.Mui-focused": {
-                  "& .MuiOutlinedInput-input": {
-                    backgroundColor: "var(--palette-c_gray0)"
-                  }
-                }
-              }
-            }}
           />
         </div>
         {isExpanded && (
@@ -189,7 +172,7 @@ const StringProperty = ({
 
   return (
     <div className="string-property" css={styles(theme)}>
-      <div style={{ position: "relative", marginBottom: "4px" }}>
+      <div style={{ position: "relative" }}>
         <PropertyLabel
           name={property.name}
           description={property.description}
