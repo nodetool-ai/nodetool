@@ -14,6 +14,9 @@ const styles = (theme: any) =>
     "::highlight(findMatches)": {
       backgroundColor: "rgba(255, 255, 0, 0.4)"
     },
+    "::highlight(findCurrent)": {
+      backgroundColor: "rgba(255, 165, 0, 0.7)"
+    },
     ".editor-input": {
       height: "100%",
       outline: "none",

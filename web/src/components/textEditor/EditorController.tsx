@@ -113,15 +113,14 @@ const EditorController = ({
 
   useEffect(() => {
     // --- Highlight helpers using CSS Highlight API (focus-safe) ---
-    const highlightName = "findMatches";
+    const highlightAllName = "findMatches";
+    const highlightCurrentName = "findCurrent";
 
     const clearHighlights = () => {
       // Safely remove previous highlights if supported
-      try {
-        (CSS as any)?.highlights?.delete?.(highlightName);
-      } catch {
-        /* noop */
-      }
+      const hs = (CSS as any)?.highlights;
+      hs?.delete?.(highlightAllName);
+      hs?.delete?.(highlightCurrentName);
     };
 
     // Given a single match offset, return a DOM Range corresponding to it
@@ -177,25 +176,29 @@ const EditorController = ({
       clearHighlights();
 
       // CSS Highlight API supported?
-      if (
-        (CSS as any)?.highlights &&
-        typeof (CSS as any).highlights.set === "function"
-      ) {
+      const hs = (CSS as any)?.highlights;
+      if (hs && typeof hs.set === "function") {
         const ranges: Range[] = [];
         for (const start of matchIndexes) {
           const r = createRangeForMatch(start, matchLength);
           if (r) ranges.push(r);
         }
         if (ranges.length > 0) {
-          (CSS as any).highlights.set(
-            highlightName,
-            new (window as any).Highlight(...ranges)
-          );
-          // Scroll so current match is visible
+          // All matches group
+          hs.set(highlightAllName, new (window as any).Highlight(...ranges));
+
+          // Current match group (single range)
           const currentRange = ranges[currentIndex] || ranges[0];
-          currentRange?.startContainer?.parentElement?.scrollIntoView({
-            block: "center"
-          });
+          if (currentRange) {
+            hs.set(
+              highlightCurrentName,
+              new (window as any).Highlight(currentRange)
+            );
+            // Scroll current into view
+            currentRange.startContainer?.parentElement?.scrollIntoView({
+              block: "center"
+            });
+          }
         }
       }
     };
