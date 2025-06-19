@@ -38,6 +38,7 @@ import EditorToolbar from "../textEditor/EditorToolbar";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import EditorController from "../textEditor/EditorController";
+import { debounce } from "lodash";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -254,6 +255,9 @@ const TextEditorModal = ({
   showStatusBar = true,
   showFindReplace = true
 }: TextEditorModalProps) => {
+  // Debug render count
+  console.count("TextEditorModal render");
+
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
@@ -269,18 +273,19 @@ const TextEditorModal = ({
   const [findReplaceVisible, setFindReplaceVisible] = useState(false);
   const [currentText, setCurrentText] = useState(value || "");
 
-  // Editor function refs
-  const [undoFn, setUndoFn] = useState<(() => void) | null>(null);
-  const [redoFn, setRedoFn] = useState<(() => void) | null>(null);
-  const [findFn, setFindFn] = useState<
+  // Editor command function refs – using refs avoids re-renders when the
+  // underlying functions are recreated in the child component on every mount.
+  const undoFnRef = useRef<(() => void) | null>(null);
+  const redoFnRef = useRef<(() => void) | null>(null);
+  const findFnRef = useRef<
     | ((searchTerm: string) => { totalMatches: number; currentMatch: number })
     | null
   >(null);
-  const [replaceFn, setReplaceFn] = useState<
+  const replaceFnRef = useRef<
     | ((searchTerm: string, replaceTerm: string, replaceAll?: boolean) => void)
     | null
   >(null);
-  const [navigateFn, setNavigateFn] = useState<
+  const navigateFnRef = useRef<
     | ((direction: "next" | "previous") => {
         currentMatch: number;
         totalMatches: number;
@@ -302,32 +307,56 @@ const TextEditorModal = ({
     [readOnly]
   );
 
+  // Debounce onChange to avoid excessive re-renders which also interferes with
+  // the HistoryPlugin state inside Lexical. A short delay greatly reduces the
+  // number of times the whole modal needs to update while typing.
+
+  const debouncedExternalOnChange = useMemo(
+    () =>
+      debounce((text: string) => {
+        // Propagate to parent only after the debounce interval
+        if (onChange) {
+          onChange(text);
+        }
+      }, 300),
+    [onChange]
+  );
+
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {
-      if (!readOnly && onChange) {
-        // Convert Lexical state back to plain text
-        const textContent = editorState.read(() => {
-          return $getRoot().getTextContent();
-        });
-        setCurrentText(textContent);
-        onChange(textContent);
+      if (readOnly) {
+        return;
       }
+
+      const textContent = editorState.read(() => {
+        return $getRoot().getTextContent();
+      });
+
+      // Update local statistics every change – this is cheap.
+      setCurrentText(textContent);
+
+      // Update the external consumer in a debounced manner to minimise
+      // rerenders of the parent component tree.
+      debouncedExternalOnChange(textContent);
     },
-    [onChange, readOnly]
+    [debouncedExternalOnChange, readOnly]
   );
+
+  // Clean-up the debounced function when the component unmounts
+  useEffect(() => {
+    return () => {
+      debouncedExternalOnChange.cancel();
+    };
+  }, [debouncedExternalOnChange]);
 
   // Toolbar handlers
   const handleUndo = useCallback(() => {
-    if (undoFn) {
-      undoFn();
-    }
-  }, [undoFn]);
+    undoFnRef.current?.();
+  }, []);
 
   const handleRedo = useCallback(() => {
-    if (redoFn) {
-      redoFn();
-    }
-  }, [redoFn]);
+    redoFnRef.current?.();
+  }, []);
 
   const handleToggleWordWrap = useCallback(() => {
     setWordWrapEnabled((prev) => !prev);
@@ -341,38 +370,29 @@ const TextEditorModal = ({
     setFindReplaceVisible((prev: boolean) => !prev);
   }, []);
 
-  const handleFind = useCallback(
-    (searchTerm: string) => {
-      if (findFn) {
-        const results = findFn(searchTerm);
-        setSearchResults(results);
-      }
-    },
-    [findFn]
-  );
+  const handleFind = useCallback((searchTerm: string) => {
+    const results = findFnRef.current?.(searchTerm);
+    if (results) {
+      setSearchResults(results);
+    }
+  }, []);
 
   const handleReplace = useCallback(
     (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
-      if (replaceFn) {
-        replaceFn(searchTerm, replaceTerm, replaceAll);
-      }
+      replaceFnRef.current?.(searchTerm, replaceTerm, replaceAll);
     },
-    [replaceFn]
+    []
   );
 
   const handleNavigateNext = useCallback(() => {
-    if (navigateFn) {
-      const results = navigateFn("next");
-      setSearchResults(results);
-    }
-  }, [navigateFn]);
+    const results = navigateFnRef.current?.("next");
+    if (results) setSearchResults(results);
+  }, []);
 
   const handleNavigatePrevious = useCallback(() => {
-    if (navigateFn) {
-      const results = navigateFn("previous");
-      setSearchResults(results);
-    }
-  }, [navigateFn]);
+    const results = navigateFnRef.current?.("previous");
+    if (results) setSearchResults(results);
+  }, []);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -470,11 +490,21 @@ const TextEditorModal = ({
                     onCanUndoChange={setCanUndo}
                     onCanRedoChange={setCanRedo}
                     onTextChange={setCurrentText}
-                    onUndoCommand={setUndoFn}
-                    onRedoCommand={setRedoFn}
-                    onFindCommand={setFindFn}
-                    onReplaceCommand={setReplaceFn}
-                    onNavigateCommand={setNavigateFn}
+                    onUndoCommand={(fn) => {
+                      undoFnRef.current = fn;
+                    }}
+                    onRedoCommand={(fn) => {
+                      redoFnRef.current = fn;
+                    }}
+                    onFindCommand={(fn) => {
+                      findFnRef.current = fn;
+                    }}
+                    onReplaceCommand={(fn) => {
+                      replaceFnRef.current = fn;
+                    }}
+                    onNavigateCommand={(fn) => {
+                      navigateFnRef.current = fn;
+                    }}
                     initialContent={value}
                   />
                   <LexicalPlugins onChange={handleEditorChange} />
