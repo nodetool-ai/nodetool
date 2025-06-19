@@ -12,6 +12,8 @@ import { titleizeString } from "../../utils/titleizeString";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { isEqual } from "lodash";
+import NodeDescription from "../node/NodeDescription";
+
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
   showConnections?: boolean;
@@ -180,13 +182,8 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
 
   const description = useMemo(
-    () =>
-      formatNodeDocumentation(
-        nodeMetadata?.description || "",
-        searchTerm,
-        nodeMetadata.searchInfo
-      ),
-    [nodeMetadata, searchTerm]
+    () => nodeMetadata?.description || "",
+    [nodeMetadata]
   );
   const fetchReplicateStatus = useCallback(async () => {
     if (nodeMetadata.node_type.startsWith("replicate.")) {
@@ -216,26 +213,17 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     },
     [setSearchTerm]
   );
-  const renderTags = (tags: string = "") => {
-    return tags?.split(",").map((tag, index) => (
-      <span
-        onClick={() => {
-          handleTagClick(tag.trim());
-        }}
-        key={index}
-        className="tag"
-      >
-        {tag.trim()}
-      </span>
-    ));
-  };
 
-  const descHtml = highlightTextUtil(
-    description.description,
-    "description",
-    searchTerm,
-    nodeMetadata.searchInfo
-  ).html;
+  const { data: formattedDoc } = useQuery({
+    queryKey: ["formattedDoc", nodeMetadata.namespace, nodeMetadata.title],
+    queryFn: async () => {
+      return formatNodeDocumentation(
+        nodeMetadata?.description || "",
+        searchTerm,
+        nodeMetadata.searchInfo
+      );
+    }
+  });
 
   return (
     <div css={nodeInfoStyles}>
@@ -251,23 +239,18 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           </Typography>
         )}
       </div>
-      <div className="node-description">
-        <span
-          dangerouslySetInnerHTML={{
-            __html: descHtml
-          }}
-        />
-      </div>
-      <Typography className="node-tags">
-        {renderTags(description.tags.join(", "))}
-      </Typography>
+      <NodeDescription
+        description={description}
+        onTagClick={handleTagClick}
+        className="node-description"
+      />
       <Typography component="div" className="node-usecases">
-        {description.useCases.raw && (
+        {formattedDoc?.useCases.raw && (
           <>
             <h4>Use cases</h4>
             <div
               dangerouslySetInnerHTML={{
-                __html: description.useCases.html
+                __html: formattedDoc.useCases.html
               }}
             />
           </>
