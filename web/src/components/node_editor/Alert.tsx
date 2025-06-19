@@ -11,6 +11,7 @@ import {
   Notification
 } from "../../stores/NotificationStore";
 import { useClipboard } from "../../hooks/browser/useClipboard";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
 const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
@@ -46,6 +47,15 @@ const styles = css({
     overflowX: "hidden",
     overflowY: "auto",
     maxHeight: "80px"
+  },
+  ".MuiIconButton-root svg": {
+    color: "var(--palette-c_gray1)"
+  },
+  ".copy-button": {
+    position: "absolute",
+    opacity: 0.8,
+    top: "13px",
+    right: "30px"
   },
   li: {
     listStyleType: "none",
@@ -211,32 +221,13 @@ const Alert: React.FC = () => {
               >
                 {notification.content}
               </MUIAlert>
-              {notification.dismissable ||
-                (notification.type === "error" && (
-                  <IconButton
-                    className="copy-button"
-                    size="small"
-                    onClick={() => handleCopy(notification.content)}
-                    title="Copy to clipboard"
-                    sx={{
-                      position: "absolute",
-                      bottom: "0.3em",
-                      right: "1.75em",
-                      width: "1.5em",
-                      height: "1.5em",
-                      padding: "0.2em",
-                      opacity: 0.2,
-                      color: "black",
-                      lineHeight: "1.2em",
-                      transition: "opacity 0.2s ease",
-                      "&:hover": {
-                        opacity: 1
-                      }
-                    }}
-                  >
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                ))}
+              {(notification.dismissable || notification.type === "error") && (
+                <CopyToClipboardButton
+                  textToCopy={notification.content}
+                  className="copy-button"
+                  title="Copy to clipboard"
+                />
+              )}
             </li>
           </CSSTransition>
         );

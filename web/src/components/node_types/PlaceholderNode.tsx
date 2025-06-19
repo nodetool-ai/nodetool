@@ -227,6 +227,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         metadataTitle={nodeTitle || "Missing Node!"}
         data={nodeData || {}}
         showMenu={false}
+        selected={props.selected}
       />
       <Tooltip title="Try to find a replacement node or write us a fax.">
         <Typography variant="h4" className="missing-node-text">

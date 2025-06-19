@@ -64,7 +64,9 @@ interface SubTaskViewProps {
 }
 
 const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
-  const hasDependencies = subtask.input_tasks.length > 0;
+  const hasDependencies = (subtask as any).input_tasks
+    ? (subtask as any).input_tasks.length > 0
+    : false;
   const isRunning = subtask.start_time > 0 && !subtask.completed;
 
   return (

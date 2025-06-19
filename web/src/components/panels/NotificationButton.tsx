@@ -1,3 +1,6 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Badge,
@@ -5,15 +8,25 @@ import {
   Button,
   Popover,
   Tooltip,
-  Typography,
-  IconButton
+  Typography
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+
+const popoverStyles = css({
+  paddingRight: "4em",
+  marginTop: "2em",
+  "& .copy-button": {
+    position: "absolute",
+    opacity: 0.8,
+    top: "5px",
+    right: "0px"
+  }
+});
 
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
@@ -48,7 +61,7 @@ const NotificationButton: React.FC = React.memo(() => {
   };
 
   return (
-    <>
+    <div className="notifications-container">
       <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
           className="notification-button command-button command-icon"
@@ -76,6 +89,7 @@ const NotificationButton: React.FC = React.memo(() => {
         </Button>
       </Tooltip>
       <Popover
+        css={popoverStyles}
         className="notification-popover"
         open={Boolean(notificationAnchor)}
         anchorEl={notificationAnchor}
@@ -130,6 +144,8 @@ const NotificationButton: React.FC = React.memo(() => {
                   p: 2,
                   mb: 1.5,
                   borderRadius: 1.5,
+                  maxHeight: "100px",
+                  overflow: "auto",
                   backgroundColor: `${ThemeNodetool.palette.c_gray1}CC`,
                   borderLeft: `3px solid ${
                     notification.type === "error"
@@ -145,8 +161,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   transition: "all 0.2s ease",
                   position: "relative",
                   "&:hover": {
-                    backgroundColor: ThemeNodetool.palette.c_gray1,
-                    transform: "translateX(2px)"
+                    backgroundColor: ThemeNodetool.palette.c_gray1
                   }
                 }}
               >
@@ -158,7 +173,7 @@ const NotificationButton: React.FC = React.memo(() => {
                     fontSize: "0.85rem",
                     lineHeight: 1.5,
                     wordWrap: "break-word",
-                    pr: 3 // Add padding for the copy button
+                    pr: 3
                   }}
                 >
                   {notification.content}
@@ -175,31 +190,17 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.timestamp.toLocaleString()}
                 </Typography>
-                <IconButton
+                <CopyToClipboardButton
+                  textToCopy={notification.content}
                   className="copy-button"
-                  size="small"
-                  onClick={() => handleCopy(notification.content)}
                   title="Copy to clipboard"
-                  sx={{
-                    position: "absolute",
-                    top: "0",
-                    right: "0",
-                    padding: "0.25em",
-                    opacity: 0.1,
-                    transition: "opacity 0.2s ease",
-                    "&:hover": {
-                      opacity: 1
-                    }
-                  }}
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
+                />
               </Box>
             ))
           )}
         </Box>
       </Popover>
-    </>
+    </div>
   );
 });
 
