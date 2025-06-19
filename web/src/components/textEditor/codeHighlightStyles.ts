@@ -1,16 +1,16 @@
 // Returns CSS styles for Lexical code highlighting tokens using the provided theme.
 export const codeHighlightTokenStyles = (theme: any) => ({
   ".editor-code": {
-    backgroundColor: theme.palette.c_gray2,
+    backgroundColor: theme.palette.c_gray0,
     fontFamily: "Consolas, 'Courier New', monospace",
     display: "block",
     padding: "8px 12px",
     lineHeight: "1.53",
     fontSize: "13px",
     margin: "8px 0",
+    borderRadius: "1em",
     tabSize: 2,
-    overflow: "auto",
-    borderRadius: "4px"
+    overflow: "auto"
   },
   ".editor-token-comment": { color: "#999988", fontStyle: "italic" },
   ".editor-token-keyword": { color: "#0000FF" },
