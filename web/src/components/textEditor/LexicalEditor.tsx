@@ -85,16 +85,6 @@ const LexicalPlugins = ({
     onFocusChange?.(false);
   };
 
-  // Debug: track component mounts/unmounts and renders
-  console.count("LexicalPlugins render");
-
-  useEffect(() => {
-    console.log("LexicalPlugins mounted");
-    return () => {
-      console.log("LexicalPlugins unmounted");
-    };
-  }, []);
-
   return (
     <>
       <Global styles={styles(theme)} />

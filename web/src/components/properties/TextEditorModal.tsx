@@ -84,12 +84,12 @@ const styles = (theme: any) =>
       top: "72px",
       left: "51px",
       width: "calc(100vw - 51px)",
-      height: "calc(100vh - 200px)",
+      height: "fit-content",
       backgroundColor: "rgba(50, 50, 50, 0.8)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
-      alignItems: "center"
+      alignItems: "flex-start"
     },
     ".modal-content": {
       backgroundColor: theme.palette.c_gray0,
@@ -233,14 +233,16 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.c_gray3
       }
     },
-    ".modal-footer": {
-      display: "flex",
+    ".resize-handle": {
+      height: "6px",
       width: "100%",
-      marginTop: "1em",
-      height: "2em",
-      borderRadius: ".5em",
-      justifyContent: "flex-end",
-      backgroundColor: theme.palette.c_gray1
+      cursor: "row-resize",
+      backgroundColor: theme.palette.c_gray2,
+      borderBottomLeftRadius: "8px",
+      borderBottomRightRadius: "8px",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray3
+      }
     }
   });
 
@@ -256,15 +258,45 @@ const TextEditorModal = ({
   showStatusBar = true,
   showFindReplace = true
 }: TextEditorModalProps) => {
-  // Debug render count
-  console.count("TextEditorModal render");
-
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
 
-  const [textareaHeight, setTextareaHeight] = useState(window.innerHeight);
-  const [textareaWidth, setTextareaWidth] = useState(window.innerWidth);
+  // Resizable modal height state
+  const DEFAULT_HEIGHT = Math.min(600, window.innerHeight - 200);
+  const MIN_HEIGHT = 250;
+  const MAX_HEIGHT = window.innerHeight - 120;
+
+  const [modalHeight, setModalHeight] = useState<number>(DEFAULT_HEIGHT);
+
+  // refs for drag logic
+  const dragStartY = useRef(0);
+  const startHeight = useRef(0);
+
+  const handleResizeMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      dragStartY.current = event.clientY;
+      startHeight.current = modalHeight;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const delta = e.clientY - dragStartY.current;
+        let newHeight = startHeight.current + delta;
+        newHeight = Math.max(MIN_HEIGHT, Math.min(newHeight, MAX_HEIGHT));
+        setModalHeight(newHeight);
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+
+      event.preventDefault();
+    },
+    [modalHeight, MAX_HEIGHT, MIN_HEIGHT]
+  );
 
   // Editor state management
   const [canUndo, setCanUndo] = useState(false);
@@ -414,7 +446,12 @@ const TextEditorModal = ({
         onClick={handleOverlayClick}
         ref={modalOverlayRef}
       >
-        <div className="modal-content" role="dialog" aria-modal="true">
+        <div
+          className="modal-content"
+          role="dialog"
+          aria-modal="true"
+          style={{ height: modalHeight }}
+        >
           <div className="modal-header">
             <div className="title-and-description">
               <h4 className="title">{propertyName}</h4>
@@ -517,7 +554,10 @@ const TextEditorModal = ({
           {showStatusBar && (
             <EditorStatusBar text={currentText} readOnly={readOnly} />
           )}
-          <div className="modal-footer"></div>
+          <div
+            className="resize-handle"
+            onMouseDown={handleResizeMouseDown}
+          ></div>
         </div>
       </div>
     </div>
