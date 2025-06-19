@@ -1306,7 +1306,9 @@ export interface components {
             /** Content Type */
             content_type: string;
             /** Metadata */
-            metadata?: Record<string, never> | null;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
             /** Created At */
             created_at: string;
             /** Get Url */
@@ -1378,7 +1380,9 @@ export interface components {
             /** Data */
             data?: string | null;
             /** Metadata */
-            metadata?: Record<string, never> | null;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
             /** Duration */
             duration?: number | null;
         };
@@ -1512,7 +1516,9 @@ export interface components {
             /** Count */
             count: number;
             /** Metadata */
-            metadata: Record<string, never>;
+            metadata: {
+                [key: string]: unknown;
+            };
             /** Workflow Name */
             workflow_name?: string | null;
         };
@@ -2795,7 +2801,9 @@ export interface components {
             /** Message */
             message?: string | null;
             /** Result */
-            result?: Record<string, never> | null;
+            result?: {
+                [key: string]: unknown;
+            } | null;
             /** Error */
             error?: string | null;
         };
@@ -2854,7 +2862,40 @@ export interface components {
              */
             digest: string;
             /** Details */
-            details?: Record<string, never>;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * LogEntry
+         * @description A log entry for a subtask.
+         */
+        LogEntry: {
+            /**
+             * Type
+             * @default log_entry
+             * @constant
+             */
+            type: "log_entry";
+            /**
+             * Message
+             * @description The message of the log entry
+             * @default
+             */
+            message: string;
+            /**
+             * Level
+             * @description The level of the log entry
+             * @default info
+             * @enum {string}
+             */
+            level: "debug" | "info" | "warning" | "error";
+            /**
+             * Timestamp
+             * @description The timestamp of the log entry
+             * @default 0
+             */
+            timestamp: number;
         };
         /**
          * Message
@@ -3103,9 +3144,13 @@ export interface components {
             /** Model-Index */
             "model-index"?: unknown | null;
             /** Config */
-            config?: Record<string, never> | null;
+            config?: {
+                [key: string]: unknown;
+            } | null;
             /** Carddata */
-            cardData?: Record<string, never> | null;
+            cardData?: {
+                [key: string]: unknown;
+            } | null;
             /** Siblings */
             siblings?: components["schemas"]["Sibling"][] | null;
             /** Spaces */
@@ -3173,22 +3218,40 @@ export interface components {
             /** Ui Properties */
             ui_properties?: unknown;
             /** Dynamic Properties */
-            dynamic_properties?: Record<string, never>;
+            dynamic_properties?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * NodeMetadata
          * @description Metadata for a node.
          */
         NodeMetadata: {
-            /** Title */
+            /**
+             * Title
+             * @description UI Title of the node
+             */
             title: string;
-            /** Description */
+            /**
+             * Description
+             * @description UI Description of the node
+             */
             description: string;
-            /** Namespace */
+            /**
+             * Namespace
+             * @description Namespace of the node
+             */
             namespace: string;
-            /** Node Type */
+            /**
+             * Node Type
+             * @description Fully qualified type of the node
+             */
             node_type: string;
-            /** Layout */
+            /**
+             * Layout
+             * @description UI Layout of the node
+             * @default default
+             */
             layout: string;
             /**
              * Properties
@@ -3223,6 +3286,12 @@ export interface components {
              * @default false
              */
             is_dynamic: boolean;
+            /**
+             * Is Streaming
+             * @description Whether the node is streaming
+             * @default false
+             */
+            is_streaming: boolean;
         };
         /**
          * NodeProgress
@@ -3267,7 +3336,9 @@ export interface components {
         /** NodeSearchResponse */
         NodeSearchResponse: {
             /** Nodes */
-            nodes: Record<string, never>[];
+            nodes: {
+                [key: string]: unknown;
+            }[];
             /** Count */
             count: number;
         };
@@ -3296,9 +3367,13 @@ export interface components {
             /** Logs */
             logs?: string | null;
             /** Result */
-            result?: Record<string, never> | null;
+            result?: {
+                [key: string]: unknown;
+            } | null;
             /** Properties */
-            properties?: Record<string, never> | null;
+            properties?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * OutputSlot
@@ -3343,7 +3418,9 @@ export interface components {
              * Metadata
              * @default {}
              */
-            metadata: Record<string, never>;
+            metadata: {
+                [key: string]: unknown;
+            };
         };
         /** PackageAsset */
         PackageAsset: {
@@ -3524,7 +3601,9 @@ export interface components {
              * Config
              * @default {}
              */
-            config: Record<string, never>;
+            config: {
+                [key: string]: unknown;
+            };
         };
         /**
          * Prediction
@@ -3556,7 +3635,9 @@ export interface components {
             /** Status */
             status: string;
             /** Params */
-            params?: Record<string, never>;
+            params?: {
+                [key: string]: unknown;
+            };
             /** Data */
             data?: unknown | null;
             /** Cost */
@@ -3585,7 +3666,9 @@ export interface components {
             /** Node Id */
             node_id: string;
             /** Params */
-            params?: Record<string, never>;
+            params?: {
+                [key: string]: unknown;
+            };
             /** Version */
             version?: string | null;
             /** Workflow Id */
@@ -3698,7 +3781,9 @@ export interface components {
             /** Api Url */
             api_url?: string | null;
             /** Env */
-            env?: Record<string, never> | null;
+            env?: {
+                [key: string]: unknown;
+            } | null;
             graph?: components["schemas"]["Graph"] | null;
             /**
              * Explicit Types
@@ -3712,7 +3797,9 @@ export interface components {
              * Params
              * @default {}
              */
-            params: Record<string, never>;
+            params: {
+                [key: string]: unknown;
+            };
         };
         /**
          * SVGElement
@@ -3765,9 +3852,13 @@ export interface components {
         /** SettingsUpdateRequest */
         SettingsUpdateRequest: {
             /** Settings */
-            settings: Record<string, never>;
+            settings: {
+                [key: string]: unknown;
+            };
             /** Secrets */
-            secrets: Record<string, never>;
+            secrets: {
+                [key: string]: unknown;
+            };
         };
         /** Sibling */
         Sibling: {
@@ -3800,8 +3891,9 @@ export interface components {
             /**
              * Id
              * @description Unique identifier for the subtask
+             * @default
              */
-            id?: string;
+            id: string;
             /**
              * Model
              * @description The model to use for the subtask
@@ -3813,10 +3905,11 @@ export interface components {
              */
             content: string;
             /**
-             * Output File
-             * @description The file path where the subtask will save its output
+             * Logs
+             * @description The logs of the subtask
+             * @default []
              */
-            output_file: string;
+            logs: components["schemas"]["LogEntry"][];
             /**
              * Max Iterations
              * @description The maximum number of iterations for the subtask
@@ -3824,10 +3917,11 @@ export interface components {
              */
             max_iterations: number;
             /**
-             * Batch Processing
-             * @description Configuration for batch processing of list items. Contains fields like enabled, batch_size, start_index, end_index, total_items
+             * Max Tool Calls
+             * @description The maximum number of tool calls for the subtask
+             * @default 10
              */
-            batch_processing?: Record<string, never> | null;
+            max_tool_calls: number;
             /**
              * Completed
              * @description Whether the subtask is completed
@@ -3847,15 +3941,21 @@ export interface components {
              */
             end_time: number;
             /**
+             * Input Tasks
+             * @description The input tasks for the subtask
+             * @default []
+             */
+            input_tasks: string[];
+            /**
              * Input Files
-             * @description The input files for the subtask
+             * @description The input files required for the subtask
              * @default []
              */
             input_files: string[];
             /**
-             * Output Type
-             * @description The type of the output of the subtask
-             * @default string
+             * Output File
+             * @description The output file produced by the subtask
+             * @default
              */
             output_type: string;
             /**
@@ -3955,6 +4055,12 @@ export interface components {
              */
             type: "task";
             /**
+             * Id
+             * @description Unique identifier for the task
+             * @default
+             */
+            id: string;
+            /**
              * Title
              * @description The title of the task
              * @default
@@ -4025,7 +4131,7 @@ export interface components {
          * @description Enum for different task update event types.
          * @enum {string}
          */
-        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
+        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "max_tool_calls_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
         /** TextRef */
         TextRef: {
             /**
@@ -4060,7 +4166,9 @@ export interface components {
              * Args
              * @default {}
              */
-            args: Record<string, never>;
+            args: {
+                [key: string]: unknown;
+            };
             /** Result */
             result?: unknown;
             /** Subtask Id */
@@ -4087,7 +4195,9 @@ export interface components {
             /** Name */
             name: string;
             /** Args */
-            args: Record<string, never>;
+            args: {
+                [key: string]: unknown;
+            };
             /** Message */
             message?: string | null;
         };
@@ -4169,9 +4279,13 @@ export interface components {
             thumbnail_url?: string | null;
             graph: components["schemas"]["Graph"];
             /** Input Schema */
-            input_schema?: Record<string, never> | null;
+            input_schema?: {
+                [key: string]: unknown;
+            } | null;
             /** Output Schema */
-            output_schema?: Record<string, never> | null;
+            output_schema?: {
+                [key: string]: unknown;
+            } | null;
             /** Settings */
             settings?: {
                 [key: string]: string | boolean | number | null;
@@ -4224,7 +4338,9 @@ export interface components {
             access: string;
             graph?: components["schemas"]["Graph"] | null;
             /** Comfy Workflow */
-            comfy_workflow?: Record<string, never> | null;
+            comfy_workflow?: {
+                [key: string]: unknown;
+            } | null;
             /** Settings */
             settings?: {
                 [key: string]: string | boolean | number | null;
@@ -5091,7 +5207,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never> | null;
+                    "application/json": {
+                        [key: string]: unknown;
+                    } | null;
                 };
             };
             /** @description Validation Error */
