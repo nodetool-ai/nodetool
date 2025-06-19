@@ -19,11 +19,12 @@
   width: auto;
   cursor: default !important;
   padding: 0;
-  border: 1px solid var(--c_gray2);
+  /* border: 1px solid var(--c_gray2); */
   border-radius: 3px 3px 4px 4px;
-  background-color: var(--c_node_bg);
+  /* background-color: var(--c_node_bg); */
+  background-color: transparent;
   transition: background-color 0.05s;
-  box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
+  /* box-shadow: 0 0 2px 0px rgb(240 240 240 / 2%); */
   transition: box-shadow 0.15s ease-in-out;
 }
 
@@ -35,12 +36,14 @@
   gap: 0;
   width: 100%;
   min-height: 24px;
-  background-color: var(--c_node_header_bg);
+  /* background-color: var(--c_node_header_bg); */
+  background-color: transparent;
+
   color: var(--c_white);
   margin: 0;
   border-radius: 2px 2px 0 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%);
+  /* box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%); */
 }
 
 .node-drag-handle {
@@ -77,6 +80,7 @@
   color: var(--c_white);
   font-family: var(--font-family-1);
   font-size: var(--fontSizeNormal);
+  font-weight: 300;
   font-feature-settings: "smcp";
   padding: 0.5em 0 0.5em 0.7em;
 }

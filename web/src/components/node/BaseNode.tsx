@@ -320,6 +320,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && <Toolbar id={id} selected={selected} />}
       <NodeHeader
         id={id}
+        selected={selected}
         data={data}
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
