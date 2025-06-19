@@ -30,7 +30,11 @@ const GlobalChat: React.FC = () => {
     threads,
     switchThread,
     deleteThread,
-    stopGeneration
+    stopGeneration,
+    agentMode,
+    setAgentMode,
+    currentPlanningUpdate,
+    currentTaskUpdate
   } = useGlobalChatStore();
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -257,6 +261,10 @@ const GlobalChat: React.FC = () => {
             onToolsChange={setSelectedTools}
             onModelChange={(modelId) => setSelectedModel(modelId)}
             onStop={stopGeneration}
+            agentMode={agentMode}
+            onAgentModeToggle={setAgentMode}
+            currentPlanningUpdate={currentPlanningUpdate}
+            currentTaskUpdate={currentTaskUpdate}
           />
         </Box>
       </Box>

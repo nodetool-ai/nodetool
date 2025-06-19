@@ -250,7 +250,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           },
           settings: {
             hide_ui: false
-          }
+          },
+          run_mode: "workflow"
         };
         return data;
       },
@@ -651,6 +652,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (get().getLoadingState(workflowId)?.isLoading) {
           return;
         }
+        console.log("fetching workflow", workflowId);
 
         // If the workflow is already in the store, just make it current.
         if (get().getWorkflow(workflowId)) {
