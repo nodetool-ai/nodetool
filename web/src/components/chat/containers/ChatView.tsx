@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useMemo } from "react";
-import { Message, MessageContent } from "../../../stores/ApiTypes";
+import { Message, MessageContent, PlanningUpdate, TaskUpdate } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 import { useQuery } from "@tanstack/react-query";
@@ -57,6 +57,10 @@ type ChatViewProps = {
   onToolsChange?: (tools: string[]) => void;
   onModelChange?: (modelId: string) => void;
   onStop?: () => void;
+  agentMode?: boolean;
+  onAgentModeToggle?: (enabled: boolean) => void;
+  currentPlanningUpdate?: PlanningUpdate | null;
+  currentTaskUpdate?: TaskUpdate | null;
 };
 
 const ChatView = ({
@@ -70,18 +74,23 @@ const ChatView = ({
   selectedTools = [],
   onToolsChange,
   onModelChange,
-  onStop
+  onStop,
+  agentMode,
+  onAgentModeToggle,
+  currentPlanningUpdate,
+  currentTaskUpdate
 }: ChatViewProps) => {
   const handleSendMessage = useCallback(
-    async (content: MessageContent[], prompt: string) => {
+    async (content: MessageContent[], prompt: string, messageAgentMode: boolean) => {
       try {
         await sendMessage({
           type: "message",
           name: "",
           role: "user",
-          model: model ? `help:${model}` : undefined,
+          model: messageAgentMode ? model : (model ? `help:${model}` : undefined),
           content: content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined
+          tools: selectedTools.length > 0 ? selectedTools : undefined,
+          agent_mode: messageAgentMode
         });
       } catch (error) {
         console.error("Error sending message:", error);
@@ -98,6 +107,8 @@ const ChatView = ({
         progress={progress}
         total={total}
         progressMessage={progressMessage}
+        currentPlanningUpdate={currentPlanningUpdate}
+        currentTaskUpdate={currentTaskUpdate}
       />
 
       <ChatInputSection
@@ -108,6 +119,8 @@ const ChatView = ({
         onToolsChange={onToolsChange}
         selectedModel={model}
         onModelChange={onModelChange}
+        agentMode={agentMode}
+        onAgentModeToggle={onAgentModeToggle}
       />
     </div>
   );

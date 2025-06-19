@@ -8,13 +8,15 @@ import React, {
   useMemo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Message } from "../../../stores/ApiTypes";
+import { Message, PlanningUpdate, TaskUpdate } from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import { textPulse } from "../styles/animations";
+import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
+import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 
 interface ChatThreadViewProps {
   messages: Message[];
@@ -29,6 +31,8 @@ interface ChatThreadViewProps {
   progress: number;
   total: number;
   progressMessage: string | null;
+  currentPlanningUpdate?: PlanningUpdate | null;
+  currentTaskUpdate?: TaskUpdate | null;
 }
 
 const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
@@ -51,6 +55,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     progress,
     total,
     progressMessage,
+    currentPlanningUpdate,
+    currentTaskUpdate,
     expandedThoughts,
     onToggleThought,
     bottomRef,
@@ -91,6 +97,22 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             </span>
           </li>
         )}
+        {currentPlanningUpdate && (
+          <li
+            key="planning-update"
+            className="chat-message-list-item"
+          >
+            <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
+          </li>
+        )}
+        {currentTaskUpdate && (
+          <li
+            key="task-update"
+            className="chat-message-list-item"
+          >
+            <TaskUpdateDisplay taskUpdate={currentTaskUpdate} />
+          </li>
+        )}
         <div ref={bottomRef} style={{ height: 1 }} />
       </ul>
     );
@@ -103,7 +125,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   status,
   progress,
   total,
-  progressMessage
+  progressMessage,
+  currentPlanningUpdate,
+  currentTaskUpdate
 }) => {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -246,6 +270,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           progress={progress}
           total={total}
           progressMessage={progressMessage}
+          currentPlanningUpdate={currentPlanningUpdate}
+          currentTaskUpdate={currentTaskUpdate}
           expandedThoughts={expandedThoughts}
           onToggleThought={handleToggleThought}
           bottomRef={bottomRef}

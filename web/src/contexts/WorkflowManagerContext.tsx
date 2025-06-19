@@ -209,7 +209,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           },
           settings: {
             hide_ui: false
-          }
+          },
+          run_mode: "workflow"
         };
         return data;
       },
@@ -653,6 +654,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (nodeStore || loadingState?.isLoading) {
           return;
         }
+        console.log("fetching workflow", workflowId);
 
         state.setLoadingState(workflowId, {
           isLoading: true,

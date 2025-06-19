@@ -102,3 +102,4 @@ export type TaskPlan = components["schemas"]["TaskPlan"];
 export type SubTask = components["schemas"]["SubTask"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
+export type SubTaskResult = components["schemas"]["SubTaskResult"];

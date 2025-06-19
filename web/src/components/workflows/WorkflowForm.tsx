@@ -397,21 +397,17 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
             <TextField
               select
-              value={localWorkflow.settings?.run_mode || "normal"}
+              value={localWorkflow.run_mode || "workflow"}
               onChange={(e) =>
                 setLocalWorkflow((prev: Workflow) => ({
                   ...prev,
-                  settings: {
-                    ...(prev.settings || {}),
-                    run_mode: e.target.value
-                  }
+                  run_mode: e.target.value
                 }))
               }
             >
-              <MenuItem value="normal">Normal</MenuItem>
-              <MenuItem value="app">App</MenuItem>
+              <MenuItem value="workflow">Workflow</MenuItem>
               <MenuItem value="chat">Chat</MenuItem>
-              <MenuItem value="headless">Headless</MenuItem>
+              <MenuItem value="tool">Tool</MenuItem>
             </TextField>
           </Box>
         </FormControl>
