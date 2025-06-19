@@ -14,11 +14,11 @@ interface EditorToolbarProps {
   onRedo?: () => void;
   onToggleWordWrap?: () => void;
   onToggleFind?: () => void;
-  onToggleCodeHighlight?: () => void;
+  onFormatCodeBlock?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   wordWrapEnabled?: boolean;
-  codeHighlightEnabled?: boolean;
+  isCodeBlock?: boolean;
   readOnly?: boolean;
 }
 
@@ -26,7 +26,7 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
-    padding: "0.5em 1em",
+    padding: "0.2em 1em 0 1em",
     backgroundColor: theme.palette.c_gray0,
     gap: "0.5em",
     minHeight: "2.5em",
@@ -36,12 +36,12 @@ const styles = (theme: any) =>
       gap: "0.25em",
       "&:not(:last-child)": {
         borderRight: `1px solid ${theme.palette.c_gray2}`,
-        paddingRight: "0.75em",
+        paddingRight: "0.5em",
         marginRight: "0.25em"
       }
     },
     ".toolbar-button": {
-      padding: "6px",
+      padding: "2px",
       color: `${theme.palette.c_gray5} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
@@ -70,11 +70,11 @@ const EditorToolbar = ({
   onRedo,
   onToggleWordWrap,
   onToggleFind,
-  onToggleCodeHighlight,
+  onFormatCodeBlock,
   canUndo = false,
   canRedo = false,
   wordWrapEnabled = true,
-  codeHighlightEnabled = false,
+  isCodeBlock = false,
   readOnly = false
 }: EditorToolbarProps) => {
   const theme = useTheme();
@@ -132,13 +132,10 @@ const EditorToolbar = ({
             <WrapTextIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip
-          title="Toggle Code Highlighting"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
+        <Tooltip title="Format as Code Block" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
-            className={`toolbar-button ${codeHighlightEnabled ? "active" : ""}`}
-            onClick={onToggleCodeHighlight}
+            className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
+            onClick={onFormatCodeBlock}
             size="small"
           >
             <CodeIcon fontSize="small" />
