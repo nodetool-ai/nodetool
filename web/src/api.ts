@@ -410,6 +410,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/ollama_base_path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ollama Base Path Endpoint
+         * @description Retrieves the Ollama models directory path.
+         *
+         *     The path is determined by the `_get_ollama_models_dir` helper function, which
+         *     includes OS-specific lookup and caching.
+         *
+         *     Args:
+         *         user (str): The current user, injected by FastAPI dependency.
+         *
+         *     Returns:
+         *         dict: A dictionary containing the path if found (e.g., {"path": "/path/to/ollama/models"}),
+         *               or an error message if not found (e.g., {"status": "error", "message": "..."}).
+         */
+        get: operations["get_ollama_base_path_endpoint_api_models_ollama_base_path_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/pull_ollama_model": {
         parameters: {
             query?: never;
@@ -421,6 +451,40 @@ export interface paths {
         put?: never;
         /** Pull Ollama Model */
         post: operations["pull_ollama_model_api_models_pull_ollama_model_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/open_in_explorer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open In Explorer
+         * @description Opens the specified path in the system's default file explorer.
+         *
+         *     Security measures:
+         *     - The requested path must be within a pre-configured list of safe root directories
+         *       (e.g., Ollama models directory, Hugging Face cache).
+         *     - The input path is sanitized using `shlex.quote` for non-Windows platforms before
+         *       being passed to subprocess commands to prevent command injection.
+         *
+         *     Args:
+         *         path (str): The path to open in the file explorer.
+         *         user (str): The current user, injected by FastAPI dependency.
+         *
+         *     Returns:
+         *         dict: A dictionary indicating success (e.g., {"status": "success", "path": "/validated/path"})
+         *               or an error (e.g., {"status": "error", "message": "..."}).
+         */
+        post: operations["open_in_explorer_api_models_open_in_explorer_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -603,6 +667,37 @@ export interface paths {
         };
         /** Get Public Workflow */
         get: operations["get_public_workflow_api_workflows_public__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workflow Tools
+         * @description Get all workflows that have run_mode set to "tool".
+         *
+         *     These workflows can be used as tools by agents and other workflows.
+         *
+         *     Args:
+         *         user: The authenticated user
+         *         cursor: Pagination cursor
+         *         limit: Maximum number of workflows to return
+         *         columns: Comma-separated list of columns to return
+         *
+         *     Returns:
+         *         WorkflowList: List of tool workflows with pagination info
+         */
+        get: operations["get_workflow_tools_api_workflows_tools_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1341,6 +1436,8 @@ export interface components {
             repo_id: string;
             /** Repo Type */
             repo_type: string;
+            /** Path */
+            path: string;
             /** Size On Disk */
             size_on_disk: number;
             /** The Model Type */
@@ -2841,6 +2938,8 @@ export interface components {
             created_at?: string | null;
             /** Model */
             model?: string | null;
+            /** Agent Mode */
+            agent_mode?: boolean | null;
         };
         /**
          * Message
@@ -2883,6 +2982,8 @@ export interface components {
             created_at?: string | null;
             /** Model */
             model?: string | null;
+            /** Agent Mode */
+            agent_mode?: boolean | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -3156,29 +3257,29 @@ export interface components {
              * Properties
              * @description Properties of the node
              */
-            properties?: components["schemas"]["Property"][];
+            properties: components["schemas"]["Property"][];
             /**
              * Outputs
              * @description Outputs of the node
              */
-            outputs?: components["schemas"]["OutputSlot"][];
+            outputs: components["schemas"]["OutputSlot"][];
             /**
              * The Model Info
              * @description HF Model info for the node
              */
-            the_model_info?: {
+            the_model_info: {
                 [key: string]: unknown;
             };
             /**
              * Recommended Models
              * @description Recommended models for the node
              */
-            recommended_models?: components["schemas"]["HuggingFaceModel"][];
+            recommended_models: components["schemas"]["HuggingFaceModel"][];
             /**
              * Basic Fields
              * @description Basic fields of the node
              */
-            basic_fields?: string[];
+            basic_fields: string[];
             /**
              * Is Dynamic
              * @description Whether the node is dynamic
@@ -3846,6 +3947,18 @@ export interface components {
              */
             input_tasks: string[];
             /**
+             * Input Files
+             * @description The input files required for the subtask
+             * @default []
+             */
+            input_files: string[];
+            /**
+             * Output File
+             * @description The output file produced by the subtask
+             * @default
+             */
+            output_file: string;
+            /**
              * Output Schema
              * @description The JSON schema of the output of the subtask
              * @default
@@ -3857,6 +3970,28 @@ export interface components {
              * @default false
              */
             is_intermediate_result: boolean;
+        };
+        /**
+         * SubTaskResult
+         * @description A message representing a result from a subtask.
+         */
+        SubTaskResult: {
+            /**
+             * Type
+             * @default subtask_result
+             * @constant
+             */
+            type: "subtask_result";
+            subtask: components["schemas"]["SubTask"];
+            /** Result */
+            result: unknown;
+            /** Error */
+            error?: string | null;
+            /**
+             * Is Task Result
+             * @default false
+             */
+            is_task_result: boolean;
         };
         /** SystemStats */
         SystemStats: {
@@ -4147,6 +4282,8 @@ export interface components {
             package_name?: string | null;
             /** Path */
             path?: string | null;
+            /** Run Mode */
+            run_mode?: string | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -4196,6 +4333,8 @@ export interface components {
             settings?: {
                 [key: string]: string | boolean | number | null;
             } | null;
+            /** Run Mode */
+            run_mode?: string | null;
         };
     };
     responses: never;
@@ -5146,10 +5285,80 @@ export interface operations {
             };
         };
     };
+    get_ollama_base_path_endpoint_api_models_ollama_base_path_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     pull_ollama_model_api_models_pull_ollama_model_post: {
         parameters: {
             query: {
                 model_name: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_in_explorer_api_models_open_in_explorer_post: {
+        parameters: {
+            query: {
+                path: string;
             };
             header?: {
                 authorization?: string | null;
@@ -5270,7 +5479,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"];
+                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
                 };
             };
         };
@@ -5562,6 +5771,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_tools_api_workflows_tools_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                columns?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowList"];
                 };
             };
             /** @description Validation Error */

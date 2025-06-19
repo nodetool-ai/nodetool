@@ -325,7 +325,8 @@ const TabsNodeEditor = () => {
             isDirty: false,
             updated_at: new Date().toISOString(),
             created_at: new Date().toISOString(),
-            graph: { nodes: [], edges: [] }
+            graph: { nodes: [], edges: [] },
+            run_mode: "workflow"
           } as Workflow)
       );
     return [...openWorkflows, ...loadingWorkflows];

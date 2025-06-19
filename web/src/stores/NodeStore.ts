@@ -70,7 +70,6 @@ type NodeSelection = {
 export const DEFAULT_NODE_WIDTH = 200;
 
 const undo_limit = 1000;
-const AUTO_SAVE_INTERVAL = 60000; // 1 minute
 
 /**
  * Validates if an edge is valid based on node existence and handle validity
@@ -371,19 +370,8 @@ export const createNodeStore = (
           shouldAutoLayout: state?.shouldAutoLayout || false,
           missingModelFiles: [],
           missingModelRepos: [],
-          workflow: workflow
-            ? {
-                id: workflow.id,
-                name: workflow.name,
-                access: workflow.access,
-                description: workflow.description,
-                thumbnail: workflow.thumbnail,
-                tags: workflow.tags,
-                settings: workflow.settings,
-                updated_at: workflow.updated_at,
-                created_at: workflow.created_at
-              }
-            : {
+          workflow: workflow ? workflow :
+             {
                 id: "",
                 name: "",
                 access: "private",

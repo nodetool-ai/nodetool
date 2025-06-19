@@ -46,13 +46,16 @@ type ChatInputSectionProps = {
     | "reconnecting";
   onSendMessage: (
     content: MessageContent[],
-    prompt: string
+    prompt: string,
+    agentMode: boolean
   ) => Promise<void> | void;
   onStop?: () => void;
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
+  agentMode?: boolean;
+  onAgentModeToggle?: (enabled: boolean) => void;
 };
 
 const ChatInputSection = ({
@@ -62,7 +65,9 @@ const ChatInputSection = ({
   selectedTools,
   onToolsChange,
   selectedModel,
-  onModelChange
+  onModelChange,
+  agentMode,
+  onAgentModeToggle
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
 
@@ -74,6 +79,8 @@ const ChatInputSection = ({
           onToolsChange={onToolsChange}
           selectedModel={selectedModel}
           onModelChange={onModelChange}
+          agentMode={agentMode}
+          onAgentModeToggle={onAgentModeToggle}
         />
         <div className="chat-composer-wrapper">
           <ChatComposer
@@ -83,6 +90,7 @@ const ChatInputSection = ({
             disabled={
               status === "loading" || status === "error" || isDisconnected
             }
+            agentMode={agentMode}
           />
         </div>
       </div>
