@@ -12,9 +12,8 @@ const styles = (theme: any) =>
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0.5em 1em",
-    backgroundColor: theme.palette.c_gray0,
-    borderTop: `1px solid ${theme.palette.c_gray2}`,
+    padding: "0.5em 1em 0 1em",
+    backgroundColor: theme.palette.c_gray1,
     fontSize: theme.fontSizeSmaller,
     color: theme.palette.c_gray5,
     fontFamily: theme.fontFamily2,
@@ -26,8 +25,10 @@ const styles = (theme: any) =>
         display: "flex",
         alignItems: "center",
         gap: "0.25em",
+        fontSize: theme.fontSizeSmaller,
+        textTransform: "uppercase",
         ".label": {
-          fontWeight: "500"
+          fontWeight: "400"
         },
         ".value": {
           color: theme.palette.c_gray6,
@@ -50,7 +51,6 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
   // Calculate text statistics
   const wordCount = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   const charCount = text.length;
-  const charCountNoSpaces = text.replace(/\s/g, "").length;
   const lineCount = text === "" ? 1 : text.split("\n").length;
 
   return (
@@ -63,10 +63,6 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
         <div className="stat-item">
           <span className="label">Characters:</span>
           <span className="value">{charCount.toLocaleString()}</span>
-        </div>
-        <div className="stat-item">
-          <span className="label">No spaces:</span>
-          <span className="value">{charCountNoSpaces.toLocaleString()}</span>
         </div>
         <div className="stat-item">
           <span className="label">Lines:</span>

@@ -27,14 +27,15 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
-    padding: "0.5em 1em",
+    padding: "0.5em .5em 0 .5em",
+    justifyContent: "start",
     backgroundColor: theme.palette.c_gray1,
     gap: "0.5em",
     minHeight: "3em",
     ".search-group": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em"
+      gap: "0.2em"
     },
     ".search-input": {
       "& .MuiInputBase-root": {
@@ -44,7 +45,7 @@ const styles = (theme: any) =>
         border: "none",
         height: "2em",
         "& input": {
-          padding: "0.5em"
+          padding: "0.5em .75em"
         }
       },
       "& .MuiInputBase-input::placeholder": {
@@ -53,13 +54,14 @@ const styles = (theme: any) =>
       },
       "& .MuiOutlinedInput-root": {
         "& fieldset": {
-          borderColor: theme.palette.c_gray3
+          border: "none"
         },
-        "&:hover fieldset": {
-          borderColor: theme.palette.c_gray4
+        "&:hover ": {
+          opacity: 0.9
         },
-        "&.Mui-focused fieldset": {
-          borderColor: theme.palette.c_white
+        "&.Mui-focused": {
+          color: theme.palette.c_white,
+          backgroundColor: theme.palette.c_gray3
         }
       }
     },
@@ -97,6 +99,7 @@ const styles = (theme: any) =>
     },
     ".toolbar-button": {
       padding: "4px",
+      marginRight: "0",
       color: `${theme.palette.c_gray5} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
@@ -173,7 +176,10 @@ const FindReplaceBar = ({
           autoFocus
         />
 
-        <div className="match-info">
+        <div
+          className="match-info"
+          style={{ color: totalMatches > 0 ? "white" : "gray" }}
+        >
           {totalMatches > 0 ? `${currentMatch}/${totalMatches}` : "0/0"}
         </div>
 
@@ -245,13 +251,11 @@ const FindReplaceBar = ({
         </div>
       )}
 
-      <div style={{ marginLeft: "auto" }}>
-        <Tooltip title="Close (Esc)" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton className="toolbar-button" onClick={onClose} size="small">
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </div>
+      <Tooltip title="Close Find/Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
+        <IconButton className="toolbar-button" onClick={onClose} size="small">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 };

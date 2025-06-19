@@ -7,6 +7,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 
 const styles = (theme: any) =>
   css({
@@ -107,6 +108,7 @@ const LexicalPlugins = ({
       />
       <HistoryPlugin />
       <OnChangePlugin onChange={onChange} />
+      <CodeHighlightPlugin />
       {onBlur && <BlurPlugin onBlur={onBlur} />}
     </>
   );
