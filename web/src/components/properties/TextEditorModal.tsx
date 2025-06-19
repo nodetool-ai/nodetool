@@ -266,8 +266,52 @@ const TextEditorModal = ({
   const DEFAULT_HEIGHT = Math.min(600, window.innerHeight - 200);
   const MIN_HEIGHT = 250;
   const MAX_HEIGHT = window.innerHeight - 120;
+  const STORAGE_KEY = "textEditorModal_height";
 
-  const [modalHeight, setModalHeight] = useState<number>(DEFAULT_HEIGHT);
+  // Get initial height from localStorage or use default
+  const getInitialHeight = useCallback(() => {
+    try {
+      const savedHeight = localStorage.getItem(STORAGE_KEY);
+      if (savedHeight) {
+        const height = parseInt(savedHeight, 10);
+        // Validate the saved height is within bounds
+        if (height >= MIN_HEIGHT && height <= MAX_HEIGHT) {
+          return height;
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to read modal height from localStorage:", error);
+    }
+    return DEFAULT_HEIGHT;
+  }, [DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT]);
+
+  const [modalHeight, setModalHeight] = useState<number>(getInitialHeight);
+
+  // Debounced function to save height to localStorage
+  const saveHeightToStorage = useMemo(
+    () =>
+      debounce((height: number) => {
+        try {
+          localStorage.setItem(STORAGE_KEY, height.toString());
+        } catch (error) {
+          console.warn("Failed to save modal height to localStorage:", error);
+        }
+      }, 500), // Save after 500ms of no height changes
+    []
+  );
+
+  // Update modal height and persist to storage
+  const updateModalHeight = useCallback(
+    (newHeight: number) => {
+      const clampedHeight = Math.max(
+        MIN_HEIGHT,
+        Math.min(newHeight, MAX_HEIGHT)
+      );
+      setModalHeight(clampedHeight);
+      saveHeightToStorage(clampedHeight);
+    },
+    [MIN_HEIGHT, MAX_HEIGHT, saveHeightToStorage]
+  );
 
   // refs for drag logic
   const dragStartY = useRef(0);
@@ -280,9 +324,8 @@ const TextEditorModal = ({
 
       const handleMouseMove = (e: MouseEvent) => {
         const delta = e.clientY - dragStartY.current;
-        let newHeight = startHeight.current + delta;
-        newHeight = Math.max(MIN_HEIGHT, Math.min(newHeight, MAX_HEIGHT));
-        setModalHeight(newHeight);
+        const newHeight = startHeight.current + delta;
+        updateModalHeight(newHeight);
       };
 
       const handleMouseUp = () => {
@@ -295,8 +338,15 @@ const TextEditorModal = ({
 
       event.preventDefault();
     },
-    [modalHeight, MAX_HEIGHT, MIN_HEIGHT]
+    [modalHeight, updateModalHeight]
   );
+
+  // Clean up debounced function on unmount
+  useEffect(() => {
+    return () => {
+      saveHeightToStorage.cancel();
+    };
+  }, [saveHeightToStorage]);
 
   // Editor state management
   const [canUndo, setCanUndo] = useState(false);
