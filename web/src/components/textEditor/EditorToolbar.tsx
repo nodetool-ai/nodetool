@@ -28,7 +28,6 @@ const styles = (theme: any) =>
     alignItems: "center",
     padding: "0.5em 1em",
     backgroundColor: theme.palette.c_gray0,
-    borderBottom: `1px solid ${theme.palette.c_gray2}`,
     gap: "0.5em",
     minHeight: "2.5em",
     ".toolbar-group": {
@@ -81,7 +80,7 @@ const EditorToolbar = ({
   const theme = useTheme();
 
   return (
-    <div css={styles(theme)}>
+    <div className="editor-toolbar" css={styles(theme)}>
       {!readOnly && (
         <div className="toolbar-group">
           <Tooltip title="Undo" enterDelay={TOOLTIP_ENTER_DELAY}>
