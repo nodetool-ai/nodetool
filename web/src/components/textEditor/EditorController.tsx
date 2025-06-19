@@ -9,8 +9,7 @@ import {
   REDO_COMMAND,
   CAN_UNDO_COMMAND,
   CAN_REDO_COMMAND,
-  COMMAND_PRIORITY_CRITICAL,
-  $isParagraphNode
+  COMMAND_PRIORITY_CRITICAL
 } from "lexical";
 
 interface EditorControllerProps {
@@ -76,40 +75,13 @@ const EditorController = ({
 
   // Set up undo function
   const undoFn = useCallback(() => {
-    editor.update(() => {
-      console.log(
-        "Current editor content before undo:",
-        $getRoot().getTextContent()
-      );
-    });
-
-    const result = editor.dispatchCommand(UNDO_COMMAND, undefined);
-
-    // Use setTimeout to check content after undo completes
-    setTimeout(() => {
-      editor.getEditorState().read(() => {
-        console.log("Editor content after undo:", $getRoot().getTextContent());
-      });
-    }, 0);
+    // Simply dispatch undo; HistoryPlugin handles capability checks
+    editor.dispatchCommand(UNDO_COMMAND, undefined);
   }, [editor]);
 
   // Set up redo function
   const redoFn = useCallback(() => {
-    editor.update(() => {
-      console.log(
-        "Current editor content before redo:",
-        $getRoot().getTextContent()
-      );
-    });
-
-    const result = editor.dispatchCommand(REDO_COMMAND, undefined);
-
-    // Use setTimeout to check content after redo completes
-    setTimeout(() => {
-      editor.getEditorState().read(() => {
-        console.log("Editor content after redo:", $getRoot().getTextContent());
-      });
-    }, 0);
+    editor.dispatchCommand(REDO_COMMAND, undefined);
   }, [editor]);
 
   useEffect(() => {
@@ -118,36 +90,49 @@ const EditorController = ({
       const rootElement = editor.getRootElement();
       if (!rootElement) return;
 
-      // Build a list of all text nodes in order
-      const walker = document.createTreeWalker(
-        rootElement,
-        NodeFilter.SHOW_TEXT,
-        null
-      );
-      let node: Node | null = null;
+      const paragraphs = Array.from(rootElement.children);
       let charCount = 0;
 
-      while ((node = walker.nextNode())) {
-        const textContent = node.textContent || "";
-        const nextCharCount = charCount + textContent.length;
+      for (let i = 0; i < paragraphs.length; i++) {
+        const para = paragraphs[i] as HTMLElement;
+        const paraTextLength = para.textContent?.length || 0;
 
-        if (matchStart < nextCharCount) {
-          // The match begins somewhere in this node
-          const range = document.createRange();
-          const startOffset = matchStart - charCount;
-          const endOffset = startOffset + matchLength;
-          range.setStart(node, startOffset);
-          range.setEnd(node, endOffset);
+        // Does the match begin inside this paragraph?
+        if (matchStart < charCount + paraTextLength) {
+          const offsetWithinPara = matchStart - charCount;
 
-          const sel = window.getSelection();
-          if (sel) {
-            sel.removeAllRanges();
-            sel.addRange(range);
+          // Walk text nodes INSIDE this paragraph only
+          const walker = document.createTreeWalker(
+            para,
+            NodeFilter.SHOW_TEXT,
+            null
+          );
+          let node: Node | null = null;
+          let nodeCharCount = 0;
+
+          while ((node = walker.nextNode())) {
+            const textLen = node.textContent?.length || 0;
+            if (offsetWithinPara < nodeCharCount + textLen) {
+              const range = document.createRange();
+              const startOffset = offsetWithinPara - nodeCharCount;
+              const endOffset = startOffset + matchLength;
+              range.setStart(node, startOffset);
+              range.setEnd(node, endOffset);
+
+              const sel = window.getSelection();
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+              return;
+            }
+            nodeCharCount += textLen;
           }
-          break;
+          return;
         }
 
-        charCount = nextCharCount;
+        // Move past this paragraph (+1 for the newline that $getRoot().getTextContent adds)
+        charCount += paraTextLength + 1;
       }
     };
 
@@ -167,31 +152,7 @@ const EditorController = ({
 
     // Set up find function
     const findFn = (searchParam: any) => {
-      // Enhanced debugging - let's see what those 2 keys are
-      if (searchParam && typeof searchParam === "object") {
-        console.log("findFn called with object:", {
-          searchTerm: searchParam,
-          type: typeof searchParam,
-          keys: Object.keys(searchParam),
-          values: Object.values(searchParam),
-          keyValuePairs: Object.entries(searchParam),
-          target: searchParam?.target,
-          currentTarget: searchParam?.currentTarget,
-          isString: typeof searchParam === "string",
-          isEvent:
-            searchParam &&
-            typeof searchParam === "object" &&
-            "target" in searchParam
-        });
-      } else {
-        console.log("findFn called with:", {
-          searchTerm: searchParam,
-          type: typeof searchParam,
-          isString: typeof searchParam === "string"
-        });
-      }
-
-      // Extract string from various input types
+      // Normalise the incoming parameter
       let searchTerm = "";
 
       if (typeof searchParam === "string") {
@@ -223,11 +184,6 @@ const EditorController = ({
         }
         // If it's an object but none of the above, try to convert to string
         else {
-          console.warn(
-            "Unexpected object type in findFn, keys:",
-            Object.keys(searchParam)
-          );
-          console.warn("Object entries:", Object.entries(searchParam));
           searchTerm = "";
         }
       } else if (searchParam === null || searchParam === undefined) {
@@ -237,7 +193,7 @@ const EditorController = ({
         searchTerm = String(searchParam);
       }
 
-      console.log("Extracted search term:", searchTerm);
+      // searchTerm now contains the string to look for
 
       if (!searchTerm || searchTerm.trim() === "") {
         setCurrentSearchTerm("");
@@ -279,12 +235,11 @@ const EditorController = ({
       let newIndex = currentMatchIndex;
 
       if (direction === "next") {
-        newIndex = (currentMatchIndex + 1) % currentMatches.length;
+        newIndex = currentMatchIndex + 1;
+        if (newIndex >= currentMatches.length) newIndex = 0; // wrap
       } else {
-        newIndex =
-          currentMatchIndex <= 0
-            ? currentMatches.length - 1
-            : currentMatchIndex - 1;
+        newIndex = currentMatchIndex - 1;
+        if (newIndex < 0) newIndex = currentMatches.length - 1; // wrap
       }
 
       setCurrentMatchIndex(newIndex);
