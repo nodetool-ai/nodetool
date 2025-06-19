@@ -1,4 +1,8 @@
 /** @jsxImportSource @emotion/react */
+
+// Early polyfills / globals must come before other imports.
+import "./prismGlobal";
+
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 

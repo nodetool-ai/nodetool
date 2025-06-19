@@ -112,10 +112,25 @@ const EditorController = ({
   }, [editor]);
 
   useEffect(() => {
-    // Utility: given a global char index, create a DOM Range covering the match
-    const highlightMatch = (matchStart: number, matchLength: number) => {
+    // --- Highlight helpers using CSS Highlight API (focus-safe) ---
+    const highlightName = "findMatches";
+
+    const clearHighlights = () => {
+      // Safely remove previous highlights if supported
+      try {
+        (CSS as any)?.highlights?.delete?.(highlightName);
+      } catch {
+        /* noop */
+      }
+    };
+
+    // Given a single match offset, return a DOM Range corresponding to it
+    const createRangeForMatch = (
+      matchStart: number,
+      matchLength: number
+    ): Range | null => {
       const rootElement = editor.getRootElement();
-      if (!rootElement) return;
+      if (!rootElement) return null;
 
       const paragraphs = Array.from(rootElement.children);
       let charCount = 0;
@@ -124,11 +139,9 @@ const EditorController = ({
         const para = paragraphs[i] as HTMLElement;
         const paraTextLength = para.textContent?.length || 0;
 
-        // Does the match begin inside this paragraph?
         if (matchStart < charCount + paraTextLength) {
           const offsetWithinPara = matchStart - charCount;
 
-          // Walk text nodes INSIDE this paragraph only
           const walker = document.createTreeWalker(
             para,
             NodeFilter.SHOW_TEXT,
@@ -145,21 +158,45 @@ const EditorController = ({
               const endOffset = startOffset + matchLength;
               range.setStart(node, startOffset);
               range.setEnd(node, endOffset);
-
-              const sel = window.getSelection();
-              if (sel) {
-                sel.removeAllRanges();
-                sel.addRange(range);
-              }
-              return;
+              return range;
             }
             nodeCharCount += textLen;
           }
-          return;
+          return null;
         }
+        charCount += paraTextLength + 1; // newline char between paragraphs
+      }
+      return null;
+    };
 
-        // Move past this paragraph (+1 for the newline that $getRoot().getTextContent adds)
-        charCount += paraTextLength + 1;
+    const applyHighlights = (
+      matchIndexes: number[],
+      matchLength: number,
+      currentIndex: number
+    ) => {
+      clearHighlights();
+
+      // CSS Highlight API supported?
+      if (
+        (CSS as any)?.highlights &&
+        typeof (CSS as any).highlights.set === "function"
+      ) {
+        const ranges: Range[] = [];
+        for (const start of matchIndexes) {
+          const r = createRangeForMatch(start, matchLength);
+          if (r) ranges.push(r);
+        }
+        if (ranges.length > 0) {
+          (CSS as any).highlights.set(
+            highlightName,
+            new (window as any).Highlight(...ranges)
+          );
+          // Scroll so current match is visible
+          const currentRange = ranges[currentIndex] || ranges[0];
+          currentRange?.startContainer?.parentElement?.scrollIntoView({
+            block: "center"
+          });
+        }
       }
     };
 
@@ -223,6 +260,7 @@ const EditorController = ({
       // searchTerm now contains the string to look for
 
       if (!searchTerm || searchTerm.trim() === "") {
+        clearHighlights();
         setCurrentSearchTerm("");
         setCurrentMatches([]);
         setCurrentMatchIndex(0);
@@ -240,13 +278,8 @@ const EditorController = ({
       setCurrentMatches(matches);
       setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
 
-      // Highlight first match if available
-      if (matches.length > 0) {
-        highlightMatch(matches[0], searchTerm.length);
-      } else if (window.getSelection()) {
-        // Clear existing selection when no matches.
-        window.getSelection()?.removeAllRanges();
-      }
+      // Highlight all matches and scroll to the first one
+      applyHighlights(matches, searchTerm.length, 0);
 
       return {
         totalMatches: matches.length,
@@ -271,10 +304,8 @@ const EditorController = ({
 
       setCurrentMatchIndex(newIndex);
 
-      // Highlight the chosen match
-      if (currentMatches.length > 0) {
-        highlightMatch(currentMatches[newIndex], currentSearchTerm.length);
-      }
+      // Re-apply highlights (positions may change if edits happened) and scroll to new current
+      applyHighlights(currentMatches, currentSearchTerm.length, newIndex);
 
       return {
         totalMatches: currentMatches.length,
@@ -354,9 +385,9 @@ const EditorController = ({
             setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
 
             if (matches.length > 0) {
-              highlightMatch(matches[0], currentSearchTerm.length);
+              applyHighlights(matches, currentSearchTerm.length, 0);
             } else {
-              window.getSelection()?.removeAllRanges();
+              clearHighlights();
             }
           }
         }

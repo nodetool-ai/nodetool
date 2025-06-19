@@ -178,7 +178,9 @@ const FindReplaceBar = ({
 
         <div
           className="match-info"
-          style={{ color: totalMatches > 0 ? "white" : "gray" }}
+          style={{
+            color: totalMatches > 0 ? "var(--c-white)" : "var(--c-gray5)"
+          }}
         >
           {totalMatches > 0 ? `${currentMatch}/${totalMatches}` : "0/0"}
         </div>
