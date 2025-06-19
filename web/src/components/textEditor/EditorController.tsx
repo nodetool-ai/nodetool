@@ -54,8 +54,6 @@ const EditorController = ({
   // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
-      console.log("Setting initial content:", initialContent);
-
       // Use setTimeout to avoid setting state during render
       setTimeout(() => {
         editor.update(() => {
@@ -69,7 +67,6 @@ const EditorController = ({
             const textNode = $createTextNode(initialContent);
             paragraph.append(textNode);
             root.append(paragraph);
-            console.log("Initial content set successfully");
           }
         });
         setInitialContentSet(true);
@@ -79,8 +76,6 @@ const EditorController = ({
 
   // Set up undo function
   const undoFn = useCallback(() => {
-    console.log("Dispatching UNDO_COMMAND");
-
     editor.update(() => {
       console.log(
         "Current editor content before undo:",
@@ -89,7 +84,6 @@ const EditorController = ({
     });
 
     const result = editor.dispatchCommand(UNDO_COMMAND, undefined);
-    console.log("Undo command result:", result);
 
     // Use setTimeout to check content after undo completes
     setTimeout(() => {
@@ -101,8 +95,6 @@ const EditorController = ({
 
   // Set up redo function
   const redoFn = useCallback(() => {
-    console.log("Dispatching REDO_COMMAND");
-
     editor.update(() => {
       console.log(
         "Current editor content before redo:",
@@ -111,7 +103,6 @@ const EditorController = ({
     });
 
     const result = editor.dispatchCommand(REDO_COMMAND, undefined);
-    console.log("Redo command result:", result);
 
     // Use setTimeout to check content after redo completes
     setTimeout(() => {
