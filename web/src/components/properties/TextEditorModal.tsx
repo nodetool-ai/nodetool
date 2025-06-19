@@ -1,5 +1,21 @@
 /** @jsxImportSource @emotion/react */
+
+import ReactDOM from "react-dom";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { css, useTheme } from "@emotion/react";
+import CloseIcon from "@mui/icons-material/Close";
+import { CircularProgress, Tooltip } from "@mui/material";
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { EditorState, $getRoot } from "lexical";
+import { debounce, isEqual } from "lodash";
+import Markdown from "react-markdown";
+
+/* Prism */
 import "prismjs/components/prism-core";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
@@ -9,36 +25,21 @@ import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-tsx";
 import "prismjs/themes/prism.css";
 
-import ReactDOM from "react-dom";
-import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { Tooltip } from "@mui/material";
-import ThemeNodes from "../themes/ThemeNodes";
-import CircularProgress from "@mui/material/CircularProgress";
+import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { isEqual } from "lodash";
-import { EditorState, LexicalEditor, $getRoot } from "lexical";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { ListItemNode, ListNode } from "@lexical/list";
-import { CodeHighlightNode, CodeNode } from "@lexical/code";
-import { AutoLinkNode, LinkNode } from "@lexical/link";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  UNDO_COMMAND,
-  REDO_COMMAND,
-  CAN_UNDO_COMMAND,
-  CAN_REDO_COMMAND
-} from "lexical";
-import LexicalPlugins from "../textEditor/LexicalEditor";
+
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
-import EditorToolbar from "../textEditor/EditorToolbar";
-import EditorStatusBar from "../textEditor/EditorStatusBar";
-import FindReplaceBar from "../textEditor/FindReplaceBar";
+import ThemeNodes from "../themes/ThemeNodes";
+import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
-import { debounce } from "lodash";
+import EditorStatusBar from "../textEditor/EditorStatusBar";
+import EditorToolbar from "../textEditor/EditorToolbar";
+import FindReplaceBar from "../textEditor/FindReplaceBar";
+
+/* code-highlight */
+import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
+import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -58,7 +59,8 @@ const initialConfigTemplate = {
   theme: {
     text: {
       large: "font-size-large"
-    }
+    },
+    ...codeHighlightTheme
   }
 };
 
@@ -74,8 +76,6 @@ interface TextEditorModalProps {
   showStatusBar?: boolean;
   showFindReplace?: boolean;
 }
-
-import Markdown from "react-markdown";
 
 const styles = (theme: any) =>
   css({
@@ -139,6 +139,7 @@ const styles = (theme: any) =>
       }
     },
     ".modal-body": {
+      position: "relative",
       flex: 1,
       display: "flex",
       flexDirection: "column",
@@ -184,27 +185,33 @@ const styles = (theme: any) =>
           textarea: {
             whiteSpace: "pre !important"
           }
-        }
+        },
+        ...codeHighlightTokenStyles(theme)
       }
     },
     ".actions": {
       display: "flex",
       gap: "1em",
       alignItems: "flex-start",
-      marginTop: "0.25em"
+      marginTop: "0.25em",
+      marginRight: "-18px"
     },
     ".copy-to-clipboard-button": {
-      padding: "10px 14px !important",
-      backgroundColor: `${theme.palette.c_gray2} !important`,
+      position: "absolute",
+      right: ".5em",
+      top: "0",
+      zIndex: 10,
+      padding: "5px !important",
+      backgroundColor: "transparent",
       color: `${theme.palette.c_white} !important`,
       borderRadius: "4px !important",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
       transition: "all 0.2s ease",
-      minWidth: "44px",
-      minHeight: "44px",
+      minWidth: "32px",
+      minHeight: "32px",
       "&:hover": {
-        backgroundColor: `${theme.palette.c_gray3} !important`
+        backgroundColor: `${theme.palette.c_gray2} `
       }
     },
     ".button": {
@@ -228,9 +235,13 @@ const styles = (theme: any) =>
       }
     },
     ".button-close": {
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: "transparent",
+      padding: "10px",
+      right: ".5em",
+      minWidth: "32px",
+      minHeight: "32px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.c_gray2
       }
     },
     ".resize-handle": {
@@ -352,7 +363,7 @@ const TextEditorModal = ({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [wordWrapEnabled, setWordWrapEnabled] = useState(true);
-  const [codeHighlightEnabled, setCodeHighlightEnabled] = useState(false);
+  const [isCodeBlock, setIsCodeBlock] = useState(false);
   const [findReplaceVisible, setFindReplaceVisible] = useState(false);
   const [currentText, setCurrentText] = useState(value || "");
 
@@ -375,6 +386,7 @@ const TextEditorModal = ({
       })
     | null
   >(null);
+  const formatCodeBlockFnRef = useRef<(() => void) | null>(null);
 
   // Search state
   const [searchResults, setSearchResults] = useState({
@@ -445,8 +457,8 @@ const TextEditorModal = ({
     setWordWrapEnabled((prev) => !prev);
   }, []);
 
-  const handleToggleCodeHighlight = useCallback(() => {
-    setCodeHighlightEnabled((prev) => !prev);
+  const handleFormatCodeBlock = useCallback(() => {
+    formatCodeBlockFnRef.current?.();
   }, []);
 
   const handleToggleFind = useCallback(() => {
@@ -528,8 +540,11 @@ const TextEditorModal = ({
               )}
             </div>
             <div className="actions">
-              <CopyToClipboardButton textToCopy={value || ""} />
-              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | Esc">
+              {/* <CopyToClipboardButton textToCopy={value || ""} /> */}
+              <Tooltip
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                title="Close Editor | Esc"
+              >
                 <button className="button button-close" onClick={onClose}>
                   <CloseIcon />
                 </button>
@@ -542,11 +557,11 @@ const TextEditorModal = ({
               onRedo={handleRedo}
               onToggleWordWrap={handleToggleWordWrap}
               onToggleFind={handleToggleFind}
-              onToggleCodeHighlight={handleToggleCodeHighlight}
+              onFormatCodeBlock={handleFormatCodeBlock}
               canUndo={canUndo}
               canRedo={canRedo}
               wordWrapEnabled={wordWrapEnabled}
-              codeHighlightEnabled={codeHighlightEnabled}
+              isCodeBlock={isCodeBlock}
               readOnly={readOnly}
             />
           )}
@@ -575,38 +590,45 @@ const TextEditorModal = ({
                 <CircularProgress />
               </div>
             ) : (
-              <LexicalComposer initialConfig={editorConfig}>
-                <div
-                  style={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column"
-                  }}
-                >
-                  <EditorController
-                    onCanUndoChange={setCanUndo}
-                    onCanRedoChange={setCanRedo}
-                    onTextChange={setCurrentText}
-                    onUndoCommand={(fn) => {
-                      undoFnRef.current = fn;
+              <>
+                <CopyToClipboardButton textToCopy={value || ""} />
+                <LexicalComposer initialConfig={editorConfig}>
+                  <div
+                    style={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column"
                     }}
-                    onRedoCommand={(fn) => {
-                      redoFnRef.current = fn;
-                    }}
-                    onFindCommand={(fn) => {
-                      findFnRef.current = fn;
-                    }}
-                    onReplaceCommand={(fn) => {
-                      replaceFnRef.current = fn;
-                    }}
-                    onNavigateCommand={(fn) => {
-                      navigateFnRef.current = fn;
-                    }}
-                    initialContent={value}
-                  />
-                  <LexicalPlugins onChange={handleEditorChange} />
-                </div>
-              </LexicalComposer>
+                  >
+                    <EditorController
+                      onCanUndoChange={setCanUndo}
+                      onCanRedoChange={setCanRedo}
+                      onTextChange={setCurrentText}
+                      onUndoCommand={(fn) => {
+                        undoFnRef.current = fn;
+                      }}
+                      onRedoCommand={(fn) => {
+                        redoFnRef.current = fn;
+                      }}
+                      onFindCommand={(fn) => {
+                        findFnRef.current = fn;
+                      }}
+                      onReplaceCommand={(fn) => {
+                        replaceFnRef.current = fn;
+                      }}
+                      onNavigateCommand={(fn) => {
+                        navigateFnRef.current = fn;
+                      }}
+                      onFormatCodeCommand={(fn) => {
+                        formatCodeBlockFnRef.current = fn;
+                      }}
+                      onIsCodeBlockChange={setIsCodeBlock}
+                      initialContent={value}
+                    />
+                    <LexicalPlugins onChange={handleEditorChange} />
+                  </div>
+                </LexicalComposer>
+              </>
             )}
           </div>
 

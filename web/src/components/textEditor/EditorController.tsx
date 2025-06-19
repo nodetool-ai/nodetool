@@ -9,8 +9,12 @@ import {
   REDO_COMMAND,
   CAN_UNDO_COMMAND,
   CAN_REDO_COMMAND,
-  COMMAND_PRIORITY_CRITICAL
+  COMMAND_PRIORITY_CRITICAL,
+  $getSelection,
+  $isRangeSelection
 } from "lexical";
+import { $createCodeNode, $isCodeNode } from "@lexical/code";
+import { $setBlocksType } from "@lexical/selection";
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -30,6 +34,8 @@ interface EditorControllerProps {
       totalMatches: number;
     }
   ) => void;
+  onFormatCodeCommand: (fn: () => void) => void;
+  onIsCodeBlockChange: (isCodeBlock: boolean) => void;
   initialContent?: string;
 }
 
@@ -42,6 +48,8 @@ const EditorController = ({
   onFindCommand,
   onReplaceCommand,
   onNavigateCommand,
+  onFormatCodeCommand,
+  onIsCodeBlockChange,
   initialContent
 }: EditorControllerProps) => {
   const [editor] = useLexicalComposerContext();
@@ -82,6 +90,25 @@ const EditorController = ({
   // Set up redo function
   const redoFn = useCallback(() => {
     editor.dispatchCommand(REDO_COMMAND, undefined);
+  }, [editor]);
+
+  // Set up format code block function
+  const formatCodeBlockFn = useCallback(() => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const anchorNode = selection.anchor.getNode();
+        const element =
+          anchorNode.getKey() === "root"
+            ? anchorNode
+            : anchorNode.getTopLevelElementOrThrow();
+        if ($isCodeNode(element)) {
+          $setBlocksType(selection, () => $createParagraphNode());
+        } else {
+          $setBlocksType(selection, () => $createCodeNode());
+        }
+      }
+    });
   }, [editor]);
 
   useEffect(() => {
@@ -250,8 +277,8 @@ const EditorController = ({
       }
 
       return {
-        currentMatch: newIndex + 1,
-        totalMatches: currentMatches.length
+        totalMatches: currentMatches.length,
+        currentMatch: newIndex + 1
       };
     };
 
@@ -336,33 +363,52 @@ const EditorController = ({
       });
     };
 
-    // Provide functions to parent - moved outside useEffect to prevent render issues
-    onUndoCommand?.(undoFn);
-    onRedoCommand?.(redoFn);
-    onFindCommand?.(findFn);
-    onReplaceCommand?.(replaceFn);
-    onNavigateCommand?.(navigateFn);
+    // Expose command functions to the parent
+    onUndoCommand(undoFn);
+    onRedoCommand(redoFn);
+    onFindCommand(findFn);
+    onReplaceCommand(replaceFn);
+    onNavigateCommand(navigateFn);
+    onFormatCodeCommand(formatCodeBlockFn);
 
-    // Listen for history state changes
-    const removeCanUndoListener = editor.registerCommand(
+    const removeUpdateListener = editor.registerUpdateListener(
+      ({ editorState }) => {
+        editorState.read(() => {
+          onTextChange($getRoot().getTextContent());
+
+          const selection = $getSelection();
+          if ($isRangeSelection(selection)) {
+            const anchorNode = selection.anchor.getNode();
+            const element =
+              anchorNode.getKey() === "root"
+                ? anchorNode
+                : anchorNode.getTopLevelElementOrThrow();
+            onIsCodeBlockChange($isCodeNode(element));
+          }
+        });
+      }
+    );
+
+    // Register command listeners
+    const removeCanUndoListener = editor.registerCommand<boolean>(
       CAN_UNDO_COMMAND,
-      (canUndo: boolean) => {
-        onCanUndoChange?.(canUndo);
+      (payload) => {
+        onCanUndoChange(payload);
         return false;
       },
       COMMAND_PRIORITY_CRITICAL
     );
-
-    const removeCanRedoListener = editor.registerCommand(
+    const removeCanRedoListener = editor.registerCommand<boolean>(
       CAN_REDO_COMMAND,
-      (canRedo: boolean) => {
-        onCanRedoChange?.(canRedo);
+      (payload) => {
+        onCanRedoChange(payload);
         return false;
       },
       COMMAND_PRIORITY_CRITICAL
     );
 
     return () => {
+      removeUpdateListener();
       removeCanUndoListener();
       removeCanRedoListener();
     };
@@ -376,14 +422,16 @@ const EditorController = ({
     onFindCommand,
     onReplaceCommand,
     onNavigateCommand,
+    onFormatCodeCommand,
+    onIsCodeBlockChange,
+    undoFn,
+    redoFn,
     currentSearchTerm,
     currentMatches,
-    currentMatchIndex,
-    undoFn,
-    redoFn
+    currentMatchIndex
   ]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 export default EditorController;
