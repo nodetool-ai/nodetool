@@ -298,10 +298,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
         }
-        get().addWorkflow(data);
-        get().setCurrentWorkflowId(data.id);
-        return data;
-
         const workflowWithTags = {
           ...data,
           tags: workflow.tags || []
@@ -309,6 +305,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         // Refresh workflows query cache.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().addWorkflow(workflowWithTags);
+        get().setCurrentWorkflowId(workflowWithTags.id);
 
         if (window.api) {
           window.api.onCreateWorkflow(workflowWithTags);
