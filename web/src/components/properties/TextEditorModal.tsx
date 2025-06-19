@@ -155,7 +155,7 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeSmall,
         lineHeight: "1.2",
         color: theme.palette.c_white,
-        backgroundColor: theme.palette.c_gray2,
+        // backgroundColor: theme.palette.c_gray2,
         outline: "none",
         overflow: "auto !important",
         height: "100vh",
