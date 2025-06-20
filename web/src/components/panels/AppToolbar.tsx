@@ -41,7 +41,7 @@ const styles = (theme: any) =>
   css({
     "&": {
       position: "absolute",
-      top: "8px",
+      top: "4px",
       left: "50%",
       transform: "translateX(-50%)",
       backgroundColor: theme.palette.c_gray1
@@ -174,7 +174,7 @@ const styles = (theme: any) =>
     ".action-button": {
       flexShrink: 0,
       width: "32px",
-      height: "24px",
+      height: "32px",
       minWidth: "32px",
       padding: "4px",
       color: theme.palette.c_gray6,
@@ -213,8 +213,9 @@ const styles = (theme: any) =>
       backgroundColor: `${theme.palette.c_gray2}cc`,
       color: theme.palette.c_hl1,
       minWidth: "40px",
+      height: "26px",
       "&:hover": {
-        boxShadow: `0 0 10px ${theme.palette.c_hl1}cc`,
+        boxShadow: `0 0 4px ${theme.palette.c_hl1}55`,
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
       "&.disabled": {
@@ -520,7 +521,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     >
       <span>
         <Button
-          size="large"
+          // size="small"
           className={`action-button run-stop-button run-workflow ${
             isWorkflowRunning ? "running" : ""
           }`}
@@ -566,7 +567,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button
-        size="large"
+        // size="large"
         className={`action-button run-stop-button stop-workflow ${
           !isWorkflowRunning ? "disabled" : ""
         }`}
@@ -673,8 +674,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   );
 
   return (
-    <>
-      <Box sx={{ flexGrow: 1 }} />
+    <Box sx={{ flexGrow: 1 }}>
       {path.startsWith("/editor") && (
         <div className="actions" css={styles}>
           <>
@@ -692,7 +692,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
           </>
         </div>
       )}
-    </>
+    </Box>
   );
 };
 

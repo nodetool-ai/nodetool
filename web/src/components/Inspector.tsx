@@ -6,6 +6,7 @@ import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
+import NodeDescription from "./node/NodeDescription";
 
 const styles = (theme: any) =>
   css({
@@ -16,12 +17,12 @@ const styles = (theme: any) =>
       alignItems: "flex-start",
       justifyContent: "flex-start",
       backgroundColor: theme.palette.c_gray1,
-      padding: ".25em",
+      padding: "0",
+      width: "100%",
       maxWidth: "500px",
       minHeight: "100%",
       height: "auto",
-      overflowY: "auto",
-      paddingBottom: "1em"
+      overflowY: "auto"
     },
     ".top": {
       display: "flex",
@@ -36,11 +37,12 @@ const styles = (theme: any) =>
       overflowX: "hidden"
     },
     ".bottom": {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       gap: "1em",
       width: "100%",
-      padding: "0.5em 0",
+      padding: "0.5em ",
       marginTop: "auto",
       flexShrink: 0
     },
@@ -52,7 +54,8 @@ const styles = (theme: any) =>
       padding: 0,
       width: "100%",
       minWidth: "180px",
-      maxWidth: "300px"
+      maxWidth: "300px",
+      marginBottom: ".1em"
     },
     ".node-property .MuiTextField-root textarea": {
       fontSize: theme.fontSizeNormal
@@ -104,23 +107,22 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".description": {
-      maxHeight: "12em",
-      lineHeight: "1.25em",
-      fontWeight: "lighter",
-      overflowY: "auto",
-      color: theme.palette.c_white,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      marginTop: "auto"
+      color: "var(--c_gray6)",
+      fontSize: theme.fontSizeSmall,
+      paddingRight: "0.5em",
+      maxHeight: "400px",
+      marginTop: "auto",
+      overflowY: "auto"
     },
     ".namespace": {
-      maxHeight: "4em",
-      justifyContent: "flex-start",
+      justifyContent: "center",
       overflowY: "auto",
-      paddingLeft: "0",
       marginBottom: ".75em",
-
-      wordBreak: "break-all",
+      width: "100%",
+      textAlign: "center",
+      overflow: "hidden",
+      wordBreak: "break-word",
+      lineHeight: "1.25em",
       color: theme.palette.c_hl1,
       textTransform: "uppercase",
       fontSize: theme.fontSizeSmaller
@@ -128,18 +130,33 @@ const styles = (theme: any) =>
   });
 
 const Inspector: React.FC = () => {
-  const { getSelectedNodes, findNode } = useNodes((state) => ({
-    getSelectedNodes: state.getSelectedNodes,
-    findNode: state.findNode
-  }));
+  const { selectedNode, metadata } = useNodes((state) => {
+    const selectedNodes = state.getSelectedNodes();
+    const node = selectedNodes.length === 1 ? selectedNodes[0] : null;
+    const md = node
+      ? useMetadataStore.getState().getMetadata(node.type as string)
+      : null;
+    return { selectedNode: node, metadata: md };
+  });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const selectedNode = getSelectedNodes()[0];
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(selectedNode?.type ?? "")
-  );
 
-  if (!selectedNode || !metadata) {
-    return <Typography>Select a node to edit</Typography>;
+  if (!selectedNode) {
+    return (
+      <div className="inspector" css={styles}>
+        <div className="top">
+          <div className="inspector-header">
+            <div className="title" style={{ color: "var(--c_gray4)" }}>
+              Select a node to edit
+            </div>
+          </div>
+        </div>
+        <div className="bottom"></div>
+      </div>
+    );
+  }
+
+  if (!metadata) {
+    return <Typography>No metadata available for this node</Typography>;
   }
 
   const handleOpenNodeMenu = () => {
@@ -150,17 +167,26 @@ const Inspector: React.FC = () => {
     });
   };
 
+  const handleTagClick = (tag: string) => {
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      searchTerm: tag
+    });
+  };
+
   return (
     <div className="inspector" css={styles}>
       <div className="top">
         <div className="inspector-header">
           <div className="title">{metadata.title}</div>
         </div>
+        {/* Base properties */}
         {metadata.properties.map((property, index) => (
           <PropertyField
             key={`inspector-${property.name}-${selectedNode.id}`}
             id={selectedNode.id}
-            value={selectedNode.data}
+            value={selectedNode.data.properties[property.name]}
             property={property}
             propertyIndex={index.toString()}
             showHandle={false}
@@ -169,11 +195,50 @@ const Inspector: React.FC = () => {
             layout=""
           />
         ))}
+
+        {/* Dynamic properties, if any */}
+        {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+          ([name, value], index) => (
+            <PropertyField
+              key={`inspector-dynamic-${name}-${selectedNode.id}`}
+              id={selectedNode.id}
+              value={value}
+              property={
+                {
+                  name,
+                  type: {
+                    type: "any",
+                    optional: false,
+                    type_args: []
+                  }
+                } as any
+              }
+              propertyIndex={`dynamic-${index}`}
+              showHandle={false}
+              isInspector={true}
+              nodeType="inspector"
+              layout=""
+              isDynamicProperty={true}
+            />
+          )
+        )}
       </div>
       <div className="bottom">
-        <div className="description">{metadata.description}</div>
+        <NodeDescription
+          className="description"
+          description={metadata.description}
+          onTagClick={handleTagClick}
+        />
         <Tooltip title="Show in NodeMenu" placement="top-start">
-          <Button className="namespace" onClick={handleOpenNodeMenu}>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              padding: ".5em"
+            }}
+            className="namespace"
+            onClick={handleOpenNodeMenu}
+          >
             {metadata.namespace}
           </Button>
         </Tooltip>

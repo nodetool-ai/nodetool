@@ -1,12 +1,12 @@
-import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import Alert from '../Alert';
+import React from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import Alert from "../Alert";
 
 jest.useFakeTimers();
 
-const mockWriteClipboard = jest.fn();
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
 
-jest.mock('../../../hooks/browser/useClipboard', () => ({
+jest.mock("../../../hooks/browser/useClipboard", () => ({
   useClipboard: () => ({ writeClipboard: mockWriteClipboard })
 }));
 
@@ -17,43 +17,47 @@ const makeStoreState = (notifications: any[]) => ({
   notifications,
   removeNotification: mockRemoveNotification,
   lastDisplayedTimestamp: null,
-  updateLastDisplayedTimestamp: mockUpdateLastDisplayedTimestamp,
+  updateLastDisplayedTimestamp: mockUpdateLastDisplayedTimestamp
 });
 
-jest.mock('../../../stores/NotificationStore', () => ({
-  useNotificationStore: jest.fn(),
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: jest.fn()
 }));
 
-import { useNotificationStore } from '../../../stores/NotificationStore';
+import { useNotificationStore } from "../../../stores/NotificationStore";
 
 const renderWithStore = (notifications: any[]) => {
-  (useNotificationStore as unknown as jest.Mock).mockImplementation((sel: any) => sel(makeStoreState(notifications)));
+  (useNotificationStore as unknown as jest.Mock).mockImplementation(
+    (sel: any) => sel(makeStoreState(notifications))
+  );
   return render(<Alert />);
 };
 
 const notification = {
-  id: '1',
-  type: 'error',
-  content: 'Error message',
+  id: "1",
+  type: "error",
+  content: "Error message",
   timestamp: new Date(),
   alert: true,
-  dismissable: false,
+  dismissable: false
 };
 
-describe('Alert', () => {
+describe("Alert", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders notifications and copies content', () => {
+  it("renders notifications and copies content", async () => {
     renderWithStore([notification]);
-    expect(screen.getByText('Error message')).toBeInTheDocument();
-    const btn = screen.getByTitle('Copy to clipboard');
+    expect(screen.getByText("Error message")).toBeInTheDocument();
+    const btn = await screen.findByRole("button", {
+      name: "Copy to clipboard"
+    });
     fireEvent.click(btn);
-    expect(mockWriteClipboard).toHaveBeenCalledWith('Error message', true);
+    expect(mockWriteClipboard).toHaveBeenCalledWith("Error message", true);
   });
 
-  it('auto dismisses notifications', () => {
+  it("auto dismisses notifications", () => {
     renderWithStore([notification]);
     act(() => {
       jest.advanceTimersByTime(3300);

@@ -256,12 +256,6 @@ const styles = (theme: any) =>
     },
     "& .window-control-button#close-button:hover": {
       backgroundColor: "#e81123"
-    },
-    "& .actions-container": {
-      flexShrink: 0,
-      width: "100%",
-      backgroundColor: theme.palette.c_gray0,
-      borderBottom: `1px solid ${theme.palette.c_gray1}`
     }
   });
 

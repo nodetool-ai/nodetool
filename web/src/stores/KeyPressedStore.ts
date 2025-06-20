@@ -66,7 +66,9 @@ const executeComboCallbacks = (
     activeElement &&
     (activeElement.tagName === "INPUT" ||
       activeElement.tagName === "TEXTAREA" ||
-      activeElement.closest('[data-slate-editor="true"]'));
+      activeElement.closest('[data-slate-editor="true"]') ||
+      activeElement.closest(".text-editor-container") ||
+      activeElement.closest(".editor-input"));
 
   if (isInputFocused) {
     // --- Input Focus Handling ---
@@ -201,12 +203,14 @@ const initKeyListeners = () => {
     const targetIsSlateEditor = eventTarget.closest(
       '[data-slate-editor="true"]'
     );
+    const targetIsLexicalEditor = eventTarget.closest(".text-editor-container");
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
     if (
       targetIsInput ||
       targetIsSelectHeader ||
       targetIsSlateEditor ||
+      targetIsLexicalEditor ||
       targetIsTextarea
     ) {
       if (isPressed) {

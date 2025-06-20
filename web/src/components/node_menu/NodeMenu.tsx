@@ -34,7 +34,7 @@ const treeStyles = (theme: any) =>
       left: 0,
       position: "absolute",
       overflow: "hidden",
-      zIndex: 1300,
+      zIndex: 20000,
       border: `1px solid ${theme.palette.c_gray3}`,
       borderRadius: "12px",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
+import { Box, Typography } from "@mui/material";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -63,6 +64,8 @@ const ChatInputSection = ({
   selectedModel,
   onModelChange
 }: ChatInputSectionProps) => {
+  const isDisconnected = status === "disconnected" || status === "connecting";
+
   return (
     <div className="chat-input-section" css={styles}>
       <div className="chat-controls">
@@ -77,7 +80,9 @@ const ChatInputSection = ({
             status={status}
             onSendMessage={onSendMessage}
             onStop={onStop}
-            disabled={status === "loading" || status === "error"}
+            disabled={
+              status === "loading" || status === "error" || isDisconnected
+            }
           />
         </div>
       </div>

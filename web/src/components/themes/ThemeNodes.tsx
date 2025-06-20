@@ -106,6 +106,14 @@ const ThemeNodes: Theme = createTheme({
         }
       ]
     },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          maxWidth: "100%",
+          maxHeight: "100%"
+        }
+      }
+    },
     MuiTypography: {
       styleOverrides: {
         caption: ({ theme }) => ({
@@ -187,7 +195,6 @@ const ThemeNodes: Theme = createTheme({
           marginBottom: "0 !important",
           padding: "0",
           width: "100%",
-          maxWidth: "300px",
           "&::placeholder": {
             opacity: 0,
             visibility: "hidden"
@@ -197,17 +204,14 @@ const ThemeNodes: Theme = createTheme({
           }
         }),
         inputMultiline: {
-          margin: "5px 0",
+          margin: "0",
           padding: "2px 8px 0px 4px !important",
           backgroundColor: "#4b4b4b",
           resize: "vertical"
         },
         input: ({ theme }) => ({
-          margin: theme.spacing(0.5, 0),
-          marginTop: theme.spacing(0.5),
           padding: "0px",
-          maxHeight: "40em",
-          minHeight: "1.22em"
+          maxHeight: "40em"
         })
       }
     },
@@ -220,7 +224,7 @@ const ThemeNodes: Theme = createTheme({
           backgroundColor: "transparent",
           minHeight: "15px",
           margin: "0",
-          padding: ".5em .5em .5em .2em",
+          padding: "0 .5em .5em .2em",
           resize: "vertical",
           "& .MuiInput-underline:before": {
             borderBottom: "0"
@@ -380,13 +384,10 @@ const ThemeNodes: Theme = createTheme({
           margin: "0"
         }),
         icon: ({ theme }) => ({
-          color: theme.palette.c_white,
-          width: ".5em",
-          height: "1em",
-          fontSize: "3em"
-        }),
-        filled: {},
-        outlined: {}
+          color: theme.palette.c_gray4
+        })
+        // filled: {},
+        // outlined: {}
       }
     },
     MuiRadio: {

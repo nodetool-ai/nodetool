@@ -182,5 +182,6 @@ export const paletteDark: PaletteOptions = {
     hover: "#ddd",
     selected: "#aaa",
     disabled: "#666"
-  }
+  },
+  divider: "#555"
 };

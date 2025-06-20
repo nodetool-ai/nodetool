@@ -64,7 +64,9 @@ interface SubTaskViewProps {
 }
 
 const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
-  const hasDependencies = subtask.input_files.length > 0;
+  const hasDependencies = (subtask as any).input_tasks
+    ? (subtask as any).input_tasks.length > 0
+    : false;
   const isRunning = subtask.start_time > 0 && !subtask.completed;
 
   return (
@@ -118,21 +120,6 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
             }
           />
         </div>
-
-        {hasDependencies && (
-          <Box ml={3} mt={1}>
-            <List dense disablePadding>
-              {subtask.input_files.map((depId) => (
-                <ListItem key={depId} dense disablePadding>
-                  <div className="dependency-marker">
-                    &rarr;&nbsp;
-                    {depId}
-                  </div>
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        )}
       </Paper>
     </div>
   );

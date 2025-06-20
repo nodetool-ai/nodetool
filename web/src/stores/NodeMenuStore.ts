@@ -377,7 +377,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       const FALLBACK_MENU_HEIGHT = 870;
       // Padding from the window edge when the menu is forced to move
       const WINDOW_EDGE_OFFSET_X = 10;
-      const WINDOW_EDGE_OFFSET_Y = 75 + 10; // 75px header compensation + 10px padding
+      const WINDOW_EDGE_OFFSET_Y = 20 + 10; // 20px header compensation + 10px padding
 
       // --- Calculation ---
       const actualMenuWidth = menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
