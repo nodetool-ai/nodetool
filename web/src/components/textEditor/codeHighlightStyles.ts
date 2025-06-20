@@ -2,7 +2,7 @@
 export const codeHighlightTokenStyles = (theme: any) => ({
   ".editor-code": {
     backgroundColor: theme.palette.c_gray0,
-    fontFamily: "Consolas, 'Courier New', monospace",
+    fontFamily: "JetBrains Mono, Consolas, 'Courier New', monospace",
     display: "block",
     padding: "8px 12px",
     lineHeight: "1.53",
@@ -12,23 +12,22 @@ export const codeHighlightTokenStyles = (theme: any) => ({
     tabSize: 2,
     overflow: "auto"
   },
-  ".editor-token-comment": { color: "#999988", fontStyle: "italic" },
-  ".editor-token-keyword": { color: "#0000FF" },
-  ".editor-token-string": { color: "#d14" },
-  ".editor-token-function": { color: "#990000" },
-  ".editor-token-number": { color: "#009999" },
-  ".editor-token-operator": { color: "#a67f59" },
-  ".editor-token-punctuation": { color: "#999999" },
-  ".editor-token-property": { color: "#990000" },
-  ".editor-token-boolean": { color: "#009999" },
-  ".editor-token-selector": { color: "#990000" },
-  ".editor-token-class-name": { color: "#445588", fontWeight: "bold" },
-  ".editor-token-builtin": { color: "#0086B3" },
-  ".editor-token-variable": { color: "#008080" },
-  ".editor-token-tag": { color: "#000080" },
-  ".editor-token-attr": { color: "#008080" },
-  ".editor-token-atrule": { color: "#990000" },
-  ".editor-token-regex": { color: "#009926" },
-  ".editor-token-important": { color: "#e90", fontWeight: "bold" },
-  ".editor-token-entity": { color: "#800080" }
+  /* Minimal token colours (Prism Tomorrow Night) */
+  ".token.comment, .token.prolog, .token.doctype, .token.cdata": {
+    color: "#6A9955"
+  },
+  ".token.punctuation": { color: "#D4D4D4" },
+  ".token.property, .token.tag, .token.constant, .token.symbol": {
+    color: "#569CD6"
+  },
+  ".token.boolean, .token.number": { color: "#B5CEA8" },
+  ".token.string, .token.char, .token.attr-value": {
+    color: "#CE9178"
+  },
+  ".token.operator, .token.entity, .token.url": { color: "#D4D4D4" },
+  ".token.keyword": { color: "#569CD6" },
+  ".token.function, .token.class-name": { color: "#DCDCAA" },
+  ".token.regex": { color: "#D16969" },
+  ".token.important": { color: "#D7BA7D" },
+  ".token.atrule, .token.attr-name, .token.selector": { color: "#C586C0" }
 });

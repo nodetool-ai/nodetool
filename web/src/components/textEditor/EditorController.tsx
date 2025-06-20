@@ -105,7 +105,13 @@ const EditorController = ({
         if ($isCodeNode(element)) {
           $setBlocksType(selection, () => $createParagraphNode());
         } else {
-          $setBlocksType(selection, () => $createCodeNode());
+          // Create a code node with a default language so Prism can highlight it
+          $setBlocksType(selection, () => {
+            const codeNode = $createCodeNode();
+            // Default to JavaScript so Prism can highlight; TS typings may vary
+            (codeNode as any).setLanguage?.("javascript");
+            return codeNode;
+          });
         }
       }
     });
@@ -462,7 +468,8 @@ const EditorController = ({
     redoFn,
     currentSearchTerm,
     currentMatches,
-    currentMatchIndex
+    currentMatchIndex,
+    formatCodeBlockFn
   ]);
 
   return null;
