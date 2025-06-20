@@ -13,7 +13,7 @@ import {
   $getSelection,
   $isRangeSelection
 } from "lexical";
-import { $createCodeNode, $isCodeNode } from "@lexical/code";
+import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 
 interface EditorControllerProps {
@@ -58,82 +58,20 @@ const EditorController = ({
   const [currentMatches, setCurrentMatches] = useState<number[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
-  // Set initial content only once
-  useEffect(() => {
-    if (initialContent && initialContent.trim() && !initialContentSet) {
-      // Use setTimeout to avoid setting state during render
-      setTimeout(() => {
-        editor.update(() => {
-          const root = $getRoot();
-          const currentText = root.getTextContent();
+  // Highlight helpers using CSS Highlight API (focus-safe)
+  const highlightAllName = "findMatches";
+  const highlightCurrentName = "findCurrent";
 
-          // Only set if editor is empty
-          if (!currentText || currentText.trim() === "") {
-            root.clear();
-            const paragraph = $createParagraphNode();
-            const textNode = $createTextNode(initialContent);
-            paragraph.append(textNode);
-            root.append(paragraph);
-          }
-        });
-        setInitialContentSet(true);
-      }, 0);
-    }
-  }, [editor, initialContent, initialContentSet]);
+  const clearHighlights = useCallback(() => {
+    // Safely remove previous highlights if supported
+    const hs = (CSS as any)?.highlights;
+    hs?.delete?.(highlightAllName);
+    hs?.delete?.(highlightCurrentName);
+  }, [highlightAllName, highlightCurrentName]);
 
-  // Set up undo function
-  const undoFn = useCallback(() => {
-    // Simply dispatch undo; HistoryPlugin handles capability checks
-    editor.dispatchCommand(UNDO_COMMAND, undefined);
-  }, [editor]);
-
-  // Set up redo function
-  const redoFn = useCallback(() => {
-    editor.dispatchCommand(REDO_COMMAND, undefined);
-  }, [editor]);
-
-  // Set up format code block function
-  const formatCodeBlockFn = useCallback(() => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const anchorNode = selection.anchor.getNode();
-        const element =
-          anchorNode.getKey() === "root"
-            ? anchorNode
-            : anchorNode.getTopLevelElementOrThrow();
-        if ($isCodeNode(element)) {
-          $setBlocksType(selection, () => $createParagraphNode());
-        } else {
-          // Create a code node with a default language so Prism can highlight it
-          $setBlocksType(selection, () => {
-            const codeNode = $createCodeNode();
-            // Default to JavaScript so Prism can highlight; TS typings may vary
-            (codeNode as any).setLanguage?.("javascript");
-            return codeNode;
-          });
-        }
-      }
-    });
-  }, [editor]);
-
-  useEffect(() => {
-    // --- Highlight helpers using CSS Highlight API (focus-safe) ---
-    const highlightAllName = "findMatches";
-    const highlightCurrentName = "findCurrent";
-
-    const clearHighlights = () => {
-      // Safely remove previous highlights if supported
-      const hs = (CSS as any)?.highlights;
-      hs?.delete?.(highlightAllName);
-      hs?.delete?.(highlightCurrentName);
-    };
-
-    // Given a single match offset, return a DOM Range corresponding to it
-    const createRangeForMatch = (
-      matchStart: number,
-      matchLength: number
-    ): Range | null => {
+  // Given a single match offset, return a DOM Range corresponding to it
+  const createRangeForMatch = useCallback(
+    (matchStart: number, matchLength: number): Range | null => {
       const rootElement = editor.getRootElement();
       if (!rootElement) return null;
 
@@ -172,13 +110,12 @@ const EditorController = ({
         charCount += paraTextLength + 1; // newline char between paragraphs
       }
       return null;
-    };
+    },
+    [editor]
+  );
 
-    const applyHighlights = (
-      matchIndexes: number[],
-      matchLength: number,
-      currentIndex: number
-    ) => {
+  const applyHighlights = useCallback(
+    (matchIndexes: number[], matchLength: number, currentIndex: number) => {
       clearHighlights();
 
       // CSS Highlight API supported?
@@ -207,9 +144,17 @@ const EditorController = ({
           }
         }
       }
-    };
+    },
+    [
+      clearHighlights,
+      createRangeForMatch,
+      highlightAllName,
+      highlightCurrentName
+    ]
+  );
 
-    const findMatches = (text: string, searchTerm: string): number[] => {
+  const findMatches = useCallback(
+    (text: string, searchTerm: string): number[] => {
       const matches: number[] = [];
       const lowerText = text.toLowerCase();
       const lowerSearchTerm = searchTerm.toLowerCase();
@@ -221,10 +166,49 @@ const EditorController = ({
       }
 
       return matches;
-    };
+    },
+    []
+  );
 
-    // Set up find function
-    const findFn = (searchParam: any) => {
+  // Set up undo function
+  const undoFn = useCallback(() => {
+    editor.dispatchCommand(UNDO_COMMAND, undefined);
+  }, [editor]);
+
+  // Set up redo function
+  const redoFn = useCallback(() => {
+    editor.dispatchCommand(REDO_COMMAND, undefined);
+  }, [editor]);
+
+  // Set up format code block function
+  const formatCodeBlockFn = useCallback(() => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const anchorNode = selection.anchor.getNode();
+        const element =
+          anchorNode.getKey() === "root"
+            ? anchorNode
+            : anchorNode.getTopLevelElementOrThrow();
+        if ($isCodeNode(element)) {
+          $setBlocksType(selection, () => $createParagraphNode());
+        } else {
+          // Create a code node with a default language
+          $setBlocksType(selection, () => {
+            const codeNode = $createCodeNode();
+            if (codeNode instanceof CodeNode) {
+              codeNode.setLanguage("javascript");
+            }
+            return codeNode;
+          });
+        }
+      }
+    });
+  }, [editor]);
+
+  // Set up find function
+  const findFn = useCallback(
+    (searchParam: any) => {
       // Normalise the incoming parameter
       let searchTerm = "";
 
@@ -294,9 +278,13 @@ const EditorController = ({
         totalMatches: matches.length,
         currentMatch: matches.length > 0 ? 1 : 0
       };
-    };
+    },
+    [editor, findMatches, applyHighlights, clearHighlights]
+  );
 
-    const navigateFn = (direction: "next" | "previous") => {
+  // Set up navigate function
+  const navigateFn = useCallback(
+    (direction: "next" | "previous") => {
       if (currentMatches.length === 0) {
         return { currentMatch: 0, totalMatches: 0 };
       }
@@ -320,13 +308,13 @@ const EditorController = ({
         totalMatches: currentMatches.length,
         currentMatch: newIndex + 1
       };
-    };
+    },
+    [currentSearchTerm, currentMatches, currentMatchIndex, applyHighlights]
+  );
 
-    const replaceFn = (
-      searchTerm: any,
-      replaceTerm: any,
-      replaceAll?: boolean
-    ) => {
+  // Set up replace function
+  const replaceFn = useCallback(
+    (searchTerm: any, replaceTerm: any, replaceAll?: boolean) => {
       // Ensure parameters are strings and handle edge cases
       let searchStr = "";
       let replaceStr = "";
@@ -343,6 +331,9 @@ const EditorController = ({
         } else {
           replaceStr = String(replaceTerm || "");
         }
+
+        // Sanitize the replacement string by escaping special characters
+        replaceStr = replaceStr.replace(/\$/g, "$$$$"); // Escape $ in replacement string
       } catch (error) {
         console.error("Error converting replace parameters to strings:", error);
         return;
@@ -358,11 +349,18 @@ const EditorController = ({
         let newContent = textContent;
 
         if (replaceAll) {
-          const regex = new RegExp(
-            searchStr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-            "gi"
-          );
-          newContent = textContent.replace(regex, replaceStr);
+          try {
+            // Escape the search string for use in regex
+            const escapedSearchStr = searchStr.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            const regex = new RegExp(escapedSearchStr, "gi");
+            newContent = textContent.replace(regex, replaceStr);
+          } catch (error) {
+            console.error("Error in regex replace:", error);
+            return;
+          }
         } else {
           const index = textContent
             .toLowerCase()
@@ -401,15 +399,57 @@ const EditorController = ({
           }
         }
       });
-    };
+    },
+    [
+      editor,
+      onTextChange,
+      currentSearchTerm,
+      findMatches,
+      applyHighlights,
+      clearHighlights
+    ]
+  );
 
-    // Expose command functions to the parent
-    onUndoCommand(undoFn);
-    onRedoCommand(redoFn);
-    onFindCommand(findFn);
-    onReplaceCommand(replaceFn);
-    onNavigateCommand(navigateFn);
-    onFormatCodeCommand(formatCodeBlockFn);
+  // Set initial content only once
+  useEffect(() => {
+    if (initialContent && initialContent.trim() && !initialContentSet) {
+      setTimeout(() => {
+        editor.update(() => {
+          const root = $getRoot();
+          const currentText = root.getTextContent();
+
+          if (!currentText || currentText.trim() === "") {
+            root.clear();
+            const paragraph = $createParagraphNode();
+            const textNode = $createTextNode(initialContent);
+            paragraph.append(textNode);
+            root.append(paragraph);
+          }
+        });
+        setInitialContentSet(true);
+      }, 0);
+    }
+  }, [editor, initialContent, initialContentSet]);
+
+  // Register core editor functionality
+  useEffect(() => {
+    const removeCanUndoListener = editor.registerCommand<boolean>(
+      CAN_UNDO_COMMAND,
+      (payload) => {
+        onCanUndoChange(payload);
+        return false;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
+
+    const removeCanRedoListener = editor.registerCommand<boolean>(
+      CAN_REDO_COMMAND,
+      (payload) => {
+        onCanRedoChange(payload);
+        return false;
+      },
+      COMMAND_PRIORITY_CRITICAL
+    );
 
     const removeUpdateListener = editor.registerUpdateListener(
       ({ editorState }) => {
@@ -429,47 +469,60 @@ const EditorController = ({
       }
     );
 
-    // Register command listeners
-    const removeCanUndoListener = editor.registerCommand<boolean>(
-      CAN_UNDO_COMMAND,
-      (payload) => {
-        onCanUndoChange(payload);
-        return false;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-    const removeCanRedoListener = editor.registerCommand<boolean>(
-      CAN_REDO_COMMAND,
-      (payload) => {
-        onCanRedoChange(payload);
-        return false;
-      },
-      COMMAND_PRIORITY_CRITICAL
-    );
-
     return () => {
-      removeUpdateListener();
       removeCanUndoListener();
       removeCanRedoListener();
+      removeUpdateListener();
     };
   }, [
     editor,
     onCanUndoChange,
     onCanRedoChange,
     onTextChange,
+    onIsCodeBlockChange
+  ]);
+
+  // Register command functions
+  useEffect(() => {
+    onUndoCommand(undoFn);
+    onRedoCommand(redoFn);
+    onFindCommand(findFn);
+    onReplaceCommand(replaceFn);
+    onNavigateCommand(navigateFn);
+    onFormatCodeCommand(formatCodeBlockFn);
+  }, [
+    undoFn,
+    redoFn,
+    findFn,
+    replaceFn,
+    navigateFn,
+    formatCodeBlockFn,
     onUndoCommand,
     onRedoCommand,
     onFindCommand,
     onReplaceCommand,
     onNavigateCommand,
-    onFormatCodeCommand,
-    onIsCodeBlockChange,
-    undoFn,
-    redoFn,
+    onFormatCodeCommand
+  ]);
+
+  // Handle search highlighting
+  useEffect(() => {
+    if (currentSearchTerm && currentMatches.length > 0) {
+      applyHighlights(
+        currentMatches,
+        currentSearchTerm.length,
+        currentMatchIndex
+      );
+    }
+    return () => {
+      clearHighlights();
+    };
+  }, [
     currentSearchTerm,
     currentMatches,
     currentMatchIndex,
-    formatCodeBlockFn
+    applyHighlights,
+    clearHighlights
   ]);
 
   return null;
