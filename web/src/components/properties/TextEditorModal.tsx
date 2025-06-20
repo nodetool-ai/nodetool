@@ -121,11 +121,13 @@ const styles = (theme: any) =>
     ".title-and-description": {
       flex: 1,
       display: "flex",
-      flexDirection: "column",
-      gap: "0.5em"
+      flexDirection: "row",
+      alignItems: "baseline",
+      gap: "1em"
     },
     ".description": {
       width: "calc(100% - 100px)",
+      maxWidth: "800px",
       maxHeight: "110px",
       overflowY: "auto",
       padding: "0",

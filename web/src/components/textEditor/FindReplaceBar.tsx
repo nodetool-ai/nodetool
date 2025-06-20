@@ -186,25 +186,29 @@ const FindReplaceBar = ({
         </div>
 
         <Tooltip title="Previous" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="toolbar-button"
-            onClick={onPrevious}
-            disabled={totalMatches === 0}
-            size="small"
-          >
-            <KeyboardArrowUpIcon fontSize="small" />
-          </IconButton>
+          <span>
+            <IconButton
+              className="toolbar-button"
+              onClick={onPrevious}
+              disabled={totalMatches === 0}
+              size="small"
+            >
+              <KeyboardArrowUpIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
 
         <Tooltip title="Next" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="toolbar-button"
-            onClick={onNext}
-            disabled={totalMatches === 0}
-            size="small"
-          >
-            <KeyboardArrowDownIcon fontSize="small" />
-          </IconButton>
+          <span>
+            <IconButton
+              className="toolbar-button"
+              onClick={onNext}
+              disabled={totalMatches === 0}
+              size="small"
+            >
+              <KeyboardArrowDownIcon fontSize="small" />
+            </IconButton>
+          </span>
         </Tooltip>
 
         <Tooltip title="Toggle Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -230,25 +234,29 @@ const FindReplaceBar = ({
           />
 
           <Tooltip title="Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              className="toolbar-button"
-              onClick={handleReplace}
-              disabled={!searchTerm || totalMatches === 0}
-              size="small"
-            >
-              Replace
-            </IconButton>
+            <span>
+              <IconButton
+                className="toolbar-button"
+                onClick={handleReplace}
+                disabled={!searchTerm || totalMatches === 0}
+                size="small"
+              >
+                Replace
+              </IconButton>
+            </span>
           </Tooltip>
 
           <Tooltip title="Replace All" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              className="toolbar-button"
-              onClick={handleReplaceAll}
-              disabled={!searchTerm || totalMatches === 0}
-              size="small"
-            >
-              All
-            </IconButton>
+            <span>
+              <IconButton
+                className="toolbar-button"
+                onClick={handleReplaceAll}
+                disabled={!searchTerm || totalMatches === 0}
+                size="small"
+              >
+                All
+              </IconButton>
+            </span>
           </Tooltip>
         </div>
       )}
