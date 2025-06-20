@@ -29,6 +29,47 @@ import { QueryClient } from "@tanstack/react-query";
 import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
 
 // -----------------------------------------------------------------
+// HELPER FUNCTIONS
+// -----------------------------------------------------------------
+
+/**
+ * Determines the next active workflow ID when a workflow is removed.
+ *
+ * @param openWorkflows - The list of currently open workflows.
+ * @param closingWorkflowId - The ID of the workflow being closed.
+ * @param currentWorkflowId - The ID of the currently active workflow.
+ * @returns The ID of the next workflow to be activated, or null if none are left.
+ */
+export const determineNextWorkflowId = (
+  openWorkflows: WorkflowAttributes[],
+  closingWorkflowId: string,
+  currentWorkflowId: string | null
+): string | null => {
+  if (currentWorkflowId !== closingWorkflowId) {
+    return currentWorkflowId;
+  }
+
+  const remainingWorkflows = openWorkflows.filter(
+    (w) => w.id !== closingWorkflowId
+  );
+  if (remainingWorkflows.length === 0) {
+    return null;
+  }
+
+  const closingIndex = openWorkflows.findIndex(
+    (w) => w.id === closingWorkflowId
+  );
+
+  // Try to select the next tab, then the previous one, then the first one.
+  const nextWorkflow =
+    remainingWorkflows[closingIndex] ||
+    remainingWorkflows[closingIndex - 1] ||
+    remainingWorkflows[0];
+
+  return nextWorkflow.id;
+};
+
+// -----------------------------------------------------------------
 // TYPES
 // -----------------------------------------------------------------
 
@@ -247,20 +288,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
         }
-
-        const workflowWithTags = {
-          ...data,
-          tags: workflow.tags || []
-        };
-
-        // Refresh workflows query cache.
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-
-        if (window.api) {
-          window.api.onCreateWorkflow(workflowWithTags);
-        }
-
-        return workflowWithTags;
+        get().addWorkflow(data);
+        get().setCurrentWorkflowId(data.id);
+        return data;
       },
 
       /**
@@ -433,26 +463,20 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to set as current
        */
       setCurrentWorkflowId: (workflowId: string) => {
-        storage.setCurrentWorkflow(workflowId);
         set({ currentWorkflowId: workflowId });
+        storage.setCurrentWorkflow(workflowId);
       },
 
       // Retrieves the current workflow using its node store.
       getCurrentWorkflow: () => {
-        const workflow = get().nodeStores[get().currentWorkflowId!];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().getWorkflow();
+        const id = get().currentWorkflowId;
+        return id ? get().getWorkflow(id) : undefined;
       },
 
       // Returns a workflow from its node store using the workflow id.
       getWorkflow: (workflowId: string) => {
-        const workflow = get().nodeStores[workflowId];
-        if (!workflow) {
-          return undefined;
-        }
-        return workflow.getState().getWorkflow();
+        const store = get().nodeStores[workflowId];
+        return store ? store.getState().getWorkflow() : undefined;
       },
 
       // ---------------------------------------------------------------------------------
@@ -464,53 +488,21 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {Workflow} workflow The workflow to add
        */
       addWorkflow: (workflow: Workflow) => {
-        if (!workflow.id) {
-          console.warn("Attempted to add workflow with no ID");
+        const existingStore = get().getNodeStore(workflow.id);
+        if (existingStore) {
+          console.warn(
+            `[WorkflowManager] A store for workflow ${workflow.id} already exists. Skipping creation.`
+          );
           return;
         }
-        // Update the open workflows in localStorage.
-        const openWorkflows = storage.getOpenWorkflows();
 
-        if (!openWorkflows.includes(workflow.id)) {
-          const updatedWorkflows = [...openWorkflows, workflow.id];
-          storage.setOpenWorkflows(updatedWorkflows);
-        }
-
-        set((state) => {
-          const existingIndex = state.openWorkflows.findIndex(
-            (w) => w.id === workflow.id
-          );
-
-          let updatedOpenWorkflows;
-          if (existingIndex >= 0) {
-            updatedOpenWorkflows = [...state.openWorkflows];
-            updatedOpenWorkflows[existingIndex] = omit(workflow, ["graph"]);
-
-            if (state.nodeStores[workflow.id]) {
-              state.nodeStores[workflow.id].setState({
-                workflow: workflow
-              });
-              return {
-                openWorkflows: updatedOpenWorkflows
-              };
-            }
-          } else {
-            updatedOpenWorkflows = [
-              ...state.openWorkflows,
-              omit(workflow, ["graph"])
-            ];
-          }
-          // Create a new node store for the workflow.
-          const nodeStore = createNodeStore(workflow);
-
-          return {
-            openWorkflows: updatedOpenWorkflows,
-            nodeStores: {
-              ...state.nodeStores,
-              [workflow.id]: nodeStore
-            }
-          };
-        });
+        const newStore = createNodeStore(workflow);
+        const workflowAttributes = omit(workflow, "graph");
+        set((state) => ({
+          nodeStores: { ...state.nodeStores, [workflow.id]: newStore },
+          openWorkflows: [...state.openWorkflows, workflowAttributes]
+        }));
+        storage.addOpenWorkflow(workflow.id);
       },
 
       /**
@@ -518,22 +510,39 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
+        console.log(`[WorkflowManager] Removing workflow: ${workflowId}`);
+        const { nodeStores, openWorkflows, currentWorkflowId, loadingStates } =
+          get();
+
+        const newOpenWorkflows = openWorkflows.filter(
+          (w) => w.id !== workflowId
+        );
+        const newStores = { ...nodeStores };
+        delete newStores[workflowId];
+
+        const newLoadingStates = { ...loadingStates };
+        delete newLoadingStates[workflowId];
+
+        const newCurrentId = determineNextWorkflowId(
+          openWorkflows,
+          workflowId,
+          currentWorkflowId
+        );
+
+        set({
+          nodeStores: newStores,
+          openWorkflows: newOpenWorkflows,
+          currentWorkflowId: newCurrentId,
+          loadingStates: newLoadingStates
+        });
+
         storage.removeOpenWorkflow(workflowId);
 
-        set((state) => {
-          const { [workflowId]: removed, ...remaining } = state.nodeStores;
-          const {
-            [workflowId]: removedLoadingState,
-            ...remainingLoadingStates
-          } = state.loadingStates;
-          return {
-            nodeStores: remaining,
-            loadingStates: remainingLoadingStates,
-            openWorkflows: state.openWorkflows.filter(
-              (w) => w.id !== workflowId
-            )
-          };
-        });
+        if (newCurrentId) {
+          storage.setCurrentWorkflow(newCurrentId);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
+        }
       },
 
       /**
@@ -609,17 +618,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {WorkflowAttributes} workflow The workflow attributes to update
        */
       updateWorkflow: (workflow: WorkflowAttributes) => {
-        const nodeStore = get().nodeStores[workflow.id];
-        if (!nodeStore) {
-          return;
-        }
-        nodeStore.setState({
-          workflow: workflow
-        });
         set((state) => ({
-          openWorkflows: Object.values(state.nodeStores).map((store) => {
-            return store.getState().workflow;
-          })
+          openWorkflows: state.openWorkflows.map((w) =>
+            w.id === workflow.id ? { ...w, ...workflow } : w
+          )
         }));
       },
 
@@ -645,38 +647,44 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Fetches the workflow data by its ID, updates the loading state and adds the workflow.
       fetchWorkflow: async (workflowId: string) => {
-        const state = get();
-        const nodeStore = state.getNodeStore(workflowId);
-        const loadingState = state.getLoadingState(workflowId);
-
-        // If the workflow is already loaded or currently loading, skip fetch.
-        if (nodeStore || loadingState?.isLoading) {
+        // Do not fetch if already loading
+        if (get().getLoadingState(workflowId)?.isLoading) {
           return;
         }
 
-        state.setLoadingState(workflowId, {
-          isLoading: true,
-          error: null,
-          data: null
-        });
+        // If the workflow is already in the store, just make it current.
+        if (get().getWorkflow(workflowId)) {
+          get().setCurrentWorkflowId(workflowId);
+          return;
+        }
 
-        const { data, error } = await client.GET("/api/workflows/{id}", {
-          params: { path: { id: workflowId } }
-        });
+        get().setLoadingState(workflowId, { isLoading: true });
 
-        if (error) {
-          state.setLoadingState(workflowId, {
-            isLoading: false,
-            error: error as Error,
-            data: null
+        try {
+          const { data, error } = await client.GET("/api/workflows/{id}", {
+            params: { path: { id: workflowId } }
           });
-        } else {
-          state.setLoadingState(workflowId, {
+
+          if (error) {
+            get().setLoadingState(workflowId, {
+              isLoading: false,
+              error: error as Error
+            });
+            return;
+          }
+
+          get().addWorkflow(data);
+          get().setCurrentWorkflowId(data.id);
+          get().setLoadingState(workflowId, { isLoading: false, data });
+        } catch (e) {
+          console.error(
+            `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
+            e
+          );
+          get().setLoadingState(workflowId, {
             isLoading: false,
-            error: null,
-            data
+            error: e as Error
           });
-          state.addWorkflow(data);
         }
       },
 
