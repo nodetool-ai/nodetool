@@ -35,13 +35,20 @@ function getNodesBounds(
 
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
-  const { nodes, selectedNodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    selectedNodes: state.getSelectedNodes(),
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
+    (state) => ({
+      nodes: state.nodes,
+      selectedNodes: state.getSelectedNodes(),
+      setSelectedNodes: state.setSelectedNodes,
+      setViewport: state.setViewport
+    })
+  );
   const TRANSITION_DURATION = 800;
-  const SECOND_CALL_DELAY = 20;
+
+  // A short delay for the second fitBounds call when nodes are selected.
+  const FIT_BOUNDS_DELAY_SELECTED = 10;
+  // A slightly longer delay for the second fitBounds call for the general case.
+  const FIT_BOUNDS_DELAY_DEFAULT = 20;
 
   return useCallback(
     (options?: { padding?: number }) => {
@@ -88,6 +95,10 @@ export const useFitView = () => {
           padding: padding
         });
 
+        // The second fitBounds call is a necessary workaround. After the first call,
+        // nodes may not have their final dimensions calculated, especially with dynamic
+        // content. This second call, after a short delay, ensures the view is fitted
+        // to the correct, final bounds. Without it, sometimes two manual fits were required.
         setTimeout(
           () => {
             reactFlowInstance.fitBounds(bounds, {
@@ -95,10 +106,18 @@ export const useFitView = () => {
               padding: padding
             });
           },
-          selectedNodes.length > 0 ? 10 : SECOND_CALL_DELAY
+          selectedNodes.length > 0
+            ? FIT_BOUNDS_DELAY_SELECTED
+            : FIT_BOUNDS_DELAY_DEFAULT
         );
       });
+
+      // After the animation, get the new viewport and save it.
+      setTimeout(() => {
+        const newViewport = reactFlowInstance.getViewport();
+        setViewport(newViewport);
+      }, TRANSITION_DURATION + FIT_BOUNDS_DELAY_DEFAULT + 100); // Wait for animations to finish
     },
-    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance]
+    [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
   );
 };

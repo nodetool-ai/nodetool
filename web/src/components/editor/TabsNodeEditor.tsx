@@ -7,7 +7,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeProvider } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppToolbar from "../panels/AppToolbar";
-import { Workflow } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -18,6 +18,7 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
+import { NodeStore } from "../../stores/NodeStore";
 
 const styles = (theme: any) =>
   css({
@@ -306,32 +307,44 @@ const TabsNodeEditor = () => {
       loadingStates: state.loadingStates
     }));
 
+  const activeNodeStore = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]
+      : undefined
+  );
+
   const electronDetectionDetails = getIsElectronDetails();
   const isElectron = electronDetectionDetails.isElectron;
   const platform = window.navigator.platform;
   const isMac = platform.toLowerCase().includes("mac");
 
-  const workflows = useMemo(() => {
-    const loadingWorkflows = Object.keys(loadingStates)
-      .filter((id) => !openWorkflows.some((w) => w.id === id))
-      .map(
-        (id) =>
-          ({
-            id,
-            name: "Loading...",
-            thumbnail: "",
-            access: "private",
-            description: "",
-            isDirty: false,
-            updated_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            graph: { nodes: [], edges: [] }
-          } as Workflow)
-      );
-    return [...openWorkflows, ...loadingWorkflows];
-  }, [openWorkflows, loadingStates]);
-
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
+
+  // Create a combined list of tabs to render
+  const tabsToRender = useMemo(() => {
+    const tabMap = new Map<string, WorkflowAttributes>();
+
+    // Add open workflows
+    openWorkflows.forEach((workflow) => {
+      tabMap.set(workflow.id, workflow);
+    });
+
+    // Add loading placeholders
+    Object.keys(loadingStates).forEach((id) => {
+      if (!tabMap.has(id)) {
+        tabMap.set(id, {
+          id,
+          name: "Loading...",
+          access: "private",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          description: ""
+        });
+      }
+    });
+
+    return Array.from(tabMap.values());
+  }, [openWorkflows, loadingStates]);
 
   return (
     <>
@@ -345,7 +358,7 @@ const TabsNodeEditor = () => {
       <ThemeProvider theme={ThemeNodes}>
         <div css={styles}>
           <div className="tabs-container">
-            <TabsBar workflows={workflows} />
+            <TabsBar workflows={tabsToRender} />
             {!isMac && isElectron && <WindowControls />}
           </div>
           <div
@@ -353,66 +366,65 @@ const TabsNodeEditor = () => {
             css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
-            {workflows.map((workflow) => {
-              const isActive = currentWorkflowId === workflow.id;
-              return (
-                <Box
-                  key={workflow.id}
-                  sx={{
-                    overflow: "hidden",
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    minHeight: 0,
-                    minWidth: 0,
-                    display: isActive ? "flex" : "none",
-                    flexDirection: "column"
-                  }}
-                >
+            {activeNodeStore ? (
+              <Box
+                key={currentWorkflowId}
+                sx={{
+                  overflow: "hidden",
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 0,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                <NodeProvider createStore={() => activeNodeStore}>
                   <ReactFlowProvider>
-                    <ContextMenuProvider active={isActive}>
-                      <ConnectableNodesProvider active={isActive}>
-                        <KeyboardProvider active={isActive}>
-                          <NodeProvider workflowId={workflow.id}>
-                            {isActive && (
-                              <div
-                                style={{
-                                  flexShrink: 0,
-                                  position: "relative",
-                                  zIndex: 1
-                                }}
-                              >
-                                <AppHeader />
-                                <AppToolbar
-                                  setWorkflowToEdit={setWorkflowToEdit}
-                                />
-                                <div className="status-message-container">
-                                  <StatusMessage />
-                                </div>
-                              </div>
-                            )}
-                            <div
-                              style={{
-                                flex: 1,
-                                minHeight: 0,
-                                position: "relative",
-                                width: "100%",
-                                height: "100%"
-                              }}
-                            >
-                              <NodeEditor
-                                workflowId={workflow.id}
-                                active={isActive}
+                    <ContextMenuProvider active={true}>
+                      <ConnectableNodesProvider active={true}>
+                        <KeyboardProvider active={true}>
+                          <div
+                            style={{
+                              flexShrink: 0,
+                              position: "relative",
+                              zIndex: 1
+                            }}
+                          >
+                            <AppHeader />
+                            <div className="actions-container">
+                              <AppToolbar
+                                setWorkflowToEdit={setWorkflowToEdit}
                               />
                             </div>
-                          </NodeProvider>
+                            <div className="status-message-container">
+                              <StatusMessage />
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              minHeight: 0,
+                              position: "relative",
+                              width: "100%",
+                              height: "100%"
+                            }}
+                          >
+                            <NodeEditor
+                              workflowId={currentWorkflowId!}
+                              active={true}
+                            />
+                          </div>
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>
                   </ReactFlowProvider>
-                </Box>
-              );
-            })}
+                </NodeProvider>
+              </Box>
+            ) : (
+              <StatusMessage />
+            )}
           </div>
         </div>
       </ThemeProvider>
