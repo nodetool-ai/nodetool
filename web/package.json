@@ -85,12 +85,12 @@
     "slate-react": "^0.112.0",
     "string-to-color": "^2.2.2",
     "tabulator-tables": "^6.3.0",
+    "text-fragments-polyfill": "^6.4.1",
     "use-debounce": "^10.0.4",
     "uuid": "^11.0.3",
     "vite": "^6.3.5",
     "vite-plugin-svgr": "^4.3.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "text-fragments-polyfill": "^6.4.1",
     "wavesurfer.js": "^7.8.10",
     "web-worker": "^1.3.0",
     "zundo": "^2.3.0"
