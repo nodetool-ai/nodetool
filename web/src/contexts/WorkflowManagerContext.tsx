@@ -87,6 +87,9 @@ type WorkflowManagerState = {
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
   systemStats: SystemStats | null;
+  workflowTools: Workflow[];
+  workflowToolsLoading: boolean;
+  workflowToolsError: Error | null;
   getSystemStats: () => SystemStats | null;
   getCurrentLoadingState: () => LoadingState | undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
@@ -117,6 +120,8 @@ type WorkflowManagerState = {
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: () => Promise<any>;
   validateAllEdges: () => void;
+  fetchWorkflowTools: () => Promise<void>;
+  getWorkflowTools: () => Workflow[];
 };
 
 // Defines the Zustand store type for workflow management.
@@ -224,8 +229,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       error: null,
       queryClient: queryClient,
       systemStats: null,
+      workflowTools: [],
+      workflowToolsLoading: false,
+      workflowToolsError: null,
       getSystemStats: () => get().systemStats,
       setSystemStats: (stats: SystemStats) => set({ systemStats: stats }),
+      getWorkflowTools: () => get().workflowTools,
 
       // ---------------------------------------------------------------------------------
       // Workflow Creation and API methods
@@ -250,7 +259,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           },
           settings: {
             hide_ui: false
-          }
+          },
+          run_mode: "workflow"
         };
         return data;
       },
@@ -288,8 +298,26 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (error) {
           throw createErrorMessage(error, "Failed to create workflow");
         }
+        if (data.tags === undefined) {
+          data.tags = [];
+        }
         get().addWorkflow(data);
         get().setCurrentWorkflowId(data.id);
+
+        // Refresh workflows query cache.
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+
+        if (window.api) {
+          window.api.onCreateWorkflow(data);
+        }
+
+        // Update workflow tools cache if this is a tool workflow
+        if (data.run_mode === "tool") {
+          set((state) => ({
+            workflowTools: [...state.workflowTools, data]
+          }));
+        }
+
         return data;
       },
 
@@ -409,6 +437,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (window.api) {
           window.api.onDeleteWorkflow(workflow);
         }
+        
+        // Remove from workflow tools cache if it was a tool
+        set((state) => ({
+          workflowTools: state.workflowTools.filter(w => w.id !== workflow.id)
+        }));
+        
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
@@ -573,10 +607,29 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             });
             nodeStore.getState().setWorkflowDirty(false);
           }
+          
+          // Update workflow tools cache based on run_mode
+          let updatedWorkflowTools = state.workflowTools;
+          const existingToolIndex = state.workflowTools.findIndex(w => w.id === data.id);
+          
+          if (data.run_mode === "tool") {
+            // Add or update in tools list
+            if (existingToolIndex >= 0) {
+              updatedWorkflowTools = [...state.workflowTools];
+              updatedWorkflowTools[existingToolIndex] = data;
+            } else {
+              updatedWorkflowTools = [...state.workflowTools, data];
+            }
+          } else if (existingToolIndex >= 0) {
+            // Remove from tools list if no longer a tool
+            updatedWorkflowTools = state.workflowTools.filter(w => w.id !== data.id);
+          }
+          
           return {
             openWorkflows: state.openWorkflows.map((w) =>
               w.id === workflow.id ? omit(data, ["graph"]) : w
-            )
+            ),
+            workflowTools: updatedWorkflowTools
           };
         });
 
@@ -651,6 +704,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (get().getLoadingState(workflowId)?.isLoading) {
           return;
         }
+        console.log("fetching workflow", workflowId);
 
         // If the workflow is already in the store, just make it current.
         if (get().getWorkflow(workflowId)) {
@@ -690,6 +744,31 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       validateAllEdges: () => {
         // Edge validation functionality removed - will be implemented in separate branch
+      },
+
+      /**
+       * Fetches workflow tools from the API.
+       * @returns {Promise<void>}
+       */
+      fetchWorkflowTools: async () => {
+        set({ workflowToolsLoading: true, workflowToolsError: null });
+        
+        const { data, error } = await client.GET("/api/workflows/tools");
+        
+        if (error) {
+          console.error("Error fetching workflow tools", error);
+          set({ 
+            workflowToolsLoading: false, 
+            workflowToolsError: error as Error,
+            workflowTools: []
+          });
+        } else {
+          set({ 
+            workflowToolsLoading: false, 
+            workflowToolsError: null,
+            workflowTools: data.workflows || []
+          });
+        }
       }
     };
   });
@@ -762,6 +841,9 @@ export const WorkflowManagerProvider: React.FC<{
     openWorkflows.forEach((workflowId: string) => {
       store.getState().fetchWorkflow(workflowId);
     });
+
+    // Fetch workflow tools
+    store.getState().fetchWorkflowTools();
 
     // Cleanup: disconnect WebSocket on component unmount
     return () => {

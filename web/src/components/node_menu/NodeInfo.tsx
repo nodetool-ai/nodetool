@@ -263,7 +263,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         ) : (
           <img
             className="preview-image"
-            src={nodeMetadata.the_model_info.cover_image_url}
+            src={nodeMetadata.the_model_info.cover_image_url as string}
             alt={nodeMetadata.title}
           />
         )

@@ -26,7 +26,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     ],
     outputs: [],
     the_model_info: {},
-    recommended_models: []
+    recommended_models: [],
+    is_streaming: false
   }
 };
 

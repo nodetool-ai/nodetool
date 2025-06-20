@@ -19,16 +19,18 @@ interface ChatComposerProps {
     | "error"
     | "streaming"
     | "reconnecting";
-  onSendMessage: (content: MessageContent[], prompt: string) => void;
+  onSendMessage: (content: MessageContent[], prompt: string, agentMode: boolean) => void;
   onStop?: () => void;
   disabled?: boolean;
+  agentMode?: boolean;
 }
 
 const ChatComposer: React.FC<ChatComposerProps> = ({
   status,
   onSendMessage,
   onStop,
-  disabled = false
+  disabled = false,
+  agentMode = false
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -80,11 +82,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
 
       const fileContents = getFileContents();
 
-      onSendMessage([...content, ...fileContents], prompt);
+      onSendMessage([...content, ...fileContents], prompt, agentMode);
       setPrompt("");
       clearFiles();
     }
-  }, [status, prompt, getFileContents, onSendMessage, clearFiles]);
+  }, [status, prompt, getFileContents, onSendMessage, clearFiles, agentMode]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

@@ -62,7 +62,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
         default: ""
       }
     ],
-    is_dynamic: false
+    is_dynamic: false,
+    is_streaming: false
   },
   dynamic_test: {
     node_type: "dynamic_test",
@@ -81,7 +82,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
       }
     ],
     properties: [],
-    is_dynamic: true
+    is_dynamic: true,
+    is_streaming: false
   }
 };
 describe("NodeStore node management", () => {

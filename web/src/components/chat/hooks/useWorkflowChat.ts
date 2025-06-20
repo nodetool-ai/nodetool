@@ -44,6 +44,6 @@ export const useWorkflowChat = (workflow_id: string, isMinimized: boolean) => {
   return {
     handleSendMessage,
     handleReset,
-    isChat: workflow.settings?.run_mode === "chat"
+    isChat: workflow.run_mode === "chat"
   };
 };

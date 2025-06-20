@@ -12,7 +12,8 @@ import {
   Chunk,
   TaskUpdate,
   PlanningUpdate,
-  Prediction
+  Prediction,
+  SubTaskResult
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
@@ -57,6 +58,18 @@ interface GlobalChatState {
   threads: Record<string, Thread>;
   currentThreadId: string | null;
 
+  // Agent mode
+  agentMode: boolean;
+  setAgentMode: (enabled: boolean) => void;
+
+  // Planning updates
+  currentPlanningUpdate: PlanningUpdate | null;
+  setPlanningUpdate: (update: PlanningUpdate | null) => void;
+
+  // Task updates
+  currentTaskUpdate: TaskUpdate | null;
+  setTaskUpdate: (update: TaskUpdate | null) => void;
+
   // Actions
   connect: (workflowId?: string) => Promise<void>;
   disconnect: () => void;
@@ -82,7 +95,8 @@ export type MsgpackData =
   | ToolCallUpdate
   | TaskUpdate
   | PlanningUpdate
-  | OutputUpdate;
+  | OutputUpdate
+  | SubTaskResult;
 
 // Reconnection constants
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
@@ -155,6 +169,7 @@ const createSocketHandlers = (
   const handleMessage = async (event: MessageEvent) => {
     const arrayBuffer = await event.data.arrayBuffer();
     const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
+    console.log(data);
 
     if (data.type === "message") {
       const message = data as Message;
@@ -251,7 +266,7 @@ const createSocketHandlers = (
             }));
           }
           if (chunk.done) {
-            set({ status: "connected", statusMessage: null });
+            set({ status: "connected", statusMessage: null, currentPlanningUpdate: null, currentTaskUpdate: null });
           }
         }
       }
@@ -347,6 +362,15 @@ const createSocketHandlers = (
         progress: { current: progress.progress, total: progress.total },
         statusMessage: null
       });
+    } else if (data.type === "planning_update") {
+      const update = data as PlanningUpdate;
+      set({ currentPlanningUpdate: update });
+    } else if (data.type === "task_update") {
+      const update = data as TaskUpdate;
+      set({ currentTaskUpdate: update });
+    } else if (data.type === "subtask_result") {
+      const update = data as SubTaskResult;
+      // TODO: update the thread with the subtask result
     }
   };
 
@@ -474,6 +498,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
+
+      // Agent mode
+      agentMode: false,
+      setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
+
+      // Planning updates
+      currentPlanningUpdate: null,
+      setPlanningUpdate: (update: PlanningUpdate | null) => set({ currentPlanningUpdate: update }),
+
+      // Task updates
+      currentTaskUpdate: null,
+      setTaskUpdate: (update: TaskUpdate | null) => set({ currentTaskUpdate: update }),
 
       connect: async (workflowId?: string) => {
         log.info("Connecting to global chat");
@@ -628,6 +664,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         message.workflow_id = get().workflowId || undefined;
         message.thread_id = threadId;
+        message.agent_mode = get().agentMode;
 
         // Add message to thread
         const thread = get().threads[threadId];

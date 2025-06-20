@@ -199,7 +199,10 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
-  const selectedTools = useMemo(() => value || [], [value]);
+  const selectedTools = useMemo(() => {
+    const toolIds = new Set(TOOLS.map(tool => tool.id));
+    return (value || []).filter(toolId => toolIds.has(toolId));
+  }, [value]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
