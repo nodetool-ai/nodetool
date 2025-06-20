@@ -361,7 +361,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={ThemeNodes}>
         <div css={styles}>
           <div className="tabs-container">
             <TabsBar workflows={tabsToRender} />

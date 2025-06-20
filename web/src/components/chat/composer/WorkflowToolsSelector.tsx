@@ -20,9 +20,8 @@ import {
   CheckBoxOutlineBlank
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import { useQuery } from "@tanstack/react-query";
-import { client } from "../../../stores/ApiClient";
 import { Workflow } from "../../../stores/ApiTypes";
+import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 
 // Helper functions for toolId logic
 const generateToolIdFromWorkflowName = (workflowName: string): string => {
@@ -93,19 +92,15 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const open = Boolean(anchorEl);
   const selectedTools = useMemo(() => value || [], [value]);
 
-  // Fetch workflow tools
-  const { data: workflowTools, isLoading, isError } = useQuery({
-    queryKey: ["workflow-tools"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/workflows/tools");
-      if (error) {
-        console.error("Error fetching workflow tools", error);
-        return [];
-      }
-      return data.workflows as Workflow[];
-    },
-    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
-  });
+  // Get workflow tools from context
+  const { workflowTools, workflowToolsLoading: isLoading, workflowToolsError } = useWorkflowManager(
+    (state) => ({
+      workflowTools: state.workflowTools,
+      workflowToolsLoading: state.workflowToolsLoading,
+      workflowToolsError: state.workflowToolsError
+    })
+  );
+  const isError = Boolean(workflowToolsError);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
