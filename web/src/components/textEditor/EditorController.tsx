@@ -72,17 +72,8 @@ const EditorController = ({
     (CSS as any)?.highlights?.delete?.(highlightAllName);
     (CSS as any)?.highlights?.delete?.(highlightCurrentName);
 
-    // The Text-Fragments polyfill (and current spec drafts) do not expose a
-    // `hide()` helper. In Chromium-based browsers the `CSS.highlights` path is
-    // taken and we're done.  On Firefox (where we rely on the polyfill)
-    // `fragmentDirective` exists, but without a `hide` method.  Guard the call
-    // so we don't throw in that case.
-    if (
-      "fragmentDirective" in document &&
-      typeof (document as any).fragmentDirective.hide === "function"
-    ) {
-      (document as any).fragmentDirective.hide();
-    }
+    // No DOM-wrapper fallback anymore; CSS Highlight API handles highlight
+    // clearing via CSS.highlights.delete above.
   }, [highlightAllName, highlightCurrentName]);
 
   // Given a single match offset, return a DOM Range corresponding to it.
