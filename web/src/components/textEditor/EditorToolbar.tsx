@@ -27,7 +27,7 @@ const styles = (theme: any) =>
     display: "flex",
     alignItems: "center",
     padding: "0.2em 1em 0 1em",
-    backgroundColor: theme.palette.c_gray0,
+    backgroundColor: "transparent",
     gap: "0.5em",
     minHeight: "2.5em",
     ".toolbar-group": {
