@@ -17,6 +17,20 @@ const styles = (theme: any) =>
     "::highlight(findCurrent)": {
       backgroundColor: "rgba(255, 165, 0, 0.7)"
     },
+    ".editor": {
+      "&.word-wrap": {
+        whiteSpace: "pre-wrap !important",
+        "& *": {
+          whiteSpace: "pre-wrap !important"
+        }
+      },
+      "&.no-wrap": {
+        whiteSpace: "pre !important",
+        "& *": {
+          whiteSpace: "pre !important"
+        }
+      }
+    },
     ".editor-input": {
       height: "100%",
       outline: "none",
@@ -37,24 +51,6 @@ const styles = (theme: any) =>
       },
       ".font-size-large": {
         fontSize: theme.fontSizeBigger
-      },
-      "&.word-wrap": {
-        whiteSpace: "pre-wrap",
-        pre: {
-          whiteSpace: "pre-wrap !important"
-        },
-        textarea: {
-          whiteSpace: "pre-wrap !important"
-        }
-      },
-      "&.no-wrap": {
-        whiteSpace: "pre",
-        pre: {
-          whiteSpace: "pre !important"
-        },
-        textarea: {
-          whiteSpace: "pre !important"
-        }
       }
     },
     ".editor-placeholder": {
