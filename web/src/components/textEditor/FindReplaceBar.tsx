@@ -1,12 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useCallback } from "react";
 import { IconButton, TextField, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
+const MAX_SEARCH_LENGTH = 1000;
+
+// Simple validation for search/replace terms
+const isValidInput = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.length <= MAX_SEARCH_LENGTH;
+};
 
 interface FindReplaceBarProps {
   onFind?: (searchTerm: string) => void;
@@ -125,17 +133,33 @@ const FindReplaceBar = ({
   const [replaceTerm, setReplaceTerm] = useState("");
   const [showReplace, setShowReplace] = useState(false);
 
-  // Debounced search effect - only depends on searchTerm, not onFind
+  // Handlers with proper length validation
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.slice(0, MAX_SEARCH_LENGTH);
+      setSearchTerm(value);
+    },
+    []
+  );
+
+  const handleReplaceChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.slice(0, MAX_SEARCH_LENGTH);
+      setReplaceTerm(value);
+    },
+    []
+  );
+
+  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchTerm && searchTerm.trim() && onFind) {
+      if (isValidInput(searchTerm) && onFind) {
         onFind(searchTerm);
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]); // Only depend on searchTerm to avoid infinite re-renders
+  }, [searchTerm, onFind]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -149,19 +173,21 @@ const FindReplaceBar = ({
     }
   };
 
-  const handleReplace = () => {
-    if (onReplace) {
+  const handleReplace = useCallback(() => {
+    if (onReplace && isValidInput(searchTerm)) {
       onReplace(searchTerm, replaceTerm, false);
     }
-  };
+  }, [onReplace, searchTerm, replaceTerm]);
 
-  const handleReplaceAll = () => {
-    if (onReplace) {
+  const handleReplaceAll = useCallback(() => {
+    if (onReplace && isValidInput(searchTerm)) {
       onReplace(searchTerm, replaceTerm, true);
     }
-  };
+  }, [onReplace, searchTerm, replaceTerm]);
 
   if (!isVisible) return null;
+
+  const isValidSearch = isValidInput(searchTerm);
 
   return (
     <div css={styles(theme)}>
@@ -171,9 +197,15 @@ const FindReplaceBar = ({
           placeholder="Find..."
           size="small"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           onKeyDown={handleKeyDown}
           autoFocus
+          slotProps={{
+            htmlInput: {
+              "aria-label": "Search text",
+              maxLength: MAX_SEARCH_LENGTH
+            }
+          }}
         />
 
         <div
@@ -229,8 +261,14 @@ const FindReplaceBar = ({
             placeholder="Replace with..."
             size="small"
             value={replaceTerm}
-            onChange={(e) => setReplaceTerm(e.target.value)}
+            onChange={handleReplaceChange}
             onKeyDown={handleKeyDown}
+            slotProps={{
+              htmlInput: {
+                "aria-label": "Replace text",
+                maxLength: MAX_SEARCH_LENGTH
+              }
+            }}
           />
 
           <Tooltip title="Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -238,7 +276,7 @@ const FindReplaceBar = ({
               <IconButton
                 className="toolbar-button"
                 onClick={handleReplace}
-                disabled={!searchTerm || totalMatches === 0}
+                disabled={!isValidSearch || totalMatches === 0}
                 size="small"
               >
                 Replace
@@ -251,7 +289,7 @@ const FindReplaceBar = ({
               <IconButton
                 className="toolbar-button"
                 onClick={handleReplaceAll}
-                disabled={!searchTerm || totalMatches === 0}
+                disabled={!isValidSearch || totalMatches === 0}
                 size="small"
               >
                 All
