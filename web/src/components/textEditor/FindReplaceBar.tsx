@@ -35,14 +35,14 @@ const styles = (theme: any) =>
   css({
     display: "flex",
     alignItems: "center",
-    padding: "0.5em .5em 0 .5em",
+    padding: "0.2em 0.5em 0.5em 1em",
     justifyContent: "start",
     backgroundColor: theme.palette.c_gray1,
     gap: "0.5em",
-    minHeight: "3em",
     ".search-group": {
       display: "flex",
       alignItems: "center",
+      margin: "0",
       gap: "0.2em"
     },
     ".search-input": {
@@ -57,7 +57,7 @@ const styles = (theme: any) =>
         }
       },
       "& .MuiInputBase-input::placeholder": {
-        color: theme.palette.c_gray4,
+        color: theme.palette.c_gray5,
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
@@ -190,7 +190,7 @@ const FindReplaceBar = ({
   const isValidSearch = isValidInput(searchTerm);
 
   return (
-    <div css={styles(theme)}>
+    <div className="find-replace-bar" css={styles(theme)}>
       <div className="search-group">
         <TextField
           className="search-input"
