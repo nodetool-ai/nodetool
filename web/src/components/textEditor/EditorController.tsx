@@ -16,6 +16,7 @@ import {
 } from "lexical";
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
+import { sanitizeText } from "../../utils/sanitize";
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -404,9 +405,10 @@ const EditorController = ({
           if (!replaceAll) {
             const idx = lcText.indexOf(lcSearch);
             if (idx !== -1) {
+              const safeReplaceStr = sanitizeText(replaceStr);
               const newText =
                 text.slice(0, idx) +
-                replaceStr +
+                safeReplaceStr +
                 text.slice(idx + searchStr.length);
               node.setTextContent(newText);
               anyReplaced = true;
@@ -420,8 +422,9 @@ const EditorController = ({
                   /[.*+?^${}()|[\]\\]/g,
                   "\\$&"
                 );
+                const safeReplaceStr = sanitizeText(replaceStr);
                 const regex = new RegExp(escaped, "gi");
-                const newText = text.replace(regex, replaceStr);
+                const newText = text.replace(regex, safeReplaceStr);
                 node.setTextContent(newText);
                 anyReplaced = true;
               } catch (err) {
