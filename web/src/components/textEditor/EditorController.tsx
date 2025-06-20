@@ -17,6 +17,7 @@ import {
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
+import { SearchParam } from "../../types/editor";
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -67,10 +68,11 @@ const EditorController = ({
   const highlightCurrentName = "findCurrent";
 
   const clearHighlights = useCallback(() => {
-    // Safely remove previous highlights if supported
     const hs = (CSS as any)?.highlights;
-    hs?.delete?.(highlightAllName);
-    hs?.delete?.(highlightCurrentName);
+    if (hs && typeof hs.delete === "function") {
+      hs.delete(highlightAllName);
+      hs.delete(highlightCurrentName);
+    }
   }, [highlightAllName, highlightCurrentName]);
 
   // Given a single match offset, return a DOM Range corresponding to it.
@@ -148,26 +150,24 @@ const EditorController = ({
     (matchIndexes: number[], matchLength: number, currentIndex: number) => {
       clearHighlights();
 
-      // CSS Highlight API supported?
       const hs = (CSS as any)?.highlights;
+
       if (hs && typeof hs.set === "function") {
+        // Native API path
         const ranges: Range[] = [];
         for (const start of matchIndexes) {
           const r = createRangeForMatch(start, matchLength);
           if (r) ranges.push(r);
         }
         if (ranges.length > 0) {
-          // All matches group
           hs.set(highlightAllName, new (window as any).Highlight(...ranges));
 
-          // Current match group (single range)
           const currentRange = ranges[currentIndex] || ranges[0];
           if (currentRange) {
             hs.set(
               highlightCurrentName,
               new (window as any).Highlight(currentRange)
             );
-            // Scroll current into view
             currentRange.startContainer?.parentElement?.scrollIntoView({
               block: "center"
             });
@@ -179,7 +179,8 @@ const EditorController = ({
       clearHighlights,
       createRangeForMatch,
       highlightAllName,
-      highlightCurrentName
+      highlightCurrentName,
+      editor
     ]
   );
 
@@ -242,7 +243,7 @@ const EditorController = ({
    * highlights all matches, updates internal state, and returns { totalMatches, currentMatch }.
    */
   const findFn = useCallback(
-    (searchParam: any) => {
+    (searchParam: SearchParam) => {
       let searchTerm = "";
 
       if (typeof searchParam === "string") {
@@ -347,24 +348,10 @@ const EditorController = ({
 
   // Set up replace function
   const replaceFn = useCallback(
-    (searchTerm: any, replaceTerm: any, replaceAll?: boolean) => {
-      // Normalise inputs to strings
-      let searchStr = "";
-      let replaceStr = "";
-
-      try {
-        searchStr =
-          typeof searchTerm === "string"
-            ? searchTerm
-            : String(searchTerm || "");
-        replaceStr =
-          typeof replaceTerm === "string"
-            ? replaceTerm
-            : String(replaceTerm || "");
-      } catch (error) {
-        console.error("Error converting replace parameters to strings:", error);
-        return;
-      }
+    (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
+      // Use the provided string parameters directly
+      const searchStr = searchTerm;
+      const replaceStr = replaceTerm;
 
       if (!searchStr.trim()) {
         return;
