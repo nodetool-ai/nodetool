@@ -191,10 +191,10 @@ const styles = (theme: any) =>
     },
     ".copy-to-clipboard-button": {
       position: "absolute",
-      right: ".5em",
+      right: ".3em",
       top: "0",
       zIndex: 10,
-      padding: "5px !important",
+      padding: "8px !important",
       backgroundColor: "transparent",
       color: `${theme.palette.c_white} !important`,
       borderRadius: "4px !important",
@@ -533,7 +533,6 @@ const TextEditorModal = ({
               )}
             </div>
             <div className="actions">
-              {/* <CopyToClipboardButton textToCopy={value || ""} /> */}
               <Tooltip
                 enterDelay={TOOLTIP_ENTER_DELAY}
                 title="Close Editor | Esc"
