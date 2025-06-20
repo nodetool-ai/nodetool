@@ -392,11 +392,9 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
 });
 
 const WorkflowModeSelect = memo(function WorkflowModeSelect() {
-  const { getWorkflow } = useNodes((state) => ({
-    getWorkflow: state.getWorkflow,
+  const { workflow } = useNodes((state) => ({
+    workflow: state.getWorkflow()
   }));
-  const workflow = getWorkflow();
-  console.log(workflow);
 
   const workflowMode = (workflow?.run_mode || "workflow") as string;
 
