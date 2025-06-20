@@ -103,7 +103,12 @@ const StringProperty = ({
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
-      return !prev;
+      const next = !prev;
+      if (next) {
+        // Notify all other modals to close themselves
+        window.dispatchEvent(new Event("close-text-editor-modal"));
+      }
+      return next;
     });
   }, []);
 

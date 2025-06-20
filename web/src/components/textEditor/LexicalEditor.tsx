@@ -7,9 +7,30 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 
 const styles = (theme: any) =>
   css({
+    "::highlight(findMatches)": {
+      backgroundColor: "rgba(255, 255, 0, 0.4)"
+    },
+    "::highlight(findCurrent)": {
+      backgroundColor: "rgba(255, 165, 0, 0.7)"
+    },
+    ".editor": {
+      "&.word-wrap": {
+        whiteSpace: "pre-wrap !important",
+        "& *": {
+          whiteSpace: "pre-wrap !important"
+        }
+      },
+      "&.no-wrap": {
+        whiteSpace: "pre !important",
+        "& *": {
+          whiteSpace: "pre !important"
+        }
+      }
+    },
     ".editor-input": {
       height: "100%",
       outline: "none",
@@ -21,6 +42,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       fontSize: theme.fontSizeSmall,
+      fontWeight: 300,
       p: {
         lineHeight: "1.25em",
         paddingTop: 0,
@@ -65,12 +87,14 @@ interface LexicalPluginsProps {
   onChange: (editorState: EditorState, editor: LexicalEditor) => void;
   onBlur?: (editorState: EditorState) => void;
   onFocusChange?: (isFocused: boolean) => void;
+  wordWrapEnabled?: boolean;
 }
 
 const LexicalPlugins = ({
   onChange,
   onBlur,
-  onFocusChange
+  onFocusChange,
+  wordWrapEnabled = true
 }: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const theme = useTheme();
@@ -91,9 +115,9 @@ const LexicalPlugins = ({
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className={`editor-input nodrag ${
+            className={`editor editor-input nodrag ${
               isFocused ? "focused  nowheel" : ""
-            }`.trim()}
+            } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
             spellCheck={false}
             onClick={(e) => e.stopPropagation()}
             onFocus={handleFocus}
@@ -107,6 +131,7 @@ const LexicalPlugins = ({
       />
       <HistoryPlugin />
       <OnChangePlugin onChange={onChange} />
+      <CodeHighlightPlugin />
       {onBlur && <BlurPlugin onBlur={onBlur} />}
     </>
   );

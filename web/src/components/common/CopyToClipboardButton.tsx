@@ -41,7 +41,8 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       clearTimeout(timeoutRef.current);
     }
 
-    writeClipboard(textToCopy, true)
+    const sanitized = textToCopy.replace(/\u00A0/g, " ");
+    writeClipboard(sanitized, true)
       .then(() => {
         act(() => {
           setIsCopied(true);
