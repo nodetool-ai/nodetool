@@ -562,6 +562,7 @@ const TextEditorModal = ({
             <FindReplaceBar
               onFind={handleFind}
               onReplace={handleReplace}
+              onClose={handleToggleFind}
               onNext={handleNavigateNext}
               onPrevious={handleNavigatePrevious}
               currentMatch={searchResults.currentMatch}
