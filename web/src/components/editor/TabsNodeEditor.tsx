@@ -369,6 +369,7 @@ const TabsNodeEditor = () => {
           </div>
           <div
             className="editor-container"
+            css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
             {activeNodeStore ? (
