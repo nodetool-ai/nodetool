@@ -17,7 +17,7 @@ const styles = (theme: any) =>
     fontSize: theme.fontSizeSmaller,
     color: theme.palette.c_gray5,
     fontFamily: theme.fontFamily2,
-    height: "2em",
+    height: "1.75em",
     ".stats": {
       display: "flex",
       gap: "1em",

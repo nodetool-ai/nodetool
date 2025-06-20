@@ -75,14 +75,15 @@ const styles = (theme: any) =>
       left: "51px",
       width: "calc(100vw - 51px)",
       height: "fit-content",
-      backgroundColor: "rgba(50, 50, 50, 0.8)",
+      padding: ".5em .5em 0 .5em",
+      backgroundColor: "var(--palette-background-default)",
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start"
     },
     ".modal-content": {
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_gray6,
       fontSize: theme.fontSizeBigger,
       width: "100%",
@@ -98,7 +99,7 @@ const styles = (theme: any) =>
       alignItems: "flex-start",
       padding: ".5em 1em",
       minHeight: "2em",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray1,
       h4: {
         cursor: "default",
         fontWeight: "600",
@@ -136,7 +137,7 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       padding: "1em",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.background.default,
       height: "100%",
       overflow: "hidden",
       ".editor": {
@@ -185,7 +186,7 @@ const styles = (theme: any) =>
       display: "flex",
       gap: "1em",
       alignItems: "flex-start",
-      marginTop: "0.25em",
+      marginTop: "0",
       marginRight: "-18px"
     },
     ".copy-to-clipboard-button": {
@@ -228,7 +229,8 @@ const styles = (theme: any) =>
     },
     ".button-close": {
       backgroundColor: "transparent",
-      padding: "10px",
+      position: "absolute",
+      padding: "5px",
       right: ".5em",
       minWidth: "32px",
       minHeight: "32px",
@@ -237,14 +239,13 @@ const styles = (theme: any) =>
       }
     },
     ".resize-handle": {
-      height: "6px",
+      height: "8px",
       width: "100%",
       cursor: "row-resize",
-      backgroundColor: theme.palette.c_gray2,
-      borderBottomLeftRadius: "8px",
-      borderBottomRightRadius: "8px",
+      borderRadius: "4px",
+      backgroundColor: theme.palette.c_gray3,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.c_gray5
       }
     }
   });
