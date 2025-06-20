@@ -31,7 +31,6 @@ const styles = (theme: any) =>
     "&": {
       display: "flex",
       marginTop: "30px",
-      marginLeft: "20px",
       flexDirection: "column",
       justifyContent: "flex-start",
       height: "100%"

@@ -3,17 +3,9 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 
 // components
-import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
 // mui
-import {
-  Button,
-  Tooltip,
-  Toolbar,
-  Typography,
-  Box,
-  IconButton
-} from "@mui/material";
+import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
@@ -29,9 +21,8 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--c_gray1)",
-      paddingLeft: "8px",
-      borderBottom: "1px solid var(--c_gray2)"
+      backgroundColor: "var(--c_gray0)22",
+      paddingLeft: "8px"
     },
     ".toolbar": {
       overflow: "visible",
@@ -41,7 +32,7 @@ const styles = (theme: any) =>
       position: "relative",
       height: "40px",
       minHeight: "40px",
-      padding: "0 12px",
+      padding: "0 2px 0 12px",
       border: "0"
     },
     ".nodetool-logo": {
@@ -160,8 +151,8 @@ const ChatButton = memo(function ChatButton() {
 });
 
 const AppHeader: React.FC = memo(function AppHeader() {
-  const navigate = useNavigate();
-  const path = useLocation().pathname;
+  // const navigate = useNavigate();
+  // const path = useLocation().pathname;
 
   return (
     <div css={styles} className="app-header">
@@ -172,7 +163,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <ChatButton />
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
-        <Alert />
         <RightSideButtons />
       </Toolbar>
     </div>

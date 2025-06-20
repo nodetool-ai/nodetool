@@ -12,10 +12,10 @@ interface WigglePoint {
 
 let wiggleHistory: WigglePoint[] = [];
 let isCurrentlyWiggling = false;
-const WIGGLE_TIME_WINDOW = 2000; // 1 second
-const WIGGLE_DISTANCE_THRESHOLD = 4; // minimum distance for a movement to count
-const WIGGLE_DIRECTION_CHANGES_REQUIRED = 3; // number of direction changes needed
-const WIGGLE_MIN_MOVEMENTS = 3; // minimum movements in time window
+const WIGGLE_TIME_WINDOW = 2000;
+const WIGGLE_DISTANCE_THRESHOLD = 2; // minimum distance for a movement to count
+const WIGGLE_DIRECTION_CHANGES_REQUIRED = 2; // number of direction changes needed
+const WIGGLE_MIN_MOVEMENTS = 2; // minimum movements in time window
 
 const updateMousePosition = (event: MouseEvent) => {
   mousePosition = { x: event.clientX, y: event.clientY };

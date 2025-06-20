@@ -316,6 +316,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             data={props.data}
             hasParent={hasParent}
             metadataTitle="Preview"
+            selected={props.selected}
           />
           {!result?.output && (
             <Typography className="hint">

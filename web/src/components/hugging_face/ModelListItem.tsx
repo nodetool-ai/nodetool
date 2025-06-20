@@ -27,12 +27,15 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
-const ModelListItem: React.FC<ModelComponentProps> = ({
+const ModelListItem: React.FC<
+  ModelComponentProps & { showModelStats?: boolean }
+> = ({
   model,
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
+  showModelStats = false
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);

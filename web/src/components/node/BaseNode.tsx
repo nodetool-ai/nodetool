@@ -47,6 +47,7 @@ import { useNodes } from "../../contexts/NodeContext";
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
+const GROUP_COLOR_OPACITY = 0.5;
 
 const resizer = (
   <div className="node-resizer">
@@ -189,7 +190,7 @@ const getHeaderFooterColors = (metadata: NodeMetadata) => {
   const bg = ThemeNodes.palette.c_node_bg;
 
   return {
-    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 60),
+    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90),
     footerColor: darkenHexColor(simulateOpacity(baseColor, 0.3, bg), 40)
   };
 };
@@ -226,9 +227,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const parentColor = useNodes((state) => {
     if (!parentId) return "";
-    const parentNode = state.findNode(parentId);
-    const groupColor = parentNode?.data.properties.group_color;
-    return hexToRgba(groupColor || "#000000", 0.1);
+    return hexToRgba("#333", GROUP_COLOR_OPACITY);
   });
 
   const specialNamespaces = useMemo(
@@ -241,7 +240,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields: metadata.basic_fields || [],
       hasAdvancedFields:
-        metadata.properties?.length > metadata.basic_fields?.length,
+        (metadata.properties?.length || 0) >
+        (metadata.basic_fields?.length || 0),
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
@@ -318,6 +318,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && <Toolbar id={id} selected={selected} />}
       <NodeHeader
         id={id}
+        selected={selected}
         data={data}
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
@@ -352,7 +353,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
-      {planningUpdate && (
+      {planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}

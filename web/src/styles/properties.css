@@ -12,7 +12,7 @@
   /* max-width: 400px; */
   min-height: 18px;
   border: 0;
-  padding: 0 9px;
+  padding: 0 8px;
   margin-bottom: 9px;
   line-height: 18px;
 }
@@ -52,7 +52,6 @@
   padding: 0;
   display: flex;
   align-items: flex-start;
-
   gap: 5px;
 }
 
@@ -72,25 +71,18 @@
   opacity: 1;
   border-bottom: 2px solid var(--c_hl1) !important;
   background-color: var(--c_gray3) !important;
-  /* opacity: 0.4; */
 }
 
 /* Textarea */
 .node-property .MuiTextField-root textarea {
-  font-size: var(--fontSizeSmaller);
-}
-
-.node-property textarea {
   width: 100%;
-  min-width: 100%;
-  max-width: 100%;
-  min-height: 48px;
-  max-height: 800px;
+  min-height: 12px !important;
+  max-height: 200px;
   overflow-y: auto !important;
-  margin-top: 0.2em;
-  padding: 0.5em 1em .5em 0;
+  margin-top: 0;
+  padding: 0 1em .5em 0;
   font-family: var(--font_family);
-  font-size: var(--fontSizeSmaller);
+  font-size: var(--fontSizeSmall);
   font-weight: 300;
   line-height: 1.3em;
   color: var(--c_white);
@@ -98,7 +90,6 @@
   border: 0;
   border-radius: 4px;
   outline: none;
-
 }
 
 /* List view */

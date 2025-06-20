@@ -29,15 +29,16 @@ const PANEL_WIDTH_COLLAPSED = "52px";
 
 const styles = (theme: any) =>
   css({
+    position: "absolute",
+    left: "0",
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
       backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
-      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      borderRight: "1px solid var(--c_gray2)",
-      backgroundColor: "var(--c_gray1)",
+      border: "none",
+      backgroundColor: "var(--palette-c_editor_bg_color)",
       direction: "ltr",
       position: "absolute",
       overflow: "hidden",
@@ -98,28 +99,10 @@ const styles = (theme: any) =>
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
 
         "&.active": {
-          backgroundColor: `${theme.palette.action.selected}88`,
-          boxShadow: `0 0 15px ${theme.palette.primary.main}40`,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: "3px",
-            backgroundColor: theme.palette.primary.main,
-            boxShadow: `0 0 10px ${theme.palette.primary.main}`
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}40, transparent)`,
-            borderRadius: "5px"
-          }
+          backgroundColor: `${theme.palette.action.selected}88`
+        },
+        "&.active svg": {
+          color: theme.palette.primary.main
         },
         "&:hover": {
           backgroundColor: `${theme.palette.action.hover}88`,
@@ -269,7 +252,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
-      <Tooltip title="Close Panel" placement="right">
+      <Tooltip title="Toggle Panel" placement="right">
         <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
         </IconButton>
@@ -292,7 +275,7 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%" }}
+          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
         >
           <Tooltip title="Fullscreen" placement="right">
             <Button
@@ -319,7 +302,7 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "auto",
-            margin: "0 20px"
+            margin: "0"
           }}
         >
           <h3>Workflows</h3>
@@ -409,7 +392,11 @@ const PanelLeft: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
-          style: { width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED }
+          style: {
+            // borderRight: isVisible ? "1px solid var(--c_gray2)" : "none",
+            boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
+            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
+          }
         }}
         variant="persistent"
         anchor="left"

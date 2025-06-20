@@ -297,7 +297,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
         label="Add Comment"
         IconComponent={<AddCommentIcon />}
-        tooltip={"C + Click or Drag"}
+        tooltip={"Hold C key and drag"}
       />
       <ContextMenuItem
         onClick={(e) => {
