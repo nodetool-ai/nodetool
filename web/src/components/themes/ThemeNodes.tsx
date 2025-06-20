@@ -467,7 +467,7 @@ const ThemeNodes: Theme = createTheme({
     },
     MuiPopover: {
       styleOverrides: {
-        root: { zIndex: 10000 }
+        root: { zIndex: 20100 }
       }
     },
     MuiTabs: {
