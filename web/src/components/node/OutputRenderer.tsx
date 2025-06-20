@@ -321,10 +321,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return (
           <div style={{ width: "100%", height: "400px" }}>
             <Plot
-              data={config.config.data}
-              layout={config.config.layout}
-              config={config.config.config}
-              frames={config.config.frames}
+              data={config.config.data as Plotly.Data[]}
+              layout={config.config.layout as Partial<Plotly.Layout>}
+              config={config.config.config as Partial<Plotly.Config>}
+              frames={config.config.frames as Plotly.Frame[] | undefined}
               style={{ width: "100%", height: "100%" }}
             />
           </div>

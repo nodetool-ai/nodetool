@@ -193,6 +193,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       properties: mockProperties,
       basic_fields: [],
       is_dynamic: false,
+      is_streaming: false,
       outputs: [
         {
           name: "output",

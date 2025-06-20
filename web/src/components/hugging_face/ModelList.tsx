@@ -384,7 +384,7 @@ const ModelList: React.FC = () => {
       let pathToOpen = model?.path; // Prefer specific model path
 
       if (model?.type === "llama_model" && !pathToOpen) {
-        pathToOpen = ollamaBasePath; // Fallback to Ollama base path
+        pathToOpen = ollamaBasePath as string | null | undefined; // Fallback to Ollama base path
       }
 
       if (pathToOpen) {
@@ -660,7 +660,7 @@ const ModelList: React.FC = () => {
 
               if (modelForExplorer) {
                 if (modelForExplorer.type === "llama_model" && !explorerPath) {
-                  explorerPath = ollamaBasePath; // Use base path for Ollama if specific path missing
+                  explorerPath = ollamaBasePath as string | null | undefined; // Use base path for Ollama if specific path missing
                 }
                 isDisabled = !explorerPath; // Disabled if no path (specific or base for Ollama) found
               }
