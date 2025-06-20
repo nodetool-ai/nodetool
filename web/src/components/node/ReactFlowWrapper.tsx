@@ -328,26 +328,33 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
   }, [fitView, shouldFitToScreen, setShouldFitToScreen]);
 
-  // If there's no saved viewport, and there are nodes, fit the view on mount.
+  /*
+   * Perform an automatic `fitView` on mount ONLY when the workflow does **not**
+   * have a stored viewport yet. This ensures that after the user has panned or
+   * zoomed a workflow, switching tabs will restore their last viewport instead
+   * of re-centring the canvas every time.
+   */
   useEffect(() => {
-    // If the view is already visible (e.g., from a stored viewport), do nothing.
-    if (isVisible) {
+    if (storedViewport) {
+      // A viewport was already saved – respect it and make the canvas visible
+      // immediately without any additional fitting.
+      if (!isVisible) {
+        setIsVisible(true);
+      }
       return;
     }
 
-    // For workflows without a stored viewport, fit the view.
-    if (nodes.length > 0) {
-      // Use a timeout to ensure nodes have rendered and have dimensions.
+    // Without a saved viewport, fit the view once the nodes are rendered.
+    if (nodes.length > 0 && !isVisible) {
       setTimeout(() => {
         fitView({ padding: 0.8 });
-        // Trigger the fade-in after the fitView process starts.
         setIsVisible(true);
       }, 100);
-    } else {
-      // If there are no nodes, there's nothing to fit, so just show the canvas.
+    } else if (!isVisible) {
+      // No nodes means there is nothing to fit – just reveal the canvas.
       setIsVisible(true);
     }
-  }, [nodes, isVisible, fitView]);
+  }, [nodes, isVisible, fitView, storedViewport]);
 
   if (loadingState?.isLoading) {
     return (
@@ -399,8 +406,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         autoPanOnNodeDrag={true}
         autoPanOnConnect={true}
         autoPanSpeed={50}
-        fitView
-        fitViewOptions={fitViewOptions}
+        {...(!storedViewport ? { fitView: true, fitViewOptions } : {})}
         nodes={nodes}
         edges={processedEdges}
         nodeTypes={nodeTypes}
