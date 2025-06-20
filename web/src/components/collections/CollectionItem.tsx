@@ -257,7 +257,7 @@ const CollectionItem = ({
               whiteSpace: "nowrap"
             }}
           >
-            {collection.metadata?.embedding_model}
+            {collection.metadata?.embedding_model as React.ReactNode}
           </Typography>
         </Tooltip>
         <div style={{ flexGrow: 1 }} />
@@ -265,7 +265,7 @@ const CollectionItem = ({
           <WorkflowSelect
             onChange={onWorkflowChange(collection)}
             label="Workflow"
-            value={collection.metadata?.workflow}
+            value={collection.metadata?.workflow ? { id: collection.metadata.workflow as string } : undefined}
             loading={updateMutation.isPending}
             open={isEditingWorkflow}
             onBlur={() => setIsEditingWorkflow(false)}
