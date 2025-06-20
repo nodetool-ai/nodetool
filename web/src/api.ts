@@ -675,6 +675,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workflow Tools
+         * @description Get all workflows that have run_mode set to "tool".
+         *
+         *     These workflows can be used as tools by agents and other workflows.
+         *
+         *     Args:
+         *         user: The authenticated user
+         *         cursor: Pagination cursor
+         *         limit: Maximum number of workflows to return
+         *         columns: Comma-separated list of columns to return
+         *
+         *     Returns:
+         *         WorkflowList: List of tool workflows with pagination info
+         */
+        get: operations["get_workflow_tools_api_workflows_tools_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/examples": {
         parameters: {
             query?: never;
@@ -2907,6 +2938,8 @@ export interface components {
             created_at?: string | null;
             /** Model */
             model?: string | null;
+            /** Agent Mode */
+            agent_mode?: boolean | null;
         };
         /**
          * Message
@@ -2949,6 +2982,8 @@ export interface components {
             created_at?: string | null;
             /** Model */
             model?: string | null;
+            /** Agent Mode */
+            agent_mode?: boolean | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -3222,29 +3257,29 @@ export interface components {
              * Properties
              * @description Properties of the node
              */
-            properties?: components["schemas"]["Property"][];
+            properties: components["schemas"]["Property"][];
             /**
              * Outputs
              * @description Outputs of the node
              */
-            outputs?: components["schemas"]["OutputSlot"][];
+            outputs: components["schemas"]["OutputSlot"][];
             /**
              * The Model Info
              * @description HF Model info for the node
              */
-            the_model_info?: {
+            the_model_info: {
                 [key: string]: unknown;
             };
             /**
              * Recommended Models
              * @description Recommended models for the node
              */
-            recommended_models?: components["schemas"]["HuggingFaceModel"][];
+            recommended_models: components["schemas"]["HuggingFaceModel"][];
             /**
              * Basic Fields
              * @description Basic fields of the node
              */
-            basic_fields?: string[];
+            basic_fields: string[];
             /**
              * Is Dynamic
              * @description Whether the node is dynamic
@@ -3936,6 +3971,28 @@ export interface components {
              */
             is_intermediate_result: boolean;
         };
+        /**
+         * SubTaskResult
+         * @description A message representing a result from a subtask.
+         */
+        SubTaskResult: {
+            /**
+             * Type
+             * @default subtask_result
+             * @constant
+             */
+            type: "subtask_result";
+            subtask: components["schemas"]["SubTask"];
+            /** Result */
+            result: unknown;
+            /** Error */
+            error?: string | null;
+            /**
+             * Is Task Result
+             * @default false
+             */
+            is_task_result: boolean;
+        };
         /** SystemStats */
         SystemStats: {
             /**
@@ -4225,6 +4282,8 @@ export interface components {
             package_name?: string | null;
             /** Path */
             path?: string | null;
+            /** Run Mode */
+            run_mode?: string | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -4274,6 +4333,8 @@ export interface components {
             settings?: {
                 [key: string]: string | boolean | number | null;
             } | null;
+            /** Run Mode */
+            run_mode?: string | null;
         };
     };
     responses: never;
@@ -5418,7 +5479,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"];
+                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
                 };
             };
         };
@@ -5710,6 +5771,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Workflow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_tools_api_workflows_tools_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                columns?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowList"];
                 };
             };
             /** @description Validation Error */

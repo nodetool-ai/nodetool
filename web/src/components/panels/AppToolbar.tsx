@@ -392,43 +392,29 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
 });
 
 const WorkflowModeSelect = memo(function WorkflowModeSelect() {
-  const { getWorkflow, workflowJSON } = useNodes((state) => ({
-    getWorkflow: state.getWorkflow,
-    workflowJSON: state.workflowJSON
+  const { workflow } = useNodes((state) => ({
+    workflow: state.getWorkflow()
   }));
-  const workflow = getWorkflow();
 
-  const workflowMode = (workflow?.settings?.run_mode || "normal") as string;
+  const workflowMode = (workflow?.run_mode || "workflow") as string;
 
   const { saveWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
 
-  const [runMode, setRunMode] = useState<string>(workflowMode);
   const [selectIsOpen, setSelectIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (workflowMode) {
-      setRunMode(workflowMode);
-    } else {
-      setRunMode("normal");
-    }
-  }, [workflowMode]);
 
-  const handleModeChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+  const handleModeChange = useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
     const newMode = event.target.value as string;
-    setRunMode(newMode);
 
     const updatedWorkflow = {
       ...workflow,
-      settings: {
-        ...(workflow.settings || {}),
-        run_mode: newMode
-      }
+      run_mode: newMode
     };
 
     saveWorkflow(updatedWorkflow);
-  };
+  }, [saveWorkflow, workflow]);
 
   return (
     <Tooltip
@@ -445,23 +431,20 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
         <Select
           tabIndex={-1}
           inputProps={{ tabIndex: -1 }}
-          value={runMode}
+          value={workflowMode}
           onChange={handleModeChange as any}
           onOpen={() => setSelectIsOpen(true)}
           onClose={() => setSelectIsOpen(false)}
           displayEmpty
         >
-          <MenuItem tabIndex={-1} value="normal">
-            Normal
-          </MenuItem>
-          <MenuItem tabIndex={-1} value="app">
-            App
+          <MenuItem tabIndex={-1} value="workflow">
+            Workflow
           </MenuItem>
           <MenuItem tabIndex={-1} value="chat">
             Chat
           </MenuItem>
-          <MenuItem tabIndex={-1} value="headless">
-            Headless
+          <MenuItem tabIndex={-1} value="tool">
+            Tool
           </MenuItem>
         </Select>
       </FormControl>
@@ -686,7 +669,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {isLocalhost && workflow?.settings?.run_mode === "app" && (
+            {isLocalhost && workflow?.run_mode === "app" && (
               <RunAsAppButton />
             )}
           </>
