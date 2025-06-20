@@ -17,7 +17,7 @@ import {
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
-import { SearchParam } from "../../types/editor";
+import { SearchParam } from "../../types/text_editor";
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -68,10 +68,20 @@ const EditorController = ({
   const highlightCurrentName = "findCurrent";
 
   const clearHighlights = useCallback(() => {
-    const hs = (CSS as any)?.highlights;
-    if (hs && typeof hs.delete === "function") {
-      hs.delete(highlightAllName);
-      hs.delete(highlightCurrentName);
+    // Clear both native and polyfilled highlights
+    (CSS as any)?.highlights?.delete?.(highlightAllName);
+    (CSS as any)?.highlights?.delete?.(highlightCurrentName);
+
+    // The Text-Fragments polyfill (and current spec drafts) do not expose a
+    // `hide()` helper. In Chromium-based browsers the `CSS.highlights` path is
+    // taken and we're done.  On Firefox (where we rely on the polyfill)
+    // `fragmentDirective` exists, but without a `hide` method.  Guard the call
+    // so we don't throw in that case.
+    if (
+      "fragmentDirective" in document &&
+      typeof (document as any).fragmentDirective.hide === "function"
+    ) {
+      (document as any).fragmentDirective.hide();
     }
   }, [highlightAllName, highlightCurrentName]);
 
@@ -152,6 +162,7 @@ const EditorController = ({
 
       const hs = (CSS as any)?.highlights;
 
+      // Native CSS Highlight API is preferred
       if (hs && typeof hs.set === "function") {
         // Native API path
         const ranges: Range[] = [];
@@ -172,6 +183,33 @@ const EditorController = ({
               block: "center"
             });
           }
+        }
+      } else if ("fragmentDirective" in document) {
+        // Fallback using text-fragments-polyfill
+        const rootElement = editor.getRootElement();
+        const text = rootElement?.textContent ?? "";
+
+        if (!text) return;
+
+        const fragments = matchIndexes.map((start) => {
+          const end = start + matchLength;
+          return {
+            prefix: text.substring(Math.max(0, start - 20), start),
+            textStart: text.substring(start, end),
+            textEnd: text.substring(end, Math.min(text.length, end + 20)),
+            suffix: ""
+          };
+        });
+
+        if (
+          fragments.length > 0 &&
+          typeof (document as any).fragmentDirective.show === "function"
+        ) {
+          (document as any).fragmentDirective.show(fragments);
+
+          // The polyfill doesn't have a concept of a "current" match,
+          // so we can't style it differently or scroll to it.
+          // This is a limitation of the fallback path.
         }
       }
     },

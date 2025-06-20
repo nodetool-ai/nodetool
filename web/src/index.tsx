@@ -2,7 +2,11 @@
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
-import "text-fragments-polyfill";
+// Conditionally load the Text-Fragments polyfill only on browsers that need it
+// (i.e. those that don't expose the experimental `document.fragmentDirective`).
+if (!("fragmentDirective" in document)) {
+  import("text-fragments-polyfill");
+}
 
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
