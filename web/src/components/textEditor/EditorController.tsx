@@ -37,6 +37,7 @@ interface EditorControllerProps {
   onFormatCodeCommand: (fn: () => void) => void;
   onIsCodeBlockChange: (isCodeBlock: boolean) => void;
   initialContent?: string;
+  wordWrapEnabled?: boolean;
 }
 
 const EditorController = ({
@@ -50,7 +51,8 @@ const EditorController = ({
   onNavigateCommand,
   onFormatCodeCommand,
   onIsCodeBlockChange,
-  initialContent
+  initialContent,
+  wordWrapEnabled = true
 }: EditorControllerProps) => {
   const [editor] = useLexicalComposerContext();
   const [initialContentSet, setInitialContentSet] = useState(false);

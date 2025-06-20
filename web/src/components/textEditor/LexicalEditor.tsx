@@ -28,6 +28,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       fontSize: theme.fontSizeSmall,
+      fontWeight: 300,
       p: {
         lineHeight: "1.25em",
         paddingTop: 0,
@@ -36,6 +37,24 @@ const styles = (theme: any) =>
       },
       ".font-size-large": {
         fontSize: theme.fontSizeBigger
+      },
+      "&.word-wrap": {
+        whiteSpace: "pre-wrap",
+        pre: {
+          whiteSpace: "pre-wrap !important"
+        },
+        textarea: {
+          whiteSpace: "pre-wrap !important"
+        }
+      },
+      "&.no-wrap": {
+        whiteSpace: "pre",
+        pre: {
+          whiteSpace: "pre !important"
+        },
+        textarea: {
+          whiteSpace: "pre !important"
+        }
       }
     },
     ".editor-placeholder": {
@@ -72,12 +91,14 @@ interface LexicalPluginsProps {
   onChange: (editorState: EditorState, editor: LexicalEditor) => void;
   onBlur?: (editorState: EditorState) => void;
   onFocusChange?: (isFocused: boolean) => void;
+  wordWrapEnabled?: boolean;
 }
 
 const LexicalPlugins = ({
   onChange,
   onBlur,
-  onFocusChange
+  onFocusChange,
+  wordWrapEnabled = true
 }: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const theme = useTheme();
@@ -100,7 +121,7 @@ const LexicalPlugins = ({
           <ContentEditable
             className={`editor editor-input nodrag ${
               isFocused ? "focused  nowheel" : ""
-            }`.trim()}
+            } ${wordWrapEnabled ? "word-wrap" : "no-wrap"}`.trim()}
             spellCheck={false}
             onClick={(e) => e.stopPropagation()}
             onFocus={handleFocus}
