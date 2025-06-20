@@ -11,7 +11,9 @@ import {
   CAN_REDO_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
   $getSelection,
-  $isRangeSelection
+  $isRangeSelection,
+  $nodesOfType,
+  TextNode
 } from "lexical";
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
@@ -71,46 +73,72 @@ const EditorController = ({
     hs?.delete?.(highlightCurrentName);
   }, [highlightAllName, highlightCurrentName]);
 
-  // Given a single match offset, return a DOM Range corresponding to it
+  // Given a single match offset, return a DOM Range corresponding to it.
+  // This walker-based algorithm keeps an accurate global character counter that
+  // mirrors the string returned by root.textContent(). The tricky part is that
+  // the browser inserts an implicit "\n" between top-level block elements
+  // (e.g. paragraphs, list items). Those newlines do NOT exist inside any real
+  // text node, so we manually add one char to the counter whenever we move from
+  // one top-level child to the next.
   const createRangeForMatch = useCallback(
     (matchStart: number, matchLength: number): Range | null => {
       const rootElement = editor.getRootElement();
       if (!rootElement) return null;
 
-      const paragraphs = Array.from(rootElement.children);
+      const walker = document.createTreeWalker(
+        rootElement,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+
+      let node: Node | null = null;
       let charCount = 0;
 
-      for (let i = 0; i < paragraphs.length; i++) {
-        const para = paragraphs[i] as HTMLElement;
-        const paraTextLength = para.textContent?.length || 0;
-
-        if (matchStart < charCount + paraTextLength) {
-          const offsetWithinPara = matchStart - charCount;
-
-          const walker = document.createTreeWalker(
-            para,
-            NodeFilter.SHOW_TEXT,
-            null
-          );
-          let node: Node | null = null;
-          let nodeCharCount = 0;
-
-          while ((node = walker.nextNode())) {
-            const textLen = node.textContent?.length || 0;
-            if (offsetWithinPara < nodeCharCount + textLen) {
-              const range = document.createRange();
-              const startOffset = offsetWithinPara - nodeCharCount;
-              const endOffset = startOffset + matchLength;
-              range.setStart(node, startOffset);
-              range.setEnd(node, endOffset);
-              return range;
-            }
-            nodeCharCount += textLen;
-          }
-          return null;
+      // Helper to obtain the immediate child of rootElement that contains a
+      // given node. Used to detect transitions between top-level blocks.
+      const getTopLevelContainer = (n: Node | null): Node | null => {
+        if (!n) return null;
+        let current: Node | null = n;
+        while (current && current.parentNode !== rootElement) {
+          current = current.parentNode;
         }
-        charCount += paraTextLength + 1; // newline char between paragraphs
+        return current;
+      };
+
+      let prevTopLevel: Node | null = null;
+
+      while ((node = walker.nextNode())) {
+        // Insert implicit newline char when moving to a new top-level element
+        const currentTopLevel = getTopLevelContainer(node);
+        if (
+          prevTopLevel &&
+          currentTopLevel &&
+          prevTopLevel !== currentTopLevel
+        ) {
+          // Account for the "\n" that root.textContent inserts between blocks
+          if (matchStart === charCount) {
+            // The match is exactly on the implicit newline -> there is no real
+            // DOM position to highlight, so bail.
+            return null;
+          }
+          charCount += 1;
+        }
+        prevTopLevel = currentTopLevel;
+
+        const textLen = node.textContent?.length || 0;
+
+        if (matchStart < charCount + textLen) {
+          const range = document.createRange();
+          const startOffset = matchStart - charCount;
+          const endOffset = Math.min(startOffset + matchLength, textLen);
+          range.setStart(node, startOffset);
+          range.setEnd(node, endOffset);
+          return range;
+        }
+
+        charCount += textLen;
       }
+
       return null;
     },
     [editor]
@@ -317,90 +345,96 @@ const EditorController = ({
   // Set up replace function
   const replaceFn = useCallback(
     (searchTerm: any, replaceTerm: any, replaceAll?: boolean) => {
-      // Ensure parameters are strings and handle edge cases
+      // Normalise inputs to strings
       let searchStr = "";
       let replaceStr = "";
 
       try {
-        if (typeof searchTerm === "string") {
-          searchStr = searchTerm;
-        } else {
-          searchStr = String(searchTerm || "");
-        }
-
-        if (typeof replaceTerm === "string") {
-          replaceStr = replaceTerm;
-        } else {
-          replaceStr = String(replaceTerm || "");
-        }
-
-        // Sanitize the replacement string by escaping special characters
-        replaceStr = replaceStr.replace(/\$/g, "$$$$"); // Escape $ in replacement string
+        searchStr =
+          typeof searchTerm === "string"
+            ? searchTerm
+            : String(searchTerm || "");
+        replaceStr =
+          typeof replaceTerm === "string"
+            ? replaceTerm
+            : String(replaceTerm || "");
       } catch (error) {
         console.error("Error converting replace parameters to strings:", error);
         return;
       }
 
-      if (!searchStr || searchStr.trim() === "") {
+      if (!searchStr.trim()) {
         return;
       }
 
+      // Case-insensitive search helper
+      const lcSearch = searchStr.toLowerCase();
+
+      let anyReplaced = false;
+
+      // Perform replacement at the node level so we preserve existing node structure/formatting
       editor.update(() => {
-        const root = $getRoot();
-        const textContent = root.getTextContent();
-        let newContent = textContent;
+        const textNodes = $nodesOfType(TextNode);
 
-        if (replaceAll) {
-          try {
-            // Escape the search string for use in regex
-            const escapedSearchStr = searchStr.replace(
-              /[.*+?^${}()|[\]\\]/g,
-              "\\$&"
-            );
-            const regex = new RegExp(escapedSearchStr, "gi");
-            newContent = textContent.replace(regex, replaceStr);
-          } catch (error) {
-            console.error("Error in regex replace:", error);
-            return;
-          }
-        } else {
-          const index = textContent
-            .toLowerCase()
-            .indexOf(searchStr.toLowerCase());
-          if (index !== -1) {
-            newContent =
-              textContent.substring(0, index) +
-              replaceStr +
-              textContent.substring(index + searchStr.length);
-          }
-        }
+        for (const node of textNodes) {
+          const text = node.getTextContent();
+          const lcText = text.toLowerCase();
 
-        if (newContent !== textContent) {
-          root.clear();
-          const paragraph = $createParagraphNode();
-          const textNode = $createTextNode(newContent);
-          paragraph.append(textNode);
-          root.append(paragraph);
-
-          // Trigger text change callback
-          if (onTextChange) {
-            onTextChange(newContent);
-          }
-
-          // Update search results if we have an active search
-          if (currentSearchTerm) {
-            const matches = findMatches(newContent, currentSearchTerm);
-            setCurrentMatches(matches);
-            setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
-
-            if (matches.length > 0) {
-              applyHighlights(matches, currentSearchTerm.length, 0);
-            } else {
-              clearHighlights();
+          if (!replaceAll) {
+            const idx = lcText.indexOf(lcSearch);
+            if (idx !== -1) {
+              const newText =
+                text.slice(0, idx) +
+                replaceStr +
+                text.slice(idx + searchStr.length);
+              node.setTextContent(newText);
+              anyReplaced = true;
+              break; // Only replace first instance when replaceAll is false
+            }
+          } else {
+            if (lcText.includes(lcSearch)) {
+              // Global case-insensitive replacement within this node
+              try {
+                const escaped = searchStr.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                const regex = new RegExp(escaped, "gi");
+                const newText = text.replace(regex, replaceStr);
+                node.setTextContent(newText);
+                anyReplaced = true;
+              } catch (err) {
+                console.error("Error performing regex replace:", err);
+              }
             }
           }
         }
       });
+
+      if (!anyReplaced) {
+        return;
+      }
+
+      // After the editor.update finishes, read the new content and refresh UI-side state/highlights
+      const newTextContent = editor
+        .getEditorState()
+        .read(() => $getRoot().getTextContent());
+
+      // Trigger text change callback for external consumers
+      onTextChange?.(newTextContent);
+
+      // Refresh search highlights if a search is currently active
+      if (currentSearchTerm) {
+        const matches = findMatches(newTextContent, currentSearchTerm);
+        setCurrentMatches(matches);
+        setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
+
+        if (matches.length > 0) {
+          applyHighlights(matches, currentSearchTerm.length, 0);
+        } else {
+          clearHighlights();
+        }
+      }
     },
     [
       editor,
