@@ -12,7 +12,6 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   $getSelection,
   $isRangeSelection,
-  $nodesOfType,
   TextNode
 } from "lexical";
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
@@ -236,16 +235,19 @@ const EditorController = ({
     });
   }, [editor]);
 
-  // Set up find function
+  /**
+   * findFn: Handles the "Find" command.
+   * Normalizes the input to a search string, searches the editor text (case-insensitive),
+   * highlights all matches, updates internal state, and returns { totalMatches, currentMatch }.
+   */
   const findFn = useCallback(
     (searchParam: any) => {
-      // Normalise the incoming parameter
       let searchTerm = "";
 
       if (typeof searchParam === "string") {
         searchTerm = searchParam;
       } else if (searchParam && typeof searchParam === "object") {
-        // Check if it's an event object
+        // event object
         if (
           "target" in searchParam &&
           searchParam.target &&
@@ -253,7 +255,7 @@ const EditorController = ({
         ) {
           searchTerm = searchParam.target.value;
         }
-        // Check if it's a React SyntheticEvent
+        // React SyntheticEvent
         else if (
           "currentTarget" in searchParam &&
           searchParam.currentTarget &&
@@ -261,15 +263,15 @@ const EditorController = ({
         ) {
           searchTerm = searchParam.currentTarget.value;
         }
-        // Check if it has a searchTerm property
+        // has searchTerm property
         else if ("searchTerm" in searchParam) {
           searchTerm = searchParam.searchTerm;
         }
-        // Check if it has a value property
+        // has a value property
         else if ("value" in searchParam) {
           searchTerm = searchParam.value;
         }
-        // If it's an object but none of the above, try to convert to string
+        // object but none of the above, try to convert to string
         else {
           searchTerm = "";
         }
@@ -374,7 +376,26 @@ const EditorController = ({
 
       // Perform replacement at the node level so we preserve existing node structure/formatting
       editor.update(() => {
-        const textNodes = $nodesOfType(TextNode);
+        // Collect text nodes manually to avoid using deprecated $nodesOfType
+        const textNodes: TextNode[] = [];
+        const stack: any[] = [$getRoot()];
+
+        while (stack.length > 0) {
+          const node = stack.pop();
+          if (!node) continue;
+
+          if (node instanceof TextNode) {
+            textNodes.push(node);
+          }
+
+          // Push children (if any) onto the stack
+          if (typeof node.getChildren === "function") {
+            const children = node.getChildren();
+            if (Array.isArray(children)) {
+              stack.push(...children);
+            }
+          }
+        }
 
         for (const node of textNodes) {
           const text = node.getTextContent();
