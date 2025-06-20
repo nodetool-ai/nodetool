@@ -192,7 +192,7 @@ const styles = (theme: any) =>
     ".copy-to-clipboard-button": {
       position: "absolute",
       right: ".3em",
-      top: "0",
+      top: "1em",
       zIndex: 10,
       padding: "8px !important",
       backgroundColor: "transparent",
