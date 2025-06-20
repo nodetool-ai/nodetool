@@ -47,7 +47,7 @@ import { useNodes } from "../../contexts/NodeContext";
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
-const GROUP_COLOR_OPACITY = 0.15;
+const GROUP_COLOR_OPACITY = 0.5;
 
 const resizer = (
   <div className="node-resizer">
@@ -227,9 +227,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const parentColor = useNodes((state) => {
     if (!parentId) return "";
-    const parentNode = state.findNode(parentId);
-    const groupColor = parentNode?.data.properties.group_color;
-    return hexToRgba(groupColor || "#000000", GROUP_COLOR_OPACITY);
+    return hexToRgba("#333", GROUP_COLOR_OPACITY);
   });
 
   const specialNamespaces = useMemo(
