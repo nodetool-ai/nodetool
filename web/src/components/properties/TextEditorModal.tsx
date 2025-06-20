@@ -136,7 +136,7 @@ const styles = (theme: any) =>
       flex: 1,
       display: "flex",
       flexDirection: "column",
-      padding: "1em",
+      padding: "1em 2em 1em 1em",
       backgroundColor: theme.palette.background.default,
       height: "100%",
       overflow: "hidden",

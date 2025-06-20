@@ -2,6 +2,7 @@
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
+import "text-fragments-polyfill";
 
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
