@@ -119,5 +119,5 @@ jobs:
 
       - name: Run Tests
         run: |
-          cd electron
+          cd apps
           npm test
