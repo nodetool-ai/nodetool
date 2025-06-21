@@ -7,6 +7,7 @@ import { AgentModeToggle } from "../composer/AgentModeToggle";
 import { HelpModeToggle } from "../composer/HelpModeToggle";
 import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
+import CollectionsSelector from "../composer/CollectionsSelector";
 
 const styles = (theme: any) =>
   css({
@@ -25,6 +26,8 @@ interface ChatToolBarProps {
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
   onHelpModeToggle?: (enabled: boolean) => void;
+  selectedCollections?: string[];
+  onCollectionsChange?: (collections: string[]) => void;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -35,7 +38,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   agentMode,
   onAgentModeToggle,
   helpMode,
-  onHelpModeToggle
+  onHelpModeToggle,
+  selectedCollections,
+  onCollectionsChange
 }) => {
 
   return (
@@ -51,6 +56,12 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
           <ToolsSelector value={selectedTools} onChange={onToolsChange} />
           <WorkflowToolsSelector value={selectedTools} onChange={onToolsChange} />
           <NodeToolsSelector value={selectedTools} onChange={onToolsChange} />
+          {onCollectionsChange && (
+            <CollectionsSelector 
+              value={selectedCollections || []} 
+              onChange={onCollectionsChange} 
+            />
+          )}
         </>
       )}
       {onAgentModeToggle && (

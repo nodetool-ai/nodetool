@@ -57,6 +57,8 @@ type ChatViewProps = {
   progressMessage: string | null;
   selectedTools?: string[];
   onToolsChange?: (tools: string[]) => void;
+  selectedCollections?: string[];
+  onCollectionsChange?: (collections: string[]) => void;
   onModelChange?: (modelId: string) => void;
   onStop?: () => void;
   agentMode?: boolean;
@@ -77,6 +79,8 @@ const ChatView = ({
   progressMessage,
   selectedTools = [],
   onToolsChange,
+  selectedCollections = [],
+  onCollectionsChange,
   onModelChange,
   onStop,
   agentMode,
@@ -96,13 +100,14 @@ const ChatView = ({
           model: messageAgentMode ? model : (model ? `help:${model}` : undefined),
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
+          collections: selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: messageAgentMode
         });
       } catch (error) {
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, selectedTools]
+    [sendMessage, model, selectedTools, selectedCollections]
   );
 
   return (
@@ -123,6 +128,8 @@ const ChatView = ({
         onStop={onStop}
         selectedTools={selectedTools}
         onToolsChange={onToolsChange}
+        selectedCollections={selectedCollections}
+        onCollectionsChange={onCollectionsChange}
         selectedModel={model}
         onModelChange={onModelChange}
         agentMode={agentMode}

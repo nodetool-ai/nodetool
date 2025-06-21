@@ -54,6 +54,8 @@ type ChatInputSectionProps = {
   onStop?: () => void;
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
+  selectedCollections?: string[];
+  onCollectionsChange?: (collections: string[]) => void;
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
   agentMode?: boolean;
@@ -68,6 +70,8 @@ const ChatInputSection = ({
   onStop,
   selectedTools,
   onToolsChange,
+  selectedCollections,
+  onCollectionsChange,
   selectedModel,
   onModelChange,
   agentMode,
@@ -83,6 +87,8 @@ const ChatInputSection = ({
         <ChatToolBar
           selectedTools={selectedTools}
           onToolsChange={onToolsChange}
+          selectedCollections={selectedCollections}
+          onCollectionsChange={onCollectionsChange}
           selectedModel={selectedModel}
           onModelChange={onModelChange}
           agentMode={agentMode}

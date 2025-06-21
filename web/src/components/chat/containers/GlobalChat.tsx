@@ -43,6 +43,7 @@ const GlobalChat: React.FC = () => {
     return savedModel || DEFAULT_MODEL;
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
   const [helpMode, setHelpMode] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -103,14 +104,15 @@ const GlobalChat: React.FC = () => {
         const modelToUse = helpMode ? `help:${selectedModel}` : selectedModel;
         const messageWithModel = {
           ...message,
-          model: modelToUse
+          model: modelToUse,
+          collections: selectedCollections.length > 0 ? selectedCollections : undefined
         };
         await sendMessage(messageWithModel);
       } catch (error) {
         console.error("Failed to send message:", error);
       }
     },
-    [selectedModel, sendMessage, status, helpMode]
+    [selectedModel, sendMessage, status, helpMode, selectedCollections]
   );
 
 
@@ -192,6 +194,8 @@ const GlobalChat: React.FC = () => {
             model={selectedModel}
             selectedTools={selectedTools}
             onToolsChange={setSelectedTools}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={setSelectedCollections}
             onModelChange={(modelId) => setSelectedModel(modelId)}
             onStop={stopGeneration}
             agentMode={agentMode}
