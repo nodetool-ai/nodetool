@@ -111,9 +111,10 @@ function getRoutes() {
       element: <Login />
     },
     {
-      path: "/chat",
+      path: "/chat/:thread_id?",
       element: (
         <ProtectedRoute>
+          <PanelLeft />
           <GlobalChat />
         </ProtectedRoute>
       )

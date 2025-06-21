@@ -4,6 +4,7 @@ import React from "react";
 import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
+import { HelpModeToggle } from "../composer/HelpModeToggle";
 import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 
@@ -22,6 +23,8 @@ interface ChatToolBarProps {
   onModelChange?: (modelId: string) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  helpMode?: boolean;
+  onHelpModeToggle?: (enabled: boolean) => void;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -30,7 +33,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   selectedModel,
   onModelChange,
   agentMode,
-  onAgentModeToggle
+  onAgentModeToggle,
+  helpMode,
+  onHelpModeToggle
 }) => {
 
   return (
@@ -52,6 +57,12 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         <AgentModeToggle
           agentMode={agentMode || false}
           onToggle={onAgentModeToggle}
+        />
+      )}
+      {onHelpModeToggle && (
+        <HelpModeToggle
+          helpMode={helpMode || false}
+          onToggle={onHelpModeToggle}
         />
       )}
     </div>

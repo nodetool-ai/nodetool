@@ -58,6 +58,8 @@ type ChatInputSectionProps = {
   onModelChange?: (modelId: string) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  helpMode?: boolean;
+  onHelpModeToggle?: (enabled: boolean) => void;
 };
 
 const ChatInputSection = ({
@@ -69,7 +71,9 @@ const ChatInputSection = ({
   selectedModel,
   onModelChange,
   agentMode,
-  onAgentModeToggle
+  onAgentModeToggle,
+  helpMode,
+  onHelpModeToggle
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
 
@@ -83,6 +87,8 @@ const ChatInputSection = ({
           onModelChange={onModelChange}
           agentMode={agentMode}
           onAgentModeToggle={onAgentModeToggle}
+          helpMode={helpMode}
+          onHelpModeToggle={onHelpModeToggle}
         />
         <div className="chat-composer-wrapper">
           <ChatComposer

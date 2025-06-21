@@ -3,25 +3,25 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Tooltip, IconButton, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import PsychologyIcon from "@mui/icons-material/Psychology";
+import HelpIcon from "@mui/icons-material/Help";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-interface AgentModeToggleProps {
-  agentMode: boolean;
+interface HelpModeToggleProps {
+  helpMode: boolean;
   onToggle: (enabled: boolean) => void;
   disabled?: boolean;
 }
 
 const styles = (theme: any) => css({
-  ".agent-toggle": {
+  ".help-toggle": {
     padding: "6px",
     transition: "all 0.2s ease-in-out",
     border: "1px solid transparent",
   }
 });
 
-export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
-  agentMode,
+export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
+  helpMode,
   onToggle,
   disabled = false
 }) => {
@@ -33,23 +33,23 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
       title={
         <div style={{ textAlign: "center" }}>
           <Typography variant="inherit">
-            {agentMode ? "Agent Mode On" : "Agent Mode Off"}
+            {helpMode ? "Help Mode On" : "Help Mode Off"}
           </Typography>
           <Typography variant="caption" display="block">
-            Click to {agentMode ? "disable" : "enable"} agent mode
+            Click to {helpMode ? "disable" : "enable"} help mode
           </Typography>
         </div>
       }
     >
       <IconButton
-        className={`agent-toggle ${agentMode ? "active" : ""}`}
+        className={`help-toggle ${helpMode ? "active" : ""}`}
         css={styles(theme)}
-        onClick={() => onToggle(!agentMode)}
+        onClick={() => onToggle(!helpMode)}
         disabled={disabled}
         size="small"
-        color={agentMode ? "primary" : "default"}
+        color={helpMode ? "primary" : "default"}
       >
-        <PsychologyIcon fontSize="small" />
+        <HelpIcon fontSize="small" />
       </IconButton>
     </Tooltip>
   );

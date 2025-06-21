@@ -2,7 +2,7 @@ import { css } from "@emotion/react";
 
 export const createStyles = (theme: any) =>
   css({
-    width: "260px",
+    width: "100%",
     height: "100%",
     display: "flex",
     flexDirection: "column",
