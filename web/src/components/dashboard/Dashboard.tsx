@@ -341,6 +341,22 @@ const Dashboard: React.FC = () => {
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 
+  // Handle WebSocket connection lifecycle
+  useEffect(() => {
+    // Connect on mount if not already connected
+    if (status === "disconnected") {
+      connect().catch((error) => {
+        console.error("Failed to connect to chat service:", error);
+      });
+    }
+
+    return () => {
+      // Disconnect on unmount
+      disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount/unmount
+
   // Load workflows
   const loadWorkflows = async () => {
     const { data, error } = await client.GET("/api/workflows/", {
