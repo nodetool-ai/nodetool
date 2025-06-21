@@ -91,6 +91,7 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
               position: "absolute",
               right: 8,
               top: 8,
+              ml: 4,
               color: (theme) => theme.palette.grey[500]
             }}
           >

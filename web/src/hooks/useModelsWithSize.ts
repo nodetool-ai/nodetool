@@ -66,7 +66,9 @@ export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
         ...model,
         size_on_disk: model.path ? singleFileModelSize : hfModel?.size_on_disk,
         downloaded: singleFileModel?.downloaded,
-        readme: hfModel?.readme ?? ""
+        readme: hfModel?.readme ?? "",
+        pipeline_tag: hfModel?.the_model_info?.pipeline_tag || undefined,
+        tags: hfModel?.the_model_info?.tags
       };
     });
   }, [recommendedModels, downloadedSingleFileModels, fileInfos, hfModels]);
