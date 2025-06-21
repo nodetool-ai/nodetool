@@ -34,11 +34,9 @@ const styles = (theme: any) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.c_gray1
     },
     ".panel-left": {
       border: "none",
-      backgroundColor: "var(--palette-c_editor_bg_color)",
       direction: "ltr",
       position: "absolute",
       overflow: "hidden",
