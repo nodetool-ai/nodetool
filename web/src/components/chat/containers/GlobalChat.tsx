@@ -6,8 +6,8 @@ import Drawer from "@mui/material/Drawer";
 import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
+import { useParams } from "react-router-dom";
 import ChatView from "./ChatView";
-import ThreadList from "../thread/ThreadList";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../dashboard/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -15,6 +15,7 @@ import { Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 
 const GlobalChat: React.FC = () => {
+  const { thread_id } = useParams<{ thread_id?: string }>();
   const {
     connect,
     disconnect,
@@ -42,15 +43,19 @@ const GlobalChat: React.FC = () => {
     return savedModel || DEFAULT_MODEL;
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [helpMode, setHelpMode] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const messages = getCurrentMessages();
 
-  // Handle connection lifecycle
+  // Handle connection lifecycle and thread switching
   useEffect(() => {
-    // Ensure we have a thread
-    if (!currentThreadId) {
+    // Switch to thread from URL if provided
+    if (thread_id && thread_id !== currentThreadId) {
+      switchThread(thread_id);
+    } else if (!currentThreadId && !thread_id) {
+      // Create new thread if none exists
       createNewThread();
     }
 
@@ -66,14 +71,8 @@ const GlobalChat: React.FC = () => {
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, [thread_id]); // Depend on thread_id to handle URL changes
 
-  const handleNewChat = useCallback(() => {
-    createNewThread();
-    // Reset tools when starting a new chat
-    setSelectedTools([]);
-    if (isMobile) setDrawerOpen(false);
-  }, [createNewThread, isMobile]);
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
@@ -100,56 +99,21 @@ const GlobalChat: React.FC = () => {
       }
 
       try {
-        // Update the message with the selected model
+        // Update the message with the selected model - prefix with "help:" if help mode is enabled
+        const modelToUse = helpMode ? `help:${selectedModel}` : selectedModel;
         const messageWithModel = {
           ...message,
-          model: selectedModel
+          model: modelToUse
         };
         await sendMessage(messageWithModel);
       } catch (error) {
         console.error("Failed to send message:", error);
       }
     },
-    [selectedModel, sendMessage, status]
+    [selectedModel, sendMessage, status, helpMode]
   );
 
-  // Get first message text for thread preview
-  const getThreadPreview = useCallback(
-    (threadId: string) => {
-      if (!threads) return "Loading...";
-      const thread = threads[threadId];
-      if (!thread || thread.messages.length === 0) {
-        return "Empty conversation";
-      }
 
-      const firstUserMessage = thread.messages.find(
-        (msg) => msg.role === "user"
-      );
-      if (firstUserMessage) {
-        const content =
-          typeof firstUserMessage.content === "string"
-            ? firstUserMessage.content
-            : Array.isArray(firstUserMessage.content) &&
-              firstUserMessage.content[0]?.type === "text"
-            ? (firstUserMessage.content[0] as any).text
-            : "[Media message]";
-        return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
-      }
-
-      return "New conversation";
-    },
-    [threads]
-  );
-
-  const handleDeleteThread = useCallback(
-    (_e: React.MouseEvent | undefined, threadId: string) => {
-      if (_e) {
-        _e.stopPropagation();
-      }
-      deleteThread(threadId);
-    },
-    [deleteThread]
-  );
 
   const mainAreaStyles = (theme: any) =>
     css({
@@ -158,11 +122,10 @@ const GlobalChat: React.FC = () => {
       flexDirection: "column",
 
       ".chat-header": {
-        padding: "0 1em",
-        display: "flex",
-        alignItems: "center",
-        gap: theme.spacing(2),
-        boxShadow: "2px 0 25px 0 rgba(0, 0, 0, 0.3)"
+        position: "absolute",
+        top: 0,
+        left: 0,
+        zIndex: 1000
       },
 
       ".chat-container": {
@@ -191,56 +154,26 @@ const GlobalChat: React.FC = () => {
     <Box
       sx={{
         height: "100vh",
+        maxHeight: "100vh",
         display: "flex",
-        flexDirection: isMobile ? "column" : "row"
+        flexDirection: "column",
+        marginLeft: "5rem",
+        marginRight: "5rem",
+        paddingLeft: "5rem",
+        paddingRight: "5rem",
+        overflow: "hidden"
       }}
     >
-      {/* Thread List Sidebar */}
-      {isMobile ? (
-        <Drawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          PaperProps={{ sx: { width: 260 } }}
-        >
-          <ThreadList
-            threads={threads}
-            currentThreadId={currentThreadId}
-            onNewThread={handleNewChat}
-            onSelectThread={(id) => {
-              switchThread(id);
-              setDrawerOpen(false);
-            }}
-            onDeleteThread={(id) => handleDeleteThread(undefined as any, id)}
-            getThreadPreview={getThreadPreview}
-          />
-        </Drawer>
-      ) : (
-        <ThreadList
-          threads={threads}
-          currentThreadId={currentThreadId}
-          onNewThread={handleNewChat}
-          onSelectThread={switchThread}
-          onDeleteThread={(id) => handleDeleteThread(undefined as any, id)}
-          getThreadPreview={getThreadPreview}
-        />
-      )}
-
       {/* Main Chat Area */}
-      <Box css={mainAreaStyles}>
-        <Box className="chat-header">
-          {isMobile && (
-            <IconButton onClick={() => setDrawerOpen(true)}>
-              <MenuIcon />
-            </IconButton>
-          )}
-          <BackToDashboardButton />
+      <Box css={mainAreaStyles} sx={{ height: "100%", maxHeight: "100%" }}>
+        <Box className="chat-header" sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}>
           <BackToEditorButton />
         </Box>
 
         {(error || status === "reconnecting") && (
           <Alert
             severity={status === "reconnecting" ? "info" : "error"}
-            sx={{ mx: 2, my: 1 }}
+            sx={{ mx: 2, my: 1, flexShrink: 0 }}
           >
             {status === "reconnecting"
               ? statusMessage || "Reconnecting to chat service..."
@@ -248,7 +181,7 @@ const GlobalChat: React.FC = () => {
           </Alert>
         )}
 
-        <Box className="chat-container">
+        <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
           <ChatView
             status={status}
             messages={messages}
@@ -263,6 +196,8 @@ const GlobalChat: React.FC = () => {
             onStop={stopGeneration}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
+            helpMode={helpMode}
+            onHelpModeToggle={setHelpMode}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
           />
