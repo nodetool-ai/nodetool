@@ -56,6 +56,7 @@ const styles = (theme: any) =>
       ".node-header": {
         width: "100%",
         minHeight: "unset",
+        height: "20px",
         top: 0,
         left: 0,
         margin: 0,
@@ -127,6 +128,13 @@ const styles = (theme: any) =>
         maxHeight: "500px",
         overflowY: "auto",
         padding: "1em"
+      },
+      "& .node-header .node-title": {
+        textTransform: "uppercase",
+        fontSize: "var(--fontSizeTiny)",
+        fontFamily: "var(--fontFamily2)",
+        color: theme.palette.c_gray5,
+        marginTop: "0.25em"
       }
     },
     tableStyles(theme)
