@@ -2,11 +2,6 @@ import React, { useContext } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { create } from 'zustand';
 import { NodeProvider, useNodes, useTemporalNodes, NodeContext } from '../NodeContext';
-import { useWorkflowManager } from '../WorkflowManagerContext';
-
-jest.mock('../WorkflowManagerContext', () => ({
-  useWorkflowManager: jest.fn()
-}));
 
 const createMockStore = () => {
   const store: any = create(() => ({
@@ -17,17 +12,15 @@ const createMockStore = () => {
   return store;
 };
 
-const mockUseWorkflowManager = useWorkflowManager as jest.Mock;
-
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe('NodeProvider', () => {
   test('renders loading state when store not available', () => {
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => undefined }));
+    const createStore = () => null as any;
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <div>child</div>
       </NodeProvider>
     );
@@ -36,28 +29,28 @@ describe('NodeProvider', () => {
 
   test('renders children when store available', () => {
     const store = createMockStore();
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => store }));
+    const createStore = () => store;
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <div data-testid="child">child</div>
       </NodeProvider>
     );
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  test('passes store and workflowId to context', () => {
+  test('passes store to context', () => {
     const store = createMockStore();
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => store }));
+    const createStore = () => store;
     const Child = () => {
-    const ctx = useContext(NodeContext)!;
-    return <div>{ctx.workflowId + '-' + (ctx.store.getState() as any).value}</div>;
-  };
+      const ctx = useContext(NodeContext)!;
+      return <div>{(ctx.getState() as any).value}</div>;
+    };
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <Child />
       </NodeProvider>
     );
-    expect(screen.getByText('wf1-42')).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
   });
 });
 
@@ -72,13 +65,13 @@ describe('useNodes', () => {
 
   test('returns selected state correctly', () => {
     const store = createMockStore();
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => store }));
+    const createStore = () => store;
     const Child = () => {
       const value = useNodes((s: any) => s.value);
       return <div>{value}</div>;
     };
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <Child />
       </NodeProvider>
     );
@@ -87,7 +80,7 @@ describe('useNodes', () => {
 
   test('re-renders only when selected state changes', () => {
     const store = createMockStore();
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => store }));
+    const createStore = () => store;
     let renderCount = 0;
     const Child = () => {
       renderCount++;
@@ -95,7 +88,7 @@ describe('useNodes', () => {
       return <div>{data.a}</div>;
     };
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <Child />
       </NodeProvider>
     );
@@ -122,13 +115,13 @@ describe('useTemporalNodes', () => {
 
   test('accesses temporal state correctly', () => {
     const store = createMockStore();
-    mockUseWorkflowManager.mockImplementation((selector) => selector({ getNodeStore: () => store }));
+    const createStore = () => store;
     const Child = () => {
       const count = useTemporalNodes((s: any) => s.count);
       return <div>{count}</div>;
     };
     render(
-      <NodeProvider workflowId="wf1">
+      <NodeProvider createStore={createStore}>
         <Child />
       </NodeProvider>
     );
