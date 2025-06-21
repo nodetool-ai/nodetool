@@ -6,7 +6,7 @@ import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo } from "react";
 import { isEqual } from "lodash";
-import { NodeProvider } from "../../contexts/NodeContext";
+import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -110,9 +110,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
 });
 
 const PanelRight: React.FC = () => {
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
   const {
     ref: panelRef,
     size: panelSize,
@@ -121,6 +118,12 @@ const PanelRight: React.FC = () => {
     handleMouseDown,
     handlePanelToggle
   } = useResizeRightPanel("right");
+
+  const activeNodeStore = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]
+      : undefined
+  );
 
   return (
     <div
@@ -165,14 +168,14 @@ const PanelRight: React.FC = () => {
           <VerticalToolbar
             handlePanelToggle={() => handlePanelToggle("inspector")}
           />
-          {isVisible && currentWorkflowId && (
-            <ContextMenuProvider active={isVisible}>
+          {isVisible && activeNodeStore && (
+            <ContextMenuProvider>
               <ReactFlowProvider>
-                <NodeProvider workflowId={currentWorkflowId}>
+                <NodeContext.Provider value={activeNodeStore}>
                   <MuiThemeProvider theme={ThemeNodes}>
                     <Inspector />
                   </MuiThemeProvider>
-                </NodeProvider>
+                </NodeContext.Provider>
               </ReactFlowProvider>
             </ContextMenuProvider>
           )}
