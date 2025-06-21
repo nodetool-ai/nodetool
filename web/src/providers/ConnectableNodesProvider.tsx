@@ -16,10 +16,8 @@ export const ConnectableNodesContext =
   createContext<ConnectableNodesState | null>(null);
 
 export function ConnectableNodesProvider({
-  active,
   children
 }: {
-  active: boolean;
   children: ReactNode;
 }) {
   const [nodeMetadata] = useState<NodeMetadata[]>([]);
@@ -50,18 +48,16 @@ export function ConnectableNodesProvider({
 
   const showMenu = useCallback(
     (position: { x: number; y: number }) => {
-      if (!active) return;
       setIsVisible(true);
       setMenuPosition(position);
     },
-    [active]
+    []
   );
 
   const hideMenu = useCallback(() => {
-    if (!active) return;
     setIsVisible(false);
     setMenuPosition(null);
-  }, [active]);
+  }, []);
 
   const value: ConnectableNodesState = {
     nodeMetadata,

@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css, ThemeProvider } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { NodeProvider } from "../../contexts/NodeContext";
+import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import AppToolbar from "../panels/AppToolbar";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
@@ -386,11 +386,11 @@ const TabsNodeEditor = () => {
                   flexDirection: "column"
                 }}
               >
-                <NodeProvider createStore={() => activeNodeStore}>
+                <NodeContext.Provider value={activeNodeStore}>
                   <ReactFlowProvider>
-                    <ContextMenuProvider active={true}>
-                      <ConnectableNodesProvider active={true}>
-                        <KeyboardProvider active={true}>
+                    <ContextMenuProvider>
+                      <ConnectableNodesProvider>
+                        <KeyboardProvider>
                           <div
                             style={{
                               flexShrink: 0,
@@ -426,7 +426,7 @@ const TabsNodeEditor = () => {
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>
                   </ReactFlowProvider>
-                </NodeProvider>
+                </NodeContext.Provider>
               </Box>
             ) : (
               <StatusMessage />
