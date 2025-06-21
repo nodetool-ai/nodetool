@@ -66,7 +66,7 @@ const menuStyles = (theme: any) =>
       zIndex: 1000,
       whiteSpace: "nowrap"
     },
-    ".options-list .option:first-child": {
+    ".options-list .option:first-of-type": {
       color: theme.palette.c_gray3
     },
 
