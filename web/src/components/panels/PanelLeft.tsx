@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import PackageList from "../packages/PackageList";
 import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -31,7 +32,7 @@ const styles = (theme: any) =>
     left: "0",
     ".panel-container": {
       flexShrink: 0,
-      position: "absolute",
+      position: "absolute"
     },
     ".panel-left": {
       border: "none",
@@ -155,7 +156,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
-      <Tooltip title="Chat (Key 1)" placement="right">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Chat</div>
+            <div className="tooltip-key">Key&nbsp;1</div>
+          </div>
+        }
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("chat")}
@@ -164,7 +174,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <ChatIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Workflows (Key 2)" placement="right">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workflows</div>
+            <div className="tooltip-key">Key&nbsp;2</div>
+          </div>
+        }
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("workflowGrid")}
@@ -175,7 +194,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <GridViewIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Assets (Key 3)" placement="right">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Assets</div>
+            <div className="tooltip-key">Key&nbsp;3</div>
+          </div>
+        }
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <Button
           tabIndex={-1}
           onClick={() => onViewChange("assets")}
@@ -198,7 +226,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Collections (Key 4)" placement="right">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Collections</div>
+            <div className="tooltip-key">Key&nbsp;4</div>
+          </div>
+        }
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("collections")}
@@ -215,7 +252,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Packs (Key 5)" placement="right">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Packs</div>
+            <div className="tooltip-key">Key&nbsp;5</div>
+          </div>
+        }
+        placement="right"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton
           tabIndex={-1}
           className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
@@ -242,7 +288,7 @@ const PanelContent = memo(function PanelContent({
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
-  
+
   const {
     threads,
     currentThreadId,
@@ -272,9 +318,7 @@ const PanelContent = memo(function PanelContent({
       return "Empty conversation";
     }
 
-    const firstUserMessage = thread.messages.find(
-      (msg) => msg.role === "user"
-    );
+    const firstUserMessage = thread.messages.find((msg) => msg.role === "user");
     if (firstUserMessage) {
       const content =
         typeof firstUserMessage.content === "string"
@@ -292,7 +336,14 @@ const PanelContent = memo(function PanelContent({
   return (
     <>
       {activeView === "chat" && (
-        <Box sx={{ width: "100%", height: "100%", overflow: "hidden", margin: "0" }}>
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            margin: "0"
+          }}
+        >
           <ThreadList
             threads={threads}
             currentThreadId={currentThreadId}

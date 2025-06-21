@@ -136,13 +136,23 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         onClick={() => handleDuplicateNodes()}
         label="Duplicate"
         IconComponent={<QueueIcon />}
-        tooltip={<span className="tooltip-1">CTRL+D | Meta+D</span>}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Duplicate</div>
+            <div className="tooltip-key">CTRL+D / ⌘D</div>
+          </div>
+        }
       />
       <ContextMenuItem
         onClick={() => handleCopy()}
         label="Copy"
         IconComponent={<CopyAllIcon />}
-        tooltip="CTRL+C | Meta+C"
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Copy</div>
+            <div className="tooltip-key">CTRL+C / ⌘C</div>
+          </div>
+        }
       />
       {/* <ContextMenuItem
         onClick={() => handleCollapseAll(false)}
@@ -162,7 +172,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }}
         label="Align"
         IconComponent={<FormatAlignLeftIcon />}
-        tooltip={<span className="tooltip-1">A</span>}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Align</div>
+            <div className="tooltip-key">A</div>
+          </div>
+        }
         addButtonClassName={`action ${
           (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
         }`}
@@ -173,7 +188,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }}
         label="Arrange"
         IconComponent={<FormatAlignLeftIcon />}
-        tooltip={<span className="tooltip-1">SHIFT+A</span>}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Arrange</div>
+            <div className="tooltip-key">SHIFT+A</div>
+          </div>
+        }
         addButtonClassName={`action ${
           (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
         }`}
@@ -186,7 +206,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           }}
           label="Surrround With Group"
           IconComponent={<GroupWorkIcon />}
-          tooltip={<span className="tooltip-1">SHIFT+G</span>}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Surround With Group</div>
+              <div className="tooltip-key">SHIFT+G</div>
+            </div>
+          }
           addButtonClassName={`action ${
             selectedNodes.length < 1 ? "disabled" : ""
           }`}
@@ -201,7 +226,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           label="Remove From Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
-            <span className="tooltip-1">Right Click Node or Selection</span>
+            <div className="tooltip-span">
+              <div className="tooltip-title">Remove From Group</div>
+              <div className="tooltip-key">Right-Click</div>
+            </div>
           }
           addButtonClassName={`action ${
             selectedNodes.length < 1 ? "disabled" : ""
@@ -213,7 +241,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         onClick={() => handleDelete()}
         label="Delete"
         IconComponent={<RemoveCircleIcon />}
-        tooltip={<span className="tooltip-1">Backspace | Del</span>}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Delete</div>
+            <div className="tooltip-key">Backspace / Del</div>
+          </div>
+        }
         addButtonClassName="delete"
       />
     </Menu>

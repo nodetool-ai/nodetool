@@ -16,6 +16,8 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
 interface NodeToolbarProps {
   nodeId: string | null;
 }
@@ -70,17 +72,41 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           </IconButton>
         </Tooltip>
       )} */}
-      <Tooltip title="Duplicate (Space+D)">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Duplicate</div>
+            <div className="tooltip-key">Space+D</div>
+          </div>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton onClick={handleDuplicateNodes} tabIndex={-1}>
           <QueueIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Copy (CTRL+C | Meta+C)">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Copy</div>
+            <div className="tooltip-key">CTRL+C / ⌘C</div>
+          </div>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton onClick={handleCopyClicked} tabIndex={-1}>
           <CopyAllIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Delete (Backspace | Del)">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Delete</div>
+            <div className="tooltip-key">Backspace / Del</div>
+          </div>
+        }
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton className="delete" onClick={handleDelete} tabIndex={-1}>
           <RemoveCircleIcon />
         </IconButton>
