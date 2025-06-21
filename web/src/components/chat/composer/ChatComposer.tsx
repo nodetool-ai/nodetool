@@ -18,7 +18,9 @@ interface ChatComposerProps {
     | "loading"
     | "error"
     | "streaming"
-    | "reconnecting";
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   onSendMessage: (content: MessageContent[], prompt: string, agentMode: boolean) => void;
   onStop?: () => void;
   disabled?: boolean;

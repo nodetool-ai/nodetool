@@ -43,7 +43,9 @@ type ChatInputSectionProps = {
     | "loading"
     | "error"
     | "streaming"
-    | "reconnecting";
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   onSendMessage: (
     content: MessageContent[],
     prompt: string,

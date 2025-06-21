@@ -14,7 +14,9 @@ interface ActionButtonsProps {
     | "loading"
     | "error"
     | "streaming"
-    | "reconnecting";
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   onSend: () => void;
   onStop?: () => void;
   isDisabled: boolean;

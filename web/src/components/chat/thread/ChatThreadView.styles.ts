@@ -150,6 +150,21 @@ export const createStyles = (theme: any) => ({
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
+    },
+
+    "li.chat-message-list-item": {
+      listStyleType: "none",
+      listStyle: "none",
+      margin: "0",
+      padding: "0",
+      
+      "&::before": {
+        display: "none"
+      },
+      
+      "&::marker": {
+        display: "none"
+      }
     }
   })
 });

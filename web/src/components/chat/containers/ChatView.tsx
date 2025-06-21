@@ -46,7 +46,9 @@ type ChatViewProps = {
     | "loading"
     | "error"
     | "streaming"
-    | "reconnecting";
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   progress: number;
   total: number;
   messages: Array<Message>;
