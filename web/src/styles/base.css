@@ -101,3 +101,23 @@ span.tooltip-small {
   font-size: var(--fontSizeSmall);
   color: var(--c_white) !important;
 }
+
+/* tooltips */
+.tooltip-span {
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+}
+
+.tooltip-title {
+  font-size: 1.2em;
+  color: var(--c_gray6)
+}
+
+.tooltip-key {
+  font-size: 0.8em;
+  background-color: transparent;
+  color: var(--c_gray5);
+}

@@ -240,20 +240,6 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray6,
       boxShadow: `0 2px 8px ${theme.palette.c_gray1}40`
     },
-    ".tooltip-span": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: "0.1em"
-    },
-    ".tooltip-title": {
-      fontSize: "1.2em",
-      color: theme.palette.c_gray6
-    },
-    ".tooltip-key": {
-      fontSize: "0.8em",
-      color: theme.palette.c_gray6
-    },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },
       "50%": { opacity: 1 },
@@ -366,7 +352,15 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
   return (
-    <Tooltip title="Save workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip
+      title={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Save workflow</div>
+          <div className="tooltip-key">CTRL / ⌘ +S</div>
+        </div>
+      }
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>
         <SaveIcon />
       </Button>
@@ -404,17 +398,19 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
 
   const [selectIsOpen, setSelectIsOpen] = useState(false);
 
+  const handleModeChange = useCallback(
+    (event: React.ChangeEvent<{ value: unknown }>) => {
+      const newMode = event.target.value as string;
 
-  const handleModeChange = useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
-    const newMode = event.target.value as string;
+      const updatedWorkflow = {
+        ...workflow,
+        run_mode: newMode
+      };
 
-    const updatedWorkflow = {
-      ...workflow,
-      run_mode: newMode
-    };
-
-    saveWorkflow(updatedWorkflow);
-  }, [saveWorkflow, workflow]);
+      saveWorkflow(updatedWorkflow);
+    },
+    [saveWorkflow, workflow]
+  );
 
   return (
     <Tooltip
@@ -669,9 +665,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
             <WorkflowModeSelect />
             <RunWorkflowButton />
             <StopWorkflowButton />
-            {isLocalhost && workflow?.run_mode === "app" && (
-              <RunAsAppButton />
-            )}
+            {isLocalhost && workflow?.run_mode === "app" && <RunAsAppButton />}
           </>
         </div>
       )}
