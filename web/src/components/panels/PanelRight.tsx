@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -96,7 +97,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const panelVisible = useRightPanelStore((state) => state.panel.isVisible);
   return (
     <div className="vertical-toolbar">
-      <Tooltip title="Inspector" placement="left">
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Inspector</div>
+            <div className="tooltip-key">Key&nbsp;i</div>
+          </div>
+        }
+        placement="left"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
         <IconButton
           tabIndex={-1}
           onClick={handlePanelToggle}

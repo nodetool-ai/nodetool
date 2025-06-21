@@ -13,6 +13,7 @@ import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 
@@ -370,4 +371,14 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo(["ArrowRight"], () => handleMoveNodes({ x: 10 }));
   useCombo(["ArrowUp"], () => handleMoveNodes({ y: -10 }));
   useCombo(["ArrowDown"], () => handleMoveNodes({ y: 10 }));
+
+  /* INSPECTOR TOGGLE */
+  const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+
+  const handleInspectorToggle = useCallback(() => {
+    inspectorToggle("inspector");
+  }, [inspectorToggle]);
+
+  // Open/close Inspector panel
+  useCombo(["i"], handleInspectorToggle);
 };
