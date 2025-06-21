@@ -17,11 +17,12 @@ import log from "loglevel";
 import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { supabase } from "../lib/supabaseClient";
+import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
 type WorkflowChatState = {
-  socket: WebSocket | null;
+  wsManager: WebSocketManager | null;
   workflow: WorkflowAttributes | null;
-  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  status: "disconnected" | "connecting" | "connected" | "loading" | "error" | "reconnecting" | "disconnecting" | "failed";
   messages: Message[];
   progressMessage: string | null;
   progress: number;
@@ -76,7 +77,7 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
 };
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
-  socket: null,
+  wsManager: null,
   messages: [],
   progressMessage: null,
   workflow: null,
@@ -89,11 +90,9 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     set({ workflow });
 
-    if (get().socket) {
+    if (get().wsManager) {
       get().disconnect();
     }
-
-    set({ status: "connecting" });
 
     // Get authentication token if not connecting to localhost
     let wsUrl = CHAT_URL;
@@ -122,16 +121,32 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       }
     }
 
-    const socket = new WebSocket(wsUrl);
-    socket.onopen = () => {
+    const wsManager = new WebSocketManager({
+      url: wsUrl,
+      binaryType: 'arraybuffer',
+      reconnect: true,
+      reconnectInterval: 1000,
+      reconnectAttempts: 5,
+      timeoutInterval: 30000
+    });
+
+    // Handle state changes
+    wsManager.on('stateChange', (newState: ConnectionState) => {
+      // Don't override loading status when we're processing a message
+      if (newState === 'connected' && get().status === 'loading') {
+        return;
+      }
+      set({ status: newState as WorkflowChatState['status'] });
+    });
+
+    // Handle connection open
+    wsManager.on('open', () => {
       log.info("Chat WebSocket connected");
-      set({ socket, status: "connected" });
-    };
+      set({ status: "connected" });
+    });
 
-    socket.onmessage = async (event) => {
-      const arrayBuffer = await event.data.arrayBuffer();
-      const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
-
+    // Handle messages
+    wsManager.on('message', (data: MsgpackData) => {
       if (data.type === "message") {
         set((state) => ({
           messages: [...state.messages, data as Message],
@@ -223,46 +238,55 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
           set({ progressMessage: update.message });
         }
       }
-    };
+    });
 
-    socket.onerror = (error) => {
+    // Handle errors
+    wsManager.on('error', (error: Error) => {
       log.error("Chat WebSocket error:", error);
       if (!isLocalhost) {
         set({
           status: "error",
-          error:
-            "Connection failed. This may be due to an authentication issue."
+          error: "Connection failed. This may be due to an authentication issue."
         });
       }
-    };
-
-    socket.onclose = () => {
-      log.info("Chat WebSocket disconnected");
-      set({ socket: null, status: "disconnected" });
-    };
-
-    set({ socket });
-
-    return new Promise<void>((resolve) => {
-      const interval = setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
     });
+
+    // Handle close
+    wsManager.on('close', (code: number, reason: string) => {
+      log.info("Chat WebSocket disconnected", { code, reason });
+      set({ status: "disconnected" });
+    });
+
+    // Handle reconnection attempts
+    wsManager.on('reconnecting', (attempt: number, maxAttempts: number) => {
+      log.info(`Reconnecting to chat WebSocket (${attempt}/${maxAttempts})`);
+      set({ status: "reconnecting" });
+    });
+
+    set({ wsManager });
+
+    try {
+      await wsManager.connect();
+    } catch (error) {
+      log.error("Failed to connect to chat WebSocket:", error);
+      set({
+        status: "error",
+        error: "Failed to connect to chat service"
+      });
+      throw error;
+    }
   },
 
   disconnect: () => {
-    const { socket } = get();
-    if (socket) {
-      socket.close();
-      set({ socket: null });
+    const { wsManager } = get();
+    if (wsManager) {
+      wsManager.disconnect();
+      set({ wsManager: null });
     }
   },
 
   sendMessage: async (message: Message) => {
-    const { socket } = get();
+    const { wsManager } = get();
 
     set({ error: null });
 
@@ -270,7 +294,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       throw new Error("Workflow ID is required");
     }
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
+    if (!wsManager || !wsManager.isConnected()) {
       return;
     }
 
@@ -279,7 +303,16 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       status: "loading"
     }));
 
-    socket?.send(encode(message));
+    try {
+      wsManager.send(message);
+    } catch (error) {
+      log.error("Failed to send message:", error);
+      set({
+        status: "error",
+        error: "Failed to send message"
+      });
+      throw error;
+    }
   },
 
   resetMessages: () => {
