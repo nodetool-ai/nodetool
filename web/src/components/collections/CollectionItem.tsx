@@ -18,9 +18,9 @@ import WorkflowSelect from "./WorkflowSelect";
 import { useCallback, useState } from "react";
 import { client } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
+
 interface CollectionItemProps {
   collection: CollectionResponse;
-  isElectron: boolean;
   dragOverCollection: string | null;
   indexProgress: {
     collection: string;
@@ -30,7 +30,7 @@ interface CollectionItemProps {
   } | null;
   onDelete: (name: string) => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragOver: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent, collection: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
   deleteMutation: UseMutationResult<void, Error, string>;
 }
@@ -84,7 +84,6 @@ const IndexingProgress = ({
 
 const CollectionItem = ({
   collection,
-  isElectron,
   dragOverCollection,
   indexProgress,
   onDelete,
@@ -149,23 +148,16 @@ const CollectionItem = ({
     <ListItem
       component="div"
       onDrop={onDrop}
-      onDragOver={(e) => onDragOver(e)}
+      onDragOver={(e) => onDragOver(e, collection.name)}
       onDragLeave={onDragLeave}
       sx={{
         borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-        cursor: isElectron ? "copy" : "default",
-        "&:hover": {
-          backgroundColor: isElectron ? "action.hover" : "transparent"
-        },
+        cursor: "copy",
         ...(dragOverCollection === collection.name &&
-          isElectron && {
-            backgroundColor: "action.selected",
+          {
             borderStyle: "dashed",
             borderWidth: 2,
             borderColor: "primary.main",
-            "& .MuiTypography-root": {
-              color: "primary.main"
-            }
           }),
         transition: "all 0.2s",
         display: "flex",
