@@ -13,41 +13,53 @@ import { css, useTheme } from "@emotion/react";
 
 const styles = (theme: any) =>
   css({
-    "& .string-action-buttons": {
-      position: "absolute",
-      right: 0,
-      top: "50%",
-      transform: "translateY(-50%)",
+    ".property-row": {
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
+      gap: "0.5em",
+      position: "relative",
+      width: "100%",
+      "&:hover .string-action-buttons": {
+        opacity: 0.8,
+        pointerEvents: "auto"
+      }
+    },
+    ".value-container": {
+      flex: "1 1 auto",
+      minWidth: 0 // Needed for ellipsis to work in flex child
+    },
+    "& .string-action-buttons": {
+      display: "flex",
+      alignItems: "center",
       gap: ".5em",
       opacity: 0,
       backgroundColor: theme.palette.c_gray1,
       borderRadius: "4px",
-      padding: 0,
-      margin: 0,
+      padding: "2px",
       transition: "opacity 0.2s",
       pointerEvents: "none",
+      flexShrink: 0,
       "& .MuiIconButton-root": {
         margin: 0,
         padding: 0
       }
     },
-    
+
     "& .string-value-display": {
       minHeight: "1.5em",
-      padding: "0.25em 0",
-      lineHeight: "1.25em",
+      padding: "0.25em 0.25em",
+      lineHeight: "1em",
       cursor: "pointer",
       borderRadius: "4px",
       border: "1px solid transparent",
       backgroundColor: "transparent",
       transition: "all 0.2s ease",
-      fontSize: "0.875rem",
+      fontSize: theme.fontSizeNormal,
       color: theme.palette.text.primary,
       fontFamily: "inherit",
-      wordBreak: "break-word",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
         border: "1px solid " + theme.palette.c_gray3
@@ -90,12 +102,9 @@ const styles = (theme: any) =>
         }
       }
     },
-    "&.string-property:hover .string-action-buttons": {
-      opacity: 0.8,
-      pointerEvents: "auto"
-    },
     "& .MuiTextField-root": {
-      padding: "0"
+      padding: "0",
+      width: "100%"
     }
   });
 
@@ -153,24 +162,77 @@ const StringProperty = ({
     setIsEditing(false);
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      stopEditing();
-    } else if (e.key === 'Escape') {
-      stopEditing();
-    }
-  }, [stopEditing]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        stopEditing();
+      } else if (e.key === "Escape") {
+        stopEditing();
+      }
+    },
+    [stopEditing]
+  );
 
   if (showTextEditor) {
     return (
       <div className="string-property" css={styles(theme)}>
-        <div style={{ position: "relative" }}>
-          <PropertyLabel
-            name={property.name}
-            description={property.description}
-            id={id}
-          />
+        <div className="property-row">
+          {!value && (
+            <PropertyLabel
+              name={property.name}
+              description={property.description}
+              id={id}
+            />
+          )}
+          <div className="value-container">
+            {isEditing ? (
+              <TextField
+                value={value || ""}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange(e.target.value)
+                }
+                onFocus={(e) => {
+                  handleFocus(e);
+                  setIsFocused(true);
+                }}
+                onBlur={() => {
+                  setIsFocused(false);
+                  stopEditing();
+                }}
+                onKeyDown={handleKeyDown}
+                className={`nodrag ${isFocused ? "nowheel" : ""}`}
+                tabIndex={tabIndex}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                multiline
+                minRows={1}
+                maxRows={2}
+                fullWidth
+                size="small"
+                variant="outlined"
+                autoFocus
+              />
+            ) : (
+              <div
+                className={`string-value-display ${!value ? "empty" : ""}`}
+                onClick={startEditing}
+                role="button"
+                tabIndex={tabIndex}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startEditing();
+                  }
+                }}
+                title={value || ""}
+              >
+                {value || "Click to edit..."}
+              </div>
+            )}
+          </div>
           <div className="string-action-buttons">
             <Tooltip title="Open Editor" placement="bottom">
               <IconButton size="small" onClick={toggleExpand}>
@@ -179,53 +241,6 @@ const StringProperty = ({
             </Tooltip>
             <CopyToClipboardButton textToCopy={value || ""} size="small" />
           </div>
-        </div>
-        <div style={{ position: "relative" }}>
-          {isEditing ? (
-            <TextField
-              value={value || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onChange(e.target.value)
-              }
-              onFocus={(e) => {
-                handleFocus(e);
-                setIsFocused(true);
-              }}
-              onBlur={() => {
-                setIsFocused(false);
-                stopEditing();
-              }}
-              onKeyDown={handleKeyDown}
-              className={`nodrag ${isFocused ? "nowheel" : ""}`}
-              tabIndex={tabIndex}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              multiline
-              minRows={1}
-              maxRows={2}
-              fullWidth
-              size="small"
-              variant="outlined"
-              autoFocus
-            />
-          ) : (
-            <div 
-              className={`string-value-display ${!value ? "empty" : ""}`}
-              onClick={startEditing}
-              role="button"
-              tabIndex={tabIndex}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  startEditing();
-                }
-              }}
-            >
-              {value || "Click to edit..."}
-            </div>
-          )}
         </div>
         {isExpanded && (
           <TextEditorModal
@@ -242,37 +257,16 @@ const StringProperty = ({
 
   return (
     <div className="string-property" css={styles(theme)}>
-      <div style={{ position: "relative" }}>
+      <div className="property-row">
         <PropertyLabel
           name={property.name}
           description={property.description}
           id={id}
         />
-        {!isConnected && (
-          <div className="string-action-buttons">
-            <CopyToClipboardButton textToCopy={value || ""} size="small" />
-          </div>
-        )}
-      </div>
-      {!isConnected && (
-        <div style={{ position: "relative" }}>
-          <input
-            type="text"
-            id={id}
-            name={property.name}
-            className="nodrag"
-            value={value || ""}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            tabIndex={tabIndex}
-            style={{ width: "100%", height: "24px" }}
-          />
+        <div className="string-action-buttons">
+          <CopyToClipboardButton textToCopy={value || ""} size="small" />
         </div>
-      )}
+      </div>
     </div>
   );
 };
