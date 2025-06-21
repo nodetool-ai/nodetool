@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { encode, decode } from "@msgpack/msgpack";
 import {
   Message,
   MessageContent,
@@ -19,15 +18,9 @@ import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { uuidv4 } from "./uuidv4";
+import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
-type ChatStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "loading"
-  | "streaming"
-  | "error"
-  | "reconnecting";
+type ChatStatus = ConnectionState;
 
 interface Thread {
   id: string;
@@ -44,15 +37,9 @@ interface GlobalChatState {
   progress: { current: number; total: number };
   error: string | null;
   workflowId: string | null;
-  socket: WebSocket | null;
-
-  // Reconnection state
-  reconnectAttempts: number;
-  maxReconnectAttempts: number;
-  reconnectDelay: number;
-  isIntentionalDisconnect: boolean;
-  reconnectTimeoutId: NodeJS.Timeout | null;
-  messageQueue: Message[];
+  
+  // WebSocket manager
+  wsManager: WebSocketManager | null;
 
   // Thread management
   threads: Record<string, Thread>;
@@ -98,12 +85,6 @@ export type MsgpackData =
   | OutputUpdate
   | SubTaskResult;
 
-// Reconnection constants
-const INITIAL_RECONNECT_DELAY = 1000; // 1 second
-const MAX_RECONNECT_DELAY = 30000; // 30 seconds
-const MAX_RECONNECT_ATTEMPTS = 10;
-const RECONNECT_BACKOFF_FACTOR = 1.5; // Less aggressive than doubling
-
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   const dataUri = URL.createObjectURL(new Blob([data]));
   if (type === "image") {
@@ -125,357 +106,6 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   throw new Error(`Unknown message content type: ${type}`);
 };
 
-// Socket event handlers
-const createSocketHandlers = (
-  set: (state: Partial<GlobalChatState> | ((state: GlobalChatState) => Partial<GlobalChatState>)) => void,
-  get: () => GlobalChatState,
-  onConnect?: () => void,
-  onError?: (error: string) => void
-) => {
-  const handleOpen = (socket: WebSocket) => {
-    log.info("Global Chat WebSocket connected");
-    const state = get();
-
-    // Reset reconnection state on successful connection
-    set({
-      socket,
-      status: "connected",
-      error: null,
-      statusMessage: null, // Clear the reconnection message
-      reconnectAttempts: 0,
-      reconnectDelay: INITIAL_RECONNECT_DELAY
-    });
-
-    // Process any queued messages
-    if (state.messageQueue.length > 0) {
-      log.info(`Processing ${state.messageQueue.length} queued messages`);
-      const queue = [...state.messageQueue];
-      set({ messageQueue: [] });
-
-      // Send queued messages
-      queue.forEach((message) => {
-        get()
-          .sendMessage(message)
-          .catch((error) => {
-            log.error("Failed to send queued message:", error);
-          });
-      });
-    }
-
-    // Resolve the connection promise
-    onConnect?.();
-  };
-
-  const handleMessage = async (event: MessageEvent) => {
-    const arrayBuffer = await event.data.arrayBuffer();
-    const data = decode(new Uint8Array(arrayBuffer)) as MsgpackData;
-    console.log(data);
-
-    if (data.type === "message") {
-      const message = data as Message;
-      const threadId = get().currentThreadId;
-      if (threadId) {
-        set((state) => {
-          const thread = state.threads[threadId];
-          if (thread) {
-            return {
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  messages: [...thread.messages, message],
-                  updatedAt: new Date().toISOString()
-                }
-              },
-              status: "connected",
-              progress: { current: 0, total: 0 },
-              statusMessage: null
-            };
-          }
-          return state;
-        });
-      }
-    } else if (data.type === "job_update") {
-      const update = data as JobUpdate;
-      if (update.status === "completed") {
-        set({
-          progress: { current: 0, total: 0 },
-          status: "connected",
-          statusMessage: null
-        });
-      } else if (update.status === "failed") {
-        set({
-          error: update.error,
-          status: "error",
-          progress: { current: 0, total: 0 },
-          statusMessage: update.error || null
-        });
-      }
-    } else if (data.type === "node_update") {
-      const update = data as NodeUpdate;
-      if (update.status === "completed") {
-        set({ progress: { current: 0, total: 0 }, statusMessage: null });
-      } else {
-        set({ statusMessage: update.node_name });
-      }
-    } else if (data.type === "chunk") {
-      const chunk = data as Chunk;
-      const threadId = get().currentThreadId;
-      if (threadId) {
-        const thread = get().threads[threadId];
-        if (thread) {
-          const messages = thread.messages;
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage && lastMessage.role === "assistant") {
-            // Append to the last assistant message
-            const updatedMessage: Message = {
-              ...lastMessage,
-              content: (lastMessage.content || "") + chunk.content
-            };
-            set((state) => ({
-              status: "streaming",
-              statusMessage: null,
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  messages: [...messages.slice(0, -1), updatedMessage],
-                  updatedAt: new Date().toISOString()
-                }
-              }
-            }));
-          } else {
-            // Create a new assistant message
-            const message: Message = {
-              role: "assistant" as const,
-              type: "message" as const,
-              content: chunk.content,
-              workflow_id: get().workflowId
-            };
-            set((state) => ({
-              status: "streaming",
-              statusMessage: null,
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  messages: [...messages, message],
-                  updatedAt: new Date().toISOString()
-                }
-              }
-            }));
-          }
-          if (chunk.done) {
-            set({ status: "connected", statusMessage: null, currentPlanningUpdate: null, currentTaskUpdate: null });
-          }
-        }
-      }
-    } else if (data.type === "output_update") {
-      const update = data as OutputUpdate;
-      const threadId = get().currentThreadId;
-      if (threadId) {
-        const thread = get().threads[threadId];
-        if (thread) {
-          if (update.output_type === "string") {
-            const messages = thread.messages;
-            const lastMessage = messages[messages.length - 1];
-            if (lastMessage && lastMessage.role === "assistant") {
-              // Check if this is the end of stream marker
-              if (update.value === "<nodetool_end_of_stream>") {
-                set({ status: "connected" });
-                return;
-              }
-              // Append to the last assistant message
-              const updatedMessage: Message = {
-                ...lastMessage,
-                content: lastMessage.content + (update.value as string)
-              };
-              set((state) => ({
-                status: "streaming",
-                statusMessage: undefined,
-                threads: {
-                  ...state.threads,
-                  [threadId]: {
-                    ...thread,
-                    messages: [...messages.slice(0, -1), updatedMessage],
-                    updatedAt: new Date().toISOString()
-                  }
-                }
-              }));
-            } else {
-              // Create a new assistant message
-              const message: Message = {
-                role: "assistant" as const,
-                type: "message" as const,
-                content: update.value as string,
-                workflow_id: get().workflowId
-              };
-              set((state) => ({
-                status: "streaming",
-                threads: {
-                  ...state.threads,
-                  [threadId]: {
-                    ...thread,
-                    messages: [...messages, message],
-                    updatedAt: new Date().toISOString()
-                  }
-                }
-              }));
-            }
-          } else if (
-            ["image", "audio", "video"].includes(update.output_type)
-          ) {
-            const message: Message = {
-              role: "assistant",
-              type: "message",
-              content: [
-                makeMessageContent(
-                  update.output_type,
-                  (update.value as { data: Uint8Array }).data
-                )
-              ],
-              workflow_id: get().workflowId,
-              name: "assistant"
-            } as Message;
-            set((state) => ({
-              status: "streaming",
-              statusMessage: null,
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  messages: [...thread.messages, message],
-                  updatedAt: new Date().toISOString()
-                }
-              }
-            }));
-          }
-        }
-      }
-    } else if (data.type === "tool_call_update") {
-      const update = data as ToolCallUpdate;
-      set({ statusMessage: update.message });
-    } else if (data.type === "node_progress") {
-      const progress = data as NodeProgress;
-      set({
-        status: "loading",
-        progress: { current: progress.progress, total: progress.total },
-        statusMessage: null
-      });
-    } else if (data.type === "planning_update") {
-      const update = data as PlanningUpdate;
-      set({ currentPlanningUpdate: update });
-    } else if (data.type === "task_update") {
-      const update = data as TaskUpdate;
-      set({ currentTaskUpdate: update });
-    } else if (data.type === "subtask_result") {
-      const update = data as SubTaskResult;
-      // TODO: update the thread with the subtask result
-    }
-  };
-
-  const handleError = (error: Event) => {
-    log.error("Global Chat WebSocket error:", error);
-    // Only set error state if we're not already closing
-    if (get().socket?.readyState !== WebSocket.CLOSING) {
-      const errorMessage = "Connection failed." +
-        (!isLocalhost
-          ? " This may be due to an authentication issue."
-          : "");
-      
-      set({
-        status: "error",
-        error: errorMessage
-      });
-
-      // Reject the connection promise
-      onError?.(errorMessage);
-    }
-  };
-
-  const handleClose = (event: CloseEvent) => {
-    log.info("Global Chat WebSocket disconnected", {
-      code: event.code,
-      reason: event.reason,
-      wasClean: event.wasClean
-    });
-
-    const state = get();
-
-    // Check if this was an intentional disconnect
-    if (state.isIntentionalDisconnect) {
-      set({
-        socket: null,
-        status: "disconnected",
-        error: null
-      });
-      return;
-    }
-
-    // Check if we should attempt reconnection
-    const shouldReconnect =
-      !event.wasClean &&
-      state.reconnectAttempts < state.maxReconnectAttempts &&
-      // Don't reconnect on authentication errors
-      event.code !== 1008 && // Policy violation
-      event.code !== 4001 && // Unauthorized
-      event.code !== 4003; // Forbidden
-
-    if (shouldReconnect) {
-      // Calculate next delay with exponential backoff
-      const nextDelay = Math.min(
-        state.reconnectDelay * RECONNECT_BACKOFF_FACTOR,
-        MAX_RECONNECT_DELAY
-      );
-
-      set({
-        socket: null,
-        status: "reconnecting",
-        reconnectAttempts: state.reconnectAttempts + 1,
-        reconnectDelay: nextDelay,
-        statusMessage: `Reconnecting... (attempt ${
-          state.reconnectAttempts + 1
-        }/${state.maxReconnectAttempts})`,
-        error: null
-      });
-
-      log.info(
-        `Scheduling reconnection attempt ${
-          state.reconnectAttempts + 1
-        } in ${nextDelay}ms`
-      );
-
-      const timeoutId = setTimeout(() => {
-        // Check if we're still supposed to reconnect
-        if (!get().isIntentionalDisconnect) {
-          get()
-            .connect(state.workflowId || undefined)
-            .catch((error) => {
-              log.error("Reconnection attempt failed:", error);
-            });
-        }
-      }, nextDelay);
-
-      set({ reconnectTimeoutId: timeoutId });
-    } else {
-      // Max attempts reached or permanent error
-      set({
-        socket: null,
-        status: "disconnected",
-        error: event.reason || "Connection closed unexpectedly",
-        statusMessage: null
-      });
-    }
-  };
-
-  return {
-    handleOpen,
-    handleMessage,
-    handleError,
-    handleClose
-  };
-};
-
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
     (set, get) => ({
@@ -485,15 +115,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       progress: { current: 0, total: 0 },
       error: null,
       workflowId: null,
-      socket: null,
-
-      // Reconnection state
-      reconnectAttempts: 0,
-      maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
-      reconnectDelay: INITIAL_RECONNECT_DELAY,
-      isIntentionalDisconnect: false,
-      reconnectTimeoutId: null,
-      messageQueue: [],
+      wsManager: null,
 
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
@@ -513,147 +135,141 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       connect: async (workflowId?: string) => {
         log.info("Connecting to global chat");
-
-        // Clear any pending reconnection
-        const { reconnectTimeoutId } = get();
-        if (reconnectTimeoutId) {
-          clearTimeout(reconnectTimeoutId);
-          set({ reconnectTimeoutId: null });
+        
+        const state = get();
+        
+        // Clean up existing connection
+        if (state.wsManager) {
+          state.wsManager.destroy();
         }
 
-        const existingSocket = get().socket;
-        if (existingSocket) {
-          if (
-            existingSocket.readyState === WebSocket.OPEN ||
-            existingSocket.readyState === WebSocket.CONNECTING
-          ) {
-            existingSocket.close();
-          }
-          set({ socket: null });
-        }
-
-        // Reset reconnection state on manual connect
-        const isReconnecting = get().status === "reconnecting";
-
-        set({
-          workflowId: workflowId || null,
-          status: isReconnecting ? "reconnecting" : "connecting",
-          error: null,
-          isIntentionalDisconnect: false,
-          // Don't reset attempts if reconnecting
-          ...(isReconnecting
-            ? {}
-            : {
-                reconnectAttempts: 0,
-                reconnectDelay: INITIAL_RECONNECT_DELAY
-              })
-        });
-
-        // Get authentication token if not connecting to localhost
+        // Get authentication URL
         let wsUrl = CHAT_URL;
-
         if (!isLocalhost) {
           try {
-            const {
-              data: { session }
-            } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase.auth.getSession();
             if (session?.access_token) {
-              // Add token as query parameter for WebSocket connection
               wsUrl = `${CHAT_URL}?api_key=${session.access_token}`;
               log.debug("Adding authentication to WebSocket connection");
             } else {
-              log.warn(
-                "No Supabase session found, connecting without authentication"
-              );
+              log.warn("No Supabase session found, connecting without authentication");
             }
           } catch (error) {
             log.error("Error getting Supabase session:", error);
             set({
-              status: "error",
+              status: "failed",
               error: "Authentication failed. Please log in again."
             });
-            return;
+            throw error;
           }
         }
 
-        log.info("Attempting to connect to WebSocket:", wsUrl);
-        const socket = new WebSocket(wsUrl);
-
-        return new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error("Connection timeout"));
-          }, 30000); // 30 second timeout
-
-          // Create socket handlers with promise callbacks
-          const { handleOpen, handleMessage, handleError, handleClose } = createSocketHandlers(
-            set, 
-            get,
-            () => {
-              clearTimeout(timeout);
-              resolve();
-            },
-            (error) => {
-              clearTimeout(timeout);
-              reject(new Error(error));
-            }
-          );
-
-          // Assign handlers
-          socket.onopen = () => handleOpen(socket);
-          socket.onmessage = handleMessage;
-          socket.onerror = handleError;
-          socket.onclose = handleClose;
-
-          set({ socket });
+        // Create WebSocket manager
+        const wsManager = new WebSocketManager({
+          url: wsUrl,
+          reconnect: true,
+          reconnectInterval: 1000,
+          reconnectDecay: 1.5,
+          reconnectAttempts: 10,
+          timeoutInterval: 30000,
+          binaryType: 'arraybuffer'
         });
+
+        // Set up event handlers
+        wsManager.on('stateChange', (newState: ConnectionState) => {
+          // Don't override loading status when WebSocket connects
+          const currentState = get();
+          if (newState === 'connected' && currentState.status === 'loading') {
+            // Keep loading status if we're waiting for a response
+            set({ 
+              error: null, 
+              statusMessage: null
+            });
+          } else {
+            set({ status: newState });
+            
+            if (newState === 'connected') {
+              set({ 
+                error: null, 
+                statusMessage: null
+              });
+            }
+          }
+        });
+
+        wsManager.on('reconnecting', (attempt: number, maxAttempts: number) => {
+          set({
+            statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
+          });
+        });
+
+        wsManager.on('message', (data: MsgpackData) => {
+          handleWebSocketMessage(data, set, get);
+        });
+
+        wsManager.on('error', (error: Error) => {
+          log.error("WebSocket error:", error);
+          let errorMessage = error.message;
+          
+          if (!isLocalhost) {
+            errorMessage += " This may be due to an authentication issue.";
+          }
+          
+          set({
+            error: errorMessage
+          });
+        });
+
+        wsManager.on('close', (code: number, reason: string) => {
+          if (code === 1008 || code === 4001 || code === 4003) {
+            // Authentication errors
+            set({
+              error: "Authentication failed. Please log in again."
+            });
+          }
+        });
+
+        // Store the manager and connect
+        set({ 
+          wsManager, 
+          workflowId: workflowId || null,
+          error: null 
+        });
+
+        try {
+          await wsManager.connect();
+          log.info("Successfully connected to global chat");
+        } catch (error) {
+          log.error("Failed to connect to global chat:", error);
+          throw error;
+        }
       },
 
       disconnect: () => {
-        const { socket, reconnectTimeoutId } = get();
-
-        // Mark as intentional disconnect
-        set({ isIntentionalDisconnect: true });
-
-        // Clear any pending reconnection
-        if (reconnectTimeoutId) {
-          clearTimeout(reconnectTimeoutId);
-          set({ reconnectTimeoutId: null });
-        }
-
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.close();
+        const { wsManager } = get();
+        
+        if (wsManager) {
+          wsManager.disconnect();
+          wsManager.destroy();
         }
 
         set({
-          socket: null,
+          wsManager: null,
           status: "disconnected",
           error: null,
-          statusMessage: null,
-          reconnectAttempts: 0,
-          reconnectDelay: INITIAL_RECONNECT_DELAY
+          statusMessage: null
         });
       },
 
       sendMessage: async (message: Message) => {
-        const { socket, currentThreadId, status } = get();
+        const { wsManager, currentThreadId, workflowId, agentMode } = get();
 
         set({ error: null });
 
-        // Handle offline/disconnected state
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-          if (status === "reconnecting") {
-            // Queue message for later delivery
-            log.info("Queueing message while reconnecting");
-            set((state) => ({
-              messageQueue: [...state.messageQueue, message]
-            }));
-            return;
-          } else {
-            // Try to reconnect if disconnected
-            log.warn("Cannot send message: not connected");
-            set({ error: "Not connected to chat service" });
-            return;
-          }
+        if (!wsManager || !wsManager.isConnected()) {
+          const error = "Not connected to chat service";
+          set({ error });
+          throw new Error(error);
         }
 
         // Ensure we have a thread
@@ -662,9 +278,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = get().createNewThread();
         }
 
-        message.workflow_id = get().workflowId || undefined;
-        message.thread_id = threadId;
-        message.agent_mode = get().agentMode;
+        // Prepare message
+        const messageToSend = {
+          ...message,
+          workflow_id: workflowId || undefined,
+          thread_id: threadId,
+          agent_mode: agentMode
+        };
 
         // Add message to thread
         const thread = get().threads[threadId];
@@ -692,16 +312,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...thread.messages, message],
+                messages: [...thread.messages, messageToSend],
                 updatedAt: new Date().toISOString(),
                 ...(title && !thread.title ? { title } : {})
               }
             },
-            status: "loading"
+            status: "loading" // Waiting for response
           }));
         }
 
-        socket?.send(encode(message));
+        try {
+          wsManager.send(messageToSend);
+        } catch (error) {
+          log.error("Failed to send message:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to send message" });
+          throw error;
+        }
       },
 
       resetMessages: () => {
@@ -805,15 +431,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       stopGeneration: () => {
-        const { socket, currentThreadId } = get();
-        if (socket && socket.readyState === WebSocket.OPEN && currentThreadId) {
+        const { wsManager, currentThreadId } = get();
+        if (wsManager && wsManager.isConnected() && currentThreadId) {
           log.info("Sending stop signal to workflow");
-          socket.send(encode({ type: "stop", thread_id: currentThreadId }));
-          set({
-            status: "connected",
-            progress: { current: 0, total: 0 },
-            statusMessage: null
-          });
+          try {
+            wsManager.send({ type: "stop", thread_id: currentThreadId });
+            set({
+              status: "connected",
+              progress: { current: 0, total: 0 },
+              statusMessage: null
+            });
+          } catch (error) {
+            log.error("Failed to send stop signal:", error);
+          }
         }
       }
     }),
@@ -826,17 +456,231 @@ const useGlobalChatStore = create<GlobalChatState>()(
       }),
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
+        if (state) {
+          // Ensure threads is always an object
+          if (!state.threads) {
+            state.threads = {};
+          }
+        }
       }
     }
   )
 );
+
+// WebSocket message handler
+function handleWebSocketMessage(
+  data: MsgpackData,
+  set: (state: Partial<GlobalChatState> | ((state: GlobalChatState) => Partial<GlobalChatState>)) => void,
+  get: () => GlobalChatState
+) {
+  console.log(data);
+
+  if (data.type === "message") {
+    const message = data as Message;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      set((state) => {
+        const thread = state.threads[threadId];
+        if (thread) {
+          return {
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...thread.messages, message],
+                updatedAt: new Date().toISOString()
+              }
+            },
+            status: "connected",
+            progress: { current: 0, total: 0 },
+            statusMessage: null
+          };
+        }
+        return state;
+      });
+    }
+  } else if (data.type === "job_update") {
+    const update = data as JobUpdate;
+    if (update.status === "completed") {
+      set({
+        status: "connected",
+        progress: { current: 0, total: 0 },
+        statusMessage: null
+      });
+    } else if (update.status === "failed") {
+      set({
+        error: update.error,
+        progress: { current: 0, total: 0 },
+        statusMessage: update.error || null
+      });
+    }
+  } else if (data.type === "node_update") {
+    const update = data as NodeUpdate;
+    if (update.status === "completed") {
+      set({ status: "connected", progress: { current: 0, total: 0 }, statusMessage: null });
+    } else {
+      set({ statusMessage: update.node_name });
+    }
+  } else if (data.type === "chunk") {
+    const chunk = data as Chunk;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      const thread = get().threads[threadId];
+      if (thread) {
+        const messages = thread.messages;
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === "assistant") {
+          // Append to the last assistant message
+          const updatedMessage: Message = {
+            ...lastMessage,
+            content: (lastMessage.content || "") + chunk.content
+          };
+          set((state) => ({
+            status: "streaming",
+            statusMessage: null,
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...messages.slice(0, -1), updatedMessage],
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }));
+        } else {
+          // Create a new assistant message
+          const message: Message = {
+            role: "assistant" as const,
+            type: "message" as const,
+            content: chunk.content,
+            workflow_id: get().workflowId
+          };
+          set((state) => ({
+            status: "streaming",
+            statusMessage: null,
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...messages, message],
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }));
+        }
+        if (chunk.done) {
+          set({ status: "connected", statusMessage: null, currentPlanningUpdate: null, currentTaskUpdate: null });
+        }
+      }
+    }
+  } else if (data.type === "output_update") {
+    const update = data as OutputUpdate;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      const thread = get().threads[threadId];
+      if (thread) {
+        if (update.output_type === "string") {
+          const messages = thread.messages;
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage && lastMessage.role === "assistant") {
+            // Check if this is the end of stream marker
+            if (update.value === "<nodetool_end_of_stream>") {
+              return;
+            }
+            // Append to the last assistant message
+            const updatedMessage: Message = {
+              ...lastMessage,
+              content: lastMessage.content + (update.value as string)
+            };
+            set((state) => ({
+              status: "streaming",
+              statusMessage: undefined,
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  messages: [...messages.slice(0, -1), updatedMessage],
+                  updatedAt: new Date().toISOString()
+                }
+              }
+            }));
+          } else {
+            // Create a new assistant message
+            const message: Message = {
+              role: "assistant" as const,
+              type: "message" as const,
+              content: update.value as string,
+              workflow_id: get().workflowId
+            };
+            set((state) => ({
+              status: "streaming",
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  messages: [...messages, message],
+                  updatedAt: new Date().toISOString()
+                }
+              }
+            }));
+          }
+        } else if (
+          ["image", "audio", "video"].includes(update.output_type)
+        ) {
+          const message: Message = {
+            role: "assistant",
+            type: "message",
+            content: [
+              makeMessageContent(
+                update.output_type,
+                (update.value as { data: Uint8Array }).data
+              )
+            ],
+            workflow_id: get().workflowId,
+            name: "assistant"
+          } as Message;
+          set((state) => ({
+            statusMessage: null,
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...thread.messages, message],
+                updatedAt: new Date().toISOString()
+              }
+            }
+          }));
+        }
+      }
+    }
+  } else if (data.type === "tool_call_update") {
+    const update = data as ToolCallUpdate;
+    set({ statusMessage: update.message });
+  } else if (data.type === "node_progress") {
+    const progress = data as NodeProgress;
+    set({
+      status: "loading",
+      progress: { current: progress.progress, total: progress.total },
+      statusMessage: null
+    });
+  } else if (data.type === "planning_update") {
+    const update = data as PlanningUpdate;
+    set({ currentPlanningUpdate: update });
+  } else if (data.type === "task_update") {
+    const update = data as TaskUpdate;
+    set({ currentTaskUpdate: update });
+  } else if (data.type === "subtask_result") {
+    const update = data as SubTaskResult;
+    // TODO: update the thread with the subtask result
+  }
+}
 
 // Network status monitoring
 if (typeof window !== "undefined") {
   // Listen for online/offline events
   window.addEventListener("online", () => {
     const state = useGlobalChatStore.getState();
-    if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
+    if (state.status === "disconnected" && state.wsManager) {
       log.info("Network came online, attempting to reconnect...");
       state.connect(state.workflowId || undefined).catch((error) => {
         log.error("Failed to reconnect after network online:", error);
@@ -853,7 +697,7 @@ if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       const state = useGlobalChatStore.getState();
-      if (state.status === "disconnected" && !state.isIntentionalDisconnect) {
+      if (state.status === "disconnected" && state.wsManager) {
         log.info("Tab became visible, checking connection...");
         state.connect(state.workflowId || undefined).catch((error) => {
           log.error("Failed to reconnect after tab visible:", error);

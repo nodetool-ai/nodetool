@@ -27,7 +27,9 @@ interface ChatThreadViewProps {
     | "loading"
     | "error"
     | "streaming"
-    | "reconnecting";
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   progress: number;
   total: number;
   progressMessage: string | null;

@@ -22,7 +22,7 @@ import { truncateString } from "../../utils/truncateString";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import ChatInputSection from "../chat/containers/ChatInputSection";
+import ChatView from "../chat/containers/ChatView";
 import { MessageContent } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
@@ -74,11 +74,8 @@ const styles = (theme: any) =>
     ".chat-section": {
       gridRow: "2",
       gridColumn: "1 / -1",
-      padding: theme.spacing(3),
-      maxHeight: "280px",
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(2)
+      maxHeight: "400px",
+      overflow: "hidden"
     },
 
     ".content-scrollable": {
@@ -313,7 +310,10 @@ const Dashboard: React.FC = () => {
   const loadExamples = useWorkflowManager((state) => state.loadExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
 
-  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    return savedModel || DEFAULT_MODEL;
+  });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
@@ -323,8 +323,23 @@ const Dashboard: React.FC = () => {
     status,
     sendMessage,
     createNewThread,
-    switchThread
+    switchThread,
+    getCurrentMessages,
+    progress,
+    statusMessage,
+    stopGeneration,
+    agentMode,
+    setAgentMode,
+    currentPlanningUpdate,
+    currentTaskUpdate
   } = useGlobalChatStore();
+
+  const messages = getCurrentMessages();
+
+  // Save selectedModel to localStorage
+  useEffect(() => {
+    localStorage.setItem("selectedModel", selectedModel);
+  }, [selectedModel]);
 
   // Load workflows
   const loadWorkflows = async () => {
@@ -413,36 +428,40 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleSendChat = useCallback(
-    async (content: MessageContent[], prompt: string) => {
-      if (!prompt.trim()) return;
-
-      // Ensure chat is connected
-      if (status !== "connected") {
-        await connect();
+  const handleSendMessage = useCallback(
+    async (message: Message) => {
+      if (!selectedModel) {
+        console.error("No model selected");
+        return;
       }
-      const threadId = createNewThread();
-      switchThread(threadId);
 
-      sendMessage({
-        type: "message",
-        name: "",
-        role: "user",
-        content: content,
-        model: selectedModel
-      });
-      // Navigate to chat view
-      navigate("/chat");
+      if (status !== "connected" && status !== "reconnecting") {
+        console.error("Not connected to chat service");
+        return;
+      }
+
+      try {
+        // Update the message with the selected model
+        const messageWithModel = {
+          ...message,
+          model: selectedModel
+        };
+        
+        // Ensure chat is connected
+        if (status !== "connected") {
+          await connect();
+        }
+        const threadId = createNewThread();
+        switchThread(threadId);
+        
+        await sendMessage(messageWithModel);
+        // Navigate to chat view
+        navigate("/chat");
+      } catch (error) {
+        console.error("Failed to send message:", error);
+      }
     },
-    [
-      status,
-      connect,
-      navigate,
-      selectedModel,
-      sendMessage,
-      createNewThread,
-      switchThread
-    ]
+    [selectedModel, sendMessage, status, connect, navigate, createNewThread, switchThread]
   );
 
   const handleModelChange = useCallback((modelId: string) => {
@@ -581,15 +600,24 @@ const Dashboard: React.FC = () => {
         </Button>
       </Box>
 
-      {/* Chat Input Section */}
+      {/* Chat Section */}
       <Box className="section chat-section">
-        <ChatInputSection
-          status={status as any}
-          onSendMessage={handleSendChat}
+        <ChatView
+          status={status}
+          messages={messages}
+          sendMessage={handleSendMessage}
+          progress={progress.current}
+          total={progress.total}
+          progressMessage={statusMessage}
+          model={selectedModel}
           selectedTools={selectedTools}
           onToolsChange={setSelectedTools}
-          selectedModel={selectedModel}
           onModelChange={handleModelChange}
+          onStop={stopGeneration}
+          agentMode={agentMode}
+          onAgentModeToggle={setAgentMode}
+          currentPlanningUpdate={currentPlanningUpdate}
+          currentTaskUpdate={currentTaskUpdate}
         />
       </Box>
     </Box>
