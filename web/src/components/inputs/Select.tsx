@@ -63,16 +63,18 @@ const menuStyles = (theme: any) =>
       border: `1px solid var(--palette-c_gray1)`,
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.5)",
       borderRadius: ".3em",
-
       zIndex: 1000,
       whiteSpace: "nowrap"
     },
+    ".options-list .option:first-child": {
+      color: theme.palette.c_gray3
+    },
 
     ".option": {
-      padding: ".5em 1em",
+      padding: ".1em 1em",
       cursor: "pointer",
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray5,
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",
 
