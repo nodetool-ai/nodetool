@@ -58,17 +58,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         model.pipeline_tag?.toLowerCase().includes(query) ||
         model.tags?.some((tag) => tag.toLowerCase().includes(query));
 
-      // Debugging output
-
-      console.log("Search filter:", {
-        modelId: model.id,
-        modelName: model.name,
-        pipeline_tag: model.pipeline_tag,
-        tags: model.tags,
-        query,
-        matches
-      });
-
       return matches;
     });
   }, [modelsWithSize, searchQuery]);
