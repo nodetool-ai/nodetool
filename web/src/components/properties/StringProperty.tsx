@@ -34,6 +34,29 @@ const styles = (theme: any) =>
         padding: 0
       }
     },
+    
+    "& .string-value-display": {
+      minHeight: "1.5em",
+      padding: "0.25em 0",
+      lineHeight: "1.25em",
+      cursor: "pointer",
+      borderRadius: "4px",
+      border: "1px solid transparent",
+      backgroundColor: "transparent",
+      transition: "all 0.2s ease",
+      fontSize: "0.875rem",
+      color: theme.palette.text.primary,
+      fontFamily: "inherit",
+      wordBreak: "break-word",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2,
+        border: "1px solid " + theme.palette.c_gray3
+      },
+      "&.empty": {
+        color: theme.palette.text.secondary,
+        fontStyle: "italic"
+      }
+    },
 
     "& .MuiInputBase-input": {
       minHeight: "1.25em",
@@ -89,6 +112,7 @@ const StringProperty = ({
   const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const focusHandler = useFocusPan(nodeId);
   const handleFocus = isInspector ? () => {} : focusHandler;
@@ -119,6 +143,25 @@ const StringProperty = ({
     [onChange]
   );
 
+  const startEditing = useCallback(() => {
+    if (!isConnected) {
+      setIsEditing(true);
+    }
+  }, [isConnected]);
+
+  const stopEditing = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      stopEditing();
+    } else if (e.key === 'Escape') {
+      stopEditing();
+    }
+  }, [stopEditing]);
+
   if (showTextEditor) {
     return (
       <div className="string-property" css={styles(theme)}>
@@ -138,29 +181,51 @@ const StringProperty = ({
           </div>
         </div>
         <div style={{ position: "relative" }}>
-          <TextField
-            value={value || ""}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              onChange(e.target.value)
-            }
-            onFocus={(e) => {
-              handleFocus(e);
-              setIsFocused(true);
-            }}
-            onBlur={() => setIsFocused(false)}
-            className={`nodrag ${isFocused ? "nowheel" : ""}`}
-            tabIndex={tabIndex}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            multiline
-            minRows={1}
-            maxRows={2}
-            fullWidth
-            size="small"
-            variant="outlined"
-          />
+          {isEditing ? (
+            <TextField
+              value={value || ""}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange(e.target.value)
+              }
+              onFocus={(e) => {
+                handleFocus(e);
+                setIsFocused(true);
+              }}
+              onBlur={() => {
+                setIsFocused(false);
+                stopEditing();
+              }}
+              onKeyDown={handleKeyDown}
+              className={`nodrag ${isFocused ? "nowheel" : ""}`}
+              tabIndex={tabIndex}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              multiline
+              minRows={1}
+              maxRows={2}
+              fullWidth
+              size="small"
+              variant="outlined"
+              autoFocus
+            />
+          ) : (
+            <div 
+              className={`string-value-display ${!value ? "empty" : ""}`}
+              onClick={startEditing}
+              role="button"
+              tabIndex={tabIndex}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  startEditing();
+                }
+              }}
+            >
+              {value || "Click to edit..."}
+            </div>
+          )}
         </div>
         {isExpanded && (
           <TextEditorModal
