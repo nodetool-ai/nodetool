@@ -37,7 +37,6 @@ Components for managing assets (files, folders, etc.):
 
 Components for chat interfaces:
 - `ChatView.tsx`: Generic chat interface
-- `HelpChat.tsx`: Help chat assistant
 - `WorkflowChat.tsx`: Workflow-specific chat
 - `GlobalChat.tsx`: Global chat interface
 - `ToolsSelector.tsx`: Tool selection dropdown
