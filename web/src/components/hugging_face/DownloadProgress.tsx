@@ -17,11 +17,14 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
-    // border: `1px solid ${theme.palette.c_gray1}`,
+    width: "100%",
     borderRadius: "4px",
     padding: ".5em",
-    // background: theme.palette.c_gray2,
     position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "start",
+    justifyContent: "start",
     ".download-progress-text": {
       fontFamily: theme.fontFamily2,
       paddingBottom: "0.2em",
@@ -139,8 +142,9 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           size="small"
           sx={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 4,
+            right: -15,
+            ml: 4,
             color: "white"
           }}
           className="close-button"

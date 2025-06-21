@@ -7,7 +7,8 @@ import {
   Typography,
   Box,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Tooltip
 } from "@mui/material";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -50,16 +51,32 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   const filteredModels = useMemo(() => {
     if (!searchQuery) return modelsWithSize;
     const query = searchQuery.toLowerCase();
-    return modelsWithSize.filter(
-      (model) =>
+    return modelsWithSize.filter((model) => {
+      const matches =
         model.name.toLowerCase().includes(query) ||
-        model.id.toLowerCase().includes(query)
-    );
+        model.id.toLowerCase().includes(query) ||
+        model.pipeline_tag?.toLowerCase().includes(query) ||
+        model.tags?.some((tag) => tag.toLowerCase().includes(query));
+
+      // Debugging output
+
+      console.log("Search filter:", {
+        modelId: model.id,
+        modelName: model.name,
+        pipeline_tag: model.pipeline_tag,
+        tags: model.tags,
+        query,
+        matches
+      });
+
+      return matches;
+    });
   }, [modelsWithSize, searchQuery]);
 
   return (
     <>
       <Box
+        className="search-models-container"
         sx={{
           display: "flex",
           alignItems: "center",
@@ -68,17 +85,31 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         }}
       >
         <TextField
+          className="search-models-input"
           placeholder="Search models..."
           variant="outlined"
           size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{ flex: 1 }}
+          sx={{
+            flex: 1,
+            maxWidth: "300px",
+            border: "none",
+            "& .MuiOutlinedInput-root": {
+              backgroundColor: "var(--c_gray1)",
+              border: "none",
+              "& fieldset": { border: "none " },
+              "&:hover": { opacity: 0.9 },
+              "&:focus": {
+                backgroundColor: "var(--c_gray3)"
+              }
+            }
+          }}
           slotProps={{
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon />
+                  <SearchIcon sx={{ color: "var(--c_gray5)" }} />
                 </InputAdornment>
               )
             }
@@ -86,23 +117,58 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         />
         {showViewModeToggle && (
           <ToggleButtonGroup
+            className="view-mode-toggle"
             value={viewMode}
             exclusive
             onChange={handleViewModeChange}
             aria-label="view mode"
             size="small"
+            sx={{
+              width: "fit-content",
+              padding: "0.5em",
+              marginLeft: "auto"
+            }}
           >
-            <ToggleButton value="grid" aria-label="grid view">
-              <ViewModuleIcon />
-            </ToggleButton>
-            <ToggleButton value="list" aria-label="list view">
-              <ViewListIcon />
-            </ToggleButton>
+            <Tooltip title="Grid view">
+              <ToggleButton
+                value="grid"
+                aria-label="grid view"
+                sx={{
+                  backgroundColor: "var(--c_gray1)",
+                  "&:hover": {
+                    backgroundColor: "var(--c_gray2)"
+                  }
+                }}
+              >
+                <ViewModuleIcon />
+              </ToggleButton>
+            </Tooltip>
+            <Tooltip title="List view">
+              <ToggleButton
+                value="list"
+                aria-label="list view"
+                sx={{
+                  backgroundColor: "var(--c_gray1)",
+                  "&:hover": {
+                    backgroundColor: "var(--c_gray2)"
+                  }
+                }}
+              >
+                <ViewListIcon />
+              </ToggleButton>
+            </Tooltip>
           </ToggleButtonGroup>
         )}
       </Box>
 
-      {viewMode === "grid" ? (
+      {filteredModels.length === 0 ? (
+        <Typography
+          variant="body1"
+          sx={{ color: "var(--c_gray5)", ml: 2, mt: 8, mb: 10 }}
+        >
+          No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
+        </Typography>
+      ) : viewMode === "grid" ? (
         <Grid container spacing={3} className="recommended-models-grid">
           {filteredModels.map((model) => {
             return (

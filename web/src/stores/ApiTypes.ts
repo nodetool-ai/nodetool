@@ -95,6 +95,8 @@ export interface UnifiedModel {
   readme?: string;
   size_on_disk?: number;
   downloaded?: boolean;
+  pipeline_tag?: string;
+  tags?: string[];
 }
 
 export type Task = components["schemas"]["Task"];
