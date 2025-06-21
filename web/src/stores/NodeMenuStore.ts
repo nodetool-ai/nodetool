@@ -371,13 +371,13 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
 
       // --- Configuration ---
       // There's a CSS/layout offset that gets added to our component's final Y position
-      const Y_OFFSET_COMPENSATION = 120;
+      const Y_OFFSET_COMPENSATION = 60; // Reduced from 120 for better MacBook compatibility
       // Fallback dimensions for the first render when the actual dimensions are 0
       const FALLBACK_MENU_WIDTH = 800;
-      const FALLBACK_MENU_HEIGHT = 870;
+      const FALLBACK_MENU_HEIGHT = 700; // Reduced from 870 for MacBook screens
       // Padding from the window edge when the menu is forced to move
       const WINDOW_EDGE_OFFSET_X = 10;
-      const WINDOW_EDGE_OFFSET_Y = 20 + 10; // 20px header compensation + 10px padding
+      const WINDOW_EDGE_OFFSET_Y = 60 + 10; // Increased padding for macOS menu bar
 
       // --- Calculation ---
       const actualMenuWidth = menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
@@ -398,9 +398,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         visualY = window.innerHeight - actualMenuHeight - WINDOW_EDGE_OFFSET_Y;
       }
 
-      // 3. Ensure the final position is not negative
-      visualX = Math.max(0, visualX);
-      visualY = Math.max(0, visualY);
+      // 3. Ensure the final position is not negative and account for macOS menu bar
+      visualX = Math.max(WINDOW_EDGE_OFFSET_X, visualX);
+      visualY = Math.max(WINDOW_EDGE_OFFSET_Y, visualY);
 
       // 4. Apply the Y-offset compensation to get the final value for the component
       const finalX = visualX;
@@ -435,7 +435,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             ? params.dropType
             : "",
         menuWidth: 800,
-        menuHeight: 870
+        menuHeight: 700
       });
 
       // Only perform search if any search-related params changed

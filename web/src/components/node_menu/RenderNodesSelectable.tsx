@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo, useRef, useLayoutEffect } from "react";
+import { memo, useCallback, useMemo } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -14,17 +14,16 @@ import {
   AccordionDetails
 } from "@mui/material";
 import { isEqual } from "lodash";
-import ApiKeyValidation from "../node/ApiKeyValidation";
 import ThemeNodes from "../themes/ThemeNodes";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useCreateNode } from "../../hooks/useCreateNode";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 
-interface RenderNodesProps {
+interface RenderNodesSelectableProps {
   nodes: NodeMetadata[];
   showCheckboxes?: boolean;
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
+  onNodeClick?: (node: NodeMetadata) => void;
 }
 
 const groupNodes = (nodes: NodeMetadata[]) => {
@@ -36,11 +35,6 @@ const groupNodes = (nodes: NodeMetadata[]) => {
     groups[node.namespace].push(node);
   });
   return groups;
-};
-
-const getServiceFromNamespace = (namespace: string): string => {
-  const parts = namespace.split(".");
-  return parts[0];
 };
 
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
@@ -69,27 +63,43 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   );
 });
 
-const RenderNodes: React.FC<RenderNodesProps> = ({ 
+const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({ 
   nodes, 
   showCheckboxes = false, 
   selectedNodeTypes = [], 
-  onToggleSelection 
+  onToggleSelection,
+  onNodeClick
 }) => {
-  const { setDragToCreate, groupedSearchResults, searchTerm } =
+  const { groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
-      setDragToCreate: state.setDragToCreate,
       groupedSearchResults: state.groupedSearchResults,
       searchTerm: state.searchTerm
     }));
 
-  const handleCreateNode = useCreateNode();
+  // No-op drag start for selection mode
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
-      setDragToCreate(true);
+      if (showCheckboxes) {
+        event.preventDefault();
+        return;
+      }
+      // Allow dragging if not in checkbox mode
       event.dataTransfer.setData("create-node", JSON.stringify(node));
       event.dataTransfer.effectAllowed = "move";
     },
-    [setDragToCreate]
+    [showCheckboxes]
+  );
+
+  // Handle node click - either selection or custom handler
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => {
+      if (onNodeClick) {
+        onNodeClick(node);
+      } else if (showCheckboxes && onToggleSelection) {
+        onToggleSelection(node.node_type);
+      }
+    },
+    [onNodeClick, showCheckboxes, onToggleSelection]
   );
 
   const { selectedPath } = useNodeMenuStore((state) => ({
@@ -128,7 +138,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                         key={node.node_type}
                         node={node}
                         onDragStart={handleDragStart(node)}
-                        onClick={() => handleCreateNode(node)}
+                        onClick={() => handleNodeClick(node)}
                         showCheckbox={showCheckboxes}
                         isSelected={selectedNodeTypes.includes(node.node_type)}
                         onToggleSelection={onToggleSelection}
@@ -142,7 +152,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         </Accordion>
       );
     },
-    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleCreateNode]
+    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleNodeClick]
   );
 
   const elements = useMemo(() => {
@@ -152,24 +162,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     }
 
     // Otherwise use the original namespace-based grouping
-    const seenServices = new Set<string>();
-
     return Object.entries(groupNodes(nodes)).flatMap(
       ([namespace, nodesInNamespace], namespaceIndex) => {
-        const service = getServiceFromNamespace(namespace);
-        const isFirstNamespaceForService = !seenServices.has(service);
-        seenServices.add(service);
-
         const elements = [];
-
-        if (isFirstNamespaceForService) {
-          elements.push(
-            <ApiKeyValidation
-              key={`api-key-${service}-${namespaceIndex}`}
-              nodeNamespace={namespace}
-            />
-          );
-        }
 
         let textForNamespaceHeader = namespace; // Default to full namespace string
 
@@ -201,7 +196,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                 key={node.node_type}
                 node={node}
                 onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
+                onClick={() => handleNodeClick(node)}
                 showCheckbox={showCheckboxes}
                 isSelected={selectedNodeTypes.includes(node.node_type)}
                 onToggleSelection={onToggleSelection}
@@ -219,7 +214,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     renderGroup,
     selectedPath,
     handleDragStart,
-    handleCreateNode
+    handleNodeClick,
+    showCheckboxes,
+    selectedNodeTypes,
+    onToggleSelection
   ]);
 
   return (
@@ -230,21 +228,21 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         <div className="no-selection">
           <div className="explanation">
             <Typography variant="h5" style={{ marginTop: 0 }}>
-              Browse Nodes
+              {showCheckboxes ? "Select Nodes" : "Browse Nodes"}
             </Typography>
             <ul>
-              <li>Click on the namespaces to the left</li>
-            </ul>
-
-            <Typography variant="h5">Search Nodes</Typography>
-            <ul>
-              <li>Type in the search bar to search for nodes.</li>
-            </ul>
-
-            <Typography variant="h5">Create Nodes</Typography>
-            <ul>
-              <li>Click on a node</li>
-              <li>Drag a node onto the canvas</li>
+              {showCheckboxes ? (
+                <>
+                  <li>Click checkboxes to select nodes as tools</li>
+                  <li>Search for specific nodes using the search bar</li>
+                </>
+              ) : (
+                <>
+                  <li>Click on the namespaces to the left</li>
+                  <li>Type in the search bar to search for nodes</li>
+                  <li>Click on a node or drag it onto the canvas</li>
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -253,4 +251,4 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   );
 };
 
-export default memo(RenderNodes, isEqual);
+export default memo(RenderNodesSelectable, isEqual);
