@@ -51,7 +51,6 @@ This guide helps OpenAI's coding agents understand the state management stores i
 - `TutorialStore.ts`: Tutorial and onboarding system
 - `UpdatesStore.ts`: Manages application updates
 - `WebSocketUpdatesStore.ts`: Real-time updates via WebSockets
-- `HelpChatStore.ts`: Manages the help chat assistant
 
 ## Utility Functions
 

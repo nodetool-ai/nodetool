@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import HelpChat from "../chat/containers/HelpChat";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback } from "react";
@@ -12,8 +11,6 @@ import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import PackageList from "../packages/PackageList";
