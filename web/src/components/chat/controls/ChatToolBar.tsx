@@ -5,6 +5,7 @@ import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
 import ModelMenu from "./ModelMenu";
+import NodeToolsSelector from "../composer/NodeToolsSelector";
 
 const styles = (theme: any) =>
   css({
@@ -44,6 +45,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         <>
           <ToolsSelector value={selectedTools} onChange={onToolsChange} />
           <WorkflowToolsSelector value={selectedTools} onChange={onToolsChange} />
+          <NodeToolsSelector value={selectedTools} onChange={onToolsChange} />
         </>
       )}
       {onAgentModeToggle && (
