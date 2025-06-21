@@ -114,13 +114,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     setViewport: state.setViewport
   }));
 
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     // When the workflow changes, determine initial visibility.
     // It's visible immediately if a viewport is already stored.
-    setIsVisible(!!storedViewport);
-  }, [workflowId, storedViewport]);
+    setIsVisible(!!storedViewport || nodes.length === 0);
+  }, [workflowId, storedViewport, nodes.length]);
 
   const reactFlowInstance = useReactFlow();
 
@@ -338,23 +338,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     if (storedViewport) {
       // A viewport was already saved – respect it and make the canvas visible
       // immediately without any additional fitting.
-      if (!isVisible) {
-        setIsVisible(true);
-      }
       return;
     }
 
     // Without a saved viewport, fit the view once the nodes are rendered.
-    if (nodes.length > 0 && !isVisible) {
-      setTimeout(() => {
+    if (nodes.length > 0) {
+      // Use requestAnimationFrame for smoother rendering
+      requestAnimationFrame(() => {
         fitView({ padding: 0.8 });
-        setIsVisible(true);
-      }, 100);
-    } else if (!isVisible) {
-      // No nodes means there is nothing to fit – just reveal the canvas.
-      setIsVisible(true);
+      });
     }
-  }, [nodes, isVisible, fitView, storedViewport]);
+  }, [nodes.length, fitView, storedViewport]);
 
   if (loadingState?.isLoading) {
     return (
@@ -387,8 +381,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         top: 0,
         right: 0,
         bottom: 0,
-        opacity: isVisible ? 1 : 0.9,
-        transition: "opacity 100ms ease-in-out"
+        opacity: isVisible ? 1 : 0,
+        transition: "opacity 50ms ease-out"
       }}
     >
       <ReactFlow
