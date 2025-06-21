@@ -9,73 +9,41 @@ import {
   DialogActions,
   Button
 } from "@mui/material";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { memo, useState, useCallback, useMemo } from "react";
-import { CollectionList as CollectionListType } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { memo, useEffect } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
-import { useCollectionDragAndDrop } from "../../hooks/useCollectionDragAndDrop";
+import { useCollectionStore } from "../../stores/CollectionStore";
 
 const CollectionList = () => {
-  const queryClient = useQueryClient();
-
-  const { data, isLoading, error } = useQuery<CollectionListType>({
-    queryKey: ["collections"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/collections/");
-      if (error) {
-        throw new Error(error.detail?.[0]?.msg || "Unknown error");
-      }
-      return data;
-    }
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (collectionName: string) => {
-      const { error } = await client.DELETE("/api/collections/{name}", {
-        params: { path: { name: collectionName } }
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
-    }
-  });
-
-  const isElectron = useMemo(() => {
-    return window.api !== undefined;
-  }, []);
-
   const {
+    collections,
+    isLoading,
+    error,
+    deleteTarget,
+    showForm,
     dragOverCollection,
     indexProgress,
     indexErrors,
+    setDeleteTarget,
+    setShowForm,
     setIndexErrors,
-    handleDrop,
+    fetchCollections,
+    confirmDelete,
+    cancelDelete,
     handleDragOver,
-    handleDragLeave
-  } = useCollectionDragAndDrop();
+    handleDragLeave,
+    handleDrop
+  } = useCollectionStore();
 
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   const handleDeleteClick = (collectionName: string) => {
     setDeleteTarget(collectionName);
-  };
-
-  const handleConfirmDelete = () => {
-    if (deleteTarget) {
-      deleteMutation.mutate(deleteTarget);
-      setDeleteTarget(null);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setDeleteTarget(null);
   };
 
   return (
@@ -100,23 +68,41 @@ const CollectionList = () => {
             <Typography sx={{ marginTop: 2 }}>
               Loading collections...
             </Typography>
-          ) : !data?.collections.length ? (
+          ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (
             <Paper sx={{ marginTop: 2 }}>
               <List>
-                {data?.collections.map((collection) => (
+                {collections?.collections.map((collection) => (
                   <CollectionItem
                     key={collection.name}
                     collection={collection}
-                    isElectron={isElectron}
                     dragOverCollection={dragOverCollection}
                     indexProgress={indexProgress}
                     onDelete={handleDeleteClick}
-                    onDrop={(e) => handleDrop(collection.name)(e)}
+                    onDrop={handleDrop(collection.name)}
                     onDragOver={(e) => handleDragOver(e, collection.name)}
                     onDragLeave={handleDragLeave}
-                    deleteMutation={deleteMutation}
+                    deleteMutation={
+                      {
+                        isPending: false,
+                        mutate: () => {},
+                        mutateAsync: async () => {},
+                        reset: () => {},
+                        context: undefined,
+                        data: undefined,
+                        error: null,
+                        failureCount: 0,
+                        failureReason: null,
+                        isError: false,
+                        isIdle: true,
+                        isPaused: false,
+                        isSuccess: false,
+                        status: "idle",
+                        submittedAt: 0,
+                        variables: undefined
+                      } as any
+                    }
                   />
                 ))}
               </List>
@@ -126,16 +112,16 @@ const CollectionList = () => {
       )}
       {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
 
-      <Dialog open={Boolean(deleteTarget)} onClose={handleCancelDelete}>
+      <Dialog open={Boolean(deleteTarget)} onClose={cancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
           Are you sure you want to delete the collection &quot;{deleteTarget}
           &quot;?
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={cancelDelete}>Cancel</Button>
           <Button
-            onClick={handleConfirmDelete}
+            onClick={confirmDelete}
             color="error"
             variant="contained"
           >

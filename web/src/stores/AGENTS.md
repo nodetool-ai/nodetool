@@ -48,7 +48,6 @@ This guide helps OpenAI's coding agents understand the state management stores i
 - `SessionStateStore.ts`: Manages user session state
 - `LogStore.ts`: Application logging system
 - `ErrorStore.ts`: Error handling and reporting
-- `TutorialStore.ts`: Tutorial and onboarding system
 - `UpdatesStore.ts`: Manages application updates
 - `WebSocketUpdatesStore.ts`: Real-time updates via WebSockets
 

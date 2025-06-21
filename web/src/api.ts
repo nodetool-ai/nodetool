@@ -890,6 +890,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/storage/temp/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Temp Get
+         * @description Returns the temp file as a stream for the given key, supporting range queries.
+         */
+        get: operations["temp_get_api_storage_temp__key__get"];
+        /**
+         * Temp Update
+         * @description Updates or creates the temp file for the given key.
+         */
+        put: operations["temp_update_api_storage_temp__key__put"];
+        post?: never;
+        /**
+         * Temp Delete
+         * @description Deletes the temp asset for the given key.
+         */
+        delete: operations["temp_delete_api_storage_temp__key__delete"];
+        options?: never;
+        /**
+         * Temp Head
+         * @description Returns the metadata for the temp file with the given key.
+         */
+        head: operations["temp_head_api_storage_temp__key__head"];
+        patch?: never;
+        trace?: never;
+    };
     "/api/fonts/": {
         parameters: {
             query?: never;
@@ -2930,6 +2962,8 @@ export interface components {
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
+            /** Collections */
+            collections?: string[] | null;
             /** Input Files */
             input_files?: components["schemas"]["MessageFile"][] | null;
             /** Output Files */
@@ -2974,6 +3008,8 @@ export interface components {
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
+            /** Collections */
+            collections?: string[] | null;
             /** Input Files */
             input_files?: components["schemas"]["MessageFile"][] | null;
             /** Output Files */
@@ -6229,6 +6265,138 @@ export interface operations {
         };
     };
     head_api_storage__key__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    temp_get_api_storage_temp__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    temp_update_api_storage_temp__key__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    temp_delete_api_storage_temp__key__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    temp_head_api_storage_temp__key__head: {
         parameters: {
             query?: never;
             header?: never;
