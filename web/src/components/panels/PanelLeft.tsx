@@ -17,8 +17,9 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import PackageList from "../packages/PackageList";
+import ThreadList from "../chat/thread/ThreadList";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 // Icons
-import ExamplesIcon from "@mui/icons-material/Fluorescent";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -157,29 +158,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
-      <Tooltip
-        placement="right"
-        title="Explore Examples"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          className={`nav-button ${
-            path === "/examples" && panelVisible ? "active" : ""
-          }`}
-          onClick={() => {
-            navigate("/examples");
-          }}
+      <Tooltip title="Chat (Key 1)" placement="right">
+        <IconButton
           tabIndex={-1}
-          style={{
-            color: path.startsWith("/examples")
-              ? ThemeNodetool.palette.c_hl1
-              : ThemeNodetool.palette.c_white
-          }}
+          onClick={() => onViewChange("chat")}
+          className={activeView === "chat" && panelVisible ? "active" : ""}
         >
-          <ExamplesIcon />
-        </Button>
+          <ChatIcon />
+        </IconButton>
       </Tooltip>
-      <Tooltip title="Workflows (Key 1)" placement="right">
+      <Tooltip title="Workflows (Key 2)" placement="right">
         <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("workflowGrid")}
@@ -190,7 +178,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <GridViewIcon />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Assets (Key 2)" placement="right">
+      <Tooltip title="Assets (Key 3)" placement="right">
         <Button
           tabIndex={-1}
           onClick={() => onViewChange("assets")}
@@ -213,7 +201,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Collections (Key 3)" placement="right">
+      <Tooltip title="Collections (Key 4)" placement="right">
         <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("collections")}
@@ -228,15 +216,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
               color: "white"
             }}
           />
-        </IconButton>
-      </Tooltip>
-      <Tooltip title="Chat (Key 4)" placement="right">
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("chat")}
-          className={activeView === "chat" && panelVisible ? "active" : ""}
-        >
-          <ChatIcon />
         </IconButton>
       </Tooltip>
       <Tooltip title="Packs (Key 5)" placement="right">
@@ -266,10 +245,67 @@ const PanelContent = memo(function PanelContent({
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
+  
+  const {
+    threads,
+    currentThreadId,
+    createNewThread,
+    switchThread,
+    deleteThread
+  } = useGlobalChatStore();
+
+  const handleNewChat = () => {
+    createNewThread();
+    navigate("/chat");
+  };
+
+  const handleSelectThread = (id: string) => {
+    switchThread(id);
+    navigate(`/chat/${id}`);
+  };
+
+  const handleDeleteThread = (id: string) => {
+    deleteThread(id);
+  };
+
+  const getThreadPreview = (threadId: string) => {
+    if (!threads) return "Loading...";
+    const thread = threads[threadId];
+    if (!thread || thread.messages.length === 0) {
+      return "Empty conversation";
+    }
+
+    const firstUserMessage = thread.messages.find(
+      (msg) => msg.role === "user"
+    );
+    if (firstUserMessage) {
+      const content =
+        typeof firstUserMessage.content === "string"
+          ? firstUserMessage.content
+          : Array.isArray(firstUserMessage.content) &&
+            firstUserMessage.content[0]?.type === "text"
+          ? (firstUserMessage.content[0] as any).text
+          : "[Media message]";
+      return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
+    }
+
+    return "New conversation";
+  };
 
   return (
     <>
-      {activeView === "chat" && <HelpChat />}
+      {activeView === "chat" && (
+        <Box sx={{ width: "100%", height: "100%", overflow: "hidden", margin: "0" }}>
+          <ThreadList
+            threads={threads}
+            currentThreadId={currentThreadId}
+            onNewThread={handleNewChat}
+            onSelectThread={handleSelectThread}
+            onDeleteThread={handleDeleteThread}
+            getThreadPreview={getThreadPreview}
+          />
+        </Box>
+      )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
@@ -347,10 +383,10 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
-  useCombo(["2"], () => handlePanelToggle("assets"), false);
-  useCombo(["3"], () => handlePanelToggle("collections"), false);
-  useCombo(["4"], () => handlePanelToggle("chat"), false);
+  useCombo(["1"], () => handlePanelToggle("chat"), false);
+  useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
+  useCombo(["3"], () => handlePanelToggle("assets"), false);
+  useCombo(["4"], () => handlePanelToggle("collections"), false);
   useCombo(["5"], () => handlePanelToggle("packs"), false);
 
   const activeView =

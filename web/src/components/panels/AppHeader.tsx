@@ -15,6 +15,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ChatIcon from "@mui/icons-material/Chat";
+import ExamplesIcon from "@mui/icons-material/Fluorescent";
 
 const styles = (theme: any) =>
   css({
@@ -130,21 +131,25 @@ const DashboardButton = memo(function DashboardButton() {
   );
 });
 
-const ChatButton = memo(function ChatButton() {
+const ExamplesButton = memo(function ExamplesButton() {
   const navigate = useNavigate();
 
   const handleClick = useCallback(() => {
-    navigate("/chat");
+    navigate("/examples");
   }, [navigate]);
 
   return (
     <Tooltip
-      title="Go to Chat"
+      title="Explore Examples"
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="right"
     >
-      <IconButton className="chat-button" onClick={handleClick} tabIndex={-1}>
-        <ChatIcon />
+      <IconButton
+        className="examples-button"
+        onClick={handleClick}
+        tabIndex={-1}
+      >
+        <ExamplesIcon />
       </IconButton>
     </Tooltip>
   );
@@ -160,7 +165,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <div className="navigate">
           <LogoButton />
           <DashboardButton />
-          <ChatButton />
+          <ExamplesButton />
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
         <RightSideButtons />
