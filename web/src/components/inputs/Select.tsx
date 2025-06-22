@@ -56,7 +56,7 @@ const menuStyles = (theme: any) =>
       maxWidth: "300px",
       maxHeight: "300px",
       overflowY: "auto",
-      margin: 0,
+      margin: "15px 0 0 0",
       padding: ".5em 0",
       listStyle: "none",
       backgroundColor: theme.palette.c_node_bg,
@@ -135,14 +135,18 @@ const menuStyles = (theme: any) =>
     },
 
     ".search-input": {
+      marginTop: "-2px",
+      position: "absolute",
+      top: "1px",
+      zIndex: 11111,
       width: "100%",
-      margin: "0",
-      padding: "4px 8px",
+      margin: "-4px 0 0 0",
+      padding: "3px .5em",
       backgroundColor: theme.palette.c_gray1,
       border: `1px solid ${theme.palette.c_gray3}`,
       borderRadius: ".3em",
       color: theme.palette.c_white,
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmaller,
 
       "&:focus": {
         outline: "none",
