@@ -20,7 +20,8 @@ import { supabase } from "../lib/supabaseClient";
 import { uuidv4 } from "./uuidv4";
 import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
-type ChatStatus = ConnectionState;
+// Include additional runtime statuses used during message streaming
+type ChatStatus = ConnectionState | "loading" | "streaming";
 
 interface Thread {
   id: string;
