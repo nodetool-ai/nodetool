@@ -10,7 +10,9 @@ const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
 const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
-const PRECISION_DIVISOR = 10; // larger divisor => less slowdown
+// Exponential slowdown parameters: factor = BASE^(distance / DIVISOR)
+const EXP_SLOWDOWN_BASE = 10; // each DIVISOR px multiplies slowdown by BASE
+const EXP_SLOWDOWN_DIVISOR = 100; // 250 px -> 10× slowdown; 500 px -> 100×
 
 interface InputProps {
   nodeId: string;
@@ -143,7 +145,11 @@ const useDragHandling = (
               )
             : 0;
 
-          const precisionFactor = 1 + distanceOutside / PRECISION_DIVISOR;
+          // Exponential slowdown: 0px => 1×, 250px => 10×, 500px => 100×, etc.
+          const precisionFactor = Math.pow(
+            EXP_SLOWDOWN_BASE,
+            distanceOutside / EXP_SLOWDOWN_DIVISOR
+          );
 
           const pixelsPerStep =
             (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) *
