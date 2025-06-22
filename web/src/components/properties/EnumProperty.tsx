@@ -1,5 +1,4 @@
 import React, { memo, useMemo, useCallback } from "react";
-import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
@@ -24,24 +23,19 @@ const EnumProperty: React.FC<PropertyProps> = ({
 
   return (
     <div className="enum-property">
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
+      <Select
+        value={value || ""}
+        onChange={onChange}
+        options={
+          values?.map((value) => ({
+            label: value.toString(),
+            value: value
+          })) || []
+        }
+        label={property.name}
+        placeholder={property.name}
+        tabIndex={tabIndex}
       />
-      <div className="select-wrapper">
-        <Select
-          value={value || ""}
-          onChange={onChange}
-          options={
-            values?.map((value) => ({
-              label: value.toString(),
-              value: value
-            })) || []
-          }
-          tabIndex={tabIndex}
-        />
-      </div>
     </div>
   );
 };
