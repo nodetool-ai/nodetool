@@ -139,13 +139,14 @@
   border-right: 1px solid;
   border-top: 1px solid;
   border-bottom: 1px solid;
-  right: -16px;
+  right: -6px;
+  transform: translate(0, calc(-50% + 1px));
   border-radius: 0 2px 2px 0;
 }
 
 /* multiple outputs */
 .multi-outputs .react-flow__handle-right {
-  top: -6px;
+  top: 6px;
 }
 
 ul.multi-outputs {
@@ -215,7 +216,7 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-wrapper {
-  position: relative;
+  /* position: relative; */
   padding: 0;
 }
 
@@ -223,11 +224,8 @@ ul.multi-outputs li::marker {
   position: fixed;
   transform: translateX(-100%);
   opacity: 0;
-  /* visibility: hidden; */
   pointer-events: none;
   transition: opacity 100ms ease-in-out, visibility 0ms linear 150ms;
-  /* Debug */
-  /* outline: 1px solid red; */
 }
 
 /* Debug - add direct hover first */

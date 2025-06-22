@@ -5,9 +5,9 @@ import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 
-const LEFT_OFFSET_X = -32;
-const RIGHT_OFFSET_X = 50;
-const LEFT_OFFSET_Y = -5;
+const LEFT_OFFSET_X = -24;
+const RIGHT_OFFSET_X = 40;
+const LEFT_OFFSET_Y = -10;
 const RIGHT_OFFSET_Y = -25;
 
 const tooltipStyles = css`
