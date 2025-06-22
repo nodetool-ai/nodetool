@@ -61,7 +61,7 @@ import Alert from "./components/node_editor/Alert";
 (window as any).log = log;
 
 if (isLocalhost) {
-  useRemoteSettingsStore.getState().fetchSettings();
+  useRemoteSettingsStore.getState().fetchSettings().catch(console.error);
 }
 
 const NavigateToStart = () => {

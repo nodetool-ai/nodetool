@@ -12,6 +12,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
     const secrets = useRemoteSettingsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+    console.log(secrets);
 
     const missingAPIKeys = useMemo(() => {
       if (
