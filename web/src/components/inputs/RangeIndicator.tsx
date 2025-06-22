@@ -1,5 +1,4 @@
 import { memo } from "react";
-import ThemeNodes from "../themes/ThemeNodes";
 
 const SLIDER_HEIGHT_DRAGGING = "3px";
 const SLIDER_HEIGHT = "1px";
