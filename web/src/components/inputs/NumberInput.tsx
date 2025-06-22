@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -77,14 +77,12 @@ const useDragHandling = (
   state: NumberInputState,
   setState: React.Dispatch<React.SetStateAction<NumberInputState>>,
   inputIsFocused: boolean,
-  setInputIsFocused: (focused: boolean) => void
+  setInputIsFocused: (focused: boolean) => void,
+  containerRef: React.RefObject<HTMLDivElement>
 ) => {
-  const { controlKeyPressed, shiftKeyPressed } = useKeyPressedStore(
-    (state) => ({
-      controlKeyPressed: state.isKeyPressed("Control"),
-      shiftKeyPressed: state.isKeyPressed("Shift")
-    })
-  );
+  const { shiftKeyPressed } = useKeyPressedStore((state) => ({
+    shiftKeyPressed: state.isKeyPressed("Shift")
+  }));
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
 
   const handleMouseMove = useCallback(
@@ -99,41 +97,40 @@ const useDragHandling = (
           setInputIsFocused(false);
         }
 
-        let baseStep = calculateStep(
+        if (!containerRef.current) return;
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const isOverSlider = e.clientY >= rect.top && e.clientY <= rect.bottom;
+
+        const baseStep = calculateStep(
           props.min ?? 0,
           props.max ?? 4096,
           props.inputType || "float"
         );
 
-        // Adjust step based on modifier keys
-        if (controlKeyPressed && shiftKeyPressed) {
-          baseStep *= 4;
-        } else if (controlKeyPressed) {
-          if (props.max && props.max > 4096) {
-            const min = props.min ?? 0;
-            const max = props.max;
-            const range = max - min;
-            baseStep = range / 25;
-          } else {
-            baseStep *= 2;
-          }
-        } else if (shiftKeyPressed) {
-          baseStep =
-            props.inputType === "float"
-              ? props.max && props.max <= 1
-                ? 0.01
-                : 0.1
-              : 1;
+        let newValue: number;
+
+        if (isOverSlider) {
+          // Direct slider mapping: left => min, right => max
+          const ratio = (e.clientX - rect.left) / rect.width;
+          newValue =
+            (props.min ?? 0) +
+            Math.max(0, Math.min(1, ratio)) *
+              ((props.max ?? 4096) - (props.min ?? 0));
+        } else {
+          // Precision dragging above the slider
+          const distanceAbove = Math.max(0, rect.top - e.clientY); // px
+          const precisionFactor = 1 + distanceAbove / 30; // bigger => slower
+
+          const pixelsPerStep =
+            (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) *
+            precisionFactor;
+          const stepIncrement = moveX / pixelsPerStep;
+          newValue = state.dragInitialValue + stepIncrement * baseStep;
+
+          // Round to nearest step
+          newValue = Math.round(newValue / baseStep) * baseStep;
         }
-
-        const pixelsPerStep = shiftKeyPressed
-          ? SHIFT_PIXELS_PER_STEP
-          : PIXELS_PER_STEP;
-        const stepIncrement = moveX / pixelsPerStep;
-        let newValue = state.dragInitialValue + stepIncrement * baseStep;
-
-        // Round to nearest step
-        newValue = Math.round(newValue / baseStep) * baseStep;
 
         if (props.inputType === "float") {
           const newDecimalPlaces = calculateDecimalPlaces(baseStep);
@@ -170,11 +167,11 @@ const useDragHandling = (
       state.decimalPlaces,
       calculateStep,
       props,
-      controlKeyPressed,
       shiftKeyPressed,
       setState,
       setInputIsFocused,
-      calculateDecimalPlaces
+      calculateDecimalPlaces,
+      containerRef
     ]
   );
 
@@ -226,12 +223,15 @@ const NumberInput: React.FC<InputProps> = (props) => {
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
     state,
     setState,
     inputIsFocused,
-    setInputIsFocused
+    setInputIsFocused,
+    containerRef
   );
 
   const handleFocusPan = useFocusPan(props.nodeId);
@@ -378,6 +378,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
 
   return (
     <div
+      ref={containerRef}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
       }`}
