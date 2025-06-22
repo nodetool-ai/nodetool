@@ -11,8 +11,10 @@ const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
 const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
 // Exponential slowdown parameters: factor = BASE^(distance / DIVISOR)
-const EXP_SLOWDOWN_BASE = 10; // each DIVISOR px multiplies slowdown by BASE
-const EXP_SLOWDOWN_DIVISOR = 100; // 250 px -> 10× slowdown; 500 px -> 100×
+const EXP_SLOWDOWN_BASE = 4; // each DIVISOR px multiplies slowdown by BASE
+const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
+// Visual overlay shows 3× the slowdown divisor in each direction
+const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
 
 interface InputProps {
   nodeId: string;
@@ -42,6 +44,7 @@ interface NumberInputState {
   dragInitialValue: number;
   currentDragValue: number;
   lastClientX: number;
+  dragPointerY: number | null;
 }
 
 // Custom Hooks
@@ -188,12 +191,17 @@ const useDragHandling = (
           setState((prevState) => ({
             ...prevState,
             currentDragValue: newValue,
-            lastClientX: e.clientX
+            lastClientX: e.clientX,
+            dragPointerY: e.clientY
           }));
           props.onChange(null, newValue);
         } else {
           // still update lastClientX to keep relative tracking
-          setState((prevState) => ({ ...prevState, lastClientX: e.clientX }));
+          setState((prevState) => ({
+            ...prevState,
+            lastClientX: e.clientX,
+            dragPointerY: e.clientY
+          }));
         }
       }
     },
@@ -258,7 +266,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     hasExceededDragThreshold: false,
     dragInitialValue: props.value ?? 0,
     currentDragValue: props.value ?? 0,
-    lastClientX: 0
+    lastClientX: 0,
+    dragPointerY: null
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
 
@@ -353,7 +362,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
           isDragging: true,
           hasExceededDragThreshold: false,
           dragInitialValue: props.value,
-          lastClientX: e.clientX
+          lastClientX: e.clientX,
+          dragPointerY: e.clientY
         }));
       }
     },
@@ -430,7 +440,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
       style={{
         fontFamily: ThemeNodes.fontFamily1,
         fontSize: ThemeNodes.fontSizeSmall,
-        color: ThemeNodes.palette.c_hl1
+        color: ThemeNodes.palette.c_hl1,
+        position: "relative"
       }}
     >
       <EditableInput
@@ -466,6 +477,42 @@ const NumberInput: React.FC<InputProps> = (props) => {
         isDragging={state.isDragging}
         isEditable={inputIsFocused}
       />
+
+      {/* Slowdown visualization overlay (absolute, narrow) */}
+      {state.isDragging && (
+        <>
+          <div
+            key="overlay-up"
+            style={{
+              position: "absolute" as const,
+              right: "-10px",
+              top: `-${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
+              width: "10px",
+              height: `${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
+              background:
+                "linear-gradient(to bottom, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
+              pointerEvents: "none" as const,
+              zIndex: 10,
+              borderBottom: "1px dashed rgba(0,123,255,0.3)"
+            }}
+          />
+          <div
+            key="overlay-down"
+            style={{
+              position: "absolute" as const,
+              right: "-10px",
+              bottom: `-${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
+              width: "10px",
+              height: `${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
+              background:
+                "linear-gradient(to top, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
+              pointerEvents: "none" as const,
+              zIndex: 10,
+              borderTop: "1px dashed rgba(0,123,255,0.3)"
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };
