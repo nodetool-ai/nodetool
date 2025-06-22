@@ -300,6 +300,7 @@ const PanelContent = memo(function PanelContent({
   const handleNewChat = () => {
     createNewThread();
     navigate("/chat");
+    usePanelStore.getState().setVisibility(false);
   };
 
   const handleSelectThread = (id: string) => {
