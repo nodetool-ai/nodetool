@@ -2,8 +2,8 @@ import { memo } from "react";
 
 const SLIDER_HEIGHT_DRAGGING = "3px";
 const SLIDER_HEIGHT = "1px";
-const SLIDER_OPACITY = 0.4;
-const SLIDER_COLOR = "var(--c_gray4)";
+const SLIDER_OPACITY = 0.3;
+const SLIDER_COLOR = "var(--c_gray6)";
 const SLIDER_COLOR_DRAGGING = "var(--c_hl1)";
 const SLIDER_BG_COLOR = "var(--c_gray2)";
 const SLIDER_BG_COLOR_DRAGGING = "var(--c_gray2)";
@@ -19,6 +19,7 @@ const RangeIndicator: React.FC<{
     className="range-container nodrag"
     tabIndex={-1}
     style={{
+      transition: "background-color 0.3s  ease-in-out, height  .1s ease-in-out",
       height: isDragging || isEditable ? SLIDER_HEIGHT_DRAGGING : SLIDER_HEIGHT,
       opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY + 0.3,
       backgroundColor:
@@ -29,6 +30,8 @@ const RangeIndicator: React.FC<{
       className="range-indicator"
       tabIndex={-1}
       style={{
+        transition:
+          "background-color 0.3s  ease-in-out, height 0.2s  ease-in-out",
         opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY,
         backgroundColor:
           isDragging || isEditable ? SLIDER_COLOR_DRAGGING : SLIDER_COLOR,
