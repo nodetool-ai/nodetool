@@ -224,10 +224,22 @@ export class WebSocketManager extends EventEmitter {
   private async handleMessage(event: MessageEvent): Promise<void> {
     try {
       let data: any;
-      
-      if (this.config.binaryType === 'arraybuffer' && event.data instanceof ArrayBuffer) {
-        const decoded = decode(new Uint8Array(event.data));
-        data = decoded;
+
+      if (this.config.binaryType === 'arraybuffer') {
+        if (event.data instanceof ArrayBuffer) {
+          const decoded = decode(new Uint8Array(event.data));
+          data = decoded;
+        } else if (
+          event.data instanceof Blob ||
+          (event.data && typeof (event.data as any).arrayBuffer === 'function')
+        ) {
+          const buf = await (event.data as Blob).arrayBuffer();
+          data = decode(new Uint8Array(buf));
+        } else if (typeof event.data === 'string') {
+          data = JSON.parse(event.data);
+        } else {
+          data = event.data;
+        }
       } else if (typeof event.data === 'string') {
         data = JSON.parse(event.data);
       } else {

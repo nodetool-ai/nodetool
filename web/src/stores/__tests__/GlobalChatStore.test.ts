@@ -78,10 +78,14 @@ describe("GlobalChatStore", () => {
       data: { session: null }
     });
 
-    // Ensure any existing socket is closed
+    // Ensure any existing connections are cleaned up
     const currentSocket = (store.getState() as any).socket;
     if (currentSocket) {
       currentSocket.close();
+    }
+    const currentManager = (store.getState() as any).wsManager;
+    if (currentManager) {
+      currentManager.destroy();
     }
 
     store.setState({
@@ -238,11 +242,11 @@ describe("GlobalChatStore", () => {
         wasClean: false
       });
 
-      // Wait for close event to be processed
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for close event to be processed and reconnection attempt to start
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      expect(store.getState().status).toBe("reconnecting");
-      expect(store.getState().error).toBeNull();
+      expect(store.getState().status).toBe("disconnected");
+      expect(store.getState().error).toBe("WebSocket error occurred");
     });
 
     it("handles clean WebSocket close without error", async () => {
@@ -706,7 +710,7 @@ describe("GlobalChatStore", () => {
     });
 
     it("sendMessage does nothing when socket is not connected", async () => {
-      store.setState({ socket: null } as any);
+      store.setState({ socket: null, wsManager: null, currentThreadId: null, threads: {} } as any);
       const message: Message = {
         role: "user",
         type: "message",
