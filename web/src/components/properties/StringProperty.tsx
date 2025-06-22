@@ -54,7 +54,7 @@ const styles = (theme: any) =>
       border: "1px solid transparent",
       backgroundColor: "transparent",
       transition: "all 0.2s ease",
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       color: theme.palette.text.primary,
       fontFamily: "inherit",
       whiteSpace: "nowrap",
@@ -73,6 +73,7 @@ const styles = (theme: any) =>
     "& .MuiInputBase-input": {
       minHeight: "1.25em",
       padding: "0.25em 0",
+      fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em"
     },
     "& .MuiOutlinedInput-root": {
