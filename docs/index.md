@@ -20,6 +20,9 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 - **Chat interface** – create custom chatbots for your projects.
 - **API and extensions** – connect NodeTool to other apps with Python scripts.
 
+For a deeper look at how these pieces interact, read the
+[Architecture Overview](architecture.md).
+
 ### Real-world examples
 
 - Summarize incoming emails or generate daily digests.
