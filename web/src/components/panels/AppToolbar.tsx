@@ -515,7 +515,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
                   state === "connecting" ? "connecting-status" : ""
                 }`}
               >
-                {state === "connecting" ? "Connecting" : "Connected"}
+                {state === "connecting" ? "Connecting" : ""}
               </span>
               <PlayArrow />
             </>

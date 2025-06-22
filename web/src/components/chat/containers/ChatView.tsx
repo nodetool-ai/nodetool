@@ -112,15 +112,17 @@ const ChatView = ({
 
   return (
     <div className="chat-view" css={styles}>
-      <ChatThreadView
-        messages={messages}
-        status={status}
-        progress={progress}
-        total={total}
-        progressMessage={progressMessage}
-        currentPlanningUpdate={currentPlanningUpdate}
-        currentTaskUpdate={currentTaskUpdate}
-      />
+      {messages.length > 0 && (
+        <ChatThreadView
+          messages={messages}
+          status={status}
+          progress={progress}
+          total={total}
+          progressMessage={progressMessage}
+          currentPlanningUpdate={currentPlanningUpdate}
+          currentTaskUpdate={currentTaskUpdate}
+        />
+      )}
 
       <ChatInputSection
         status={status}
