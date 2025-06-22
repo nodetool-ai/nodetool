@@ -144,7 +144,7 @@ export const paletteDark: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#242424",
+  c_node_bg: "#333",
   c_node_bg_group: "#3d3d3d",
   c_node_header_bg: "#202020",
   c_node_header_bg_group: "#444",

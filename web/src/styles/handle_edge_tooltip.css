@@ -150,10 +150,8 @@
 
 ul.multi-outputs {
   position: relative;
-  padding: 1.5em 0 0 0.5em;
-  /* border-top: 1px solid var(--c_gray2); */
-  /* background-color: var(--c_gray1); */
-  margin: 0.5em 0 0;
+  padding: 0;
+  margin: 0;
   width: 100%;
 }
 ul.multi-outputs li {

@@ -16,21 +16,6 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
     <>
       {outputs.length > 1 ? (
         <ul className="multi-outputs">
-          <Typography
-            style={{
-              fontSize: ThemeNodes.fontSizeTinyer,
-              position: "absolute",
-              top: ".5em",
-              right: "1.4em",
-              color: ThemeNodes.palette.c_gray3,
-              textTransform: "uppercase",
-              margin: 0,
-              padding: 0
-            }}
-            variant="h6"
-          >
-            Outputs
-          </Typography>
           {outputs.map((output) => (
             <li key={output.name}>
               <Typography>{output.name}</Typography>
