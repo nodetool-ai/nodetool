@@ -149,7 +149,7 @@
 .property-label label {
   display: block;
   font-weight: 300;
-  color: var(--c_gray4);
+  color: var(--c_gray6);
   font-family: var(--font-family-1);
   font-size: var(--fontSizeSmall);
   padding: 0;

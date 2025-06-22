@@ -127,9 +127,12 @@ const ToolsListProperty = (props: PropertyProps) => {
                   padding: "1px",
                   marginLeft: "0 !important",
                   transition: "color 0.2s ease",
-                  color: isSelected ? "c_hl1" : "c_gray3",
+                  color: isSelected ? "c_hl1" : "c_gray4",
                   "&:hover": {
                     color: isSelected ? "c_hl1" : "c_gray6"
+                  },
+                  "& svg": {
+                    fontSize: "12px"
                   }
                 }}
               >

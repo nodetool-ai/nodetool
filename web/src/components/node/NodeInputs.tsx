@@ -222,7 +222,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
               variant="text"
             >
               <ExpandMoreIcon />{" "}
-              {showAdvancedFields ? "Show less" : "Show more"}
+              {showAdvancedFields ? "Less" : "More"}
             </Button>
           </Tooltip>
         </div>
