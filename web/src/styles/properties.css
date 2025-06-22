@@ -297,6 +297,7 @@
   justify-content: flex-start;
   top: -1px;
   left: 0;
+  outline: none;
 }
 
 .number-input .slider-value .name {

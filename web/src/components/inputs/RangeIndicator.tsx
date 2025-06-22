@@ -2,7 +2,7 @@ import { memo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 
 const SLIDER_HEIGHT_DRAGGING = "3px";
-const SLIDER_HEIGHT = "2px";
+const SLIDER_HEIGHT = "1px";
 const SLIDER_OPACITY = 0.4;
 const SLIDER_COLOR = "var(--c_gray4)";
 const SLIDER_COLOR_DRAGGING = "var(--c_hl1)";
