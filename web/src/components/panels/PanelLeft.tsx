@@ -305,6 +305,7 @@ const PanelContent = memo(function PanelContent({
   const handleSelectThread = (id: string) => {
     switchThread(id);
     navigate(`/chat/${id}`);
+    usePanelStore.getState().setVisibility(false);
   };
 
   const handleDeleteThread = (id: string) => {
