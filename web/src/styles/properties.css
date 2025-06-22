@@ -13,7 +13,7 @@
   min-height: 18px;
   border: 0;
   padding: 0 8px;
-  margin-bottom: 2px;
+  margin-bottom: 5px;
   line-height: 18px;
 }
 
@@ -138,8 +138,7 @@
   border: 0;
 }
 
-/* REFACTORED PROPERTY STYLES */
-
+/* PROPERTY STYLES */
 .property-label {
   max-width: 90%;
   margin-bottom: 1px;
@@ -155,9 +154,10 @@
   font-size: var(--fontSizeSmall);
   padding: 0;
   margin: 0;
-  line-height: 1.5em;
+  line-height: 1em;
   max-height: 2em;
   overflow: hidden;
+  min-height: 13px;
 }
 .image-property .property-label {
   margin-bottom: 5px;
@@ -519,7 +519,6 @@
 /* Property Input Container */
 .property-input-container {
   position: relative;
-  gap: 0.5em;
 }
 
 .property-input-container .action-icons {
