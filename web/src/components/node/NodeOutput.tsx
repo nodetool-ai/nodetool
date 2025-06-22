@@ -2,18 +2,9 @@
 import React, { useMemo, useCallback, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { Slugify, typeToString } from "../../utils/TypeHandler";
-import { css } from "@emotion/react";
-
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_LEAVE_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../config/constants";
+import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot } from "../../stores/ApiTypes";
-import { colorForType, textColorForType } from "../../config/data_types";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
