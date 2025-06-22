@@ -12,9 +12,11 @@ import {
 import { TypeMetadata } from "../stores/ApiTypes";
 
 export function ContextMenuProvider({
-  children
+  children,
+  active = true
 }: {
   children: React.ReactNode;
+  active?: boolean;
 }) {
   const currentClickOutsideHandlerRef = useRef<
     ((event: MouseEvent) => void) | null
@@ -81,6 +83,9 @@ export function ContextMenuProvider({
       description?: string,
       isDynamicProperty?: boolean
     ) => {
+      if (!active) {
+        return;
+      }
       if (currentClickOutsideHandlerRef.current) {
         document.removeEventListener(
           "mouseup",
