@@ -23,6 +23,7 @@ import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import ChatView from "../chat/containers/ChatView";
+import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
@@ -31,8 +32,8 @@ const styles = (theme: any) =>
       width: "100vw",
       height: "100vh",
       display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gridTemplateRows: "1fr auto",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gridTemplateRows: "auto 1fr auto",
       gap: theme.spacing(4),
       padding: theme.spacing(4),
       backgroundColor: theme.palette.background.default,
@@ -54,9 +55,20 @@ const styles = (theme: any) =>
       marginBottom: theme.spacing(3)
     },
 
-    ".workflows-section": {
+    ".examples-section": {
       gridRow: "1",
+      gridColumn: "1 / -1",
+      maxHeight: "400px"
+    },
+
+    ".threads-section": {
+      gridRow: "2",
       gridColumn: "1"
+    },
+
+    ".workflows-section": {
+      gridRow: "2",
+      gridColumn: "2"
     },
 
     ".workflow-controls": {
@@ -66,15 +78,10 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
 
-    ".examples-section": {
-      gridRow: "1",
-      gridColumn: "2"
-    },
-
     ".chat-section": {
-      gridRow: "2",
+      gridRow: "3",
       gridColumn: "1 / -1",
-      maxHeight: "400px",
+      maxHeight: "300px",
       overflow: "hidden"
     },
 
@@ -190,7 +197,7 @@ const styles = (theme: any) =>
 
     ".example-image": {
       width: "100%",
-      height: "150px",
+      height: "180px",
       objectFit: "cover",
       backgroundColor: theme.palette.c_gray2
     },
@@ -251,23 +258,51 @@ const styles = (theme: any) =>
     },
 
     // Responsive adjustments
-    "@media (max-width: 1200px)": {
+    "@media (max-width: 1400px)": {
       "&": {
-        gridTemplateColumns: "1fr",
-        gridTemplateRows: "1fr 1fr auto",
+        gridTemplateColumns: "1fr 1fr",
+        gridTemplateRows: "auto 1fr auto",
         gap: theme.spacing(3),
         padding: theme.spacing(3)
       },
-      ".workflows-section": {
-        gridRow: "1",
-        gridColumn: "1"
-      },
       ".examples-section": {
+        gridRow: "1",
+        gridColumn: "1 / -1"
+      },
+      ".threads-section": {
         gridRow: "2",
         gridColumn: "1"
       },
+      ".workflows-section": {
+        gridRow: "2",
+        gridColumn: "2"
+      },
       ".chat-section": {
         gridRow: "3",
+        gridColumn: "1 / -1"
+      }
+    },
+
+    "@media (max-width: 900px)": {
+      "&": {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(4, auto)",
+        gap: theme.spacing(2)
+      },
+      ".examples-section": {
+        gridRow: "1",
+        gridColumn: "1"
+      },
+      ".threads-section": {
+        gridRow: "2",
+        gridColumn: "1"
+      },
+      ".workflows-section": {
+        gridRow: "3",
+        gridColumn: "1"
+      },
+      ".chat-section": {
+        gridRow: "4",
         gridColumn: "1"
       }
     },
@@ -331,7 +366,10 @@ const Dashboard: React.FC = () => {
     agentMode,
     setAgentMode,
     currentPlanningUpdate,
-    currentTaskUpdate
+    currentTaskUpdate,
+    threads,
+    currentThreadId,
+    deleteThread
   } = useGlobalChatStore();
 
   const messages = getCurrentMessages();
@@ -356,6 +394,33 @@ const Dashboard: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount/unmount
+
+  // Monitor connection state and reconnect when disconnected or failed
+  useEffect(() => {
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    
+    const attemptReconnect = () => {
+      if (status === "disconnected" || status === "failed") {
+        console.log("Dashboard: Connection lost, attempting automatic reconnect...");
+        connect().catch((error) => {
+          console.error("Dashboard: Automatic reconnect failed:", error);
+        });
+      }
+    };
+
+    // Check connection state periodically
+    if (status === "disconnected" || status === "failed") {
+      // Initial reconnect attempt after 2 seconds
+      reconnectTimer = setTimeout(attemptReconnect, 2000);
+    }
+
+    return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, connect]);
 
   // Load workflows
   const loadWorkflows = async () => {
@@ -494,8 +559,107 @@ const Dashboard: React.FC = () => {
     navigate("/examples");
   };
 
+  const handleThreadSelect = (threadId: string) => {
+    switchThread(threadId);
+    navigate(`/chat/${threadId}`);
+  };
+
+  const handleNewThread = () => {
+    const newThreadId = createNewThread();
+    navigate(`/chat/${newThreadId}`);
+  };
+
+  const getThreadPreview = (threadId: string) => {
+    const thread = threads[threadId];
+    if (!thread || thread.messages.length === 0) {
+      return "No messages yet";
+    }
+    
+    const firstUserMessage = thread.messages.find(m => m.role === "user");
+    const preview = firstUserMessage?.content 
+      ? (typeof firstUserMessage.content === "string" 
+          ? firstUserMessage.content 
+          : "Chat started")
+      : "Chat started";
+    
+    return truncateString(preview, 100);
+  };
+
   return (
     <Box css={styles(ThemeNodetool)}>
+      {/* Start Examples Section */}
+      <Box className="section examples-section">
+        <Typography variant="h2" className="section-title">
+          Getting Started
+        </Typography>
+        <Box className="content-scrollable">
+          {isLoadingExamples ? (
+            <Box className="loading-container">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box className="example-grid">
+              {startExamples.map((example) => (
+                <Box
+                  key={example.id}
+                  className="example-card"
+                  onClick={() => handleExampleClick(example)}
+                >
+                  {loadingExampleId === example.id && (
+                    <Box className="loading-overlay">
+                      <CircularProgress size={30} />
+                    </Box>
+                  )}
+                  <img
+                    className="example-image"
+                    src={`${BASE_URL}/api/assets/packages/${example.package_name}/${example.name}.jpg`}
+                    alt={example.name}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                  <Typography className="example-name">
+                    {example.name}
+                  </Typography>
+                  {example.description && (
+                    <Typography className="example-description-tooltip">
+                      {truncateString(example.description, 150)}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+        <Button
+          onClick={handleViewAllExamples}
+          sx={{ marginTop: 2, alignSelf: "center" }}
+        >
+          View All Examples
+        </Button>
+      </Box>
+
+      {/* Recent Threads Section */}
+      <Box className="section threads-section">
+        <Typography variant="h2" className="section-title">
+          Recent Chats
+        </Typography>
+        <Box className="content-scrollable">
+          <ThreadList
+            threads={Object.fromEntries(
+              Object.entries(threads)
+                .sort(([, a], [, b]) => b.updatedAt.localeCompare(a.updatedAt))
+                .slice(0, 5)
+            )}
+            currentThreadId={currentThreadId}
+            onNewThread={handleNewThread}
+            onSelectThread={handleThreadSelect}
+            onDeleteThread={deleteThread}
+            getThreadPreview={getThreadPreview}
+          />
+        </Box>
+      </Box>
+
       {/* Recent Workflows Section */}
       <Box className="section workflows-section">
         <Box className="header-controls">
@@ -564,63 +728,11 @@ const Dashboard: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Start Examples Section */}
-      <Box className="section examples-section">
-        <Typography variant="h2" className="section-title">
-          Getting Started
-        </Typography>
-        <Box className="content-scrollable">
-          {isLoadingExamples ? (
-            <Box className="loading-container">
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box className="example-grid">
-              {startExamples.map((example) => (
-                <Box
-                  key={example.id}
-                  className="example-card"
-                  onClick={() => handleExampleClick(example)}
-                >
-                  {loadingExampleId === example.id && (
-                    <Box className="loading-overlay">
-                      <CircularProgress size={30} />
-                    </Box>
-                  )}
-                  <img
-                    className="example-image"
-                    src={`${BASE_URL}/api/assets/packages/${example.package_name}/${example.name}.jpg`}
-                    alt={example.name}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                  <Typography className="example-name">
-                    {example.name}
-                  </Typography>
-                  {example.description && (
-                    <Typography className="example-description-tooltip">
-                      {truncateString(example.description, 150)}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-        <Button
-          onClick={handleViewAllExamples}
-          sx={{ marginTop: 2, alignSelf: "center" }}
-        >
-          View All Examples
-        </Button>
-      </Box>
-
       {/* Chat Section */}
       <Box className="section chat-section">
         <ChatView
           status={status}
-          messages={messages}
+          messages={[]} // Empty messages to only show input
           sendMessage={handleSendMessage}
           progress={progress.current}
           total={progress.total}

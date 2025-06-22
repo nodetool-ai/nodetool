@@ -74,6 +74,33 @@ const GlobalChat: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thread_id]); // Depend on thread_id to handle URL changes
 
+  // Monitor connection state and reconnect when disconnected or failed
+  useEffect(() => {
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    
+    const attemptReconnect = () => {
+      if (status === "disconnected" || status === "failed") {
+        console.log("Connection lost, attempting automatic reconnect...");
+        connect().catch((error) => {
+          console.error("Automatic reconnect failed:", error);
+        });
+      }
+    };
+
+    // Check connection state periodically
+    if (status === "disconnected" || status === "failed") {
+      // Initial reconnect attempt after 2 seconds
+      reconnectTimer = setTimeout(attemptReconnect, 2000);
+    }
+
+    return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    };
+     
+  }, [status, connect]);
+
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
@@ -95,8 +122,14 @@ const GlobalChat: React.FC = () => {
       }
 
       if (status !== "connected" && status !== "reconnecting") {
-        console.error("Not connected to chat service");
-        return;
+        console.error("Not connected to chat service, attempting to reconnect...");
+        // Attempt to reconnect before sending
+        try {
+          await connect();
+        } catch (error) {
+          console.error("Failed to reconnect:", error);
+          return;
+        }
       }
 
       try {
@@ -112,7 +145,7 @@ const GlobalChat: React.FC = () => {
         console.error("Failed to send message:", error);
       }
     },
-    [selectedModel, sendMessage, status, helpMode, selectedCollections]
+    [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
   );
 
 
@@ -172,13 +205,21 @@ const GlobalChat: React.FC = () => {
           <BackToEditorButton />
         </Box>
 
-        {(error || status === "reconnecting") && (
+        {(error || status === "reconnecting" || status === "disconnected" || status === "failed") && (
           <Alert
-            severity={status === "reconnecting" ? "info" : "error"}
+            severity={
+              status === "reconnecting" ? "info" : 
+              status === "disconnected" ? "warning" :
+              "error"
+            }
             sx={{ mx: 2, my: 1, flexShrink: 0 }}
           >
             {status === "reconnecting"
               ? statusMessage || "Reconnecting to chat service..."
+              : status === "disconnected"
+              ? "Connection lost. Reconnecting automatically..."
+              : status === "failed"
+              ? "Connection failed. Retrying automatically..."
               : error}
           </Alert>
         )}
