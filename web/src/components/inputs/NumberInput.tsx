@@ -9,6 +9,8 @@ import { useFocusPan } from "../../hooks/useFocusPan";
 const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
+const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
+const PRECISION_DIVISOR = 10; // larger divisor => less slowdown
 
 interface InputProps {
   nodeId: string;
@@ -37,6 +39,7 @@ interface NumberInputState {
   hasExceededDragThreshold: boolean;
   dragInitialValue: number;
   currentDragValue: number;
+  lastClientX: number;
 }
 
 // Custom Hooks
@@ -100,7 +103,17 @@ const useDragHandling = (
         if (!containerRef.current) return;
 
         const rect = containerRef.current.getBoundingClientRect();
+
+        // Calculate drag bounds area (slider ± 2em vertically)
+        const fontSizePx = parseFloat(
+          window.getComputedStyle(containerRef.current).fontSize || "16"
+        );
+        const dragBoundsPx = DRAG_BOUNDS_EM * fontSizePx;
+
         const isOverSlider = e.clientY >= rect.top && e.clientY <= rect.bottom;
+        const isWithinDragBounds =
+          e.clientY >= rect.top - dragBoundsPx &&
+          e.clientY <= rect.bottom + dragBoundsPx;
 
         const baseStep = calculateStep(
           props.min ?? 0,
@@ -118,18 +131,33 @@ const useDragHandling = (
             Math.max(0, Math.min(1, ratio)) *
               ((props.max ?? 4096) - (props.min ?? 0));
         } else {
-          // Precision dragging above the slider
-          const distanceAbove = Math.max(0, rect.top - e.clientY); // px
-          const precisionFactor = 1 + distanceAbove / 30; // bigger => slower
+          // Incremental dragging (precision affected by vertical distance outside bounds)
+
+          // Determine vertical distance outside the non-slow zone (could be above or below)
+          const distanceOutside = !isWithinDragBounds
+            ? Math.max(
+                0,
+                e.clientY < rect.top - dragBoundsPx
+                  ? rect.top - dragBoundsPx - e.clientY
+                  : e.clientY - (rect.bottom + dragBoundsPx)
+              )
+            : 0;
+
+          const precisionFactor = 1 + distanceOutside / PRECISION_DIVISOR;
 
           const pixelsPerStep =
             (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) *
             precisionFactor;
-          const stepIncrement = moveX / pixelsPerStep;
-          newValue = state.dragInitialValue + stepIncrement * baseStep;
 
-          // Round to nearest step
-          newValue = Math.round(newValue / baseStep) * baseStep;
+          // delta since last processed event (horizontal only)
+          const deltaX = e.clientX - state.lastClientX;
+
+          if (Math.abs(deltaX) < 1) {
+            newValue = state.currentDragValue;
+          } else {
+            const stepIncrement = deltaX / pixelsPerStep;
+            newValue = state.currentDragValue + stepIncrement * baseStep;
+          }
         }
 
         if (props.inputType === "float") {
@@ -153,9 +181,13 @@ const useDragHandling = (
         if (newValue !== state.currentDragValue) {
           setState((prevState) => ({
             ...prevState,
-            currentDragValue: newValue
+            currentDragValue: newValue,
+            lastClientX: e.clientX
           }));
           props.onChange(null, newValue);
+        } else {
+          // still update lastClientX to keep relative tracking
+          setState((prevState) => ({ ...prevState, lastClientX: e.clientX }));
         }
       }
     },
@@ -219,7 +251,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     isDragging: false,
     hasExceededDragThreshold: false,
     dragInitialValue: props.value ?? 0,
-    currentDragValue: props.value ?? 0
+    currentDragValue: props.value ?? 0,
+    lastClientX: 0
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
 
@@ -313,7 +346,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
           dragStartX: e.clientX,
           isDragging: true,
           hasExceededDragThreshold: false,
-          dragInitialValue: props.value
+          dragInitialValue: props.value,
+          lastClientX: e.clientX
         }));
       }
     },
