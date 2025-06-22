@@ -19,12 +19,9 @@
   width: auto;
   cursor: default !important;
   padding: 0;
-  /* border: 1px solid var(--c_gray2); */
   border-radius: 3px 3px 4px 4px;
-  /* background-color: var(--c_node_bg); */
   background-color: transparent;
   transition: background-color 0.05s;
-  /* box-shadow: 0 0 2px 0px rgb(240 240 240 / 2%); */
   transition: box-shadow 0.15s ease-in-out;
 }
 
