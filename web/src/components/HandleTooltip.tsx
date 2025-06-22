@@ -5,9 +5,9 @@ import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 
-const LEFT_OFFSET_X = -24;
-const RIGHT_OFFSET_X = 32;
-const LEFT_OFFSET_Y = -10;
+const LEFT_OFFSET_X = -32;
+const RIGHT_OFFSET_X = 50;
+const LEFT_OFFSET_Y = -5;
 const RIGHT_OFFSET_Y = -25;
 
 const tooltipStyles = css`
@@ -76,12 +76,15 @@ const HandleTooltip = memo(function HandleTooltip({
     >
       <div
         style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
           backgroundColor: colorForType(type),
           color: textColorForType(type),
           borderRadius: ".5em",
           textAlign: "center",
           padding: "0.4em",
-          display: "block",
           visibility: "visible",
           whiteSpace: "nowrap"
         }}
@@ -91,7 +94,12 @@ const HandleTooltip = memo(function HandleTooltip({
             fontSize: "var(--fontSizeNormal)",
             fontWeight: "bold",
             border: 0,
-            padding: "0.1em 0.1em 0.5em 0.1em",
+            textShadow: "0 0 3px rgba(0, 0, 0, 0.35)",
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            borderRadius: "0.4em",
+            width: "100%",
+            padding: "0.25em 0.5em",
+            marginBottom: "0.2em",
             lineHeight: 1.2
           }}
         >
@@ -99,6 +107,7 @@ const HandleTooltip = memo(function HandleTooltip({
         </div>
         <div
           style={{
+            width: "fit-content",
             fontFamily: "var(--fontFamily2)",
             fontSize: "var(--fontSizeSmall)",
             backgroundColor: "var(--palette-c_gray1)",
