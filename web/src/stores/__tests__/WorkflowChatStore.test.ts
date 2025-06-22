@@ -69,7 +69,11 @@ describe('WorkflowChatStore', () => {
 
   it('sendMessage sends message when socket is open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
-    store.setState({ socket: socket as unknown as WebSocket } as any);
+    const wsManager = {
+      isConnected: () => true,
+      send: jest.fn()
+    } as any;
+    store.setState({ wsManager, socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -80,7 +84,7 @@ describe('WorkflowChatStore', () => {
 
     await store.getState().sendMessage(message);
 
-    expect(socket.send).toHaveBeenCalledWith(encode(message));
+    expect(wsManager.send).toHaveBeenCalledWith(message);
     expect(store.getState().messages).toEqual([message]);
     expect(store.getState().status).toBe('loading');
   });
@@ -88,7 +92,11 @@ describe('WorkflowChatStore', () => {
   it('sendMessage does nothing when socket is not open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
     socket.readyState = 0;
-    store.setState({ socket: socket as unknown as WebSocket } as any);
+    const wsManager = {
+      isConnected: () => false,
+      send: jest.fn()
+    } as any;
+    store.setState({ wsManager, socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -99,7 +107,7 @@ describe('WorkflowChatStore', () => {
 
     await store.getState().sendMessage(message);
 
-    expect(socket.send).not.toHaveBeenCalled();
+    expect(wsManager.send).not.toHaveBeenCalled();
     expect(store.getState().messages).toHaveLength(0);
   });
 

@@ -21,6 +21,7 @@ import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketMan
 
 type WorkflowChatState = {
   wsManager: WebSocketManager | null;
+  socket: WebSocket | null;
   workflow: WorkflowAttributes | null;
   status: "disconnected" | "connecting" | "connected" | "loading" | "error" | "reconnecting" | "disconnecting" | "failed";
   messages: Message[];
@@ -78,6 +79,7 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
 
 const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
   wsManager: null,
+  socket: null,
   messages: [],
   progressMessage: null,
   workflow: null,
@@ -142,7 +144,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     // Handle connection open
     wsManager.on('open', () => {
       log.info("Chat WebSocket connected");
-      set({ status: "connected" });
+      set({ status: "connected", socket: wsManager.getWebSocket() });
     });
 
     // Handle messages
@@ -254,7 +256,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     // Handle close
     wsManager.on('close', (code: number, reason: string) => {
       log.info("Chat WebSocket disconnected", { code, reason });
-      set({ status: "disconnected" });
+      set({ status: "disconnected", socket: null });
     });
 
     // Handle reconnection attempts
@@ -263,7 +265,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
       set({ status: "reconnecting" });
     });
 
-    set({ wsManager });
+    set({ wsManager, socket: null });
 
     try {
       await wsManager.connect();
@@ -281,7 +283,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     const { wsManager } = get();
     if (wsManager) {
       wsManager.disconnect();
-      set({ wsManager: null });
+      set({ wsManager: null, socket: null });
     }
   },
 
