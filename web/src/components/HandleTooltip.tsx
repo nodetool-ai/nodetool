@@ -41,6 +41,11 @@ const HandleTooltip = memo(function HandleTooltip({
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [handleWidth, setHandleWidth] = useState(0);
 
+  const prettyName = paramName
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
   const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setTooltipPosition({ x: rect.left, y: rect.top });
@@ -90,7 +95,7 @@ const HandleTooltip = memo(function HandleTooltip({
             lineHeight: 1.2
           }}
         >
-          {paramName.charAt(0).toUpperCase() + paramName.slice(1)}
+          {prettyName}
         </div>
         <div
           style={{
