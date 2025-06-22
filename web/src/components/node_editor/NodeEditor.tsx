@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useEffect } from "react";
 
 import { CircularProgress } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useWorkflowRunner from "../../stores/WorkflowRunner";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -24,6 +25,7 @@ import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
+import { WORKER_URL } from "../../stores/ApiClient";
 
 declare global {
   interface Window {
@@ -49,6 +51,58 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     })
   );
   useNodeEditorShortcuts(active);
+
+  // WorkflowRunner connection management
+  const { connect, disconnect, state, current_url } = useWorkflowRunner(
+    (state) => ({
+      connect: state.connect,
+      disconnect: state.disconnect,
+      state: state.state,
+      current_url: state.current_url
+    })
+  );
+
+  // Handle WorkflowRunner WebSocket connection lifecycle
+  useEffect(() => {
+    // Only connect when the editor is active
+    if (active && (state === "idle" || current_url !== WORKER_URL)) {
+      connect(WORKER_URL).catch((error) => {
+        console.error("Failed to connect WorkflowRunner:", error);
+      });
+    }
+
+    return () => {
+      // Don't disconnect on unmount - keep connection alive
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  // Monitor connection state and reconnect when disconnected
+  useEffect(() => {
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    
+    const attemptReconnect = () => {
+      if (active && (state === "idle" || state === "error")) {
+        console.log("WorkflowRunner: Connection lost, attempting automatic reconnect...");
+        connect(WORKER_URL).catch((error) => {
+          console.error("WorkflowRunner: Automatic reconnect failed:", error);
+        });
+      }
+    };
+
+    // Check connection state periodically
+    if (active && (state === "idle" || state === "error")) {
+      // Initial reconnect attempt after 2 seconds
+      reconnectTimer = setTimeout(attemptReconnect, 2000);
+    }
+
+    return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, active, connect]);
 
   // OPEN NODE MENU
   const {
