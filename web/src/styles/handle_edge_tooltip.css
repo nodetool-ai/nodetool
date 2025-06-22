@@ -128,7 +128,7 @@
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
   left: -6px;
-  top: 7px;
+  top: 5px;
   border-left: 1px solid;
   border-top: 1px solid;
   border-bottom: 1px solid;
