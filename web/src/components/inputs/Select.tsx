@@ -100,8 +100,11 @@ const menuStyles = (theme: any) =>
     },
 
     ".select-header": {
+      position: "absolute",
+      width: "100%",
+      top: "-3px",
       padding: "0px 5px",
-      margin: "0 0 5px 0",
+      margin: "0",
       border: `1px solid ${theme.palette.c_gray2}`,
       fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
@@ -117,8 +120,8 @@ const menuStyles = (theme: any) =>
     },
 
     ".select-header-text": {
-      color: theme.palette.c_gray4,
-      fontSize: theme.fontSizeNormal
+      color: theme.palette.c_gray6,
+      fontSize: theme.fontSizeSmall
     },
 
     ".chevron": {
