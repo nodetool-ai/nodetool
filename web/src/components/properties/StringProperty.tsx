@@ -18,27 +18,22 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.5em",
       position: "relative",
-      width: "100%",
-      "&:hover .string-action-buttons": {
-        opacity: 0.8,
-        pointerEvents: "auto"
-      }
+      width: "100%"
     },
     ".value-container": {
       flex: "1 1 auto",
-      minWidth: 0 // Needed for ellipsis to work in flex child
+      minWidth: 0, // Needed for ellipsis to work in flex child
     },
     "& .string-action-buttons": {
       display: "flex",
       alignItems: "center",
       gap: ".5em",
-      opacity: 0,
+      opacity: 0.8,
       backgroundColor: theme.palette.c_gray1,
       borderRadius: "4px",
       padding: "2px",
-      transition: "opacity 0.2s",
-      pointerEvents: "none",
       flexShrink: 0,
+      marginTop: "-5px",
       "& .MuiIconButton-root": {
         margin: 0,
         padding: 0
@@ -48,14 +43,14 @@ const styles = (theme: any) =>
     "& .string-value-display": {
       minHeight: "1.5em",
       marginTop: "-5px",
-      padding: "0.1em 0.25em",
+      padding: "0.5em 0",
       lineHeight: "1em",
       cursor: "pointer",
       borderRadius: "4px",
       border: "1px solid transparent",
       backgroundColor: "transparent",
       transition: "all 0.2s ease",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.text.primary,
       fontFamily: "inherit",
       whiteSpace: "nowrap",
@@ -127,6 +122,7 @@ const StringProperty = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const focusHandler = useFocusPan(nodeId);
   const handleFocus = isInspector ? () => {} : focusHandler;
   const edges = useNodes((state) => state.edges);
@@ -181,7 +177,11 @@ const StringProperty = ({
   if (showTextEditor) {
     return (
       <div className="string-property" css={styles(theme)}>
-        <div className="property-row">
+        <div
+          className="property-row"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           {!value && (
             <PropertyLabel
               name={property.name}
@@ -190,7 +190,7 @@ const StringProperty = ({
             />
           )}
           <div className="value-container">
-            {!isEditing ? (
+            {isEditing ? (
               <TextField
                 value={value || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -237,14 +237,16 @@ const StringProperty = ({
               </div>
             )}
           </div>
-          <div className="string-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand}>
-                <OpenInFullIcon sx={{ fontSize: "0.75rem" }} />
-              </IconButton>
-            </Tooltip>
-            <CopyToClipboardButton textToCopy={value || ""} size="small" />
-          </div>
+          {isHovered && (
+            <div className="string-action-buttons">
+              <Tooltip title="Open Editor" placement="bottom">
+                <IconButton size="small" onClick={toggleExpand}>
+                  <OpenInFullIcon sx={{ fontSize: "0.75rem" }} />
+                </IconButton>
+              </Tooltip>
+              <CopyToClipboardButton textToCopy={value || ""} size="small" />
+            </div>
+          )}
         </div>
         {isExpanded && (
           <TextEditorModal
@@ -261,15 +263,21 @@ const StringProperty = ({
 
   return (
     <div className="string-property" css={styles(theme)}>
-      <div className="property-row">
+      <div
+        className="property-row"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <PropertyLabel
           name={property.name}
           description={property.description}
           id={id}
         />
-        <div className="string-action-buttons">
-          <CopyToClipboardButton textToCopy={value || ""} size="small" />
-        </div>
+        {isHovered && (
+          <div className="string-action-buttons">
+            <CopyToClipboardButton textToCopy={value || ""} size="small" />
+          </div>
+        )}
       </div>
     </div>
   );

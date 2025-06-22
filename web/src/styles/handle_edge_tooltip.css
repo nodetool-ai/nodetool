@@ -160,11 +160,11 @@ ul.multi-outputs li {
   color: var(--c_gray5);
   text-transform: uppercase;
   text-align: right;
-  font-family: var(--font_family2) !important;
 }
 
 ul.multi-outputs li p {
   font-family: var(--font_family2) !important;
+  font-size: var(--fontSizeSmaller);
 }
 
 ul.multi-outputs li::marker {
