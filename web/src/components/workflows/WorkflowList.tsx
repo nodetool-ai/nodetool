@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const styles = (theme: any) =>
   css({
@@ -172,6 +173,7 @@ const WorkflowList = () => {
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
       navigate("/editor/" + workflow.id);
+      usePanelStore.getState().setVisibility(false);
     },
     [navigate]
   );
