@@ -21,7 +21,7 @@ import { uuidv4 } from "./uuidv4";
 import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
 // Include additional runtime statuses used during message streaming
-type ChatStatus = ConnectionState | "loading" | "streaming";
+type ChatStatus = ConnectionState | "loading" | "streaming" | "error";
 
 interface Thread {
   id: string;
@@ -276,9 +276,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ error: null });
 
         if (!wsManager || !wsManager.isConnected()) {
-          const error = "Not connected to chat service";
-          set({ error });
-          throw new Error(error);
+          set({ error: "Not connected to chat service" });
+          return;
         }
 
         // Ensure we have a thread
@@ -518,6 +517,7 @@ function handleWebSocketMessage(
       });
     } else if (update.status === "failed") {
       set({
+        status: "error",
         error: update.error,
         progress: { current: 0, total: 0 },
         statusMessage: update.error || null
