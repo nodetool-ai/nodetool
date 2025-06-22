@@ -1,96 +1,108 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { colorForType, textColorForType } from "../config/data_types";
 import ThemeNodetool from "./themes/ThemeNodetool";
-import { typeToString, Slugify } from "../utils/TypeHandler";
-
-// Global state for the shared tooltip
-let tooltipElement: HTMLDivElement | null = null;
-let currentType: string | null = null;
+import { typeToString } from "../utils/TypeHandler";
+import { createPortal } from "react-dom";
 
 const tooltipStyles = css`
   position: fixed;
   transform: translateX(-100%);
   pointer-events: none;
-  opacity: 0;a
+  opacity: 0;
   transition: opacity 150ms ease-in-out;
   z-index: 999999;
 
-  &[data-show="true"] {
+  &.show {
     opacity: 1;
   }
 `;
 
-function getTooltip() {
-  if (!tooltipElement) {
-    tooltipElement = document.createElement("div");
-    tooltipElement.className = "handle-tooltip";
-    tooltipElement.style.position = "fixed";
-    tooltipElement.style.zIndex = "999999";
-    tooltipElement.style.pointerEvents = "none";
-    document.body.appendChild(tooltipElement);
-  }
-  return tooltipElement;
-}
-
-function updateTooltip(type: string, show: boolean, x?: number, y?: number) {
-  const tooltip = getTooltip();
-
-  if (show && type !== currentType) {
-    currentType = type;
-    tooltip.innerHTML = `
-      <span style="
-        background-color: ${colorForType(type)};
-        color: ${textColorForType(type)};
-        border-radius: .5em;
-        font-size: ${ThemeNodetool.fontSizeSmall};
-        padding: 2px 12px;
-        display: block;
-        visibility: visible;
-        white-space: nowrap;
-      ">
-        ${typeToString({ type, optional: false, type_args: [] })}
-      </span>
-    `;
-  }
-
-  tooltip.style.opacity = show ? "1" : "0";
-  if (x !== undefined && y !== undefined) {
-    tooltip.style.left = `${x - 20}px`;
-    tooltip.style.top = `${y + 2}px`;
-    tooltip.style.transform = "translateX(-100%)";
-  }
-}
-
 type HandleTooltipProps = {
   type: string;
+  paramName: string;
   className?: string;
   children: React.ReactNode;
 };
 
 const HandleTooltip = memo(function HandleTooltip({
   type,
+  paramName,
   className = "",
   children
 }: HandleTooltipProps) {
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    updateTooltip(type, true, rect.left, rect.top);
-  };
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseLeave = () => {
-    updateTooltip(type, false);
-  };
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltipPosition({ x: rect.left, y: rect.top });
+    setShowTooltip(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setShowTooltip(false);
+  }, []);
+
+  const tooltipContent = (
+    <div
+      css={tooltipStyles}
+      className={showTooltip ? "show" : ""}
+      style={{
+        left: `${tooltipPosition.x - 20}px`,
+        top: `${tooltipPosition.y + 2}px`
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: colorForType(type),
+          color: textColorForType(type),
+          borderRadius: ".5em",
+          fontSize: ThemeNodetool.fontSizeSmall,
+          padding: "0.4em",
+          display: "block",
+          visibility: "visible",
+          whiteSpace: "nowrap"
+        }}
+      >
+        <div
+          style={{
+            fontWeight: "bold",
+            border: 0,
+            padding: 0,
+            lineHeight: 1
+          }}
+        >
+          {paramName}
+        </div>
+        <div
+          style={{
+            fontSize: "0.8em",
+            opacity: 0.8,
+            border: 0,
+            textAlign: "center",
+            padding: 0,
+            lineHeight: 1
+          }}
+        >
+          {typeToString({ type, optional: false, type_args: [] })}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div
-      className="handle-tooltip-wrapper"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {children}
-    </div>
+    <>
+      <div
+        className={`handle-tooltip-wrapper ${className}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {children}
+      </div>
+      {showTooltip && createPortal(tooltipContent, document.body)}
+    </>
   );
 });
 

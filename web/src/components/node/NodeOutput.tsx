@@ -61,16 +61,39 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
 
   const tooltipTitle = useMemo(
     () => (
-      <span
-        style={{
-          backgroundColor: colorForType(output.type.type),
-          color: textColorForType(output.type.type),
-          borderRadius: ".5em",
-          fontSize: ThemeNodetool.fontSizeBig
-        }}
+      <div
+        css={css`
+          background-color: ${colorForType(output.type.type)};
+          color: ${textColorForType(output.type.type)};
+          border-radius: 0.5em;
+          font-size: ${ThemeNodetool.fontSizeBig};
+          padding: 0.4em;
+        `}
       >
-        {output.name} :{typeToString(output.type)}
-      </span>
+        <div
+          css={css`
+            font-weight: bold;
+            border: 0;
+            padding: 0;
+            line-height: 1;
+            // margin-bottom: 0.2em;
+          `}
+        >
+          {output.name}
+        </div>
+        <div
+          css={css`
+            font-size: 0.8em;
+            opacity: 0.8;
+            border: 0;
+            text-align: center;
+            padding: 0;
+            line-height: 1;
+          `}
+        >
+          {typeToString(output.type)}
+        </div>
+      </div>
     ),
     [output.name, output.type]
   );
