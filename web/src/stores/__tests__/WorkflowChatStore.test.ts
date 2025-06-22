@@ -64,12 +64,12 @@ describe('WorkflowChatStore', () => {
       total: 0,
       status: 'disconnected',
       error: null,
-    });
+    } as any);
   });
 
   it('sendMessage sends message when socket is open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
-    store.setState({ socket: socket as unknown as WebSocket });
+    store.setState({ socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -88,7 +88,7 @@ describe('WorkflowChatStore', () => {
   it('sendMessage does nothing when socket is not open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
     socket.readyState = 0;
-    store.setState({ socket: socket as unknown as WebSocket });
+    store.setState({ socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -111,7 +111,7 @@ describe('WorkflowChatStore', () => {
 
   it('handles string output_update messages', async () => {
     await store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
-    const socket = store.getState().socket as unknown as MockWebSocket;
+    const socket = (store.getState() as any).socket as unknown as MockWebSocket;
     socket.onopen?.();
 
     const sendUpdate = async (value: string) => {
@@ -140,7 +140,7 @@ describe('WorkflowChatStore', () => {
 
   it('handles image output_update messages', async () => {
     await store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
-    const socket = store.getState().socket as unknown as MockWebSocket;
+    const socket = (store.getState() as any).socket as unknown as MockWebSocket;
     socket.onopen?.();
     const img = new Uint8Array([1, 2, 3]);
     const update: OutputUpdate = {
