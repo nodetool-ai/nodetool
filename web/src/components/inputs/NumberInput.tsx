@@ -10,12 +10,10 @@ const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
 const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
-// Exponential slowdown parameters: factor = BASE^(distance / DIVISOR)
 const EXP_SLOWDOWN_BASE = 4; // each DIVISOR px multiplies slowdown by BASE
 const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
-// Visual overlay shows 3× the slowdown divisor in each direction
 const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
-const MIN_SPEED_FACTOR = 0.005; // 0.5% speed at extremes
+const MIN_SPEED_FACTOR = 0.01; // 1% speed at extremes
 
 interface InputProps {
   nodeId: string;
@@ -151,20 +149,26 @@ const useDragHandling = (
 
           // Speed factor: 1 at slider edge, quadratic drop to MIN_SPEED_FACTOR at max visual distance
           const t = Math.min(distanceOutside / VISUAL_SLOWDOWN_DISTANCE_PX, 1);
-          let speedFactor = 1 - t; // linear
-          speedFactor = speedFactor * speedFactor; // quadratic for more precision near end
+          let speedFactor = 1 - t * t; // gentler curve: slows down later
           speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
 
           if (shiftKeyPressed) {
             speedFactor *= 0.1; // shift further slows to 10%
           }
 
-          // Horizontal delta as ratio of slider width
-          const deltaRatio = (e.clientX - state.lastClientX) / rect.width;
+          // Convert horizontal movement to value change using baseStep units
+          const deltaX = e.clientX - state.lastClientX;
 
-          const valueRange = (props.max ?? 4096) - (props.min ?? 0);
-          newValue =
-            state.currentDragValue + deltaRatio * speedFactor * valueRange;
+          const effectivePixelsPerStep =
+            (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) /
+            speedFactor;
+
+          if (Math.abs(deltaX) < 0.5) {
+            newValue = state.currentDragValue;
+          } else {
+            const stepIncrement = deltaX / effectivePixelsPerStep;
+            newValue = state.currentDragValue + stepIncrement * baseStep;
+          }
         }
 
         if (props.inputType === "float") {
@@ -491,7 +495,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
                 "linear-gradient(to bottom, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
               pointerEvents: "none" as const,
               zIndex: 10,
-              borderBottom: "1px dashed rgba(0,123,255,0.3)"
+              borderBottom: "1px dashed var(--c_hl1)"
             }}
           />
           <div
@@ -506,7 +510,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
                 "linear-gradient(to top, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
               pointerEvents: "none" as const,
               zIndex: 10,
-              borderTop: "1px dashed rgba(0,123,255,0.3)"
+              borderTop: "1px dashed var(--c_hl1)"
             }}
           />
         </>
