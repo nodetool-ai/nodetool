@@ -15,6 +15,7 @@ const EXP_SLOWDOWN_BASE = 4; // each DIVISOR px multiplies slowdown by BASE
 const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
 // Visual overlay shows 3× the slowdown divisor in each direction
 const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
+const MIN_SPEED_FACTOR = 0.005; // 0.5% speed at extremes
 
 interface InputProps {
   nodeId: string;
@@ -136,9 +137,9 @@ const useDragHandling = (
             Math.max(0, Math.min(1, ratio)) *
               ((props.max ?? 4096) - (props.min ?? 0));
         } else {
-          // Incremental dragging (precision affected by vertical distance outside bounds)
+          // Incremental dragging based on percentage of slider width
 
-          // Determine vertical distance outside the non-slow zone (could be above or below)
+          // Distance outside slider (positive when pointer is above or below slider)
           const distanceOutside = !isWithinDragBounds
             ? Math.max(
                 0,
@@ -148,25 +149,22 @@ const useDragHandling = (
               )
             : 0;
 
-          // Exponential slowdown: 0px => 1×, 250px => 10×, 500px => 100×, etc.
-          const precisionFactor = Math.pow(
-            EXP_SLOWDOWN_BASE,
-            distanceOutside / EXP_SLOWDOWN_DIVISOR
-          );
+          // Speed factor: 1 at slider edge, quadratic drop to MIN_SPEED_FACTOR at max visual distance
+          const t = Math.min(distanceOutside / VISUAL_SLOWDOWN_DISTANCE_PX, 1);
+          let speedFactor = 1 - t; // linear
+          speedFactor = speedFactor * speedFactor; // quadratic for more precision near end
+          speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
 
-          const pixelsPerStep =
-            (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) *
-            precisionFactor;
-
-          // delta since last processed event (horizontal only)
-          const deltaX = e.clientX - state.lastClientX;
-
-          if (Math.abs(deltaX) < 1) {
-            newValue = state.currentDragValue;
-          } else {
-            const stepIncrement = deltaX / pixelsPerStep;
-            newValue = state.currentDragValue + stepIncrement * baseStep;
+          if (shiftKeyPressed) {
+            speedFactor *= 0.1; // shift further slows to 10%
           }
+
+          // Horizontal delta as ratio of slider width
+          const deltaRatio = (e.clientX - state.lastClientX) / rect.width;
+
+          const valueRange = (props.max ?? 4096) - (props.min ?? 0);
+          newValue =
+            state.currentDragValue + deltaRatio * speedFactor * valueRange;
         }
 
         if (props.inputType === "float") {
@@ -487,7 +485,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               position: "absolute" as const,
               right: "-10px",
               top: `-${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
-              width: "10px",
+              width: "8px",
               height: `${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
               background:
                 "linear-gradient(to bottom, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
@@ -502,7 +500,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               position: "absolute" as const,
               right: "-10px",
               bottom: `-${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
-              width: "10px",
+              width: "8px",
               height: `${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
               background:
                 "linear-gradient(to top, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
