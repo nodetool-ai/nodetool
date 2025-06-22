@@ -47,7 +47,8 @@ const styles = (theme: any) =>
 
     "& .string-value-display": {
       minHeight: "1.5em",
-      padding: "0.25em 0.25em",
+      marginTop: "-5px",
+      padding: "0.1em 0.25em",
       lineHeight: "1em",
       cursor: "pointer",
       borderRadius: "4px",
@@ -72,6 +73,7 @@ const styles = (theme: any) =>
 
     "& .MuiInputBase-input": {
       minHeight: "1.25em",
+      marginTop: "-5px",
       padding: "0.25em 0",
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em"
@@ -104,6 +106,7 @@ const styles = (theme: any) =>
       }
     },
     "& .MuiTextField-root": {
+      marginTop: "-5px",
       padding: "0",
       width: "100%"
     }
@@ -187,7 +190,7 @@ const StringProperty = ({
             />
           )}
           <div className="value-container">
-            {isEditing ? (
+            {!isEditing ? (
               <TextField
                 value={value || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
