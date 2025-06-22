@@ -17,27 +17,15 @@ interface RemoteSettingsStore {
   ) => Promise<void>;
   getSettingValue: (envVar: string) => string | undefined;
   setSettingValue: (envVar: string, value: string) => void;
-  // Computed getters for backward compatibility
   secrets: Record<string, string>;
 }
 
 const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   settings: [],
+  secrets: {},
   settingsByGroup: new Map(),
   isLoading: false,
   error: null,
-
-  // Computed getters for backward compatibility
-  get secrets() {
-    const state = get();
-    const secrets: Record<string, string> = {};
-    state.settings.forEach(setting => {
-      if (setting.is_secret && setting.value !== null && setting.value !== undefined) {
-        secrets[setting.env_var] = String(setting.value);
-      }
-    });
-    return secrets;
-  },
 
   fetchSettings: async () => {
     const { error, data } = await client.GET("/api/settings/", {});
@@ -47,18 +35,23 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
     // Group settings by their group field
     const settingsByGroup = new Map<string, SettingWithValue[]>();
+    const secrets: Record<string, string> = {};
     data.settings.forEach((setting) => {
       const group = setting.group;
       if (!settingsByGroup.has(group)) {
         settingsByGroup.set(group, []);
       }
       settingsByGroup.get(group)!.push(setting);
+      if (setting.is_secret && setting.value !== null && setting.value !== undefined) {
+        secrets[setting.env_var] = String(setting.value);
+      }
     });
 
     set({
       settings: data.settings,
       settingsByGroup,
-      isLoading: false
+      isLoading: false,
+      secrets
     });
 
     return data.settings;
