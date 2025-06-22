@@ -88,7 +88,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           className="handle-popup"
           style={{ position: "absolute", left: "0" }}
         >
-          <HandleTooltip type={property.type.type} className={classConnectable}>
+          <HandleTooltip
+            type={property.type.type}
+            paramName={property.name}
+            className={classConnectable}
+          >
             <Handle
               type="target"
               id={property.name}
