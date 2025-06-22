@@ -79,7 +79,7 @@
   font-size: var(--fontSizeNormal);
   font-weight: 300;
   font-feature-settings: "smcp";
-  padding: 0.5em 0 0.3em 0.5em;
+  padding: 0.3em 0 0.3em 0.5em;
 }
 
 .react-flow__node .title-container {
