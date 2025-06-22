@@ -139,13 +139,13 @@
   border-right: 1px solid;
   border-top: 1px solid;
   border-bottom: 1px solid;
-  right: -6px;
+  right: -16px;
   border-radius: 0 2px 2px 0;
 }
 
 /* multiple outputs */
 .multi-outputs .react-flow__handle-right {
-  top: 7px;
+  top: -6px;
 }
 
 ul.multi-outputs {
