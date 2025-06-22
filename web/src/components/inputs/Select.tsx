@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
+import { Tooltip } from "@mui/material";
 
 interface Option {
   value: any;
@@ -24,6 +25,7 @@ interface SelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  label?: string;
   tabIndex?: number;
   fuseOptions?: IFuseOptions<Option>;
 }
@@ -49,6 +51,17 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 
 const menuStyles = (theme: any) =>
   css({
+    ".select-container": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      width: "100%"
+    },
+    ".select-wrapper": {
+      position: "relative",
+      flex: 1,
+      minWidth: 0
+    },
     ".options-list": {
       position: "absolute",
       width: "auto",
@@ -160,6 +173,7 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
   placeholder,
+  label,
   tabIndex,
   fuseOptions
 }) => {
@@ -303,59 +317,62 @@ const Select: React.FC<SelectProps> = ({
   }, [searchQuery]);
 
   return (
-    <div
-      ref={selectRef}
-      className={`custom-select ${activeSelect === id ? "open" : ""}`}
-      css={menuStyles}
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
-    >
-      {activeSelect !== id && (
-        <div
-          className="select-header"
-          onClick={toggleDropdown}
-          tabIndex={tabIndex}
-          role="button"
-        >
-          <span className="select-header-text">
-            {selectedOption
-              ? selectedOption.label
-              : placeholder || "Select an option"}
-          </span>
-          <ChevronIcon
-            className={`chevron ${activeSelect === id ? "open" : ""}`}
-          />
+    <div className="select-container" css={menuStyles}>
+      <Tooltip title={label}>
+      <div
+        ref={selectRef}
+        className={`custom-select select-wrapper ${activeSelect === id ? "open" : ""}`}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+      >
+        {activeSelect !== id && (
+          <div
+            className="select-header"
+            onClick={toggleDropdown}
+            tabIndex={tabIndex}
+            role="button"
+          >
+            <span className="select-header-text">
+              {selectedOption
+                ? selectedOption.label
+                : placeholder || "Select an option"}
+            </span>
+            <ChevronIcon
+              className={`chevron ${activeSelect === id ? "open" : ""}`}
+            />
+          </div>
+        )}
+        {activeSelect === id && (
+          <>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              onClick={(e) => e.stopPropagation()}
+            />
+            <ul ref={optionsRef} className="options-list nowheel">
+              {(searchQuery
+                ? fuse.search(searchQuery).map(({ item }) => item)
+                : options
+              ).map((option, index) => (
+                <li
+                  key={option.value}
+                  className={`option ${
+                    option.value === value ? "selected" : ""
+                  } ${index === highlightedIndex ? "highlighted" : ""}`}
+                  onClick={() => handleOptionClick(option.value)}
+                >
+                  {option.label}
+                </li>
+              ))}
+            </ul>
+          </>
+          )}
         </div>
-      )}
-      {activeSelect === id && (
-        <>
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="search-input"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
-            onClick={(e) => e.stopPropagation()}
-          />
-          <ul ref={optionsRef} className="options-list nowheel">
-            {(searchQuery
-              ? fuse.search(searchQuery).map(({ item }) => item)
-              : options
-            ).map((option, index) => (
-              <li
-                key={option.value}
-                className={`option ${
-                  option.value === value ? "selected" : ""
-                } ${index === highlightedIndex ? "highlighted" : ""}`}
-                onClick={() => handleOptionClick(option.value)}
-              >
-                {option.label}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      </Tooltip>
     </div>
   );
 };
