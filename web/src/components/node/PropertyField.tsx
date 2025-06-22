@@ -92,6 +92,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             type={property.type.type}
             paramName={property.name}
             className={classConnectable}
+            handlePosition="left"
           >
             <Handle
               type="target"
