@@ -323,6 +323,7 @@
   right: 0px;
   margin: 0;
   line-height: 1em;
+  font-size: var(--fontSizeSmall);
   font-family: var(--font_family2);
   background-color: transparent;
   padding: 0px;
@@ -343,10 +344,10 @@
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--fontSizeNormal);
+  font-size: var(--fontSizeSmall);
   line-height: 1.5em;
   height: 12px;
-  top: 2px;
+  top: -2px;
   right: 0;
   margin: 0;
   padding: 0;
@@ -381,7 +382,7 @@
 .number-input .range-container {
   transition: opacity 0.2s;
   position: absolute;
-  bottom: -4px;
+  bottom: 0px;
   width: 100%;
   height: 3px;
   border-radius: 2px;
