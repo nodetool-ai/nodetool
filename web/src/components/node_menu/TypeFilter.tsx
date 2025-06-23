@@ -2,15 +2,11 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
-//import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-//import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
-// import AddIcon from "@mui/icons-material/Add";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { DATA_TYPES } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { InputLabel, MenuItem, Select, Button, Tooltip } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface TypeFilterProps {
   selectedInputType: string;

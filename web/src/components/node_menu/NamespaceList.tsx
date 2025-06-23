@@ -614,13 +614,17 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPath,
     searchResults,
     allSearchMatches,
-    hoveredNode
+    hoveredNode,
+    selectedInputType,
+    selectedOutputType
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
     allSearchMatches: state.allSearchMatches,
-    hoveredNode: state.hoveredNode
+    hoveredNode: state.hoveredNode,
+    selectedInputType: state.selectedInputType,
+    selectedOutputType: state.selectedOutputType
   }));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -668,7 +672,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     <div
       css={namespaceStyles}
       className={
-        searchTerm.length > minSearchTermLength && searchResults.length > 1
+        (searchTerm.length > minSearchTermLength ||
+          selectedInputType ||
+          selectedOutputType) &&
+        searchResults.length > 0
           ? "has-search-results"
           : "no-search-results"
       }
@@ -695,7 +702,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </div>
           </List>
         </div>
-        {selectedPathString || searchTerm ? (
+        {selectedPathString ||
+        searchTerm ||
+        selectedInputType ||
+        selectedOutputType ? (
           <>
             <List className="node-list">
               <RenderNodes nodes={searchResults} />
