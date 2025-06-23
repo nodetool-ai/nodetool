@@ -47,6 +47,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "1em",
       width: "100%",
+      maxHeight: "20vh",
       padding: "0.5em "
     },
     ".node-property": {
@@ -106,6 +107,7 @@ const styles = (theme: any) =>
     },
     ".title": {
       width: "100%",
+      userSelect: "none",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     },
