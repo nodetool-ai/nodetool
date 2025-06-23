@@ -1,12 +1,22 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, Global } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { DATA_TYPES } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { InputLabel, MenuItem, Select, Button, Tooltip } from "@mui/material";
+import {
+  InputLabel,
+  MenuItem,
+  Select,
+  Button,
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
+} from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 interface TypeFilterProps {
   selectedInputType: string;
@@ -22,7 +32,20 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   setSelectedOutputType
 }) => {
   const nodeTypes = DATA_TYPES;
+  const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
+  const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
   const [isVisible, setIsVisible] = useState(false);
+
+  // Manage which accordion section is open ("nodetool" | "comfy" | null)
+  const [expandedSection, setExpandedSection] = useState<
+    "nodetool" | "comfy" | null
+  >("nodetool");
+
+  const handleAccordionChange =
+    (section: "nodetool" | "comfy") =>
+    (_event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpandedSection(isExpanded ? section : null);
+    };
 
   const handleFilterToggle = () => {
     if (isVisible) {
@@ -91,13 +114,21 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       ".type-filter .MuiSelect-select": {
         textAlign: "left",
         fontSize: theme.fontSizeNormal,
-        padding: ".2em 2em .2em .5em",
+        padding: "0 1em .1em .5em",
         height: "28px"
       }
     });
 
+  // Global styles for menu items (not scoped to portal)
+  const globalMenuItemStyles = css`
+    .MuiAccordionDetails-root .type-filter-item {
+      padding: 0.1em 1em;
+    }
+  `;
+
   return (
     <div css={typeFilterStyles}>
+      <Global styles={globalMenuItemStyles} />
       <Tooltip
         title={
           <span className="tooltip-small">
@@ -133,15 +164,62 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
               </MenuItem>
-              {nodeTypes.map((option) => (
-                <MenuItem
-                  key={option.value}
-                  value={option.value}
-                  className={option.value}
+              {/* Nodetool types */}
+              <Accordion
+                className="type-category nodetool-category"
+                disableGutters
+                elevation={0}
+                sx={{ backgroundColor: "transparent" }}
+                expanded={expandedSection === "nodetool"}
+                onChange={handleAccordionChange("nodetool")}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ pl: "1em" }}
                 >
-                  {option.label}
-                </MenuItem>
-              ))}
+                  Nodetool
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 0 }}>
+                  {otherTypes.map((option) => (
+                    <MenuItem
+                      key={option.value}
+                      value={option.value}
+                      className={`${option.value} type-filter-item nodetool-type`}
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Comfy types */}
+              {comfyTypes.length > 0 && (
+                <Accordion
+                  disableGutters
+                  elevation={0}
+                  sx={{ backgroundColor: "transparent" }}
+                  expanded={expandedSection === "comfy"}
+                  onChange={handleAccordionChange("comfy")}
+                >
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ pl: "1em" }}
+                  >
+                    Comfy Types
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    {comfyTypes.map((option) => (
+                      <MenuItem
+                        key={option.value}
+                        value={option.value}
+                        className={`${option.value} type-filter-item comfy-type`}
+                      >
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </AccordionDetails>
+                </Accordion>
+              )}
             </Select>
           </div>
           <div className="type-filter">
@@ -161,15 +239,63 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
               </MenuItem>
-              {nodeTypes.map((option) => (
-                <MenuItem
-                  key={option.value}
-                  value={option.value}
-                  className={option.value}
+              {/* Nodetool types */}
+              <Accordion
+                className="type-category nodetool-category"
+                disableGutters
+                elevation={0}
+                sx={{ backgroundColor: "transparent" }}
+                expanded={expandedSection === "nodetool"}
+                onChange={handleAccordionChange("nodetool")}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ pl: "1em" }}
                 >
-                  {option.label}
-                </MenuItem>
-              ))}
+                  Nodetool
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 0 }}>
+                  {otherTypes.map((option) => (
+                    <MenuItem
+                      key={option.value}
+                      value={option.value}
+                      className={`${option.value} type-filter-item nodetool-type`}
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Comfy types */}
+              {comfyTypes.length > 0 && (
+                <Accordion
+                  className="type-category comfy-category"
+                  disableGutters
+                  elevation={0}
+                  sx={{ backgroundColor: "transparent" }}
+                  expanded={expandedSection === "comfy"}
+                  onChange={handleAccordionChange("comfy")}
+                >
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ pl: "1em" }}
+                  >
+                    Comfy Types
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    {comfyTypes.map((option) => (
+                      <MenuItem
+                        key={option.value}
+                        value={option.value}
+                        className={`${option.value} type-filter-item comfy-type`}
+                      >
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </AccordionDetails>
+                </Accordion>
+              )}
             </Select>
           </div>
         </div>
