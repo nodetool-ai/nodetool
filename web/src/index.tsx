@@ -193,12 +193,6 @@ const AppWrapper = () => {
       });
   }, []); // Empty dependency array ensures this runs only once on mount
 
-  // Helper to navigate to the newly created workflow
-  // This function seems unused in the current context of AppWrapper's return,
-  // but keeping it in case it's used by other parts or intended for future use.
-  const handleWorkflowCreated = (workflowId: string) => {
-    window.location.href = `/editor/${workflowId}`;
-  };
 
   return (
     <React.StrictMode>
