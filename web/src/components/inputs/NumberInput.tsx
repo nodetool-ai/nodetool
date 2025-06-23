@@ -10,7 +10,6 @@ const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
 const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
-const EXP_SLOWDOWN_BASE = 4; // each DIVISOR px multiplies slowdown by BASE
 const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
 const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
 const MIN_SPEED_FACTOR = 0.01; // 1% speed at extremes
