@@ -11,28 +11,31 @@ import NodeDescription from "./node/NodeDescription";
 const styles = (theme: any) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "1em",
-      alignItems: "flex-start",
-      justifyContent: "flex-start",
+      display: "grid",
+      gridTemplateRows: "1fr auto",
+      gridTemplateColumns: "100%",
       backgroundColor: theme.palette.c_gray1,
       padding: "0",
       width: "100%",
       maxWidth: "500px",
-      minHeight: "100%",
-      height: "auto",
-      overflowY: "auto"
+      height: "100%",
+      overflow: "hidden"
     },
     ".top": {
+      overflow: "hidden",
+      position: "relative",
+      width: "100%"
+    },
+    ".top-content": {
+      position: "absolute",
+      top: 0,
+      left: 0,
       display: "flex",
       flexDirection: "column",
       gap: "10px",
       width: "calc(100% / 1.4)",
+      height: "calc(100% / 1.4)",
       padding: "0.5em",
-      height: "calc(60vh / 1.4)",
-      flexShrink: 1,
-      flexGrow: 1,
       overflowY: "auto",
       overflowX: "hidden",
       transform: "scale(1.4)",
@@ -44,9 +47,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "1em",
       width: "100%",
-      padding: "0.5em ",
-      marginTop: "auto",
-      flexShrink: 0
+      padding: "0.5em "
     },
     ".node-property": {
       display: "flex",
@@ -146,9 +147,11 @@ const Inspector: React.FC = () => {
     return (
       <div className="inspector" css={styles}>
         <div className="top">
-          <div className="inspector-header">
-            <div className="title" style={{ color: "var(--c_gray4)" }}>
-              Select a node to edit
+          <div className="top-content">
+            <div className="inspector-header">
+              <div className="title" style={{ color: "var(--c_gray4)" }}>
+                Select a node to edit
+              </div>
             </div>
           </div>
         </div>
@@ -180,50 +183,52 @@ const Inspector: React.FC = () => {
   return (
     <div className="inspector" css={styles}>
       <div className="top">
-        <div className="inspector-header">
-          <div className="title">{metadata.title}</div>
-        </div>
-        {/* Base properties */}
-        {metadata.properties.map((property, index) => (
-          <PropertyField
-            key={`inspector-${property.name}-${selectedNode.id}`}
-            id={selectedNode.id}
-            value={selectedNode.data.properties[property.name]}
-            property={property}
-            propertyIndex={index.toString()}
-            showHandle={false}
-            isInspector={true}
-            nodeType="inspector"
-            layout=""
-          />
-        ))}
-
-        {/* Dynamic properties, if any */}
-        {Object.entries(selectedNode.data.dynamic_properties || {}).map(
-          ([name, value], index) => (
+        <div className="top-content">
+          <div className="inspector-header">
+            <div className="title">{metadata.title}</div>
+          </div>
+          {/* Base properties */}
+          {metadata.properties.map((property, index) => (
             <PropertyField
-              key={`inspector-dynamic-${name}-${selectedNode.id}`}
+              key={`inspector-${property.name}-${selectedNode.id}`}
               id={selectedNode.id}
-              value={value}
-              property={
-                {
-                  name,
-                  type: {
-                    type: "any",
-                    optional: false,
-                    type_args: []
-                  }
-                } as any
-              }
-              propertyIndex={`dynamic-${index}`}
+              value={selectedNode.data.properties[property.name]}
+              property={property}
+              propertyIndex={index.toString()}
               showHandle={false}
               isInspector={true}
               nodeType="inspector"
               layout=""
-              isDynamicProperty={true}
             />
-          )
-        )}
+          ))}
+
+          {/* Dynamic properties, if any */}
+          {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+            ([name, value], index) => (
+              <PropertyField
+                key={`inspector-dynamic-${name}-${selectedNode.id}`}
+                id={selectedNode.id}
+                value={value}
+                property={
+                  {
+                    name,
+                    type: {
+                      type: "any",
+                      optional: false,
+                      type_args: []
+                    }
+                  } as any
+                }
+                propertyIndex={`dynamic-${index}`}
+                showHandle={false}
+                isInspector={true}
+                nodeType="inspector"
+                layout=""
+                isDynamicProperty={true}
+              />
+            )
+          )}
+        </div>
       </div>
       <div className="bottom">
         <NodeDescription
