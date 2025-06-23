@@ -2,7 +2,7 @@
 .MuiTooltip-popper {
   background: transparent;
   pointer-events: none !important;
-  z-index: 999999 !important;
+  z-index: 99990 !important;
   border-radius: 0;
 }
 

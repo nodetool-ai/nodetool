@@ -227,6 +227,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </Button>
       </Tooltip>
       <Tooltip
+        open={true}
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Collections</div>

@@ -131,6 +131,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
         <Tooltip title="Filter workflows by tag">
           <Select
+            sx={{
+              padding: "0 0.5em"
+            }}
+            variant="standard"
+            label="Filter by tag"
             className="filter"
             value={selectedTag}
             onChange={(e) => setSelectedTag(e.target.value)}

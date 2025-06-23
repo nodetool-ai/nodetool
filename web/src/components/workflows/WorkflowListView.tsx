@@ -41,26 +41,27 @@ const listStyles = (theme: any) =>
       margin: "0",
       width: "100%",
       cursor: "pointer",
+      outline: "none",
+      border: "none",
       transition: "background 0.2s",
       "& .MuiCheckbox-root": {
         margin: "0 1em 0.5em 0",
         padding: 0
       },
-      borderLeft: `2px solid transparent`,
       position: "relative"
     },
-    ".workflow.current": {
-      backgroundColor: theme.palette.c_gray0,
-      borderLeft: `2px solid ${theme.palette.c_hl1}`,
-      outline: `0`
+    ".workflow.current .name": {
+      color: "var(--palette-primary-light)",
+      backgroundColor: "var(--c_gray1)",
+      fontWeight: "bold"
+    },
+    // ".workflow.selected": {
+    ".workflow.selected .name": {
+      fontSize: "10em"
+      //   backgroundColor: `${theme.palette.primary.light}`
     },
     ".workflow:hover": {
-      backgroundColor: theme.palette.c_gray2,
-      outline: "1px solid" + theme.palette.c_gray2
-    },
-    ".workflow.selected": {
-      outline: `0`,
-      backgroundColor: `${theme.palette.c_hl1}33`
+      backgroundColor: theme.palette.c_gray2
     },
     ".workflow img": {
       width: "100%",
@@ -120,7 +121,7 @@ const listStyles = (theme: any) =>
       }
     },
     ".workflow.alternate": {
-      backgroundColor: `${theme.palette.c_gray2}50`
+      backgroundColor: `${theme.palette.c_gray2}20`
     }
   });
 

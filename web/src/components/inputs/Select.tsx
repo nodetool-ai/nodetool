@@ -86,7 +86,7 @@ const menuStyles = (theme: any) =>
     ".option": {
       padding: ".1em 1em",
       cursor: "pointer",
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5,
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",

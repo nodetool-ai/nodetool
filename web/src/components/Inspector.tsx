@@ -33,12 +33,14 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       gap: "10px",
-      width: "calc(100% / 1.4)",
-      height: "calc(100% / 1.4)",
+      width: "100%",
+      height: "100%",
+      // width: "calc(100% / 1.4)",
+      // height: "calc(100% / 1.4)",
       padding: "0.5em",
       overflowY: "auto",
       overflowX: "hidden",
-      transform: "scale(1.4)",
+      // transform: "scale(1.4)",
       transformOrigin: "top left"
     },
     ".bottom": {
@@ -75,6 +77,7 @@ const styles = (theme: any) =>
     ".node-property label": {
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
+      minHeight: "18px",
       userSelect: "none"
     },
     ".node-property.enum .mui-select": {
