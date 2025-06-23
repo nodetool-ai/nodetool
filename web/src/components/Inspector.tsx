@@ -28,13 +28,15 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       gap: "10px",
-      width: "100%",
+      width: "calc(100% / 1.4)",
       padding: "0.5em",
-      height: "60vh",
+      height: "calc(60vh / 1.4)",
       flexShrink: 1,
       flexGrow: 1,
       overflowY: "auto",
-      overflowX: "hidden"
+      overflowX: "hidden",
+      transform: "scale(1.4)",
+      transformOrigin: "top left"
     },
     ".bottom": {
       position: "relative",
