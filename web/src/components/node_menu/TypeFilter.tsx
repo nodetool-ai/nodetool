@@ -214,14 +214,21 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   cursor: "pointer",
                   pointerEvents: "auto",
                   userSelect: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  backgroundColor: "var(--c_gray1)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 24 }}>
-                  {showNodetoolInput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                <ListItemIcon sx={{ minWidth: 24, minHeight: "auto" }}>
+                  {showNodetoolInput ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </ListItemIcon>
-                Nodetool
+                Nodetool Types
               </ListSubheader>
               {otherTypes.map((option) => (
                 <MenuItem
@@ -242,13 +249,20 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     cursor: "pointer",
                     pointerEvents: "auto",
                     userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: "var(--c_gray1)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-input"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 24 }}>
-                    {showComfyInput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  <ListItemIcon sx={{ minWidth: 24, minHeight: "auto" }}>
+                    {showComfyInput ? (
+                      <ExpandLessIcon fontSize="small" />
+                    ) : (
+                      <ExpandMoreIcon fontSize="small" />
+                    )}
                   </ListItemIcon>
                   Comfy Types
                 </ListSubheader>,
@@ -289,12 +303,19 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   cursor: "pointer",
                   pointerEvents: "auto",
                   userSelect: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  backgroundColor: "var(--c_gray1)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 24 }}>
-                  {showNodetoolOutput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                <ListItemIcon sx={{ minWidth: 24, minHeight: "auto" }}>
+                  {showNodetoolOutput ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
                 </ListItemIcon>
                 Nodetool
               </ListSubheader>
@@ -322,8 +343,14 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   key="comfy-header-output"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 24 }}>
-                    {showComfyOutput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  <ListItemIcon
+                    sx={{ minWidth: 24, alignItems: "center", display: "flex" }}
+                  >
+                    {showComfyOutput ? (
+                      <ExpandLessIcon fontSize="small" />
+                    ) : (
+                      <ExpandMoreIcon fontSize="small" />
+                    )}
                   </ListItemIcon>
                   Comfy Types
                 </ListSubheader>,
