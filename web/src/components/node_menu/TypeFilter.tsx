@@ -11,12 +11,12 @@ import {
   Select,
   Button,
   Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  ListSubheader,
+  ListItemIcon
 } from "@mui/material";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 interface TypeFilterProps {
   selectedInputType: string;
@@ -36,16 +36,59 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
   const [isVisible, setIsVisible] = useState(false);
 
-  // Manage which accordion section is open ("nodetool" | "comfy" | null)
-  const [expandedSection, setExpandedSection] = useState<
-    "nodetool" | "comfy" | null
-  >("nodetool");
+  // Collapse/expand state for sections inside menu - separate for input and output
+  const [showNodetoolInput, setShowNodetoolInput] = useState(true);
+  const [showComfyInput, setShowComfyInput] = useState(false);
+  const [showNodetoolOutput, setShowNodetoolOutput] = useState(true);
+  const [showComfyOutput, setShowComfyOutput] = useState(false);
 
-  const handleAccordionChange =
-    (section: "nodetool" | "comfy") =>
-    (_event: React.SyntheticEvent, isExpanded: boolean) => {
-      setExpandedSection(isExpanded ? section : null);
-    };
+  const toggleNodetoolInput = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowNodetoolInput((prev) => {
+      const newState = !prev;
+      if (newState) {
+        setShowComfyInput(false);
+      }
+      return newState;
+    });
+  };
+
+  const toggleComfyInput = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowComfyInput((prev) => {
+      const newState = !prev;
+      if (newState) {
+        setShowNodetoolInput(false);
+      }
+      return newState;
+    });
+  };
+
+  const toggleNodetoolOutput = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowNodetoolOutput((prev) => {
+      const newState = !prev;
+      if (newState) {
+        setShowComfyOutput(false);
+      }
+      return newState;
+    });
+  };
+
+  const toggleComfyOutput = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowComfyOutput((prev) => {
+      const newState = !prev;
+      if (newState) {
+        setShowNodetoolOutput(false);
+      }
+      return newState;
+    });
+  };
 
   const handleFilterToggle = () => {
     if (isVisible) {
@@ -98,7 +141,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         marginLeft: ".5em"
       },
       ".type-filter": {
-        width: "300px",
+        width: "150px",
         margin: "0"
       },
       ".type-filter label": {
@@ -164,62 +207,62 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
               </MenuItem>
-              {/* Nodetool types */}
-              <Accordion
-                className="type-category nodetool-category"
-                disableGutters
-                elevation={0}
-                sx={{ backgroundColor: "transparent" }}
-                expanded={expandedSection === "nodetool"}
-                onChange={handleAccordionChange("nodetool")}
+              {/* Nodetool section header */}
+              <ListSubheader
+                onMouseDown={toggleNodetoolInput}
+                sx={{
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  userSelect: "none",
+                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                }}
+                disableSticky
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{ pl: "1em" }}
+                <ListItemIcon sx={{ minWidth: 24 }}>
+                  {showNodetoolInput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemIcon>
+                Nodetool
+              </ListSubheader>
+              {otherTypes.map((option) => (
+                <MenuItem
+                  key={option.value}
+                  value={option.value}
+                  className={`${option.value} type-filter-item nodetool-type`}
+                  sx={{ display: showNodetoolInput ? "flex" : "none" }}
                 >
-                  Nodetool
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 0 }}>
-                  {otherTypes.map((option) => (
-                    <MenuItem
-                      key={option.value}
-                      value={option.value}
-                      className={`${option.value} type-filter-item nodetool-type`}
-                    >
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </AccordionDetails>
-              </Accordion>
+                  {option.label}
+                </MenuItem>
+              ))}
 
-              {/* Comfy types */}
-              {comfyTypes.length > 0 && (
-                <Accordion
-                  disableGutters
-                  elevation={0}
-                  sx={{ backgroundColor: "transparent" }}
-                  expanded={expandedSection === "comfy"}
-                  onChange={handleAccordionChange("comfy")}
+              {/* Comfy section */}
+              {comfyTypes.length > 0 && [
+                <ListSubheader
+                  onMouseDown={toggleComfyInput}
+                  sx={{
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                    userSelect: "none",
+                    "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                  }}
+                  key="comfy-header-input"
+                  disableSticky
                 >
-                  <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{ pl: "1em" }}
+                  <ListItemIcon sx={{ minWidth: 24 }}>
+                    {showComfyInput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </ListItemIcon>
+                  Comfy Types
+                </ListSubheader>,
+                ...comfyTypes.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    className={`${option.value} type-filter-item comfy-type`}
+                    sx={{ display: showComfyInput ? "flex" : "none" }}
                   >
-                    Comfy Types
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ p: 0 }}>
-                    {comfyTypes.map((option) => (
-                      <MenuItem
-                        key={option.value}
-                        value={option.value}
-                        className={`${option.value} type-filter-item comfy-type`}
-                      >
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </AccordionDetails>
-                </Accordion>
-              )}
+                    {option.label}
+                  </MenuItem>
+                ))
+              ]}
             </Select>
           </div>
           <div className="type-filter">
@@ -239,63 +282,62 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
               </MenuItem>
-              {/* Nodetool types */}
-              <Accordion
-                className="type-category nodetool-category"
-                disableGutters
-                elevation={0}
-                sx={{ backgroundColor: "transparent" }}
-                expanded={expandedSection === "nodetool"}
-                onChange={handleAccordionChange("nodetool")}
+              {/* Nodetool section header */}
+              <ListSubheader
+                onMouseDown={toggleNodetoolOutput}
+                sx={{
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  userSelect: "none",
+                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                }}
+                disableSticky
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{ pl: "1em" }}
+                <ListItemIcon sx={{ minWidth: 24 }}>
+                  {showNodetoolOutput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemIcon>
+                Nodetool
+              </ListSubheader>
+              {otherTypes.map((option) => (
+                <MenuItem
+                  key={option.value}
+                  value={option.value}
+                  className={`${option.value} type-filter-item nodetool-type`}
+                  sx={{ display: showNodetoolOutput ? "flex" : "none" }}
                 >
-                  Nodetool
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 0 }}>
-                  {otherTypes.map((option) => (
-                    <MenuItem
-                      key={option.value}
-                      value={option.value}
-                      className={`${option.value} type-filter-item nodetool-type`}
-                    >
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </AccordionDetails>
-              </Accordion>
+                  {option.label}
+                </MenuItem>
+              ))}
 
-              {/* Comfy types */}
-              {comfyTypes.length > 0 && (
-                <Accordion
-                  className="type-category comfy-category"
-                  disableGutters
-                  elevation={0}
-                  sx={{ backgroundColor: "transparent" }}
-                  expanded={expandedSection === "comfy"}
-                  onChange={handleAccordionChange("comfy")}
+              {/* Comfy section */}
+              {comfyTypes.length > 0 && [
+                <ListSubheader
+                  onMouseDown={toggleComfyOutput}
+                  sx={{
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                    userSelect: "none",
+                    "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
+                  }}
+                  key="comfy-header-output"
+                  disableSticky
                 >
-                  <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    sx={{ pl: "1em" }}
+                  <ListItemIcon sx={{ minWidth: 24 }}>
+                    {showComfyOutput ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </ListItemIcon>
+                  Comfy Types
+                </ListSubheader>,
+                ...comfyTypes.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    className={`${option.value} type-filter-item comfy-type`}
+                    sx={{ display: showComfyOutput ? "flex" : "none" }}
                   >
-                    Comfy Types
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ p: 0 }}>
-                    {comfyTypes.map((option) => (
-                      <MenuItem
-                        key={option.value}
-                        value={option.value}
-                        className={`${option.value} type-filter-item comfy-type`}
-                      >
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </AccordionDetails>
-                </Accordion>
-              )}
+                    {option.label}
+                  </MenuItem>
+                ))
+              ]}
             </Select>
           </div>
         </div>
