@@ -148,11 +148,12 @@ const monokaiColors = {
 
 // Update color values in DATA_TYPES
 let DATA_TYPES: DataType[] = [
+  // Strictly matches TypeScript's `any` datatype only
   {
     value: "any",
-    label: "Any Type",
-    description: "A generic datatype, accepting any kind of value",
-    color: solarizedColors.base0,
+    label: "Any",
+    description: "Nodes using the TypeScript 'any' datatype",
+    color: solarizedColors.base01,
     textColor: "dark",
     name: "",
     slug: "",
