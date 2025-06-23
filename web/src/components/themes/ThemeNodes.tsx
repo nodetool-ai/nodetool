@@ -341,6 +341,18 @@ const ThemeNodes: Theme = createTheme({
           fontFamily: theme.fontFamily1,
           backgroundColor: "#333",
           marginBottom: "0px",
+          paddingTop: "4px",
+          paddingBottom: "4px",
+          fontWeight: 300,
+          "&:nth-of-type(even)": {
+            backgroundColor: "#313131",
+            "&:hover": {
+              backgroundColor: "#444"
+            },
+            "&:selected": {
+              backgroundColor: "#333"
+            }
+          },
           "&:nth-of-type(odd)": {
             backgroundColor: "#363636",
             "&:hover": {
