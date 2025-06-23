@@ -45,7 +45,6 @@ const nodeInfoStyles = (theme: any) =>
       minHeight: "1em"
     },
     ".status-container": {
-      minHeight: "1em",
       display: "flex",
       alignItems: "center"
     },
@@ -141,7 +140,7 @@ const nodeInfoStyles = (theme: any) =>
       gap: 0
     },
     ".inputs-outputs .item": {
-      padding: ".25em 0 .25em 2em",
+      padding: ".25em 0 .25em .5em",
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
@@ -181,10 +180,21 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
 
+  // const description = useMemo(
+  //   () => nodeMetadata?.description || "",
+  //   [nodeMetadata]
+  // );
+
   const description = useMemo(
-    () => nodeMetadata?.description || "",
-    [nodeMetadata]
+    () =>
+      formatNodeDocumentation(
+        nodeMetadata?.description || "",
+        searchTerm,
+        nodeMetadata.searchInfo
+      ),
+    [nodeMetadata, searchTerm]
   );
+
   const fetchReplicateStatus = useCallback(async () => {
     if (nodeMetadata.node_type.startsWith("replicate.")) {
       const { data, error } = await client.GET("/api/nodes/replicate_status", {
@@ -224,6 +234,26 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       );
     }
   });
+  const renderTags = (tags: string = "") => {
+    return tags?.split(",").map((tag, index) => (
+      <span
+        onClick={() => {
+          handleTagClick(tag.trim());
+        }}
+        key={index}
+        className="tag"
+      >
+        {tag.trim()}
+      </span>
+    ));
+  };
+
+  const descHtml = highlightTextUtil(
+    description.description,
+    "description",
+    searchTerm,
+    nodeMetadata.searchInfo
+  ).html;
 
   return (
     <div css={nodeInfoStyles}>
@@ -232,25 +262,33 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           {titleizeString(nodeMetadata.title)}
         </Typography>
       </div>
-      <div className="status-container">
+      <div
+        className="status-container"
+        style={{ minHeight: replicateStatus !== "unknown" ? "1em" : "0" }}
+      >
         {replicateStatus !== "unknown" && (
           <Typography className={`replicate-status ${replicateStatus}`}>
             {replicateStatus}
           </Typography>
         )}
       </div>
-      <NodeDescription
-        description={description}
-        onTagClick={handleTagClick}
-        className="node-description"
-      />
+      <div className="node-description">
+        <span
+          dangerouslySetInnerHTML={{
+            __html: descHtml
+          }}
+        />
+      </div>
+      <Typography className="node-tags">
+        {renderTags(description.tags.join(", "))}
+      </Typography>
       <Typography component="div" className="node-usecases">
-        {formattedDoc?.useCases.raw && (
+        {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
             <div
               dangerouslySetInnerHTML={{
-                __html: formattedDoc.useCases.html
+                __html: description.useCases.html
               }}
             />
           </>
