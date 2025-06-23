@@ -22,7 +22,7 @@ const styles = (theme: any) =>
     },
     ".value-container": {
       flex: "1 1 auto",
-      minWidth: 0, // Needed for ellipsis to work in flex child
+      minWidth: 0
     },
     "& .string-action-buttons": {
       display: "flex",

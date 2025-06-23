@@ -239,14 +239,28 @@ const styles = (theme: any) =>
       }
     },
     ".resize-handle": {
-      height: "8px",
+      position: "relative",
+      height: "10px",
       width: "100%",
       cursor: "row-resize",
-      borderRadius: "4px",
-      backgroundColor: theme.palette.c_gray3,
+      // borderRadius: "4px",
+      backgroundColor: theme.palette.c_gray2,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray5
+        // backgroundColor: theme.palette.c_gray1
+      },
+      "&:hover .resize-handle-thumb": {
+        backgroundColor: theme.palette.c_gray6
       }
+    },
+    ".resize-handle-thumb": {
+      position: "absolute",
+      width: "100px",
+      height: "4px",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      backgroundColor: theme.palette.c_gray4,
+      borderRadius: "4px"
     }
   });
 
@@ -633,10 +647,9 @@ const TextEditorModal = ({
           {showStatusBar && (
             <EditorStatusBar text={currentText} readOnly={readOnly} />
           )}
-          <div
-            className="resize-handle"
-            onMouseDown={handleResizeMouseDown}
-          ></div>
+          <div className="resize-handle" onMouseDown={handleResizeMouseDown}>
+            <span className="resize-handle-thumb"></span>
+          </div>
         </div>
       </div>
     </div>
