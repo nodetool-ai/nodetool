@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Box, Button, TextField } from "@mui/material";
+import { Box, Button, TextField, Tooltip } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -91,6 +91,7 @@ const PropertyDropzone = ({
         border: "0"
       },
       ".dropzone": {
+        minHeight: "30px",
         width: showUrlInput ? "100%" : "100%",
         border: "0",
         maxWidth: "none",
@@ -260,16 +261,21 @@ const PropertyDropzone = ({
             placeholder={`Enter ${contentType.split("/")[0]} URL`}
           />
         )}
-        <Button
-          className="toggle-url-button"
-          variant="text"
-          style={{
-            opacity: showUrlInput ? 0.8 : 1
-          }}
-          onClick={() => setShowUrlInput(!showUrlInput)}
+
+        <Tooltip
+          title={showUrlInput ? "Hide URL input" : "Show input to enter an URL"}
         >
-          {showUrlInput ? "Hide URL" : "URL"}
-        </Button>
+          <Button
+            className="toggle-url-button"
+            variant="text"
+            style={{
+              opacity: showUrlInput ? 0.8 : 1
+            }}
+            onClick={() => setShowUrlInput(!showUrlInput)}
+          >
+            {showUrlInput ? "X" : "URL"}
+          </Button>
+        </Tooltip>
 
         <div
           className={`dropzone ${uri ? "dropped" : ""} ${
