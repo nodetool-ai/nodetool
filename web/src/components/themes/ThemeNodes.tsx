@@ -326,7 +326,7 @@ const ThemeNodes: Theme = createTheme({
           padding: "0 !important",
           color: theme.palette.c_gray4,
           "&.Mui-checked": {
-            color: theme.palette.c_hl1,
+            color: theme.palette.c_gray6,
             transform: "translateX(12px) !important"
           },
           "&.Mui-checked + .MuiSwitch-track": {
