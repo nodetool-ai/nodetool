@@ -134,7 +134,8 @@ const menuStyles = (theme: any) =>
 
     ".select-header-text": {
       color: theme.palette.c_gray6,
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
+      userSelect: "none"
     },
 
     ".chevron": {
@@ -319,57 +320,59 @@ const Select: React.FC<SelectProps> = ({
   return (
     <div className="select-container" css={menuStyles}>
       <Tooltip title={label}>
-      <div
-        ref={selectRef}
-        className={`custom-select select-wrapper ${activeSelect === id ? "open" : ""}`}
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-      >
-        {activeSelect !== id && (
-          <div
-            className="select-header"
-            onClick={toggleDropdown}
-            tabIndex={tabIndex}
-            role="button"
-          >
-            <span className="select-header-text">
-              {selectedOption
-                ? selectedOption.label
-                : placeholder || "Select an option"}
-            </span>
-            <ChevronIcon
-              className={`chevron ${activeSelect === id ? "open" : ""}`}
-            />
-          </div>
-        )}
-        {activeSelect === id && (
-          <>
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              onClick={(e) => e.stopPropagation()}
-            />
-            <ul ref={optionsRef} className="options-list nowheel">
-              {(searchQuery
-                ? fuse.search(searchQuery).map(({ item }) => item)
-                : options
-              ).map((option, index) => (
-                <li
-                  key={option.value}
-                  className={`option ${
-                    option.value === value ? "selected" : ""
-                  } ${index === highlightedIndex ? "highlighted" : ""}`}
-                  onClick={() => handleOptionClick(option.value)}
-                >
-                  {option.label}
-                </li>
-              ))}
-            </ul>
-          </>
+        <div
+          ref={selectRef}
+          className={`custom-select select-wrapper ${
+            activeSelect === id ? "open" : ""
+          }`}
+          tabIndex={-1}
+          onKeyDown={handleKeyDown}
+        >
+          {activeSelect !== id && (
+            <div
+              className="select-header"
+              onClick={toggleDropdown}
+              tabIndex={tabIndex}
+              role="button"
+            >
+              <span className="select-header-text">
+                {selectedOption
+                  ? selectedOption.label
+                  : placeholder || "Select an option"}
+              </span>
+              <ChevronIcon
+                className={`chevron ${activeSelect === id ? "open" : ""}`}
+              />
+            </div>
+          )}
+          {activeSelect === id && (
+            <>
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                onClick={(e) => e.stopPropagation()}
+              />
+              <ul ref={optionsRef} className="options-list nowheel">
+                {(searchQuery
+                  ? fuse.search(searchQuery).map(({ item }) => item)
+                  : options
+                ).map((option, index) => (
+                  <li
+                    key={option.value}
+                    className={`option ${
+                      option.value === value ? "selected" : ""
+                    } ${index === highlightedIndex ? "highlighted" : ""}`}
+                    onClick={() => handleOptionClick(option.value)}
+                  >
+                    {option.label}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </Tooltip>
