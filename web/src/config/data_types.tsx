@@ -32,6 +32,7 @@ import thread_message from "../icons/thread_message.svg?react";
 import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
 import database from "../icons/database.svg?react";
+import task from "../icons/task.svg?react";
 
 import { solarizedColors, monokaiColors } from "./data_type_colors";
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
@@ -60,6 +61,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   union,
   video,
   database,
+  task,
   ...comfyIconMap
 };
 
@@ -337,6 +339,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "Database"
+  },
+
+  {
+    value: "task",
+    label: "Task",
+    description: "used for agent tasks",
+    color: solarizedColors.base2,
+    textColor: "#fff",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Task"
   }
 ];
 
