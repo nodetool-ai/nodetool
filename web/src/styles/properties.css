@@ -49,19 +49,21 @@
 }
 
 .bool-property {
+  position: relative;
   padding: 0;
   display: flex;
   align-items: flex-start;
   gap: 5px;
 }
-
+.MuiSwitch-track {
+  background-color: var(--c_gray2) !important;
+}
 /* values */
 .value-changed .value {
   color: var(--c_hl1);
 }
 
 .value-changed textarea,
-/* .value-changed .MuiSwitch-track, */
 .value-changed .MuiInput-root {
   border-right: 2px solid var(--c_hl1) !important;
 }
@@ -69,8 +71,23 @@
 .value-changed .MuiSwitch-track {
   padding-right: 1em;
   opacity: 1;
-  border-bottom: 2px solid var(--c_hl1) !important;
-  background-color: var(--c_gray3) !important;
+}
+
+.value-changed .MuiSwitch-thumb,
+.value-changed .MuiSwitch-track {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.value-changed .bool-property::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--c_hl1);
+  border-radius: 1px;
 }
 
 /* Textarea */
