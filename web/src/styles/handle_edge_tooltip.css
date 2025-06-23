@@ -137,7 +137,7 @@
   border-top: 1px solid;
   border-bottom: 1px solid;
   right: -6px;
-  transform: translate(0, calc(-50% + 1px));
+  /* transform: translate(0, calc(-50% + 1px)); */
   border-radius: 0 2px 2px 0;
 }
 

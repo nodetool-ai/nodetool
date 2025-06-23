@@ -8,6 +8,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
+import { css } from "@emotion/react";
 
 export type NodeOutputProps = {
   id: string;
@@ -50,21 +51,33 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
   }, [output.type, connectType, connectNodeId, id, connectDirection]);
 
   return (
-    <HandleTooltip
-      type={output.type.type}
-      paramName={output.name}
-      className={classConnectable}
-      handlePosition="right"
+    <div
+      className="output-handle-container"
+      css={css`
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        display: block;
+        text-align: right;
+      `}
     >
-      <Handle
-        type="source"
-        id={output.name}
-        position={Position.Right}
-        isConnectable={true}
-        onContextMenu={(e) => outputContextMenu(e, id, output)}
-        className={`${classConnectable} ${Slugify(output.type.type)}`}
-      />
-    </HandleTooltip>
+      <HandleTooltip
+        type={output.type.type}
+        paramName={output.name}
+        className={classConnectable}
+        handlePosition="right"
+      >
+        <Handle
+          type="source"
+          id={output.name}
+          position={Position.Right}
+          isConnectable={true}
+          onContextMenu={(e) => outputContextMenu(e, id, output)}
+          className={`${classConnectable} ${Slugify(output.type.type)}`}
+        />
+      </HandleTooltip>
+    </div>
   );
 };
 

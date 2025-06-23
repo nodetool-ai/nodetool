@@ -4,21 +4,21 @@ import { css } from "@emotion/react";
 import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
+import { getMousePosition } from "../utils/MousePosition";
 
-const LEFT_OFFSET_X = -24;
-const RIGHT_OFFSET_X = 40;
-const LEFT_OFFSET_Y = -10;
-const RIGHT_OFFSET_Y = -25;
+const LEFT_OFFSET_X = -32;
+const RIGHT_OFFSET_X = 32;
+const Y_OFFSET = -20;
 
 const tooltipStyles = css`
   position: fixed;
-  transform: translateX(-100%);
   pointer-events: none;
   opacity: 0;
   transition: opacity 150ms ease-in-out;
   z-index: 999;
   &.show {
     opacity: 1;
+    transition: opacity 150ms ease-in-out 500ms;
   }
 `;
 
@@ -39,17 +39,14 @@ const HandleTooltip = memo(function HandleTooltip({
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [handleWidth, setHandleWidth] = useState(0);
 
   const prettyName = paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setTooltipPosition({ x: rect.left, y: rect.top });
-    setHandleWidth(rect.width);
+  const handleMouseEnter = useCallback(() => {
+    setTooltipPosition(getMousePosition());
     setShowTooltip(true);
   }, []);
 
@@ -62,16 +59,12 @@ const HandleTooltip = memo(function HandleTooltip({
       css={tooltipStyles}
       className={showTooltip ? "show" : ""}
       style={{
-        left:
-          handlePosition === "left"
-            ? `${tooltipPosition.x + LEFT_OFFSET_X}px`
-            : `${tooltipPosition.x + handleWidth + RIGHT_OFFSET_X}px`,
-        top:
-          handlePosition === "left"
-            ? `${tooltipPosition.y + LEFT_OFFSET_Y}px`
-            : `${tooltipPosition.y + RIGHT_OFFSET_Y}px`,
+        left: `${tooltipPosition.x}px`,
+        top: `${tooltipPosition.y}px`,
         transform:
-          handlePosition === "left" ? "translateX(-100%)" : "translateX(0%)"
+          handlePosition === "left"
+            ? `translate(${LEFT_OFFSET_X}px, ${Y_OFFSET}px) translateX(-100%)`
+            : `translate(${RIGHT_OFFSET_X}px, ${Y_OFFSET}px)`
       }}
     >
       <div
