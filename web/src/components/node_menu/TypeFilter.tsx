@@ -3,7 +3,7 @@ import { css, Global } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { DATA_TYPES } from "../../config/data_types";
+import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   InputLabel,
@@ -237,6 +237,12 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   className={`${option.value} type-filter-item nodetool-type`}
                   sx={{ display: showNodetoolInput ? "flex" : "none" }}
                 >
+                  <ListItemIcon>
+                    <IconForType
+                      iconName={option.value}
+                      containerStyle={{ width: 20, height: 20 }}
+                    />
+                  </ListItemIcon>
                   {option.label}
                 </MenuItem>
               ))}
@@ -273,6 +279,12 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     className={`${option.value} type-filter-item comfy-type`}
                     sx={{ display: showComfyInput ? "flex" : "none" }}
                   >
+                    <ListItemIcon>
+                      <IconForType
+                        iconName={option.value}
+                        containerStyle={{ width: 20, height: 20 }}
+                      />
+                    </ListItemIcon>
                     {option.label}
                   </MenuItem>
                 ))
@@ -326,6 +338,12 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   className={`${option.value} type-filter-item nodetool-type`}
                   sx={{ display: showNodetoolOutput ? "flex" : "none" }}
                 >
+                  <ListItemIcon>
+                    <IconForType
+                      iconName={option.value}
+                      containerStyle={{ width: 20, height: 20 }}
+                    />
+                  </ListItemIcon>
                   {option.label}
                 </MenuItem>
               ))}
@@ -361,6 +379,12 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     className={`${option.value} type-filter-item comfy-type`}
                     sx={{ display: showComfyOutput ? "flex" : "none" }}
                   >
+                    <ListItemIcon>
+                      <IconForType
+                        iconName={option.value}
+                        containerStyle={{ width: 20, height: 20 }}
+                      />
+                    </ListItemIcon>
                     {option.label}
                   </MenuItem>
                 ))
