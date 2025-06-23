@@ -105,20 +105,38 @@ export const filterDataByType = (
   inputType: TypeName | undefined,
   outputType: TypeName | undefined
 ): NodeMetadata[] => {
-  const intermediateFilteredData = inputType
-    ? filterTypesByInputType(metadata, {
-        type: inputType,
-        optional: true,
-        type_args: [],
-        type_name: inputType
-      })
-    : metadata;
-  return outputType
-    ? filterTypesByOutputType(intermediateFilteredData, {
-        type: outputType,
-        optional: true,
-        type_args: [],
-        type_name: outputType
-      })
-    : intermediateFilteredData;
+  // Helper to build a minimal TypeMetadata object
+  const buildTypeMeta = (t: string) => ({
+    type: t,
+    optional: true,
+    type_args: [] as any[],
+    type_name: t
+  });
+
+  let filtered = metadata;
+
+  // --- Input Filtering ---
+  if (inputType) {
+    if (inputType === "any") {
+      // Strict match: property type must be exactly 'any'
+      filtered = filtered.filter((node) =>
+        node.properties.some((prop) => prop.type.type === "any")
+      );
+    } else {
+      filtered = filterTypesByInputType(filtered, buildTypeMeta(inputType));
+    }
+  }
+
+  // --- Output Filtering ---
+  if (outputType) {
+    if (outputType === "any") {
+      filtered = filtered.filter((node) =>
+        node.outputs.some((out) => out.type.type === "any")
+      );
+    } else {
+      filtered = filterTypesByOutputType(filtered, buildTypeMeta(outputType));
+    }
+  }
+
+  return filtered;
 };
