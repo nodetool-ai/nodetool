@@ -104,7 +104,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             <div className="tooltip-key">Key&nbsp;i</div>
           </div>
         }
-        placement="left"
+        placement="left-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton

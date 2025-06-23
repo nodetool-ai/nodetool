@@ -304,9 +304,9 @@ const ThemeNodes: Theme = createTheme({
     MuiButtonBase: {
       styleOverrides: {
         root: ({ theme }) => ({
-          padding: theme.spacing(1),
-          marginRight: theme.spacing(1),
-          marginBottom: theme.spacing(1)
+          // padding: theme.spacing(1),
+          // marginRight: theme.spacing(1),
+          // marginBottom: theme.spacing(1)
         })
       }
     },
