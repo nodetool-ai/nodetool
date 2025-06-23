@@ -64,12 +64,16 @@ describe('WorkflowChatStore', () => {
       total: 0,
       status: 'disconnected',
       error: null,
-    });
+    } as any);
   });
 
   it('sendMessage sends message when socket is open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
-    store.setState({ socket: socket as unknown as WebSocket });
+    const wsManager = {
+      isConnected: () => true,
+      send: jest.fn()
+    } as any;
+    store.setState({ wsManager, socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -80,7 +84,7 @@ describe('WorkflowChatStore', () => {
 
     await store.getState().sendMessage(message);
 
-    expect(socket.send).toHaveBeenCalledWith(encode(message));
+    expect(wsManager.send).toHaveBeenCalledWith(message);
     expect(store.getState().messages).toEqual([message]);
     expect(store.getState().status).toBe('loading');
   });
@@ -88,7 +92,11 @@ describe('WorkflowChatStore', () => {
   it('sendMessage does nothing when socket is not open', async () => {
     const socket = new MockWebSocket('ws://test/chat');
     socket.readyState = 0;
-    store.setState({ socket: socket as unknown as WebSocket });
+    const wsManager = {
+      isConnected: () => false,
+      send: jest.fn()
+    } as any;
+    store.setState({ wsManager, socket: socket as unknown as WebSocket } as any);
 
     const message: Message = {
       role: 'user',
@@ -99,7 +107,7 @@ describe('WorkflowChatStore', () => {
 
     await store.getState().sendMessage(message);
 
-    expect(socket.send).not.toHaveBeenCalled();
+    expect(wsManager.send).not.toHaveBeenCalled();
     expect(store.getState().messages).toHaveLength(0);
   });
 
@@ -110,9 +118,11 @@ describe('WorkflowChatStore', () => {
   });
 
   it('handles string output_update messages', async () => {
-    await store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
-    const socket = store.getState().socket as unknown as MockWebSocket;
+    const connectPromise = store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
+    const wsManager = (store.getState() as any).wsManager as any;
+    const socket = wsManager.getWebSocket() as MockWebSocket;
     socket.onopen?.();
+    await connectPromise;
 
     const sendUpdate = async (value: string) => {
       const update: OutputUpdate = {
@@ -139,9 +149,11 @@ describe('WorkflowChatStore', () => {
   });
 
   it('handles image output_update messages', async () => {
-    await store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
-    const socket = store.getState().socket as unknown as MockWebSocket;
+    const connectPromise = store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
+    const wsManager = (store.getState() as any).wsManager as any;
+    const socket = wsManager.getWebSocket() as MockWebSocket;
     socket.onopen?.();
+    await connectPromise;
     const img = new Uint8Array([1, 2, 3]);
     const update: OutputUpdate = {
       type: 'output_update',

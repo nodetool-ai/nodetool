@@ -20,7 +20,8 @@ import { supabase } from "../lib/supabaseClient";
 import { uuidv4 } from "./uuidv4";
 import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
-type ChatStatus = ConnectionState;
+// Include additional runtime statuses used during message streaming
+type ChatStatus = ConnectionState | "loading" | "streaming" | "error";
 
 interface Thread {
   id: string;
@@ -40,6 +41,7 @@ interface GlobalChatState {
   
   // WebSocket manager
   wsManager: WebSocketManager | null;
+  socket: WebSocket | null;
 
   // Thread management
   threads: Record<string, Thread>;
@@ -116,6 +118,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       error: null,
       workflowId: null,
       wsManager: null,
+      socket: null,
 
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
@@ -207,6 +210,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           handleWebSocketMessage(data, set, get);
         });
 
+        wsManager.on('open', () => {
+          set({ socket: wsManager.getWebSocket() });
+        });
+
         wsManager.on('error', (error: Error) => {
           log.error("WebSocket error:", error);
           let errorMessage = error.message;
@@ -221,6 +228,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         });
 
         wsManager.on('close', (code: number, reason: string) => {
+          set({ socket: null });
           if (code === 1008 || code === 4001 || code === 4003) {
             // Authentication errors
             set({
@@ -255,6 +263,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({
           wsManager: null,
+          socket: null,
           status: "disconnected",
           error: null,
           statusMessage: null
@@ -267,9 +276,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ error: null });
 
         if (!wsManager || !wsManager.isConnected()) {
-          const error = "Not connected to chat service";
-          set({ error });
-          throw new Error(error);
+          set({ error: "Not connected to chat service" });
+          return;
         }
 
         // Ensure we have a thread
@@ -509,6 +517,7 @@ function handleWebSocketMessage(
       });
     } else if (update.status === "failed") {
       set({
+        status: "error",
         error: update.error,
         progress: { current: 0, total: 0 },
         statusMessage: update.error || null

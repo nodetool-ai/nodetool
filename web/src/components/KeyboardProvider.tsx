@@ -8,14 +8,17 @@ interface KeyboardProviderProps {
   active?: boolean;
 }
 
-export const KeyboardProvider = ({ children }: KeyboardProviderProps) => {
+export const KeyboardProvider = ({ children, active = true }: KeyboardProviderProps) => {
   useEffect(() => {
+    if (!active) {
+      return;
+    }
     const cleanup = initKeyListeners();
     return () => cleanup();
-  }, []);
+  }, [active]);
 
   return (
-    <KeyboardContext.Provider value={true}>
+    <KeyboardContext.Provider value={active}>
       {children}
     </KeyboardContext.Provider>
   );
