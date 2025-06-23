@@ -417,9 +417,11 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
       placement="top"
       title="Run Mode"
       enterDelay={TOOLTIP_ENTER_DELAY}
-      PopperProps={{
-        sx: {
-          visibility: selectIsOpen ? "hidden" : "visible"
+      slotProps={{
+        popper: {
+          sx: {
+            visibility: selectIsOpen ? "hidden" : "visible"
+          }
         }
       }}
     >
@@ -500,7 +502,6 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     >
       <span>
         <Button
-          // size="small"
           className={`action-button run-stop-button run-workflow ${
             isWorkflowRunning ? "running" : ""
           }`}
@@ -546,7 +547,6 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button
-        // size="large"
         className={`action-button run-stop-button stop-workflow ${
           !isWorkflowRunning ? "disabled" : ""
         }`}
@@ -644,13 +644,6 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
     autoLayout: state.autoLayout,
     workflow: state.workflow
   }));
-
-  useCombo(["Ctrl+Space"], () =>
-    openNodeMenu({
-      x: 400,
-      y: 200
-    })
-  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
