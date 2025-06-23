@@ -43,6 +43,7 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 - <kbd>Ctrl+C</kbd>, <kbd>Ctrl+V</kbd> and <kbd>Ctrl+X</kbd> copy, paste or cut nodes.
 - <kbd>Ctrl+D</kbd> duplicates nodes horizontally; <kbd>Ctrl+Shift+D</kbd> stacks them vertically.
 - <kbd>Ctrl+G</kbd> groups the current selection.
+- <kbd>A</kbd> to align selected nodes, <kbd>Shift+A</kbd> to align and evenly arrange nodes.
 - <kbd>Arrow keys</kbd> nudge nodes in any direction.
 - <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> undo and redo.
 - <kbd>Ctrl+1</kbd>…<kbd>Ctrl+9</kbd> jump directly between open tabs.
