@@ -13,13 +13,21 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   currentPath = []
 }) => {
   const DEBUG_SEARCH = false;
-  const { highlightedNamespaces, selectedPath, allSearchMatches, searchTerm } =
-    useNodeMenuStore((state) => ({
-      highlightedNamespaces: state.highlightedNamespaces,
-      selectedPath: state.selectedPath,
-      allSearchMatches: state.allSearchMatches,
-      searchTerm: state.searchTerm
-    }));
+  const {
+    highlightedNamespaces,
+    selectedPath,
+    allSearchMatches,
+    searchTerm,
+    selectedInputType,
+    selectedOutputType
+  } = useNodeMenuStore((state) => ({
+    highlightedNamespaces: state.highlightedNamespaces,
+    selectedPath: state.selectedPath,
+    allSearchMatches: state.allSearchMatches,
+    searchTerm: state.searchTerm,
+    selectedInputType: state.selectedInputType,
+    selectedOutputType: state.selectedOutputType
+  }));
 
   const minSearchTermLength = useMemo(() => {
     if (!searchTerm) return 1;
@@ -31,9 +39,13 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       : 1;
   }, [searchTerm]);
 
-  const isSearchTermPresentAndEffective = Boolean(
+  const hasEffectiveSearchTerm = Boolean(
     searchTerm && searchTerm.length >= minSearchTermLength
   );
+
+  const hasActiveTypeFilter = Boolean(selectedInputType || selectedOutputType);
+
+  const shouldHighlightByFilter = hasEffectiveSearchTerm || hasActiveTypeFilter;
 
   const memoizedTree = useMemo(
     () =>
@@ -56,13 +68,13 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         }).length;
 
         const highlightDueToActiveSearch =
-          isSearchTermPresentAndEffective && searchResultCount > 0;
+          shouldHighlightByFilter && searchResultCount > 0;
 
         const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
 
         if (import.meta.env.NODE_ENV === "development" && DEBUG_SEARCH) {
           console.log(
-            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${isSearchTermPresentAndEffective}, searchCount=${searchResultCount}, highlightDueToSearch=${highlightDueToActiveSearch}, finalPropValue=${finalIsHighlightedPropForChild}`
+            `RenderNamespaces: path='${currentFullPath}', isSearchActive=${shouldHighlightByFilter}, searchCount=${searchResultCount}, highlightDueToSearch=${highlightDueToActiveSearch}, finalPropValue=${finalIsHighlightedPropForChild}`
           );
           if (
             currentPath.length === 0 &&
@@ -105,7 +117,9 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       selectedPath,
       allSearchMatches,
       searchTerm,
-      isSearchTermPresentAndEffective,
+      hasEffectiveSearchTerm,
+      hasActiveTypeFilter,
+      shouldHighlightByFilter,
       minSearchTermLength,
       DEBUG_SEARCH
     ]
