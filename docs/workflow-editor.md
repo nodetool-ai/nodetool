@@ -14,12 +14,12 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 ### Managing the graph
 
 - Use the toolbar to **save** your workflow or arrange nodes automatically with **Auto Layout**.
-- Undo and redo changes using <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd>.
+- Undo and redo changes using <kbd>Ctrl/⌘+Z</kbd> / <kbd>Ctrl/⌘+Shift+Z</kbd>.
 - Right‑click to open context menus for nodes, input + output handles, and the canvas.
 
 ### Running workflows
 
-- Click the **Run** button or press <kbd>Ctrl+Enter</kbd> to execute the workflow.
+- Click the **Run** button or press <kbd>Ctrl/⌘+Enter</kbd> to execute the workflow.
 - Click the **Stop** button or press <kbd>ESC</kbd> to cancel the execution.
 - Status updates and results stream back in real time.
 - Workflows can run locally or dispatch jobs to remote workers.
@@ -40,13 +40,14 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 ### Keyboard shortcuts
 
 - <kbd>F</kbd> fits the graph to the window or focuses on the selection.
-- <kbd>Ctrl+C</kbd>, <kbd>Ctrl+V</kbd> and <kbd>Ctrl+X</kbd> copy, paste or cut nodes.
-- <kbd>Ctrl+D</kbd> duplicates nodes horizontally; <kbd>Ctrl+Shift+D</kbd> stacks them vertically.
-- <kbd>Ctrl+G</kbd> groups the current selection.
+- <kbd>Ctrl/⌘+C</kbd>, <kbd>Ctrl/⌘+V</kbd> and <kbd>Ctrl/⌘+X</kbd> copy, paste or cut nodes.
+- <kbd>Ctrl/⌘+S</kbd> to save the current workflow.
+- <kbd>Ctrl/⌘+D</kbd> duplicates nodes horizontally; <kbd>Ctrl/⌘+Shift+D</kbd> stacks them vertically.
+- <kbd>Ctrl/⌘+G</kbd> groups the current selection.
 - <kbd>A</kbd> to align selected nodes, <kbd>Shift+A</kbd> to align and evenly arrange nodes.
 - <kbd>Arrow keys</kbd> nudge nodes in any direction.
-- <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> undo and redo.
-- <kbd>Ctrl+1</kbd>…<kbd>Ctrl+9</kbd> jump directly between open tabs.
+- <kbd>Ctrl/⌘+Z</kbd> / <kbd>Ctrl/⌘+Shift+Z</kbd> undo and redo.
+- <kbd>Ctrl/⌘+1</kbd>…<kbd>Ctrl/⌘+9</kbd> jump directly between open tabs.
 - <kbd>Key 1</kbd>…<kbd>Key 5</kbd> opens the left panel menus.
 - <kbd>Key i</kbd> toggles the Inspector on the right side.
 
