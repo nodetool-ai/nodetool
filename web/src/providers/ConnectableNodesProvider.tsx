@@ -16,9 +16,11 @@ export const ConnectableNodesContext =
   createContext<ConnectableNodesState | null>(null);
 
 export function ConnectableNodesProvider({
-  children
+  children,
+  active = true
 }: {
   children: ReactNode;
+  active?: boolean;
 }) {
   const [nodeMetadata] = useState<NodeMetadata[]>([]);
   const [filterType, setFilterType] = useState<"input" | "output" | null>(null);
@@ -48,10 +50,11 @@ export function ConnectableNodesProvider({
 
   const showMenu = useCallback(
     (position: { x: number; y: number }) => {
+      if (!active) return;
       setIsVisible(true);
       setMenuPosition(position);
     },
-    []
+    [active]
   );
 
   const hideMenu = useCallback(() => {

@@ -18,7 +18,12 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 - **System tray access** – launch workflows and manage your clipboard from anywhere.
 - **Mini‑app builder** – turn a workflow into a standalone application.
 - **Chat interface** – create custom chatbots for your projects.
+- **Global Chat** – start conversations from anywhere in the workspace. See
+  [Global Chat](global-chat.md).
 - **API and extensions** – connect NodeTool to other apps with Python scripts.
+
+For a deeper look at how these pieces interact, read the
+[Architecture Overview](architecture.md).
 
 ### Real-world examples
 
@@ -35,6 +40,8 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 
 Want more details? Check out our [Getting Started](getting-started.md) guide and the
 [Tips and Tricks](tips-and-tricks.md) page for shortcuts and workflow ideas.
+Explore the manual for deep dives into the [Workflow Editor](workflow-editor.md),
+[Asset Management](asset-management.md) and the [Desktop App](desktop-app.md).
 
 ### Join the community
 

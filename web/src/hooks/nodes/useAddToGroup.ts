@@ -31,7 +31,7 @@ export function useAddToGroup() {
 
       setTimeout(() => {
         if (parentNode && nodeContext) {
-          const currentNodes = nodeContext.store.getState().nodes;
+          const currentNodes = nodeContext.getState().nodes;
           const newBounds = getGroupBounds(currentNodes, parentNode, 25, 50);
 
           if (newBounds) {

@@ -19,6 +19,21 @@ interface NodeContextValue {
 // unnecessary re-renders.
 export const NodeContext = createContext<NodeStore | null>(null);
 
+interface NodeProviderProps {
+  createStore: () => NodeStore | null;
+  children: React.ReactNode;
+}
+
+// Provides the node store to child components. Displays a loading state while
+// the store is being created.
+export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
+  const store = useMemo(() => createStore(), [createStore]);
+  if (!store) {
+    return <Box>Loading workflow...</Box>;
+  }
+  return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
+};
+
 export const useNodes = <T,>(selector: (state: NodeStoreState) => T): T => {
   const store = useContext(NodeContext);
   if (!store) {
