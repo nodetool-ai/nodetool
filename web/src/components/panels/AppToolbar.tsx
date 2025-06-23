@@ -6,15 +6,11 @@ import {
   Box,
   MenuItem,
   Select,
-  FormControl,
-  InputLabel,
-  IconButton
+  FormControl
 } from "@mui/material";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ChatIcon from "@mui/icons-material/Chat";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,7 +18,6 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -638,7 +633,6 @@ interface AppToolbarProps {
 }
 
 const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const path = useLocation().pathname;
   const { autoLayout, workflow } = useNodes((state) => ({
     autoLayout: state.autoLayout,

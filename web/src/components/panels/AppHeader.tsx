@@ -91,7 +91,7 @@ const LogoButton = memo(function LogoButton() {
     <Tooltip
       title="Open Welcome Screen"
       enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="right"
+      placement="bottom"
     >
       <IconButton className="logo-button" onClick={handleClick} tabIndex={-1}>
         <Logo
@@ -118,7 +118,7 @@ const DashboardButton = memo(function DashboardButton() {
     <Tooltip
       title="Go to Dashboard"
       enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="right"
+      placement="bottom"
     >
       <IconButton
         className="dashboard-button"
@@ -142,7 +142,7 @@ const ExamplesButton = memo(function ExamplesButton() {
     <Tooltip
       title="Explore Examples"
       enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="right"
+      placement="bottom"
     >
       <IconButton
         className="examples-button"
