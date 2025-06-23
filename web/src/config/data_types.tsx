@@ -62,6 +62,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   video,
   database,
   task,
+  language_model: model,
   ...comfyIconMap
 };
 
