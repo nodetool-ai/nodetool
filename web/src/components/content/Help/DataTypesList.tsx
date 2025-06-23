@@ -2,21 +2,44 @@
 import { css } from "@emotion/react";
 
 import { useState } from "react";
-import { Typography, Button, Divider } from "@mui/material";
-import { DATA_TYPES, IconForType } from "../../../config/data_types";
-import { useSettingsStore } from "../../../stores/SettingsStore";
+import {
+  Typography,
+  Button,
+  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
+} from "@mui/material";
+import { DataType, IconForType } from "../../../config/data_types";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const DataTypesList = () => {
-  const types = DATA_TYPES.filter((type) => !type.value.startsWith("comfy."));
+interface DataTypesListProps {
+  title: string;
+  dataTypes: DataType[];
+  expanded: boolean;
+  onChange: (event: React.SyntheticEvent, isExpanded: boolean) => void;
+}
+
+const DataTypesList = ({
+  title,
+  dataTypes,
+  expanded,
+  onChange
+}: DataTypesListProps) => {
+  const types = dataTypes;
 
   const styles = (theme: any) =>
     css({
       "&": {
-        // height: "100%"
-        // overflow: "hidden"
+        padding: "0",
+        backgroundColor: "var(--c_gray1)"
+      },
+      ".help-item": {
+        padding: ".5em 0",
+        borderBottom: "1px solid var(--c_gray2)"
       },
       ".datatype-list": {
-        // height: "calc(100% - 190px)",
+        padding: "1em",
         height: "500px",
         overflowY: "auto"
       },
@@ -26,64 +49,115 @@ const DataTypesList = () => {
       ".help-item.datatype button": {
         color: theme.palette.c_white,
         borderRadius: "5px",
-        minWidth: "150px",
+        minWidth: "180px",
         textAlign: "left",
         border: "0",
+        marginTop: "0",
         wordBreak: "break-word",
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start"
+      },
+      h5: {
+        color: "var(--c_gray5)",
+        fontSize: "1em",
+        paddingLeft: "1em",
+        "&:hover": {
+          color: "var(--c_gray6)"
+        }
       }
     });
 
   return (
     <div className="datatypes" css={styles}>
-      <div
-        className="datatype-list"
-        style={{ height: "100%", overflowY: "auto" }}
+      <Accordion
+        expanded={expanded}
+        onChange={onChange}
+        sx={{
+          backgroundColor: "transparent",
+          boxShadow: "none",
+          margin: "0 !important",
+          "&.Mui-expanded": {
+            margin: "0 !important"
+          },
+          "&::before": {
+            display: "none"
+          }
+        }}
       >
-        {types.map((type) => (
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon sx={{ color: "#fff" }} />}
+          aria-controls="panel1bh-content"
+          id="panel1bh-header"
+          sx={{
+            minHeight: "unset !important",
+            padding: "0",
+            ".MuiAccordionSummary-content": {
+              margin: "12px 0 !important"
+            }
+          }}
+        >
+          <Typography variant="h5" color="#999">
+            {title}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ padding: "0" }}>
           <div
-            key={type.value}
-            className="help-item datatype"
-            style={{
-              display: "flex",
-              alignItems: "start"
-            }}
+            className="datatype-list"
+            style={{ height: "100%", overflowY: "auto" }}
           >
-            <IconForType
-              iconName={type.value}
-              containerStyle={{
-                fill: type.textColor,
-                width: "24px",
-                height: "24px"
-              }}
-              bgStyle={{
-                backgroundColor: type.color,
-                fontSize: "12px",
-                padding: "5px"
-              }}
-            />
-            <Button
-              disabled={true}
-              disableRipple={true}
-              key={`button-${type.value}`}
-            >
-              {type.namespace && (
-                <div style={{ fontWeight: "lighter", width: "100%" }}>
-                  {type.namespace}
-                </div>
-              )}
-              <div style={{ fontWeight: "bold", width: "100%" }}>
-                {type.name}
+            {types.map((type) => (
+              <div
+                key={type.value}
+                className="help-item datatype"
+                style={{
+                  display: "flex",
+                  alignItems: "start"
+                }}
+              >
+                <IconForType
+                  iconName={type.value}
+                  containerStyle={{
+                    fill: type.textColor,
+                    width: "24px",
+                    height: "24px"
+                  }}
+                  bgStyle={{
+                    backgroundColor: type.color,
+                    padding: "5px"
+                  }}
+                />
+                <Button
+                  disabled={true}
+                  disableRipple={true}
+                  key={`button-${type.value}`}
+                >
+                  {type.namespace && (
+                    <div style={{ fontWeight: "lighter", width: "100%" }}>
+                      {type.namespace}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      fontWeight: "normal",
+                      width: "100%",
+                      fontSize: "var(--fontSizeNormal)"
+                    }}
+                  >
+                    {type.name}
+                  </div>
+                </Button>
+                <Typography
+                  key={`text-${type.value}`}
+                  style={{ borderRight: "0" }}
+                >
+                  {type.description}
+                </Typography>
               </div>
-            </Button>
-            <Typography key={`text-${type.value}`} style={{ borderRight: "0" }}>
-              {type.description}
-            </Typography>
+            ))}
           </div>
-        ))}
-      </div>
+        </AccordionDetails>
+      </Accordion>
     </div>
   );
 };
