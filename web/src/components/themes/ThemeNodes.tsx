@@ -307,14 +307,14 @@ const ThemeNodes: Theme = createTheme({
         root: {
           margin: "0",
           padding: "0",
-          width: "2em",
-          height: "1em",
+          width: "24px",
+          height: "12px",
           overflow: "visible"
         },
         thumb: {
-          width: "1em !important",
-          height: "1em !important",
-          borderRadius: "0.25em",
+          width: "12px !important",
+          height: "12px !important",
+          borderRadius: ".25em",
           margin: "0",
           padding: "0"
         },
@@ -327,7 +327,7 @@ const ThemeNodes: Theme = createTheme({
           color: theme.palette.c_gray4,
           "&.Mui-checked": {
             color: theme.palette.c_hl1,
-            transform: "translateX(10px) !important"
+            transform: "translateX(12px) !important"
           },
           "&.Mui-checked + .MuiSwitch-track": {
             backgroundColor: theme.palette.c_gray6
