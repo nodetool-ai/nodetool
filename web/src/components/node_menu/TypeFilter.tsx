@@ -221,7 +221,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 }}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 24, minHeight: "auto" }}>
+                <ListItemIcon sx={{ minWidth: 24 }}>
                   {showNodetoolInput ? (
                     <ExpandLessIcon fontSize="small" />
                   ) : (
@@ -257,7 +257,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   key="comfy-header-input"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 24, minHeight: "auto" }}>
+                  <ListItemIcon sx={{ minWidth: 24 }}>
                     {showComfyInput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
