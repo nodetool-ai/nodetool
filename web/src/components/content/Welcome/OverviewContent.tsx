@@ -71,11 +71,11 @@ export const overviewContents: Section[] = [
         <Typography>4 ways to open the Node Menu:</Typography>
         <ul>
           <li>Double-click on the canvas</li>
-          <li>Press CTRL+Space</li>
-          <li>Click the Nodes Button (circle icon) in the top panel</li>
+          <li>Press Space</li>
+          <li>Click the Node Menu Button in the top panel</li>
           <li>
             Start a connection and release it on the canvas, then select the
-            filterednode menu
+            filtered Node Menu
           </li>
         </ul>
         <Typography>
@@ -83,9 +83,8 @@ export const overviewContents: Section[] = [
           create nodes.
         </Typography>
         <Typography>
-          Click on the namespace.name at the bottom of every node to find the
-          node in the NodeMenu - this can be useful to quickly find similar
-          nodes.
+          Click on the namespace at the bottom of a node to find the node in the
+          NodeMenu - this can be useful to quickly find similar nodes.
         </Typography>
       </>
     )
