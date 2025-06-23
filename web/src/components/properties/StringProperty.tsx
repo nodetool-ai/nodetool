@@ -56,6 +56,7 @@ const styles = (theme: any) =>
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
+      userSelect: "none",
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
         border: "1px solid " + theme.palette.c_gray3
