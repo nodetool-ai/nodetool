@@ -163,7 +163,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             <div className="tooltip-key">Key&nbsp;1</div>
           </div>
         }
-        placement="right"
+        placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
@@ -181,7 +181,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             <div className="tooltip-key">Key&nbsp;2</div>
           </div>
         }
-        placement="right"
+        placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
@@ -201,7 +201,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             <div className="tooltip-key">Key&nbsp;3</div>
           </div>
         }
-        placement="right"
+        placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <Button
@@ -227,14 +227,13 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </Button>
       </Tooltip>
       <Tooltip
-        open={true}
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Collections</div>
             <div className="tooltip-key">Key&nbsp;4</div>
           </div>
         }
-        placement="right"
+        placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
@@ -260,7 +259,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             <div className="tooltip-key">Key&nbsp;5</div>
           </div>
         }
-        placement="right"
+        placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
@@ -273,7 +272,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
-      <Tooltip title="Toggle Panel" placement="right">
+      <Tooltip title="Toggle Panel" placement="right-start">
         <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
         </IconButton>
@@ -362,7 +361,7 @@ const PanelContent = memo(function PanelContent({
           className="assets-container"
           sx={{ width: "100%", height: "100%", margin: "0 20px" }}
         >
-          <Tooltip title="Fullscreen" placement="right">
+          <Tooltip title="Fullscreen" placement="right-start">
             <Button
               className={`${path === "/assets" ? "active" : ""}`}
               onClick={() => {

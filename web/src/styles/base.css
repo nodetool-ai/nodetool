@@ -75,28 +75,6 @@ ul li {
 }
 
 /* Tooltip */
-.tooltip-1 {
-  background-color: var(--c_gray2);
-  background-color: transparent;
-  padding: 2em;
-  color: var(--c_white) !important;
-}
-
-span.tooltip-1,
-span.tooltip-category-info {
-  color: var(--c_white) !important;
-  display: block !important;
-  text-align: left;
-  max-width: 250px !important;
-  word-break: normal;
-  padding: 0;
-  margin: 0;
-}
-
-span.tooltip-category-info {
-  margin-left: 1em;
-}
-
 span.tooltip-small {
   font-size: var(--fontSizeSmall);
   color: var(--c_white) !important;
@@ -106,6 +84,7 @@ span.tooltip-small {
 .tooltip-span {
   background-color: transparent;
   display: flex;
+  margin:0;
   flex-direction: column;
   align-items: center;
   gap: 0.1em;
@@ -113,11 +92,13 @@ span.tooltip-small {
 
 .tooltip-title {
   font-size: 1.2em;
-  color: var(--c_gray6)
+  color: var(--c_gray6);
+  margin:0;
 }
 
 .tooltip-key {
   font-size: 0.8em;
   background-color: transparent;
   color: var(--c_gray5);
+  margin:0;
 }
