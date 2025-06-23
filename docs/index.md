@@ -42,6 +42,7 @@ Want more details? Check out our [Getting Started](getting-started.md) guide and
 [Tips and Tricks](tips-and-tricks.md) page for shortcuts and workflow ideas.
 Explore the manual for deep dives into the [Workflow Editor](workflow-editor.md),
 [Asset Management](asset-management.md) and the [Desktop App](desktop-app.md).
+For adjusting preferences, see the [Settings](settings.md) page.
 
 ### Join the community
 
