@@ -7,6 +7,8 @@ import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import ThemeNodetool from "../../themes/ThemeNodetool";
 import { useState } from "react";
+import { DATA_TYPES } from "../../../config/data_types";
+import { COMFY_DATA_TYPES } from "../../../config/comfy_data_types";
 
 interface HelpItem {
   text: string;
@@ -31,7 +33,7 @@ interface TabPanelProps {
 const helpStyles = (theme: any) =>
   css({
     "&": {
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: "rgba(40, 40, 40, 0.5)",
       backdropFilter: "blur(10px)",
       padding: "0em 1em",
       borderRadius: "1em",
@@ -173,10 +175,28 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
     setHelpIndex(newValue);
   };
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedNodetool, setExpandedNodetool] = useState(true);
+  const [expandedComfy, setExpandedComfy] = useState(false);
+
+  const nodetoolTypes = DATA_TYPES.filter(
+    (type) => !type.value.startsWith("comfy.")
+  );
+  const comfyTypes = DATA_TYPES.filter((type) =>
+    type.value.startsWith("comfy.")
+  );
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value.toLowerCase());
   };
+
+  const handleAccordionChange =
+    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+      if (panel === "nodetool") {
+        setExpandedNodetool(isExpanded);
+      } else if (panel === "comfy") {
+        setExpandedComfy(isExpanded);
+      }
+    };
 
   const helpItems: HelpItemGroup[] = [
     {
@@ -463,7 +483,18 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               </>
             </TabPanel>
             <TabPanel value={helpIndex} index={1}>
-              <DataTypesList />
+              <DataTypesList
+                title="Nodetool Data Types"
+                dataTypes={nodetoolTypes}
+                expanded={expandedNodetool}
+                onChange={handleAccordionChange("nodetool")}
+              />
+              <DataTypesList
+                title="Comfy Data Types"
+                dataTypes={comfyTypes}
+                expanded={expandedComfy}
+                onChange={handleAccordionChange("comfy")}
+              />
             </TabPanel>
           </div>
         </div>
