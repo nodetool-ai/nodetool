@@ -2,14 +2,12 @@
 import { css, Global } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   InputLabel,
   MenuItem,
   Select,
-  Button,
   Tooltip,
   ListSubheader,
   ListItemIcon
@@ -34,13 +32,21 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   const nodeTypes = DATA_TYPES;
   const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
-  const [isVisible, setIsVisible] = useState(false);
 
   // Collapse/expand state for sections inside menu - separate for input and output
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);
   const [showComfyInput, setShowComfyInput] = useState(false);
   const [showNodetoolOutput, setShowNodetoolOutput] = useState(true);
   const [showComfyOutput, setShowComfyOutput] = useState(false);
+
+  // Tooltip visibility state
+  const [inputHover, setInputHover] = useState(false);
+  const [outputHover, setOutputHover] = useState(false);
+  const [inputSelectOpen, setInputSelectOpen] = useState(false);
+  const [outputSelectOpen, setOutputSelectOpen] = useState(false);
+
+  const inputTooltipOpen = inputHover && !inputSelectOpen;
+  const outputTooltipOpen = outputHover && !outputSelectOpen;
 
   const toggleNodetoolInput = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -90,20 +96,6 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
     });
   };
 
-  const handleFilterToggle = () => {
-    if (isVisible) {
-      setSelectedInputType("");
-      setSelectedOutputType("");
-    }
-    setIsVisible(!isVisible);
-  };
-
-  useEffect(() => {
-    if (selectedInputType !== "" || selectedOutputType !== "") {
-      setIsVisible(true);
-    }
-  }, [selectedInputType, selectedOutputType]);
-
   const typeFilterStyles = (theme: any) =>
     css({
       "&": {
@@ -111,25 +103,6 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         justifyContent: "flex-start",
         alignItems: "flex-start",
         width: "100%"
-      },
-      ".filter-button": {
-        fontFamily: theme.fontFamily1,
-        backgroundColor: theme.palette.c_gray2,
-        color: theme.palette.c_gray4,
-        margin: "1px 0 0 .5em",
-        minHeight: "34px",
-        padding: "0",
-        border: "0",
-        borderRadius: 5,
-        boxShadow: "0 0",
-        cursor: "pointer"
-      },
-      ".filter-button.enabled": {
-        color: theme.palette.c_gray2,
-        backgroundColor: theme.palette.c_gray5
-      },
-      ".filter-button:hover": {
-        backgroundColor: theme.palette.c_gray6
       },
       ".type-filter-container": {
         display: "flex",
@@ -146,9 +119,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter label": {
         position: "absolute",
+        zIndex: 100,
         fontSize: theme.fontSizeNormal,
         color: ThemeNodetool.palette.c_gray4,
-        padding: ".4em"
+        padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
         flexGrow: 1,
@@ -172,28 +146,25 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   return (
     <div css={typeFilterStyles}>
       <Global styles={globalMenuItemStyles} />
-      <Tooltip
-        title={
-          <span className="tooltip-small">
-            Filter nodes by input and output datatypes
-          </span>
-        }
-        placement="bottom"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <Button
-          className={isVisible ? "filter-button enabled" : "filter-button"}
-          onClick={handleFilterToggle}
+      <div className="type-filter-container">
+        <Tooltip
+          open={inputTooltipOpen}
+          title={
+            <span className="tooltip-small">
+              Filter nodes by input data type
+            </span>
+          }
+          placement="bottom"
+          enterDelay={TOOLTIP_ENTER_DELAY}
         >
-          <FilterAltIcon />
-        </Button>
-      </Tooltip>
-      {isVisible && (
-        <div className="type-filter-container">
-          <div className="type-filter">
+          <div
+            className="type-filter"
+            onMouseEnter={() => setInputHover(true)}
+            onMouseLeave={() => setInputHover(false)}
+          >
             {!selectedInputType && (
               <InputLabel id="input-type" className="label">
-                Input
+                Inputs
               </InputLabel>
             )}
             <Select
@@ -203,6 +174,11 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               variant="filled"
               label="Input Type"
               value={selectedInputType}
+              onOpen={() => setInputSelectOpen(true)}
+              onClose={() => {
+                setInputSelectOpen(false);
+                setInputHover(false);
+              }}
             >
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
@@ -291,10 +267,25 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               ]}
             </Select>
           </div>
-          <div className="type-filter">
+        </Tooltip>
+        <Tooltip
+          open={outputTooltipOpen}
+          title={
+            <span className="tooltip-small">
+              Filter nodes by output data type
+            </span>
+          }
+          placement="bottom"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <div
+            className="type-filter"
+            onMouseEnter={() => setOutputHover(true)}
+            onMouseLeave={() => setOutputHover(false)}
+          >
             {!selectedOutputType && (
-              <InputLabel id="input-type" className="label">
-                Output
+              <InputLabel id="output-type" className="label">
+                Outputs
               </InputLabel>
             )}
             <Select
@@ -304,6 +295,11 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               variant="filled"
               label="Output Type"
               value={selectedOutputType}
+              onOpen={() => setOutputSelectOpen(true)}
+              onClose={() => {
+                setOutputSelectOpen(false);
+                setOutputHover(false);
+              }}
             >
               <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
                 RESET FILTER
@@ -329,7 +325,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     <ExpandMoreIcon fontSize="small" />
                   )}
                 </ListItemIcon>
-                Nodetool
+                Nodetool Types
               </ListSubheader>
               {otherTypes.map((option) => (
                 <MenuItem
@@ -356,14 +352,15 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     cursor: "pointer",
                     pointerEvents: "auto",
                     userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: "var(--c_gray1)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-output"
                   disableSticky
                 >
-                  <ListItemIcon
-                    sx={{ minWidth: 24, alignItems: "center", display: "flex" }}
-                  >
+                  <ListItemIcon sx={{ minWidth: 24 }}>
                     {showComfyOutput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -391,8 +388,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               ]}
             </Select>
           </div>
-        </div>
-      )}
+        </Tooltip>
+      </div>
     </div>
   );
 };
