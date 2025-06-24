@@ -253,7 +253,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           buttons: ["Click + Drag Horizontal"],
           isButtonBorderless: [true],
           details:
-            "hold SHIFT for FINE adjustment\nhold CTRL for FAST adjustment\nhold SHIFT + CTRL for FASTER adjustment"
+            "For fine adjustents: Move the mouse further up or down while dragging or hold the SHIFT key."
         },
         {
           text: "Edit Number",
@@ -273,7 +273,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
     {
       category: "Workflows",
       explanation:
-        "Control starting and stopping of workflows with shortcuts instead of the center menu.\nStopping a workflow may take a few seconds, depending on the task.",
+        "You can start and stop workflows with the top menu buttons or with shortcuts. \nStopping a workflow may take a few seconds, depending on the task.",
       items: [
         { text: "Run Workflow", buttons: ["CTRL + Enter", "⌘ + Enter"] },
         { text: "Cancel Workflow", buttons: ["ESC"] }

@@ -126,7 +126,7 @@ const useDragHandling = (
 
         let newValue: number;
 
-        if (isOverSlider) {
+        if (isOverSlider && !shiftKeyPressed) {
           // Direct slider mapping: left => min, right => max
           const ratio = (e.clientX - rect.left) / rect.width;
           newValue =
@@ -152,7 +152,7 @@ const useDragHandling = (
           speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
 
           if (shiftKeyPressed) {
-            speedFactor *= 0.1; // shift further slows to 10%
+            speedFactor *= 0.2; // shift further slows to 20%
           }
 
           // Convert horizontal movement to value change using baseStep units
