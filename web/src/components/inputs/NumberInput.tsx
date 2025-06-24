@@ -126,6 +126,32 @@ const useDragHandling = (
         e.clientY >= rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX &&
         e.clientY <= rect.bottom + DRAG_SLOWDOWN_DEAD_ZONE_PX;
 
+      // 1) Compute speedFactor for this frame --------------------------------
+      let distanceOutside = 0;
+      if (!isWithinDeadZone) {
+        distanceOutside = Math.max(
+          0,
+          e.clientY < rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX
+            ? rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX - e.clientY
+            : e.clientY - (rect.bottom + DRAG_SLOWDOWN_DEAD_ZONE_PX)
+        );
+      }
+
+      const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
+      let speedFactor = 1 - t * t;
+      speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
+      if (shiftKeyPressed) {
+        speedFactor = Math.max(
+          speedFactor / SHIFT_SLOWDOWN_DIVIDER,
+          SHIFT_MIN_SPEED_FACTOR
+        );
+      }
+
+      // expose to overlay/debug
+      setSpeedFactorState(speedFactor);
+
+      //---------------------------------------------------------------------
+
       const baseStep = calculateStep(
         props.min ?? 0,
         props.max ?? 4096,
@@ -133,18 +159,6 @@ const useDragHandling = (
       );
 
       let newValue: number;
-
-      // compute preliminary speed factor solely for debug/shift purpose
-      let preliminarySpeedFactor = 1;
-      if (shiftKeyPressed) {
-        preliminarySpeedFactor = Math.max(
-          1 / SHIFT_SLOWDOWN_DIVIDER,
-          SHIFT_MIN_SPEED_FACTOR
-        );
-      }
-
-      // update overlay with current preliminary speed factor
-      setSpeedFactorState(preliminarySpeedFactor);
 
       if (isOverSlider && !shiftKeyPressed) {
         // Direct slider mapping: left => min, right => max
@@ -155,32 +169,6 @@ const useDragHandling = (
             ((props.max ?? 4096) - (props.min ?? 0));
       } else {
         // Incremental dragging logic
-        let distanceOutside = 0;
-        // Compute base speed factor depending on vertical distance
-        distanceOutside = !isWithinDeadZone
-          ? Math.max(
-              0,
-              e.clientY < rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX
-                ? rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX - e.clientY
-                : e.clientY - (rect.bottom + DRAG_SLOWDOWN_DEAD_ZONE_PX)
-            )
-          : 0;
-
-        const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
-        let speedFactorBase = 1 - t * t;
-        speedFactorBase = Math.max(speedFactorBase, MIN_SPEED_FACTOR);
-
-        let speedFactor = speedFactorBase;
-        if (shiftKeyPressed) {
-          speedFactor = Math.max(
-            speedFactorBase / SHIFT_SLOWDOWN_DIVIDER,
-            SHIFT_MIN_SPEED_FACTOR
-          );
-        }
-
-        // final speed factor
-        setSpeedFactorState(speedFactor);
-        // Convert horizontal movement to value change using baseStep units
         const deltaX = e.clientX - lastClientX;
 
         const effectivePixelsPerStep = PIXELS_PER_STEP / speedFactor;
@@ -492,61 +480,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
         isDragging={state.isDragging}
         isEditable={inputIsFocused}
       />
-
-      {/* Slowdown visualization overlay (absolute, narrow) */}
-      {state.isDragging && (
-        <>
-          <div
-            key="overlay-up"
-            style={{
-              position: "absolute" as const,
-              right: "-10px",
-              top: `-${DRAG_SLOWDOWN_RAMP_PX - 5}px`,
-              width: "8px",
-              height: `${DRAG_SLOWDOWN_RAMP_PX}px`,
-              background:
-                "linear-gradient(to bottom, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
-              pointerEvents: "none" as const,
-              zIndex: 10,
-              borderBottom: "1px dashed var(--c_hl1)"
-            }}
-          />
-          <div
-            key="overlay-down"
-            style={{
-              position: "absolute" as const,
-              right: "-10px",
-              bottom: `-${DRAG_SLOWDOWN_RAMP_PX}px`,
-              width: "8px",
-              height: `${DRAG_SLOWDOWN_RAMP_PX - 5}px`,
-              background:
-                "linear-gradient(to top, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
-              pointerEvents: "none" as const,
-              zIndex: 10,
-              borderTop: "1px dashed var(--c_hl1)"
-            }}
-          />
-        </>
-      )}
-
-      {/* Speed factor debug overlay */}
-      {state.isDragging && (
-        <div
-          style={{
-            position: "absolute",
-            left: "100%",
-            top: "-1.5em",
-            fontSize: "0.75em",
-            background: "rgba(0,0,0,0.6)",
-            color: "white",
-            padding: "2px 4px",
-            borderRadius: "3px",
-            pointerEvents: "none"
-          }}
-        >
-          SF: {speedFactorState.toFixed(2)}
-        </div>
-      )}
     </div>
   );
 };
