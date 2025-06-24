@@ -1,5 +1,8 @@
 import React, { ReactNode } from "react";
 import { Box, Typography } from "@mui/material";
+import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import SettingsIcon from "@mui/icons-material/Settings";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 
 export interface Section {
   id: string;
@@ -12,24 +15,42 @@ export interface Section {
 export const overviewContents: Section[] = [
   {
     id: "panel1",
-    title: "What is NodeTool?",
+    title: "Welcome to NodeTool",
     defaultExpanded: true,
     content: (
       <Typography>
-        NodeTool is a user-friendly platform that helps you create AI workflows
-        without needing to code.
+        <b>NodeTool – Visual AI Prototyping Studio</b>
         <br />
-        With NodeTool, you can integrate advanced AI models to create and edit
-        multimedia content like images, text, audio, and video, all within a
-        single workflow.
-        <br />
-        NodeTool makes it simple to see and modify how data flows through your
-        project, giving you a clear picture of what&apos;s happening.
+        Design, build, and run advanced AI agent systems—right on your own
+        computer.
         <br />
         <br />
+        <ul>
+          <li>
+            <b>🔒 Privacy-First & Fully Local:</b> Run all AI models locally for
+            complete privacy and zero data transmission.
+          </li>
+          <li>
+            <b>⚡ Visual Workflow Editor:</b> Prototype complex AI workflows
+            with drag-and-drop simplicity—no coding required.
+          </li>
+          <li>
+            <b>🤖 Advanced Agent Design:</b> Build multi-agent systems that
+            plan, reason, and use tools like web browsing, file operations, and
+            the tools you build in NodeTool.
+          </li>
+          <li>
+            <b>💻 System Integration:</b> Control apps, clipboard, and browser
+            with AI. Access your knowledge base and local files.
+          </li>
+          <li>
+            <b>🌩️ Hybrid Cloud Integration:</b> Connect to OpenAI, Anthropic,
+            Replicate, and other providers when needed—control what data is
+            shared.
+          </li>
+        </ul>
         <b>
-          Check out the pre-built examples in the Workflow menu to get started
-          and see what&apos;s possible.
+          Explore pre-built <ExamplesIcon /> Examples to get started.
         </b>
       </Typography>
     )
@@ -39,26 +60,22 @@ export const overviewContents: Section[] = [
     title: "Creating Workflows",
     content: (
       <>
+        <Typography>
+          Start building by creating a new workflow or exploring templates:
+        </Typography>
         <ul>
           <li>
-            Click on &quot;Workflows&quot; in the top panel to browse and manage
-            your projects.
+            Click <b>Workflows</b> in the top panel to browse and manage your
+            projects.
           </li>
           <li>
-            Use &quot;New Workflow&quot; to start a new project from scratch.
+            Use <b>New Workflow</b> to start from scratch or select a template
+            for common AI tasks.
           </li>
         </ul>
         <Typography>
-          Run your workflows by clicking the Play Button in the bottom panel to
-          see the results.
-          <br />
-          Some processes take some time to start up or complete.
-          <br />
-          The node currently being processed will be indicated by an animation.
-          <br />
-          For longer-running nodes, you can expand the Log at the bottom to see
-          more details.
-          <br />
+          Run your workflow by clicking the <b>Play</b> button. The active node
+          is highlighted, and you can view detailed logs for longer processes.
         </Typography>
       </>
     )
@@ -68,23 +85,21 @@ export const overviewContents: Section[] = [
     title: "Using the Node Menu",
     content: (
       <>
-        <Typography>4 ways to open the Node Menu:</Typography>
+        <Typography>Open the Node Menu in several ways:</Typography>
         <ul>
           <li>Double-click on the canvas</li>
-          <li>Press Space</li>
-          <li>Click the Node Menu Button in the top panel</li>
           <li>
-            Start a connection and release it on the canvas, then select the
-            filtered Node Menu
+            Press <b>Space</b>
+          </li>
+          <li>Click the Node Menu button in the top panel</li>
+          <li>
+            Start a connection and release it on the canvas to filter node
+            options
           </li>
         </ul>
         <Typography>
-          Inside the Node Menu, read the description to learn how to browse and
-          create nodes.
-        </Typography>
-        <Typography>
-          Click on the namespace at the bottom of a node to find the node in the
-          NodeMenu - this can be useful to quickly find similar nodes.
+          Browse, search, and read descriptions to find the right node. Click a
+          node&apos;s namespace to quickly find related nodes.
         </Typography>
       </>
     )
@@ -95,13 +110,18 @@ export const overviewContents: Section[] = [
     content: (
       <>
         <ul>
-          <li>Connect nodes to create data flows</li>
-          <li>Compatible connections are highlighted while connecting</li>
-          <li>Delete connections by right-clicking them</li>
-          <li>Change node values with left-click</li>
-          <li>Changed values appear highlighted</li>
-          <li>Reset values to default with CTRL+Right-click</li>
-          <li>Adjust number values by dragging horizontally or clicking</li>
+          <li>
+            Connect nodes to create data flows—compatible connections are
+            highlighted.
+          </li>
+          <li>Delete connections by right-clicking them.</li>
+          <li>
+            Change node values with left-click; changed values are highlighted.
+          </li>
+          <li>
+            Reset values to default with <b>CTRL/⌘+right-click</b>.
+          </li>
+          <li>Adjust numbers by dragging horizontally or clicking.</li>
         </ul>
         <Typography variant="h3">Connection Menu</Typography>
         <Box sx={{ margin: "16px 0" }}>
@@ -119,30 +139,23 @@ export const overviewContents: Section[] = [
         <ul>
           <li>
             Drag a connection from any input or output and release it on the
-            empty canvas for useful options:
+            canvas for quick options:
             <ul>
               <li>Create a Preview node</li>
+              <li>Create new input/output nodes (exposed to external apps)</li>
               <li>
-                Create a new input or output node.
-                <br /> These nodes will be exposed to the outside world when
-                running nodetool workflows from other applications like
-                websites, mobile apps or vvvv.
+                Create a constant node (for inputs) or save node (for outputs)
               </li>
-              <li>For inputs: Create a constant node</li>
-              <li>For outputs: Create a save node</li>
               <li>
-                Input or Output: Open the Node Menu with filtered options to
-                only see matching nodes
+                Open the Node Menu with filtered options for compatible nodes
               </li>
             </ul>
           </li>
         </ul>
         <Typography variant="h3">Quick Connection</Typography>
         <Typography variant="body1">
-          {" "}
-          Drag a connection and drop it anywhere inside another node to create
-          the first possible connection. <br />
-          This is the fastest way to connect compatiblenodes in both directions.
+          Drag a connection and drop it inside another node to auto-connect the
+          first compatible input/output. Fastest way to link nodes.
         </Typography>
       </>
     )
@@ -153,7 +166,7 @@ export const overviewContents: Section[] = [
     content: (
       <>
         <Typography>
-          Try to hover or right-click on elements for more options:
+          Hover or right-click on elements for more options:
         </Typography>
         <ul>
           <li>Buttons</li>
@@ -163,16 +176,13 @@ export const overviewContents: Section[] = [
           <li>Node Selections</li>
           <li>Assets</li>
         </ul>
-
         <Typography>
-          You can discover most of the keyboard shortcuts by hovering over
-          buttons and context menu entries.
-          <br />
-          Go to the Help menu for a complete list of available shortcuts.
+          Discover keyboard shortcuts by hovering over buttons and menu entries.
+          See the <QuestionMarkIcon /> Help menu for a full list.
         </Typography>
         <Typography>
-          Control the left and right panels by clicking, dragging the border, or
-          using hotkeys 1 and 2.
+          Control the left panel menus by clicking or using hotkeys <kbd>1</kbd>{" "}
+          to <kbd>5</kbd>.
         </Typography>
       </>
     )
@@ -181,79 +191,99 @@ export const overviewContents: Section[] = [
     id: "panel6",
     title: "Asset Management",
     content: (
-      <ul>
-        <li>
-          Drag assets (from FileExplorer / Finder) onto the Asset tab on the
-          right to import them
-        </li>
-        <li>Drag assets onto the canvas to create constant nodes</li>
-        <li>
-          Double-click on any asset in a node or inside the ASSETS panel to open
-          it in the AssetViewer
-        </li>
-        <li>
-          Right-click on any asset to open the Asset Menu for more options
-        </li>
-        <li>
-          <b>Select</b> multiple assets by holding CTRL or SHIFT
-        </li>
-        <li>
-          <b>Move</b> assets between folders by dragging them onto the desired
-          folder,
-          <br />
-          or use the right click menu for moving them into nested folders
-        </li>
-        <li>
-          <b>Search</b> for assets by typing in the search bar
-        </li>
-        <li>
-          <b>Sort</b> assets by clicking on the name or date buttons
-        </li>
-        <li>
-          <b>Download</b>: select one or more assets and use the right click
-          menu
-        </li>
-        <li>
-          <b>Delete</b>: right click menu or X button
-        </li>
-        <li>
-          <b>Rename</b>: right click menu or press F2 key (also works with
-          multiple assets)
-        </li>
-      </ul>
+      <>
+        <Typography>
+          Manage your images, audio, video, and other media assets:
+        </Typography>
+        <ul>
+          <li>
+            Drag assets from your file explorer onto the Asset tab to import
+          </li>
+          <li>Drag assets onto the canvas to create constant nodes</li>
+          <li>Double-click any asset to open it in the AssetViewer</li>
+          <li>
+            Right-click assets for more options (move, rename, delete, download,
+            etc.)
+          </li>
+          <li>Select multiple assets with CTRL or SHIFT</li>
+          <li>
+            Move assets between folders by dragging or using the right-click
+            menu
+          </li>
+          <li>Search and sort assets by name or date</li>
+          <li>Rename assets with F2 (works with multiple selections)</li>
+        </ul>
+      </>
     )
   },
   {
     id: "panel7",
-    title: "Settings",
+    title: "Advanced Features",
     content: (
-      <Typography variant="body1">
-        Open the SettingsMenu in the top right corner to adjust the interface.
-        <br />
-        <b>Note: </b>Currently, the settings are only saved in your browser.
-      </Typography>
+      <>
+        <ul>
+          <li>
+            <b>Vector Storage & RAG:</b> Built-in ChromaDB for storing/querying
+            embeddings and building Retrieval-Augmented Generation workflows.
+          </li>
+          <li>
+            <b>Global Chat Overlay:</b> Access and trigger AI workflows from
+            anywhere on your desktop.
+          </li>
+          <li>
+            <b>Mini-App Builder:</b> Turn workflows into desktop apps.
+          </li>
+          <li>
+            <b>API Access:</b> Integrate NodeTool with external apps and
+            services.
+          </li>
+          <li>
+            <b>ComfyUI Integration (beta):</b> Import and run ComfyUI workflows
+            directly in NodeTool.
+          </li>
+        </ul>
+      </>
     )
   },
   {
     id: "panel8",
+    title: "Settings",
+    content: (
+      <Typography variant="body1">
+        Open the <SettingsIcon /> Settings menu (top right) to adjust the
+        interface, set API keys and folder paths.
+        <br />
+      </Typography>
+    )
+  },
+  {
+    id: "panel9",
     title: "Help and Resources",
     content: (
       <ul>
         <li>
-          Open the HelpMenu in the top right corner for more explanations and
-          Keyboard Shortcuts
+          Open the Help menu (top right) for more explanations and keyboard
+          shortcuts
         </li>
         <li>
           Visit the{" "}
           <a href="https://forum.nodetool.ai" target="_blank" rel="noreferrer">
-            {" "}
             NodeTool forum
           </a>{" "}
           to ask questions and connect with others
         </li>
         <li>
-          Click the NodeTool icon in the top left corner to open this menu again
+          Join our{" "}
+          <a
+            href="https://discord.gg/26m5xBwe"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Discord Community
+          </a>{" "}
+          for support and sharing workflows
         </li>
+        <li>Click the NodeTool icon (top left) to reopen this menu anytime</li>
       </ul>
     )
   }
