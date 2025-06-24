@@ -6,13 +6,15 @@ import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
 import { useFocusPan } from "../../hooks/useFocusPan";
 
-const DRAG_THRESHOLD = 10;
-const PIXELS_PER_STEP = 10;
-const SHIFT_PIXELS_PER_STEP = 20;
-const DRAG_BOUNDS = 100; // vertical zone above/below slider with no slowdown
-const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
-const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
-const MIN_SPEED_FACTOR = 0.01; // 1% speed at extremes
+// Drag-tuning constants
+const DRAG_THRESHOLD = 10; // px before drag counts
+const PIXELS_PER_STEP = 10; // horizontal px per base-step
+const DRAG_SLOWDOWN_DEAD_ZONE_PX = 10; // no-slow band above/below slider
+const DRAG_SLOWDOWN_RAMP_BASE_PX = 50; // ramp half-height in px
+const DRAG_SLOWDOWN_RAMP_PX = DRAG_SLOWDOWN_RAMP_BASE_PX * 2; // full ramp span
+const MIN_SPEED_FACTOR = 0.1; // min speed (normal)
+const SHIFT_MIN_SPEED_FACTOR = 0.01; // min speed with Shift
+const SHIFT_SLOWDOWN_DIVIDER = 5; // Shift divides speed by this
 
 interface InputProps {
   nodeId: string;
@@ -84,7 +86,9 @@ const useDragHandling = (
   setState: React.Dispatch<React.SetStateAction<NumberInputState>>,
   inputIsFocused: boolean,
   setInputIsFocused: (focused: boolean) => void,
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement>,
+  dragStateRef: React.MutableRefObject<NumberInputState>,
+  setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>
 ) => {
   const { shiftKeyPressed } = useKeyPressedStore((state) => ({
     shiftKeyPressed: state.isKeyPressed("Shift")
@@ -93,146 +97,154 @@ const useDragHandling = (
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (state.isDragging) {
-        const moveX = e.clientX - state.dragStartX;
-        if (Math.abs(moveX) > DRAG_THRESHOLD) {
-          setState((prevState) => ({
-            ...prevState,
-            hasExceededDragThreshold: true
-          }));
-          setInputIsFocused(false);
-        }
+      if (!dragStateRef.current.isDragging) return;
 
-        if (!containerRef.current) return;
+      const { dragStartX, currentDragValue, decimalPlaces, lastClientX } =
+        dragStateRef.current;
 
-        const rect = containerRef.current.getBoundingClientRect();
+      const moveX = e.clientX - dragStartX;
+      if (
+        !dragStateRef.current.hasExceededDragThreshold &&
+        Math.abs(moveX) > DRAG_THRESHOLD
+      ) {
+        dragStateRef.current.hasExceededDragThreshold = true;
+        setInputIsFocused(false);
+      }
 
-        const isOverSlider = e.clientY >= rect.top && e.clientY <= rect.bottom;
-        const isWithinDragBounds =
-          e.clientY >= rect.top - DRAG_BOUNDS &&
-          e.clientY <= rect.bottom + DRAG_BOUNDS;
+      // Ignore tiny drags that haven't crossed the threshold yet
+      if (!dragStateRef.current.hasExceededDragThreshold) {
+        dragStateRef.current.lastClientX = e.clientX;
+        return;
+      }
 
-        const baseStep = calculateStep(
-          props.min ?? 0,
-          props.max ?? 4096,
-          props.inputType || "float"
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+
+      const isOverSlider = e.clientY >= rect.top && e.clientY <= rect.bottom;
+      const isWithinDeadZone =
+        e.clientY >= rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX &&
+        e.clientY <= rect.bottom + DRAG_SLOWDOWN_DEAD_ZONE_PX;
+
+      const baseStep = calculateStep(
+        props.min ?? 0,
+        props.max ?? 4096,
+        props.inputType || "float"
+      );
+
+      let newValue: number;
+
+      // compute preliminary speed factor solely for debug/shift purpose
+      let preliminarySpeedFactor = 1;
+      if (shiftKeyPressed) {
+        preliminarySpeedFactor = Math.max(
+          1 / SHIFT_SLOWDOWN_DIVIDER,
+          SHIFT_MIN_SPEED_FACTOR
         );
+      }
 
-        let newValue: number;
+      // update overlay with current preliminary speed factor
+      setSpeedFactorState(preliminarySpeedFactor);
 
-        if (isOverSlider && !shiftKeyPressed) {
-          // Direct slider mapping: left => min, right => max
-          const ratio = (e.clientX - rect.left) / rect.width;
-          newValue =
-            (props.min ?? 0) +
-            Math.max(0, Math.min(1, ratio)) *
-              ((props.max ?? 4096) - (props.min ?? 0));
-        } else {
-          // Incremental dragging based on percentage of slider width
+      if (isOverSlider && !shiftKeyPressed) {
+        // Direct slider mapping: left => min, right => max
+        const ratio = (e.clientX - rect.left) / rect.width;
+        newValue =
+          (props.min ?? 0) +
+          Math.max(0, Math.min(1, ratio)) *
+            ((props.max ?? 4096) - (props.min ?? 0));
+      } else {
+        // Incremental dragging logic
+        let distanceOutside = 0;
+        // Compute base speed factor depending on vertical distance
+        distanceOutside = !isWithinDeadZone
+          ? Math.max(
+              0,
+              e.clientY < rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX
+                ? rect.top - DRAG_SLOWDOWN_DEAD_ZONE_PX - e.clientY
+                : e.clientY - (rect.bottom + DRAG_SLOWDOWN_DEAD_ZONE_PX)
+            )
+          : 0;
 
-          // Distance outside slider (positive when pointer is above or below slider)
-          const distanceOutside = !isWithinDragBounds
-            ? Math.max(
-                0,
-                e.clientY < rect.top - DRAG_BOUNDS
-                  ? rect.top - DRAG_BOUNDS - e.clientY
-                  : e.clientY - (rect.bottom + DRAG_BOUNDS)
-              )
-            : 0;
+        const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
+        let speedFactorBase = 1 - t * t;
+        speedFactorBase = Math.max(speedFactorBase, MIN_SPEED_FACTOR);
 
-          // Speed factor: 1 at slider edge, quadratic drop to MIN_SPEED_FACTOR at max visual distance
-          const t = Math.min(distanceOutside / VISUAL_SLOWDOWN_DISTANCE_PX, 1);
-          let speedFactor = 1 - t * t; // gentler curve: slows down later
-          speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
-
-          if (shiftKeyPressed) {
-            speedFactor *= 0.2; // shift further slows to 20%
-          }
-
-          // Convert horizontal movement to value change using baseStep units
-          const deltaX = e.clientX - state.lastClientX;
-
-          const effectivePixelsPerStep =
-            (shiftKeyPressed ? SHIFT_PIXELS_PER_STEP : PIXELS_PER_STEP) /
-            speedFactor;
-
-          if (Math.abs(deltaX) < 0.5) {
-            newValue = state.currentDragValue;
-          } else {
-            const stepIncrement = deltaX / effectivePixelsPerStep;
-            newValue = state.currentDragValue + stepIncrement * baseStep;
-          }
+        let speedFactor = speedFactorBase;
+        if (shiftKeyPressed) {
+          speedFactor = Math.max(
+            speedFactorBase / SHIFT_SLOWDOWN_DIVIDER,
+            SHIFT_MIN_SPEED_FACTOR
+          );
         }
 
-        if (props.inputType === "float") {
-          const newDecimalPlaces = calculateDecimalPlaces(baseStep);
-          if (newDecimalPlaces !== state.decimalPlaces) {
-            setState((prevState) => ({
-              ...prevState,
-              decimalPlaces: newDecimalPlaces
-            }));
-          }
-          newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
-        } else {
-          newValue = Math.round(newValue);
-        }
+        // final speed factor
+        setSpeedFactorState(speedFactor);
+        // Convert horizontal movement to value change using baseStep units
+        const deltaX = e.clientX - lastClientX;
 
-        newValue = Math.max(
-          props.min ?? 0,
-          Math.min(props.max ?? 4096, newValue)
-        );
+        const effectivePixelsPerStep = PIXELS_PER_STEP / speedFactor;
 
-        if (newValue !== state.currentDragValue) {
-          setState((prevState) => ({
-            ...prevState,
-            currentDragValue: newValue,
-            lastClientX: e.clientX,
-            dragPointerY: e.clientY
-          }));
-          props.onChange(null, newValue);
+        if (Math.abs(deltaX) < 0.5) {
+          newValue = currentDragValue;
         } else {
-          // still update lastClientX to keep relative tracking
-          setState((prevState) => ({
-            ...prevState,
-            lastClientX: e.clientX,
-            dragPointerY: e.clientY
-          }));
+          const stepIncrement = deltaX / effectivePixelsPerStep;
+          newValue = currentDragValue + stepIncrement * baseStep;
         }
+      }
+
+      if (props.inputType === "float") {
+        const newDecimalPlaces = calculateDecimalPlaces(baseStep);
+        if (newDecimalPlaces !== decimalPlaces) {
+          dragStateRef.current.decimalPlaces = newDecimalPlaces;
+        }
+        newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
+      } else {
+        newValue = Math.round(newValue);
+      }
+
+      newValue = Math.max(
+        props.min ?? 0,
+        Math.min(props.max ?? 4096, newValue)
+      );
+
+      if (newValue !== currentDragValue) {
+        dragStateRef.current.currentDragValue = newValue;
+        dragStateRef.current.lastClientX = e.clientX; // reset anchoring only when value actually changes
+        props.onChange(null, newValue);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      state.isDragging,
-      state.dragStartX,
-      state.dragInitialValue,
-      state.currentDragValue,
-      state.decimalPlaces,
-      calculateStep,
-      props,
+      // Dependencies are stable or managed by refs
+      props.min,
+      props.max,
+      props.inputType,
+      props.onChange,
       shiftKeyPressed,
-      setState,
-      setInputIsFocused,
+      calculateStep,
       calculateDecimalPlaces,
-      containerRef
+      setInputIsFocused,
+      containerRef,
+      setSpeedFactorState
     ]
   );
 
   const handleMouseUp = useCallback(() => {
-    if (state.isDragging) {
-      setState((prevState) => ({
-        ...prevState,
-        isDragging: false
+    if (dragStateRef.current.isDragging) {
+      dragStateRef.current.isDragging = false;
+      // sync final value back to react state
+      setState((prev) => ({
+        ...prev,
+        isDragging: false,
+        localValue: String(dragStateRef.current.currentDragValue)
       }));
-      if (!state.hasExceededDragThreshold) {
+
+      if (!dragStateRef.current.hasExceededDragThreshold) {
         setInputIsFocused(true);
       }
     }
-  }, [
-    state.isDragging,
-    state.hasExceededDragThreshold,
-    setState,
-    setInputIsFocused
-  ]);
+  }, [setInputIsFocused]);
 
   return { handleMouseMove, handleMouseUp };
 };
@@ -266,8 +278,11 @@ const NumberInput: React.FC<InputProps> = (props) => {
     dragPointerY: null
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
+  const [speedFactorState, setSpeedFactorState] = useState(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef(state);
+  dragStateRef.current = state;
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
@@ -275,7 +290,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setState,
     inputIsFocused,
     setInputIsFocused,
-    containerRef
+    containerRef,
+    dragStateRef,
+    setSpeedFactorState
   );
 
   const handleFocusPan = useFocusPan(props.nodeId);
@@ -358,6 +375,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
           isDragging: true,
           hasExceededDragThreshold: false,
           dragInitialValue: props.value,
+          currentDragValue: props.value,
           lastClientX: e.clientX,
           dragPointerY: e.clientY
         }));
@@ -403,13 +421,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
   );
 
   useEffect(() => {
-    if (!inputIsFocused) {
+    // Sync with external value changes, but only when not dragging or focused.
+    if (!inputIsFocused && !state.isDragging) {
       setState((prevState) => ({
         ...prevState,
         localValue: (props.value ?? 0).toString()
       }));
     }
-  }, [props.value, inputIsFocused]);
+  }, [props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
     if (state.isDragging) {
@@ -482,9 +501,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
             style={{
               position: "absolute" as const,
               right: "-10px",
-              top: `-${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
+              top: `-${DRAG_SLOWDOWN_RAMP_PX - 5}px`,
               width: "8px",
-              height: `${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
+              height: `${DRAG_SLOWDOWN_RAMP_PX}px`,
               background:
                 "linear-gradient(to bottom, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
               pointerEvents: "none" as const,
@@ -497,9 +516,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
             style={{
               position: "absolute" as const,
               right: "-10px",
-              bottom: `-${VISUAL_SLOWDOWN_DISTANCE_PX}px`,
+              bottom: `-${DRAG_SLOWDOWN_RAMP_PX}px`,
               width: "8px",
-              height: `${VISUAL_SLOWDOWN_DISTANCE_PX - 5}px`,
+              height: `${DRAG_SLOWDOWN_RAMP_PX - 5}px`,
               background:
                 "linear-gradient(to top, rgba(150,150,150,0.15) 0%, rgba(0,123,255,0) 100%)",
               pointerEvents: "none" as const,
@@ -508,6 +527,25 @@ const NumberInput: React.FC<InputProps> = (props) => {
             }}
           />
         </>
+      )}
+
+      {/* Speed factor debug overlay */}
+      {state.isDragging && (
+        <div
+          style={{
+            position: "absolute",
+            left: "100%",
+            top: "-1.5em",
+            fontSize: "0.75em",
+            background: "rgba(0,0,0,0.6)",
+            color: "white",
+            padding: "2px 4px",
+            borderRadius: "3px",
+            pointerEvents: "none"
+          }}
+        >
+          SF: {speedFactorState.toFixed(2)}
+        </div>
       )}
     </div>
   );
