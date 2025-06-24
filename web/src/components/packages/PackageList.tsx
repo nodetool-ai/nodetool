@@ -72,9 +72,11 @@ const styles = (theme: any) =>
       fontWeight: 500
     },
 
-    "& .chip": {
-      marginRight: theme.spacing(1),
-      marginBottom: theme.spacing(0.5)
+    "& .packagelist-item-chip": {
+      padding: "0",
+      margin: 0,
+      backgroundColor: "transparent",
+      color: theme.palette.c_gray5
     },
 
     "& .installButton": {
@@ -230,7 +232,7 @@ const PackageList: React.FC = () => {
     return (
       <Box
         css={styles}
-        className="loadingContainer"
+        className="loadingContainer packagelist-loading"
         sx={{ backgroundColor: "black" }}
       >
         <CircularProgress />
@@ -246,7 +248,7 @@ const PackageList: React.FC = () => {
     return (
       <Box
         css={styles}
-        className="errorContainer"
+        className="errorContainer packagelist-error"
         sx={{ backgroundColor: "black" }}
       >
         <Typography variant="h6" color="error">
@@ -260,11 +262,14 @@ const PackageList: React.FC = () => {
   }
 
   return (
-    <Paper css={styles} elevation={0}>
+    <Paper css={styles} elevation={0} className="packagelist-root">
       {(installMutation.isPending || uninstallMutation.isPending) && (
-        <Box className="overlayContainer">
+        <Box className="overlayContainer packagelist-overlay">
           <CircularProgress size={60} color="primary" />
-          <Typography variant="h6" className="progressText">
+          <Typography
+            variant="h6"
+            className="progressText packagelist-overlay-text"
+          >
             {activePackageId &&
               (installMutation.isPending
                 ? `Installing ${
@@ -280,9 +285,9 @@ const PackageList: React.FC = () => {
           </Typography>
         </Box>
       )}
-      <Box className="searchContainer">
+      <Box className="searchContainer packagelist-search">
         <TextField
-          className="searchInput"
+          className="searchInput packagelist-search-input"
           placeholder="Search packs..."
           value={searchTerm}
           onChange={handleSearchChange}
@@ -315,10 +320,10 @@ const PackageList: React.FC = () => {
       </Box>
       <Divider sx={{ backgroundColor: theme.palette.c_gray2 }} />
 
-      <Box className="listContainer">
+      <Box className="listContainer packagelist-list">
         <List>
           {filteredPackages.length === 0 ? (
-            <ListItem>
+            <ListItem className="packagelist-item-empty">
               <ListItemText
                 primary={
                   <Typography sx={{ color: theme.palette.c_white }}>
@@ -334,7 +339,7 @@ const PackageList: React.FC = () => {
               return (
                 <Tooltip title={pkg.description} key={pkg.repo_id}>
                   <ListItem
-                    className="packageItem"
+                    className="packageItem packagelist-item"
                     sx={{
                       opacity:
                         installMutation.isPending || uninstallMutation.isPending
@@ -349,7 +354,7 @@ const PackageList: React.FC = () => {
                       primary={
                         <Box display="flex" alignItems="center">
                           <Typography
-                            className="packageName"
+                            className="packageName packagelist-item-name"
                             sx={{ color: "white" }}
                           >
                             {pkg.name}
@@ -360,14 +365,16 @@ const PackageList: React.FC = () => {
                                 color="success"
                                 fontSize="small"
                                 style={{ marginLeft: 8 }}
+                                className="packagelist-item-installed-icon"
                               />
                             </Tooltip>
                           )}
                         </Box>
                       }
                       secondary={
-                        <Box mt={1}>
+                        <Box mt={1} className="packagelist-item-secondary">
                           <Chip
+                            className="packagelist-item-chip"
                             key={pkg.repo_id}
                             label={
                               <a
@@ -386,11 +393,6 @@ const PackageList: React.FC = () => {
                               </a>
                             }
                             size="small"
-                            className="chip"
-                            sx={{
-                              backgroundColor: theme.palette.c_gray1,
-                              color: theme.palette.c_gray5
-                            }}
                           />
                         </Box>
                       }
@@ -400,7 +402,7 @@ const PackageList: React.FC = () => {
                         variant="outlined"
                         color={isInstalled ? "secondary" : "primary"}
                         size="small"
-                        className="installButton"
+                        className="installButton packagelist-item-button"
                         onClick={() =>
                           handlePackageAction(pkg.repo_id, isInstalled)
                         }
