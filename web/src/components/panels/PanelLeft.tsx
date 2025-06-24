@@ -389,7 +389,7 @@ const PanelContent = memo(function PanelContent({
             margin: "0"
           }}
         >
-          <h3>Workflows</h3>
+          <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
           <WorkflowList />
         </Box>
       )}
