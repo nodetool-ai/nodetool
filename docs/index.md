@@ -21,6 +21,7 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 - **Global Chat** – start conversations from anywhere in the workspace. See
   [Global Chat](global-chat.md).
 - **API and extensions** – connect NodeTool to other apps with Python scripts.
+- **Node Packs** – install extra nodes from the [NodeTool Packs Registry](node-packs.md).
 
 For a deeper look at how these pieces interact, read the
 [Architecture Overview](architecture.md).
