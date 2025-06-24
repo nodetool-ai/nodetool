@@ -50,9 +50,12 @@ const listStyles = (theme: any) =>
       },
       position: "relative"
     },
+    ".workflow.alternate": {
+      backgroundColor: `${theme.palette.c_gray2}20`
+    },
     ".workflow.current .name": {
       color: "var(--palette-primary-light)",
-      backgroundColor: "var(--c_gray1)",
+      // backgroundColor: "var(--c_gray1)",
       fontWeight: "bold"
     },
     // ".workflow.selected": {
@@ -119,9 +122,6 @@ const listStyles = (theme: any) =>
           fontSize: "1.5em"
         }
       }
-    },
-    ".workflow.alternate": {
-      backgroundColor: `${theme.palette.c_gray2}20`
     }
   });
 
