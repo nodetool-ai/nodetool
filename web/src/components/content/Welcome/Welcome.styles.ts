@@ -47,7 +47,9 @@ const welcomeStyles = (theme: any) =>
       fontFamily: theme.fontFamily1
     },
     ".search": {
-      marginBottom: "1em"
+      margin: "1em 0 -1em 0",
+      width: "50%",
+      maxWidth: "500px"
     },
     ".MuiAccordion-root": {
       background: "transparent",
@@ -147,13 +149,12 @@ const welcomeStyles = (theme: any) =>
       top: 0,
       backgroundColor: "#222",
       zIndex: 1,
-      padding: "0",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`
+      padding: "0"
     },
     ".overview button": {
-      marginBottom: "1.5em",
       fontSize: theme.fontSizeNormal,
-      padding: "1em 2em",
+      marginBottom: "0",
+      padding: "0 2em",
       transition: "all 0.2s"
     },
     ".overview button:hover:not(.Mui-selected)": {
