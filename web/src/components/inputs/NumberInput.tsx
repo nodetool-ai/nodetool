@@ -6,10 +6,10 @@ import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
 import { useFocusPan } from "../../hooks/useFocusPan";
 
-const DRAG_THRESHOLD = 5;
+const DRAG_THRESHOLD = 10;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
-const DRAG_BOUNDS_EM = 1; // vertical zone above/below slider with no slowdown
+const DRAG_BOUNDS = 100; // vertical zone above/below slider with no slowdown
 const EXP_SLOWDOWN_DIVISOR = 50; //10× slowdown
 const VISUAL_SLOWDOWN_DISTANCE_PX = EXP_SLOWDOWN_DIVISOR * 3;
 const MIN_SPEED_FACTOR = 0.01; // 1% speed at extremes
@@ -107,16 +107,10 @@ const useDragHandling = (
 
         const rect = containerRef.current.getBoundingClientRect();
 
-        // Calculate drag bounds area (slider ± 2em vertically)
-        const fontSizePx = parseFloat(
-          window.getComputedStyle(containerRef.current).fontSize || "16"
-        );
-        const dragBoundsPx = DRAG_BOUNDS_EM * fontSizePx;
-
         const isOverSlider = e.clientY >= rect.top && e.clientY <= rect.bottom;
         const isWithinDragBounds =
-          e.clientY >= rect.top - dragBoundsPx &&
-          e.clientY <= rect.bottom + dragBoundsPx;
+          e.clientY >= rect.top - DRAG_BOUNDS &&
+          e.clientY <= rect.bottom + DRAG_BOUNDS;
 
         const baseStep = calculateStep(
           props.min ?? 0,
@@ -140,9 +134,9 @@ const useDragHandling = (
           const distanceOutside = !isWithinDragBounds
             ? Math.max(
                 0,
-                e.clientY < rect.top - dragBoundsPx
-                  ? rect.top - dragBoundsPx - e.clientY
-                  : e.clientY - (rect.bottom + dragBoundsPx)
+                e.clientY < rect.top - DRAG_BOUNDS
+                  ? rect.top - DRAG_BOUNDS - e.clientY
+                  : e.clientY - (rect.bottom + DRAG_BOUNDS)
               )
             : 0;
 
@@ -206,6 +200,7 @@ const useDragHandling = (
         }
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       state.isDragging,
       state.dragStartX,
