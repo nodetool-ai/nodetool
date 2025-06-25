@@ -247,12 +247,12 @@ const initKeyListeners = () => {
       // No 'return' here for keyup.
     }
 
-    // Prevent key repeat events for non-modifier keys
-    if (
-      isPressed &&
-      repeat &&
-      !["shift", "control", "alt", "meta"].includes(normalizedKey)
-    ) {
+    // Prevent key repeat events to avoid excessive state updates when a key is held down
+    // Repeated `keydown` events (event.repeat === true) provide no additional information
+    // for our pressed-key tracking, because we already set the key to "pressed" on the
+    // first event.  Skipping the subsequent repeats dramatically reduces the number of
+    // store updates while keys such as Control are held.
+    if (isPressed && repeat) {
       return;
     }
 
