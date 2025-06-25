@@ -263,7 +263,7 @@ const PropertyDropzone = ({
         )}
 
         <Tooltip
-          title={showUrlInput ? "Hide URL input" : "Show input to enter an URL"}
+          title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
         >
           <Button
             className="toggle-url-button"

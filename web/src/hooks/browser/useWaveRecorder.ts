@@ -22,7 +22,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [audioDeviceNames, setAudioDeviceNames] = useState<string[]>([]);
+  const [audioInputDevices, setAudioInputDevices] = useState<string[]>([]);
+  const [audioOutputDevices, setAudioOutputDevices] = useState<string[]>([]);
 
   const fetchAudioDeviceNames = useCallback(() => {
     if (!navigator.mediaDevices) {
@@ -49,14 +50,23 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
           setError("No devices found");
           return;
         }
-        const audioInputDevices = devices.filter(
+        const audioInputs = devices.filter(
           (device) => device.kind === "audioinput"
         );
-        const audioDeviceLabels = audioInputDevices.map(
-          (device) => device.label
+        const audioOutputs = devices.filter(
+          (device) => device.kind === "audiooutput"
         );
-        setAudioDeviceNames(audioDeviceLabels);
-        if (audioDeviceLabels.length === 0) {
+
+        const audioInputLabels = audioInputs.map(
+          (device) => device.label || device.deviceId
+        );
+        const audioOutputLabels = audioOutputs.map(
+          (device) => device.label || device.deviceId
+        );
+
+        setAudioInputDevices(audioInputLabels);
+        setAudioOutputDevices(audioOutputLabels);
+        if (audioInputLabels.length === 0) {
           setTimeout(() => {
             setError("No audio input devices found");
           }, 2000);
@@ -142,7 +152,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
         });
       });
     }
-  }, [audioDeviceNames, defaultFileType, onChange, uploadAsset, workflow.id]);
+  }, [audioInputDevices, defaultFileType, onChange, uploadAsset, workflow.id]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);
@@ -152,9 +162,13 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     fetchAudioDeviceNames();
   }, [fetchAudioDeviceNames]);
 
-  const memoizedAudioDeviceNames = useMemo(
-    () => audioDeviceNames,
-    [audioDeviceNames]
+  const memoizedAudioInputDevices = useMemo(
+    () => audioInputDevices,
+    [audioInputDevices]
+  );
+  const memoizedAudioOutputDevices = useMemo(
+    () => audioOutputDevices,
+    [audioOutputDevices]
   );
 
   return {
@@ -164,7 +178,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     handleRecord,
     isRecording,
     isLoading,
-    audioDeviceNames: memoizedAudioDeviceNames,
+    audioInputDevices: memoizedAudioInputDevices,
+    audioOutputDevices: memoizedAudioOutputDevices,
     isDeviceListVisible,
     toggleDeviceListVisibility
   };
