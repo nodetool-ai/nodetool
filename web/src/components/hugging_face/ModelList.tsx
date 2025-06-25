@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
+import { llama_models as staticOllamaModels } from "../../config/models";
 import ModelCard from "./ModelCard";
 import ModelListItem from "./ModelListItem";
 import {
@@ -258,13 +259,20 @@ const ModelList: React.FC = () => {
     refetchOnWindowFocus: false
   });
 
+  // Merge backend-provided recommended models with our static list of
+  // curated Ollama recommendations.
+  const combinedRecommendedModels = useMemo<UnifiedModel[]>(() => {
+    return [...(recommendedModels || []), ...staticOllamaModels];
+  }, [recommendedModels]);
+
+  const groupedRecommendedModels = useMemo(
+    () => groupModelsByType(combinedRecommendedModels),
+    [combinedRecommendedModels]
+  );
+
   const groupedHFModels = useMemo(
     () => groupModelsByType(hfModels || []),
     [hfModels]
-  );
-  const groupedRecommendedModels = useMemo(
-    () => groupModelsByType(recommendedModels || []),
-    [recommendedModels]
   );
   const modelTypes = useMemo(() => {
     const sourceGroups =
@@ -273,7 +281,9 @@ const ModelList: React.FC = () => {
         : groupedHFModels;
     const types = new Set(Object.keys(sourceGroups));
     types.add("Other");
-    types.add("llama_model");
+    if (modelSource === "downloaded") {
+      types.add("llama_model");
+    }
     return sortModelTypes(Array.from(types));
   }, [groupedHFModels, groupedRecommendedModels, modelSource]);
 
