@@ -40,9 +40,15 @@ const styles = (theme: any) =>
   css({
     "&": {
       display: "flex",
-      flexDirection: "row",
+      flexDirection: "column",
       height: "100%",
       position: "relative"
+    },
+    ".main": {
+      display: "flex",
+      flexDirection: "row",
+      flexGrow: 1,
+      height: "100%"
     },
     ".sidebar": {
       width: "26%",
@@ -54,12 +60,19 @@ const styles = (theme: any) =>
     },
     ".model-list-header": {
       display: "flex",
-      justifyContent: "space-between",
+      flexDirection: "row",
       alignItems: "center",
-      paddingLeft: "1em"
+      gap: theme.spacing(1),
+      padding: "0.5em 1em",
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      backgroundColor: theme.palette.c_gray1,
+      width: "100%"
     },
     ".model-list-header button": {
-      // padding: ".1em .5em"
+      padding: ".4em 1em",
+      fontSize: "0.9rem"
     },
     ".content": {
       width: "80%",
@@ -534,178 +547,153 @@ const ModelList: React.FC = () => {
 
   return (
     <Box className="huggingface-model-list" css={styles}>
-      <Box className="sidebar">
-        <Box
-          className="model-list-header"
+      <Box className="model-list-header">
+        <SearchInput
+          focusOnTyping={true}
+          focusSearchInput={false}
+          width={300}
+          maxWidth={"300px"}
+          onSearchChange={setModelSearchTerm}
+          searchTerm={modelSearchTerm}
+        />
+
+        <ToggleButtonGroup
+          className="toggle-button-group-recommended"
+          value={modelSource}
+          exclusive
+          onChange={handleModelSourceChange}
+          aria-label="model source"
+          size="medium"
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "stretch",
-            mb: 2
+            flexShrink: 0
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: "100%",
-              mb: 1
-            }}
+          <ToggleButton
+            value="downloaded"
+            sx={{ fontSize: "0.85rem", padding: "0.5em 1.25em" }}
           >
-            <SearchInput
-              focusOnTyping={true}
-              focusSearchInput={false}
-              width={300}
-              maxWidth={"300px"}
-              onSearchChange={setModelSearchTerm}
-              searchTerm={modelSearchTerm}
-            />
-            {/* <ToggleButtonGroup
-              className="toggle-button-group-view-mode"
-              value={viewMode}
-              exclusive
-              onChange={handleViewModeChange}
-              aria-label="view mode"
-              size="small"
-            >
-              <ToggleButton value="grid" aria-label="grid view">
-                <ViewModuleIcon />
-              </ToggleButton>
-              <ToggleButton value="list" aria-label="list view">
-                <ViewListIcon />
-              </ToggleButton>
-            </ToggleButtonGroup> */}
-          </Box>
-          <Box sx={{ width: "100%" }}>
-            <ToggleButtonGroup
-              className="toggle-button-group-recommended"
-              value={modelSource}
-              exclusive
-              onChange={handleModelSourceChange}
-              aria-label="model source"
-              size="small"
-              sx={{
-                width: "100%",
-                padding: 0,
-                margin: "1em 0 0 0",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "flex-start",
-                gap: 1
-              }}
-            >
-              <ToggleButton value="downloaded">Downloaded</ToggleButton>
-              <ToggleButton value="recommended">Recommended</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </Box>
-        <List>
-          {modelTypes.map((type) => (
-            <ListItemButton
-              className="model-type-button"
-              key={type}
-              selected={selectedModelType === type}
-              onClick={() => handleModelTypeChange(type)}
-            >
-              <ListItemText primary={prettifyModelType(type)} />
-            </ListItemButton>
-          ))}
-        </List>
+            Downloaded
+          </ToggleButton>
+          <ToggleButton
+            value="recommended"
+            sx={{ fontSize: "0.85rem", padding: "0.5em 1.25em" }}
+          >
+            Recommended
+          </ToggleButton>
+        </ToggleButtonGroup>
       </Box>
+      <Box className="main">
+        <Box className="sidebar">
+          <List>
+            {modelTypes.map((type) => (
+              <ListItemButton
+                className="model-type-button"
+                key={type}
+                selected={selectedModelType === type}
+                onClick={() => handleModelTypeChange(type)}
+              >
+                <ListItemText primary={prettifyModelType(type)} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
 
-      <Box className="content">
-        {isFetching && (
-          <CircularProgress
-            size={20}
-            sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
-          />
-        )}
-        {deleteHFModelMutation.isPending && <CircularProgress />}
-        {deleteHFModelMutation.isError && (
-          <Typography color="error">
-            {deleteHFModelMutation.error.message}
-          </Typography>
-        )}
-        {deleteHFModelMutation.isSuccess && (
-          <Typography color="success">Model deleted successfully</Typography>
-        )}
-
-        {selectedModelType === "All" ? (
-          <>
-            {modelSearchTerm && (
-              <Typography variant="h3">
-                Searching models for &quot;{modelSearchTerm}&quot;
-              </Typography>
-            )}
-            {modelTypes
-              .slice(1)
-              .filter((modelType) => filteredModels[modelType]?.length > 0)
-              .map((modelType) => (
-                <Box className="model-list-section" key={modelType} mt={2}>
-                  <Typography variant="h2">
-                    {prettifyModelType(modelType)}
-                  </Typography>
-                  {renderModels(filteredModels[modelType] || [])}
-                </Box>
-              ))}
-          </>
-        ) : (
-          <Box className="model-list-section" mt={2}>
-            <Typography variant="h2">
-              {prettifyModelType(selectedModelType)}
+        <Box className="content">
+          {isFetching && (
+            <CircularProgress
+              size={20}
+              sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
+            />
+          )}
+          {deleteHFModelMutation.isPending && <CircularProgress />}
+          {deleteHFModelMutation.isError && (
+            <Typography color="error">
+              {deleteHFModelMutation.error.message}
             </Typography>
-            {renderModels(Object.values(filteredModels)[0])}
-          </Box>
-        )}
+          )}
+          {deleteHFModelMutation.isSuccess && (
+            <Typography color="success">Model deleted successfully</Typography>
+          )}
 
-        <Dialog
-          open={!!modelToDelete}
-          onClose={handleCancelDelete}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogTitle id="alert-dialog-title">
-            {"Confirm Deletion"}
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText id="alert-dialog-description">
-              Delete {modelToDelete}?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            {(() => {
-              const modelForExplorer = modelToDelete
-                ? ollamaModels?.find((m) => m.id === modelToDelete) ||
-                  hfModels?.find((m) => m.id === modelToDelete)
-                : null;
-              let explorerPath = modelForExplorer?.path;
-              let isDisabled = !modelToDelete;
+          {selectedModelType === "All" ? (
+            <>
+              {modelSearchTerm && (
+                <Typography variant="h3">
+                  Searching models for &quot;{modelSearchTerm}&quot;
+                </Typography>
+              )}
+              {modelTypes
+                .slice(1)
+                .filter((modelType) => filteredModels[modelType]?.length > 0)
+                .map((modelType) => (
+                  <Box className="model-list-section" key={modelType} mt={2}>
+                    <Typography variant="h2">
+                      {prettifyModelType(modelType)}
+                    </Typography>
+                    {renderModels(filteredModels[modelType] || [])}
+                  </Box>
+                ))}
+            </>
+          ) : (
+            <Box className="model-list-section" mt={2}>
+              <Typography variant="h2">
+                {prettifyModelType(selectedModelType)}
+              </Typography>
+              {renderModels(Object.values(filteredModels)[0])}
+            </Box>
+          )}
 
-              if (modelForExplorer) {
-                if (modelForExplorer.type === "llama_model" && !explorerPath) {
-                  explorerPath = ollamaBasePath as string | null | undefined; // Use base path for Ollama if specific path missing
-                }
-                isDisabled = !explorerPath; // Disabled if no path (specific or base for Ollama) found
-              }
+          <Dialog
+            open={!!modelToDelete}
+            onClose={handleCancelDelete}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+          >
+            <DialogTitle id="alert-dialog-title">
+              {"Confirm Deletion"}
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText id="alert-dialog-description">
+                Delete {modelToDelete}?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              {(() => {
+                const modelForExplorer = modelToDelete
+                  ? ollamaModels?.find((m) => m.id === modelToDelete) ||
+                    hfModels?.find((m) => m.id === modelToDelete)
+                  : null;
+                let explorerPath = modelForExplorer?.path;
+                let isDisabled = !modelToDelete;
 
-              return (
-                <Button
-                  onClick={() =>
-                    modelToDelete && handleShowInExplorer(modelToDelete)
+                if (modelForExplorer) {
+                  if (
+                    modelForExplorer.type === "llama_model" &&
+                    !explorerPath
+                  ) {
+                    explorerPath = ollamaBasePath as string | null | undefined; // Use base path for Ollama if specific path missing
                   }
-                  disabled={isDisabled}
-                >
-                  Show in Explorer
-                </Button>
-              );
-            })()}
-            <Button onClick={handleCancelDelete}>Cancel</Button>
-            <Button onClick={handleConfirmDelete} autoFocus>
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+                  isDisabled = !explorerPath; // Disabled if no path (specific or base for Ollama) found
+                }
+
+                return (
+                  <Button
+                    onClick={() =>
+                      modelToDelete && handleShowInExplorer(modelToDelete)
+                    }
+                    disabled={isDisabled}
+                  >
+                    Show in Explorer
+                  </Button>
+                );
+              })()}
+              <Button onClick={handleCancelDelete}>Cancel</Button>
+              <Button onClick={handleConfirmDelete} autoFocus>
+                Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Box>
       </Box>
     </Box>
   );
