@@ -348,15 +348,6 @@ export const useModelInfo = (model: UnifiedModel) => {
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[useModelInfo]", model.id, {
-      isHuggingFace,
-      isOllama,
-      sizeBytes,
-      modelData: query.data
-    });
-  }
-
   return {
     isLoading: query.isLoading,
     modelData: query.data as any,
@@ -397,19 +388,7 @@ function computeHuggingFaceDownloadSize(modelData: any): number | undefined {
         }
         return acc;
       }, 0);
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[HF size] total bytes", total);
-      }
-      if (
-        process.env.NODE_ENV !== "production" &&
-        modelData?.siblings?.length
-      ) {
-        console.log("[HF size] first sibling", modelData.siblings[0]);
-      }
       return total || undefined;
-    }
-    if (process.env.NODE_ENV !== "production" && modelData?.siblings?.length) {
-      console.log("[HF size] first sibling", modelData.siblings[0]);
     }
     if (typeof modelData?.downloads_size === "number") {
       return modelData.downloads_size;
