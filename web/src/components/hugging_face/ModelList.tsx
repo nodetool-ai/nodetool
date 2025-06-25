@@ -206,7 +206,7 @@ const ModelList: React.FC = () => {
       return data.map(
         (model: any): UnifiedModel => ({
           id: model.repo_id,
-          type: model.the_model_type,
+          type: model.the_model_type || model.type,
           name: model.repo_id,
           repo_id: model.repo_id,
           path: model.path,
@@ -259,7 +259,7 @@ const ModelList: React.FC = () => {
       return data.map(
         (model: any): UnifiedModel => ({
           id: model.repo_id,
-          type: model.the_model_type,
+          type: model.the_model_type || model.type,
           name: model.repo_id,
           repo_id: model.repo_id,
           path: model.path,
@@ -294,7 +294,8 @@ const ModelList: React.FC = () => {
         : groupedHFModels;
     const types = new Set(Object.keys(sourceGroups));
     types.add("Other");
-    if (modelSource === "downloaded") {
+    // Add Ollama category when there are llama models available in the source groups
+    if ("llama_model" in sourceGroups || modelSource === "downloaded") {
       types.add("llama_model");
     }
     return sortModelTypes(Array.from(types));
