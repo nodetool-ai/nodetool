@@ -179,6 +179,7 @@ const ModelList: React.FC = () => {
   const {
     data: hfModels,
     isLoading: hfLoading,
+    isFetching: hfIsFetching,
     error: hfError
   } = useQuery({
     queryKey: ["huggingFaceModels"],
@@ -207,6 +208,7 @@ const ModelList: React.FC = () => {
   const {
     data: ollamaModels,
     isLoading: ollamaLoading,
+    isFetching: ollamaIsFetching,
     error: ollamaError
   } = useQuery({
     queryKey: ["ollamaModels"],
@@ -230,6 +232,7 @@ const ModelList: React.FC = () => {
   const {
     data: recommendedModels,
     isLoading: recommendedLoading,
+    isFetching: recommendedIsFetching,
     error: recommendedError
   } = useQuery({
     queryKey: ["recommendedModels"],
@@ -430,7 +433,7 @@ const ModelList: React.FC = () => {
     if (viewMode === "grid") {
       return (
         <Grid className="model-grid-container" container spacing={3}>
-          {models.map((model: UnifiedModel) => (
+          {models.map((model: UnifiedModel, idx: number) => (
             <Grid
               className="model-grid-item"
               item
@@ -439,7 +442,7 @@ const ModelList: React.FC = () => {
               md={6}
               lg={4}
               xl={3}
-              key={model.id}
+              key={`${model.id}-${idx}`}
             >
               <ModelCard
                 model={model}
@@ -453,9 +456,9 @@ const ModelList: React.FC = () => {
     } else {
       return (
         <List>
-          {models.map((model: UnifiedModel) => (
+          {models.map((model: UnifiedModel, idx: number) => (
             <ModelListItem
-              key={model.id}
+              key={`${model.id}-${idx}`}
               model={model}
               handleModelDelete={handleDeleteClick}
               handleShowInExplorer={handleShowInExplorer}
@@ -466,10 +469,15 @@ const ModelList: React.FC = () => {
     }
   };
 
-  if (
+  const isLoading =
     (modelSource === "downloaded" && (hfLoading || ollamaLoading)) ||
-    (modelSource === "recommended" && recommendedLoading)
-  ) {
+    (modelSource === "recommended" && recommendedLoading);
+
+  const isFetching =
+    (modelSource === "downloaded" && (hfIsFetching || ollamaIsFetching)) ||
+    (modelSource === "recommended" && recommendedIsFetching);
+
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -597,6 +605,12 @@ const ModelList: React.FC = () => {
       </Box>
 
       <Box className="content">
+        {isFetching && (
+          <CircularProgress
+            size={20}
+            sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
+          />
+        )}
         {deleteHFModelMutation.isPending && <CircularProgress />}
         {deleteHFModelMutation.isError && (
           <Typography color="error">
