@@ -28,7 +28,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         fontSize: theme.fontSizeSmall,
         border: "0",
         padding: "2px",
-        margin: "2px",
+        margin: ".5em",
         color: theme.palette.c_hl1
       },
       "& button.device-button": {
@@ -39,6 +39,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         minWidth: "4em"
       },
       ".audio-device-list": {
+        position: "relative",
         maxWidth: "200px",
         fontSize: theme.fontSizeTiny,
         color: theme.palette.c_gray5
@@ -55,6 +56,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       },
       "& button.recording": {
         backgroundColor: theme.palette.c_error,
+        marginLeft: "0.5em",
         color: theme.palette.c_gray0,
         minWidth: "33px"
       },
@@ -93,15 +95,49 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       {error && <div className="error">{error}</div>}
 
       {isDeviceListVisible && (
-        <div className="audio-device-list" style={{ marginLeft: "5px" }}>
+        <div className="audio-device-list" style={{ margin: "5px" }}>
           {audioDeviceNames.length > 0 ? (
-            audioDeviceNames.map((deviceName, index) => (
-              <Typography variant="body2" key={index}>
-                {deviceName}
+            <>
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: "var(--fontSizeSmaller)",
+                  margin: "0 0 .5em 0",
+                  color: "var(--c_gray6)"
+                }}
+              >
+                Detected Audio Devices
               </Typography>
-            ))
+              <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
+                {audioDeviceNames.map((deviceName, index) => (
+                  <Typography
+                    key={index}
+                    component="li"
+                    variant="body2"
+                    sx={{ fontSize: "var(--fontSizeTiny)", lineHeight: "1.75" }}
+                  >
+                    {deviceName}
+                  </Typography>
+                ))}
+              </ul>
+            </>
           ) : (
-            <Typography variant="body2">No devices found.</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "var(--fontSizeSmall)",
+                position: "absolute",
+                backgroundColor: "var(--c_warning)",
+                color: "var(--c_gray0)",
+                padding: ".2em 0.5em",
+                borderRadius: "0.2em",
+                zIndex: 100,
+                top: "0.5em",
+                left: "0.5em"
+              }}
+            >
+              No audio input devices found.
+            </Typography>
           )}
         </div>
       )}

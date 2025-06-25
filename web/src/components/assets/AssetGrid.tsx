@@ -49,7 +49,7 @@ const styles = (theme: any) =>
       position: "absolute",
       width: "calc(100% - 90px)",
       left: "80px",
-      bottom: "25px",
+      bottom: "0",
       display: "flex",
       flexDirection: "column",
       gap: "0.25em",
