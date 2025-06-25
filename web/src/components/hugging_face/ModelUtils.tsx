@@ -238,7 +238,7 @@ export const renderModelSecondaryInfo = (
 );
 
 export const renderModelActions = (
-  props: ModelComponentProps,
+  props: ModelComponentProps & { explorerDisabled?: boolean },
   downloaded: boolean
 ) => (
   <Box
@@ -263,7 +263,7 @@ export const renderModelActions = (
     {props.handleShowInExplorer && (
       <ModelShowInExplorerButton
         onClick={() => props.handleShowInExplorer!(props.model.id)}
-        disabled={!props.model.path}
+        disabled={props.explorerDisabled ?? !props.model.path}
       />
     )}
     {props.handleModelDelete && (

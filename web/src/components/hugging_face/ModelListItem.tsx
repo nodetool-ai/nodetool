@@ -27,7 +27,11 @@ import { DownloadProgress } from "./DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
 const ModelListItem: React.FC<
-  ModelComponentProps & { showModelStats?: boolean; hideMissingInfo?: boolean }
+  ModelComponentProps & {
+    showModelStats?: boolean;
+    hideMissingInfo?: boolean;
+    ollamaBasePath?: string | null;
+  }
 > = ({
   model,
   onDownload,
@@ -35,7 +39,8 @@ const ModelListItem: React.FC<
   handleShowInExplorer,
   compactView = false,
   showModelStats = false,
-  hideMissingInfo = false
+  hideMissingInfo = false,
+  ollamaBasePath
 }) => {
   const {
     modelData,
@@ -47,6 +52,9 @@ const ModelListItem: React.FC<
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
+
+  const explorerDisabled =
+    model.type === "llama_model" ? !model.path && !ollamaBasePath : !model.path;
 
   if (isLoading) {
     return (
@@ -105,7 +113,13 @@ const ModelListItem: React.FC<
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
               {renderModelActions(
-                { model, handleModelDelete, onDownload, handleShowInExplorer },
+                {
+                  model,
+                  handleModelDelete,
+                  onDownload,
+                  handleShowInExplorer,
+                  explorerDisabled
+                },
                 downloaded
               )}
             </div>
@@ -185,7 +199,13 @@ const ModelListItem: React.FC<
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
-              { model, handleModelDelete, onDownload, handleShowInExplorer },
+              {
+                model,
+                handleModelDelete,
+                onDownload,
+                handleShowInExplorer,
+                explorerDisabled
+              },
               downloaded
             )}
           </div>
