@@ -1,6 +1,9 @@
 import Fuse from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
-import { filterDataByType } from "../components/node_menu/typeFilterUtils";
+import {
+  filterDataByType,
+  filterDataByExactType
+} from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions } from "../stores/fuseOptions";
 
@@ -115,7 +118,8 @@ export function computeSearchResults(
   term: string,
   selectedPath: string[],
   selectedInputType?: TypeName,
-  selectedOutputType?: TypeName
+  selectedOutputType?: TypeName,
+  strictMatch: boolean = false
 ) {
   const selectedPathString = selectedPath.join(".");
   const hasSearchTerm = term.trim().length > 0;
@@ -128,11 +132,17 @@ export function computeSearchResults(
 
   // Apply type filtering if needed
   const typeFilteredMetadata = hasTypeFilters
-    ? filterDataByType(
-        filteredMetadata,
-        selectedInputType as TypeName,
-        selectedOutputType as TypeName
-      )
+    ? strictMatch
+      ? filterDataByExactType(
+          filteredMetadata,
+          selectedInputType as TypeName,
+          selectedOutputType as TypeName
+        )
+      : filterDataByType(
+          filteredMetadata,
+          selectedInputType as TypeName,
+          selectedOutputType as TypeName
+        )
     : filteredMetadata;
 
   // Filter by path if one is selected
