@@ -443,6 +443,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", upHandler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isDragging]);
 
   return (
@@ -479,6 +480,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
             name={props.name}
             description={props.description}
             id={props.id}
+            showTooltip={!state.isDragging}
           />
         )}
         {!inputIsFocused && (
