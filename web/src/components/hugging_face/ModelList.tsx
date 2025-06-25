@@ -49,7 +49,8 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "row",
       flexGrow: 1,
-      height: "100%"
+      height: "100%",
+      overflow: "hidden"
     },
     ".sidebar": {
       width: "26%",
@@ -483,6 +484,7 @@ const ModelList: React.FC = () => {
 
     const allowDelete = modelSource === "downloaded";
     const allowDownload = modelSource === "recommended";
+    const allowShowInExplorer = modelSource === "downloaded";
 
     if (viewMode === "grid") {
       return (
@@ -504,7 +506,9 @@ const ModelList: React.FC = () => {
                 onDownload={
                   allowDownload ? () => startDownload(model) : undefined
                 }
-                handleShowInExplorer={handleShowInExplorer}
+                handleShowInExplorer={
+                  allowShowInExplorer ? handleShowInExplorer : undefined
+                }
               />
             </Grid>
           ))}
@@ -521,7 +525,9 @@ const ModelList: React.FC = () => {
               onDownload={
                 allowDownload ? () => startDownload(model) : undefined
               }
-              handleShowInExplorer={handleShowInExplorer}
+              handleShowInExplorer={
+                allowShowInExplorer ? handleShowInExplorer : undefined
+              }
               hideMissingInfo={modelSource === "recommended"}
             />
           ))}
