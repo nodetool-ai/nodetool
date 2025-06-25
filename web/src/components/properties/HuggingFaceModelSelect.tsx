@@ -91,14 +91,24 @@ const HuggingFaceModelSelect = ({
         <div>
           <div
             style={{
-              fontSize: "0.75em",
+              fontSize: "var(--fontSizeSmall)",
               fontWeight: "normal",
+              lineHeight: "1.2",
+              color: "var(--c_gray6)",
               fontStyle: "italic"
             }}
           >
             {model.repo_id}
           </div>
-          <div>{model.path}</div>
+          <div
+            style={{
+              fontSize: "var(--fontSizeSmaller)",
+              fontWeight: "normal",
+              lineHeight: "1.4"
+            }}
+          >
+            {model.path}
+          </div>
         </div>
       ) : (
         model.repo_id || ""
