@@ -10,17 +10,19 @@
   padding: 0.5em 0.75em;
   background: var(--c_gray0);
   color: var(--c_gray6);
-  font-size: var(--fontSizeNormal);
+  font-size: var(--fontSizeSmall);
   box-shadow: none !important;
-  max-width: 450px;
+  max-width: 250px;
 }
 
 .MuiTooltip-tooltipPlacementLeft {
-  margin-right: 70px !important;
+  margin-right: 50px !important;
+  transform: translateX(30px) !important;
 }
 
 .MuiTooltip-tooltipPlacementRight {
   margin-left: 40px !important;
+  transform: translateX(-30px);
 }
 .MuiTooltip-tooltipPlacementTop {
   margin-bottom: 0.5em !important;
