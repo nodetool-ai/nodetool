@@ -20,8 +20,12 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
 
   const handleSelectAsset = useCallback(
     (assetId: string) => {
-      const shiftKeyPressed = useKeyPressedStore.getState().isKeyPressed("shift");
-      const controlKeyPressed = useKeyPressedStore.getState().isKeyPressed("control");
+      const shiftKeyPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("shift");
+      const controlKeyPressed = useKeyPressedStore
+        .getState()
+        .isKeyPressed("control");
       const metaKeyPressed = useKeyPressedStore.getState().isKeyPressed("meta");
       const selectedAssetIndex = sortedAssets.findIndex(
         (asset) => asset.id === assetId
@@ -42,7 +46,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         for (let i = start; direction * i <= direction * end; i += direction) {
           existingSelection.add(sortedAssets[i].id);
         }
-
         const newSelectedIds = Array.from(existingSelection);
         setSelectedAssetIds(newSelectedIds);
       } else if (controlKeyPressed || metaKeyPressed) {
@@ -69,7 +72,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       lastSelectedAssetId,
       selectedAssetIds,
       setSelectedAssetIds,
-      setCurrentAudioAsset,
+      setCurrentAudioAsset
     ]
   );
 
@@ -96,6 +99,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     setCurrentAudioAsset,
     handleSelectAsset,
     handleSelectAllAssets,
-    handleDeselectAssets,
+    handleDeselectAssets
   };
 };
