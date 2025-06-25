@@ -222,14 +222,15 @@ export const renderModelSecondaryInfo = (
     )}
     {!isHuggingFace && (
       <Typography variant="body2" className="text-license">
-        {modelData.the_model_info?.["general.license"]}
+        {modelData?.the_model_info?.["general.license"] || ""}
       </Typography>
     )}
     {!isHuggingFace && (
       <Typography variant="body2">
-        {modelData.details?.family} - {modelData.details?.format}
-        {modelData.details?.parameter_size && (
-          <> - {modelData.details?.parameter_size}</>
+        {modelData?.details?.family}{" "}
+        {modelData?.details?.format && <>- {modelData.details.format}</>}
+        {modelData?.details?.parameter_size && (
+          <> - {modelData.details.parameter_size}</>
         )}
       </Typography>
     )}

@@ -35,6 +35,7 @@ import {
   sortModelTypes
 } from "./ModelUtils";
 import SearchInput from "../search/SearchInput";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const styles = (theme: any) =>
   css({
@@ -454,6 +455,22 @@ const ModelList: React.FC = () => {
     }
   };
 
+  // Hook into download store
+  const downloadStore = useModelDownloadStore();
+
+  const startDownload = React.useCallback(
+    (model: UnifiedModel) => {
+      const repoId = model.repo_id || model.id;
+      downloadStore.startDownload(
+        repoId,
+        model.type ?? "",
+        model.path ?? undefined
+      );
+      downloadStore.openDialog();
+    },
+    [downloadStore]
+  );
+
   const renderModels = (models: UnifiedModel[]) => {
     if (models.length === 0) {
       return (
@@ -464,6 +481,7 @@ const ModelList: React.FC = () => {
     }
 
     const allowDelete = modelSource === "downloaded";
+    const allowDownload = modelSource === "recommended";
 
     if (viewMode === "grid") {
       return (
@@ -482,6 +500,9 @@ const ModelList: React.FC = () => {
               <ModelCard
                 model={model}
                 handleModelDelete={allowDelete ? handleDeleteClick : undefined}
+                onDownload={
+                  allowDownload ? () => startDownload(model) : undefined
+                }
                 handleShowInExplorer={handleShowInExplorer}
               />
             </Grid>
@@ -496,7 +517,11 @@ const ModelList: React.FC = () => {
               key={`${model.id}-${idx}`}
               model={model}
               handleModelDelete={allowDelete ? handleDeleteClick : undefined}
+              onDownload={
+                allowDownload ? () => startDownload(model) : undefined
+              }
               handleShowInExplorer={handleShowInExplorer}
+              hideMissingInfo={modelSource === "recommended"}
             />
           ))}
         </List>

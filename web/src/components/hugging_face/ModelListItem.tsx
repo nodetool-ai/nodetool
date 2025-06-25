@@ -28,14 +28,15 @@ import { DownloadProgress } from "./DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
 const ModelListItem: React.FC<
-  ModelComponentProps & { showModelStats?: boolean }
+  ModelComponentProps & { showModelStats?: boolean; hideMissingInfo?: boolean }
 > = ({
   model,
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
-  showModelStats = false
+  showModelStats = false,
+  hideMissingInfo = false
 }) => {
   const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
     useModelInfo(model);
@@ -68,7 +69,7 @@ const ModelListItem: React.FC<
     );
   }
 
-  if (!modelData) {
+  if (!modelData && !hideMissingInfo) {
     return (
       <Box
         css={modelListItemStyles}
@@ -128,7 +129,7 @@ const ModelListItem: React.FC<
           </div>
 
           <div className="model-details">
-            {modelData.cardData?.pipeline_tag && (
+            {modelData?.cardData?.pipeline_tag && (
               <Chip
                 label={modelData.cardData.pipeline_tag}
                 size="small"
@@ -145,7 +146,7 @@ const ModelListItem: React.FC<
             )}
 
             <Typography component="span" className="model-info">
-              {renderModelSecondaryInfo(modelData, isHuggingFace)}
+              {renderModelSecondaryInfo(modelData ?? undefined, isHuggingFace)}
             </Typography>
           </div>
         </div>
@@ -158,7 +159,7 @@ const ModelListItem: React.FC<
                   <CloudDownloadIcon fontSize="small" />
                 </Tooltip>
                 <Typography component="span" variant="body2">
-                  {modelData.downloads?.toLocaleString() || "N/A"}
+                  {modelData?.downloads?.toLocaleString() || "N/A"}
                 </Typography>
               </div>
               <div className="model-stats-item">
@@ -166,7 +167,7 @@ const ModelListItem: React.FC<
                   <FavoriteIcon fontSize="small" />
                 </Tooltip>
                 <Typography component="span" variant="body2">
-                  {modelData.likes?.toLocaleString() || "N/A"}
+                  {modelData?.likes?.toLocaleString() || "N/A"}
                 </Typography>
               </div>
             </div>
