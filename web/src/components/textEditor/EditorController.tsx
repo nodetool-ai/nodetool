@@ -88,10 +88,28 @@ const EditorController = ({
       const rootElement = editor.getRootElement();
       if (!rootElement) return null;
 
+      // We need to account for implicit "\n" characters that appear in
+      // root.textContent(). Besides the newline inserted between top-level
+      // block elements (handled separately below), the browser also injects a
+      // newline for every <br> element. Because <br> nodes are *not* text
+      // nodes, the previous walker that only iterated over `SHOW_TEXT` nodes
+      // would miss them, causing our running `charCount` to fall behind by
+      // one for every <br>. This manifested as an ever-increasing offset where
+      // the first highlighted match was shifted by one character, the second
+      // by two, and so on when matches were placed on separate lines.
+
+      // By including `SHOW_ELEMENT` and explicitly treating <br> elements as
+      // a single character, we stay perfectly in sync with `textContent`.
       const walker = document.createTreeWalker(
         rootElement,
-        NodeFilter.SHOW_TEXT,
-        null
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode: (n) => {
+            if (n.nodeType === Node.TEXT_NODE) return NodeFilter.FILTER_ACCEPT;
+            if (n.nodeName === "BR") return NodeFilter.FILTER_ACCEPT;
+            return NodeFilter.FILTER_SKIP;
+          }
+        }
       );
 
       let node: Node | null = null;
@@ -111,6 +129,18 @@ const EditorController = ({
       let prevTopLevel: Node | null = null;
 
       while ((node = walker.nextNode())) {
+        // Handle <br> elements which contribute a "\n" to textContent but have
+        // no length otherwise.
+        if (node.nodeName === "BR") {
+          if (matchStart === charCount) {
+            // Match starts exactly at the line break – there is no real DOM
+            // location to highlight, so we abort.
+            return null;
+          }
+          charCount += 1;
+          continue;
+        }
+
         // Insert implicit newline char when moving to a new top-level element
         const currentTopLevel = getTopLevelContainer(node);
         if (
