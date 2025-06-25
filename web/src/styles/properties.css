@@ -596,3 +596,34 @@
   color: inherit;
   font-size: inherit;
 }
+
+/* MODEL PROPERTY – Custom Select Overrides */
+.model-property .options-list {
+  /* Ensure the list is visually distinct and compact */
+  padding: 2px 0;
+}
+
+.model-property .option {
+  /* Smaller font for better density */
+  font-size: var(--fontSizeSmaller) !important;
+  /* Visual separator between items */
+  border-top: 1px solid var(--c_gray2);
+}
+
+/* Remove the first top border to avoid double line on top */
+.model-property .option:first-of-type {
+  border-top: none;
+}
+
+/* Improve hover visibility within model property selects */
+.model-property .option:hover {
+  background-color: var(--c_gray3) !important;
+}
+
+.model-property .select-header-text {
+  font-size: var(--fontSizeSmaller) !important;
+}
+
+.model-property .select-header {
+  padding: 0 4px !important;
+}

@@ -20,6 +20,11 @@ const ModelProperty = (props: PropertyProps) => {
     );
   }, [edges, props.nodeId, props.property.name]);
 
+  const modelClass = useMemo(
+    () => `model-type-${modelType.replace(/\./g, "-")}`,
+    [modelType]
+  );
+
   const renderModelSelect = () => {
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
@@ -58,10 +63,10 @@ const ModelProperty = (props: PropertyProps) => {
   };
 
   return (
-    <div className="model-property">
+    <div className={`model-property ${modelClass}`}>
       {!props.value && (
-      <PropertyLabel
-        name={props.property.name}
+        <PropertyLabel
+          name={props.property.name}
           description={props.property.description}
           id={id}
         />
