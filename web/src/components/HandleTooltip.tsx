@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { css } from "@emotion/react";
 import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
@@ -9,6 +9,7 @@ import { getMousePosition } from "../utils/MousePosition";
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
+const ENTER_DELAY = 600;
 
 const tooltipStyles = css`
   position: fixed;
@@ -40,17 +41,38 @@ const HandleTooltip = memo(function HandleTooltip({
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
+  // Ref to keep track of the timer used for delaying tooltip appearance
+  const showTimerRef = useRef<number | null>(null);
+
+  // Clear any pending timers on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (showTimerRef.current !== null) {
+        clearTimeout(showTimerRef.current);
+      }
+    };
+  }, []);
+
   const prettyName = paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
   const handleMouseEnter = useCallback(() => {
-    setTooltipPosition(getMousePosition());
-    setShowTooltip(true);
+    const position = getMousePosition();
+    // Start a timer; show tooltip only after ENTER_DELAY ms
+    showTimerRef.current = window.setTimeout(() => {
+      setTooltipPosition(position);
+      setShowTooltip(true);
+    }, ENTER_DELAY);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    // Cancel pending timer if it exists
+    if (showTimerRef.current !== null) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
     setShowTooltip(false);
   }, []);
 
