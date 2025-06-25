@@ -190,11 +190,14 @@ const styles = (theme: any) =>
     }
   });
 
-const ModelCard: React.FC<ModelComponentProps> = ({
+const ModelCard: React.FC<
+  ModelComponentProps & { ollamaBasePath?: string | null }
+> = ({
   model,
   onDownload,
   handleModelDelete,
-  handleShowInExplorer
+  handleShowInExplorer,
+  ollamaBasePath
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
@@ -208,6 +211,9 @@ const ModelCard: React.FC<ModelComponentProps> = ({
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
+
+  const explorerDisabled =
+    model.type === "llama_model" ? !model.path && !ollamaBasePath : !model.path;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
@@ -257,6 +263,8 @@ const ModelCard: React.FC<ModelComponentProps> = ({
         onDownload={onDownload}
         downloaded={downloaded}
         handleShowInExplorer={handleShowInExplorer}
+        ollamaBasePath={ollamaBasePath}
+        explorerDisabled={explorerDisabled}
       />
     </Card>
   );

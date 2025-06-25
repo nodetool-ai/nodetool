@@ -509,6 +509,7 @@ const ModelList: React.FC = () => {
                 handleShowInExplorer={
                   allowShowInExplorer ? handleShowInExplorer : undefined
                 }
+                ollamaBasePath={ollamaBasePath as string | null | undefined}
               />
             </Grid>
           ))}
@@ -529,6 +530,7 @@ const ModelList: React.FC = () => {
                 allowShowInExplorer ? handleShowInExplorer : undefined
               }
               hideMissingInfo={modelSource === "recommended"}
+              ollamaBasePath={ollamaBasePath as string | null | undefined}
             />
           ))}
         </List>
