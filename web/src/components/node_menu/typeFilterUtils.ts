@@ -1,4 +1,3 @@
-import { console } from "node:inspector/promises";
 import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
 
@@ -136,6 +135,96 @@ export const filterDataByType = (
     } else {
       filtered = filterTypesByOutputType(filtered, buildTypeMeta(outputType));
     }
+  }
+
+  return filtered;
+};
+
+// -----------------------------
+// Strict / Exact type matching
+// -----------------------------
+/**
+ * Recursively checks whether a TypeMetadata tree contains the given type name.
+ * This is used for the NodeMenu where we only care if a node *mentions* a type
+ * (directly or nested inside list/union/dict/etc.), not whether types are
+ * connectable.
+ */
+export const typeTreeContains = (
+  meta: TypeMetadata | undefined,
+  targetType: TypeName
+): boolean => {
+  if (!meta) return false;
+
+  if (meta.type === targetType) return true;
+
+  if (meta.type_args && meta.type_args.length > 0) {
+    return meta.type_args.some((arg) => typeTreeContains(arg, targetType));
+  }
+
+  return false;
+};
+
+/**
+ * Filter helpers that *do not* use connectability – they only look for an exact
+ * occurrence of the requested type in the property / output signatures.
+ */
+export const filterTypesByInputExact = (
+  metadata: NodeMetadata[],
+  inputType: TypeName
+): NodeMetadata[] => {
+  if (!inputType) return metadata;
+
+  if (inputType === "any") {
+    return metadata.filter((node) =>
+      node.properties.some((prop) => prop.type.type === "any")
+    );
+  }
+
+  return metadata.filter((node) =>
+    node.properties.some((prop) => typeTreeContains(prop.type, inputType))
+  );
+};
+
+export const filterTypesByOutputExact = (
+  metadata: NodeMetadata[],
+  outputType: TypeName
+): NodeMetadata[] => {
+  if (!outputType) return metadata;
+
+  if (outputType === "any") {
+    return metadata.filter((node) =>
+      node.outputs.some((out) => out.type.type === "any")
+    );
+  }
+
+  // Special case: "notype" means the node produces **no** outputs.
+  if (outputType === "notype") {
+    return metadata.filter((node) => node.outputs.length === 0);
+  }
+
+  return metadata.filter((node) =>
+    node.outputs.some((out) => typeTreeContains(out.type, outputType))
+  );
+};
+
+/**
+ * Strict variant of type filtering used by the NodeMenu.  Does *not* rely on
+ * connectability – it only checks if the node definitions contain the type
+ * literally.
+ */
+export const filterDataByExactType = (
+  metadata: NodeMetadata[],
+  inputType: TypeName | undefined,
+  outputType: TypeName | undefined
+): NodeMetadata[] => {
+  let filtered = metadata;
+
+  if (inputType) {
+    filtered = filterTypesByInputExact(filtered, inputType);
+  }
+
+  if (outputType) {
+    filtered = filterTypesByOutputExact(filtered, outputType);
   }
 
   return filtered;

@@ -206,7 +206,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
             searchTerm,
             newPath,
             selectedInputType as TypeName,
-            selectedOutputType as TypeName
+            selectedOutputType as TypeName,
+            true
           );
         // Store in cache
         set((state) => ({
@@ -265,7 +266,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           term,
           store.selectedPath,
           store.selectedInputType as TypeName,
-          store.selectedOutputType as TypeName
+          store.selectedOutputType as TypeName,
+          true
         );
 
       set({
