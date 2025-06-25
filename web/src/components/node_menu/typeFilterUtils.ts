@@ -181,7 +181,7 @@ export const filterTypesByInputExact = (
   }
 
   return metadata.filter((node) =>
-    node.properties.some((prop) => typeTreeContains(prop.type, inputType))
+    node.properties.some((prop) => prop.type.type === inputType)
   );
 };
 
@@ -203,7 +203,7 @@ export const filterTypesByOutputExact = (
   }
 
   return metadata.filter((node) =>
-    node.outputs.some((out) => typeTreeContains(out.type, outputType))
+    node.outputs.some((out) => out.type.type === outputType)
   );
 };
 
