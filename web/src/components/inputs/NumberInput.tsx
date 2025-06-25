@@ -140,7 +140,7 @@ const useDragHandling = (
       const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
       let speedFactor = 1 - t * t;
       speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
-      if (shiftKeyPressed) {
+      if (e.shiftKey) {
         speedFactor = Math.max(
           speedFactor / SHIFT_SLOWDOWN_DIVIDER,
           SHIFT_MIN_SPEED_FACTOR
@@ -160,7 +160,7 @@ const useDragHandling = (
 
       let newValue: number;
 
-      if (isOverSlider && !shiftKeyPressed) {
+      if (isOverSlider && !e.shiftKey) {
         // Direct slider mapping: left => min, right => max
         const ratio = (e.clientX - rect.left) / rect.width;
         newValue =
@@ -209,7 +209,6 @@ const useDragHandling = (
       props.max,
       props.inputType,
       props.onChange,
-      shiftKeyPressed,
       calculateStep,
       calculateDecimalPlaces,
       setInputIsFocused,
@@ -411,23 +410,40 @@ const NumberInput: React.FC<InputProps> = (props) => {
   useEffect(() => {
     // Sync with external value changes, but only when not dragging or focused.
     if (!inputIsFocused && !state.isDragging) {
-      setState((prevState) => ({
-        ...prevState,
-        localValue: (props.value ?? 0).toString()
-      }));
+      const newValueStr = (props.value ?? 0).toString();
+      setState((prevState) => {
+        // Only update if the string representation has actually changed to prevent
+        // an infinite re-render loop that eventually triggers the React "Maximum
+        // update depth exceeded" warning.
+        if (prevState.localValue === newValueStr) {
+          return prevState;
+        }
+        return {
+          ...prevState,
+          localValue: newValueStr
+        };
+      });
     }
   }, [props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
-    if (state.isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
-  }, [state.isDragging, handleMouseMove, handleMouseUp]);
+    if (!state.isDragging) return;
+
+    // Capture the current handler references once. Using local constants keeps the
+    // effect dependency array minimal and prevents re-running this effect on every
+    // render while dragging (which previously caused listener churn and could
+    // contribute to deep update loops).
+    const moveHandler = handleMouseMove;
+    const upHandler = handleMouseUp;
+
+    document.addEventListener("mousemove", moveHandler);
+    document.addEventListener("mouseup", upHandler);
+
+    return () => {
+      document.removeEventListener("mousemove", moveHandler);
+      document.removeEventListener("mouseup", upHandler);
+    };
+  }, [state.isDragging]);
 
   return (
     <div
