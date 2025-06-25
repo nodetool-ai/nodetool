@@ -1,5 +1,14 @@
-import { memo, useCallback, useMemo } from "react";
-import { IconButton, Stack, Tooltip } from "@mui/material";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import {
+  IconButton,
+  Stack,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Checkbox
+} from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
@@ -16,7 +25,8 @@ import {
   Map,
   ShoppingCart,
   Analytics,
-  Work
+  Work,
+  Add
 } from "@mui/icons-material";
 
 const AVAILABLE_TOOLS = [
@@ -51,8 +61,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   google_image_generation: "Generate images using Google's Gemini API",
   openai_image_generation:
     "Generate images using OpenAI's Image Generation API",
-  openai_text_to_speech:
-    "Convert text into spoken audio using OpenAI's Text-to-Speech API"
+  openai_text_to_speech: "Convert text into spoken audio using OpenAI"
 };
 
 const TOOL_ICONS: Record<string, JSX.Element> = {
@@ -78,6 +87,13 @@ const ToolsListProperty = (props: PropertyProps) => {
     () => props.value?.map((tool: any) => tool.name) || [],
     [props.value]
   );
+
+  // Anchor element for the add/select menu
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const openMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchor(event.currentTarget);
+  }, []);
+  const closeMenu = useCallback(() => setMenuAnchor(null), []);
 
   const onChange = useCallback(
     (selectedToolNames: string[]) => {
@@ -105,6 +121,8 @@ const ToolsListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
+
+      {/* Selected tools row */}
       <Stack
         className="tools-list-items"
         direction="row"
@@ -112,36 +130,79 @@ const ToolsListProperty = (props: PropertyProps) => {
         flexWrap="wrap"
         sx={{ mt: 1 }}
       >
-        {AVAILABLE_TOOLS.map((tool) => {
-          const isSelected = toolNames.includes(tool);
-          return (
-            <Tooltip
-              title={TOOL_DESCRIPTIONS[tool] || tool}
-              key={tool}
-              placement="top"
+        {toolNames.map((tool) => (
+          <Tooltip
+            key={tool}
+            title={TOOL_DESCRIPTIONS[tool] || tool}
+            placement="top"
+          >
+            <IconButton
+              size="small"
+              onClick={() => handleToggleTool(tool)}
+              sx={{
+                padding: "1px",
+                marginLeft: "0 !important",
+                transition: "color 0.2s ease",
+                color: "c_hl1",
+                "&:hover": {
+                  color: "c_hl1"
+                },
+                "& svg": {
+                  fontSize: "12px"
+                }
+              }}
             >
-              <IconButton
-                size="small"
-                onClick={() => handleToggleTool(tool)}
-                sx={{
-                  padding: "1px",
-                  marginLeft: "0 !important",
-                  transition: "color 0.2s ease",
-                  color: isSelected ? "c_hl1" : "c_gray4",
-                  "&:hover": {
-                    color: isSelected ? "c_hl1" : "c_gray6"
-                  },
-                  "& svg": {
-                    fontSize: "12px"
-                  }
-                }}
-              >
+              {TOOL_ICONS[tool] || <Search fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        ))}
+
+        {/* Add (+) icon */}
+        <Tooltip title="Add / Remove Tools" placement="top">
+          <IconButton
+            size="small"
+            onClick={openMenu}
+            sx={{
+              padding: "1px",
+              marginLeft: "0 !important",
+              color: "c_gray4",
+              "&:hover": {
+                color: "c_gray6"
+              },
+              "& svg": {
+                fontSize: "12px"
+              }
+            }}
+          >
+            <Add fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {/* Menu for selecting tools */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeMenu}
+      >
+        {AVAILABLE_TOOLS.map((tool) => {
+          const selected = toolNames.includes(tool);
+          return (
+            <MenuItem key={tool} onClick={() => handleToggleTool(tool)} dense>
+              <ListItemIcon sx={{ minWidth: 24 }}>
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
-              </IconButton>
-            </Tooltip>
+              </ListItemIcon>
+              <ListItemText>{TOOL_DESCRIPTIONS[tool] || tool}</ListItemText>
+              <Checkbox
+                checked={selected}
+                size="small"
+                sx={{ p: 0, ml: 1 }}
+                disableRipple
+              />
+            </MenuItem>
           );
         })}
-      </Stack>
+      </Menu>
     </>
   );
 };
