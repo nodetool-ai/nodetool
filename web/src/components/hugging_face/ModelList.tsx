@@ -272,11 +272,20 @@ const ModelList: React.FC = () => {
     refetchOnWindowFocus: false
   });
 
-  // Merge backend-provided recommended models with our static list of
-  // curated Ollama recommendations.
+  // Build a set of IDs that are already downloaded (HF + Ollama)
+  const downloadedIds = useMemo(() => {
+    const ids = new Set<string>();
+    (hfModels || []).forEach((m) => ids.add(m.id));
+    (ollamaModels || []).forEach((m) => ids.add(m.id));
+    return ids;
+  }, [hfModels, ollamaModels]);
+
   const combinedRecommendedModels = useMemo<UnifiedModel[]>(() => {
-    return [...(recommendedModels || []), ...staticOllamaModels];
-  }, [recommendedModels]);
+    // Merge backend-provided list with curated static list
+    const merged = [...(recommendedModels || []), ...staticOllamaModels];
+    // Filter out anything that is already downloaded
+    return merged.filter((m) => !downloadedIds.has(m.id));
+  }, [recommendedModels, staticOllamaModels, downloadedIds]);
 
   const groupedRecommendedModels = useMemo(
     () => groupModelsByType(combinedRecommendedModels),
@@ -454,6 +463,8 @@ const ModelList: React.FC = () => {
       );
     }
 
+    const allowDelete = modelSource === "downloaded";
+
     if (viewMode === "grid") {
       return (
         <Grid className="model-grid-container" container spacing={3}>
@@ -470,7 +481,7 @@ const ModelList: React.FC = () => {
             >
               <ModelCard
                 model={model}
-                handleModelDelete={handleDeleteClick}
+                handleModelDelete={allowDelete ? handleDeleteClick : undefined}
                 handleShowInExplorer={handleShowInExplorer}
               />
             </Grid>
@@ -484,7 +495,7 @@ const ModelList: React.FC = () => {
             <ModelListItem
               key={`${model.id}-${idx}`}
               model={model}
-              handleModelDelete={handleDeleteClick}
+              handleModelDelete={allowDelete ? handleDeleteClick : undefined}
               handleShowInExplorer={handleShowInExplorer}
             />
           ))}
