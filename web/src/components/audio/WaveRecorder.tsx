@@ -14,7 +14,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     handleRecord,
     isRecording,
     isLoading,
-    audioDeviceNames,
+    audioInputDevices,
     isDeviceListVisible,
     toggleDeviceListVisibility
   } = useWaveRecorder(props);
@@ -96,7 +96,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
       {isDeviceListVisible && (
         <div className="audio-device-list" style={{ margin: "5px" }}>
-          {audioDeviceNames.length > 0 ? (
+          {audioInputDevices.length > 0 ? (
             <>
               <Typography
                 variant="h2"
@@ -106,10 +106,10 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   color: "var(--c_gray6)"
                 }}
               >
-                Detected Audio Devices
+                Input Devices
               </Typography>
               <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
-                {audioDeviceNames.map((deviceName, index) => (
+                {audioInputDevices.map((deviceName, index) => (
                   <Typography
                     key={index}
                     component="li"
