@@ -43,9 +43,9 @@ const styles = (theme: any) =>
       width: "25px !important",
       height: "25px !important",
       marginLeft: "0",
-      padding: "10px",
+      padding: ".1em",
       transition: "border",
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray0
     },
     "button:hover": {
@@ -79,6 +79,16 @@ const styles = (theme: any) =>
     },
     ".tiny": {
       fontSize: theme.fontSizeTiny
+    },
+    ".zoom": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1em"
+    },
+    ".zoom-slider": {
+      flexGrow: 1
     }
   });
 
@@ -95,13 +105,13 @@ const Zoom: React.FC<ZoomProps> = ({
       </span>
     </Typography>
     <SliderBasic
+      className="zoom-slider nodrag"
       value={zoom}
       min={1}
       max={100}
       step={1}
       size="small"
       color="secondary"
-      className="nodrag"
       aria-labelledby="discrete-slider"
       valueLabelDisplay="off"
       onChange={onSliderChange}

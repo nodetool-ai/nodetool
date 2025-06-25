@@ -138,14 +138,14 @@ const ThemeNodes: Theme = createTheme({
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          wordSpacing: "-.2em"
         }),
         h3: ({ theme }) => ({
           fontSize: "1.5em",
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          wordSpacing: "-.2em"
         }),
         h4: ({ theme }) => ({
           fontSize: "1.25em",
@@ -154,7 +154,7 @@ const ThemeNodes: Theme = createTheme({
           textTransform: "uppercase",
           fontWeight: 300,
           fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          wordSpacing: "-.2em"
         }),
         h5: ({ theme }) => ({
           fontSize: "0.8em",
@@ -163,7 +163,7 @@ const ThemeNodes: Theme = createTheme({
           textTransform: "uppercase",
           fontWeight: 600,
           fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          wordSpacing: "-.2em"
         }),
         h6: ({ theme }) => ({
           fontSize: "0.8em",
@@ -171,7 +171,7 @@ const ThemeNodes: Theme = createTheme({
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
           textTransform: "uppercase",
-          wordSpacing: "-3px"
+          wordSpacing: "-.2em"
         }),
         body1: ({ theme }) => ({
           fontSize: "1em",

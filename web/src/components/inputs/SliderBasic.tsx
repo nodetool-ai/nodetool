@@ -54,7 +54,7 @@ const SliderBasic = ({
 }: SliderBasicProps) => {
   return (
     <Tooltip title={tooltipText} placement={tooltipPlacement}>
-      <div>
+      <div className="slider-basic">
         <Slider {...props} css={sliderBasicStyles} tabIndex={-1} />
       </div>
     </Tooltip>
