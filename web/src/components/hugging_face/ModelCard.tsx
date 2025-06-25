@@ -198,8 +198,14 @@ const ModelCard: React.FC<ModelComponentProps> = ({
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
-  const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
-    useModelInfo(model);
+  const {
+    modelData,
+    isLoading,
+    downloaded,
+    isHuggingFace,
+    isOllama,
+    sizeBytes
+  } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
 
@@ -240,6 +246,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
         toggleTags={toggleTags}
         readmeDialogOpen={readmeDialogOpen}
         setReadmeDialogOpen={setReadmeDialogOpen}
+        sizeBytes={sizeBytes}
       />
       <ModelCardActions
         model={model}

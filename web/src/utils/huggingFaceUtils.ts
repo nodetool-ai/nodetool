@@ -18,7 +18,7 @@ function getHfToken(): string | undefined {
 }
 
 export async function fetchHuggingFaceRepoInfo(repoId: string): Promise<any> {
-  const url = `https://huggingface.co/api/models/${repoId}`;
+  const url = `https://huggingface.co/api/models/${repoId}?blobs=true`;
 
   try {
     const { data } = await axios.get(url, { timeout: 8000 });

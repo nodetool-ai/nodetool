@@ -48,7 +48,7 @@ const modelListItemStyles = (theme: any) =>
       "& .model-name": {
         flexGrow: 1,
         textTransform: "uppercase",
-        fontSize: "var(--fontSizeBig)",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: "400",
         color: "var(--palette-primary-light)",
         overflow: "hidden",

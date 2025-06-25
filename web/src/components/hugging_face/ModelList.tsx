@@ -114,7 +114,8 @@ const styles = (theme: any) =>
     },
     button: {
       color: theme.palette.c_gray5,
-      margin: "0"
+      margin: "0",
+      padding: "0 .5em"
     },
     ".model-type-button": {
       backgroundColor: theme.palette.c_gray1,

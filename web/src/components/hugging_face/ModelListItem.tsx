@@ -13,13 +13,12 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   ModelComponentProps,
-  formatId,
-  modelSize,
   renderModelSecondaryInfo,
   renderModelActions,
   HuggingFaceLink,
   OllamaLink,
-  getShortModelName
+  getShortModelName,
+  formatBytes
 } from "./ModelUtils";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useModelInfo } from "./ModelUtils";
@@ -38,8 +37,14 @@ const ModelListItem: React.FC<
   showModelStats = false,
   hideMissingInfo = false
 }) => {
-  const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
-    useModelInfo(model);
+  const {
+    modelData,
+    isLoading,
+    downloaded,
+    isHuggingFace,
+    isOllama,
+    sizeBytes
+  } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
 
@@ -137,10 +142,13 @@ const ModelListItem: React.FC<
                 component="span"
               />
             )}
-            {model.size_on_disk && (
-              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
+            {sizeBytes && (
+              <Tooltip
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                title={downloaded ? "Size on disk" : "Download size"}
+              >
                 <Typography component="span" className="model-info">
-                  {modelSize(model)}
+                  {formatBytes(sizeBytes)}
                 </Typography>
               </Tooltip>
             )}
