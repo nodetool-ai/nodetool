@@ -53,13 +53,13 @@ const namespaceStyles = (theme: any) =>
       alignItems: "center",
       flexDirection: "column",
       margin: "0 1em .5em ",
-      justifyContent: "flex-end"
+      justifyContent: "flex-start"
     },
     ".node-packs-info": {
       textAlign: "right",
       display: "flex",
       flexDirection: "column",
-      alignItems: "flex-end",
+      alignItems: "flex-start",
       width: "100%"
     },
     ".list-box": {
@@ -456,18 +456,14 @@ const NoSelectionContent = memo(function NoSelectionContent({
       ) : (
         <div className="explanation">
           <h4>Node Search</h4>
+          <p>
+            Browse through available nodes by selecting namespaces from the menu
+            on the left
+          </p>
+          <p>Add nodes to your workflow by:</p>
           <ul>
-            <li>
-              Browse through available nodes by selecting namespaces from the
-              menu on the left
-            </li>
-            <li>
-              Add nodes to your workflow by:
-              <ul>
-                <li>Clicking on the desired node</li>
-                <li>Or dragging it directly onto the canvas</li>
-              </ul>
-            </li>
+            <li>Clicking on the desired node</li>
+            <li>Or dragging it directly onto the canvas</li>
           </ul>
         </div>
       )}
