@@ -15,6 +15,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
+import { openInExplorer } from "../../utils/fileExplorer";
 
 const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
@@ -99,6 +100,26 @@ const HuggingFaceDownloadDialog: React.FC = () => {
               No active downloads
             </Typography>
           )}
+        </Box>
+        <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FolderOutlined />}
+            onClick={() =>
+              huggingfaceBasePath && openInExplorer(huggingfaceBasePath)
+            }
+            disabled={!huggingfaceBasePath}
+          >
+            Open HuggingFace folder
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FolderOutlined />}
+            onClick={() => ollamaBasePath && openInExplorer(ollamaBasePath)}
+            disabled={!ollamaBasePath}
+          >
+            Open Ollama folder
+          </Button>
         </Box>
       </DialogContent>
       <DialogActions
