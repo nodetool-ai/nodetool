@@ -459,22 +459,12 @@ const ModelList: React.FC = () => {
     }
   };
 
-  // const handleViewModeChange = (
-  //   event: React.MouseEvent<HTMLElement>,
-  //   newViewMode: "grid" | "list" | null
-  // ) => {
-  //   if (newViewMode !== null) {
-  //     setViewMode(newViewMode);
-  //   }
-  // };
-
   const handleModelSourceChange = (
     event: React.MouseEvent<HTMLElement>,
     newSource: "downloaded" | "recommended" | null
   ) => {
     if (newSource !== null) {
       setModelSource(newSource);
-      setSelectedModelType("All");
     }
   };
 
@@ -613,7 +603,7 @@ const ModelList: React.FC = () => {
   }
 
   return (
-    <Box className="huggingface-model-list" css={styles}>
+    <Box className="model-list-container" css={styles}>
       <Box className="model-list-header">
         <SearchInput
           focusOnTyping={true}
