@@ -27,8 +27,6 @@ import {
   DialogTitle
 } from "@mui/material";
 import { LlamaModel, UnifiedModel } from "../../stores/ApiTypes";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   prettifyModelType,
   groupModelsByType,
@@ -87,7 +85,7 @@ const styles = (theme: any) =>
       padding: "0 0 4em 1em"
     },
     ".model-list-section": {
-      marginBottom: theme.spacing(15)
+      marginBottom: theme.spacing(5)
     },
     ".model-list-section.empty-section": {
       marginBottom: theme.spacing(5),
@@ -162,6 +160,19 @@ const styles = (theme: any) =>
       flexDirection: "row",
       fontSize: "var(--fontSizeSmaller)",
       gap: "1em"
+    },
+    ".model-category": {},
+    ".model-category.empty": {
+      color: theme.palette.c_gray3
+    },
+    ".model-type-button.empty": {
+      color: theme.palette.c_gray3,
+      "& span": {
+        color: theme.palette.c_gray3
+      }
+    },
+    ".model-type-button.Mui-selected.empty span": {
+      color: "var(--palette-primary-dark)"
     }
   });
 
@@ -286,18 +297,18 @@ const ModelList: React.FC = () => {
     [hfModels]
   );
   const modelTypes = useMemo(() => {
-    const sourceGroups =
-      modelSource === "recommended"
-        ? groupedRecommendedModels
-        : groupedHFModels;
-    const types = new Set(Object.keys(sourceGroups));
-    types.add("Other");
-    // Add Ollama category when there are llama models available in the source groups
-    if ("llama_model" in sourceGroups || modelSource === "downloaded") {
-      types.add("llama_model");
-    }
-    return sortModelTypes(Array.from(types));
-  }, [groupedHFModels, groupedRecommendedModels, modelSource]);
+    const allTypes = new Set<string>();
+
+    // Add types from groupedHFModels
+    Object.keys(groupedHFModels).forEach((type) => allTypes.add(type));
+    // Add types from groupedRecommendedModels
+    Object.keys(groupedRecommendedModels).forEach((type) => allTypes.add(type));
+
+    allTypes.add("Other");
+    allTypes.add("llama_model"); // Ensure llama_model is always an option
+
+    return sortModelTypes(Array.from(allTypes));
+  }, [groupedHFModels, groupedRecommendedModels]);
 
   const handleModelTypeChange = useCallback((newValue: string) => {
     setSelectedModelType(newValue);
@@ -488,7 +499,9 @@ const ModelList: React.FC = () => {
     if (models.length === 0) {
       return (
         <Typography variant="body1" sx={{ mt: 2 }}>
-          No models found for &quot;{modelSearchTerm}&quot;
+          {modelSearchTerm
+            ? `No models found for &quot;${modelSearchTerm}&quot;`
+            : "No models found"}
         </Typography>
       );
     }
@@ -641,17 +654,31 @@ const ModelList: React.FC = () => {
       </Box>
       <Box className="main">
         <Box className="sidebar">
-          <List>
-            {modelTypes.map((type) => (
-              <ListItemButton
-                className="model-type-button"
-                key={type}
-                selected={selectedModelType === type}
-                onClick={() => handleModelTypeChange(type)}
-              >
-                <ListItemText primary={prettifyModelType(type)} />
-              </ListItemButton>
-            ))}
+          <List className="model-type-list">
+            {modelTypes.map((type) => {
+              let isEmpty = false;
+              if (type === "llama_model") {
+                // Ollama models are a flat list, so we check overall length
+                isEmpty = (ollamaModels?.length || 0) === 0;
+              } else if (modelSource === "downloaded") {
+                // For downloaded (HF), check the groupedHFModels
+                isEmpty = (groupedHFModels[type]?.length || 0) === 0;
+              } else {
+                // For recommended, check the groupedRecommendedModels
+                isEmpty = (groupedRecommendedModels[type]?.length || 0) === 0;
+              }
+
+              return (
+                <ListItemButton
+                  className={`model-type-button ${isEmpty ? "empty" : ""}`}
+                  key={type}
+                  selected={selectedModelType === type}
+                  onClick={() => handleModelTypeChange(type)}
+                >
+                  <ListItemText primary={prettifyModelType(type)} />
+                </ListItemButton>
+              );
+            })}
           </List>
         </Box>
 
@@ -681,9 +708,17 @@ const ModelList: React.FC = () => {
               )}
               {modelTypes
                 .slice(1)
-                .filter((modelType) => filteredModels[modelType]?.length > 0)
+                // .filter((modelType) => filteredModels[modelType]?.length > 0)
                 .map((modelType) => (
-                  <Box className="model-list-section" key={modelType} mt={2}>
+                  <Box
+                    className={
+                      filteredModels[modelType]?.length > 0
+                        ? "model-category"
+                        : "model-category empty"
+                    }
+                    key={modelType}
+                    mt={2}
+                  >
                     <Typography variant="h2">
                       {prettifyModelType(modelType)}
                     </Typography>
