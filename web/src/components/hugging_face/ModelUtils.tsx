@@ -238,41 +238,49 @@ export const renderModelSecondaryInfo = (
 );
 
 export const renderModelActions = (
-  props: ModelComponentProps & { explorerDisabled?: boolean },
+  props: ModelComponentProps & { showFileExplorerButton?: boolean },
   downloaded: boolean
-) => (
-  <Box
-    className="model-actions"
-    sx={{
-      display: "flex",
-      gap: 1,
-      alignItems: "center",
-      justifyContent: "space-between",
-      width: "100%",
-      padding: "0 .5em"
-    }}
-  >
-    {props.onDownload && !downloaded && (
-      <ModelDownloadButton onClick={props.onDownload} />
-    )}
-    {downloaded && (
-      <Tooltip title="Downloaded">
-        <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
-      </Tooltip>
-    )}
-    {props.handleShowInExplorer && (
-      <ModelShowInExplorerButton
-        onClick={() => props.handleShowInExplorer!(props.model.id)}
-        disabled={props.explorerDisabled ?? !props.model.path}
-      />
-    )}
-    {props.handleModelDelete && (
-      <ModelDeleteButton
-        onClick={() => props.handleModelDelete!(props.model.id)}
-      />
-    )}
-  </Box>
-);
+) => {
+  const {
+    model,
+    handleModelDelete,
+    handleShowInExplorer,
+    onDownload,
+    showFileExplorerButton = true
+  } = props;
+
+  return (
+    <Box
+      className="model-actions"
+      sx={{
+        display: "flex",
+        gap: 1,
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        padding: "0 .5em"
+      }}
+    >
+      {onDownload && !downloaded && (
+        <ModelDownloadButton onClick={onDownload} />
+      )}
+      {downloaded && (
+        <Tooltip title="Downloaded">
+          <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
+        </Tooltip>
+      )}
+      {handleShowInExplorer && showFileExplorerButton && (
+        <ModelShowInExplorerButton
+          onClick={() => handleShowInExplorer!(model.id)}
+          disabled={!model.path}
+        />
+      )}
+      {handleModelDelete && (
+        <ModelDeleteButton onClick={() => handleModelDelete!(model.id)} />
+      )}
+    </Box>
+  );
+};
 
 export async function fetchOllamaModelInfo(modelName: string) {
   const { data, error } = await client.GET("/api/models/ollama_model_info", {

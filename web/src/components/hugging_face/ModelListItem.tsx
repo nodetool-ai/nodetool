@@ -31,6 +31,7 @@ const ModelListItem: React.FC<
     showModelStats?: boolean;
     hideMissingInfo?: boolean;
     ollamaBasePath?: string | null;
+    showFileExplorerButton?: boolean;
   }
 > = ({
   model,
@@ -40,7 +41,8 @@ const ModelListItem: React.FC<
   compactView = false,
   showModelStats = false,
   hideMissingInfo = false,
-  ollamaBasePath
+  ollamaBasePath,
+  showFileExplorerButton = true
 }) => {
   const {
     modelData,
@@ -52,9 +54,6 @@ const ModelListItem: React.FC<
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
-
-  const explorerDisabled =
-    model.type === "llama_model" ? !model.path && !ollamaBasePath : !model.path;
 
   if (isLoading) {
     return (
@@ -118,7 +117,7 @@ const ModelListItem: React.FC<
                   handleModelDelete,
                   onDownload,
                   handleShowInExplorer,
-                  explorerDisabled
+                  showFileExplorerButton
                 },
                 downloaded
               )}
@@ -132,7 +131,9 @@ const ModelListItem: React.FC<
   return (
     <Box
       css={modelListItemStyles}
-      className={`model-list-item ${compactView ? "compact" : ""}`}
+      className={`model-list-item ${compactView ? "compact " : ""} ${
+        downloaded ? "downloaded" : ""
+      }`}
     >
       <div className="model-content">
         <div className="model-info-container">
@@ -209,7 +210,7 @@ const ModelListItem: React.FC<
                 handleModelDelete,
                 onDownload,
                 handleShowInExplorer,
-                explorerDisabled
+                showFileExplorerButton
               },
               downloaded
             )}
