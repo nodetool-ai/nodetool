@@ -11,20 +11,15 @@ import {
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import {
-  ModelComponentProps,
-  renderModelSecondaryInfo,
-  renderModelActions,
-  HuggingFaceLink,
-  OllamaLink,
-  getShortModelName,
-  formatBytes
-} from "../ModelUtils";
+import { ModelComponentProps } from "../ModelUtils";
 import ThemeNodetool from "../../themes/ThemeNodetool";
-import { useModelInfo } from "../ModelUtils";
+import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
+import ModelCardActions from "../ModelCardActions";
+import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
+import { HuggingFaceLink, OllamaLink } from "../ModelCardActions";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -47,13 +42,14 @@ const ModelListItem: React.FC<
   const {
     modelData,
     isLoading,
-    downloaded,
     isHuggingFace,
-    isOllama,
-    sizeBytes
+    isError,
+    formattedSize,
+    isOllama
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
+  const downloaded = !!model.path;
 
   if (isLoading) {
     return (
@@ -96,7 +92,7 @@ const ModelListItem: React.FC<
             </div>
             <div className="model-details">
               <Typography component="span" className="model-status">
-                {isOllama ? (
+                {model.type === "llama_model" ? (
                   "Model not downloaded."
                 ) : (
                   <span style={{ color: ThemeNodetool.palette.c_warning }}>
@@ -111,16 +107,17 @@ const ModelListItem: React.FC<
             <div className="model-actions-container">
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
-              {renderModelActions(
-                {
-                  model,
-                  handleModelDelete,
-                  onDownload,
-                  handleShowInExplorer,
-                  showFileExplorerButton
-                },
-                downloaded
-              )}
+              <ModelCardActions
+                model={model}
+                modelData={modelData}
+                isHuggingFace={isHuggingFace}
+                isOllama={isOllama}
+                handleModelDelete={handleModelDelete}
+                onDownload={onDownload}
+                handleShowInExplorer={handleShowInExplorer}
+                showFileExplorerButton={showFileExplorerButton}
+                downloaded={downloaded}
+              />
             </div>
           </div>
         </div>
@@ -158,23 +155,18 @@ const ModelListItem: React.FC<
               />
             )}
             <div className="size-and-license">
-              {sizeBytes && (
+              {formattedSize && (
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   title={downloaded ? "Size on disk" : "Download size"}
                 >
                   <Typography component="span" className="model-size">
-                    {formatBytes(sizeBytes)}
+                    {formattedSize}
                   </Typography>
                 </Tooltip>
               )}
 
-              <Typography component="span" className="model-info">
-                {renderModelSecondaryInfo(
-                  modelData ?? undefined,
-                  isHuggingFace
-                )}
-              </Typography>
+              <Typography component="span" className="model-info"></Typography>
             </div>
           </div>
         </div>
@@ -204,16 +196,17 @@ const ModelListItem: React.FC<
           <div className="model-actions">
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
-            {renderModelActions(
-              {
-                model,
-                handleModelDelete,
-                onDownload,
-                handleShowInExplorer,
-                showFileExplorerButton
-              },
-              downloaded
-            )}
+            <ModelCardActions
+              model={model}
+              modelData={modelData}
+              isHuggingFace={isHuggingFace}
+              isOllama={isOllama}
+              handleModelDelete={handleModelDelete}
+              onDownload={onDownload}
+              handleShowInExplorer={handleShowInExplorer}
+              showFileExplorerButton={showFileExplorerButton}
+              downloaded={downloaded}
+            />
           </div>
         </div>
       </div>

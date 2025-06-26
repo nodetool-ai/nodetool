@@ -1,0 +1,104 @@
+import React from "react";
+import { UnifiedModel } from "../stores/ApiTypes";
+import ModelIcon from "../icons/model.svg";
+
+export const prettifyModelType = (type: string) => {
+  if (type === "All") return type;
+
+  if (type === "llama_model") {
+    return (
+      <>
+        <img
+          src="/ollama.png"
+          alt="Ollama"
+          style={{
+            width: "16px",
+            marginRight: "8px",
+            filter: "invert(1)"
+          }}
+        />
+        Ollama
+      </>
+    );
+  }
+
+  const parts = type.split(".");
+  if (parts[0] === "hf") {
+    parts.shift();
+    return (
+      <>
+        <img
+          src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+          alt="Hugging Face"
+          style={{ width: "20px", marginRight: "8px" }}
+        />
+        {parts
+          .map((part) =>
+            part
+              .split("_")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+          )
+          .join(" ")}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={ModelIcon}
+        alt="Model"
+        style={{
+          width: "20px",
+          marginRight: "8px",
+          filter: "invert(1)"
+        }}
+      />
+      {type
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")}
+    </>
+  );
+};
+
+export const getShortModelName = (fullName: string | undefined): string => {
+  if (!fullName) return "";
+  const lastSlashIndex = fullName.lastIndexOf("/");
+  if (lastSlashIndex !== -1 && lastSlashIndex < fullName.length - 1) {
+    return fullName.substring(lastSlashIndex + 1);
+  }
+  return fullName;
+};
+
+export const formatBytes = (bytes?: number): string => {
+  if (bytes === undefined || bytes === null || isNaN(bytes)) {
+    return "";
+  }
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const dm = 2;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
+
+export const groupModelsByType = (models: UnifiedModel[]) => {
+  return models.reduce((acc, model) => {
+    const type = model.type || "Other";
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(model);
+    return acc;
+  }, {} as Record<string, UnifiedModel[]>);
+};
+
+export const sortModelTypes = (types: string[]) => {
+  return types.sort((a, b) => {
+    if (a === "All") return -1;
+    if (b === "All") return 1;
+    return a.localeCompare(b);
+  });
+};

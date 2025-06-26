@@ -1,10 +1,145 @@
 import React from "react";
-import { CardActions, Box, Typography, Tooltip } from "@mui/material";
+import { CardActions, Box, Typography, Tooltip, Button } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import DeleteButton from "../buttons/DeleteButton";
+import { Check } from "@mui/icons-material";
+import { isProduction } from "../../stores/ApiClient";
+import DownloadIcon from "@mui/icons-material/Download";
+import FolderIcon from "@mui/icons-material/Folder";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { HuggingFaceLink, OllamaLink, renderModelActions } from "./ModelUtils";
 import { UnifiedModel } from "../../stores/ApiTypes";
+import { ModelComponentProps } from "./ModelUtils";
+
+const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <>{!isProduction && <DeleteButton onClick={onClick} />}</>
+);
+
+const ModelShowInExplorerButton: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ onClick, disabled }) => (
+  <Tooltip title="Show in File Explorer">
+    <span>
+      <Button
+        onClick={onClick}
+        disabled={disabled}
+        sx={{ minWidth: "auto", padding: "6px" }}
+      >
+        <FolderIcon />
+      </Button>
+    </span>
+  </Tooltip>
+);
+
+const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
+  onClick
+}) => (
+  <Button
+    className="model-download-button"
+    onClick={onClick}
+    variant="outlined"
+  >
+    <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
+    Download
+  </Button>
+);
+
+export const HuggingFaceLink: React.FC<{
+  modelId: string;
+}> = ({ modelId }) =>
+  !modelId.endsWith("safetensors") && (
+    <Tooltip title="View on HuggingFace">
+      <Button
+        size="small"
+        href={`https://huggingface.co/${modelId}`}
+        className="model-external-link-icon huggingface-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img
+          src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+          alt="Hugging Face"
+          style={{
+            width: "1.5em",
+            height: "auto"
+          }}
+        />
+      </Button>
+    </Tooltip>
+  );
+
+export const OllamaLink: React.FC<{
+  modelId: string;
+}> = ({ modelId }) => (
+  <Tooltip title="View on Ollama">
+    <Button
+      size="small"
+      href={`https://ollama.com/library/${modelId.split(":")[0]}`}
+      className="model-external-link-icon ollama-link"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <img
+        src="/ollama.png"
+        alt="Ollama"
+        style={{
+          width: "1.25em",
+          height: "auto",
+          filter: "invert(1)"
+        }}
+      />
+    </Button>
+  </Tooltip>
+);
+
+const ModelActions: React.FC<
+  ModelComponentProps & {
+    downloaded: boolean;
+    showFileExplorerButton?: boolean;
+  }
+> = (props) => {
+  const {
+    model,
+    handleModelDelete,
+    handleShowInExplorer,
+    onDownload,
+    downloaded,
+    showFileExplorerButton = true
+  } = props;
+
+  return (
+    <Box
+      className="model-actions"
+      sx={{
+        display: "flex",
+        gap: 1,
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        padding: "0 .5em"
+      }}
+    >
+      {onDownload && !downloaded && (
+        <ModelDownloadButton onClick={onDownload} />
+      )}
+      {downloaded && (
+        <Tooltip title="Downloaded">
+          <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
+        </Tooltip>
+      )}
+      {handleShowInExplorer && showFileExplorerButton && (
+        <ModelShowInExplorerButton
+          onClick={() => handleShowInExplorer!(model.id)}
+          disabled={!model.path}
+        />
+      )}
+      {handleModelDelete && (
+        <ModelDeleteButton onClick={() => handleModelDelete!(model.id)} />
+      )}
+    </Box>
+  );
+};
 
 interface ModelCardActionsProps {
   model: UnifiedModel;
@@ -40,16 +175,14 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
 
   return (
     <>
-      {renderModelActions(
-        {
-          model,
-          handleModelDelete,
-          onDownload,
-          handleShowInExplorer,
-          showFileExplorerButton: showFileExplorerButtonFinal
-        },
-        downloaded
-      )}
+      <ModelActions
+        model={model}
+        handleModelDelete={handleModelDelete}
+        onDownload={onDownload}
+        handleShowInExplorer={handleShowInExplorer}
+        showFileExplorerButton={showFileExplorerButtonFinal}
+        downloaded={downloaded}
+      />
       <CardActions
         className="card-actions"
         sx={{ justifyContent: "space-between", p: 2 }}
@@ -96,3 +229,5 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
 };
 
 export default React.memo(ModelCardActions);
+
+export { ModelActions };

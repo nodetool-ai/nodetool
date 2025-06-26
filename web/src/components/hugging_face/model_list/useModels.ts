@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client, BASE_URL } from "../../../stores/ApiClient";
 import { llama_models as staticOllamaModels } from "../../../config/models";
 import { LlamaModel, UnifiedModel } from "../../../stores/ApiTypes";
-import { groupModelsByType, sortModelTypes } from "../ModelUtils";
+import {
+  groupModelsByType,
+  sortModelTypes
+} from "../../../utils/modelFormatting";
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { authHeader } from "../../../stores/ApiClient";
@@ -157,11 +160,11 @@ export const useModels = () => {
         ...Object.values(groups).flat(),
         ...(modelSource === "recommended" ? [] : ollamaModels || [])
       ];
-      const filteredAllModels = allModels.filter(filterModel);
+      const filteredAllModels = allModels.filter(filterModel) as UnifiedModel[];
       return Object.fromEntries(
-        modelTypes.map((type) => [
+        modelTypes.map((type: string) => [
           type,
-          filteredAllModels.filter((model) =>
+          filteredAllModels.filter((model: UnifiedModel) =>
             type === "llama_model"
               ? model.type === type
               : model.type === type || (type === "Other" && !model.type)

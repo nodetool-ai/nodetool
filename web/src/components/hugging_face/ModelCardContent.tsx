@@ -7,11 +7,7 @@ import {
   Chip,
   Tooltip
 } from "@mui/material";
-import {
-  renderModelSecondaryInfo,
-  getShortModelName,
-  formatBytes
-} from "./ModelUtils";
+import { getShortModelName, formatBytes } from "../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import ReadmeDialog from "./ReadmeDialog";
@@ -97,8 +93,6 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
 
         {modelData ? (
           <>
-            {renderModelSecondaryInfo(modelData, isHuggingFace)}
-
             <Box>
               {(sizeBytes || model.size_on_disk) && (
                 <Tooltip

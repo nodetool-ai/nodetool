@@ -21,11 +21,15 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import WorkflowChat from "../chat/containers/WorkflowChat";
-import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
+import RequiredModelsDialog from "../hugging_face/RequiredModelsDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import { useAgentStore } from "../stores/AgentStore";
+import { useProxyWithNeuron } from "../hooks/useProxyWithNeuron";
+import { useWorkflowValidation } from "../hooks/useWorkflowValidation";
 
 declare global {
   interface Window {
@@ -80,10 +84,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Monitor connection state and reconnect when disconnected
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
-    
+
     const attemptReconnect = () => {
       if (active && (state === "idle" || state === "error")) {
-        console.log("WorkflowRunner: Connection lost, attempting automatic reconnect...");
+        console.log(
+          "WorkflowRunner: Connection lost, attempting automatic reconnect..."
+        );
         connect(WORKER_URL).catch((error) => {
           console.error("WorkflowRunner: Automatic reconnect failed:", error);
         });
@@ -101,7 +107,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         clearTimeout(reconnectTimer);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, active, connect]);
 
   // OPEN NODE MENU
@@ -117,14 +122,21 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     closeDocumentation: state.closeDocumentation
   }));
 
+  const { showNeedsModelsDialog, missingRepoPaths } = useSettingsStore(
+    (state) => ({
+      showNeedsModelsDialog: state.showNeedsModelsDialog,
+      missingRepoPaths: state.missingRepoPaths
+    })
+  );
+
   return (
     <>
       {missingModelRepos.length > 0 && (
-        <ModelDownloadDialog
+        <RequiredModelsDialog
           open={missingModelRepos.length > 0}
           repos={missingModelRepos}
-          repoPaths={missingModelFiles}
           onClose={clearMissingModels}
+          repoPaths={missingModelFiles}
         />
       )}
       {showDocumentation && selectedNodeType && (

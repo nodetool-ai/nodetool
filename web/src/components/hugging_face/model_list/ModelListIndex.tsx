@@ -8,7 +8,12 @@ import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import ModelDisplay from "./ModelDisplay";
 import DeleteModelDialog from "./DeleteModelDialog";
-import { prettifyModelType } from "../ModelUtils";
+import {
+  prettifyModelType,
+  formatBytes,
+  getShortModelName
+} from "../../../utils/modelFormatting";
+import { useModelInfo } from "../../../hooks/useModelInfo";
 
 const styles = (theme: any) =>
   css({
@@ -200,6 +205,15 @@ const ModelListIndex: React.FC = () => {
     setModelToDelete(null);
   };
 
+  const renderModelCount = (modelType: any) => {
+    if (modelSource === "recommended" && groupedRecommendedModels[modelType]) {
+      return `(${groupedRecommendedModels[modelType].length})`;
+    } else if (modelSource === "downloaded" && groupedHFModels[modelType]) {
+      return `(${groupedHFModels[modelType].length})`;
+    }
+    return "";
+  };
+
   if (isLoading) {
     return (
       <Box
@@ -300,7 +314,7 @@ const ModelListIndex: React.FC = () => {
                   mt={2}
                 >
                   <Typography variant="h2">
-                    {prettifyModelType(modelType)}
+                    {prettifyModelType(modelType)} {renderModelCount(modelType)}
                   </Typography>
                   <ModelDisplay
                     models={filteredModels[modelType] || []}
@@ -317,7 +331,8 @@ const ModelListIndex: React.FC = () => {
           ) : (
             <Box mt={2}>
               <Typography variant="h2">
-                {prettifyModelType(selectedModelType)}
+                {prettifyModelType(selectedModelType)}{" "}
+                {renderModelCount(selectedModelType)}
               </Typography>
               <ModelDisplay
                 models={Object.values(filteredModels)[0]}

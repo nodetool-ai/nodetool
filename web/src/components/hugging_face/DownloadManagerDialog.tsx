@@ -17,7 +17,7 @@ import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
 import { openInExplorer } from "../../utils/fileExplorer";
 
-const HuggingFaceDownloadDialog: React.FC = () => {
+const DownloadManagerDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
@@ -155,4 +155,4 @@ const HuggingFaceDownloadDialog: React.FC = () => {
   );
 };
 
-export default memo(HuggingFaceDownloadDialog, isEqual);
+export default memo(DownloadManagerDialog, isEqual);
