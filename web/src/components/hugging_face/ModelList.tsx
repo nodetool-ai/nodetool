@@ -37,6 +37,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { authHeader } from "../../stores/ApiClient";
+import { IconForType } from "../../config/data_types";
 
 const styles = (theme: any) =>
   css({
@@ -173,6 +174,11 @@ const styles = (theme: any) =>
     },
     ".model-type-button.Mui-selected.empty span": {
       color: "var(--palette-primary-dark)"
+    },
+    ".model-type-list .model-type-button:first-of-type": {
+      "&, & .MuiListItemText-primary": {
+        color: "white !important"
+      }
     }
   });
 
@@ -675,6 +681,19 @@ const ModelList: React.FC = () => {
                   selected={selectedModelType === type}
                   onClick={() => handleModelTypeChange(type)}
                 >
+                  {type === "All" && (
+                    <IconForType
+                      iconName={"model"}
+                      containerStyle={{ marginRight: "0.5em" }}
+                      svgProps={{
+                        style: {
+                          width: "20px",
+                          height: "20px"
+                        }
+                      }}
+                      showTooltip={false}
+                    />
+                  )}
                   <ListItemText primary={prettifyModelType(type)} />
                 </ListItemButton>
               );
@@ -706,25 +725,22 @@ const ModelList: React.FC = () => {
                   Searched models for &quot;{modelSearchTerm}&quot;
                 </Typography>
               )}
-              {modelTypes
-                .slice(1)
-                // .filter((modelType) => filteredModels[modelType]?.length > 0)
-                .map((modelType) => (
-                  <Box
-                    className={
-                      filteredModels[modelType]?.length > 0
-                        ? "model-category"
-                        : "model-category empty"
-                    }
-                    key={modelType}
-                    mt={2}
-                  >
-                    <Typography variant="h2">
-                      {prettifyModelType(modelType)}
-                    </Typography>
-                    {renderModels(filteredModels[modelType] || [])}
-                  </Box>
-                ))}
+              {modelTypes.slice(1).map((modelType) => (
+                <Box
+                  className={
+                    filteredModels[modelType]?.length > 0
+                      ? "model-category"
+                      : "model-category empty"
+                  }
+                  key={modelType}
+                  mt={2}
+                >
+                  <Typography variant="h2">
+                    {prettifyModelType(modelType)}
+                  </Typography>
+                  {renderModels(filteredModels[modelType] || [])}
+                </Box>
+              ))}
             </>
           ) : (
             <Box className="model-list-section" mt={2}>
