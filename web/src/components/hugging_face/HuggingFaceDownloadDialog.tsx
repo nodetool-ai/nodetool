@@ -13,9 +13,12 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { isEqual } from "lodash";
+import { useModelBasePaths } from "../../hooks/useModelBasePaths";
+import { FolderOutlined } from "@mui/icons-material";
 
 const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
+  const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
   const hasActiveDownloads = Object.keys(downloads).length > 0;
 
@@ -23,8 +26,17 @@ const HuggingFaceDownloadDialog: React.FC = () => {
     ? "You can close this dialog and return later - downloads will continue in the background. Access downloads anytime via the Download icon in the toolbar."
     : "No active downloads. Start a download by selecting a model from the Recommended Models Dialog.";
 
-  const cacheInfo =
-    "Models are cached in ~/.cache/huggingface. Ollama models are stored in ~/.ollama.";
+  const cacheInfo = (
+    <>
+      <span style={{ display: "flex", flexDirection: "column", gap: "0.5em" }}>
+        <span>
+          HuggingFace models folder:{" "}
+          {huggingfaceBasePath ?? "~/.cache/huggingface"}
+        </span>
+        <span>Ollama models folder: {ollamaBasePath ?? "~/.ollama"}</span>
+      </span>
+    </>
+  );
 
   return (
     <Dialog
@@ -67,7 +79,7 @@ const HuggingFaceDownloadDialog: React.FC = () => {
               gap: "0.5em"
             }}
           >
-            <AnnouncementIcon
+            <FolderOutlined
               fontSize="small"
               sx={{ color: ThemeNodetool.palette.c_info }}
             />

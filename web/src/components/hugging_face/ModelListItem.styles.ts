@@ -71,7 +71,7 @@ const modelListItemStyles = (theme: any) =>
       },
 
       "& .model-size": {
-        minWidth: "90px"
+        minWidth: "7em"
       },
 
       "& .model-info": {
