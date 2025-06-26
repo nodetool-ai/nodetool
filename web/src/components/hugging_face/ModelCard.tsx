@@ -212,9 +212,6 @@ const ModelCard: React.FC<
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
 
-  const explorerDisabled =
-    model.type === "llama_model" ? !model.path && !ollamaBasePath : !model.path;
-
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
   if (isLoading) {
@@ -264,7 +261,7 @@ const ModelCard: React.FC<
         downloaded={downloaded}
         handleShowInExplorer={handleShowInExplorer}
         ollamaBasePath={ollamaBasePath}
-        explorerDisabled={explorerDisabled}
+        showFileExplorerButton={true}
       />
     </Card>
   );
