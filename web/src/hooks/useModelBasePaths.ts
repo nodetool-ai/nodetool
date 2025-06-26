@@ -83,10 +83,30 @@ export const useModelBasePaths = () => {
       );
       if (modelWithPath?.path) {
         const fullPath: string = modelWithPath.path;
-        const idx = fullPath.toLowerCase().indexOf("huggingface");
-        if (idx !== -1) {
-          // Include the folder named "huggingface" in the returned path.
-          return fullPath.slice(0, idx + "huggingface".length);
+        const lower = fullPath.toLowerCase();
+        const hfIdx = lower.indexOf("huggingface");
+        if (hfIdx !== -1) {
+          // We want the path that includes the "huggingface/hub" directory because the backend
+          // restricts file-explorer access to that root. Determine whether the string already
+          // contains "huggingface/hub" (or with backslashes) and include it; otherwise append
+          // the missing segment.
+
+          // Compute end index of the "huggingface" segment in the original string (case-preserving).
+          const hfBase = fullPath.slice(0, hfIdx + "huggingface".length);
+
+          // Check if the remainder already begins with a path separator followed by "hub".
+          const remainder = fullPath.slice(hfIdx + "huggingface".length);
+          const hasHub = /[\\/]+hub/i.test(remainder);
+
+          if (hasHub) {
+            // Up to and including the "hub" directory.
+            const hubIdx = lower.indexOf("hub", hfIdx + "huggingface".length);
+            return fullPath.slice(0, hubIdx + "hub".length);
+          }
+
+          // Otherwise, append the separator + "hub".
+          const separator = fullPath.includes("\\") ? "\\" : "/";
+          return hfBase + separator + "hub";
         }
       }
     }
