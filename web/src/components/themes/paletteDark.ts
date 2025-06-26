@@ -132,7 +132,7 @@ export const paletteDark: PaletteOptions = {
   c_delete: "#FF2222",
   c_debug: "#FF3355",
   c_error: "#FF5555",
-  c_info: "#FFFFFF",
+  c_info: "#E0E028",
   c_job: "#223399",
   c_node: "#029486",
   c_progress: "#556611",

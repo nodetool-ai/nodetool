@@ -96,9 +96,29 @@ export const groupModelsByType = (models: UnifiedModel[]) => {
 };
 
 export const sortModelTypes = (types: string[]) => {
+  const getOrder = (type: string) => {
+    switch (type) {
+      case "All":
+        return 0;
+      case "llama_model":
+        return 1;
+      case "Other":
+        return 2;
+      default:
+        return 3;
+    }
+  };
+
   return types.sort((a, b) => {
-    if (a === "All") return -1;
-    if (b === "All") return 1;
+    const orderA = getOrder(a);
+    const orderB = getOrder(b);
+
+    if (orderA < orderB) {
+      return -1;
+    }
+    if (orderA > orderB) {
+      return 1;
+    }
     return a.localeCompare(b);
   });
 };

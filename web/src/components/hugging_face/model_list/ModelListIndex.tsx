@@ -97,11 +97,13 @@ const styles = (theme: any) =>
       }
     },
     ".model-type-button.Mui-selected": {
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
+      transition: "background-color 0.2s ease-in"
     },
     ".model-type-button span": {
       display: "flex",
-      alignItems: "center"
+      alignItems: "center",
+      transition: "color 0.2s ease-in"
     },
     ".model-type-button img": {
       filter: "saturate(0)"
@@ -134,9 +136,9 @@ const styles = (theme: any) =>
       marginBottom: "2em"
     },
     ".model-type-button.empty": {
-      color: theme.palette.c_gray3,
+      color: theme.palette.c_gray4,
       "& span": {
-        color: theme.palette.c_gray3
+        color: theme.palette.c_gray4
       }
     },
     ".model-type-button.Mui-selected.empty span": {

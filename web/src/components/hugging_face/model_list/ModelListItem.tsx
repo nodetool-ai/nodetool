@@ -6,7 +6,8 @@ import {
   Tooltip,
   CircularProgress,
   Chip,
-  Box
+  Box,
+  Button
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -17,9 +18,15 @@ import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
-import ModelCardActions from "../ModelCardActions";
+import {
+  ModelShowInExplorerButton,
+  HuggingFaceLink,
+  OllamaLink
+} from "../ModelCardActions";
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
-import { HuggingFaceLink, OllamaLink } from "../ModelCardActions";
+import { Check } from "@mui/icons-material";
+import DeleteButton from "../../buttons/DeleteButton";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -43,9 +50,9 @@ const ModelListItem: React.FC<
     modelData,
     isLoading,
     isHuggingFace,
-    isError,
+    isOllama,
     formattedSize,
-    isOllama
+    getModelFileType
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
@@ -77,7 +84,7 @@ const ModelListItem: React.FC<
     );
   }
 
-  if (!modelData && !hideMissingInfo) {
+  if (!modelData && !isOllama) {
     return (
       <Box
         css={modelListItemStyles}
@@ -92,32 +99,17 @@ const ModelListItem: React.FC<
             </div>
             <div className="model-details">
               <Typography component="span" className="model-status">
-                {model.type === "llama_model" ? (
-                  "Model not downloaded."
-                ) : (
-                  <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                    No matching repository found.
-                  </span>
-                )}
+                <span style={{ color: ThemeNodetool.palette.c_warning }}>
+                  No matching repository found.
+                </span>
               </Typography>
             </div>
           </div>
 
           <div className="actions-container">
-            <div className="model-actions-container">
+            <div className="model-actions">
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
-              <ModelCardActions
-                model={model}
-                modelData={modelData}
-                isHuggingFace={isHuggingFace}
-                isOllama={isOllama}
-                handleModelDelete={handleModelDelete}
-                onDownload={onDownload}
-                handleShowInExplorer={handleShowInExplorer}
-                showFileExplorerButton={showFileExplorerButton}
-                downloaded={downloaded}
-              />
             </div>
           </div>
         </div>
@@ -138,11 +130,9 @@ const ModelListItem: React.FC<
             <Typography component="span" className="model-name">
               {getShortModelName(model.repo_id ? model.repo_id : model.id)}
             </Typography>
-            {model.path && (
-              <Typography component="span" className="model-path">
-                {model.path}
-              </Typography>
-            )}
+            <Typography component="span" className="model-path">
+              {model.path}
+            </Typography>
           </div>
 
           <div className="model-details">
@@ -155,23 +145,41 @@ const ModelListItem: React.FC<
               />
             )}
             <div className="size-and-license">
-              {formattedSize && (
-                <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                  title={downloaded ? "Size on disk" : "Download size"}
-                >
-                  <Typography component="span" className="model-size">
-                    {formattedSize}
-                  </Typography>
-                </Tooltip>
-              )}
-
-              <Typography component="span" className="model-info"></Typography>
+              <Typography component="span" className="model-size">
+                {formattedSize}
+              </Typography>
             </div>
+            <Typography component="span" className="model-info">
+              {getModelFileType()}
+            </Typography>
           </div>
         </div>
 
         <div className="actions-container">
+          {onDownload && !downloaded && (
+            <Button
+              className="model-download-button"
+              onClick={onDownload}
+              variant="outlined"
+            >
+              <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
+              Download
+            </Button>
+          )}
+
+          <div className="model-actions">
+            {downloaded && <Check />}
+            {handleShowInExplorer && showFileExplorerButton && (
+              <ModelShowInExplorerButton
+                onClick={() => handleShowInExplorer!(model.id)}
+                disabled={isOllama ? !ollamaBasePath : !model.path}
+              />
+            )}
+            {handleModelDelete && (
+              <DeleteButton onClick={() => handleModelDelete(model.id)} />
+            )}
+          </div>
+
           {isHuggingFace && showModelStats && (
             <div className="model-stats">
               <div className="model-stats-item">
@@ -192,21 +200,9 @@ const ModelListItem: React.FC<
               </div>
             </div>
           )}
-
           <div className="model-actions">
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
-            <ModelCardActions
-              model={model}
-              modelData={modelData}
-              isHuggingFace={isHuggingFace}
-              isOllama={isOllama}
-              handleModelDelete={handleModelDelete}
-              onDownload={onDownload}
-              handleShowInExplorer={handleShowInExplorer}
-              showFileExplorerButton={showFileExplorerButton}
-              downloaded={downloaded}
-            />
           </div>
         </div>
       </div>

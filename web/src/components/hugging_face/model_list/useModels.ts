@@ -130,6 +130,7 @@ export const useModels = () => {
 
   const modelTypes = useMemo(() => {
     const allTypes = new Set<string>();
+    allTypes.add("All");
     Object.keys(groupedHFModels).forEach((type) => allTypes.add(type));
     Object.keys(groupedRecommendedModels).forEach((type) => allTypes.add(type));
     allTypes.add("Other");
@@ -246,26 +247,36 @@ export const useModels = () => {
   });
 
   const handleShowInExplorer = async (modelId: string) => {
-    if (modelId) {
-      const model =
-        ollamaModels?.find((m) => m.id === modelId) ||
-        hfModels?.find((m) => m.id === modelId);
+    if (!modelId) return;
 
-      let pathToOpen = model?.path;
+    const model =
+      ollamaModels?.find((m) => m.id === modelId) ||
+      hfModels?.find((m) => m.id === modelId);
 
-      if (model?.type === "llama_model" && !pathToOpen) {
-        pathToOpen = ollamaBasePath as string | null | undefined;
-      }
+    const isOllama = model?.type === "llama_model";
+    const pathToShow = isOllama ? ollamaBasePath : model?.path;
 
-      if (pathToOpen) {
-        try {
-          await client.POST("/api/models/open_in_explorer", {
-            params: { query: { path: pathToOpen } }
-          });
-        } catch (error) {
-          console.error("[ModelList] Failed to open in explorer:", error);
+    if (pathToShow) {
+      const { error } = await client.POST("/api/models/open_in_explorer", {
+        params: {
+          query: {
+            path: pathToShow
+          }
         }
+      });
+      if (error) {
+        addNotification({
+          type: "error",
+          content: `Could not open folder: ${JSON.stringify(error)}`,
+          dismissable: true
+        });
       }
+    } else {
+      addNotification({
+        type: "warning",
+        content: `Could not determine path for model ${modelId}`,
+        dismissable: true
+      });
     }
   };
 

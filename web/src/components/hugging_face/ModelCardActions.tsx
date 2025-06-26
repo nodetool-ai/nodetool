@@ -15,7 +15,7 @@ const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <>{!isProduction && <DeleteButton onClick={onClick} />}</>
 );
 
-const ModelShowInExplorerButton: React.FC<{
+export const ModelShowInExplorerButton: React.FC<{
   onClick: () => void;
   disabled?: boolean;
 }> = ({ onClick, disabled }) => (
@@ -109,33 +109,29 @@ const ModelActions: React.FC<
   } = props;
 
   return (
-    <Box
-      className="model-actions"
-      sx={{
-        display: "flex",
-        gap: 1,
-        alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-        padding: "0 .5em"
-      }}
-    >
+    <Box className="model-actions" sx={{ width: "100%" }}>
       {onDownload && !downloaded && (
         <ModelDownloadButton onClick={onDownload} />
       )}
       {downloaded && (
         <Tooltip title="Downloaded">
-          <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
+          <Check className="model-downloaded-icon" />
         </Tooltip>
       )}
-      {handleShowInExplorer && showFileExplorerButton && (
-        <ModelShowInExplorerButton
-          onClick={() => handleShowInExplorer!(model.id)}
-          disabled={!model.path}
-        />
-      )}
+      <Box sx={{ position: "absolute", bottom: "0.5em", left: "0.5em" }}>
+        {handleShowInExplorer && showFileExplorerButton && (
+          <ModelShowInExplorerButton
+            onClick={() => handleShowInExplorer!(model.id)}
+            disabled={!model.path}
+          />
+        )}
+      </Box>
+
       {handleModelDelete && (
-        <ModelDeleteButton onClick={() => handleModelDelete!(model.id)} />
+        <DeleteButton
+          onClick={() => handleModelDelete(model.id)}
+          className="delete-button"
+        />
       )}
     </Box>
   );
@@ -174,7 +170,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       : !model.path;
 
   return (
-    <>
+    <Box>
       <ModelActions
         model={model}
         handleModelDelete={handleModelDelete}
@@ -224,7 +220,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
         {isOllama && <OllamaLink modelId={model.id} />}
       </CardActions>
-    </>
+    </Box>
   );
 };
 
