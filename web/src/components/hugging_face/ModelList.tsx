@@ -15,7 +15,7 @@ import {
   ToggleButtonGroup
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { client, BASE_URL } from "../../stores/ApiClient";
 import { llama_models as staticOllamaModels } from "../../config/models";
 import ModelCard from "./ModelCard";
 import ModelListItem from "./ModelListItem";
@@ -37,6 +37,8 @@ import {
 import SearchInput from "../search/SearchInput";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { authHeader } from "../../stores/ApiClient";
 
 const styles = (theme: any) =>
   css({
@@ -353,6 +355,10 @@ const ModelList: React.FC = () => {
     modelSource
   ]);
 
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
   const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
     try {
@@ -360,15 +366,46 @@ const ModelList: React.FC = () => {
         params: { query: { repo_id: repoId } }
       });
       if (error) throw error;
-      setTimeout(() => {
-        queryClient.setQueryData(["huggingFaceModels"], (oldData: any) =>
-          oldData.filter((model: any) => model.repo_id !== repoId)
-        );
-      }, 100);
+      addNotification({
+        type: "success",
+        content: `Deleted model ${repoId}`,
+        dismissable: true
+      });
+      queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
     } finally {
       setDeletingModels((prev) => {
         const newSet = new Set(prev);
         newSet.delete(repoId);
+        return newSet;
+      });
+    }
+  };
+
+  const deleteOllamaModel = async (modelName: string) => {
+    setDeletingModels((prev) => new Set(prev).add(modelName));
+    try {
+      const response = await fetch(
+        `${BASE_URL}/api/models/ollama_model?model_name=${encodeURIComponent(
+          modelName
+        )}`,
+        {
+          method: "DELETE",
+          headers: await authHeader()
+        }
+      );
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${await response.text()}`);
+      }
+      addNotification({
+        type: "success",
+        content: `Deleted Ollama model ${modelName}`,
+        dismissable: true
+      });
+      queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
+    } finally {
+      setDeletingModels((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(modelName);
         return newSet;
       });
     }
@@ -386,9 +423,7 @@ const ModelList: React.FC = () => {
     if (modelToDelete) {
       const isOllama = ollamaModels?.find((m) => m.id === modelToDelete);
       if (isOllama) {
-        // TODO: Implement Ollama model deletion. This will require a new API endpoint
-        // and a function similar to deleteHFModel but for Ollama models.
-        // For now, we'll just log a message.
+        deleteOllamaModel(modelToDelete);
       } else {
         deleteHFModel(modelToDelete);
       }
