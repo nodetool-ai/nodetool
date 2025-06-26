@@ -8,12 +8,7 @@ import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import ModelDisplay from "./ModelDisplay";
 import DeleteModelDialog from "./DeleteModelDialog";
-import {
-  prettifyModelType,
-  formatBytes,
-  getShortModelName
-} from "../../../utils/modelFormatting";
-import { useModelInfo } from "../../../hooks/useModelInfo";
+import { prettifyModelType } from "../../../utils/modelFormatting";
 
 const styles = (theme: any) =>
   css({
@@ -90,6 +85,7 @@ const styles = (theme: any) =>
       padding: "0 .5em"
     },
     ".model-type-button": {
+      padding: "0.25em 1em",
       backgroundColor: theme.palette.c_gray1,
       "&:hover": {
         color: theme.palette.c_gray6,
@@ -146,7 +142,12 @@ const styles = (theme: any) =>
     },
     ".model-type-list .model-type-button:first-of-type": {
       "&, & .MuiListItemText-primary": {
-        color: "white !important"
+        color: "var(--c_gray6)"
+      }
+    },
+    ".model-type-list .model-type-button:first-of-type.Mui-selected": {
+      "&, & .MuiListItemText-primary": {
+        color: theme.palette.c_hl1
       }
     }
   });
