@@ -153,6 +153,12 @@ const styles = (theme: any) =>
     },
     ".model-external-link-icon img": {
       cursor: "pointer"
+    },
+    ".size-and-license": {
+      display: "flex",
+      flexDirection: "row",
+      fontSize: "var(--fontSizeSmaller)",
+      gap: "1em"
     }
   });
 
@@ -664,8 +670,8 @@ const ModelList: React.FC = () => {
           {selectedModelType === "All" ? (
             <>
               {modelSearchTerm && (
-                <Typography variant="h3">
-                  Searching models for &quot;{modelSearchTerm}&quot;
+                <Typography variant="h5">
+                  Searched models for &quot;{modelSearchTerm}&quot;
                 </Typography>
               )}
               {modelTypes

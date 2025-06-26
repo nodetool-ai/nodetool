@@ -96,7 +96,7 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
             <div className="model-details">
-              <Typography component="span" className="model-info">
+              <Typography component="span" className="model-status">
                 {isOllama ? (
                   "Model not downloaded."
                 ) : (
@@ -156,20 +156,25 @@ const ModelListItem: React.FC<
                 component="span"
               />
             )}
-            {sizeBytes && (
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                title={downloaded ? "Size on disk" : "Download size"}
-              >
-                <Typography component="span" className="model-info">
-                  {formatBytes(sizeBytes)}
-                </Typography>
-              </Tooltip>
-            )}
+            <div className="size-and-license">
+              {sizeBytes && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title={downloaded ? "Size on disk" : "Download size"}
+                >
+                  <Typography component="span" className="model-size">
+                    {formatBytes(sizeBytes)}
+                  </Typography>
+                </Tooltip>
+              )}
 
-            <Typography component="span" className="model-info">
-              {renderModelSecondaryInfo(modelData ?? undefined, isHuggingFace)}
-            </Typography>
+              <Typography component="span" className="model-info">
+                {renderModelSecondaryInfo(
+                  modelData ?? undefined,
+                  isHuggingFace
+                )}
+              </Typography>
+            </div>
           </div>
         </div>
 

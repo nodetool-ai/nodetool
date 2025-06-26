@@ -61,13 +61,17 @@ const modelListItemStyles = (theme: any) =>
       },
       "& .model-details": {
         flex: 1,
-        maxWidth: "250px",
+        maxWidth: "300px",
         gap: "0.2em",
-        width: "200px",
+        width: "250px",
         display: "flex",
         alignItems: "start",
         flexWrap: "wrap",
         flexDirection: "column"
+      },
+
+      "& .model-size": {
+        minWidth: "90px"
       },
 
       "& .model-info": {
@@ -76,16 +80,17 @@ const modelListItemStyles = (theme: any) =>
       },
       "& .pipeline-tag": {
         color: "var(--c_gray1)",
-        fontSize: "var(--fontSizeSmall)",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: "bold",
-        height: "1.5em",
-        padding: "0"
+        padding: "8px .5em",
+        borderRadius: "0.5em",
+        height: "1em"
       },
 
       "& .actions-container": {
         display: "flex",
         justifyContent: "space-between",
-        gap: "1em",
+        gap: 0,
         alignItems: "center",
         flexShrink: 0
       },
@@ -108,7 +113,7 @@ const modelListItemStyles = (theme: any) =>
 
       "& .model-actions": {
         display: "flex",
-        gap: ".1em",
+        gap: 0,
         alignItems: "center"
       },
 
