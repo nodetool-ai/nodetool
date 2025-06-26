@@ -360,9 +360,11 @@ const ModelList: React.FC = () => {
         params: { query: { repo_id: repoId } }
       });
       if (error) throw error;
-      queryClient.setQueryData(["huggingFaceModels"], (oldData: any) =>
-        oldData.filter((model: any) => model.repo_id !== repoId)
-      );
+      setTimeout(() => {
+        queryClient.setQueryData(["huggingFaceModels"], (oldData: any) =>
+          oldData.filter((model: any) => model.repo_id !== repoId)
+        );
+      }, 100);
     } finally {
       setDeletingModels((prev) => {
         const newSet = new Set(prev);
