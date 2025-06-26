@@ -36,6 +36,7 @@ import {
 } from "./ModelUtils";
 import SearchInput from "../search/SearchInput";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 
 const styles = (theme: any) =>
   css({
@@ -173,31 +174,8 @@ const ModelList: React.FC = () => {
   const [modelSearchTerm, setModelSearchTerm] = useState("");
   const [selectedModelType, setSelectedModelType] = useState<string>("All");
 
-  const { data: ollamaBasePathData } = useQuery({
-    queryKey: ["ollamaBasePath"],
-    queryFn: async () => {
-      const { data, error } = await client.GET(
-        "/api/models/ollama_base_path",
-        {}
-      );
-      if (error) {
-        console.error("Failed to fetch Ollama base path:", error);
-        return null; // Or handle error appropriately
-      }
-      if (data?.error) {
-        console.warn(
-          "Error from backend fetching Ollama base path:",
-          data.error
-        );
-        return null;
-      }
-      return data; // data should be { path: string | null }
-    },
-    staleTime: Infinity, // This path is unlikely to change during a session
-    gcTime: Infinity,
-    refetchOnWindowFocus: false
-  });
-  const ollamaBasePath = ollamaBasePathData?.path;
+  // Centralised base path hook
+  const { ollamaBasePath } = useModelBasePaths();
 
   const {
     data: hfModels,
