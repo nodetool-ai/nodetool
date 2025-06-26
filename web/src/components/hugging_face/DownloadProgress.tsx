@@ -66,7 +66,8 @@ const styles = (theme: any) =>
       padding: "0.5em 1em",
       marginTop: ".5em",
       lineHeight: "1.1em",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      backgroundColor: "var(--c_warning)"
     }
   });
 
