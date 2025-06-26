@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
+import { CachedModel } from "../stores/ApiTypes";
 
 /**
  * useModelBasePaths
@@ -41,8 +42,8 @@ export const useModelBasePaths = () => {
       }
       return data; // Expected shape: { path: string | null }
     },
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: Infinity, // path is effectively static; never considered stale
+    gcTime: 1000 * 60 * 60 * 24, // garbage-collect after 24h when unused
     refetchOnWindowFocus: false
   });
 
@@ -54,7 +55,7 @@ export const useModelBasePaths = () => {
    * network-efficient because the models query is already cached in most
    * places. If everything fails, we fall back to the standard location.
    */
-  const { data: hfModels } = useQuery({
+  const { data: hfModels } = useQuery<CachedModel[]>({
     queryKey: ["huggingFaceModels"],
     queryFn: async () => {
       const { data, error } = await client.GET(
@@ -79,7 +80,7 @@ export const useModelBasePaths = () => {
     if (Array.isArray(hfModels) && hfModels.length > 0) {
       // Find first model entry that exposes an on-disk path.
       const modelWithPath = hfModels.find(
-        (m: any) => typeof m?.path === "string"
+        (m: CachedModel) => typeof m?.path === "string"
       );
       if (modelWithPath?.path) {
         const fullPath: string = modelWithPath.path;
