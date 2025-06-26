@@ -2,11 +2,12 @@
 import { css } from "@emotion/react";
 import { Dialog, DialogContent } from "@mui/material";
 import React from "react";
-// import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
-// import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
-import ModelList from "./ModelList";
+import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import ModelDownloadDialog from "./ModelDownloadDialog";
+import { Box } from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -67,6 +68,8 @@ interface ModelsManagerProps {
 }
 
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
+  const { isDialogOpen, closeDialog, downloads, cancelDownload } =
+    useModelDownloadStore();
   return (
     <Dialog
       css={styles}
@@ -109,10 +112,16 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           </div> */}
           <div className="existing-models-section">
             <div className="models-list-container">
-              <ModelList />
+              <ModelListIndex />
             </div>
           </div>
         </div>
+        <ModelDownloadDialog
+          open={isDialogOpen}
+          onClose={closeDialog}
+          repoPaths={[]}
+          repos={[]}
+        />
       </DialogContent>
     </Dialog>
   );
