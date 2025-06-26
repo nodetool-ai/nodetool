@@ -108,7 +108,7 @@ const ModelListItem: React.FC<
           </div>
 
           <div className="actions-container">
-            <div className="model-actions">
+            <div className="model-actions-container">
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
               {renderModelActions(
