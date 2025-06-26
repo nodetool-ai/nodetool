@@ -288,7 +288,7 @@ const ModelList: React.FC = () => {
     const merged = [...(recommendedModels || []), ...staticOllamaModels];
     // Filter out anything that is already downloaded
     return merged.filter((m) => !downloadedIds.has(m.id));
-  }, [recommendedModels, staticOllamaModels, downloadedIds]);
+  }, [recommendedModels, downloadedIds]);
 
   const groupedRecommendedModels = useMemo(
     () => groupModelsByType(combinedRecommendedModels),
