@@ -2,12 +2,11 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { Grid, Box, Typography } from "@mui/material";
-import ModelCard from "./ModelCard";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
-import ModelListItem from "./ModelListItem";
+import ModelListItem from "./model_list/ModelListItem";
 
 const styles = (theme: any) =>
   css({

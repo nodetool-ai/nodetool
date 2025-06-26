@@ -16,7 +16,7 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelCard from "./ModelCard";
-import ModelListItem from "./ModelListItem";
+import ModelListItem from "./model_list/ModelListItem";
 import ThemeNodes from "../themes/ThemeNodes";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";

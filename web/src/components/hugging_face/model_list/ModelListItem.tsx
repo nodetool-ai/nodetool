@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import {
   ModelComponentProps,
   renderModelSecondaryInfo,
@@ -19,11 +19,11 @@ import {
   OllamaLink,
   getShortModelName,
   formatBytes
-} from "./ModelUtils";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { useModelInfo } from "./ModelUtils";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { DownloadProgress } from "./DownloadProgress";
+} from "../ModelUtils";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useModelInfo } from "../ModelUtils";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
 const ModelListItem: React.FC<
