@@ -6,10 +6,12 @@ import {
   Tooltip,
   CircularProgress,
   Chip,
-  Box
+  Box,
+  Link
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ModelComponentProps } from "../ModelUtils";
 import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
@@ -89,11 +91,12 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
             <div className="model-details">
-              <Typography component="span" className="model-status">
-                <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                  No matching repository found.
-                </span>
-              </Typography>
+              <Tooltip title="No matching repository found.">
+                <WarningAmberIcon
+                  sx={{ color: "warning.main" }}
+                  component="span"
+                />
+              </Tooltip>
             </div>
           </div>
           <ModelListItemActions model={model} />
@@ -112,9 +115,16 @@ const ModelListItem: React.FC<
       <div className="model-content">
         <div className="model-info-container">
           <div className="model-header">
-            <Typography component="span" className="model-name">
-              {getShortModelName(model.repo_id ? model.repo_id : model.id)}
-            </Typography>
+            <Link
+              href={`https://huggingface.co/${model.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="model-name-link"
+            >
+              <Typography component="span" className="model-name">
+                {getShortModelName(model.id)}
+              </Typography>
+            </Link>
             <Typography component="span" className="model-path">
               {model.path}
             </Typography>
@@ -129,14 +139,6 @@ const ModelListItem: React.FC<
                 component="span"
               />
             )}
-            <div className="size-and-license">
-              <Typography component="span" className="model-size">
-                {formattedSize}
-              </Typography>
-            </div>
-            <Typography component="span" className="model-info">
-              {getModelFileType()}
-            </Typography>
           </div>
         </div>
 
@@ -160,14 +162,19 @@ const ModelListItem: React.FC<
             </div>
           </div>
         )}
-        <ModelListItemActions
-          model={model}
-          onDownload={onDownload}
-          handleModelDelete={handleModelDelete}
-          handleShowInExplorer={handleShowInExplorer}
-          ollamaBasePath={ollamaBasePath}
-          showFileExplorerButton={showFileExplorerButton}
-        />
+        <div className="actions-container" style={{ gap: "1em" }}>
+          <Typography component="span" className="model-size">
+            {formattedSize}
+          </Typography>
+          <ModelListItemActions
+            model={model}
+            onDownload={onDownload}
+            handleModelDelete={handleModelDelete}
+            handleShowInExplorer={handleShowInExplorer}
+            ollamaBasePath={ollamaBasePath}
+            showFileExplorerButton={showFileExplorerButton}
+          />
+        </div>
       </div>
     </Box>
   );
