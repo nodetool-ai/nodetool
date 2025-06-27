@@ -377,12 +377,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         width: "100%",
         height: "100%",
         position: "absolute",
+        backgroundColor: "var(--c_bg_editor)",
         left: 0,
         top: 0,
         right: 0,
         bottom: 0,
-        opacity: isVisible ? 1 : 0,
-        transition: "opacity 50ms ease-out"
+        opacity: isVisible ? 1 : 0
+        // transition: "opacity 50ms ease-out"
       }}
     >
       <ReactFlow

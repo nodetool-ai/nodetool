@@ -80,10 +80,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   // Monitor connection state and reconnect when disconnected
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
-    
+
     const attemptReconnect = () => {
       if (active && (state === "idle" || state === "error")) {
-        console.log("WorkflowRunner: Connection lost, attempting automatic reconnect...");
+        console.log(
+          "WorkflowRunner: Connection lost, attempting automatic reconnect..."
+        );
         connect(WORKER_URL).catch((error) => {
           console.error("WorkflowRunner: Automatic reconnect failed:", error);
         });
@@ -101,7 +103,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         clearTimeout(reconnectTimer);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, active, connect]);
 
   // OPEN NODE MENU
@@ -134,7 +135,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <div className="node-editor">
+      <div
+        className="node-editor"
+        style={{ backgroundColor: "var(--c_bg_editor)" }}
+      >
         {isUploading && (
           <div className="loading-overlay">
             <CircularProgress /> Uploading assets...

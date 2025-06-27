@@ -24,6 +24,9 @@ const styles = (theme: any) =>
       flex: "1 1 auto",
       minWidth: 0
     },
+    "& .string-value-input": {
+      fontSize: theme.fontSizeSmaller
+    },
     "& .string-action-buttons": {
       display: "flex",
       alignItems: "center",
@@ -193,6 +196,7 @@ const StringProperty = ({
           <div className="value-container">
             {isEditing ? (
               <TextField
+                className={`string-value-input ${isFocused ? "nowheel" : ""}`}
                 value={value || ""}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   onChange(e.target.value)
@@ -206,7 +210,6 @@ const StringProperty = ({
                   stopEditing();
                 }}
                 onKeyDown={handleKeyDown}
-                className={`nodrag ${isFocused ? "nowheel" : ""}`}
                 tabIndex={tabIndex}
                 autoComplete="off"
                 autoCorrect="off"
