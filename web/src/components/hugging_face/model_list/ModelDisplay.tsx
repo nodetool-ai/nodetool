@@ -54,54 +54,24 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
   const allowDownload = modelSource === "recommended";
   const allowShowInExplorer = modelSource === "downloaded";
 
-  if (viewMode === "grid") {
-    return (
-      <Grid className="model-grid-container" container spacing={3}>
-        {models.map((model: UnifiedModel, idx: number) => (
-          <Grid
-            className="model-grid-item"
-            item
-            xs={12}
-            sm={12}
-            md={6}
-            lg={4}
-            xl={3}
-            key={`${model.id}-${idx}`}
-          >
-            <ModelCard
-              model={model}
-              handleModelDelete={allowDelete ? handleDeleteClick : undefined}
-              onDownload={
-                allowDownload ? () => startDownload(model) : undefined
-              }
-              handleShowInExplorer={
-                allowShowInExplorer ? handleShowInExplorer : undefined
-              }
-              ollamaBasePath={ollamaBasePath}
-            />
-          </Grid>
-        ))}
-      </Grid>
-    );
-  } else {
-    return (
-      <List>
-        {models.map((model: UnifiedModel, idx: number) => (
-          <ModelListItem
-            key={`${model.id}-${idx}`}
-            model={model}
-            handleModelDelete={allowDelete ? handleDeleteClick : undefined}
-            onDownload={allowDownload ? () => startDownload(model) : undefined}
-            handleShowInExplorer={
-              allowShowInExplorer ? handleShowInExplorer : undefined
-            }
-            hideMissingInfo={modelSource === "recommended"}
-            ollamaBasePath={ollamaBasePath}
-          />
-        ))}
-      </List>
-    );
-  }
+  return (
+    <List>
+      {models.map((model: UnifiedModel, idx: number) => (
+        <ModelListItem
+          key={`${model.id}-${idx}`}
+          model={model}
+          handleModelDelete={allowDelete ? handleDeleteClick : undefined}
+          onDownload={allowDownload ? () => startDownload(model) : undefined}
+          handleShowInExplorer={
+            allowShowInExplorer ? handleShowInExplorer : undefined
+          }
+          // hideMissingInfo={modelSource === "recommended"}
+          showModelStats={modelSource === "recommended"}
+          ollamaBasePath={ollamaBasePath}
+        />
+      ))}
+    </List>
+  );
 };
 
 export default React.memo(ModelDisplay);

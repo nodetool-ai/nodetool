@@ -119,6 +119,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
             return (
               <ModelListItem
                 compactView={true}
+                hideMissingInfo={false}
                 key={model.id}
                 model={{ ...model, downloaded: isDownloaded }}
                 onDownload={() =>

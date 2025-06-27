@@ -37,7 +37,7 @@ const ModelListItem: React.FC<
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
-  showModelStats = false,
+  showModelStats = true,
   hideMissingInfo = false,
   ollamaBasePath,
   showFileExplorerButton = true
@@ -46,9 +46,9 @@ const ModelListItem: React.FC<
     modelData,
     isLoading,
     isHuggingFace,
-    isOllama,
-    formattedSize,
-    getModelFileType
+    formattedSize
+    // isOllama,
+    // getModelFileType
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
@@ -80,11 +80,11 @@ const ModelListItem: React.FC<
     );
   }
 
-  if (!modelData && !isOllama) {
+  if (isHuggingFace && formattedSize === "" && !hideMissingInfo) {
     return (
       <Box
         css={modelListItemStyles}
-        className={`model-list-item ${compactView ? "compact" : ""}`}
+        className={`model-list-item missing ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
           <div className="model-info-container">
@@ -96,8 +96,7 @@ const ModelListItem: React.FC<
             <div className="model-details">
               <Tooltip title="No matching repository found.">
                 <WarningAmberIcon
-                  sx={{ color: "warning.main" }}
-                  component="span"
+                  sx={{ color: "var(--c_warning)", margin: 0, width: "1em" }}
                 />
               </Tooltip>
             </div>
