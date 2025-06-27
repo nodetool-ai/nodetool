@@ -168,7 +168,7 @@ const styles = (theme: any) =>
         color: theme.palette.c_white
       }
     },
-    ".model-external-link-icon": {
+    "& .model-external-link-icon": {
       boxShadow: "none",
       cursor: "pointer",
       padding: "1em",

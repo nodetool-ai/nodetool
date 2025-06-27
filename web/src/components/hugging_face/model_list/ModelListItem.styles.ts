@@ -80,6 +80,9 @@ const modelListItemStyles = (theme: any) =>
       },
 
       "& .model-size": {
+        color: theme.palette.c_gray5,
+        fontSize: "var(--fontSizeSmall)",
+        textAlign: "right",
         minWidth: "7em"
       },
 
@@ -156,6 +159,98 @@ const modelListItemStyles = (theme: any) =>
           backgroundColor: "transparent",
           color: "var(--c_file)"
         }
+      }
+    },
+    //
+    ".model-item": {
+      padding: 0,
+      borderBottom: `1px solid ${theme.palette.c_gray0}`,
+      marginBottom: theme.spacing(1),
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".model-text": {
+      wordBreak: "break-word",
+      maxHeight: "3.5em",
+      overflow: "hidden"
+    },
+    ".model-text span": {
+      maxHeight: "2.5em",
+      overflow: "hidden"
+    },
+    ".model-text p": {
+      paddingTop: theme.spacing(1)
+    },
+    button: {
+      color: theme.palette.c_gray5,
+      margin: "0",
+      padding: "0 .5em"
+    },
+    ".model-type-button": {
+      padding: "0.25em 1em",
+      backgroundColor: theme.palette.c_gray1,
+      "&:hover": {
+        color: theme.palette.c_gray6,
+        backgroundColor: theme.palette.c_gray1
+      }
+    },
+    ".model-type-button.Mui-selected": {
+      backgroundColor: theme.palette.c_gray1,
+      transition: "background-color 0.2s ease-in"
+    },
+    ".model-type-button span": {
+      display: "flex",
+      alignItems: "center",
+      transition: "color 0.2s ease-in"
+    },
+    ".model-type-button img": {
+      filter: "saturate(0)"
+    },
+    ".model-type-button.Mui-selected span": {
+      color: theme.palette.c_hl1
+    },
+    ".model-external-link-icon": {
+      boxShadow: "none",
+      cursor: "pointer",
+      padding: ".75em",
+      backgroundColor: "transparent",
+      filter: "saturate(0)",
+      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+      "&:hover": {
+        backgroundColor: "transparent",
+        transform: "scale(1.25)",
+        filter: "saturate(1)"
+      }
+    },
+    ".size-and-license": {
+      display: "flex",
+      flexDirection: "row",
+      fontSize: "var(--fontSizeSmaller)",
+      gap: "1em"
+    },
+    ".model-category": {},
+    ".model-category.empty": {
+      color: theme.palette.c_gray3,
+      marginBottom: "2em"
+    },
+    ".model-type-button.empty": {
+      color: theme.palette.c_gray4,
+      "& span": {
+        color: theme.palette.c_gray4
+      }
+    },
+    ".model-type-button.Mui-selected.empty span": {
+      color: "var(--palette-primary-dark)"
+    },
+    ".model-type-list .model-type-button:first-of-type": {
+      "&, & .MuiListItemText-primary": {
+        color: "var(--c_gray6)"
+      }
+    },
+    ".model-type-list .model-type-button:first-of-type.Mui-selected": {
+      "&, & .MuiListItemText-primary": {
+        color: theme.palette.c_hl1
       }
     }
   });
