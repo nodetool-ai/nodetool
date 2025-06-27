@@ -11,7 +11,6 @@ import {
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { ModelComponentProps } from "../ModelUtils";
 import ThemeNodetool from "../../themes/ThemeNodetool";
 import { useModelInfo } from "../../../hooks/useModelInfo";
@@ -23,7 +22,7 @@ import {
   HuggingFaceLink,
   OllamaLink
 } from "../ModelCardActions";
-import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
+import { getShortModelName } from "../../../utils/modelFormatting";
 import { Check } from "@mui/icons-material";
 import DeleteButton from "../../buttons/DeleteButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -108,7 +107,9 @@ const ModelListItem: React.FC<
 
           <div className="actions-container">
             <div className="model-actions">
-              {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+              {isHuggingFace && (
+                <HuggingFaceLink modelId={model.repo_id || model.id} />
+              )}
               {isOllama && <OllamaLink modelId={model.id} />}
             </div>
           </div>
@@ -201,7 +202,9 @@ const ModelListItem: React.FC<
             </div>
           )}
           <div className="model-actions">
-            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+            {isHuggingFace && (
+              <HuggingFaceLink modelId={model.repo_id || model.id} />
+            )}
             {isOllama && <OllamaLink modelId={model.id} />}
           </div>
         </div>

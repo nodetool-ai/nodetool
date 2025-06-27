@@ -217,7 +217,9 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
             </Typography>
           </Box>
         )}
-        {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+        {isHuggingFace && (
+          <HuggingFaceLink modelId={model.repo_id || model.id} />
+        )}
         {isOllama && <OllamaLink modelId={model.id} />}
       </CardActions>
     </Box>
