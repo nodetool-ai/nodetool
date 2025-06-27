@@ -26,14 +26,13 @@ import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
+import ThemeNodes from "../themes/ThemeNodes";
 
 declare global {
   interface Window {
     __beforeUnloadListenerAdded?: boolean;
   }
 }
-
-// FIT SCREEN
 
 interface NodeEditorProps {
   workflowId: string;
@@ -137,7 +136,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       )}
       <div
         className="node-editor"
-        style={{ backgroundColor: "var(--c_bg_editor)" }}
+        style={{ backgroundColor: ThemeNodes.palette.c_editor_bg_color }}
       >
         {isUploading && (
           <div className="loading-overlay">
