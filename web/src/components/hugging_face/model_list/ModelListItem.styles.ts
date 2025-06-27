@@ -96,6 +96,10 @@ const modelListItemStyles = (theme: any) =>
         height: "1em"
       },
 
+      "& .pipeline-tag-link": {
+        textDecoration: "none"
+      },
+
       "& .actions-container": {
         display: "flex",
         justifyContent: "space-between",

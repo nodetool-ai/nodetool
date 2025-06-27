@@ -19,6 +19,10 @@ import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 import { getShortModelName } from "../../../utils/modelFormatting";
 import { ModelListItemActions } from "./ModelListItemActions";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../../config/constants";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -124,19 +128,29 @@ const ModelListItem: React.FC<
                 {getShortModelName(model.id)}
               </Typography>
             </Link>
-            {/* <Typography component="span" className="model-path">
-              {model.path}
-            </Typography> */}
           </div>
 
           <div className="model-details">
             {modelData?.cardData?.pipeline_tag && (
-              <Chip
-                label={modelData.cardData.pipeline_tag}
-                size="small"
-                className="pipeline-tag"
-                component="span"
-              />
+              <Tooltip
+                title="View trending models with this tag on HuggingFace"
+                enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+              >
+                <Link
+                  href={`https://huggingface.co/models?pipeline_tag=${modelData.cardData.pipeline_tag}&sort=trending`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pipeline-tag-link"
+                >
+                  <Chip
+                    label={modelData.cardData.pipeline_tag}
+                    size="small"
+                    className="pipeline-tag"
+                    component="span"
+                  />
+                </Link>
+              </Tooltip>
             )}
           </div>
         </div>
