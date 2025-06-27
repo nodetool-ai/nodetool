@@ -222,14 +222,15 @@ export const renderModelSecondaryInfo = (
     )}
     {!isHuggingFace && (
       <Typography variant="body2" className="text-license">
-        {modelData.the_model_info?.["general.license"]}
+        {modelData?.the_model_info?.["general.license"] || ""}
       </Typography>
     )}
     {!isHuggingFace && (
       <Typography variant="body2">
-        {modelData.details?.family} - {modelData.details?.format}
-        {modelData.details?.parameter_size && (
-          <> - {modelData.details?.parameter_size}</>
+        {modelData?.details?.family}{" "}
+        {modelData?.details?.format && <>- {modelData.details.format}</>}
+        {modelData?.details?.parameter_size && (
+          <> - {modelData.details.parameter_size}</>
         )}
       </Typography>
     )}
@@ -237,41 +238,49 @@ export const renderModelSecondaryInfo = (
 );
 
 export const renderModelActions = (
-  props: ModelComponentProps,
+  props: ModelComponentProps & { showFileExplorerButton?: boolean },
   downloaded: boolean
-) => (
-  <Box
-    className="model-actions"
-    sx={{
-      display: "flex",
-      gap: 1,
-      alignItems: "center",
-      justifyContent: "space-between",
-      width: "100%",
-      padding: "0 .5em"
-    }}
-  >
-    {props.onDownload && !downloaded && (
-      <ModelDownloadButton onClick={props.onDownload} />
-    )}
-    {downloaded && (
-      <Tooltip title="Downloaded">
-        <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
-      </Tooltip>
-    )}
-    {props.handleShowInExplorer && (
-      <ModelShowInExplorerButton
-        onClick={() => props.handleShowInExplorer!(props.model.id)}
-        disabled={!props.model.path}
-      />
-    )}
-    {props.handleModelDelete && (
-      <ModelDeleteButton
-        onClick={() => props.handleModelDelete!(props.model.id)}
-      />
-    )}
-  </Box>
-);
+) => {
+  const {
+    model,
+    handleModelDelete,
+    handleShowInExplorer,
+    onDownload,
+    showFileExplorerButton = true
+  } = props;
+
+  return (
+    <Box
+      className="model-actions"
+      sx={{
+        display: "flex",
+        gap: 1,
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        padding: "0 .5em"
+      }}
+    >
+      {onDownload && !downloaded && (
+        <ModelDownloadButton onClick={onDownload} />
+      )}
+      {downloaded && (
+        <Tooltip title="Downloaded">
+          <Check sx={{ marginRight: "0.1em", fontSize: "1.25em" }} />
+        </Tooltip>
+      )}
+      {handleShowInExplorer && showFileExplorerButton && (
+        <ModelShowInExplorerButton
+          onClick={() => handleShowInExplorer!(model.id)}
+          disabled={!model.path}
+        />
+      )}
+      {handleModelDelete && (
+        <ModelDeleteButton onClick={() => handleModelDelete!(model.id)} />
+      )}
+    </Box>
+  );
+};
 
 export async function fetchOllamaModelInfo(modelName: string) {
   const { data, error } = await client.GET("/api/models/ollama_model_info", {
@@ -311,6 +320,8 @@ export const sortModelTypes = (types: string[]) => {
   ];
 };
 
+// BEFORE_USEMODELINFO_START
+
 export const useModelInfo = (model: UnifiedModel) => {
   const isHuggingFace = model.type?.startsWith("hf.") ?? false;
   const isOllama = model.type?.toLowerCase()?.includes("llama_model") ?? false;
@@ -331,11 +342,26 @@ export const useModelInfo = (model: UnifiedModel) => {
     gcTime: Infinity
   });
 
+  // Determine a reasonable download size estimate
+  let sizeBytes: number | undefined = model.size_on_disk;
+  if (sizeBytes === undefined) {
+    if (isHuggingFace) {
+      sizeBytes = computeHuggingFaceDownloadSize(query.data);
+    } else if (
+      isOllama &&
+      query.data &&
+      typeof (query.data as any).size === "number"
+    ) {
+      sizeBytes = (query.data as any).size;
+    }
+  }
+
   return {
     isLoading: query.isLoading,
     modelData: query.data as any,
     isHuggingFace,
     isOllama,
+    sizeBytes,
     downloaded: Boolean(
       model.type && model.path
         ? model.downloaded
@@ -345,3 +371,41 @@ export const useModelInfo = (model: UnifiedModel) => {
     )
   };
 };
+
+// Format a size given in bytes to a human-readable MB string (two decimals)
+export const formatBytes = (bytes?: number): string => {
+  if (!bytes) return "";
+  return (bytes / 1024 / 1024).toFixed(2).toString() + " MB";
+};
+
+/**
+ * Compute an estimated download size for a Hugging Face repository.
+ * Attempts to sum the `lfs.size` fields from the `siblings` array returned by the HF API.
+ * Falls back to `modelData.downloads_size` or `modelData.size` if available.
+ */
+function computeHuggingFaceDownloadSize(modelData: any): number | undefined {
+  try {
+    if (modelData?.siblings && Array.isArray(modelData.siblings)) {
+      const total = modelData.siblings.reduce((acc: number, sibling: any) => {
+        // Prefer explicit lfs.size when available (large files are stored via LFS)
+        const fileSize =
+          (sibling?.lfs?.size as number | undefined) ??
+          (typeof sibling?.size === "number" ? sibling.size : undefined);
+        if (typeof fileSize === "number") {
+          return acc + fileSize;
+        }
+        return acc;
+      }, 0);
+      return total || undefined;
+    }
+    if (typeof modelData?.downloads_size === "number") {
+      return modelData.downloads_size;
+    }
+    if (typeof modelData?.size === "number") {
+      return modelData.size;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}

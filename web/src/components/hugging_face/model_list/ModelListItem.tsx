@@ -10,35 +10,48 @@ import {
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import {
   ModelComponentProps,
-  formatId,
-  modelSize,
   renderModelSecondaryInfo,
   renderModelActions,
   HuggingFaceLink,
   OllamaLink,
-  getShortModelName
-} from "./ModelUtils";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { useModelInfo } from "./ModelUtils";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { DownloadProgress } from "./DownloadProgress";
+  getShortModelName,
+  formatBytes
+} from "../ModelUtils";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useModelInfo } from "../ModelUtils";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 
 const ModelListItem: React.FC<
-  ModelComponentProps & { showModelStats?: boolean }
+  ModelComponentProps & {
+    showModelStats?: boolean;
+    hideMissingInfo?: boolean;
+    ollamaBasePath?: string | null;
+    showFileExplorerButton?: boolean;
+  }
 > = ({
   model,
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
-  showModelStats = false
+  showModelStats = false,
+  hideMissingInfo = false,
+  ollamaBasePath,
+  showFileExplorerButton = true
 }) => {
-  const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
-    useModelInfo(model);
+  const {
+    modelData,
+    isLoading,
+    downloaded,
+    isHuggingFace,
+    isOllama,
+    sizeBytes
+  } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
 
@@ -68,7 +81,7 @@ const ModelListItem: React.FC<
     );
   }
 
-  if (!modelData) {
+  if (!modelData && !hideMissingInfo) {
     return (
       <Box
         css={modelListItemStyles}
@@ -82,7 +95,7 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
             <div className="model-details">
-              <Typography component="span" className="model-info">
+              <Typography component="span" className="model-status">
                 {isOllama ? (
                   "Model not downloaded."
                 ) : (
@@ -95,11 +108,17 @@ const ModelListItem: React.FC<
           </div>
 
           <div className="actions-container">
-            <div className="model-actions">
+            <div className="model-actions-container">
               {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
               {isOllama && <OllamaLink modelId={model.id} />}
               {renderModelActions(
-                { model, handleModelDelete, onDownload, handleShowInExplorer },
+                {
+                  model,
+                  handleModelDelete,
+                  onDownload,
+                  handleShowInExplorer,
+                  showFileExplorerButton
+                },
                 downloaded
               )}
             </div>
@@ -112,7 +131,9 @@ const ModelListItem: React.FC<
   return (
     <Box
       css={modelListItemStyles}
-      className={`model-list-item ${compactView ? "compact" : ""}`}
+      className={`model-list-item ${compactView ? "compact " : ""} ${
+        downloaded ? "downloaded" : ""
+      }`}
     >
       <div className="model-content">
         <div className="model-info-container">
@@ -128,7 +149,7 @@ const ModelListItem: React.FC<
           </div>
 
           <div className="model-details">
-            {modelData.cardData?.pipeline_tag && (
+            {modelData?.cardData?.pipeline_tag && (
               <Chip
                 label={modelData.cardData.pipeline_tag}
                 size="small"
@@ -136,17 +157,25 @@ const ModelListItem: React.FC<
                 component="span"
               />
             )}
-            {model.size_on_disk && (
-              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
-                <Typography component="span" className="model-info">
-                  {modelSize(model)}
-                </Typography>
-              </Tooltip>
-            )}
+            <div className="size-and-license">
+              {sizeBytes && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title={downloaded ? "Size on disk" : "Download size"}
+                >
+                  <Typography component="span" className="model-size">
+                    {formatBytes(sizeBytes)}
+                  </Typography>
+                </Tooltip>
+              )}
 
-            <Typography component="span" className="model-info">
-              {renderModelSecondaryInfo(modelData, isHuggingFace)}
-            </Typography>
+              <Typography component="span" className="model-info">
+                {renderModelSecondaryInfo(
+                  modelData ?? undefined,
+                  isHuggingFace
+                )}
+              </Typography>
+            </div>
           </div>
         </div>
 
@@ -158,7 +187,7 @@ const ModelListItem: React.FC<
                   <CloudDownloadIcon fontSize="small" />
                 </Tooltip>
                 <Typography component="span" variant="body2">
-                  {modelData.downloads?.toLocaleString() || "N/A"}
+                  {modelData?.downloads?.toLocaleString() || "N/A"}
                 </Typography>
               </div>
               <div className="model-stats-item">
@@ -166,7 +195,7 @@ const ModelListItem: React.FC<
                   <FavoriteIcon fontSize="small" />
                 </Tooltip>
                 <Typography component="span" variant="body2">
-                  {modelData.likes?.toLocaleString() || "N/A"}
+                  {modelData?.likes?.toLocaleString() || "N/A"}
                 </Typography>
               </div>
             </div>
@@ -176,7 +205,13 @@ const ModelListItem: React.FC<
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
-              { model, handleModelDelete, onDownload, handleShowInExplorer },
+              {
+                model,
+                handleModelDelete,
+                onDownload,
+                handleShowInExplorer,
+                showFileExplorerButton
+              },
               downloaded
             )}
           </div>
