@@ -243,6 +243,7 @@ const ModelListIndex: React.FC = () => {
   if (isLoading) {
     return (
       <Box
+        className="loading-container"
         sx={{
           position: "absolute",
           top: "50%",
@@ -264,7 +265,7 @@ const ModelListIndex: React.FC = () => {
     (modelSource === "recommended" && recommendedError)
   ) {
     return (
-      <>
+      <div className="status-container">
         <Typography variant="h3">Could not load models.</Typography>
         {hfError && modelSource === "downloaded" && (
           <Typography variant="body2" color="error">
@@ -281,7 +282,7 @@ const ModelListIndex: React.FC = () => {
             {recommendedError.message}
           </Typography>
         )}
-      </>
+      </div>
     );
   }
 
@@ -371,7 +372,7 @@ const ModelListIndex: React.FC = () => {
             </>
           ) : (
             <Box mt={2}>
-              <Typography variant="h2">
+              <Typography variant="h2" fontSize="1.25em">
                 {prettifyModelType(selectedModelType)}{" "}
                 {renderModelCount(selectedModelType)}
               </Typography>
