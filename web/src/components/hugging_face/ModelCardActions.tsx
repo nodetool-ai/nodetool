@@ -15,6 +15,8 @@ interface ModelCardActionsProps {
   handleShowInExplorer?: (modelId: string) => void;
   onDownload?: () => void;
   downloaded: boolean;
+  showFileExplorerButton?: boolean;
+  ollamaBasePath?: string | null;
 }
 
 const ModelCardActions: React.FC<ModelCardActionsProps> = ({
@@ -25,12 +27,27 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   handleModelDelete,
   handleShowInExplorer,
   onDownload,
-  downloaded
+  downloaded,
+  showFileExplorerButton,
+  ollamaBasePath
 }) => {
+  const showFileExplorerButtonFinal =
+    showFileExplorerButton !== undefined
+      ? showFileExplorerButton
+      : model.type === "llama_model"
+      ? !model.path && !ollamaBasePath
+      : !model.path;
+
   return (
     <>
       {renderModelActions(
-        { model, handleModelDelete, onDownload, handleShowInExplorer },
+        {
+          model,
+          handleModelDelete,
+          onDownload,
+          handleShowInExplorer,
+          showFileExplorerButton: showFileExplorerButtonFinal
+        },
         downloaded
       )}
       <CardActions
