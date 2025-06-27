@@ -6,25 +6,23 @@ import {
   Tooltip,
   CircularProgress,
   Chip,
-  Box
+  Box,
+  Link
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import {
-  ModelComponentProps,
-  renderModelSecondaryInfo,
-  renderModelActions,
-  HuggingFaceLink,
-  OllamaLink,
-  getShortModelName,
-  formatBytes
-} from "../ModelUtils";
-import ThemeNodetool from "../../themes/ThemeNodetool";
-import { useModelInfo } from "../ModelUtils";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { ModelComponentProps } from "../ModelUtils";
+import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
+import { getShortModelName } from "../../../utils/modelFormatting";
+import { ModelListItemActions } from "./ModelListItemActions";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../../config/constants";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -39,7 +37,7 @@ const ModelListItem: React.FC<
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
-  showModelStats = false,
+  showModelStats = true,
   hideMissingInfo = false,
   ollamaBasePath,
   showFileExplorerButton = true
@@ -47,13 +45,14 @@ const ModelListItem: React.FC<
   const {
     modelData,
     isLoading,
-    downloaded,
     isHuggingFace,
-    isOllama,
-    sizeBytes
+    formattedSize
+    // isOllama,
+    // getModelFileType
   } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
+  const downloaded = model.downloaded ?? !!model.path;
 
   if (isLoading) {
     return (
@@ -81,11 +80,11 @@ const ModelListItem: React.FC<
     );
   }
 
-  if (!modelData && !hideMissingInfo) {
+  if (isHuggingFace && formattedSize === "" && !hideMissingInfo) {
     return (
       <Box
         css={modelListItemStyles}
-        className={`model-list-item ${compactView ? "compact" : ""}`}
+        className={`model-list-item missing ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
           <div className="model-info-container">
@@ -95,34 +94,14 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
             <div className="model-details">
-              <Typography component="span" className="model-status">
-                {isOllama ? (
-                  "Model not downloaded."
-                ) : (
-                  <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                    No matching repository found.
-                  </span>
-                )}
-              </Typography>
+              <Tooltip title="No matching repository found.">
+                <WarningAmberIcon
+                  sx={{ color: "var(--c_warning)", margin: 0, width: "1em" }}
+                />
+              </Tooltip>
             </div>
           </div>
-
-          <div className="actions-container">
-            <div className="model-actions-container">
-              {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-              {isOllama && <OllamaLink modelId={model.id} />}
-              {renderModelActions(
-                {
-                  model,
-                  handleModelDelete,
-                  onDownload,
-                  handleShowInExplorer,
-                  showFileExplorerButton
-                },
-                downloaded
-              )}
-            </div>
-          </div>
+          <ModelListItemActions model={model} />
         </div>
       </Box>
     );
@@ -138,83 +117,75 @@ const ModelListItem: React.FC<
       <div className="model-content">
         <div className="model-info-container">
           <div className="model-header">
-            <Typography component="span" className="model-name">
-              {getShortModelName(model.repo_id ? model.repo_id : model.id)}
-            </Typography>
-            {model.path && (
-              <Typography component="span" className="model-path">
-                {model.path}
+            <Link
+              href={`https://huggingface.co/${model.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="model-name-link"
+            >
+              <Typography component="span" className="model-name">
+                {getShortModelName(model.id)}
               </Typography>
-            )}
+            </Link>
           </div>
 
           <div className="model-details">
             {modelData?.cardData?.pipeline_tag && (
-              <Chip
-                label={modelData.cardData.pipeline_tag}
-                size="small"
-                className="pipeline-tag"
-                component="span"
-              />
-            )}
-            <div className="size-and-license">
-              {sizeBytes && (
-                <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                  title={downloaded ? "Size on disk" : "Download size"}
+              <Tooltip
+                title="View trending models with this tag on HuggingFace"
+                enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+              >
+                <Link
+                  href={`https://huggingface.co/models?pipeline_tag=${modelData.cardData.pipeline_tag}&sort=trending`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pipeline-tag-link"
                 >
-                  <Typography component="span" className="model-size">
-                    {formatBytes(sizeBytes)}
-                  </Typography>
-                </Tooltip>
-              )}
-
-              <Typography component="span" className="model-info">
-                {renderModelSecondaryInfo(
-                  modelData ?? undefined,
-                  isHuggingFace
-                )}
-              </Typography>
-            </div>
+                  <Chip
+                    label={modelData.cardData.pipeline_tag}
+                    size="small"
+                    className="pipeline-tag"
+                    component="span"
+                  />
+                </Link>
+              </Tooltip>
+            )}
           </div>
         </div>
 
-        <div className="actions-container">
-          {isHuggingFace && showModelStats && (
-            <div className="model-stats">
-              <div className="model-stats-item">
-                <Tooltip title="Downloads on HF last month">
-                  <CloudDownloadIcon fontSize="small" />
-                </Tooltip>
-                <Typography component="span" variant="body2">
-                  {modelData?.downloads?.toLocaleString() || "N/A"}
-                </Typography>
-              </div>
-              <div className="model-stats-item">
-                <Tooltip title="Likes on HF">
-                  <FavoriteIcon fontSize="small" />
-                </Tooltip>
-                <Typography component="span" variant="body2">
-                  {modelData?.likes?.toLocaleString() || "N/A"}
-                </Typography>
-              </div>
+        {isHuggingFace && showModelStats && (
+          <div className="model-stats">
+            <div className="model-stats-item">
+              <Tooltip title="Downloads on HF last month">
+                <CloudDownloadIcon fontSize="small" />
+              </Tooltip>
+              <Typography component="span" variant="body2">
+                {modelData?.downloads?.toLocaleString() || "N/A"}
+              </Typography>
             </div>
-          )}
-
-          <div className="model-actions">
-            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-            {isOllama && <OllamaLink modelId={model.id} />}
-            {renderModelActions(
-              {
-                model,
-                handleModelDelete,
-                onDownload,
-                handleShowInExplorer,
-                showFileExplorerButton
-              },
-              downloaded
-            )}
+            <div className="model-stats-item">
+              <Tooltip title="Likes on HF">
+                <FavoriteIcon fontSize="small" />
+              </Tooltip>
+              <Typography component="span" variant="body2">
+                {modelData?.likes?.toLocaleString() || "N/A"}
+              </Typography>
+            </div>
           </div>
+        )}
+        <div className="actions-container" style={{ gap: "1em" }}>
+          <Typography component="span" className="model-size">
+            {formattedSize}
+          </Typography>
+          <ModelListItemActions
+            model={model}
+            onDownload={onDownload}
+            handleModelDelete={handleModelDelete}
+            handleShowInExplorer={handleShowInExplorer}
+            ollamaBasePath={ollamaBasePath}
+            showFileExplorerButton={showFileExplorerButton}
+          />
         </div>
       </div>
     </Box>

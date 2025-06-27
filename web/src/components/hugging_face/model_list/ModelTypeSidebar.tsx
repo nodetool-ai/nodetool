@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { List, ListItemButton, ListItemText } from "@mui/material";
 import { IconForType } from "../../../config/data_types";
-import { prettifyModelType } from "../ModelUtils";
+import { prettifyModelType } from "../../../utils/modelFormatting";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { ModelSource } from "./useModels";
 

@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ModelCard from "./ModelCard";
+import ModelCard from "./model_card/ModelCard";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 
@@ -43,14 +43,14 @@ interface RepoPath {
   path: string;
 }
 
-interface ModelDownloadDialogProps {
+interface RequiredModelsDialogProps {
   open: boolean;
   onClose: () => void;
   repoPaths: RepoPath[];
   repos: string[];
 }
 
-const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
+const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
   open,
   onClose,
   repoPaths,
@@ -194,4 +194,4 @@ const ModelDownloadDialog: React.FC<ModelDownloadDialogProps> = ({
   );
 };
 
-export default ModelDownloadDialog;
+export default RequiredModelsDialog;

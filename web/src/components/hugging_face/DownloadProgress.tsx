@@ -29,6 +29,7 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       paddingBottom: "0.2em",
       width: "100%",
+      marginTop: "0",
       fontSize: theme.fontSizeSmaller
     },
     ".download-status": {
@@ -40,6 +41,10 @@ const styles = (theme: any) =>
       lineHeight: "1.2em",
       wordBreak: "break-word",
       paddingRight: "1em"
+    },
+    ".download-message": {
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_info
     },
     ".progress-bar-container": {
       height: "6px",
@@ -162,7 +167,9 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         {name}
       </Typography>
       {download.message && (
-        <Typography variant="body2">{download.message}</Typography>
+        <Typography className="download-message" variant="body2">
+          {download.message}
+        </Typography>
       )}
       {(download.status === "start" || download.status === "pending") && (
         <Box display="flex" alignItems="center">
@@ -228,7 +235,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
               <Typography
                 className="download-progress-text download-size"
                 variant="body2"
-                style={{ marginTop: "1em" }}
+                style={{ marginTop: ".5em" }}
               >
                 Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
                 {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
@@ -238,7 +245,6 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
               <Typography
                 className="download-progress-text download-files"
                 variant="body2"
-                style={{ marginTop: "0.5em" }}
               >
                 Files: {download.downloadedFiles} / {download.totalFiles}
               </Typography>
@@ -246,14 +252,13 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             <Typography
               className="download-progress-text download-current"
               variant="body2"
-              style={{ marginTop: "0.5em" }}
             >
               Downloading: {download.currentFiles?.join(", ")}
             </Typography>
             <Typography
               className="download-progress-text download-speed"
               variant="body2"
-              style={{ marginTop: "0.5em", minHeight: "1.5em" }}
+              style={{ minHeight: "1.5em" }}
             >
               Speed:{" "}
               {download.speed
@@ -263,7 +268,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             <Typography
               className="download-progress-text download-eta"
               variant="body2"
-              style={{ marginTop: "0.5em", minHeight: "1.2em" }}
+              style={{ minHeight: "1.2em" }}
             >
               ETA: {eta || "-"}
             </Typography>

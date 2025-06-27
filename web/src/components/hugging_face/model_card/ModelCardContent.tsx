@@ -7,15 +7,11 @@ import {
   Chip,
   Tooltip
 } from "@mui/material";
-import {
-  renderModelSecondaryInfo,
-  getShortModelName,
-  formatBytes
-} from "./ModelUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import ReadmeDialog from "./ReadmeDialog";
-import { UnifiedModel } from "../../stores/ApiTypes";
+import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import ReadmeDialog from "../ReadmeDialog";
+import { UnifiedModel } from "../../../stores/ApiTypes";
 
 interface ModelCardContentProps {
   model: UnifiedModel;
@@ -97,8 +93,6 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
 
         {modelData ? (
           <>
-            {renderModelSecondaryInfo(modelData, isHuggingFace)}
-
             <Box>
               {(sizeBytes || model.size_on_disk) && (
                 <Tooltip

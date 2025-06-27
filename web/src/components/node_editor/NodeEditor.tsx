@@ -21,7 +21,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import WorkflowChat from "../chat/containers/WorkflowChat";
-import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
+// import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -119,14 +119,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   return (
     <>
-      {missingModelRepos.length > 0 && (
+      {/* {missingModelRepos.length > 0 && (
         <ModelDownloadDialog
           open={missingModelRepos.length > 0}
           repos={missingModelRepos}
           repoPaths={missingModelFiles}
           onClose={clearMissingModels}
         />
-      )}
+      )} */}
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation
           nodeType={selectedNodeType}

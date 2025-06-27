@@ -2,18 +2,14 @@
 import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
-import { ModelComponentProps, useModelInfo } from "./ModelUtils";
-import ModelCardContent from "./ModelCardContent";
+import { ModelComponentProps } from "../ModelUtils";
+import { useModelInfo } from "../../../hooks/useModelInfo";
 import ModelCardActions from "./ModelCardActions";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import ModelCardContent from "./ModelCardContent";
+import ThemeNodetool from "../../themes/ThemeNodetool";
 import { isEqual } from "lodash";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { DownloadProgress } from "./DownloadProgress";
-import {
-  HuggingFaceLink,
-  OllamaLink,
-  renderModelSecondaryInfo
-} from "./ModelUtils";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../DownloadProgress";
 
 const styles = (theme: any) =>
   css({
@@ -172,7 +168,7 @@ const styles = (theme: any) =>
         color: theme.palette.c_white
       }
     },
-    ".model-external-link-icon": {
+    "& .model-external-link-icon": {
       boxShadow: "none",
       cursor: "pointer",
       padding: "1em",
@@ -201,16 +197,10 @@ const ModelCard: React.FC<
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
-  const {
-    modelData,
-    isLoading,
-    downloaded,
-    isHuggingFace,
-    isOllama,
-    sizeBytes
-  } = useModelInfo(model);
+  const { modelData, isLoading } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
+  const downloaded = model.downloaded ?? !!model.path;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
@@ -249,22 +239,19 @@ const ModelCard: React.FC<
         toggleTags={toggleTags}
         readmeDialogOpen={readmeDialogOpen}
         setReadmeDialogOpen={setReadmeDialogOpen}
-        sizeBytes={sizeBytes}
+        sizeBytes={model.size_on_disk}
       />
       <ModelCardActions
         model={model}
-        modelData={modelData}
-        isHuggingFace={isHuggingFace}
-        isOllama={isOllama}
-        handleModelDelete={handleModelDelete}
         onDownload={onDownload}
-        downloaded={downloaded}
+        handleModelDelete={handleModelDelete}
         handleShowInExplorer={handleShowInExplorer}
         ollamaBasePath={ollamaBasePath}
-        showFileExplorerButton={true}
       />
     </Card>
   );
 };
 
-export default React.memo(ModelCard, isEqual);
+export default React.memo(ModelCard, (prevProps, nextProps) => {
+  return isEqual(prevProps.model, nextProps.model);
+});

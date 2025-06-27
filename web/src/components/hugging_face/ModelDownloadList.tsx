@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Grid, Box, Typography } from "@mui/material";
+import { Grid, Box } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
@@ -43,23 +43,12 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
               <Box className="model-container">
                 {!downloads[modelId] && (
                   <ModelListItem
+                    hideMissingInfo={false}
                     key={model.id}
                     model={model}
                     showModelStats={false}
                     handleModelDelete={() => {}}
                   />
-                  // <ModelCard
-                  //   model={model}
-                  //   onDownload={() => {
-                  //     startDownload(
-                  //       model.repo_id!,
-                  //       model.type || "hf.model",
-                  //       model.path || "",
-                  //       model.allow_patterns || null,
-                  //       model.ignore_patterns || null
-                  //     );
-                  //   }}
-                  // />
                 )}
                 {downloads[modelId] && <DownloadProgress name={modelId} />}
               </Box>

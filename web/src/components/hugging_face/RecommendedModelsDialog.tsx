@@ -17,7 +17,9 @@ import RecommendedModels from "./RecommendedModels";
 const styles = (theme: any) =>
   css({
     ".MuiDialog-paper": {
-      height: "calc(100% - 200px)"
+      height: "calc(100% - 200px)",
+      backgroundColor: theme.palette.Paper.overlay,
+      backgroundImage: "none"
     },
     ".MuiDialogContent-root": {
       height: "calc(100% - 64px)",
@@ -50,7 +52,8 @@ interface RecommendedModelsDialogProps {
 const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   open,
   onClose,
-  recommendedModels
+  recommendedModels,
+  startDownload
 }) => {
   return (
     <Dialog
@@ -63,7 +66,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: "rgba(0, 0, 0, 0.8)"
+            backgroundColor: "rgba(15, 9, 9, 0.8)"
           }
         }
       }}
@@ -89,7 +92,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       <DialogContent sx={{ paddingBottom: "3em" }}>
         <RecommendedModels
           recommendedModels={recommendedModels}
-          initialViewMode="list"
+          startDownload={startDownload}
         />
       </DialogContent>
     </Dialog>

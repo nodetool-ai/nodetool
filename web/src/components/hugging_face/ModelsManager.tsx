@@ -6,7 +6,7 @@ import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import ModelDownloadDialog from "./ModelDownloadDialog";
+import DownloadManagerDialog from "./DownloadManagerDialog";
 import { Box } from "@mui/material";
 
 const styles = (theme: any) =>
@@ -107,7 +107,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
               <HuggingFaceModelSearch />
             </div>
             <div className="models-download-dialog">
-              <HuggingFaceDownloadDialog />
+              <DownloadManagerDialog />
             </div>
           </div> */}
           <div className="existing-models-section">
@@ -116,12 +116,6 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
             </div>
           </div>
         </div>
-        <ModelDownloadDialog
-          open={isDialogOpen}
-          onClose={closeDialog}
-          repoPaths={[]}
-          repos={[]}
-        />
       </DialogContent>
     </Dialog>
   );
