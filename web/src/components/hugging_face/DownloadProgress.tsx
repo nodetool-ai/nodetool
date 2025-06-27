@@ -66,7 +66,12 @@ const styles = (theme: any) =>
       padding: "0.5em 1em",
       marginTop: ".5em",
       lineHeight: "1.1em",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      color: "var(--c_gray0)",
+      backgroundColor: "var(--c_warning)",
+      "&:hover": {
+        opacity: 0.85
+      }
     }
   });
 

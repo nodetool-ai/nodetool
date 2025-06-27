@@ -8,10 +8,9 @@ import {
   Tooltip
 } from "@mui/material";
 import {
-  formatId,
-  modelSize,
   renderModelSecondaryInfo,
-  getShortModelName
+  getShortModelName,
+  formatBytes
 } from "./ModelUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -26,6 +25,7 @@ interface ModelCardContentProps {
   toggleTags: () => void;
   readmeDialogOpen: boolean;
   setReadmeDialogOpen: (open: boolean) => void;
+  sizeBytes?: number;
 }
 const ModelCardContent = React.memo<ModelCardContentProps>(
   ({
@@ -35,7 +35,8 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
     tagsExpanded,
     toggleTags,
     readmeDialogOpen,
-    setReadmeDialogOpen
+    setReadmeDialogOpen,
+    sizeBytes
   }) => {
     const isHuggingFace = model.type?.startsWith("hf.") ?? false;
     const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
@@ -99,13 +100,13 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
             {renderModelSecondaryInfo(modelData, isHuggingFace)}
 
             <Box>
-              {model.size_on_disk && (
+              {(sizeBytes || model.size_on_disk) && (
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
-                  title={"Size on disk"}
+                  title={downloaded ? "Size on disk" : "Download size"}
                 >
                   <Typography variant="body2" className="text-model-size">
-                    {modelSize(model)}
+                    {formatBytes(sizeBytes ?? model.size_on_disk)}
                   </Typography>
                 </Tooltip>
               )}

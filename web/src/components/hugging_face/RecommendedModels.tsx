@@ -8,18 +8,22 @@ import {
   Box,
   TextField,
   InputAdornment,
-  Tooltip
+  Tooltip,
+  Button
 } from "@mui/material";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelCard from "./ModelCard";
-import ModelListItem from "./ModelListItem";
+import ModelListItem from "./model_list/ModelListItem";
 import ThemeNodes from "../themes/ThemeNodes";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
+import { FolderOutlined } from "@mui/icons-material";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useModelBasePaths } from "../../hooks/useModelBasePaths";
+import { openInExplorer } from "../../utils/fileExplorer";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -38,6 +42,9 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const modelsWithSize = useModelsWithSize(recommendedModels);
   const startDownload = useModelDownloadStore((state) => state.startDownload);
+
+  // Base paths for model caches
+  const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
   const handleViewModeChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -215,6 +222,28 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
       </Typography>
+
+      {/* Open folder buttons */}
+      <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<FolderOutlined />}
+          onClick={() =>
+            huggingfaceBasePath && openInExplorer(huggingfaceBasePath)
+          }
+          disabled={!huggingfaceBasePath}
+        >
+          Open HuggingFace folder
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<FolderOutlined />}
+          onClick={() => ollamaBasePath && openInExplorer(ollamaBasePath)}
+          disabled={!ollamaBasePath}
+        >
+          Open Ollama folder
+        </Button>
+      </Box>
     </>
   );
 };
