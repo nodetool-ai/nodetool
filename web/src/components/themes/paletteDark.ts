@@ -54,6 +54,11 @@ declare module "@mui/material/styles" {
     secondary?: PaletteColorOptions;
     tertiary?: PaletteColorOptions;
     background?: { default?: string; paper?: string };
+    Paper?: {
+      default?: string;
+      paper?: string;
+      overlay?: string;
+    };
   }
 
   interface Palette {
@@ -105,6 +110,11 @@ declare module "@mui/material/styles" {
     secondary: PaletteColor;
     tertiary: PaletteColorOptions;
     background: { default: string; paper: string };
+    Paper: {
+      default: string;
+      paper: string;
+      overlay: string;
+    };
   }
 }
 
@@ -182,6 +192,11 @@ export const paletteDark: PaletteOptions = {
     hover: "#ddd",
     selected: "#aaa",
     disabled: "#666"
+  },
+  Paper: {
+    default: "#232323",
+    paper: "#232323",
+    overlay: "#2a2a2a"
   },
   divider: "#555"
 };

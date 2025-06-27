@@ -42,7 +42,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       fontSize: theme.fontSizeSmall,
-      fontWeight: 300,
+      fontWeight: 400,
       p: {
         lineHeight: "1.25em",
         paddingTop: 0,
