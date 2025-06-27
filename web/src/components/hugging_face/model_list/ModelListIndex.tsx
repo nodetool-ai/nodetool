@@ -210,9 +210,9 @@ const ModelListIndex: React.FC = () => {
 
   const renderModelCount = (modelType: any) => {
     if (modelSource === "recommended" && groupedRecommendedModels[modelType]) {
-      return `(${groupedRecommendedModels[modelType].length})`;
+      return `[${groupedRecommendedModels[modelType].length}]`;
     } else if (modelSource === "downloaded" && groupedHFModels[modelType]) {
-      return `(${groupedHFModels[modelType].length})`;
+      return `[${groupedHFModels[modelType].length}]`;
     }
     return "";
   };
@@ -306,30 +306,45 @@ const ModelListIndex: React.FC = () => {
                   Searched models for &quot;{modelSearchTerm}&quot;
                 </Typography>
               )}
-              {modelTypes.slice(1).map((modelType) => (
-                <Box
-                  className={
-                    filteredModels[modelType]?.length > 0
-                      ? "model-category"
-                      : "model-category empty"
-                  }
-                  key={modelType}
-                  mt={2}
-                >
-                  <Typography variant="h2">
-                    {prettifyModelType(modelType)} {renderModelCount(modelType)}
-                  </Typography>
-                  <ModelDisplay
-                    models={filteredModels[modelType] || []}
-                    viewMode={viewMode}
-                    modelSource={modelSource}
-                    modelSearchTerm={modelSearchTerm}
-                    handleDeleteClick={handleDeleteClick}
-                    handleShowInExplorer={handleShowInExplorer}
-                    ollamaBasePath={ollamaBasePath}
-                  />
-                </Box>
-              ))}
+              {modelTypes.slice(1).map((modelType) => {
+                const models = filteredModels[modelType] || [];
+                if (modelSearchTerm && models.length === 0) {
+                  return null;
+                }
+                return (
+                  <Box
+                    className={
+                      models.length > 0
+                        ? "model-category"
+                        : "model-category empty"
+                    }
+                    key={modelType}
+                    mt={2}
+                  >
+                    <Typography variant="h2" fontSize="1.25em">
+                      {prettifyModelType(modelType)}{" "}
+                      <span
+                        style={{
+                          color: "var(--c_gray4)",
+                          display: "inline-block",
+                          fontSize: "var(--fontSizeSmaller)"
+                        }}
+                      >
+                        {renderModelCount(modelType)}
+                      </span>
+                    </Typography>
+                    <ModelDisplay
+                      models={models}
+                      viewMode={viewMode}
+                      modelSource={modelSource}
+                      modelSearchTerm={modelSearchTerm}
+                      handleDeleteClick={handleDeleteClick}
+                      handleShowInExplorer={handleShowInExplorer}
+                      ollamaBasePath={ollamaBasePath}
+                    />
+                  </Box>
+                );
+              })}
             </>
           ) : (
             <Box mt={2}>
