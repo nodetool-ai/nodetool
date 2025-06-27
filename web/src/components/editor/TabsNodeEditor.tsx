@@ -163,7 +163,8 @@ const styles = (theme: any) =>
       overflow: "hidden",
       minHeight: 0,
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      backgroundColor: "var(--c_editor_bg_color)"
     },
     ".status-message-container": {
       position: "absolute",
@@ -255,7 +256,7 @@ const styles = (theme: any) =>
       }
     },
     "& .window-control-button#close-button:hover": {
-      backgroundColor: "#e81123"
+      backgroundColor: "var(--c_delete)"
     },
     "& .actions-container": {
       flexShrink: 0,

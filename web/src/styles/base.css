@@ -1,8 +1,4 @@
-/* BASE STYLES */
-
-/**
- * Base styles for the node editor
- */
+/* NODE EDITOR BASE STYLES */
 
 ul li {
   list-style-type: square;
@@ -16,20 +12,18 @@ ul li {
 }
 
 #root .node-editor {
-  background: var(--c_gray2);
+  background: var(--c_editor_bg_color);
   margin: 0;
   padding: 0;
   top: 0px;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* position: relative; */
   display: block;
 }
 
 #root .MuiGrid2-root.MuiGrid2-container {
   width: 100%;
-  /* height: calc(100vh - 50px); */
   margin: 0;
 }
 

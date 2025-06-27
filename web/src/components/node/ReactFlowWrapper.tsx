@@ -377,16 +377,21 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         width: "100%",
         height: "100%",
         position: "absolute",
+        backgroundColor: "var(--c_editor_bg_color)",
         left: 0,
         top: 0,
         right: 0,
         bottom: 0,
         opacity: isVisible ? 1 : 0,
-        transition: "opacity 50ms ease-out"
+        transition: "opacity 50ms 1s ease-out"
       }}
     >
       <ReactFlow
-        style={{ width: "100%", height: "100%" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          backgroundColor: "var(--c_editor_bg_color)"
+        }}
         onlyRenderVisibleElements={false}
         ref={ref}
         className={

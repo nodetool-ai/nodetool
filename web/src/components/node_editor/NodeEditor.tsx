@@ -21,23 +21,18 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import WorkflowChat from "../chat/containers/WorkflowChat";
-import RequiredModelsDialog from "../hugging_face/RequiredModelsDialog";
+import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
-import { useSettingsStore } from "../../stores/SettingsStore";
-import { useAgentStore } from "../stores/AgentStore";
-import { useProxyWithNeuron } from "../hooks/useProxyWithNeuron";
-import { useWorkflowValidation } from "../hooks/useWorkflowValidation";
+import ThemeNodes from "../themes/ThemeNodes";
 
 declare global {
   interface Window {
     __beforeUnloadListenerAdded?: boolean;
   }
 }
-
-// FIT SCREEN
 
 interface NodeEditorProps {
   workflowId: string;
@@ -122,21 +117,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     closeDocumentation: state.closeDocumentation
   }));
 
-  const { showNeedsModelsDialog, missingRepoPaths } = useSettingsStore(
-    (state) => ({
-      showNeedsModelsDialog: state.showNeedsModelsDialog,
-      missingRepoPaths: state.missingRepoPaths
-    })
-  );
-
   return (
     <>
       {missingModelRepos.length > 0 && (
-        <RequiredModelsDialog
+        <ModelDownloadDialog
           open={missingModelRepos.length > 0}
           repos={missingModelRepos}
-          onClose={clearMissingModels}
           repoPaths={missingModelFiles}
+          onClose={clearMissingModels}
         />
       )}
       {showDocumentation && selectedNodeType && (
@@ -146,7 +134,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <div className="node-editor">
+      <div
+        className="node-editor"
+        style={{ backgroundColor: ThemeNodes.palette.c_editor_bg_color }}
+      >
         {isUploading && (
           <div className="loading-overlay">
             <CircularProgress /> Uploading assets...
