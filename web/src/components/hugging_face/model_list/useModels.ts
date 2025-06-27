@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client, BASE_URL } from "../../../stores/ApiClient";
 import { llama_models as staticOllamaModels } from "../../../config/models";
 import { LlamaModel, UnifiedModel } from "../../../stores/ApiTypes";
-import { groupModelsByType, sortModelTypes } from "../ModelUtils";
+import {
+  groupModelsByType,
+  sortModelTypes
+} from "../../../utils/modelFormatting";
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { authHeader } from "../../../stores/ApiClient";
@@ -43,7 +46,8 @@ export const useModels = () => {
           path: model.path,
           description: "",
           readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk
+          size_on_disk: model.size_on_disk,
+          downloaded: true
         })
       );
     },
@@ -67,7 +71,8 @@ export const useModels = () => {
           type: "llama_model",
           name: `${model.details?.family} - ${model.details?.parameter_size}`,
           description: "",
-          size_on_disk: model.size
+          size_on_disk: model.size,
+          downloaded: true
         })
       );
     },
@@ -96,7 +101,8 @@ export const useModels = () => {
           path: model.path,
           description: "",
           readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk
+          size_on_disk: model.size_on_disk,
+          downloaded: downloadedIds.has(model.repo_id)
         })
       );
     },
@@ -127,6 +133,7 @@ export const useModels = () => {
 
   const modelTypes = useMemo(() => {
     const allTypes = new Set<string>();
+    allTypes.add("All");
     Object.keys(groupedHFModels).forEach((type) => allTypes.add(type));
     Object.keys(groupedRecommendedModels).forEach((type) => allTypes.add(type));
     allTypes.add("Other");
@@ -157,11 +164,11 @@ export const useModels = () => {
         ...Object.values(groups).flat(),
         ...(modelSource === "recommended" ? [] : ollamaModels || [])
       ];
-      const filteredAllModels = allModels.filter(filterModel);
+      const filteredAllModels = allModels.filter(filterModel) as UnifiedModel[];
       return Object.fromEntries(
-        modelTypes.map((type) => [
+        modelTypes.map((type: string) => [
           type,
-          filteredAllModels.filter((model) =>
+          filteredAllModels.filter((model: UnifiedModel) =>
             type === "llama_model"
               ? model.type === type
               : model.type === type || (type === "Other" && !model.type)
@@ -243,26 +250,36 @@ export const useModels = () => {
   });
 
   const handleShowInExplorer = async (modelId: string) => {
-    if (modelId) {
-      const model =
-        ollamaModels?.find((m) => m.id === modelId) ||
-        hfModels?.find((m) => m.id === modelId);
+    if (!modelId) return;
 
-      let pathToOpen = model?.path;
+    const model =
+      ollamaModels?.find((m) => m.id === modelId) ||
+      hfModels?.find((m) => m.id === modelId);
 
-      if (model?.type === "llama_model" && !pathToOpen) {
-        pathToOpen = ollamaBasePath as string | null | undefined;
-      }
+    const isOllama = model?.type === "llama_model";
+    const pathToShow = isOllama ? ollamaBasePath : model?.path;
 
-      if (pathToOpen) {
-        try {
-          await client.POST("/api/models/open_in_explorer", {
-            params: { query: { path: pathToOpen } }
-          });
-        } catch (error) {
-          console.error("[ModelList] Failed to open in explorer:", error);
+    if (pathToShow) {
+      const { error } = await client.POST("/api/models/open_in_explorer", {
+        params: {
+          query: {
+            path: pathToShow
+          }
         }
+      });
+      if (error) {
+        addNotification({
+          type: "error",
+          content: `Could not open folder: ${JSON.stringify(error)}`,
+          dismissable: true
+        });
       }
+    } else {
+      addNotification({
+        type: "warning",
+        content: `Could not determine path for model ${modelId}`,
+        dismissable: true
+      });
     }
   };
 
@@ -314,6 +331,7 @@ export const useModels = () => {
     ollamaBasePath,
     isLoading,
     isFetching,
-    deletingModels
+    deletingModels,
+    combinedRecommendedModels
   };
 };
