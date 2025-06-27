@@ -11,8 +11,8 @@ const modelListItemStyles = (theme: any) =>
       wordBreak: "break-word",
       transition: "background-color 0.125s ease-in, border 0.125s ease-in",
       "&.compact": {
-        padding: 0,
-        backgroundColor: theme.palette.c_gray0
+        padding: ".25em .5em"
+        // backgroundColor: theme.palette.c_gray0
       },
 
       "&:hover": {
