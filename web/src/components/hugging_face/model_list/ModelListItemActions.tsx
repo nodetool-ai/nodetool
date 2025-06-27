@@ -73,7 +73,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           />
         )}
       </div>
-      <div className="model-actions">
+      <div className="model-link">
         {isHuggingFace && (
           <HuggingFaceLink modelId={model.repo_id || model.id} />
         )}
