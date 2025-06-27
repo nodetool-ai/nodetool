@@ -1,6 +1,6 @@
 import React from "react";
 import { Grid, List, Typography } from "@mui/material";
-import ModelCard from "../ModelCard";
+import ModelCard from "../model_card/ModelCard";
 import ModelListItem from "./ModelListItem";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { ModelSource } from "./useModels";

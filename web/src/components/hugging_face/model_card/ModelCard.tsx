@@ -2,14 +2,14 @@
 import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
-import { ModelComponentProps } from "./ModelUtils";
-import { useModelInfo } from "../../hooks/useModelInfo";
+import { ModelComponentProps } from "../ModelUtils";
+import { useModelInfo } from "../../../hooks/useModelInfo";
 import ModelCardActions from "./ModelCardActions";
 import ModelCardContent from "./ModelCardContent";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import ThemeNodetool from "../../themes/ThemeNodetool";
 import { isEqual } from "lodash";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { DownloadProgress } from "./DownloadProgress";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../DownloadProgress";
 
 const styles = (theme: any) =>
   css({
@@ -197,8 +197,7 @@ const ModelCard: React.FC<
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
-  const { modelData, isLoading, isHuggingFace, isOllama, formattedSize } =
-    useModelInfo(model);
+  const { modelData, isLoading } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
@@ -244,13 +243,9 @@ const ModelCard: React.FC<
       />
       <ModelCardActions
         model={model}
-        modelData={modelData}
-        isHuggingFace={isHuggingFace}
-        isOllama={isOllama}
         onDownload={onDownload}
         handleModelDelete={handleModelDelete}
         handleShowInExplorer={handleShowInExplorer}
-        downloaded={downloaded}
         ollamaBasePath={ollamaBasePath}
       />
     </Card>

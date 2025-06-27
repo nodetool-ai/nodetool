@@ -7,11 +7,11 @@ import {
   Chip,
   Tooltip
 } from "@mui/material";
-import { getShortModelName, formatBytes } from "../../utils/modelFormatting";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import ReadmeDialog from "./ReadmeDialog";
-import { UnifiedModel } from "../../stores/ApiTypes";
+import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import ReadmeDialog from "../ReadmeDialog";
+import { UnifiedModel } from "../../../stores/ApiTypes";
 
 interface ModelCardContentProps {
   model: UnifiedModel;

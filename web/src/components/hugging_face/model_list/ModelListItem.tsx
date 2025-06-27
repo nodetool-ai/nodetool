@@ -6,26 +6,18 @@ import {
   Tooltip,
   CircularProgress,
   Chip,
-  Box,
-  Button
+  Box
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { ModelComponentProps } from "../ModelUtils";
-import ThemeNodetool from "../../themes/ThemeNodetool";
 import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
-import {
-  ModelShowInExplorerButton,
-  HuggingFaceLink,
-  OllamaLink
-} from "../ModelCardActions";
 import { getShortModelName } from "../../../utils/modelFormatting";
-import { Check } from "@mui/icons-material";
-import DeleteButton from "../../buttons/DeleteButton";
-import DownloadIcon from "@mui/icons-material/Download";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import { ModelListItemActions } from "./ModelListItemActions";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -104,15 +96,7 @@ const ModelListItem: React.FC<
               </Typography>
             </div>
           </div>
-
-          <div className="actions-container">
-            <div className="model-actions">
-              {isHuggingFace && (
-                <HuggingFaceLink modelId={model.repo_id || model.id} />
-              )}
-              {isOllama && <OllamaLink modelId={model.id} />}
-            </div>
-          </div>
+          <ModelListItemActions model={model} />
         </div>
       </Box>
     );
@@ -156,58 +140,34 @@ const ModelListItem: React.FC<
           </div>
         </div>
 
-        <div className="actions-container">
-          {onDownload && !downloaded && (
-            <Button
-              className="model-download-button"
-              onClick={onDownload}
-              variant="outlined"
-            >
-              <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
-              Download
-            </Button>
-          )}
-
-          <div className="model-actions">
-            {downloaded && <Check />}
-            {handleShowInExplorer && showFileExplorerButton && (
-              <ModelShowInExplorerButton
-                onClick={() => handleShowInExplorer!(model.id)}
-                disabled={isOllama ? !ollamaBasePath : !model.path}
-              />
-            )}
-            {handleModelDelete && (
-              <DeleteButton onClick={() => handleModelDelete(model.id)} />
-            )}
-          </div>
-
-          {isHuggingFace && showModelStats && (
-            <div className="model-stats">
-              <div className="model-stats-item">
-                <Tooltip title="Downloads on HF last month">
-                  <CloudDownloadIcon fontSize="small" />
-                </Tooltip>
-                <Typography component="span" variant="body2">
-                  {modelData?.downloads?.toLocaleString() || "N/A"}
-                </Typography>
-              </div>
-              <div className="model-stats-item">
-                <Tooltip title="Likes on HF">
-                  <FavoriteIcon fontSize="small" />
-                </Tooltip>
-                <Typography component="span" variant="body2">
-                  {modelData?.likes?.toLocaleString() || "N/A"}
-                </Typography>
-              </div>
+        {isHuggingFace && showModelStats && (
+          <div className="model-stats">
+            <div className="model-stats-item">
+              <Tooltip title="Downloads on HF last month">
+                <CloudDownloadIcon fontSize="small" />
+              </Tooltip>
+              <Typography component="span" variant="body2">
+                {modelData?.downloads?.toLocaleString() || "N/A"}
+              </Typography>
             </div>
-          )}
-          <div className="model-actions">
-            {isHuggingFace && (
-              <HuggingFaceLink modelId={model.repo_id || model.id} />
-            )}
-            {isOllama && <OllamaLink modelId={model.id} />}
+            <div className="model-stats-item">
+              <Tooltip title="Likes on HF">
+                <FavoriteIcon fontSize="small" />
+              </Tooltip>
+              <Typography component="span" variant="body2">
+                {modelData?.likes?.toLocaleString() || "N/A"}
+              </Typography>
+            </div>
           </div>
-        </div>
+        )}
+        <ModelListItemActions
+          model={model}
+          onDownload={onDownload}
+          handleModelDelete={handleModelDelete}
+          handleShowInExplorer={handleShowInExplorer}
+          ollamaBasePath={ollamaBasePath}
+          showFileExplorerButton={showFileExplorerButton}
+        />
       </div>
     </Box>
   );
