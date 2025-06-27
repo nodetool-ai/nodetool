@@ -50,7 +50,8 @@ interface RecommendedModelsDialogProps {
 const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   open,
   onClose,
-  recommendedModels
+  recommendedModels,
+  startDownload
 }) => {
   return (
     <Dialog
@@ -90,6 +91,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
         <RecommendedModels
           recommendedModels={recommendedModels}
           initialViewMode="list"
+          startDownload={startDownload}
         />
       </DialogContent>
     </Dialog>

@@ -3,13 +3,55 @@ import { UnifiedModel } from "../stores/ApiTypes";
 import { fetchHuggingFaceRepoInfo } from "../utils/huggingFaceUtils";
 import { formatBytes } from "../utils/modelFormatting";
 
-function computeHuggingFaceDownloadSize(modelData: any): number | undefined {
+function computeHuggingFaceDownloadSize(
+  modelData: any,
+  model: UnifiedModel
+): number | undefined {
   if (!modelData || !modelData.siblings) {
     return undefined;
   }
 
+  // If a specific path is provided, find that single file's size.
+  if (model.path) {
+    const targetFile = modelData.siblings.find(
+      (file: any) => file.rfilename === model.path
+    );
+    return targetFile?.size;
+  }
+
+  // Otherwise, fall back to pattern matching for multi-file repos.
+  const allowPatterns = model.allow_patterns;
+  const ignorePatterns = model.ignore_patterns;
+
+  if (!allowPatterns && !ignorePatterns) {
+    return modelData.siblings
+      .filter((file: any) => file.size)
+      .reduce((total: number, file: any) => total + file.size, 0);
+  }
+
   const downloadSize = modelData.siblings
-    .filter((file: any) => file.size)
+    .filter((file: any) => {
+      const rfilename = file.rfilename;
+      if (!rfilename || !file.size) {
+        return false;
+      }
+
+      if (
+        ignorePatterns &&
+        ignorePatterns.some((pattern) => rfilename.includes(pattern))
+      ) {
+        return false;
+      }
+
+      if (
+        allowPatterns &&
+        !allowPatterns.some((pattern) => rfilename.includes(pattern))
+      ) {
+        return false;
+      }
+
+      return true;
+    })
     .reduce((total: number, file: any) => total + file.size, 0);
 
   return downloadSize;
@@ -17,7 +59,7 @@ function computeHuggingFaceDownloadSize(modelData: any): number | undefined {
 
 export const useModelInfo = (model: UnifiedModel) => {
   const isHuggingFace = model.type?.startsWith("hf") ?? false;
-  const modelId = model.id;
+  const modelIdForApi = model.repo_id || model.id;
   const isOllama = model.type === "llama_model";
 
   const {
@@ -25,14 +67,15 @@ export const useModelInfo = (model: UnifiedModel) => {
     isLoading,
     isError
   } = useQuery({
-    queryKey: ["huggingfaceRepoInfo", modelId],
-    queryFn: () => (isHuggingFace ? fetchHuggingFaceRepoInfo(modelId) : null),
+    queryKey: ["huggingfaceRepoInfo", modelIdForApi],
+    queryFn: () =>
+      isHuggingFace ? fetchHuggingFaceRepoInfo(modelIdForApi) : null,
     enabled: isHuggingFace,
     staleTime: 1000 * 60 * 60 // 1 hour
   });
 
   const downloadSize =
-    model.size_on_disk || computeHuggingFaceDownloadSize(modelData);
+    model.size_on_disk || computeHuggingFaceDownloadSize(modelData, model);
   const formattedSize = formatBytes(downloadSize);
 
   const getTag = (tagName: string) =>

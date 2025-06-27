@@ -24,27 +24,42 @@ import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { openInExplorer } from "../../utils/fileExplorer";
+import { useModels } from "./model_list/useModels";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
-  showViewModeToggle?: boolean;
-  initialViewMode: "grid" | "list";
-  compactView?: boolean;
+  initialViewMode?: "grid" | "list";
+  startDownload: (
+    repoId: string,
+    modelType: string,
+    path: string | null,
+    allowPatterns: string[] | null,
+    ignorePatterns: string[] | null
+  ) => void;
 }
 
 const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   recommendedModels,
-  initialViewMode,
-  showViewModeToggle = true,
-  compactView = false
+  initialViewMode = "grid",
+  startDownload
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode);
   const [searchQuery, setSearchQuery] = useState("");
   const modelsWithSize = useModelsWithSize(recommendedModels);
-  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const { downloads } = useModelDownloadStore((state) => ({
+    downloads: state.downloads
+  }));
 
   // Base paths for model caches
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
+
+  const { hfModels, ollamaModels } = useModels();
+
+  const downloadedModels = useMemo(
+    () =>
+      new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id)),
+    [hfModels, ollamaModels]
+  );
 
   const handleViewModeChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -68,6 +83,10 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       return matches;
     });
   }, [modelsWithSize, searchQuery]);
+
+  if (!recommendedModels) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>
@@ -101,60 +120,56 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
               }
             }
           }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "var(--c_gray5)" }} />
-                </InputAdornment>
-              )
-            }
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "var(--c_gray5)" }} />
+              </InputAdornment>
+            )
           }}
         />
-        {showViewModeToggle && (
-          <ToggleButtonGroup
-            className="view-mode-toggle"
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="view mode"
-            size="small"
-            sx={{
-              width: "fit-content",
-              padding: "0.5em",
-              marginLeft: "auto"
-            }}
-          >
-            <Tooltip title="Grid view">
-              <ToggleButton
-                value="grid"
-                aria-label="grid view"
-                sx={{
-                  backgroundColor: "var(--c_gray1)",
-                  "&:hover": {
-                    backgroundColor: "var(--c_gray2)"
-                  }
-                }}
-              >
-                <ViewModuleIcon />
-              </ToggleButton>
-            </Tooltip>
-            <Tooltip title="List view">
-              <ToggleButton
-                value="list"
-                aria-label="list view"
-                sx={{
-                  backgroundColor: "var(--c_gray1)",
-                  "&:hover": {
-                    backgroundColor: "var(--c_gray2)"
-                  }
-                }}
-              >
-                <ViewListIcon />
-              </ToggleButton>
-            </Tooltip>
-          </ToggleButtonGroup>
-        )}
+        <ToggleButtonGroup
+          className="view-mode-toggle"
+          value={viewMode}
+          exclusive
+          onChange={handleViewModeChange}
+          aria-label="view mode"
+          size="small"
+          sx={{
+            width: "fit-content",
+            padding: "0.5em",
+            marginLeft: "auto"
+          }}
+        >
+          <Tooltip title="Grid view">
+            <ToggleButton
+              value="grid"
+              aria-label="grid view"
+              sx={{
+                backgroundColor: "var(--c_gray1)",
+                "&:hover": {
+                  backgroundColor: "var(--c_gray2)"
+                }
+              }}
+            >
+              <ViewModuleIcon />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="List view">
+            <ToggleButton
+              value="list"
+              aria-label="list view"
+              sx={{
+                backgroundColor: "var(--c_gray1)",
+                "&:hover": {
+                  backgroundColor: "var(--c_gray2)"
+                }
+              }}
+            >
+              <ViewListIcon />
+            </ToggleButton>
+          </Tooltip>
+        </ToggleButtonGroup>
       </Box>
 
       {filteredModels.length === 0 ? (
@@ -167,19 +182,20 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       ) : viewMode === "grid" ? (
         <Grid container spacing={3} className="recommended-models-grid">
           {filteredModels.map((model) => {
+            const isDownloaded = downloadedModels.has(model.id);
             return (
               <Grid item xs={12} sm={6} md={4} key={model.id}>
                 <ModelCard
-                  model={model}
-                  onDownload={() => {
+                  model={{ ...model, downloaded: isDownloaded }}
+                  onDownload={() =>
                     startDownload(
                       model.repo_id || "",
                       model.type || "",
                       model.path ?? null,
                       model.allow_patterns ?? null,
                       model.ignore_patterns ?? null
-                    );
-                  }}
+                    )
+                  }
                 />
               </Grid>
             );
@@ -188,20 +204,21 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       ) : (
         <List>
           {filteredModels.map((model) => {
+            const isDownloaded = downloadedModels.has(model.id);
             return (
               <ModelListItem
-                compactView={compactView}
+                compactView={true}
                 key={model.id}
-                model={model}
-                onDownload={() => {
+                model={{ ...model, downloaded: isDownloaded }}
+                onDownload={() =>
                   startDownload(
                     model.repo_id || "",
                     model.type || "hf.model",
                     model.path ?? null,
                     model.allow_patterns ?? null,
                     model.ignore_patterns ?? null
-                  );
-                }}
+                  )
+                }
               />
             );
           })}

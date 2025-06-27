@@ -46,7 +46,8 @@ export const useModels = () => {
           path: model.path,
           description: "",
           readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk
+          size_on_disk: model.size_on_disk,
+          downloaded: true
         })
       );
     },
@@ -70,7 +71,8 @@ export const useModels = () => {
           type: "llama_model",
           name: `${model.details?.family} - ${model.details?.parameter_size}`,
           description: "",
-          size_on_disk: model.size
+          size_on_disk: model.size,
+          downloaded: true
         })
       );
     },
@@ -99,7 +101,8 @@ export const useModels = () => {
           path: model.path,
           description: "",
           readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk
+          size_on_disk: model.size_on_disk,
+          downloaded: downloadedIds.has(model.repo_id)
         })
       );
     },
@@ -328,6 +331,7 @@ export const useModels = () => {
     ollamaBasePath,
     isLoading,
     isFetching,
-    deletingModels
+    deletingModels,
+    combinedRecommendedModels
   };
 };

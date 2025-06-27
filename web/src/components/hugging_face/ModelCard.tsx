@@ -201,7 +201,7 @@ const ModelCard: React.FC<
     useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
-  const downloaded = !!model.path;
+  const downloaded = model.downloaded ?? !!model.path;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
