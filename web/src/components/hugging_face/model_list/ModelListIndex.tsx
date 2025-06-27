@@ -49,6 +49,29 @@ const styles = (theme: any) =>
       padding: ".4em 1em",
       fontSize: "0.9rem"
     },
+    "& .model-type-button": {
+      padding: "0.25em 1em",
+      backgroundColor: "transparent",
+      "&:hover": {
+        color: theme.palette.c_gray6,
+        backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".model-type-button.Mui-selected": {
+      backgroundColor: theme.palette.c_gray1,
+      transition: "background-color 0.2s ease-in"
+    },
+    ".model-type-button span": {
+      display: "flex",
+      alignItems: "center",
+      transition: "color 0.2s ease-in"
+    },
+    ".model-type-button img": {
+      filter: "saturate(0)"
+    },
+    ".model-type-button.Mui-selected span": {
+      color: theme.palette.c_hl1
+    },
     ".content": {
       width: "80%",
       height: "95%",

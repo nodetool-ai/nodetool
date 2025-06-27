@@ -186,29 +186,6 @@ const modelListItemStyles = (theme: any) =>
         margin: "0",
         padding: "0 .5em"
       },
-      ".model-type-button": {
-        padding: "0.25em 1em",
-        backgroundColor: theme.palette.c_gray1,
-        "&:hover": {
-          color: theme.palette.c_gray6,
-          backgroundColor: theme.palette.c_gray1
-        }
-      },
-      ".model-type-button.Mui-selected": {
-        backgroundColor: theme.palette.c_gray1,
-        transition: "background-color 0.2s ease-in"
-      },
-      ".model-type-button span": {
-        display: "flex",
-        alignItems: "center",
-        transition: "color 0.2s ease-in"
-      },
-      ".model-type-button img": {
-        filter: "saturate(0)"
-      },
-      ".model-type-button.Mui-selected span": {
-        color: theme.palette.c_hl1
-      },
       ".model-external-link-icon": {
         boxShadow: "none",
         cursor: "pointer",
