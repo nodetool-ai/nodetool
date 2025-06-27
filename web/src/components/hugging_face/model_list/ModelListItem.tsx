@@ -18,7 +18,6 @@ import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 import { getShortModelName } from "../../../utils/modelFormatting";
-import ThemeNodetool from "../../themes/ThemeNodetool";
 import { ModelListItemActions } from "./ModelListItemActions";
 
 const ModelListItem: React.FC<
@@ -125,9 +124,9 @@ const ModelListItem: React.FC<
                 {getShortModelName(model.id)}
               </Typography>
             </Link>
-            <Typography component="span" className="model-path">
+            {/* <Typography component="span" className="model-path">
               {model.path}
-            </Typography>
+            </Typography> */}
           </div>
 
           <div className="model-details">

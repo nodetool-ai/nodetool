@@ -5,7 +5,10 @@ import React from "react";
 import Button from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 import { Tooltip } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
 
 interface DeleteButtonProps<T> {
   item?: T;
@@ -34,6 +37,10 @@ const styles = (theme: any) =>
     },
     button: {
       color: theme.palette.c_gray5
+    },
+    "&:hover": {
+      color: theme.palette.c_delete,
+      backgroundColor: "transparent"
     }
   });
 
@@ -47,8 +54,9 @@ function DeleteButton<T>({
   return (
     <Tooltip
       title={tooltip || ""}
+      enterDelay={TOOLTIP_ENTER_DELAY * 2}
+      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       placement={tooltipPlacement || "bottom"}
-      enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button
         css={styles}

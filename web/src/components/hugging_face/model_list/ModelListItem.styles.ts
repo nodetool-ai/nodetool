@@ -3,21 +3,21 @@ import { css } from "@emotion/react";
 const modelListItemStyles = (theme: any) =>
   css({
     "&.model-list-item": {
-      padding: "0.5em 0.5em",
+      padding: "0.5em 1em",
       marginBottom: "0",
       backgroundColor: theme.palette.c_gray1,
       boxSizing: "border-box",
       borderBottom: "1px solid " + theme.palette.c_gray2,
-      transition: "border 0.125s ease-in",
       wordBreak: "break-word",
-
+      transition: "background-color 0.125s ease-in, border 0.125s ease-in",
       "&.compact": {
         padding: 0,
         backgroundColor: theme.palette.c_gray0
       },
 
       "&:hover": {
-        opacity: 0.9
+        opacity: 0.9,
+        backgroundColor: theme.palette.c_gray2
       },
 
       "& .model-content": {
@@ -45,12 +45,21 @@ const modelListItemStyles = (theme: any) =>
         lineHeight: "1.2em"
       },
 
+      "& .model-name-link": {
+        color: "var(--palette-primary-light)",
+        display: "block",
+        textDecoration: "none",
+        marginLeft: "0 !important",
+        paddingBottom: "0.25em",
+        "&:hover": {}
+      },
+
       "& .model-name": {
         flexGrow: 1,
         textTransform: "uppercase",
         fontSize: "var(--fontSizeNormal)",
         fontWeight: "400",
-        color: "var(--palette-primary-light)",
+        textDecoration: "none",
         overflow: "hidden",
         textOverflow: "ellipsis"
       },
@@ -127,6 +136,22 @@ const modelListItemStyles = (theme: any) =>
         position: "relative",
         right: "unset",
         left: "1em"
+      },
+      "& .downloaded-icon": {
+        marginBottom: "-0.25em",
+        marginRight: "0.5em",
+        color: theme.palette.c_gray5,
+        "&:hover": {
+          backgroundColor: "transparent",
+          color: theme.palette.c_success
+        }
+      },
+      "& .show-in-explorer-button": {
+        color: theme.palette.c_folder,
+        "&:hover": {
+          backgroundColor: "transparent",
+          color: "var(--c_file)"
+        }
       }
     }
   });

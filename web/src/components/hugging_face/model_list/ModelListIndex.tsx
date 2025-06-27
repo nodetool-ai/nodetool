@@ -110,7 +110,7 @@ const styles = (theme: any) =>
     ".model-external-link-icon": {
       boxShadow: "none",
       cursor: "pointer",
-      padding: "1em",
+      padding: ".75em",
       backgroundColor: "transparent",
       filter: "saturate(0)",
       transition: "transform 0.125s ease-in, filter 0.2s ease-in",

@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import DeleteButton from "../../buttons/DeleteButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -10,6 +10,10 @@ import {
 } from "../ModelActionsCommon";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelInfo } from "../../../hooks/useModelInfo";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../../config/constants";
 
 interface ModelListItemActionsProps {
   model: UnifiedModel;
@@ -45,7 +49,17 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       )}
 
       <div className="model-actions">
-        {downloaded && <Check />}
+        {downloaded && (
+          <div className="downloaded-icon">
+            <Tooltip
+              title="Downloaded"
+              enterDelay={TOOLTIP_ENTER_DELAY * 2}
+              enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+            >
+              <Check />
+            </Tooltip>
+          </div>
+        )}
         {handleShowInExplorer && showFileExplorerButton && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}
@@ -53,7 +67,10 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           />
         )}
         {handleModelDelete && (
-          <DeleteButton onClick={() => handleModelDelete(model.id)} />
+          <DeleteButton
+            onClick={() => handleModelDelete(model.id)}
+            tooltip="Delete model"
+          />
         )}
       </div>
       <div className="model-actions">
