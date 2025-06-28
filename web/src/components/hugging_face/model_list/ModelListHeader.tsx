@@ -1,24 +1,16 @@
 import React from "react";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import SearchInput from "../../search/SearchInput";
-import { ModelSource } from "./useModels";
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
-interface ModelListHeaderProps {
-  modelSource: ModelSource;
-  handleModelSourceChange: (
-    event: React.MouseEvent<HTMLElement>,
-    newSource: ModelSource | null
-  ) => void;
-  modelSearchTerm: string;
-  setModelSearchTerm: (term: string) => void;
-}
+const ModelListHeader: React.FC = () => {
+  const {
+    modelSource,
+    handleModelSourceChange,
+    modelSearchTerm,
+    setModelSearchTerm
+  } = useModelManagerStore();
 
-const ModelListHeader: React.FC<ModelListHeaderProps> = ({
-  modelSource,
-  handleModelSourceChange,
-  modelSearchTerm,
-  setModelSearchTerm
-}) => {
   return (
     <>
       <SearchInput

@@ -5,35 +5,39 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle
+  DialogTitle,
+  CircularProgress,
+  Box
 } from "@mui/material";
-import { UnifiedModel } from "../../../stores/ApiTypes";
+import { useModels } from "./useModels";
 
 interface DeleteModelDialogProps {
-  modelToDelete: string | null;
-  handleCancelDelete: () => void;
-  handleConfirmDelete: () => void;
-  handleShowInExplorer: (modelId: string) => void;
-  ollamaModels: UnifiedModel[] | undefined;
-  hfModels: UnifiedModel[] | undefined;
-  ollamaBasePath: string | null | undefined;
+  modelId: string | null;
+  onClose: () => void;
 }
 
 const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
-  modelToDelete,
-  handleCancelDelete,
-  handleConfirmDelete,
-  handleShowInExplorer,
-  ollamaModels,
-  hfModels,
-  ollamaBasePath
+  modelId,
+  onClose
 }) => {
-  const modelForExplorer = modelToDelete
-    ? ollamaModels?.find((m) => m.id === modelToDelete) ||
-      hfModels?.find((m) => m.id === modelToDelete)
+  const {
+    ollamaModels,
+    hfModels,
+    ollamaBasePath,
+    handleShowInExplorer,
+    deleteOllamaModel,
+    deleteHFModel,
+    deleteHFModelMutation,
+    deletingModels
+  } = useModels();
+
+  const modelForExplorer = modelId
+    ? ollamaModels?.find((m) => m.id === modelId) ||
+      hfModels?.find((m) => m.id === modelId)
     : null;
+
   let explorerPath = modelForExplorer?.path;
-  let isExplorerDisabled = !modelToDelete;
+  let isExplorerDisabled = !modelId;
 
   if (modelForExplorer) {
     if (modelForExplorer.type === "llama_model" && !explorerPath) {
@@ -42,28 +46,50 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     isExplorerDisabled = !explorerPath;
   }
 
+  const handleConfirmDelete = async () => {
+    if (modelId) {
+      const isOllama = ollamaModels?.find((m) => m.id === modelId);
+      if (isOllama) {
+        await deleteOllamaModel(modelId);
+      } else {
+        await deleteHFModel(modelId);
+      }
+    }
+    onClose();
+  };
+
+  const isDeleting =
+    (modelId && deletingModels.has(modelId)) || deleteHFModelMutation.isPending;
+
   return (
     <Dialog
-      open={!!modelToDelete}
-      onClose={handleCancelDelete}
+      open={!!modelId}
+      onClose={onClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
     >
       <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
-          Delete {modelToDelete}?
+          Delete {modelId}?
         </DialogContentText>
+        {isDeleting && (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+            <CircularProgress />
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => modelToDelete && handleShowInExplorer(modelToDelete)}
-          disabled={isExplorerDisabled}
+          onClick={() => modelId && handleShowInExplorer(modelId)}
+          disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer
         </Button>
-        <Button onClick={handleCancelDelete}>Cancel</Button>
-        <Button onClick={handleConfirmDelete} autoFocus>
+        <Button onClick={onClose} disabled={isDeleting}>
+          Cancel
+        </Button>
+        <Button onClick={handleConfirmDelete} autoFocus disabled={isDeleting}>
           Delete
         </Button>
       </DialogActions>

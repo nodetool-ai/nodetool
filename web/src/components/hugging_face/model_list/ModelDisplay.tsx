@@ -1,32 +1,22 @@
 import React from "react";
-import { Grid, List, Typography } from "@mui/material";
-import ModelCard from "../model_card/ModelCard";
+import { List, Typography } from "@mui/material";
 import ModelListItem from "./ModelListItem";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import { ModelSource } from "./useModels";
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
-
-type ViewMode = "grid" | "list";
+import { useModels } from "./useModels";
 
 interface ModelDisplayProps {
   models: UnifiedModel[];
-  viewMode: ViewMode;
-  modelSource: ModelSource;
-  modelSearchTerm: string;
   handleDeleteClick: (modelId: string) => void;
-  handleShowInExplorer: (modelId: string) => void;
-  ollamaBasePath: string | null | undefined;
 }
 
 const ModelDisplay: React.FC<ModelDisplayProps> = ({
   models,
-  viewMode,
-  modelSource,
-  modelSearchTerm,
-  handleDeleteClick,
-  handleShowInExplorer,
-  ollamaBasePath
+  handleDeleteClick
 }) => {
+  const { modelSource, modelSearchTerm } = useModelManagerStore();
+  const { handleShowInExplorer, ollamaBasePath } = useModels();
   const downloadStore = useModelDownloadStore();
 
   const startDownload = React.useCallback(
