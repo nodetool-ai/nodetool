@@ -3,16 +3,31 @@ import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState } from "react";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
-import { Message, WorkflowAttributes } from "../../stores/ApiTypes";
-import useWorkflowChatStore from "../../stores/WorkflowChatStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { Message } from "../../stores/ApiTypes";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 
 const containerStyles = css({
   flex: 1,
   display: "flex",
   flexDirection: "column",
+  width: "100%",
   height: "100%",
-  overflow: "hidden"
+  overflow: "hidden",
+  marginRight: "1em",
+  ".chat-input-section": {
+    backgroundColor: "transparent"
+  },
+  ".chat-controls": {
+    flexDirection: "column",
+    gap: "0",
+    alignItems: "flex-start"
+  },
+  ".chat-composer-wrapper": {
+    width: "100%",
+    ".compose-message": {
+      margin: "0 .5em 0 0"
+    }
+  }
 });
 
 /**
@@ -20,25 +35,23 @@ const containerStyles = css({
  * currently active workflow and with help mode enabled by default.
  */
 const WorkflowAssistantChat: React.FC = () => {
-  // Access the currently active workflow (full object)
-  const currentWorkflow = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.getWorkflow(state.currentWorkflowId)
-      : undefined
-  );
-
-  // Chat store
   const {
     connect,
     disconnect,
     status,
     sendMessage,
     progress,
-    total,
-    messages,
-    progressMessage,
-    error
-  } = useWorkflowChatStore();
+    statusMessage,
+    error,
+    stopGeneration,
+    getCurrentMessages,
+    createNewThread,
+    currentThreadId
+  } = useGlobalChatStore();
+
+  const messages = getCurrentMessages();
+
+  const total = progress.total;
 
   // Local UI state (model & toggles)
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -49,29 +62,25 @@ const WorkflowAssistantChat: React.FC = () => {
   const [selectedCollections] = useState<string[]>([]);
   const helpMode = true; // constant ON, toggle hidden
 
-  // Establish / tear-down websocket connection when workflow changes
+  // Connect once on mount and clean up on unmount
   useEffect(() => {
-    if (!currentWorkflow) {
-      return;
-    }
-
-    // Connect with minimal attributes (id only) to establish chat session
-    connect({ id: currentWorkflow.id } as unknown as WorkflowAttributes);
+    connect().catch((err) => console.error("Failed to connect:", err));
     return () => disconnect();
-    // We intentionally depend only on workflow ID to avoid infinite reconnects
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentWorkflow?.id]);
+  }, []);
 
-  // Wrap sendMessage to ensure workflow_id is attached
+  // Ensure a thread exists after connection
+  useEffect(() => {
+    if (!currentThreadId && status === "connected") {
+      createNewThread();
+    }
+  }, [currentThreadId, status, createNewThread]);
+
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      if (!currentWorkflow) {
-        console.error("No active workflow. Cannot send message.");
-        return;
-      }
-      await sendMessage({ ...message, workflow_id: currentWorkflow.id });
+      await sendMessage(message);
     },
-    [sendMessage, currentWorkflow]
+    [sendMessage]
   );
 
   return (
@@ -83,16 +92,17 @@ const WorkflowAssistantChat: React.FC = () => {
       )}
       <ChatView
         status={status}
-        progress={progress}
+        progress={progress.current}
         total={total}
         messages={messages}
         sendMessage={handleSendMessage}
-        progressMessage={progressMessage || ""}
+        progressMessage={statusMessage}
         model={selectedModel}
         selectedTools={selectedTools}
         selectedCollections={selectedCollections}
         onModelChange={setSelectedModel}
         helpMode={helpMode}
+        onStop={stopGeneration}
       />
     </div>
   );
