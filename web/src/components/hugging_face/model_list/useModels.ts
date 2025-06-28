@@ -11,7 +11,6 @@ import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { authHeader } from "../../../stores/ApiClient";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
-import { useModelViewState } from "../../../stores/ModelViewState";
 
 export type ModelSource = "downloaded" | "recommended";
 
