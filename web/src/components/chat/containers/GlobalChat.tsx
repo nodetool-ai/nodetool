@@ -9,7 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
-import BackToDashboardButton from "../../dashboard/BackToDashboardButton";
+import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
@@ -77,7 +77,7 @@ const GlobalChat: React.FC = () => {
   // Monitor connection state and reconnect when disconnected or failed
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
-    
+
     const attemptReconnect = () => {
       if (status === "disconnected" || status === "failed") {
         console.log("Connection lost, attempting automatic reconnect...");
@@ -98,9 +98,7 @@ const GlobalChat: React.FC = () => {
         clearTimeout(reconnectTimer);
       }
     };
-     
   }, [status, connect]);
-
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
@@ -122,7 +120,9 @@ const GlobalChat: React.FC = () => {
       }
 
       if (status !== "connected" && status !== "reconnecting") {
-        console.error("Not connected to chat service, attempting to reconnect...");
+        console.error(
+          "Not connected to chat service, attempting to reconnect..."
+        );
         // Attempt to reconnect before sending
         try {
           await connect();
@@ -138,7 +138,8 @@ const GlobalChat: React.FC = () => {
         const messageWithModel = {
           ...message,
           model: modelToUse,
-          collections: selectedCollections.length > 0 ? selectedCollections : undefined
+          collections:
+            selectedCollections.length > 0 ? selectedCollections : undefined
         };
         await sendMessage(messageWithModel);
       } catch (error) {
@@ -147,8 +148,6 @@ const GlobalChat: React.FC = () => {
     },
     [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
   );
-
-
 
   const mainAreaStyles = (theme: any) =>
     css({
@@ -201,16 +200,25 @@ const GlobalChat: React.FC = () => {
     >
       {/* Main Chat Area */}
       <Box css={mainAreaStyles} sx={{ height: "100%", maxHeight: "100%" }}>
-        <Box className="chat-header" sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}>
+        <Box
+          className="chat-header"
+          sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
+        >
+          <BackToDashboardButton />
           <BackToEditorButton />
         </Box>
 
-        {(error || status === "reconnecting" || status === "disconnected" || status === "failed") && (
+        {(error ||
+          status === "reconnecting" ||
+          status === "disconnected" ||
+          status === "failed") && (
           <Alert
             severity={
-              status === "reconnecting" ? "info" : 
-              status === "disconnected" ? "warning" :
-              "error"
+              status === "reconnecting"
+                ? "info"
+                : status === "disconnected"
+                ? "warning"
+                : "error"
             }
             sx={{ mx: 2, my: 1, flexShrink: 0 }}
           >

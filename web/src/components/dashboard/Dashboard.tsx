@@ -25,6 +25,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import ChatView from "../chat/containers/ChatView";
 import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
+import BackToEditorButton from "../panels/BackToEditorButton";
 
 const styles = (theme: any) =>
   css({
@@ -94,16 +95,15 @@ const styles = (theme: any) =>
     ".workflow-item": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(2),
-      padding: theme.spacing(2),
-      marginBottom: theme.spacing(1.5),
+      gap: theme.spacing(4),
+      padding: theme.spacing(1),
+      marginBottom: theme.spacing(1),
       cursor: "pointer",
       borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray1,
       transition: "all 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3,
-        transform: "translateX(4px)"
+        backgroundColor: theme.palette.c_gray2
       }
     },
 
@@ -111,7 +111,8 @@ const styles = (theme: any) =>
       width: "60px",
       height: "60px",
       borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.c_gray3,
+      backgroundColor: "transparent",
+      border: `1px solid ${theme.palette.c_gray2}`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       flexShrink: 0
@@ -134,7 +135,7 @@ const styles = (theme: any) =>
     ".workflow-description": {
       color: theme.palette.c_gray5,
       fontSize: "0.875rem",
-      lineHeight: 1.4,
+      lineHeight: "1.2em",
       display: "-webkit-box",
       WebkitBoxOrient: "vertical",
       WebkitLineClamp: 2,
@@ -150,8 +151,8 @@ const styles = (theme: any) =>
 
     ".example-grid": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-      gap: theme.spacing(3)
+      gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+      gap: theme.spacing(2)
     },
 
     ".example-card": {
@@ -206,7 +207,7 @@ const styles = (theme: any) =>
       padding: ".2em .5em .5em 0",
       color: theme.palette.c_white,
       backgroundColor: theme.palette.c_gray1,
-      fontSize: "var(--fontSizeNormal)"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".header-controls": {
@@ -342,6 +343,9 @@ const Dashboard: React.FC = () => {
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
+  const { currentWorkflowId } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId
+  }));
   const loadExamples = useWorkflowManager((state) => state.loadExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
 
@@ -398,10 +402,12 @@ const Dashboard: React.FC = () => {
   // Monitor connection state and reconnect when disconnected or failed
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
-    
+
     const attemptReconnect = () => {
       if (status === "disconnected" || status === "failed") {
-        console.log("Dashboard: Connection lost, attempting automatic reconnect...");
+        console.log(
+          "Dashboard: Connection lost, attempting automatic reconnect..."
+        );
         connect().catch((error) => {
           console.error("Dashboard: Automatic reconnect failed:", error);
         });
@@ -419,7 +425,6 @@ const Dashboard: React.FC = () => {
         clearTimeout(reconnectTimer);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, connect]);
 
   // Load workflows
@@ -467,6 +472,10 @@ const Dashboard: React.FC = () => {
       }
       return b.updated_at.localeCompare(a.updated_at);
     }) || [];
+
+  const currentWorkflow = workflowsData?.workflows.find(
+    (workflow) => workflow.id === currentWorkflowId
+  );
 
   const handleCreateNewWorkflow = async () => {
     const workflow = await createNewWorkflow();
@@ -527,14 +536,14 @@ const Dashboard: React.FC = () => {
           ...message,
           model: selectedModel
         };
-        
+
         // Ensure chat is connected
         if (status !== "connected") {
           await connect();
         }
         const threadId = createNewThread();
         switchThread(threadId);
-        
+
         await sendMessage(messageWithModel);
         // Navigate to chat view
         navigate("/chat");
@@ -542,7 +551,15 @@ const Dashboard: React.FC = () => {
         console.error("Failed to send message:", error);
       }
     },
-    [selectedModel, sendMessage, status, connect, navigate, createNewThread, switchThread]
+    [
+      selectedModel,
+      sendMessage,
+      status,
+      connect,
+      navigate,
+      createNewThread,
+      switchThread
+    ]
   );
 
   const handleModelChange = useCallback((modelId: string) => {
@@ -574,14 +591,14 @@ const Dashboard: React.FC = () => {
     if (!thread || thread.messages.length === 0) {
       return "No messages yet";
     }
-    
-    const firstUserMessage = thread.messages.find(m => m.role === "user");
-    const preview = firstUserMessage?.content 
-      ? (typeof firstUserMessage.content === "string" 
-          ? firstUserMessage.content 
-          : "Chat started")
+
+    const firstUserMessage = thread.messages.find((m) => m.role === "user");
+    const preview = firstUserMessage?.content
+      ? typeof firstUserMessage.content === "string"
+        ? firstUserMessage.content
+        : "Chat started"
       : "Chat started";
-    
+
     return truncateString(preview, 100);
   };
 
@@ -589,9 +606,18 @@ const Dashboard: React.FC = () => {
     <Box css={styles(ThemeNodetool)}>
       {/* Start Examples Section */}
       <Box className="section examples-section">
-        <Typography variant="h2" className="section-title">
-          Getting Started
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          <Typography variant="h2" className="section-title">
+            Examples
+          </Typography>
+          {currentWorkflowId && <BackToEditorButton />}
+        </Box>
         <Box className="content-scrollable">
           {isLoadingExamples ? (
             <Box className="loading-container">

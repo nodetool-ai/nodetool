@@ -12,14 +12,15 @@ export const createStyles = (theme: any) =>
 
     ".new-chat-button": {
       width: "100%",
+      textAlign: "center",
       padding: "0.5em 1em",
       borderRadius: "8px",
       backgroundColor: "var(--c_gray1)",
       color: theme.palette.c_white,
       textTransform: "none",
-      justifyContent: "flex-start",
+      justifyContent: "center",
       transition: "background 0.2s",
-      "&:hover": { backgroundColor: theme.palette.c_gray3 }
+      "&:hover": { backgroundColor: theme.palette.c_gray2 }
     },
 
     ".thread-list": {
@@ -43,7 +44,7 @@ export const createStyles = (theme: any) =>
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.c_gray0,
+        backgroundColor: theme.palette.c_gray2,
         borderLeft: `2px solid ${theme.palette.c_hl1}`
       }
     },
