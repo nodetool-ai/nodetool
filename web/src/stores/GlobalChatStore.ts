@@ -85,7 +85,15 @@ export type MsgpackData =
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate
-  | SubTaskResult;
+  | SubTaskResult
+  | WorkflowCreatedUpdate;
+
+// Define the WorkflowCreatedUpdate type
+interface WorkflowCreatedUpdate {
+  type: "workflow_created";
+  workflow_id: string;
+  graph: any;
+}
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   const dataUri = URL.createObjectURL(new Blob([data]));
@@ -681,6 +689,46 @@ function handleWebSocketMessage(
   } else if (data.type === "subtask_result") {
     const update = data as SubTaskResult;
     // TODO: update the thread with the subtask result
+  } else if (data.type === "workflow_created") {
+    const update = data as WorkflowCreatedUpdate;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      // Add a message to the thread about the created workflow
+      const message: Message = {
+        role: "assistant",
+        type: "message",
+        content: "Workflow created successfully! <a href='/editor/" + update.workflow_id + "'>View workflow</a>",
+        workflow_id: get().workflowId,
+        graph: update.graph 
+      };
+      
+      set((state) => {
+        const thread = state.threads[threadId];
+        if (thread) {
+          return {
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...thread.messages, message],
+                updatedAt: new Date().toISOString()
+              }
+            },
+            status: "connected",
+            statusMessage: null
+          };
+        }
+        return state;
+      });
+    }
+  } else if (data.type === "error") {
+    // Handle error messages
+    const errorData = data as any;
+    set({
+      error: errorData.message || "An error occurred",
+      status: "error",
+      statusMessage: errorData.message
+    });
   }
 }
 
