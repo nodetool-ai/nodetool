@@ -151,6 +151,7 @@ const GlobalChat: React.FC = () => {
 
   const mainAreaStyles = (theme: any) =>
     css({
+      position: "relative",
       flex: 1,
       display: "flex",
       flexDirection: "column",
@@ -220,7 +221,16 @@ const GlobalChat: React.FC = () => {
                 ? "warning"
                 : "error"
             }
-            sx={{ mx: 2, my: 1, flexShrink: 0 }}
+            sx={{
+              position: "absolute",
+              top: "5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
+              zIndex: 1001,
+              flexShrink: 0
+            }}
           >
             {status === "reconnecting"
               ? statusMessage || "Reconnecting to chat service..."
