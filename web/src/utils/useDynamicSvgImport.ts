@@ -14,8 +14,11 @@ export function useDynamicSvgImport(iconName: string) {
     setLoading(true);
     const importSvgIcon = async (): Promise<void> => {
       try {
-        const icon = (await import(`../icons/${iconName}.svg`))
-          .ReactComponent as SvgComponentType;
+        const iconModule = await import(
+          /* @vite-ignore */ `../icons/${iconName}.svg?react`
+        );
+        const icon = (iconModule.default ||
+          iconModule.ReactComponent) as SvgComponentType;
         importedIconRef.current = icon;
       } catch (err) {
         // console.error(err);

@@ -16,7 +16,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 // icons
 import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
+import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
@@ -146,10 +146,13 @@ const VerticalToolbar = memo(function VerticalToolbar({
           className={
             activeView === "assistant" && panelVisible
               ? "assistant active"
-              : "assistant "
+              : "assistant"
           }
         >
-          <SmartToyIcon />
+          <SvgFileIcon
+            iconName="assistant"
+            svgProp={{ width: 20, height: 20 }}
+          />
         </IconButton>
       </Tooltip>
     </div>

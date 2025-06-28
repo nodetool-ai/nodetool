@@ -55,9 +55,8 @@ const WorkflowAssistantChat: React.FC = () => {
       return;
     }
 
-    // Connect using WorkflowAttributes subset
-    const { graph: _graph, ...attributes } = currentWorkflow as any;
-    connect(attributes as WorkflowAttributes);
+    // Connect with minimal attributes (id only) to establish chat session
+    connect({ id: currentWorkflow.id } as unknown as WorkflowAttributes);
     return () => disconnect();
     // We intentionally depend only on workflow ID to avoid infinite reconnects
     // eslint-disable-next-line react-hooks/exhaustive-deps
