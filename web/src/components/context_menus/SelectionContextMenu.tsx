@@ -209,7 +209,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           tooltip={
             <div className="tooltip-span">
               <div className="tooltip-title">Surround With Group</div>
-              <div className="tooltip-key">SHIFT+G</div>
+              <div className="tooltip-key">CTRL/⌘+G</div>
             </div>
           }
           addButtonClassName={`action ${
