@@ -5,6 +5,7 @@ import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { Message } from "../../stores/ApiTypes";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { NewChatButton } from "../chat/thread/NewChatButton";
 
 const containerStyles = css({
   flex: 1,
@@ -85,6 +86,15 @@ const WorkflowAssistantChat: React.FC = () => {
 
   return (
     <div css={containerStyles}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "4px 8px"
+        }}
+      >
+        <NewChatButton onNewThread={createNewThread} />
+      </div>
       {error && (
         <div style={{ color: "var(--palette-error-main)", padding: "0.5rem" }}>
           {error}

@@ -80,7 +80,10 @@ const styles = (theme: any) =>
         padding: "5px 4px 0 5px",
         borderRadius: "5px",
         position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
+        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "&.active svg": {
+          color: "var(--c_hl1)"
+        }
       }
     },
     ".panel-content": {
