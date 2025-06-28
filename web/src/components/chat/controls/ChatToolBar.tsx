@@ -14,7 +14,14 @@ const styles = (theme: any) =>
     display: "flex",
     alignItems: "center",
     marginBottom: ".5em",
-    gap: ".5em"
+    gap: 0,
+    "& .MuiButton-root, & .MuiIconButton-root": {
+      padding: "6px",
+      margin: "0"
+    },
+    "& .MuiButton-startIcon": {
+      marginRight: "0"
+    }
   });
 
 interface ChatToolBarProps {
@@ -42,7 +49,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   selectedCollections,
   onCollectionsChange
 }) => {
-
   return (
     <div className="chat-tool-bar" css={styles}>
       {onModelChange && (
@@ -54,12 +60,15 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
       {onToolsChange && (
         <>
           <ToolsSelector value={selectedTools} onChange={onToolsChange} />
-          <WorkflowToolsSelector value={selectedTools} onChange={onToolsChange} />
+          <WorkflowToolsSelector
+            value={selectedTools}
+            onChange={onToolsChange}
+          />
           <NodeToolsSelector value={selectedTools} onChange={onToolsChange} />
           {onCollectionsChange && (
-            <CollectionsSelector 
-              value={selectedCollections || []} 
-              onChange={onCollectionsChange} 
+            <CollectionsSelector
+              value={selectedCollections || []}
+              onChange={onCollectionsChange}
             />
           )}
         </>

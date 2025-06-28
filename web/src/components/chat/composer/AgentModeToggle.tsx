@@ -12,13 +12,13 @@ interface AgentModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (theme: any) => css({
-  ".agent-toggle": {
-    padding: "6px",
-    transition: "all 0.2s ease-in-out",
-    border: "1px solid transparent",
-  }
-});
+const styles = (theme: any) =>
+  css({
+    ".agent-toggle": {
+      transition: "all 0.2s ease-in-out",
+      border: "1px solid transparent"
+    }
+  });
 
 export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   agentMode,
@@ -26,17 +26,17 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   disabled = false
 }) => {
   const theme = useTheme();
-  
+
   return (
     <Tooltip
       enterDelay={TOOLTIP_ENTER_DELAY}
       title={
         <div style={{ textAlign: "center" }}>
           <Typography variant="inherit">
-            {agentMode ? "Agent Mode On" : "Agent Mode Off"}
+            {agentMode ? "Agent Mode ON" : "Agent Mode OFF"}
           </Typography>
           <Typography variant="caption" display="block">
-            Click to {agentMode ? "disable" : "enable"} agent mode
+            {agentMode ? "Disable" : "Enable"} agent mode
           </Typography>
         </div>
       }

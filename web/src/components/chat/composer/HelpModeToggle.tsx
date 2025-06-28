@@ -12,13 +12,13 @@ interface HelpModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (theme: any) => css({
-  ".help-toggle": {
-    padding: "6px",
-    transition: "all 0.2s ease-in-out",
-    border: "1px solid transparent",
-  }
-});
+const styles = (theme: any) =>
+  css({
+    ".help-toggle": {
+      transition: "all 0.2s ease-in-out",
+      border: "1px solid transparent"
+    }
+  });
 
 export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
   helpMode,
@@ -26,17 +26,19 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
   disabled = false
 }) => {
   const theme = useTheme();
-  
+
   return (
     <Tooltip
       enterDelay={TOOLTIP_ENTER_DELAY}
       title={
         <div style={{ textAlign: "center" }}>
           <Typography variant="inherit">
-            {helpMode ? "Help Mode On" : "Help Mode Off"}
+            {helpMode ? "Help Mode ON" : "Help Mode OFF"}
           </Typography>
           <Typography variant="caption" display="block">
-            Click to {helpMode ? "disable" : "enable"} help mode
+            {helpMode
+              ? "Disable Nodetool help mode for chat."
+              : "Include Nodetool help context for chat."}
           </Typography>
         </div>
       }
