@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client, BASE_URL } from "../../../stores/ApiClient";
 import { llama_models as staticOllamaModels } from "../../../config/models";
@@ -10,13 +10,14 @@ import {
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { authHeader } from "../../../stores/ApiClient";
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import { useModelViewState } from "../../../stores/ModelViewState";
 
 export type ModelSource = "downloaded" | "recommended";
 
 export const useModels = () => {
-  const [modelSource, setModelSource] = useState<ModelSource>("downloaded");
-  const [modelSearchTerm, setModelSearchTerm] = useState("");
-  const [selectedModelType, setSelectedModelType] = useState<string>("All");
+  const { modelSource, modelSearchTerm, selectedModelType } =
+    useModelManagerStore();
   const queryClient = useQueryClient();
   const { ollamaBasePath } = useModelBasePaths();
   const addNotification = useNotificationStore(
@@ -283,15 +284,6 @@ export const useModels = () => {
     }
   };
 
-  const handleModelSourceChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newSource: "downloaded" | "recommended" | null
-  ) => {
-    if (newSource !== null) {
-      setModelSource(newSource);
-    }
-  };
-
   const isLoading =
     (modelSource === "downloaded" && (hfLoading || ollamaLoading)) ||
     (modelSource === "recommended" && recommendedLoading);
@@ -301,12 +293,6 @@ export const useModels = () => {
     (modelSource === "recommended" && recommendedIsFetching);
 
   return {
-    modelSource,
-    setModelSource,
-    modelSearchTerm,
-    setModelSearchTerm,
-    selectedModelType,
-    setSelectedModelType,
     hfModels,
     hfLoading,
     hfIsFetching,
@@ -327,7 +313,6 @@ export const useModels = () => {
     deleteOllamaModel,
     deleteHFModelMutation,
     handleShowInExplorer,
-    handleModelSourceChange,
     ollamaBasePath,
     isLoading,
     isFetching,

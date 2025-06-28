@@ -9,6 +9,7 @@ import ModelTypeSidebar from "./ModelTypeSidebar";
 import ModelDisplay from "./ModelDisplay";
 import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
 const styles = (theme: any) =>
   css({
@@ -82,119 +83,16 @@ const styles = (theme: any) =>
     ".model-list-section": {
       marginBottom: theme.spacing(5)
     }
-    // ".model-item": {
-    //   padding: 0,
-    //   borderBottom: `1px solid ${theme.palette.c_gray0}`,
-    //   marginBottom: theme.spacing(1),
-    //   "&:hover": {
-    //     backgroundColor: theme.palette.c_gray2
-    //   }
-    // },
-    // ".model-text": {
-    //   wordBreak: "break-word",
-    //   maxHeight: "3.5em",
-    //   overflow: "hidden"
-    // },
-    // ".model-text span": {
-    //   maxHeight: "2.5em",
-    //   overflow: "hidden"
-    // },
-    // ".model-text p": {
-    //   paddingTop: theme.spacing(1)
-    // },
-    // button: {
-    //   color: theme.palette.c_gray5,
-    //   margin: "0",
-    //   padding: "0 .5em"
-    // },
-    // ".model-type-button": {
-    //   padding: "0.25em 1em",
-    //   backgroundColor: theme.palette.c_gray1,
-    //   "&:hover": {
-    //     color: theme.palette.c_gray6,
-    //     backgroundColor: theme.palette.c_gray1
-    //   }
-    // },
-    // ".model-type-button.Mui-selected": {
-    //   backgroundColor: theme.palette.c_gray1,
-    //   transition: "background-color 0.2s ease-in"
-    // },
-    // ".model-type-button span": {
-    //   display: "flex",
-    //   alignItems: "center",
-    //   transition: "color 0.2s ease-in"
-    // },
-    // ".model-type-button img": {
-    //   filter: "saturate(0)"
-    // },
-    // ".model-type-button.Mui-selected span": {
-    //   color: theme.palette.c_hl1
-    // },
-    // ".model-external-link-icon": {
-    //   boxShadow: "none",
-    //   cursor: "pointer",
-    //   padding: ".75em",
-    //   backgroundColor: "transparent",
-    //   filter: "saturate(0)",
-    //   transition: "transform 0.125s ease-in, filter 0.2s ease-in",
-    //   "&:hover": {
-    //     backgroundColor: "transparent",
-    //     transform: "scale(1.25)",
-    //     filter: "saturate(1)"
-    //   }
-    // },
-    // ".size-and-license": {
-    //   display: "flex",
-    //   flexDirection: "row",
-    //   fontSize: "var(--fontSizeSmaller)",
-    //   gap: "1em"
-    // },
-    // ".model-category": {},
-    // ".model-category.empty": {
-    //   color: theme.palette.c_gray3,
-    //   marginBottom: "2em"
-    // },
-    // ".model-type-button.empty": {
-    //   color: theme.palette.c_gray4,
-    //   "& span": {
-    //     color: theme.palette.c_gray4
-    //   }
-    // },
-    // ".model-type-button.Mui-selected.empty span": {
-    //   color: "var(--palette-primary-dark)"
-    // },
-    // ".model-type-list .model-type-button:first-of-type": {
-    //   "&, & .MuiListItemText-primary": {
-    //     color: "var(--c_gray6)"
-    //   }
-    // },
-    // ".model-type-list .model-type-button:first-of-type.Mui-selected": {
-    //   "&, & .MuiListItemText-primary": {
-    //     color: theme.palette.c_hl1
-    //   }
-    // }
   });
 
 const ModelListIndex: React.FC = () => {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
+  const { selectedModelType, modelSearchTerm, modelSource } =
+    useModelManagerStore();
 
   const {
-    modelSource,
-    handleModelSourceChange,
-    modelSearchTerm,
-    setModelSearchTerm,
-    selectedModelType,
-    setSelectedModelType,
-    hfModels,
-    ollamaModels,
     modelTypes,
     filteredModels,
-    deleteHFModel,
-    deleteOllamaModel,
-    deleteHFModelMutation,
-    handleShowInExplorer,
-    ollamaBasePath,
     isLoading,
     isFetching,
     hfError,
@@ -204,27 +102,8 @@ const ModelListIndex: React.FC = () => {
     groupedRecommendedModels
   } = useModels();
 
-  const handleModelTypeChange = useCallback(
-    (newValue: string) => {
-      setSelectedModelType(newValue);
-    },
-    [setSelectedModelType]
-  );
-
   const handleDeleteClick = (modelId: string) => {
     setModelToDelete(modelId);
-  };
-
-  const handleConfirmDelete = () => {
-    if (modelToDelete) {
-      const isOllama = ollamaModels?.find((m) => m.id === modelToDelete);
-      if (isOllama) {
-        deleteOllamaModel(modelToDelete);
-      } else {
-        deleteHFModel(modelToDelete);
-      }
-    }
-    setModelToDelete(null);
   };
 
   const handleCancelDelete = () => {
@@ -289,24 +168,11 @@ const ModelListIndex: React.FC = () => {
   return (
     <Box className="model-list-container" css={styles}>
       <Box className="model-list-header">
-        <ModelListHeader
-          modelSource={modelSource}
-          handleModelSourceChange={handleModelSourceChange}
-          modelSearchTerm={modelSearchTerm}
-          setModelSearchTerm={setModelSearchTerm}
-        />
+        <ModelListHeader />
       </Box>
       <Box className="main">
         <Box className="sidebar">
-          <ModelTypeSidebar
-            modelTypes={modelTypes}
-            selectedModelType={selectedModelType}
-            handleModelTypeChange={handleModelTypeChange}
-            modelSource={modelSource}
-            ollamaModels={ollamaModels}
-            groupedHFModels={groupedHFModels}
-            groupedRecommendedModels={groupedRecommendedModels}
-          />
+          <ModelTypeSidebar />
         </Box>
 
         <Box className="content">
@@ -316,13 +182,6 @@ const ModelListIndex: React.FC = () => {
               sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
             />
           )}
-          {deleteHFModelMutation.isPending && <CircularProgress />}
-          {deleteHFModelMutation.isError && (
-            <Typography color="error">
-              {deleteHFModelMutation.error.message}
-            </Typography>
-          )}
-
           {selectedModelType === "All" ? (
             <>
               {modelSearchTerm && (
@@ -359,12 +218,7 @@ const ModelListIndex: React.FC = () => {
                     </Typography>
                     <ModelDisplay
                       models={models}
-                      viewMode={viewMode}
-                      modelSource={modelSource}
-                      modelSearchTerm={modelSearchTerm}
                       handleDeleteClick={handleDeleteClick}
-                      handleShowInExplorer={handleShowInExplorer}
-                      ollamaBasePath={ollamaBasePath}
                     />
                   </Box>
                 );
@@ -378,24 +232,14 @@ const ModelListIndex: React.FC = () => {
               </Typography>
               <ModelDisplay
                 models={Object.values(filteredModels)[0]}
-                viewMode={viewMode}
-                modelSource={modelSource}
-                modelSearchTerm={modelSearchTerm}
                 handleDeleteClick={handleDeleteClick}
-                handleShowInExplorer={handleShowInExplorer}
-                ollamaBasePath={ollamaBasePath}
               />
             </Box>
           )}
 
           <DeleteModelDialog
-            modelToDelete={modelToDelete}
-            handleCancelDelete={handleCancelDelete}
-            handleConfirmDelete={handleConfirmDelete}
-            handleShowInExplorer={handleShowInExplorer}
-            ollamaModels={ollamaModels}
-            hfModels={hfModels}
-            ollamaBasePath={ollamaBasePath}
+            modelId={modelToDelete}
+            onClose={handleCancelDelete}
           />
         </Box>
       </Box>

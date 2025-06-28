@@ -2,33 +2,24 @@ import React, { useCallback } from "react";
 import { List, ListItemButton, ListItemText } from "@mui/material";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";
-import { UnifiedModel } from "../../../stores/ApiTypes";
-import { ModelSource } from "./useModels";
+import { useModels } from "./useModels";
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
-interface ModelTypeSidebarProps {
-  modelTypes: string[];
-  selectedModelType: string;
-  handleModelTypeChange: (type: string) => void;
-  modelSource: ModelSource;
-  ollamaModels: UnifiedModel[] | undefined;
-  groupedHFModels: Record<string, UnifiedModel[]>;
-  groupedRecommendedModels: Record<string, UnifiedModel[]>;
-}
+const ModelTypeSidebar: React.FC = () => {
+  const {
+    modelTypes,
+    ollamaModels,
+    groupedHFModels,
+    groupedRecommendedModels
+  } = useModels();
+  const { modelSource, selectedModelType, setSelectedModelType } =
+    useModelManagerStore();
 
-const ModelTypeSidebar: React.FC<ModelTypeSidebarProps> = ({
-  modelTypes,
-  selectedModelType,
-  handleModelTypeChange,
-  modelSource,
-  ollamaModels,
-  groupedHFModels,
-  groupedRecommendedModels
-}) => {
   const onModelTypeChange = useCallback(
     (type: string) => {
-      handleModelTypeChange(type);
+      setSelectedModelType(type);
     },
-    [handleModelTypeChange]
+    [setSelectedModelType]
   );
 
   return (
@@ -36,7 +27,10 @@ const ModelTypeSidebar: React.FC<ModelTypeSidebarProps> = ({
       {modelTypes.map((type) => {
         let isEmpty = false;
         if (type === "llama_model") {
-          isEmpty = (ollamaModels?.length || 0) === 0;
+          isEmpty =
+            modelSource === "downloaded"
+              ? (ollamaModels?.length || 0) === 0
+              : (groupedRecommendedModels["llama_model"]?.length || 0) === 0;
         } else if (modelSource === "downloaded") {
           isEmpty = (groupedHFModels[type]?.length || 0) === 0;
         } else {
