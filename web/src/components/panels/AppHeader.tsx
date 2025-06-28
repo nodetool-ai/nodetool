@@ -76,7 +76,8 @@ const styles = (theme: any) =>
       justifyContent: "flex-end",
       alignItems: "center",
       background: "transparent",
-      flexShrink: 0
+      flexShrink: 0,
+      marginRight: "0.3em"
     }
   });
 
