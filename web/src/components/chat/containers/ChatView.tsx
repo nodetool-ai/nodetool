@@ -62,6 +62,7 @@ type ChatViewProps = {
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
   onHelpModeToggle?: (enabled: boolean) => void;
+  workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
 };
@@ -81,8 +82,9 @@ const ChatView = ({
   onModelChange,
   onStop,
   agentMode,
+  workflowAssistant = false,
   onAgentModeToggle,
-  helpMode,
+  helpMode = false,
   onHelpModeToggle,
   currentPlanningUpdate,
   currentTaskUpdate
@@ -98,12 +100,14 @@ const ChatView = ({
           type: "message",
           name: "",
           role: "user",
-          model: messageAgentMode ? model : model ? `help:${model}` : undefined,
+          model: model,
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
             selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: messageAgentMode
+          agent_mode: messageAgentMode,
+          help_mode: helpMode,
+          workflow_assistant: workflowAssistant
         });
       } catch (error) {
         console.error("Error sending message:", error);

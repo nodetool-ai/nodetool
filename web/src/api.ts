@@ -342,6 +342,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/ollama_model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Ollama Model Endpoint */
+        delete: operations["delete_ollama_model_endpoint_api_models_ollama_model_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/language_models": {
         parameters: {
             query?: never;
@@ -2974,6 +2991,10 @@ export interface components {
             model?: string | null;
             /** Agent Mode */
             agent_mode?: boolean | null;
+            /** Workflow Assistant */
+            workflow_assistant?: boolean | null;
+            /** Help Mode */
+            help_mode?: boolean | null;
         };
         /**
          * Message
@@ -3020,6 +3041,10 @@ export interface components {
             model?: string | null;
             /** Agent Mode */
             agent_mode?: boolean | null;
+            /** Workflow Assistant */
+            workflow_assistant?: boolean | null;
+            /** Help Mode */
+            help_mode?: boolean | null;
         };
         /** MessageAudioContent */
         MessageAudioContent: {
@@ -5164,6 +5189,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlamaModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_ollama_model_endpoint_api_models_ollama_model_delete: {
+        parameters: {
+            query: {
+                model_name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": boolean;
                 };
             };
             /** @description Validation Error */

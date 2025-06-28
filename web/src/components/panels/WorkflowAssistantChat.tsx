@@ -53,7 +53,6 @@ const WorkflowAssistantChat: React.FC = () => {
   });
   const [selectedTools] = useState<string[]>([]); // immutable; no selector UI
   const [selectedCollections] = useState<string[]>([]);
-  const helpMode = true; // constant ON, toggle hidden
 
   // Modal state for thread list
   const [isThreadListOpen, setIsThreadListOpen] = useState(false);
@@ -120,13 +119,6 @@ const WorkflowAssistantChat: React.FC = () => {
     }
   }, [currentThreadId, status, createNewThread]);
 
-  const handleSendMessage = useCallback(
-    async (message: Message) => {
-      await sendMessage(message);
-    },
-    [sendMessage]
-  );
-
   return (
     <div css={containerStyles}>
       <div
@@ -173,13 +165,14 @@ const WorkflowAssistantChat: React.FC = () => {
         progress={progress.current}
         total={total}
         messages={messages}
-        sendMessage={handleSendMessage}
+        sendMessage={sendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
         selectedTools={selectedTools}
         selectedCollections={selectedCollections}
         onModelChange={setSelectedModel}
-        helpMode={helpMode}
+        helpMode={true}
+        workflowAssistant={true}
         onStop={stopGeneration}
       />
     </div>
