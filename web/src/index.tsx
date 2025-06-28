@@ -50,7 +50,6 @@ import {
   useWorkflowManager
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
-import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 import { MenuProvider } from "./providers/MenuProvider";
 import ModelListIndex from "./components/hugging_face/model_list/ModelListIndex";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";

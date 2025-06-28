@@ -79,7 +79,16 @@ label::selection,
 img::selection {
   background-color: transparent;
 }
-
+kbd {
+  background-color: var(--c_gray2);
+  border-radius: 3px;
+  border: 1px solid var(--c_gray3);
+  color: var(--c_gray5);
+  display: inline-block;
+  font-size: var(--fontSizeNormal);
+  line-height: 1.1;
+  padding: 0.1em 0.3em;
+}
 /* POPOVER */
 /* .MuiPopover-root {
   z-index: 100000 !important;

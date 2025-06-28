@@ -3,7 +3,7 @@
  */
 import { create } from "zustand";
 
-export type RightPanelView = "inspector";
+export type RightPanelView = "inspector" | "assistant";
 
 interface PanelState {
   panelSize: number;

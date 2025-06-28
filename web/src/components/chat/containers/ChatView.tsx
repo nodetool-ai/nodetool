@@ -18,7 +18,8 @@ const styles = (theme: any) =>
       width: "100%",
       display: "flex",
       flexGrow: 1,
-      flexDirection: "column"
+      flexDirection: "column",
+      overflow: "hidden"
     },
     ".chat-controls": {
       padding: "0 1em",

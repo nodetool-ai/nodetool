@@ -16,6 +16,8 @@ import ThemeNodes from "../themes/ThemeNodes";
 // icons
 import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import SvgFileIcon from "../SvgFileIcon";
+import WorkflowAssistantChat from "./WorkflowAssistantChat";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -37,7 +39,7 @@ const styles = (theme: any) =>
       width: "100%",
       padding: "0",
       top: "72px",
-      height: "calc(-72px + 100vh)"
+      height: "calc(100vh - 72px)"
     },
 
     ".panel-button": {
@@ -72,12 +74,16 @@ const styles = (theme: any) =>
       width: "50px",
       display: "flex",
       flexDirection: "column",
+      gap: "1em",
       backgroundColor: "transparent",
       "& .MuiIconButton-root": {
         padding: "5px 4px 0 5px",
         borderRadius: "5px",
         position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
+        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "&.active svg": {
+          color: "var(--c_hl1)"
+        }
       }
     },
     ".panel-content": {
@@ -90,18 +96,26 @@ const styles = (theme: any) =>
   });
 
 const VerticalToolbar = memo(function VerticalToolbar({
-  handlePanelToggle
+  handleInspectorToggle,
+  handleAssistantToggle,
+  activeView,
+  panelVisible
 }: {
-  handlePanelToggle: () => void;
+  handleInspectorToggle: () => void;
+  handleAssistantToggle: () => void;
+  activeView: "inspector" | "assistant";
+  panelVisible: boolean;
 }) {
-  const panelVisible = useRightPanelStore((state) => state.panel.isVisible);
   return (
     <div className="vertical-toolbar">
+      {/* Inspector Button */}
       <Tooltip
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Inspector</div>
-            <div className="tooltip-key">Key&nbsp;i</div>
+            <div className="tooltip-key">
+              <kbd>I</kbd>
+            </div>
           </div>
         }
         placement="left-start"
@@ -109,10 +123,43 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={handlePanelToggle}
-          className={panelVisible ? "active" : ""}
+          onClick={handleInspectorToggle}
+          className={
+            activeView === "inspector" && panelVisible
+              ? "inspector active"
+              : "inspector"
+          }
         >
           <CenterFocusWeakIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Assistant Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workflow Assistant</div>
+            <div className="tooltip-key">
+              <kbd>A</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleAssistantToggle}
+          className={
+            activeView === "assistant" && panelVisible
+              ? "assistant active"
+              : "assistant"
+          }
+        >
+          <SvgFileIcon
+            iconName="assistant"
+            svgProp={{ width: 20, height: 20 }}
+          />
         </IconButton>
       </Tooltip>
     </div>
@@ -128,6 +175,8 @@ const PanelRight: React.FC = () => {
     handleMouseDown,
     handlePanelToggle
   } = useResizeRightPanel("right");
+
+  const activeView = useRightPanelStore((state) => state.panel.activeView);
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -160,12 +209,13 @@ const PanelRight: React.FC = () => {
         <CodeIcon />
       </IconButton>
       <Drawer
+        className="panel-right-drawer"
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
           style: {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
-            height: isVisible ? "calc(100vh - 72px)" : "50px",
+            height: isVisible ? "calc(100vh - 72px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
             backgroundColor: isVisible ? "var(--c_gray1)" : "transparent"
           }
@@ -176,9 +226,12 @@ const PanelRight: React.FC = () => {
       >
         <div className="panel-content">
           <VerticalToolbar
-            handlePanelToggle={() => handlePanelToggle("inspector")}
+            handleInspectorToggle={() => handlePanelToggle("inspector")}
+            handleAssistantToggle={() => handlePanelToggle("assistant")}
+            activeView={activeView}
+            panelVisible={isVisible}
           />
-          {isVisible && activeNodeStore && (
+          {isVisible && activeView === "inspector" && activeNodeStore && (
             <ContextMenuProvider>
               <ReactFlowProvider>
                 <NodeContext.Provider value={activeNodeStore}>
@@ -189,6 +242,7 @@ const PanelRight: React.FC = () => {
               </ReactFlowProvider>
             </ContextMenuProvider>
           )}
+          {isVisible && activeView === "assistant" && <WorkflowAssistantChat />}
         </div>
       </Drawer>
     </div>

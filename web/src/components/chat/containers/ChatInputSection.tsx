@@ -7,24 +7,20 @@ import ChatToolBar from "../controls/ChatToolBar";
 import { MessageContent } from "../../../stores/ApiTypes";
 
 const styles = css({
-  width: "calc(100% - 1em)",
-  minHeight: "60px",
+  width: "100%",
+  minHeight: "120px",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: "var(--palette-background-default)",
   padding: "1.5em 0.5em",
+  marginTop: "auto",
+  flexShrink: 0,
 
   ".chat-controls": {
     maxWidth: "1100px",
-    position: "absolute",
-    bottom: "1em",
     width: "100%",
-    left: "50%",
-    transform: "translateX(-50%)",
-    marginTop: "auto",
-    zIndex: 1,
     display: "flex",
     alignItems: "flex-end",
     gap: "8px"
