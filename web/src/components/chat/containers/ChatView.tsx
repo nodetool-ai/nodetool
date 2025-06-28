@@ -1,18 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useMemo } from "react";
-import { Message, MessageContent, PlanningUpdate, TaskUpdate } from "../../../stores/ApiTypes";
+import {
+  Message,
+  MessageContent,
+  PlanningUpdate,
+  TaskUpdate
+} from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
-import { useQuery } from "@tanstack/react-query";
-import useModelStore from "../../../stores/ModelStore";
-
-const formatToolName = (toolName: string) => {
-  return toolName
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-};
 
 const styles = (theme: any) =>
   css({
@@ -91,16 +87,21 @@ const ChatView = ({
   currentTaskUpdate
 }: ChatViewProps) => {
   const handleSendMessage = useCallback(
-    async (content: MessageContent[], prompt: string, messageAgentMode: boolean) => {
+    async (
+      content: MessageContent[],
+      prompt: string,
+      messageAgentMode: boolean
+    ) => {
       try {
         await sendMessage({
           type: "message",
           name: "",
           role: "user",
-          model: messageAgentMode ? model : (model ? `help:${model}` : undefined),
+          model: messageAgentMode ? model : model ? `help:${model}` : undefined,
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections: selectedCollections.length > 0 ? selectedCollections : undefined,
+          collections:
+            selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: messageAgentMode
         });
       } catch (error) {

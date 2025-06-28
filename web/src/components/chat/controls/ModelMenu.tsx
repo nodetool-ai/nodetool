@@ -28,20 +28,24 @@ const menuStyles = (theme: any) =>
       maxHeight: "400px"
     },
     ".provider-header": {
-      padding: "8px 16px",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
-      fontSize: "0.9rem",
+      marginTop: "1em",
+      padding: "0.5em 1em",
+      userSelect: "none",
+      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.c_gray6,
+      fontSize: "var(--fontSizeNormal)",
       fontVariant: "small-caps",
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
+      textTransform: "uppercase"
     },
     ".model-item": {
       "&:hover": {
         backgroundColor: theme.palette.c_gray2
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.primary.dark
+      },
+      "& > div": {
+        paddingLeft: 0
       }
     },
     ".model-name": {
@@ -128,9 +132,16 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
     <>
       <Tooltip
         title={
-          currentSelectedModelDetails?.name ||
-          selectedModel ||
-          "Select AI Model"
+          <div style={{ textAlign: "center" }}>
+            <Typography variant="inherit">
+              {currentSelectedModelDetails?.name ||
+                selectedModel ||
+                "Select Model"}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Select Model
+            </Typography>
+          </div>
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -140,7 +151,8 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           sx={{
             border: "1px solid transparent",
             color: "var(--c_white)",
-            padding: "0.25em 0.75em",
+            marginRight: ".5em !important",
+            padding: "0.25em 0.75em !important",
             "&:hover": {
               backgroundColor: "var(--c_gray3)"
             }
@@ -151,7 +163,8 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             <SmartToyIcon
               fontSize="small"
               sx={{
-                color: "var(--c_gray5)"
+                color: "var(--c_gray5)",
+                marginRight: "0.5em"
               }}
             />
           }
@@ -188,11 +201,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           </MenuItem>
         ) : (
           sortedProviders.map((provider, index) => [
-            index > 0 && <Divider key={`divider-${provider}`} />,
-            <Typography
-              key={`header-${provider}`}
-              className="provider-header"
-            >
+            <Typography key={`header-${provider}`} className="provider-header">
               {provider}
             </Typography>,
             ...groupedModels[provider].map((model) => (
