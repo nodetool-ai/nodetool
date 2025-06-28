@@ -17,21 +17,7 @@ const containerStyles = css({
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  marginRight: "1em",
-  ".chat-input-section": {
-    backgroundColor: "transparent"
-  },
-  ".chat-controls": {
-    flexDirection: "column",
-    gap: "0",
-    alignItems: "flex-start"
-  },
-  ".chat-composer-wrapper": {
-    width: "100%",
-    ".compose-message": {
-      margin: "0 .5em 0 0"
-    }
-  }
+  marginRight: "1em"
 });
 
 /**

@@ -7,8 +7,7 @@ export const createStyles = (theme: any) => ({
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    minHeight: 0,
-    marginBottom: "1em"
+    minHeight: 0
   }),
   scrollableMessageWrapper: css({
     flex: 1,
@@ -42,7 +41,7 @@ export const createStyles = (theme: any) => ({
     listStyleType: "none",
     maxWidth: "1100px",
     width: "100%",
-    padding: "2em 1em",
+    padding: "0",
     margin: "0",
     // backgroundColor: "var(--palette-background-paper)",
 
@@ -52,7 +51,7 @@ export const createStyles = (theme: any) => ({
       fontSize: theme.fontSizeNormal,
       listStyleType: "none",
       marginBottom: "1em",
-      padding: "0.5em 1em",
+      padding: "0.5em 0",
       borderRadius: "4px",
       position: "relative"
     },
@@ -83,7 +82,7 @@ export const createStyles = (theme: any) => ({
       borderRadius: "20px"
     },
 
-    "li .markdown": {
+    ".chat-message.user .markdown": {
       padding: ".5em 1em"
     },
 

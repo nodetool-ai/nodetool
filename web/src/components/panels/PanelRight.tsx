@@ -39,7 +39,7 @@ const styles = (theme: any) =>
       width: "100%",
       padding: "0",
       top: "72px",
-      height: "calc(-72px + 100vh)"
+      height: "calc(100vh - 72px)"
     },
 
     ".panel-button": {
