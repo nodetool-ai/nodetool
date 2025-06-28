@@ -15,6 +15,7 @@ import { useMemo, useEffect, useContext } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
+import { useRightPanelStore } from "./RightPanelStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -336,5 +337,22 @@ const useCombo = (
     }
   }, [memoizedCombo, callback, preventDefault, active, keyboardActive]);
 };
+
+const assistantCallback = () => {
+  const { handleViewChange } = useRightPanelStore.getState();
+  handleViewChange("assistant");
+};
+
+// Lower-case 'a'
+registerComboCallback("a", {
+  preventDefault: false,
+  callback: assistantCallback
+});
+
+// Upper-case 'A' (Shift+A)
+registerComboCallback("shift+a", {
+  preventDefault: false,
+  callback: assistantCallback
+});
 
 export { useKeyPressedStore, initKeyListeners, useCombo };

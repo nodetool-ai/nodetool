@@ -187,7 +187,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo(["f"], () => handleFitView({ padding: 0.4 }));
   useCombo([ControlOrMeta, "="], handleZoomIn);
   useCombo([ControlOrMeta, "-"], handleZoomOut);
-  useCombo(["a"], handleAlign, selectedNodes.length > 0);
+  useCombo(["l"], handleAlign, selectedNodes.length > 0);
 
   useCombo(["Shift", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
 
