@@ -161,8 +161,8 @@ const styles = (theme: any) =>
     },
     // size filter
     ".size-filter": {
-      width: "80px",
-      margin: "0 0.5em",
+      width: "90px",
+      margin: "0",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
