@@ -6,6 +6,7 @@ interface AssetGridState {
   assetItemSize: number;
   assetSearchTerm: string | null;
   sizeFilter: SizeFilterKey;
+  viewMode: "grid" | "list";
   currentAudioAsset: Asset | null;
   currentFolder: Asset | null;
   currentFolderId: string | null;
@@ -26,6 +27,7 @@ interface AssetGridState {
   setAssetItemSize: (size: number) => void;
   setAssetSearchTerm: (term: string) => void;
   setSizeFilter: (filter: SizeFilterKey) => void;
+  setViewMode: (mode: "grid" | "list") => void;
   setCurrentAudioAsset: (asset: Asset | null) => void;
   setCurrentFolder: (folder: Asset | null) => void;
   setCurrentFolderId: (folderId: string | null) => void;
@@ -52,6 +54,7 @@ interface AssetGridState {
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   assetItemSize: 2,
   sizeFilter: "all",
+  viewMode: "grid",
   currentFolder: null,
   currentFolderId: null,
   deleteDialogOpen: false,
@@ -93,6 +96,7 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   assetSearchTerm: null,
   setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
   setSizeFilter: (filter: SizeFilterKey) => set({ sizeFilter: filter }),
+  setViewMode: (mode: "grid" | "list") => set({ viewMode: mode }),
 
   // AUDIO ASSET
   currentAudioAsset: null,
