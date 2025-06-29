@@ -3,9 +3,12 @@ import { Menu, MenuItem, Typography, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 const AssetGridContextMenu = () => {
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
@@ -16,10 +19,26 @@ const AssetGridContextMenu = () => {
   const setCreateFolderDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
+  const { settings, setAssetsOrder } = useSettingsStore((state) => ({
+    settings: state.settings,
+    setAssetsOrder: state.setAssetsOrder
+  }));
 
   const handleCreateFolder = (e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
     setCreateFolderDialogOpen(true);
+    closeContextMenu();
+  };
+
+  const handleSortByName = (e?: React.MouseEvent<HTMLElement>) => {
+    e?.stopPropagation();
+    setAssetsOrder("name");
+    closeContextMenu();
+  };
+
+  const handleSortByDate = (e?: React.MouseEvent<HTMLElement>) => {
+    e?.stopPropagation();
+    setAssetsOrder("date");
     closeContextMenu();
   };
 
@@ -48,6 +67,19 @@ const AssetGridContextMenu = () => {
         label="Create new folder"
         IconComponent={<CreateNewFolderIcon />}
         tooltip={`Create a new folder in '${currentFolder?.name || "ASSETS"}' `}
+      />
+      <Divider />
+      <ContextMenuItem
+        onClick={handleSortByName}
+        label={`Sort by name ${settings.assetsOrder === "name" ? "✓" : ""}`}
+        IconComponent={<SortByAlphaIcon />}
+        tooltip="Sort assets by name"
+      />
+      <ContextMenuItem
+        onClick={handleSortByDate}
+        label={`Sort by date ${settings.assetsOrder === "date" ? "✓" : ""}`}
+        IconComponent={<AccessTimeIcon />}
+        tooltip="Sort assets by creation date"
       />
     </Menu>
   );

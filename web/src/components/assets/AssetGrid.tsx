@@ -93,7 +93,9 @@ const styles = (theme: any) =>
     },
     ".folder-item": {
       position: "relative",
-      padding: "0 0 4px 2em",
+      alignItems: "center",
+      padding: "0 0 4px 0",
+      marginLeft: "2em",
       "&::before, &::after": {
         content: '""',
         position: "absolute",
@@ -113,20 +115,28 @@ const styles = (theme: any) =>
     },
     ".folder-icon": {
       marginRight: "0.1em",
-      color: theme.palette.text.secondary,
-      verticalAlign: "middle"
+      color: "var(--c_folder)",
+      verticalAlign: "middle",
+      backgroundColor: "transparent"
     },
     ".folder-name": {
-      fontSize: ThemeNodetool.fontSizeSmall,
+      fontSize: ThemeNodetool.fontSizeNormal,
+      color: "var(--c_gray6)",
       verticalAlign: "middle",
       "&:hover": {
         color: theme.palette.primary.main
       }
     },
-    ".selected-folder": {
-      backgroundColor: theme.palette.action.selected,
-      "&::before, &::after": {
-        borderColor: theme.palette.primary.main
+    ".folder-item.selected ": {
+      padding: "0 0.5em 0 0",
+      width: "calc(100% - 2em)",
+      backgroundColor: "transparent",
+      "& .folder-name": {
+        fontWeight: "600",
+        color: "var(--c_hl1)"
+      },
+      "& .folder-icon": {
+        color: "var(--c_hl1)"
       }
     },
     ".root-folder": {
@@ -185,13 +195,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const { user } = useAuth();
+
   const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
     F2KeyPressed: state.isKeyPressed("F2"),
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
 
   const containerRef = useRef<HTMLDivElement>(null);
+  // const [containerWidth, setContainerWidth] = React.useState(0);
+
+  // useResizeObserver(containerRef, (entry) => {
+  //   setContainerWidth(entry.contentRect.width);
+  // });
+
   const { uploadAsset, isUploading } = useAssetUpload();
+
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
