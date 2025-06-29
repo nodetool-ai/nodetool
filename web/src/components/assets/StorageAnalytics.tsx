@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { Typography, Box } from "@mui/material";
+import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
 
 interface StorageAnalyticsProps {
@@ -58,6 +59,13 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   assets,
   currentFolder
 }) => {
+  const location = useLocation();
+
+  // Only show in explorer mode (fullscreen asset browser)
+  if (location.pathname !== "/assets") {
+    return null;
+  }
+
   // Calculate total storage for visible assets
   const totalSize = assets.reduce((sum, asset) => {
     const assetSize = (asset as any).size as number | undefined;

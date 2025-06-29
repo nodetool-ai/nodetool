@@ -77,7 +77,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-button-group .MuiButton-root.disabled": {
-      color: theme.palette.c_gray2
+      color: theme.palette.c_gray4
     },
     // size slider
     ".asset-size-slider": {
@@ -285,36 +285,34 @@ const AssetActions = ({
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
-          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : ""}
+          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : "Go up"}
         >
-          <span>
-            {/* // span is needed for disabled buttons*/}
-            <Button
-              sx={{
-                width: "2em",
-                height: "2em",
-                borderRadius: "50%",
-                padding: "0",
-                margin: "0",
-                "& svg": {
-                  height: ".75em",
-                  width: "1em"
-                }
-              }}
-              disabled={!currentFolder?.parent_id}
-              onClick={() => {
+          <Button
+            sx={{
+              width: "2em",
+              height: "2em",
+              borderRadius: "50%",
+              padding: "0",
+              margin: "0",
+              "& svg": {
+                height: ".75em",
+                width: "1em"
+              }
+            }}
+            onClick={() => {
+              if (currentFolder?.parent_id) {
                 navigateToFolderId(
                   currentFolder?.parent_id || currentUser?.id || ""
                 );
-              }}
-              className={`folder-up-button ${
-                currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-              }`}
-              tabIndex={-1}
-            >
-              <NorthIcon />
-            </Button>
-          </span>
+              }
+            }}
+            className={`folder-up-button ${
+              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+            }`}
+            tabIndex={-1}
+          >
+            <NorthIcon />
+          </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
           <Button
@@ -416,21 +414,23 @@ const AssetActions = ({
         </Select>
       </Tooltip>
 
-      <div className="asset-size-slider">
-        <SliderBasic
-          defaultValue={settings.assetItemSize}
-          aria-label="Small"
-          tooltipText="Item Size"
-          tooltipPlacement="bottom"
-          valueLabelDisplay="auto"
-          step={1}
-          marks
-          min={1}
-          max={maxItemSize}
-          onChange={handleChange}
-          value={settings.assetItemSize}
-        />
-      </div>
+      {viewMode === "grid" && (
+        <div className="asset-size-slider">
+          <SliderBasic
+            defaultValue={settings.assetItemSize}
+            aria-label="Small"
+            tooltipText="Item Size"
+            tooltipPlacement="bottom"
+            valueLabelDisplay="auto"
+            step={1}
+            marks
+            min={1}
+            max={maxItemSize}
+            onChange={handleChange}
+            value={settings.assetItemSize}
+          />
+        </div>
+      )}
       <Popover
         css={dialogStyles}
         style={{ minWidth: "100%", minHeight: "100%" }}

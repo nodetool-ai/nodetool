@@ -35,7 +35,7 @@ const styles = (theme: any) =>
     },
     ".selected-asset-info": {
       position: "absolute",
-      top: "2em",
+      top: "5em",
       right: "2em",
       maxWidth: "500px",
       textAlign: "right"
