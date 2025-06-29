@@ -170,7 +170,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   ]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 600;
+  const objectWidth = 800;
   const leftPosition = dialogPosition.x - objectWidth;
 
   const safeLeft = Math.min(
@@ -178,62 +178,124 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     screenWidth - objectWidth - 50
   );
 
-  return (
-    <Dialog
-      css={dialogStyles}
-      open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-      style={{
-        left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`
-      }}
-    >
-      <DialogTitle className="dialog-title" id="alert-dialog-title">
-        {hasSelectedAssets
-          ? "Move selected to new folder"
-          : "Create new folder"}
-      </DialogTitle>
+  // Handle backdrop click
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.target === event.currentTarget) {
+        setDialogOpen(false);
+      }
+    },
+    [setDialogOpen]
+  );
 
-      <DialogContent className="dialog-content">
-        {showAlert && (
-          <Alert severity="error" onClose={() => setShowAlert(null)}>
-            {showAlert}
-          </Alert>
-        )}
-        <TextField
-          className="input-field"
-          inputRef={inputRef}
-          value={folderName}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleCreateFolder();
-            }
+  return (
+    <>
+      {dialogOpen && (
+        <div
+          className="asset-create-folder-backdrop"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "transparent",
+            zIndex: 1300
           }}
-          onChange={(e) => setFolderName(e.target.value)}
-          fullWidth
-          autoCorrect="off"
-          spellCheck="false"
-        />
-      </DialogContent>
-      <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button className="button-confirm" onClick={handleCreateFolder}>
-          {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
-        </Button>
-      </DialogActions>
-      {hasSelectedAssets && (
-        <div>
-          <Typography className="notice" variant="body2">
-            <span>{selectedAssets.length} assets selected:</span> <br />
-            They will be moved to the new folder.
-          </Typography>
+          onClick={handleBackdropClick}
+        >
+          <Dialog
+            className="asset-create-folder-dialog"
+            css={dialogStyles}
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+            componentsProps={{
+              backdrop: {
+                style: {
+                  backgroundColor: "transparent"
+                }
+              }
+            }}
+            PaperProps={{
+              className: "asset-create-folder-dialog-paper",
+              style: {
+                backgroundColor: "rgba(0, 0, 0, 0.9)",
+                backdropFilter: "blur(10px)",
+                position: "absolute",
+                left: `${safeLeft}px`,
+                top: `${dialogPosition.y - 300}px`,
+                margin: 0
+              }
+            }}
+          >
+            <DialogTitle
+              className="asset-create-folder-dialog-title dialog-title"
+              id="alert-dialog-title"
+            >
+              {hasSelectedAssets
+                ? "Move selected to new folder"
+                : "Create new folder"}
+            </DialogTitle>
+
+            <DialogContent className="asset-create-folder-dialog-content dialog-content">
+              {showAlert && (
+                <Alert
+                  className="asset-create-folder-error-alert"
+                  severity="error"
+                  onClose={() => setShowAlert(null)}
+                >
+                  {showAlert}
+                </Alert>
+              )}
+              <TextField
+                className="asset-create-folder-input input-field"
+                inputRef={inputRef}
+                value={folderName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateFolder();
+                  }
+                }}
+                onChange={(e) => setFolderName(e.target.value)}
+                fullWidth
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            </DialogContent>
+            <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
+              <Button
+                className="asset-create-folder-cancel-button button-cancel"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="asset-create-folder-confirm-button button-confirm"
+                onClick={handleCreateFolder}
+              >
+                {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
+              </Button>
+            </DialogActions>
+            {hasSelectedAssets && (
+              <div className="asset-create-folder-notice-container">
+                <Typography
+                  className="asset-create-folder-notice notice"
+                  variant="body2"
+                >
+                  <span className="asset-create-folder-selected-count">
+                    {selectedAssets.length} assets selected:
+                  </span>{" "}
+                  <br />
+                  They will be moved to the new folder.
+                </Typography>
+              </div>
+            )}
+          </Dialog>
         </div>
       )}
-    </Dialog>
+    </>
   );
 };
 

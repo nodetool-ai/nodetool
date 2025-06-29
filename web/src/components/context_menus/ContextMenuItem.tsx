@@ -78,6 +78,9 @@ const styles = (theme: any) =>
     ".checkbox .MuiTypography-root": {
       margin: "0 0 0 0.6em",
       fontFamily: theme.fontFamily1
+    },
+    "&:hover button.action.delete svg": {
+      color: theme.palette.c_delete
     }
   });
 

@@ -12,7 +12,7 @@ const dialogStyles = (theme: any) =>
     },
     "& .MuiPaper-root": {
       width: "100%",
-      maxWidth: "300px"
+      maxWidth: "400px"
     },
     ".dialog-content": {
       padding: "0 .5em"
