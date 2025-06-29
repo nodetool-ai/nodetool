@@ -138,7 +138,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
     >
       <FolderIcon className="folder-icon" />
       {isParent && <NorthWest className="parent-icon" />}
-      <Typography className="name">{folder.name}</Typography>
+      <Typography className="folder-name">{folder.name}</Typography>
       {showDeleteButton && (
         <ButtonGroup className="asset-item-actions" size="small">
           <DeleteButton<Asset>
