@@ -118,29 +118,25 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray5,
       border: "1px solid " + theme.palette.c_gray5,
       borderRadius: ".25em",
-      padding: "0 .2em",
+      padding: "0 .25em",
       textOverflow: "clip",
       backgroundColor: "transparent",
       textAlign: "center",
       boxSizing: "border-box",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "20px"
+      lineHeight: "1.2",
+      height: "auto"
     },
 
     ".sort-assets .MuiSelect-select:hover": {
       border: "1px solid " + theme.palette.c_hl1,
       borderRadius: ".25em",
-      padding: "0 .2em",
+      padding: "0 .25em",
       textOverflow: "clip",
       backgroundColor: "transparent",
       textAlign: "center",
       boxSizing: "border-box",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "20px"
+      lineHeight: "1.2",
+      height: "auto"
     },
 
     ".sort-assets .MuiSelect-icon": {
@@ -280,7 +276,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
 
-        {!isLoading && (
+        {isLoading && (
           <Box
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
             sx={{
