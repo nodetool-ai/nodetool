@@ -99,8 +99,16 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   },
 
   handleDeselectAssets: () => set({ selectedAssetIds: [] }),
-  setSelectedAssetIds: (ids) => set({ selectedAssetIds: ids }),
-  setSelectedAssets: (assets) => set({ selectedAssets: assets }),
+  setSelectedAssetIds: (ids) => {
+    console.time(`🏪 STORE setSelectedAssetIds(${ids.length})`);
+    set({ selectedAssetIds: ids });
+    console.timeEnd(`🏪 STORE setSelectedAssetIds(${ids.length})`);
+  },
+  setSelectedAssets: (assets) => {
+    console.time(`🏪 STORE setSelectedAssets(${assets.length})`);
+    set({ selectedAssets: assets });
+    console.timeEnd(`🏪 STORE setSelectedAssets(${assets.length})`);
+  },
 
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),

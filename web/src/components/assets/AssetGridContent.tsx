@@ -170,33 +170,60 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [preparedItems, gridDimensions, footerHeight, itemSpacing, expandedTypes]
   );
 
-  const itemData = useMemo(
-    () => ({
+  // Separate stable data from selection state to prevent unnecessary re-renders
+  const stableItemData = useMemo(() => {
+    console.time("🎨 AssetGridContent stableItemData recalculation");
+    const data = {
       getItemsForRow: (index: number) =>
         getItemsForRow(preparedItems, index, gridDimensions.columns),
       gridDimensions,
       footerHeight,
       itemSpacing,
-      selectedAssetIds,
       handleSelectAsset,
       onDragStart,
       onDoubleClick: onDoubleClick || (() => {}),
       expandedTypes,
       toggleExpanded
-    }),
-    [
-      preparedItems,
-      gridDimensions,
-      footerHeight,
-      itemSpacing,
-      selectedAssetIds,
-      handleSelectAsset,
-      onDragStart,
-      onDoubleClick,
-      expandedTypes,
-      toggleExpanded
-    ]
-  );
+    };
+    console.timeEnd("🎨 AssetGridContent stableItemData recalculation");
+    console.log("🎨 stableItemData recalculated (grid structure changed)");
+    return data;
+  }, [
+    preparedItems,
+    gridDimensions,
+    footerHeight,
+    itemSpacing,
+    handleSelectAsset,
+    onDragStart,
+    onDoubleClick,
+    expandedTypes,
+    toggleExpanded
+    // Note: selectedAssetIds is NOT included here!
+  ]);
+
+  // Create a selection context that changes less frequently
+  const selectionData = useMemo(() => {
+    console.time("🔍 Selection data update");
+    const data = { selectedAssetIds };
+    console.timeEnd("🔍 Selection data update");
+    console.log(
+      "🔍 Selection data updated:",
+      selectedAssetIds?.length,
+      "assets selected"
+    );
+    return data;
+  }, [selectedAssetIds]);
+
+  // Combine stable and selection data
+  const itemData = useMemo(() => {
+    console.time("🔗 Combining itemData");
+    const data = {
+      ...stableItemData,
+      ...selectionData
+    };
+    console.timeEnd("🔗 Combining itemData");
+    return data;
+  }, [stableItemData, selectionData]);
 
   // useEffect(() => {
   //   if (!propAssets) {
@@ -249,19 +276,27 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     >
       <div className="asset-list">
         <AutoSizer>
-          {({ height, width }: { height: number; width: number }) => (
-            <List
-              ref={listRef}
-              className="autosizer-list"
-              height={height}
-              itemCount={rowCount}
-              itemSize={getRowHeight}
-              width={width}
-              itemData={itemData}
-            >
-              {AssetGridRow}
-            </List>
-          )}
+          {({ height, width }: { height: number; width: number }) => {
+            console.time("📋 Virtual List render");
+            console.log(`📋 Virtual List rendering ${rowCount} rows`);
+
+            const result = (
+              <List
+                ref={listRef}
+                className="autosizer-list"
+                height={height}
+                itemCount={rowCount}
+                itemSize={getRowHeight}
+                width={width}
+                itemData={itemData}
+              >
+                {AssetGridRow}
+              </List>
+            );
+
+            console.timeEnd("📋 Virtual List render");
+            return result;
+          }}
         </AutoSizer>
       </div>
     </div>
