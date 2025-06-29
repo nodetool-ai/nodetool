@@ -36,7 +36,7 @@ const styles = (theme: any) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray1,
       overflow: "hidden"
     },
     ".asset .image, .asset .image-aspect-ratio": {
