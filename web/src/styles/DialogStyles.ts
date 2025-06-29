@@ -19,6 +19,8 @@ const dialogStyles = (theme: any) =>
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray6,
       wordSpacing: "normal",
       margin: ".5em 0 0",
       padding: "1em"
