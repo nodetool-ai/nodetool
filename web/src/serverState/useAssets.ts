@@ -6,7 +6,7 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 
-type SortOrder = "name" | "date";
+type SortOrder = "name" | "date" | "size";
 type FilterOptions = {
   searchTerm: string;
   contentType?: string | null;
@@ -119,6 +119,17 @@ export const useAssets = (initialFolderId: string | null = null) => {
         return a.content_type.localeCompare(b.content_type);
       }
       if (settings.assetsOrder === "name") {
+        return a.name.localeCompare(b.name);
+      } else if (settings.assetsOrder === "date") {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (settings.assetsOrder === "size") {
+        // Sort by file size (largest first)
+        if (a.size !== undefined && b.size !== undefined) {
+          return b.size - a.size;
+        }
+        // Fall back to name sorting if size is not available
         return a.name.localeCompare(b.name);
       } else {
         return (
