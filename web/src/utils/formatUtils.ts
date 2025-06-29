@@ -33,24 +33,24 @@ export function getSizeCategory(bytes: number): string {
  * Size filter categories with human-readable labels
  */
 export const SIZE_FILTERS = [
-  { key: "all", label: "All sizes", min: 0, max: Infinity },
-  { key: "empty", label: "Empty files", min: 0, max: 0 },
-  { key: "small", label: "Small (< 1 MB)", min: 1, max: 1024 * 1024 - 1 },
+  { key: "all", label: "All", min: 0, max: Infinity },
+  { key: "empty", label: "Empty", min: 0, max: 0 },
+  { key: "small", label: "< 1 MB", min: 1, max: 1024 * 1024 - 1 },
   {
     key: "medium",
-    label: "Medium (1-10 MB)",
+    label: "1-10 MB",
     min: 1024 * 1024,
     max: 10 * 1024 * 1024 - 1
   },
   {
     key: "large",
-    label: "Large (10-100 MB)",
+    label: "10-100 MB",
     min: 10 * 1024 * 1024,
     max: 100 * 1024 * 1024 - 1
   },
   {
     key: "xlarge",
-    label: "Very Large (> 100 MB)",
+    label: "> 100 MB",
     min: 100 * 1024 * 1024,
     max: Infinity
   }
