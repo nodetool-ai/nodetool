@@ -44,10 +44,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
               }}
             >
               <li>Click to select files</li>
-              <li>
-                Drop any file from a file explorer
-                <br /> onto the assets area
-              </li>
+              <li>Drop any file from a file explorer in the assets area</li>
             </ul>
           </>
         }
