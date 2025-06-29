@@ -89,7 +89,8 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       lastSelectedAssetId,
       selectedAssetIds,
       updateSelection,
-      setCurrentAudioAsset
+      setCurrentAudioAsset,
+      sortedAssets
     ]
   );
 
