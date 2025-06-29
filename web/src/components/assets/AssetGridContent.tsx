@@ -25,6 +25,8 @@ import {
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import AssetListView from "./AssetListView";
 
 const styles = (theme: any) =>
   css({
@@ -87,6 +89,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
   const { selectedAssetIds, handleSelectAsset } = useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const viewMode = useAssetGridStore((state) => state.viewMode);
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -292,6 +295,40 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     }
   }, [gridDimensions, assetItemSize, preparedItems]);
 
+  // If list view is selected, render AssetListView instead
+  if (viewMode === "list") {
+    return (
+      <div
+        className="asset-grid-content"
+        css={styles}
+        ref={containerRef}
+        onContextMenu={handleContextMenu}
+        style={{
+          width: "100%",
+          height: "100%",
+          borderLeft: isHorizontal
+            ? "1px solid" + ThemeNodetool.palette.c_gray2
+            : "none",
+          paddingLeft: isHorizontal ? ".5em" : "0"
+        }}
+      >
+        <AutoSizer>
+          {({ height, width }: { height: number; width: number }) => (
+            <div style={{ width, height }}>
+              <AssetListView
+                assets={assets}
+                onDoubleClick={onDoubleClick}
+                containerWidth={width}
+                isHorizontal={isHorizontal}
+              />
+            </div>
+          )}
+        </AutoSizer>
+      </div>
+    );
+  }
+
+  // Default grid view
   return (
     <div
       className="asset-grid-content"

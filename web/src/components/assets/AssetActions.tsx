@@ -33,6 +33,8 @@ import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -159,7 +161,7 @@ const styles = (theme: any) =>
     },
     // size filter
     ".size-filter": {
-      width: "80px",
+      width: "140px",
       margin: "0 0.5em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
@@ -227,6 +229,10 @@ const AssetActions = ({
     state.sizeFilter,
     state.setSizeFilter
   ]);
+  const [viewMode, setViewMode] = useAssetGridStore((state) => [
+    state.viewMode,
+    state.setViewMode
+  ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = (_: any, newOrder: any) => {
@@ -239,6 +245,10 @@ const AssetActions = ({
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }
+  };
+
+  const handleViewModeToggle = () => {
+    setViewMode(viewMode === "grid" ? "list" : "grid");
   };
 
   useEffect(() => {
@@ -327,6 +337,14 @@ const AssetActions = ({
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Refresh">
           <Button onClick={() => refetchAssetsAndFolders()} tabIndex={-1}>
             <Refresh />
+          </Button>
+        </Tooltip>
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+        >
+          <Button onClick={handleViewModeToggle} tabIndex={-1}>
+            {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
           </Button>
         </Tooltip>
 
