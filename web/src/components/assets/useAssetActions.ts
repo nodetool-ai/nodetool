@@ -31,7 +31,10 @@ export const useAssetActions = (asset: Asset) => {
       if (isParent) {
         onClickParent?.(asset.id);
       }
-      onSelect?.();
+
+      if (onSelect) {
+        onSelect();
+      }
     },
     [asset.id]
   );

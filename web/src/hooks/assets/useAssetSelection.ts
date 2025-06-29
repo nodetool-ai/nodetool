@@ -30,54 +30,31 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
   // Helper function to update both selectedAssetIds and selectedAssets efficiently
   const updateSelection = useCallback(
     (assetIds: string[]) => {
-      console.time(`🔄 updateSelection(${assetIds.length} assets)`);
-
-      console.time("📝 setSelectedAssetIds");
       setSelectedAssetIds(assetIds);
-      console.timeEnd("📝 setSelectedAssetIds");
-
-      console.time("🔍 find selectedAssets");
       const selectedAssets = assetIds
         .map((id) => sortedAssets.find((asset) => asset.id === id))
         .filter(Boolean) as Asset[];
-      console.timeEnd("🔍 find selectedAssets");
-
-      console.time("💾 setSelectedAssets");
       setSelectedAssets(selectedAssets);
-      console.timeEnd("💾 setSelectedAssets");
-
-      console.timeEnd(`🔄 updateSelection(${assetIds.length} assets)`);
     },
     [setSelectedAssetIds, setSelectedAssets, sortedAssets]
   );
 
   const handleSelectAsset = useCallback(
     (assetId: string) => {
-      console.time(`🎯 handleSelectAsset(${assetId})`);
-      console.log(`🎯 Selecting asset: ${assetId}`);
-
-      console.time("⌨️ key state checks");
       const keyState = useKeyPressedStore.getState();
       const shiftKeyPressed = keyState.isKeyPressed("shift");
       const controlKeyPressed = keyState.isKeyPressed("control");
       const metaKeyPressed = keyState.isKeyPressed("meta");
-      console.timeEnd("⌨️ key state checks");
 
-      console.time("🗺️ asset index lookups");
       const selectedAssetIndex = assetIndexMap.get(assetId) ?? -1;
       const lastSelectedIndex = lastSelectedAssetId
         ? assetIndexMap.get(lastSelectedAssetId) ?? -1
         : -1;
-      console.timeEnd("🗺️ asset index lookups");
 
-      console.time("🎵 audio asset logic");
       const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
       const isAudio = selectedAsset?.content_type.match("audio") !== null;
-      console.timeEnd("🎵 audio asset logic");
 
-      console.time("🔀 selection logic");
       if (shiftKeyPressed && lastSelectedIndex !== -1) {
-        console.log("🔀 Range selection mode");
         const existingSelection = new Set(selectedAssetIds);
         const start = lastSelectedIndex;
         const end = selectedAssetIndex;
@@ -89,31 +66,23 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         const newSelectedIds = Array.from(existingSelection);
         updateSelection(newSelectedIds);
       } else if (controlKeyPressed || metaKeyPressed) {
-        console.log("🔀 Multi-select mode");
         const newAssetIds = selectedAssetIds.includes(assetId)
           ? selectedAssetIds.filter((id) => id !== assetId)
           : [...selectedAssetIds, assetId];
         updateSelection(newAssetIds);
       } else {
-        console.log("🔀 Single select mode");
         if (selectedAssetIds[0] !== assetId) {
           updateSelection([assetId]);
         }
       }
-      console.timeEnd("🔀 selection logic");
 
       setLastSelectedAssetId(assetId);
 
-      console.time("🎧 audio asset setting");
       if (isAudio) {
         setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
       } else {
         setCurrentAudioAsset(null);
       }
-      console.timeEnd("🎧 audio asset setting");
-
-      console.timeEnd(`🎯 handleSelectAsset(${assetId})`);
-      console.log("🎯 Selection complete");
     },
     [
       assetIndexMap,

@@ -225,10 +225,6 @@ export type AssetItemProps = {
 };
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
-  console.time(
-    `🎨 AssetItem ${props.asset.id} render (selected: ${props.isSelected})`
-  );
-
   const {
     asset,
     draggable = true,
@@ -427,7 +423,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     </div>
   );
 
-  console.timeEnd(`🎨 AssetItem ${asset.id} render (selected: ${isSelected})`);
   return result;
 };
 
@@ -442,12 +437,6 @@ export default memo(AssetItem, (prevProps, nextProps) => {
     prevProps.onDoubleClick !== nextProps.onDoubleClick;
 
   const shouldUpdate = selectionChanged || assetChanged || functionsChanged;
-
-  if (!shouldUpdate) {
-    console.log(
-      `🚫 AssetItem ${prevProps.asset.id} skipped re-render (selection: ${prevProps.isSelected})`
-    );
-  }
 
   return !shouldUpdate; // memo returns true to skip re-render
 });
