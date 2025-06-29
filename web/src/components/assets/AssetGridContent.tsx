@@ -23,6 +23,7 @@ import {
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
@@ -85,6 +86,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   }, [propAssets, folderFilesFiltered]);
 
   const { selectedAssetIds, handleSelectAsset } = useAssetSelection(assets);
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -150,6 +152,31 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const onDragStart = useCallback(
     (assetId: string): string[] => [...selectedAssetIds, assetId],
     [selectedAssetIds]
+  );
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Only show context menu if clicking on the grid content itself,
+      // not on asset items or other elements
+      const target = event.target as HTMLElement;
+      const isGridContentArea =
+        target.classList.contains("asset-grid-content") ||
+        target.classList.contains("asset-list") ||
+        target.classList.contains("autosizer-list");
+
+      if (isGridContentArea) {
+        openContextMenu(
+          "asset-grid-context-menu",
+          "",
+          event.clientX,
+          event.clientY
+        );
+      }
+    },
+    [openContextMenu]
   );
 
   const getRowHeight = useCallback(
@@ -270,6 +297,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       className="asset-grid-content"
       css={styles}
       ref={containerRef}
+      onContextMenu={handleContextMenu}
       style={{
         width: "100%",
         height: "100%",

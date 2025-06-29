@@ -9,6 +9,7 @@ import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { IconButton, Typography } from "@mui/material";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface AssetGridRowProps {
@@ -43,7 +44,37 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     toggleExpanded
   } = data;
 
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Only show context menu if clicking on the row itself or empty areas,
+    // not on asset items, dividers, or other interactive elements
+    const target = event.target as HTMLElement;
+    const isRowArea =
+      target.classList.contains("asset-grid-row") ||
+      target.classList.contains("asset-grid-row-item");
+
+    // Don't show context menu on divider rows or if clicking on interactive elements
+    const isDividerRow = rowItems[0]?.isDivider;
+    const isInteractiveElement =
+      target.closest(".asset-item") ||
+      target.closest(".content-type-header") ||
+      target.closest("button") ||
+      target.tagName === "BUTTON";
+
+    if (isRowArea && !isDividerRow && !isInteractiveElement) {
+      openContextMenu(
+        "asset-grid-context-menu",
+        "",
+        event.clientX,
+        event.clientY
+      );
+    }
+  };
 
   if (rowItems.length === 0) {
     return null;
@@ -119,6 +150,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const result = (
     <div
       className="asset-grid-row"
+      onContextMenu={handleContextMenu}
       style={{
         ...style,
         display: "flex",
