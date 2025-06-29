@@ -32,6 +32,7 @@ import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -155,6 +156,49 @@ const styles = (theme: any) =>
     },
     ".sort-assets.MuiInput-root:hover::after": {
       border: "none"
+    },
+    // size filter
+    ".size-filter": {
+      width: "80px",
+      margin: "0 0.5em",
+      color: theme.palette.c_hl1,
+      fontSize: theme.fontSizeSmaller,
+      textTransform: "uppercase",
+      position: "relative"
+    },
+    ".size-filter:hover, .size-filter [aria-expanded='true']": {
+      color: theme.palette.c_white
+    },
+    ".size-filter .MuiSelect-select": {
+      color: theme.palette.c_gray5,
+      border: "1px solid " + theme.palette.c_gray5,
+      borderRadius: ".25em",
+      padding: "0 .25em",
+      textOverflow: "ellipsis",
+      backgroundColor: "transparent",
+      textAlign: "center",
+      boxSizing: "border-box",
+      lineHeight: "1.2",
+      height: "auto"
+    },
+    ".size-filter .MuiSelect-select:hover": {
+      border: "1px solid " + theme.palette.c_hl1,
+      color: theme.palette.c_hl1
+    },
+    ".size-filter .MuiSelect-icon": {
+      display: "none"
+    },
+    ".size-filter.MuiInput-root::before": {
+      borderBottom: "none"
+    },
+    ".size-filter.MuiInput-root::after": {
+      borderBottom: "none"
+    },
+    ".size-filter.MuiInput-root:hover::before": {
+      border: "none !important"
+    },
+    ".size-filter.MuiInput-root:hover::after": {
+      border: "none"
     }
   });
 
@@ -179,11 +223,21 @@ const AssetActions = ({
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
     (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder]
   );
+  const [sizeFilter, setSizeFilter] = useAssetGridStore((state) => [
+    state.sizeFilter,
+    state.setSizeFilter
+  ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = (_: any, newOrder: any) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
+    }
+  };
+
+  const handleSizeFilterChange = (_: any, newSizeFilter: SizeFilterKey) => {
+    if (newSizeFilter !== null) {
+      setSizeFilter(newSizeFilter);
     }
   };
 
@@ -312,6 +366,35 @@ const AssetActions = ({
           <MenuItem value="name">Name</MenuItem>
           <MenuItem value="date">Date</MenuItem>
           <MenuItem value="size">Size</MenuItem>
+        </Select>
+      </Tooltip>
+
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title="Filter by file size"
+        placement="bottom"
+      >
+        <Select
+          className="size-filter"
+          variant="standard"
+          value={sizeFilter}
+          sx={{
+            "& .MuiSelect-select": {
+              minWidth: "150px"
+            }
+          }}
+          onChange={(e) =>
+            handleSizeFilterChange(null, e.target.value as SizeFilterKey)
+          }
+          displayEmpty
+          inputProps={{ "aria-label": "Filter by size" }}
+          tabIndex={-1}
+        >
+          {SIZE_FILTERS.map((filter) => (
+            <MenuItem key={filter.key} value={filter.key}>
+              {filter.label}
+            </MenuItem>
+          ))}
         </Select>
       </Tooltip>
 
