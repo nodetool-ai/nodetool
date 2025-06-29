@@ -17,7 +17,6 @@ interface AssetGridRowProps {
     itemSpacing: number;
     selectedAssetIds: string[];
     handleSelectAsset: (id: string) => void;
-    setSelectedAssetIds: (ids: string[]) => void;
     onDragStart: (id: string) => string[];
     onDoubleClick: (asset: Asset) => void;
     expandedTypes: Set<string>;
@@ -33,7 +32,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     itemSpacing,
     selectedAssetIds,
     handleSelectAsset,
-    setSelectedAssetIds,
     onDoubleClick,
     expandedTypes,
     toggleExpanded

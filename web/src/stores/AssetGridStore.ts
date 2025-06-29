@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
-import { useAssetStore } from "./AssetStore";
 
 interface AssetGridState {
   assetItemSize: number;
@@ -36,6 +35,7 @@ interface AssetGridState {
   setRenameDialogOpen: (open: boolean) => void;
   setSearchTerm: (term: string) => void;
   setSelectedAssetIds: (assetIds: string[]) => void;
+  setSelectedAssets: (assets: Asset[]) => void;
   setSelectedFolderId: (id: string | null) => void;
   setSelectedFolderIds: (ids: string[]) => void;
 
@@ -99,18 +99,8 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   },
 
   handleDeselectAssets: () => set({ selectedAssetIds: [] }),
-  setSelectedAssetIds: (ids) => {
-    set({ selectedAssetIds: ids });
-    const fetchAndSetAssets = async () => {
-      const { get: getAssetById } = useAssetStore.getState();
-      const assets = await Promise.all(ids.map((id) => getAssetById(id)));
-      const validAssets = assets.filter(
-        (asset): asset is Asset => asset !== undefined
-      );
-      set({ selectedAssets: validAssets });
-    };
-    fetchAndSetAssets();
-  },
+  setSelectedAssetIds: (ids) => set({ selectedAssetIds: ids }),
+  setSelectedAssets: (assets) => set({ selectedAssets: assets }),
 
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),

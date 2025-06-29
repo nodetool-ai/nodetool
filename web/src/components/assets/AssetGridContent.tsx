@@ -83,8 +83,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     return folderFilesFiltered || [];
   }, [propAssets, folderFilesFiltered]);
 
-  const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
-    useAssetSelection(assets);
+  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(assets);
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -180,7 +179,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       itemSpacing,
       selectedAssetIds,
       handleSelectAsset,
-      setSelectedAssetIds,
       onDragStart,
       onDoubleClick: onDoubleClick || (() => {}),
       expandedTypes,
@@ -193,7 +191,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       itemSpacing,
       selectedAssetIds,
       handleSelectAsset,
-      setSelectedAssetIds,
       onDragStart,
       onDoubleClick,
       expandedTypes,
