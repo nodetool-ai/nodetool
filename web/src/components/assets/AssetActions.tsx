@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
-import NorthWestIcon from "@mui/icons-material/NorthWest";
+import NorthIcon from "@mui/icons-material/North";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import { Refresh } from "@mui/icons-material";
@@ -18,7 +18,8 @@ import {
   DialogContent,
   DialogTitle,
   Select,
-  MenuItem
+  MenuItem,
+  Box
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
@@ -107,7 +108,8 @@ const styles = (theme: any) =>
       margin: "0 1em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase"
+      textTransform: "uppercase",
+      position: "relative"
     },
     ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
       color: theme.palette.c_white
@@ -115,12 +117,16 @@ const styles = (theme: any) =>
     ".sort-assets .MuiSelect-select": {
       color: theme.palette.c_gray5,
       border: "1px solid " + theme.palette.c_gray5,
-
       borderRadius: ".25em",
       padding: "0 .2em",
       textOverflow: "clip",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "center",
+      boxSizing: "border-box",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "20px"
     },
 
     ".sort-assets .MuiSelect-select:hover": {
@@ -129,7 +135,12 @@ const styles = (theme: any) =>
       padding: "0 .2em",
       textOverflow: "clip",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "center",
+      boxSizing: "border-box",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "20px"
     },
 
     ".sort-assets .MuiSelect-icon": {
@@ -219,6 +230,17 @@ const AssetActions = ({
           <span>
             {/* // span is needed for disabled buttons*/}
             <Button
+              sx={{
+                width: "2em",
+                height: "2em",
+                borderRadius: "50%",
+                padding: "0",
+                margin: "0",
+                "& svg": {
+                  height: ".75em",
+                  width: "1em"
+                }
+              }}
               disabled={!currentFolder?.parent_id}
               onClick={() => {
                 navigateToFolderId(
@@ -230,7 +252,7 @@ const AssetActions = ({
               }`}
               tabIndex={-1}
             >
-              <NorthWestIcon />
+              <NorthIcon />
             </Button>
           </span>
         </Tooltip>
@@ -258,19 +280,22 @@ const AssetActions = ({
           </Button>
         </Tooltip>
 
-        {isLoading && (
-          <div
+        {!isLoading && (
+          <Box
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
-            style={{
+            sx={{
               position: "absolute",
-              right: "5px",
-              top: "10px",
+              right: "4em",
+              top: "1.4em",
               left: "unset",
-              width: "50px"
+              "& span": {
+                height: "1em !important",
+                width: "1em !important"
+              }
             }}
           >
             <CircularProgress />
-          </div>
+          </Box>
         )}
       </ButtonGroup>
 
