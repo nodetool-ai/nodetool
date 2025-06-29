@@ -25,6 +25,8 @@ interface AssetGridRowProps {
 }
 
 const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
+  console.time(`🏠 AssetGridRow ${index} render`);
+
   const {
     getItemsForRow,
     gridDimensions,
@@ -40,6 +42,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const rowItems = getItemsForRow(index);
 
   if (rowItems.length === 0) {
+    console.timeEnd(`🏠 AssetGridRow ${index} render`);
     return null;
   }
 
@@ -108,7 +111,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     );
   }
 
-  return (
+  const result = (
     <div
       className="asset-grid-row"
       style={{
@@ -151,6 +154,43 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       })}
     </div>
   );
+
+  console.timeEnd(`🏠 AssetGridRow ${index} render`);
+  return result;
 };
 
-export default React.memo(AssetGridRow);
+export default React.memo(AssetGridRow, (prevProps, nextProps) => {
+  // Only re-render if the row content or grid dimensions changed
+  // Don't re-render just because a different asset was selected
+  const prevItems = prevProps.data.getItemsForRow(prevProps.index);
+  const nextItems = nextProps.data.getItemsForRow(nextProps.index);
+
+  // Check if this specific row's items selection state changed
+  const thisRowSelectionChanged = prevItems.some((item, idx) => {
+    if (item.isDivider || nextItems[idx]?.isDivider) return false;
+    const prevSelected =
+      prevProps.data.selectedAssetIds?.includes(item.id) || false;
+    const nextSelected =
+      nextProps.data.selectedAssetIds?.includes(item.id) || false;
+    return prevSelected !== nextSelected;
+  });
+
+  // Re-render only if:
+  // 1. This row's selection actually changed, OR
+  // 2. Grid structure changed, OR
+  // 3. Other non-selection props changed
+  const gridChanged =
+    prevProps.data.gridDimensions !== nextProps.data.gridDimensions ||
+    prevProps.style !== nextProps.style ||
+    prevProps.index !== nextProps.index;
+
+  const shouldUpdate = thisRowSelectionChanged || gridChanged;
+
+  if (!shouldUpdate) {
+    console.log(
+      `🚫 AssetGridRow ${prevProps.index} skipped re-render (no relevant changes)`
+    );
+  }
+
+  return !shouldUpdate; // memo returns true to skip re-render
+});

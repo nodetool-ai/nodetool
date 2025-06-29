@@ -12,7 +12,6 @@ import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
-import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -226,6 +225,10 @@ export type AssetItemProps = {
 };
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
+  console.time(
+    `🎨 AssetItem ${props.asset.id} render (selected: ${props.isSelected})`
+  );
+
   const {
     asset,
     draggable = true,
@@ -289,7 +292,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [asset?.content_type]
   );
 
-  return (
+  const result = (
     <div
       css={styles}
       className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
@@ -423,6 +426,28 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       )}
     </div>
   );
+
+  console.timeEnd(`🎨 AssetItem ${asset.id} render (selected: ${isSelected})`);
+  return result;
 };
 
-export default memo(AssetItem, isEqual);
+// Optimized memo: only re-render when THIS asset's selection state changes
+export default memo(AssetItem, (prevProps, nextProps) => {
+  // Only re-render if this specific asset's selection state changed
+  // or if other relevant props changed
+  const selectionChanged = prevProps.isSelected !== nextProps.isSelected;
+  const assetChanged = prevProps.asset.id !== nextProps.asset.id;
+  const functionsChanged =
+    prevProps.onSelect !== nextProps.onSelect ||
+    prevProps.onDoubleClick !== nextProps.onDoubleClick;
+
+  const shouldUpdate = selectionChanged || assetChanged || functionsChanged;
+
+  if (!shouldUpdate) {
+    console.log(
+      `🚫 AssetItem ${prevProps.asset.id} skipped re-render (selection: ${prevProps.isSelected})`
+    );
+  }
+
+  return !shouldUpdate; // memo returns true to skip re-render
+});
