@@ -196,7 +196,8 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   containerWidth = 1200,
   isHorizontal = false
 }) => {
-  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(assets);
+  const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
+    useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   // Group assets by content type
@@ -318,13 +319,22 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         <div
           className="asset-list-content"
           onContextMenu={(e) => handleContextMenu(e)}
+          onClick={(e) => {
+            // Only deselect if clicking on empty space (the target is the content div itself)
+            if (e.target === e.currentTarget) {
+              handleDeselectAssets();
+            }
+          }}
         >
           {Object.entries(assetsByType).map(([type, typeAssets]) => (
             <div key={type} className="asset-content-type-section">
               <div
                 className="asset-content-type-header"
                 style={{ borderBottomColor: colorForType(type) }}
-                onClick={() => toggleExpanded(type)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpanded(type);
+                }}
               >
                 <IconForType
                   iconName={type}
@@ -359,7 +369,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                       className={`asset-list-item ${
                         isSelected ? "selected" : ""
                       }`}
-                      onClick={() => handleSelectAsset(asset.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectAsset(asset.id);
+                      }}
                       onDoubleClick={() => onDoubleClick?.(asset)}
                       onContextMenu={(e) => handleContextMenu(e, asset.id)}
                     >
