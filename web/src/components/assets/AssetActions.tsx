@@ -161,7 +161,7 @@ const styles = (theme: any) =>
     },
     // size filter
     ".size-filter": {
-      width: "140px",
+      width: "80px",
       margin: "0 0.5em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
@@ -396,7 +396,7 @@ const AssetActions = ({
           value={sizeFilter}
           sx={{
             "& .MuiSelect-select": {
-              minWidth: "150px"
+              minWidth: "80px"
             }
           }}
           onChange={(e) =>
