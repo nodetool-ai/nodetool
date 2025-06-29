@@ -101,8 +101,7 @@ const styles = (theme: any) =>
       height: "5em"
     },
     ".filetype": {
-      top: "0",
-      fontWeight: "bold"
+      top: "0"
     },
     ".duration": {
       bottom: "2px",
@@ -364,7 +363,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           </>
         )}
         {isText && !isJson && !isCsv && (
-          <TextSnippetIcon className="placeholder" />
+          <TextSnippetIcon
+            className="placeholder"
+            titleAccess={asset.content_type || "Text file"}
+          />
         )}
         {isAudio && (
           <>
@@ -372,6 +374,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               style={{ color: `var(--c_${assetType})` }}
               onClick={() => onSetCurrentAudioAsset?.(asset)}
               className="placeholder"
+              titleAccess={asset.content_type || "Audio file"}
             />
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
@@ -385,6 +388,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <VideoFileIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+              titleAccess={asset.content_type || "Video file"}
             />
             <div
               className="image"
@@ -405,6 +409,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <PictureAsPdfIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
+              titleAccess={asset.content_type || "PDF file"}
             />
             {asset.get_url !== "/images/placeholder.png" && (
               <div
@@ -421,12 +426,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DataObjectIcon
             className="placeholder"
             style={{ color: `var(--c_${assetType})` }}
+            titleAccess={asset.content_type || "JSON file"}
           />
         )}
         {isCsv && (
           <TableChartIcon
             className="placeholder"
             style={{ color: `var(--c_${assetType})` }}
+            titleAccess={asset.content_type || "CSV file"}
           />
         )}
         {!isImage &&
@@ -439,6 +446,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <InsertDriveFileIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
+              titleAccess={asset.content_type || "Unknown file type"}
             />
           )}
       </div>
@@ -447,6 +455,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           {showFiletype && assetFileEnding && assetItemSize > 2 && (
             <Typography
               className="filetype info"
+              title={asset.content_type || "Unknown content type"}
               style={{
                 borderLeft: `2px solid var(--c_${assetType})`,
                 color: "white",

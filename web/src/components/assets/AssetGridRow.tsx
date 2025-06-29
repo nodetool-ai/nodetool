@@ -8,9 +8,13 @@ import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import { IconButton, Typography } from "@mui/material";
+import { IconButton, Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
 
 interface AssetGridRowProps {
   index: number;
@@ -92,58 +96,65 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     };
     const isExpanded = expandedTypes.has(divider.type);
     return (
-      <div
-        style={{
-          ...style,
-          height: DIVIDER_HEIGHT,
-          padding: `${itemSpacing}px ${itemSpacing}px`,
-          boxSizing: "border-box",
-          display: "flex",
-          alignItems: "center",
-          cursor: "pointer"
-        }}
-        className="content-type-header"
-        onClick={() => toggleExpanded(divider.type)}
+      <Tooltip
+        title={`${isExpanded ? "Collapse" : "Expand"} ${divider.type} files`}
+        placement="bottom"
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
-        <Typography
-          variant="body2"
-          style={{
-            display: "inline-block",
-            margin: "0 1em 0 .5em",
-            color: ThemeNodetool.palette.c_gray5,
-            flexGrow: 1
-          }}
-        >
-          {divider.count}
-        </Typography>
         <div
-          className="divider"
           style={{
-            width: "100%",
-            height: "2px",
-            backgroundColor: colorForType(divider.type)
+            ...style,
+            height: DIVIDER_HEIGHT,
+            padding: `${itemSpacing}px ${itemSpacing}px`,
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer"
           }}
-        />
-        <span style={{ marginLeft: "8px" }}>
-          <IconForType
-            iconName={divider.type}
-            containerStyle={{
-              borderRadius: "0 0 3px 0",
-              marginLeft: "0.1em",
-              marginTop: "0"
+          className="content-type-header"
+          onClick={() => toggleExpanded(divider.type)}
+        >
+          <Typography
+            variant="body2"
+            style={{
+              display: "inline-block",
+              margin: "0 1em 0 .5em",
+              color: ThemeNodetool.palette.c_gray5,
+              flexGrow: 1
             }}
-            bgStyle={{
-              backgroundColor: "transparent",
-              width: "15px"
+          >
+            {divider.count}
+          </Typography>
+          <div
+            className="divider"
+            style={{
+              width: "100%",
+              height: "2px",
+              backgroundColor: colorForType(divider.type)
             }}
-            showTooltip={false}
           />
-        </span>
+          <span style={{ marginLeft: "8px" }}>
+            <IconForType
+              iconName={divider.type}
+              containerStyle={{
+                borderRadius: "0 0 3px 0",
+                marginLeft: "0.1em",
+                marginTop: "0"
+              }}
+              bgStyle={{
+                backgroundColor: "transparent",
+                width: "15px"
+              }}
+              showTooltip={false}
+            />
+          </span>
 
-        <IconButton size="small" tabIndex={-1}>
-          {isExpanded ? <ExpandLess /> : <ExpandMore />}
-        </IconButton>
-      </div>
+          <IconButton size="small" tabIndex={-1}>
+            {isExpanded ? <ExpandLess /> : <ExpandMore />}
+          </IconButton>
+        </div>
+      </Tooltip>
     );
   }
 
