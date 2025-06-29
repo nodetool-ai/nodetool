@@ -17,21 +17,6 @@ export function formatFileSize(bytes: number, decimals: number = 1): string {
 }
 
 /**
- * Format total storage usage for a folder
- * @param totalBytes - Total size in bytes
- * @param fileCount - Number of files
- * @returns Formatted string like "12.5 MB (24 files)"
- */
-export function formatStorageUsage(
-  totalBytes: number,
-  fileCount: number
-): string {
-  const sizeStr = formatFileSize(totalBytes);
-  const fileStr = fileCount === 1 ? "file" : "files";
-  return `${sizeStr} (${fileCount} ${fileStr})`;
-}
-
-/**
  * Get size category for filtering
  * @param bytes - Size in bytes
  * @returns Category string

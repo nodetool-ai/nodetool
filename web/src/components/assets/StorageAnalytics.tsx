@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Typography, Box } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
-import { formatStorageUsage } from "../../utils/formatUtils";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
@@ -13,11 +12,15 @@ interface StorageAnalyticsProps {
 const styles = (theme: any) =>
   css({
     "&": {
+      position: "absolute",
+      top: "0",
+      right: "0",
+      width: "240px",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
       padding: "0.5em 1em",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "transp  ",
       borderRadius: "0.25em",
       margin: "0.5em 0",
       fontSize: theme.fontSizeSmaller
@@ -28,7 +31,7 @@ const styles = (theme: any) =>
     },
     ".storage-stats": {
       color: theme.palette.c_hl1,
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeNormal,
       display: "flex",
       alignItems: "center",
       gap: "1em"
@@ -44,8 +47,7 @@ const styles = (theme: any) =>
       textTransform: "uppercase"
     },
     ".stat-value": {
-      color: theme.palette.c_white,
-      fontWeight: 600
+      color: theme.palette.c_white
     }
   });
 
@@ -79,9 +81,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
       <div className="storage-stats">
         <div className="stat-item">
           <span className="stat-label">Total Size</span>
-          <span className="stat-value">
-            {formatStorageUsage(totalSize, fileCount)}
-          </span>
+          <span className="stat-value">{totalSize}</span>
         </div>
 
         {folderCount > 0 && (
