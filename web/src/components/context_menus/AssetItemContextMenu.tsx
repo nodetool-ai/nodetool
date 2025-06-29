@@ -6,6 +6,7 @@ import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -24,10 +25,22 @@ const AssetItemContextMenu = () => {
     (state) => state.setDeleteDialogOpen
   );
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const download = useAssetStore((state) => state.download);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const setCreateFolderDialogOpen = useAssetGridStore(
+    (state) => state.setCreateFolderDialogOpen
+  );
+
+  // Check if any selected items are folders
+  const isFolder = selectedAssets.some(
+    (asset) => asset.content_type === "folder"
+  );
+
+  // Determine if we have non-folder assets selected for moving to new folder
+  const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
 
   const handleDownloadAssets = async (selectedAssetIds: string[]) => {
     addNotification({
@@ -69,7 +82,11 @@ const AssetItemContextMenu = () => {
       >
         <MenuItem disabled>
           <Typography variant="body1" className="title">
-            {selectedAssetIds.length} item{selectedAssetIds.length > 1 && "s"}
+            {isFolder
+              ? "Folder"
+              : `${selectedAssetIds.length} item${
+                  selectedAssetIds.length > 1 ? "s" : ""
+                }`}
           </Typography>
         </MenuItem>
         <Divider />
@@ -99,6 +116,24 @@ const AssetItemContextMenu = () => {
           label="Download Selected Assets"
           IconComponent={<FileDownloadIcon />}
           tooltip="Download selected assets to your Downloads folder"
+        />
+        <Divider />
+        <ContextMenuItem
+          onClick={(e: any) => {
+            e.stopPropagation();
+            setCreateFolderDialogOpen(true);
+          }}
+          label={
+            hasSelectedAssets
+              ? "Move selected to new folder"
+              : "Create new folder"
+          }
+          IconComponent={<CreateNewFolderIcon />}
+          tooltip={
+            hasSelectedAssets
+              ? "Create a new folder and move selected assets into it"
+              : "Create a new folder in the current location"
+          }
         />
         <Divider />
         <ContextMenuItem
