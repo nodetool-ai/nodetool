@@ -5,6 +5,7 @@ import ContextMenuItem from "./ContextMenuItem";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import StorageIcon from "@mui/icons-material/Storage";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -39,6 +40,12 @@ const AssetGridContextMenu = () => {
   const handleSortByDate = (e?: React.MouseEvent<HTMLElement>) => {
     e?.stopPropagation();
     setAssetsOrder("date");
+    closeContextMenu();
+  };
+
+  const handleSortBySize = (e?: React.MouseEvent<HTMLElement>) => {
+    e?.stopPropagation();
+    setAssetsOrder("size");
     closeContextMenu();
   };
 
@@ -80,6 +87,12 @@ const AssetGridContextMenu = () => {
         label={`Sort by date ${settings.assetsOrder === "date" ? "✓" : ""}`}
         IconComponent={<AccessTimeIcon />}
         tooltip="Sort assets by creation date"
+      />
+      <ContextMenuItem
+        onClick={handleSortBySize}
+        label={`Sort by size ${settings.assetsOrder === "size" ? "✓" : ""}`}
+        IconComponent={<StorageIcon />}
+        tooltip="Sort assets by file size"
       />
     </Menu>
   );

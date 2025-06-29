@@ -7,7 +7,7 @@ export interface Settings {
   panControls: string;
   selectionMode: string;
   workflowOrder: "name" | "date";
-  assetsOrder: "name" | "date";
+  assetsOrder: "name" | "date" | "size";
   assetItemSize: number;
   timeFormat: "12h" | "24h";
   alertBeforeTabClose: boolean;
@@ -27,7 +27,7 @@ interface SettingsStore {
   resetSettings: () => void;
   setSelectionMode: (value: string) => void;
   setWorkflowOrder: (value: "name" | "date") => void;
-  setAssetsOrder: (value: "name" | "date") => void;
+  setAssetsOrder: (value: "name" | "date" | "size") => void;
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
   setAlertBeforeTabClose: (value: boolean) => void;
@@ -97,7 +97,7 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         })),
 
-      setAssetsOrder: (value: "name" | "date") =>
+      setAssetsOrder: (value: "name" | "date" | "size") =>
         set((state) => ({
           settings: {
             ...state.settings,

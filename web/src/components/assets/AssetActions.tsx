@@ -311,6 +311,7 @@ const AssetActions = ({
         >
           <MenuItem value="name">Name</MenuItem>
           <MenuItem value="date">Date</MenuItem>
+          <MenuItem value="size">Size</MenuItem>
         </Select>
       </Tooltip>
 
