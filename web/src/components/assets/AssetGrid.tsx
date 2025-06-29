@@ -25,7 +25,6 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -357,4 +356,4 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 };
 
-export default memo(AssetGrid, isEqual);
+export default memo(AssetGrid);
