@@ -4,12 +4,12 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetSelection = (sortedAssets: Asset[]) => {
-  const { selectedAssetIds, setSelectedAssetIds } = useAssetGridStore(
-    (state) => ({
+  const { selectedAssetIds, setSelectedAssetIds, setSelectedAssets } =
+    useAssetGridStore((state) => ({
       selectedAssetIds: state.selectedAssetIds,
-      setSelectedAssetIds: state.setSelectedAssetIds
-    })
-  );
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setSelectedAssets: state.setSelectedAssets
+    }));
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );
@@ -25,6 +25,18 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
 
   const setCurrentAudioAsset = useAssetGridStore(
     (state) => state.setCurrentAudioAsset
+  );
+
+  // Helper function to update both selectedAssetIds and selectedAssets efficiently
+  const updateSelection = useCallback(
+    (assetIds: string[]) => {
+      setSelectedAssetIds(assetIds);
+      const selectedAssets = assetIds
+        .map((id) => sortedAssets.find((asset) => asset.id === id))
+        .filter(Boolean) as Asset[];
+      setSelectedAssets(selectedAssets);
+    },
+    [setSelectedAssetIds, setSelectedAssets, sortedAssets]
   );
 
   const handleSelectAsset = useCallback(
@@ -51,15 +63,15 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
           existingSelection.add(sortedAssets[i].id);
         }
         const newSelectedIds = Array.from(existingSelection);
-        setSelectedAssetIds(newSelectedIds);
+        updateSelection(newSelectedIds);
       } else if (controlKeyPressed || metaKeyPressed) {
         const newAssetIds = selectedAssetIds.includes(assetId)
           ? selectedAssetIds.filter((id) => id !== assetId)
           : [...selectedAssetIds, assetId];
-        setSelectedAssetIds(newAssetIds);
+        updateSelection(newAssetIds);
       } else {
         if (selectedAssetIds[0] !== assetId) {
-          setSelectedAssetIds([assetId]);
+          updateSelection([assetId]);
         }
       }
 
@@ -72,25 +84,24 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       }
     },
     [
-      sortedAssets,
       assetIndexMap,
       lastSelectedAssetId,
       selectedAssetIds,
-      setSelectedAssetIds,
+      updateSelection,
       setCurrentAudioAsset
     ]
   );
 
   const handleSelectAllAssets = useCallback(() => {
     const allAssetIds = sortedAssets.map((asset) => asset.id);
-    setSelectedAssetIds(allAssetIds);
+    updateSelection(allAssetIds);
     setLastSelectedAssetId(null);
-  }, [setSelectedAssetIds, sortedAssets]);
+  }, [updateSelection, sortedAssets]);
 
   const handleDeselectAssets = useCallback(() => {
-    setSelectedAssetIds([]);
+    updateSelection([]);
     setLastSelectedAssetId(null);
-  }, [setSelectedAssetIds]);
+  }, [updateSelection]);
 
   useEffect(() => {
     if (selectedAssetIds.length === 0) {
@@ -100,8 +111,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
 
   return {
     selectedAssetIds,
-    setSelectedAssetIds,
-    setCurrentAudioAsset,
     handleSelectAsset,
     handleSelectAllAssets,
     handleDeselectAssets

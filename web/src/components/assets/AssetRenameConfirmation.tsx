@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
-import { useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
@@ -33,7 +32,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const [baseNewName, setBaseNewName] = useState("");
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const getAsset = useAssetStore((state) => state.get);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const { refetchAssetsAndFolders } = useAssets();
   const { mutation } = useAssetUpdate();
 
@@ -43,9 +42,12 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       log.info("dialogOpen", dialogOpen);
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
-      getAsset(assets[0]).then((asset) => {
-        setBaseNewName(asset.name);
-      });
+
+      // Use the first selected asset from store instead of fetching
+      if (selectedAssets.length > 0) {
+        setBaseNewName(selectedAssets[0].name);
+      }
+
       setShowAlert("");
       const timer = setTimeout(() => {
         if (inputRef.current) {
@@ -54,7 +56,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [dialogOpen, assets, getAsset]);
+  }, [dialogOpen, selectedAssets]);
 
   const handleRename = useCallback(async () => {
     const invalidCharsRegex = /[/*?"<>|#%{}^[\]`'=&$§!°äüö;+~|$!]+/g;
