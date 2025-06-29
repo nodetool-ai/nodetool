@@ -103,7 +103,8 @@ const styles = (theme: any) =>
     },
     // sort by
     ".sort-assets": {
-      width: "42px",
+      width: "45px",
+      margin: "0 1em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase"
