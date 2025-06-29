@@ -140,6 +140,7 @@ const FolderProperty = (props: PropertyProps) => {
             inputRef={inputRef}
             placeholder="Folder Name"
             autoFocus
+            spellCheck={false}
             autoComplete="off"
             onKeyDown={(e) => {
               if (e.key === "Enter") {

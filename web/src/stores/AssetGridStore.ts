@@ -35,9 +35,15 @@ interface AssetGridState {
   setParentFolder: (folder: Asset | null) => void;
   setRenameDialogOpen: (open: boolean) => void;
   setSearchTerm: (term: string) => void;
-  setSelectedAssetIds: (ids: string[]) => void;
+  setSelectedAssetIds: (assetIds: string[]) => void;
   setSelectedFolderId: (id: string | null) => void;
   setSelectedFolderIds: (ids: string[]) => void;
+
+  createFolderDialogOpen: boolean;
+  setCreateFolderDialogOpen: (open: boolean) => void;
+
+  isRenaming: string | null;
+  setIsRenaming: (isRenaming: string | null) => void;
 }
 
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
@@ -104,5 +110,10 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
       set({ selectedAssets: validAssets });
     };
     fetchAndSetAssets();
-  }
+  },
+
+  createFolderDialogOpen: false,
+  setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
+  isRenaming: null,
+  setIsRenaming: (isRenaming) => set({ isRenaming })
 }));

@@ -6,6 +6,7 @@ import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
+import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetGridContent from "./AssetGridContent";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
@@ -164,10 +165,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 }) => {
   const { error } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
   const setSelectedAssetIds = useAssetGridStore(
@@ -299,10 +297,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             )}
           </Typography>
         </div>
-        {/* <Typography className="current-folder">
-            <span className="folder-slash">/</span>
-            {currentFolder && `${currentFolder.name}`}
-          </Typography> */}
       </div>
       <Dropzone onDrop={uploadFiles}>
         <div
@@ -354,6 +348,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
+      <AssetCreateFolderConfirmation />
       <AssetDeleteConfirmation assets={selectedAssetIds} />
       <AssetRenameConfirmation assets={selectedAssetIds} />
       <AssetMoveToFolderConfirmation assets={selectedAssetIds} />

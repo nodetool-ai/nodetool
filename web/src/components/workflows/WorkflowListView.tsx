@@ -55,13 +55,10 @@ const listStyles = (theme: any) =>
     },
     ".workflow.current .name": {
       color: "var(--palette-primary-light)",
-      // backgroundColor: "var(--c_gray1)",
       fontWeight: "bold"
     },
-    // ".workflow.selected": {
     ".workflow.selected .name": {
-      fontSize: "10em"
-      //   backgroundColor: `${theme.palette.primary.light}`
+      fontSize: "1em"
     },
     ".workflow:hover": {
       backgroundColor: theme.palette.c_gray2
