@@ -102,12 +102,10 @@ const styles = (theme: any) =>
       "&::before": {
         top: "0",
         height: "100%"
-        // borderLeft: `1px solid ${theme.palette.divider}`
       },
       "&::after": {
         top: "12px",
         width: "12px"
-        // borderTop: `1px solid ${theme.palette.divider}`
       },
       "&:last-child::before": {
         height: "12px"
@@ -187,21 +185,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const { user } = useAuth();
-
   const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
     F2KeyPressed: state.isKeyPressed("F2"),
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
 
   const containerRef = useRef<HTMLDivElement>(null);
-  // const [containerWidth, setContainerWidth] = React.useState(0);
-
-  // useResizeObserver(containerRef, (entry) => {
-  //   setContainerWidth(entry.contentRect.width);
-  // });
-
   const { uploadAsset, isUploading } = useAssetUpload();
-
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
