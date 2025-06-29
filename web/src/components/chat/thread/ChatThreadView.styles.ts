@@ -7,6 +7,7 @@ export const createStyles = (theme: any) => ({
     position: "relative",
     display: "flex",
     flexDirection: "column",
+    padding: "2em 0",
     minHeight: 0
   }),
   scrollableMessageWrapper: css({
@@ -74,7 +75,7 @@ export const createStyles = (theme: any) => ({
 
     "li.user": {
       width: "60%",
-      marginLeft: "auto",
+      margin: "4em 0 2em auto",
       padding: "0.2em",
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray2,
@@ -100,6 +101,10 @@ export const createStyles = (theme: any) => ({
     "li pre code": {
       // fontFamily: theme.fontFamily2,
       // color: theme.palette.c_white
+    },
+
+    ".code-block-container": {
+      marginBottom: "1em"
     },
 
     "li a": {
@@ -156,11 +161,11 @@ export const createStyles = (theme: any) => ({
       listStyle: "none",
       margin: "0",
       padding: "0",
-      
+
       "&::before": {
         display: "none"
       },
-      
+
       "&::marker": {
         display: "none"
       }

@@ -46,23 +46,23 @@ export const createStyles = (theme: any) =>
       }
     },
 
-    ".compose-message button": {
-      position: "absolute",
-      bottom: "8px",
-      right: "-1em",
-      width: "40px",
-      height: "40px",
-      backgroundColor: "transparent",
-      color: theme.palette.c_hl1,
-      padding: "8px",
-      minWidth: "unset",
-      borderRadius: "50%",
-      transition: "transform 0.2s ease-in-out",
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        transform: "scale(1.1)"
-      }
-    },
+    // ".compose-message button": {
+    //   position: "absolute",
+    //   bottom: ".25em",
+    //   right: "0em",
+    //   width: "40px",
+    //   height: "40px",
+    //   backgroundColor: "transparent",
+    //   color: theme.palette.c_hl1,
+    //   padding: "8px",
+    //   minWidth: "unset",
+    //   borderRadius: "50%",
+    //   transition: "transform 0.2s ease-in-out",
+    //   "&:hover": {
+    //     backgroundColor: "rgba(255, 255, 255, 0.1)",
+    //     transform: "scale(1.1)"
+    //   }
+    // },
 
     ".button-container": {
       display: "flex",
