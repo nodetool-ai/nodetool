@@ -21,13 +21,15 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = ({
   textBefore,
   textAfter
 }) => {
-  const thoughtContentStyles = css`
-    margin-left: 1em;
-    margin-top: 0.5em;
-    padding: 0.5em;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-  `;
+  const thoughtContentStyles = css({
+    margin: "0.5em 0 2em .5em",
+    padding: "1em",
+    background: "rgba(0, 0, 0, 0.2)",
+    borderRadius: "0.5em",
+    ".markdown p": {
+      color: "var(--c_gray5)"
+    }
+  });
 
   return (
     <>

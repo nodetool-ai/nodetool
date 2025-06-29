@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Button, Tooltip, Typography } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
-import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
+import { Tooltip, Typography } from "@mui/material";
+import { SendMessageButton } from "./SendMessageButton";
+import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
@@ -24,9 +24,9 @@ interface ActionButtonsProps {
 }
 
 const styles = css({
-  ".send-button": {
-    marginBottom: "-5px"
-  }
+  position: "relative",
+  paddingBottom: "0.6em",
+  marginRight: "0.25em"
 });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -40,9 +40,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     <div className="chat-action-buttons" css={styles}>
       {status === "loading" && onStop && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
-          <Button className="stop-button" onClick={onStop}>
-            <StopCircleOutlinedIcon fontSize="small" />
-          </Button>
+          <span style={{ display: "inline-flex" }}>
+            <StopGenerationButton onClick={onStop} />
+          </span>
         </Tooltip>
       )}
       {!(status === "loading" && onStop) && (
@@ -55,21 +55,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             </div>
           }
         >
-          <Button
-            className="send-button"
-            onClick={() => {
-              if (!isDisabled && hasContent) {
-                onSend();
-              }
-            }}
-            sx={{
-              "& .MuiSvgIcon-root": {
-                filter: !hasContent ? "saturate(0)" : "none"
-              }
-            }}
-          >
-            <SendIcon fontSize="small" />
-          </Button>
+          <span style={{ display: "inline-flex" }}>
+            <SendMessageButton
+              disabled={isDisabled}
+              hasContent={hasContent}
+              onClick={onSend}
+            />
+          </span>
         </Tooltip>
       )}
     </div>
