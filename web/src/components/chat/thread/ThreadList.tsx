@@ -10,6 +10,7 @@ import {
   ThreadListProps,
   sortThreadsByDate
 } from "./";
+import { groupByDate } from "../../../utils/groupByDate";
 
 export type { ThreadInfo } from "./";
 
@@ -23,24 +24,70 @@ const ThreadList: React.FC<ThreadListProps> = ({
 }) => {
   const theme = useTheme();
   const componentStyles = createStyles(theme);
+  const listElements: React.ReactNode[] = [];
+
+  if (threads && Object.keys(threads).length > 0) {
+    const threadEntries = sortThreadsByDate(threads);
+
+    // If there is only one thread, just render it with date
+    if (threadEntries.length === 1) {
+      const [singleId, singleThread] = threadEntries[0];
+      listElements.push(
+        <ThreadItem
+          key={singleId}
+          threadId={singleId}
+          thread={singleThread}
+          isSelected={singleId === currentThreadId}
+          onSelect={() => onSelectThread(singleId)}
+          onDelete={() => onDeleteThread(singleId)}
+          getPreview={() => getThreadPreview(singleId)}
+          showDate={true}
+        />
+      );
+    } else {
+      // Group by human-readable relative label
+      let lastHeaderLabel: string | null = null;
+
+      const now = new Date();
+
+      threadEntries.forEach(([threadId, thread]) => {
+        const updatedAt = new Date(thread.updatedAt);
+
+        const headerLabel = groupByDate(updatedAt, now);
+
+        if (headerLabel !== lastHeaderLabel) {
+          listElements.push(
+            <li key={`group-${headerLabel}`} className="thread-date-group">
+              {headerLabel}
+            </li>
+          );
+          lastHeaderLabel = headerLabel;
+        }
+
+        listElements.push(
+          <ThreadItem
+            key={threadId}
+            threadId={threadId}
+            thread={thread}
+            isSelected={threadId === currentThreadId}
+            onSelect={() => onSelectThread(threadId)}
+            onDelete={() => onDeleteThread(threadId)}
+            getPreview={() => getThreadPreview(threadId)}
+            showDate={false}
+          />
+        );
+      });
+    }
+  }
+
   return (
-    <Box css={componentStyles}>
+    <Box className="thread-list-container" css={componentStyles}>
       <NewChatButton onNewThread={onNewThread} />
       <ul className="thread-list">
         {!threads || Object.keys(threads).length === 0 ? (
           <EmptyThreadList />
         ) : (
-          sortThreadsByDate(threads).map(([threadId, thread]) => (
-            <ThreadItem
-              key={threadId}
-              threadId={threadId}
-              thread={thread}
-              isSelected={threadId === currentThreadId}
-              onSelect={() => onSelectThread(threadId)}
-              onDelete={() => onDeleteThread(threadId)}
-              getPreview={() => getThreadPreview(threadId)}
-            />
-          ))
+          listElements
         )}
       </ul>
     </Box>

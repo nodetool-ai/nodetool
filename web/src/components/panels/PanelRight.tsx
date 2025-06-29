@@ -74,10 +74,10 @@ const styles = (theme: any) =>
       width: "50px",
       display: "flex",
       flexDirection: "column",
-      gap: "1em",
+      gap: 0,
       backgroundColor: "transparent",
       "& .MuiIconButton-root": {
-        padding: "5px 4px 0 5px",
+        padding: "14px",
         borderRadius: "5px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -158,7 +158,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         >
           <SvgFileIcon
             iconName="assistant"
-            svgProp={{ width: 20, height: 20 }}
+            svgProp={{ width: 24, height: 24 }}
           />
         </IconButton>
       </Tooltip>
@@ -205,7 +205,6 @@ const PanelRight: React.FC = () => {
           right: isVisible ? `${Math.max(panelSize + 12, 30)}px` : "12px"
         }}
       >
-        {/* <InfoOutlinedIcon /> */}
         <CodeIcon />
       </IconButton>
       <Drawer
@@ -217,7 +216,8 @@ const PanelRight: React.FC = () => {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
             height: isVisible ? "calc(100vh - 72px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
-            backgroundColor: isVisible ? "var(--c_gray1)" : "transparent"
+            backgroundColor: isVisible ? "var(--c_gray1)" : "transparent",
+            boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "none"
           }
         }}
         variant="persistent"

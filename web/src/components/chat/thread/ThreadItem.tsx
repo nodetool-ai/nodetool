@@ -1,8 +1,8 @@
 import React from "react";
-import { IconButton, Typography } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
+import DeleteButton from "../../buttons/DeleteButton";
 
 export const ThreadItem: React.FC<ThreadItemProps> = ({
   threadId,
@@ -10,7 +10,8 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
   isSelected,
   onSelect,
   onDelete,
-  getPreview
+  getPreview,
+  showDate = true
 }) => {
   return (
     <li
@@ -20,8 +21,18 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
       <Typography className="thread-title">
         {thread.title || getPreview()}
       </Typography>
-      <Typography className="date">{relativeTime(thread.updatedAt)}</Typography>
-      <IconButton
+      {showDate && (
+        <Typography className="date">
+          {relativeTime(thread.updatedAt)}
+        </Typography>
+      )}
+      <DeleteButton
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      />
+      {/* <IconButton
         className="delete-button"
         size="small"
         onClick={(e) => {
@@ -33,7 +44,7 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
         role="button"
       >
         <DeleteIcon />
-      </IconButton>
+      </IconButton> */}
     </li>
   );
 };
