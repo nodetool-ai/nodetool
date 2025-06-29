@@ -25,8 +25,6 @@ interface AssetGridRowProps {
 }
 
 const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
-  console.time(`🏠 AssetGridRow ${index} render`);
-
   const {
     getItemsForRow,
     gridDimensions,
@@ -42,7 +40,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const rowItems = getItemsForRow(index);
 
   if (rowItems.length === 0) {
-    console.timeEnd(`🏠 AssetGridRow ${index} render`);
     return null;
   }
 
@@ -155,7 +152,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     </div>
   );
 
-  console.timeEnd(`🏠 AssetGridRow ${index} render`);
   return result;
 };
 
@@ -186,11 +182,7 @@ export default React.memo(AssetGridRow, (prevProps, nextProps) => {
 
   const shouldUpdate = thisRowSelectionChanged || gridChanged;
 
-  if (!shouldUpdate) {
-    console.log(
-      `🚫 AssetGridRow ${prevProps.index} skipped re-render (no relevant changes)`
-    );
-  }
+  // Skip re-render if no relevant changes
 
   return !shouldUpdate; // memo returns true to skip re-render
 });
