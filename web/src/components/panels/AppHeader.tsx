@@ -77,7 +77,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
-      marginRight: "0.3em"
+      marginRight: "4px"
     }
   });
 

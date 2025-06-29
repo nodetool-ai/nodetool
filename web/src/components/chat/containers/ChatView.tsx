@@ -65,6 +65,10 @@ type ChatViewProps = {
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
+  /**
+   * Optional React node to display when there are no messages yet.
+   */
+  noMessagesPlaceholder?: React.ReactNode;
 };
 
 const ChatView = ({
@@ -87,7 +91,8 @@ const ChatView = ({
   helpMode = false,
   onHelpModeToggle,
   currentPlanningUpdate,
-  currentTaskUpdate
+  currentTaskUpdate,
+  noMessagesPlaceholder
 }: ChatViewProps) => {
   const handleSendMessage = useCallback(
     async (
@@ -113,12 +118,19 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, selectedTools, selectedCollections]
+    [
+      sendMessage,
+      model,
+      selectedTools,
+      selectedCollections,
+      helpMode,
+      workflowAssistant
+    ]
   );
 
   return (
     <div className="chat-view" css={styles}>
-      {messages.length > 0 && (
+      {messages.length > 0 ? (
         <ChatThreadView
           messages={messages}
           status={status}
@@ -128,6 +140,8 @@ const ChatView = ({
           currentPlanningUpdate={currentPlanningUpdate}
           currentTaskUpdate={currentTaskUpdate}
         />
+      ) : (
+        noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
       )}
 
       <ChatInputSection

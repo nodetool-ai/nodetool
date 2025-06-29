@@ -31,9 +31,18 @@ export const createStyles = (theme: any) =>
       listStyle: "none"
     },
 
+    ".thread-date-group": {
+      padding: "0.5em 1em",
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.c_gray5,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    },
+
     ".thread-item": {
       position: "relative",
-      padding: "0.75em 1em",
+      padding: "0.1em 1em",
+      fontSize: theme.fontSizeBig,
       borderLeft: `2px solid transparent`,
       cursor: "pointer",
       transition: "all 0.2s",
@@ -46,6 +55,15 @@ export const createStyles = (theme: any) =>
       "&.selected": {
         backgroundColor: theme.palette.c_gray2,
         borderLeft: `2px solid ${theme.palette.c_hl1}`
+      },
+      ".date": {
+        fontSize: theme.fontSizeTiny,
+        marginTop: "-0.25em",
+        textTransform: "uppercase",
+        color: theme.palette.c_gray5
+      },
+      p: {
+        fontWeight: "300"
       }
     },
 

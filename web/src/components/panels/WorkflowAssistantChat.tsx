@@ -17,7 +17,27 @@ const containerStyles = css({
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  marginRight: "1em"
+  marginRight: "1em",
+  ".chat-view": {
+    height: "calc(100% - 45px)"
+  },
+  ".chat-thread-view": {
+    paddingBottom: "4em"
+  },
+  ".chat-input-section": {
+    backgroundColor: "transparent"
+  },
+  ".chat-controls": {
+    flexDirection: "column",
+    gap: "0",
+    alignItems: "flex-start"
+  },
+  ".chat-composer-wrapper": {
+    width: "100%",
+    ".compose-message": {
+      margin: "0 .5em 0 0"
+    }
+  }
 });
 
 /**
@@ -119,8 +139,42 @@ const WorkflowAssistantChat: React.FC = () => {
     }
   }, [currentThreadId, status, createNewThread]);
 
+  const handleSendMessage = useCallback(
+    async (message: Message) => {
+      await sendMessage(message);
+    },
+    [sendMessage]
+  );
+
+  // Placeholder content shown when the assistant chat has no messages yet.
+  const AssistantWelcome: React.FC = () => (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "1.5em"
+      }}
+    >
+      <h2>Workflow Assistant</h2>
+      <p>Ask a question or describe a task to generate a workflow.</p>
+      <p
+        style={{
+          opacity: 0.7,
+          fontSize: "var(--fontSizeSmall)",
+          marginTop: "0.5em"
+        }}
+      >
+        Start typing to begin.
+      </p>
+    </div>
+  );
+
   return (
-    <div css={containerStyles}>
+    <div className="workflow-assistant-chat" css={containerStyles}>
       <div
         style={{
           display: "flex",
@@ -130,7 +184,7 @@ const WorkflowAssistantChat: React.FC = () => {
           padding: "4px 8px"
         }}
       >
-        <Tooltip title="Threads">
+        <Tooltip title="Chat History">
           <IconButton onClick={() => setIsThreadListOpen(true)} size="small">
             <ListIcon />
           </IconButton>
@@ -174,6 +228,7 @@ const WorkflowAssistantChat: React.FC = () => {
         helpMode={true}
         workflowAssistant={true}
         onStop={stopGeneration}
+        noMessagesPlaceholder={<AssistantWelcome />}
       />
     </div>
   );
