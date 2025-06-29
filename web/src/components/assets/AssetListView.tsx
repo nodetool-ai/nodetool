@@ -88,13 +88,12 @@ const styles = (theme: any) =>
       borderBottom: `1px solid ${theme.palette.c_gray1}`,
       cursor: "pointer",
       transition: "background-color 0.2s",
-      // minHeight: "48px",
       "&:hover": {
         backgroundColor: theme.palette.c_gray1
       },
       "&.selected": {
         backgroundColor: theme.palette.c_hl1 + "22",
-        borderColor: theme.palette.c_hl1
+        borderLeft: `1px solid ${theme.palette.c_hl1}`
       }
     },
     ".item-icon": {
@@ -146,6 +145,7 @@ const styles = (theme: any) =>
       flex: "1 1 200px",
       minWidth: "150px",
       fontSize: theme.fontSizeNormal,
+      userSelect: "none",
       color: theme.palette.c_white,
       overflow: "hidden",
       textOverflow: "ellipsis",
