@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -18,17 +18,20 @@ import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAssets from "../../serverState/useAssets";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { Asset } from "../../stores/ApiTypes";
 
 const AssetCreateFolderConfirmation: React.FC = () => {
   const setDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
   const dialogOpen = useAssetGridStore((state) => state.createFolderDialogOpen);
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
+  );
+  const setSelectedAssets = useAssetGridStore(
+    (state) => state.setSelectedAssets
   );
 
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -38,10 +41,18 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
   const createFolder = useAssetStore((state) => state.createFolder);
   const updateAsset = useAssetStore((state) => state.update);
-  const { refetchAssetsAndFolders } = useAssets();
+  const { refetchAssetsAndFolders, folderFilesFiltered } = useAssets();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+
+  // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
+  const selectedAssets = useMemo(() => {
+    if (selectedAssetIds.length === 0) return [];
+    return selectedAssetIds
+      .map((id) => folderFilesFiltered.find((asset) => asset.id === id))
+      .filter(Boolean) as Asset[];
+  }, [selectedAssetIds, folderFilesFiltered]);
 
   // Check if we have non-folder assets selected for moving
   const isFolder = selectedAssets.some(
@@ -130,6 +141,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
         // Clear selection since assets were moved
         setSelectedAssetIds([]);
+        setSelectedAssets([]);
       } else {
         addNotification({
           type: "success",
@@ -153,11 +165,12 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     addNotification,
     setDialogOpen,
     refetchAssetsAndFolders,
-    setSelectedAssetIds
+    setSelectedAssetIds,
+    setSelectedAssets
   ]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 400;
+  const objectWidth = 600;
   const leftPosition = dialogPosition.x - objectWidth;
 
   const safeLeft = Math.min(
@@ -172,13 +185,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       onClose={() => setDialogOpen(false)}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
-      componentsProps={{
-        backdrop: {
-          style: {
-            backgroundColor: "transparent"
-          }
-        }
-      }}
       style={{
         left: `${safeLeft}px`,
         top: `${dialogPosition.y - 300}px`

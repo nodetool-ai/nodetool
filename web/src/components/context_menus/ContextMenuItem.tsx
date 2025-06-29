@@ -19,6 +19,9 @@ const styles = (theme: any) =>
       color: theme.palette.c_white,
       transition: "all 0.2s ease-in-out"
     },
+    "&:hover": {
+      backgroundColor: "var(--c_gray1)"
+    },
     ".MuiMenuItem-root": {
       padding: 0
     },

@@ -10,6 +10,7 @@ import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetGridContent from "./AssetGridContent";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
@@ -347,6 +348,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
+      {openMenuType === "asset-grid-context-menu" && <AssetGridContextMenu />}
       <AssetCreateFolderConfirmation />
       <AssetDeleteConfirmation assets={selectedAssetIds} />
       <AssetRenameConfirmation assets={selectedAssetIds} />
