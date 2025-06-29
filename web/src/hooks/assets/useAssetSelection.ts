@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -14,24 +14,28 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     null
   );
 
+  // Create a Map for O(1) asset index lookups instead of O(n) findIndex
+  const assetIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    sortedAssets.forEach((asset, index) => {
+      map.set(asset.id, index);
+    });
+    return map;
+  }, [sortedAssets]);
+
   const setCurrentAudioAsset = useAssetGridStore(
     (state) => state.setCurrentAudioAsset
   );
 
   const handleSelectAsset = useCallback(
     (assetId: string) => {
-      const shiftKeyPressed = useKeyPressedStore
-        .getState()
-        .isKeyPressed("shift");
-      const controlKeyPressed = useKeyPressedStore
-        .getState()
-        .isKeyPressed("control");
-      const metaKeyPressed = useKeyPressedStore.getState().isKeyPressed("meta");
-      const selectedAssetIndex = sortedAssets.findIndex(
-        (asset) => asset.id === assetId
-      );
+      const keyState = useKeyPressedStore.getState();
+      const shiftKeyPressed = keyState.isKeyPressed("shift");
+      const controlKeyPressed = keyState.isKeyPressed("control");
+      const metaKeyPressed = keyState.isKeyPressed("meta");
+      const selectedAssetIndex = assetIndexMap.get(assetId) ?? -1;
       const lastSelectedIndex = lastSelectedAssetId
-        ? sortedAssets.findIndex((asset) => asset.id === lastSelectedAssetId)
+        ? assetIndexMap.get(lastSelectedAssetId) ?? -1
         : -1;
 
       const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
@@ -69,6 +73,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     },
     [
       sortedAssets,
+      assetIndexMap,
       lastSelectedAssetId,
       selectedAssetIds,
       setSelectedAssetIds,
