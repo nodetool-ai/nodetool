@@ -25,44 +25,52 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%"
     },
-    ".list-container": {
+    ".asset-list-container": {
       display: "flex",
       flexDirection: "column",
       height: "100%"
     },
-    ".list-header": {
+    ".asset-list-header": {
+      display: "flex",
+      alignItems: "center",
       padding: "2em 1em 1em",
       color: theme.palette.c_gray4,
+      fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "sticky",
       top: 0,
       zIndex: 1
     },
-    ".header-name": {
+    ".asset-header-icon-space": {
+      width: "32px",
+      marginRight: "0.75em",
+      flexShrink: 0
+    },
+    ".asset-header-name": {
       flex: "1 1 200px",
       minWidth: "150px"
     },
-    ".header-size": {
+    ".asset-header-size": {
       flex: "0 0 80px",
       textAlign: "right"
     },
-    ".header-type": {
+    ".asset-header-type": {
       flex: "0 0 100px",
       textAlign: "center"
     },
-    ".header-date": {
+    ".asset-header-date": {
       flex: "0 0 120px",
       textAlign: "right"
     },
-    ".list-content": {
+    ".asset-list-content": {
       flex: 1,
       overflow: "auto"
     },
-    ".content-type-section": {
+    ".asset-content-type-section": {
       marginBottom: "1em"
     },
-    ".content-type-header": {
+    ".asset-content-type-header": {
       display: "flex",
       alignItems: "center",
       padding: "0.25em 1em",
@@ -74,7 +82,7 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.c_gray1
       }
     },
-    ".content-type-title": {
+    ".asset-content-type-title": {
       fontSize: theme.fontSizeNormal,
       color: theme.palette.c_gray6,
       textTransform: "uppercase",
@@ -84,7 +92,7 @@ const styles = (theme: any) =>
     ".asset-list-item": {
       display: "flex",
       alignItems: "center",
-      padding: "0 1em",
+      padding: "0.2em 1em",
       borderBottom: `1px solid ${theme.palette.c_gray1}`,
       cursor: "pointer",
       transition: "background-color 0.2s",
@@ -96,10 +104,10 @@ const styles = (theme: any) =>
         borderLeft: `1px solid ${theme.palette.c_hl1}`
       }
     },
-    ".item-icon": {
+    ".asset-item-icon": {
       marginRight: "0.75em",
-      width: "32px",
-      height: "32px",
+      width: "24px",
+      height: "24px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -113,7 +121,7 @@ const styles = (theme: any) =>
         fontSize: "1.2rem"
       }
     },
-    ".item-thumbnail": {
+    ".asset-item-thumbnail": {
       marginRight: "0.75em",
       width: "32px",
       height: "32px",
@@ -141,7 +149,7 @@ const styles = (theme: any) =>
         pointerEvents: "none"
       }
     },
-    ".item-name": {
+    ".asset-item-name": {
       flex: "1 1 200px",
       minWidth: "150px",
       fontSize: theme.fontSizeNormal,
@@ -151,32 +159,34 @@ const styles = (theme: any) =>
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
-    ".item-name.folder": {
+    ".asset-item-name.folder": {
       fontWeight: 500,
       color: theme.palette.c_hl1
     },
-    ".item-size": {
+    ".asset-item-size": {
       flex: "0 0 80px",
       textAlign: "right",
       fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_gray4
     },
-    ".item-type": {
+    ".asset-item-type": {
       flex: "0 0 100px",
       textAlign: "center",
       fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_gray4
     },
-    ".item-date": {
+    ".asset-item-date": {
       flex: "0 0 120px",
       textAlign: "right",
+      fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_gray4
     },
-    ".item-duration": {
-      fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_gray3,
-      marginLeft: "0.5em"
+    ".asset-item-duration": {
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.c_gray5,
+      marginLeft: "1em"
     }
   });
 
@@ -296,22 +306,23 @@ const AssetListView: React.FC<AssetListViewProps> = ({
 
   return (
     <Box css={styles} className="asset-list-view">
-      <div className="list-container">
-        <div className="list-header">
-          <div className="header-name">Name</div>
-          {showSize && <div className="header-size">Size</div>}
-          {showType && <div className="header-type">Type</div>}
-          {showDate && <div className="header-date">Modified</div>}
+      <div className="asset-list-container">
+        <div className="asset-list-header">
+          <div className="asset-header-icon-space"></div>
+          <div className="asset-header-name">Name</div>
+          {showSize && <div className="asset-header-size">Size</div>}
+          {showType && <div className="asset-header-type">Type</div>}
+          {showDate && <div className="asset-header-date">Modified</div>}
         </div>
 
         <div
-          className="list-content"
+          className="asset-list-content"
           onContextMenu={(e) => handleContextMenu(e)}
         >
           {Object.entries(assetsByType).map(([type, typeAssets]) => (
-            <div key={type} className="content-type-section">
+            <div key={type} className="asset-content-type-section">
               <div
-                className="content-type-header"
+                className="asset-content-type-header"
                 style={{ borderBottomColor: colorForType(type) }}
                 onClick={() => toggleExpanded(type)}
               >
@@ -324,7 +335,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                     marginRight: "0.5em"
                   }}
                 />
-                <Typography className="content-type-title">
+                <Typography className="asset-content-type-title">
                   {getTypeDisplayName(type)} ({typeAssets.length})
                 </Typography>
                 <IconButton size="small" tabIndex={-1}>
@@ -354,7 +365,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                     >
                       {hasVisualContent ? (
                         <div
-                          className="item-thumbnail"
+                          className="asset-item-thumbnail"
                           style={{
                             backgroundImage: `url(${
                               asset.thumb_url || asset.get_url
@@ -363,7 +374,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                           title={`${asset.content_type} thumbnail`}
                         />
                       ) : (
-                        <div className="item-icon">
+                        <div className="asset-item-icon">
                           {isFolder ? (
                             <FolderIcon
                               style={{
@@ -385,17 +396,21 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                         </div>
                       )}
 
-                      <div className={`item-name ${isFolder ? "folder" : ""}`}>
+                      <div
+                        className={`asset-item-name ${
+                          isFolder ? "folder" : ""
+                        }`}
+                      >
                         {asset.name}
                         {asset.duration && (
-                          <span className="item-duration">
-                            ({secondsToHMS(asset.duration)})
+                          <span className="asset-item-duration">
+                            {secondsToHMS(asset.duration)}
                           </span>
                         )}
                       </div>
 
                       {showSize && (
-                        <div className="item-size">
+                        <div className="asset-item-size">
                           {!isFolder && assetSize && assetSize > 0
                             ? formatFileSize(assetSize)
                             : "--"}
@@ -403,7 +418,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                       )}
 
                       {showType && (
-                        <div className="item-type">
+                        <div className="asset-item-type">
                           {isFolder
                             ? "Folder"
                             : asset.content_type.split("/")[1] || "Unknown"}
@@ -411,7 +426,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                       )}
 
                       {showDate && (
-                        <div className="item-date">
+                        <div className="asset-item-date">
                           {formatDate(asset.created_at)}
                         </div>
                       )}
