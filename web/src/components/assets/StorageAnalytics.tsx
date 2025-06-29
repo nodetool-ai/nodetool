@@ -15,10 +15,12 @@ const styles = (theme: any) =>
       position: "absolute",
       top: "0",
       right: "0",
-      width: "240px",
+      minWidth: "200px",
+      maxWidth: "300px",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: "1em",
       padding: "0.5em 1em",
       backgroundColor: "transp  ",
       borderRadius: "0.25em",
@@ -30,10 +32,11 @@ const styles = (theme: any) =>
       fontWeight: 500
     },
     ".storage-stats": {
+      minWidth: "120px",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeNormal,
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-end",
       gap: "1em"
     },
     ".stat-item": {
