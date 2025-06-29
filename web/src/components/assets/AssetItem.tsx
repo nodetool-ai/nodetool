@@ -7,6 +7,9 @@ import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DataObjectIcon from "@mui/icons-material/DataObject";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
 import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
@@ -66,7 +69,8 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray4,
+      fontSize: "3rem"
     },
     p: {
       fontSize: theme.fontSizeTiny,
@@ -290,6 +294,18 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     () => asset?.content_type?.match("pdf") !== null,
     [asset?.content_type]
   );
+  const isJson = useMemo(
+    () =>
+      asset?.content_type?.includes("json") ||
+      asset?.name?.toLowerCase().endsWith(".json"),
+    [asset?.content_type, asset?.name]
+  );
+  const isCsv = useMemo(
+    () =>
+      asset?.content_type?.includes("csv") ||
+      asset?.name?.toLowerCase().endsWith(".csv"),
+    [asset?.content_type, asset?.name]
+  );
 
   const result = (
     <div
@@ -326,24 +342,30 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         {!asset.get_url && <div className="asset-missing" />}
         {isImage && (
           <>
-            <ImageIcon className="placeholder" />
-            <div
-              className="image"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
-            <div
-              className="image-aspect-ratio"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
+            {!asset.get_url && <ImageIcon className="placeholder" />}
+            {asset.get_url && (
+              <>
+                <div
+                  className="image"
+                  style={{
+                    backgroundImage: `url(${asset.get_url})`
+                  }}
+                  aria-label={asset.id}
+                />
+                <div
+                  className="image-aspect-ratio"
+                  style={{
+                    backgroundImage: `url(${asset.get_url})`
+                  }}
+                  aria-label={asset.id}
+                />
+              </>
+            )}
           </>
         )}
-        {isText && <TextSnippetIcon className="placeholder" />}
+        {isText && !isJson && !isCsv && (
+          <TextSnippetIcon className="placeholder" />
+        )}
         {isAudio && (
           <>
             <AudioFileIcon
@@ -395,6 +417,30 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             )}
           </>
         )}
+        {isJson && (
+          <DataObjectIcon
+            className="placeholder"
+            style={{ color: `var(--c_${assetType})` }}
+          />
+        )}
+        {isCsv && (
+          <TableChartIcon
+            className="placeholder"
+            style={{ color: `var(--c_${assetType})` }}
+          />
+        )}
+        {!isImage &&
+          !isVideo &&
+          !isAudio &&
+          !isText &&
+          !isPdf &&
+          !isJson &&
+          !isCsv && (
+            <InsertDriveFileIcon
+              className="placeholder"
+              style={{ color: `var(--c_${assetType})` }}
+            />
+          )}
       </div>
       {showInfo && (
         <>
