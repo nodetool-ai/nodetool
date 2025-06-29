@@ -1,5 +1,9 @@
 import React from "react";
-import { AssetOrDivider, DIVIDER_HEIGHT } from "./assetGridUtils";
+import {
+  AssetOrDivider,
+  DIVIDER_HEIGHT,
+  getExtraFooterSpace
+} from "./assetGridUtils";
 import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
@@ -15,6 +19,7 @@ interface AssetGridRowProps {
     gridDimensions: { itemWidth: number; itemHeight: number; columns: number };
     footerHeight: number;
     itemSpacing: number;
+    assetItemSize: number;
     selectedAssetIds: string[];
     handleSelectAsset: (id: string) => void;
     onDragStart: (id: string) => string[];
@@ -30,6 +35,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     gridDimensions,
     footerHeight,
     itemSpacing,
+    assetItemSize,
     selectedAssetIds,
     handleSelectAsset,
     onDoubleClick,
@@ -44,6 +50,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   }
 
   const isDividerRow = rowItems[0]?.isDivider;
+  // Add extra space for filenames when item size is large
+  const extraFooterSpace = getExtraFooterSpace(assetItemSize);
 
   if (isDividerRow) {
     const divider = rowItems[0] as {
@@ -133,7 +141,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             key={`asset-${item.id}`}
             style={{
               width: `${gridDimensions.itemWidth}px`,
-              height: `${gridDimensions.itemHeight + footerHeight}px`,
+              height: `${
+                gridDimensions.itemHeight + footerHeight + extraFooterSpace
+              }px`,
               padding: `${itemSpacing}px`,
               flexShrink: 0,
               boxSizing: "border-box"
