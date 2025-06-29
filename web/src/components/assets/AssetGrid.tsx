@@ -101,13 +101,13 @@ const styles = (theme: any) =>
       },
       "&::before": {
         top: "0",
-        height: "100%",
-        borderLeft: `1px solid ${theme.palette.divider}`
+        height: "100%"
+        // borderLeft: `1px solid ${theme.palette.divider}`
       },
       "&::after": {
         top: "12px",
-        width: "12px",
-        borderTop: `1px solid ${theme.palette.divider}`
+        width: "12px"
+        // borderTop: `1px solid ${theme.palette.divider}`
       },
       "&:last-child::before": {
         height: "12px"

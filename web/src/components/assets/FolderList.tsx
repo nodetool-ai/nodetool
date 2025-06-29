@@ -214,6 +214,10 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       <Accordion
         className={"accordion " + (isRoot ? "root-folder" : "")}
         key={folder.id}
+        sx={{
+          marginTop: "0 !important",
+          marginBottom: "0 !important"
+        }}
       >
         <AccordionSummary
           className="accordion-summary"
