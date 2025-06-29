@@ -40,7 +40,10 @@ const styles = (theme: any) =>
       "& .MuiTreeItem-content": {
         display: "flex",
         alignItems: "flex-start",
-        padding: ".25em"
+        padding: ".25em",
+        "&:hover": {
+          backgroundColor: theme.palette.c_gray3
+        }
       },
       "& svg": {
         color: theme.palette.c_hl1,

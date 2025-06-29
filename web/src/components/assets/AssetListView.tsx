@@ -10,6 +10,7 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { colorForType, IconForType } from "../../config/data_types";
 import FolderIcon from "@mui/icons-material/Folder";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -30,14 +31,9 @@ const styles = (theme: any) =>
       height: "100%"
     },
     ".list-header": {
-      display: "flex",
-      alignItems: "center",
-      padding: "0.5em 1em",
-      backgroundColor: theme.palette.c_gray1,
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      padding: "2em 1em 1em",
+      color: theme.palette.c_gray4,
       fontSize: theme.fontSizeSmaller,
-      fontWeight: 600,
-      color: theme.palette.c_gray5,
       textTransform: "uppercase",
       position: "sticky",
       top: 0,
@@ -69,18 +65,18 @@ const styles = (theme: any) =>
     ".content-type-header": {
       display: "flex",
       alignItems: "center",
-      padding: "0.5em 1em",
-      backgroundColor: theme.palette.c_gray0,
-      borderLeft: "4px solid",
+      padding: "0.25em 1em",
+      marginBottom: "0.5em",
+      backgroundColor: "transparent",
+      borderBottom: "2px solid ",
       cursor: "pointer",
       "&:hover": {
         backgroundColor: theme.palette.c_gray1
       }
     },
     ".content-type-title": {
-      fontSize: theme.fontSizeSmaller,
-      fontWeight: 600,
-      color: theme.palette.c_white,
+      fontSize: theme.fontSizeNormal,
+      color: theme.palette.c_gray6,
       textTransform: "uppercase",
       marginLeft: "0.5em",
       flex: 1
@@ -88,10 +84,11 @@ const styles = (theme: any) =>
     ".asset-list-item": {
       display: "flex",
       alignItems: "center",
-      padding: "0.5em 1em",
+      padding: "0 1em",
       borderBottom: `1px solid ${theme.palette.c_gray1}`,
       cursor: "pointer",
       transition: "background-color 0.2s",
+      // minHeight: "48px",
       "&:hover": {
         backgroundColor: theme.palette.c_gray1
       },
@@ -102,11 +99,48 @@ const styles = (theme: any) =>
     },
     ".item-icon": {
       marginRight: "0.75em",
-      width: "24px",
-      height: "24px",
+      width: "32px",
+      height: "32px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      flexShrink: 0,
+      "& .icon-container": {
+        transform: "scale(0.75)",
+        opacity: 0.7
+      },
+      "& svg": {
+        color: theme.palette.c_gray5 + " !important",
+        fontSize: "1.2rem"
+      }
+    },
+    ".item-thumbnail": {
+      marginRight: "0.75em",
+      width: "32px",
+      height: "32px",
+      borderRadius: "3px",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundColor: theme.palette.c_gray1,
+      border: `1px solid ${theme.palette.c_gray2}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+      flexShrink: 0,
+      position: "relative",
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        border: `1px solid ${theme.palette.c_gray3}22`,
+        borderRadius: "3px",
+        pointerEvents: "none"
+      }
     },
     ".item-name": {
       flex: "1 1 200px",
@@ -278,13 +312,17 @@ const AssetListView: React.FC<AssetListViewProps> = ({
             <div key={type} className="content-type-section">
               <div
                 className="content-type-header"
-                style={{ borderLeftColor: colorForType(type) }}
+                style={{ borderBottomColor: colorForType(type) }}
                 onClick={() => toggleExpanded(type)}
               >
                 <IconForType
                   iconName={type}
                   showTooltip={false}
-                  containerStyle={{ marginRight: "0.5em" }}
+                  containerStyle={{
+                    width: "24px",
+                    height: "24px",
+                    marginRight: "0.5em"
+                  }}
                 />
                 <Typography className="content-type-title">
                   {getTypeDisplayName(type)} ({typeAssets.length})
@@ -299,6 +337,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                   const isSelected = selectedAssetIds.includes(asset.id);
                   const isFolder = asset.content_type === "folder";
                   const assetSize = (asset as any).size as number | undefined;
+                  const hasVisualContent =
+                    (type === "image" || type === "video") &&
+                    asset.get_url &&
+                    asset.get_url !== "/images/placeholder.png";
 
                   return (
                     <div
@@ -310,19 +352,38 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                       onDoubleClick={() => onDoubleClick?.(asset)}
                       onContextMenu={(e) => handleContextMenu(e, asset.id)}
                     >
-                      <div className="item-icon">
-                        {isFolder ? (
-                          <FolderIcon
-                            style={{ color: colorForType("folder") }}
-                          />
-                        ) : (
-                          <IconForType
-                            iconName={type}
-                            showTooltip={false}
-                            containerStyle={{ width: "24px", height: "24px" }}
-                          />
-                        )}
-                      </div>
+                      {hasVisualContent ? (
+                        <div
+                          className="item-thumbnail"
+                          style={{
+                            backgroundImage: `url(${
+                              asset.thumb_url || asset.get_url
+                            })`
+                          }}
+                          title={`${asset.content_type} thumbnail`}
+                        />
+                      ) : (
+                        <div className="item-icon">
+                          {isFolder ? (
+                            <FolderIcon
+                              style={{
+                                color: "var(--c_gray5)",
+                                fontSize: "1.2rem"
+                              }}
+                            />
+                          ) : (
+                            <IconForType
+                              iconName={type}
+                              showTooltip={false}
+                              containerStyle={{
+                                width: "24px",
+                                height: "24px",
+                                transform: "scale(0.85)"
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
 
                       <div className={`item-name ${isFolder ? "folder" : ""}`}>
                         {asset.name}
