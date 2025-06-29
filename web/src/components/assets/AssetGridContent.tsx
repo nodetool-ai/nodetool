@@ -19,6 +19,7 @@ import {
   prepareItems,
   calculateRowCount,
   getItemsForRow,
+  getExtraFooterSpace,
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -165,9 +166,23 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       if (type && !expandedTypes.has(type)) {
         return 0; // Hide collapsed rows
       }
-      return gridDimensions.itemHeight + footerHeight + itemSpacing * 2;
+      // Add extra space for filenames when item size is large (matching AssetGridRow logic)
+      const extraFooterSpace = getExtraFooterSpace(assetItemSize);
+      return (
+        gridDimensions.itemHeight +
+        footerHeight +
+        extraFooterSpace +
+        itemSpacing * 2
+      );
     },
-    [preparedItems, gridDimensions, footerHeight, itemSpacing, expandedTypes]
+    [
+      preparedItems,
+      gridDimensions,
+      footerHeight,
+      itemSpacing,
+      expandedTypes,
+      assetItemSize
+    ]
   );
 
   // Separate stable data from selection state to prevent unnecessary re-renders
@@ -178,6 +193,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       gridDimensions,
       footerHeight,
       itemSpacing,
+      assetItemSize,
       handleSelectAsset,
       onDragStart,
       onDoubleClick: onDoubleClick || (() => {}),
@@ -190,6 +206,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     gridDimensions,
     footerHeight,
     itemSpacing,
+    assetItemSize,
     handleSelectAsset,
     onDragStart,
     onDoubleClick,

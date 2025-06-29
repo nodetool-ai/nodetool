@@ -93,6 +93,9 @@ const styles = (theme: any) =>
       overflow: "hidden",
       backgroundColor: "transparent"
     },
+    ".name.large": {
+      height: "5em"
+    },
     ".filetype": {
       top: "0",
       fontWeight: "bold"
@@ -412,7 +415,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               aria-label={asset.name}
               data-microtip-position="bottom"
               role="tooltip"
-              className="name info"
+              className={`name info ${assetItemSize > 4 ? "large" : ""}`}
             >
               {asset.name}
               {/* {asset.parent_id} */}
