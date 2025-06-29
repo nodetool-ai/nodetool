@@ -26,6 +26,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import StorageAnalytics from "./StorageAnalytics";
 
 const styles = (theme: any) =>
   css({
@@ -171,7 +172,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets
 }) => {
-  const { error } = useAssets();
+  const { error, folderFilesFiltered } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
@@ -186,6 +187,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     (state) => state.currentAudioAsset
   );
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
@@ -293,6 +295,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       <AssetActionsMenu maxItemSize={maxItemSize} />
+      <StorageAnalytics
+        assets={sortedAssets || folderFilesFiltered || []}
+        currentFolder={currentFolder}
+      />
       <div className="header-info">
         <div className="selected-asset-info">
           <Typography variant="body1" className="selected-info">

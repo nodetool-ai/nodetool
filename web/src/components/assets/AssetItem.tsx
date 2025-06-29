@@ -13,6 +13,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
 import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
+import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
 
@@ -102,6 +103,12 @@ const styles = (theme: any) =>
     },
     ".filetype": {
       top: "0"
+    },
+    ".filesize": {
+      top: "1.6em",
+      left: "0.25em",
+      color: "white",
+      fontSize: theme.fontSizeSmaller
     },
     ".duration": {
       bottom: "2px",
@@ -222,6 +229,7 @@ export type AssetItemProps = {
   showInfo?: boolean;
   showFiletype?: boolean;
   showDuration?: boolean;
+  showFileSize?: boolean;
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
@@ -242,6 +250,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     showInfo = true,
     showFiletype = true,
     showDuration = true,
+    showFileSize = true,
     onSelect,
     onDoubleClick,
     onClickParent,
@@ -465,6 +474,21 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               {assetFileEnding}
             </Typography>
           )}
+          {showFileSize &&
+            (asset as any).size !== undefined &&
+            (asset as any).size > 0 &&
+            assetItemSize > 2 && (
+              <Typography
+                className="filesize info"
+                title={`File size: ${formatFileSize((asset as any).size)}`}
+                style={{
+                  color: "white",
+                  backgroundColor: "#333aa"
+                }}
+              >
+                {formatFileSize((asset as any).size)}
+              </Typography>
+            )}
           {showName && assetItemSize > 1 && (
             <Typography
               aria-label={asset.name}
