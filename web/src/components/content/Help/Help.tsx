@@ -369,7 +369,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                       backgroundColor: ThemeNodetool.palette.grey[800],
                       borderRadius: "4px",
                       "& input": {
-                        color: ThemeNodetoolpalette.grey[0]
+                        color: ThemeNodetool.palette.grey[0]
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: ThemeNodetool.palette.grey[500]
@@ -378,13 +378,13 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                         borderColor: ThemeNodetool.palette.grey[400]
                       },
                       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_hl1
+                        borderColor: ThemeNodetool.palette.primary.main
                       }
                     },
                     "& .MuiInputLabel-outlined": {
                       color: ThemeNodetool.palette.grey[200],
                       "&.Mui-focused": {
-                        color: ThemeNodetool.palette.c_hl1
+                        color: ThemeNodetool.palette.primary.main
                       }
                     }
                   }}

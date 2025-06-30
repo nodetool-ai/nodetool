@@ -314,7 +314,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }`}
       style={{
         ...(nodeHovered
-          ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
+          ? { border: `2px solid ${ThemeNodes.palette.primary.main}` }
           : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,

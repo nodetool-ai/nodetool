@@ -202,7 +202,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       css={styles}
       style={
         nodeHovered
-          ? { border: `2px solid ${ThemeNodetool.palette.c_hl1}` }
+          ? { border: `2px solid ${ThemeNodetool.palette.primary.main}` }
           : {}
       }
     >

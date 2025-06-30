@@ -618,7 +618,7 @@ const ExampleGrid = () => {
             <Box className="no-results">
               <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                 Nothing found for
-                <strong style={{ color: ThemeNodetool.palette.c_hl1 }}>
+                <strong style={{ color: ThemeNodetool.palette.primary.main }}>
                   {" "}
                   &quot;{searchQuery}&quot;
                 </strong>
