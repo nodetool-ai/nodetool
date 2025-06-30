@@ -6,22 +6,12 @@ import {
 
 declare module "@mui/material/styles" {
   interface PaletteOptions {
-    c_black?: string;
     c_bg_comment?: string;
     c_brightest?: string;
+    c_black?: string;
     c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
@@ -66,18 +56,8 @@ declare module "@mui/material/styles" {
     c_bg_comment?: string;
     c_brightest?: string;
     c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
@@ -119,22 +99,24 @@ declare module "@mui/material/styles" {
 }
 
 export const paletteDark: PaletteOptions = {
+  grey: {
+    50: "#F5F5F5",
+    100: "#D9D9D9", // from c_gray6
+    200: "#BDBDBD", // from c_gray5
+    300: "#A9A9A9", // spare
+    400: "#959595", // from c_gray4
+    500: "#6D6D6D", // from c_gray3
+    600: "#444444", // from c_gray2
+    700: "#333333", // spare
+    800: "#242424", // from c_gray1
+    900: "#0E0E0E" // from c_gray0
+  },
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
-  c_gray0: "#0E0E0E",
-  c_gray1: "#242424",
-  c_gray2: "#444444",
-  c_gray3: "#6D6D6D",
-  c_gray4: "#959595",
-  c_gray5: "#BDBDBD",
-  c_gray6: "#D9D9D9",
   c_background: "#424854",
   c_node_menu: "#232323",
-  c_hl1: "#77b4e6",
-  c_hl1_1: "#6d94cc",
-  c_hl2: "#719dd9",
   c_selection: "#8EACA777",
   c_input: "#374f4f",
   c_output: "#493f4d",
