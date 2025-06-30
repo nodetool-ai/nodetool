@@ -33,7 +33,7 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       padding: "2em 1em 1em",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
@@ -78,12 +78,12 @@ const styles = (theme: any) =>
       borderBottom: "2px solid ",
       cursor: "pointer",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray1
+        backgroundColor: theme.palette.grey[800]
       }
     },
     ".asset-content-type-title": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       textTransform: "uppercase",
       marginLeft: "0.5em",
       flex: 1
@@ -92,11 +92,11 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       padding: "0.2em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray1}`,
+      borderBottom: `1px solid ${theme.palette.grey[800]}`,
       cursor: "pointer",
       transition: "background-color 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray1
+        backgroundColor: theme.palette.grey[800]
       },
       "&.selected": {
         backgroundColor: theme.palette.c_hl1 + "22",
@@ -116,7 +116,7 @@ const styles = (theme: any) =>
         opacity: 0.7
       },
       "& svg": {
-        color: theme.palette.c_gray5 + " !important",
+        color: theme.palette.grey[200] + " !important",
         fontSize: "1.2rem"
       }
     },
@@ -128,8 +128,8 @@ const styles = (theme: any) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray2}`,
+      backgroundColor: theme.palette.grey[800],
+      border: `1px solid ${theme.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -143,7 +143,7 @@ const styles = (theme: any) =>
         left: 0,
         right: 0,
         bottom: 0,
-        border: `1px solid ${theme.palette.c_gray3}22`,
+        border: `1px solid ${theme.palette.grey[500]}22`,
         borderRadius: "3px",
         pointerEvents: "none"
       }
@@ -166,25 +166,25 @@ const styles = (theme: any) =>
       flex: "0 0 80px",
       textAlign: "right",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".asset-item-type": {
       flex: "0 0 100px",
       textAlign: "center",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".asset-item-date": {
       flex: "0 0 120px",
       textAlign: "right",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".asset-item-duration": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       marginLeft: "1em"
     }
   });

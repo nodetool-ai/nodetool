@@ -83,8 +83,8 @@ const styles = (theme: any) =>
       alignItems: "flex-start"
     },
     ".modal-content": {
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[100],
       fontSize: theme.fontSizeBigger,
       width: "100%",
       height: "100%",
@@ -99,7 +99,7 @@ const styles = (theme: any) =>
       alignItems: "flex-start",
       padding: ".5em 1em",
       minHeight: "2em",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       h4: {
         cursor: "default",
         fontWeight: "600",
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
       margin: "0",
       fontSize: theme.fontSizeSmaller,
       p: {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         margin: "0 0 0.5em 0",
         "&:last-child": {
           margin: 0
@@ -147,7 +147,7 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeSmall,
         lineHeight: "1.2",
         color: theme.palette.c_white,
-        // backgroundColor: theme.palette.c_gray2,
+        // backgroundColor: theme.palette.grey[600],
         outline: "none",
         overflow: "auto !important",
         height: "100vh",
@@ -204,13 +204,13 @@ const styles = (theme: any) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: `${theme.palette.c_gray2} `
+        backgroundColor: `${theme.palette.grey[600]} `
       }
     },
     ".button": {
       padding: "10px 14px",
       cursor: "pointer",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       color: theme.palette.c_white,
       textTransform: "uppercase",
       border: "none",
@@ -224,7 +224,7 @@ const styles = (theme: any) =>
       minWidth: "44px",
       minHeight: "44px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.grey[500]
       }
     },
     ".button-close": {
@@ -235,7 +235,7 @@ const styles = (theme: any) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".resize-handle": {
@@ -244,12 +244,12 @@ const styles = (theme: any) =>
       width: "100%",
       cursor: "row-resize",
       // borderRadius: "4px",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       "&:hover": {
-        // backgroundColor: theme.palette.c_gray1
+        // backgroundColor: theme.palette.grey[800]
       },
       "&:hover .resize-handle-thumb": {
-        backgroundColor: theme.palette.c_gray6
+        backgroundColor: theme.palette.grey[100]
       }
     },
     ".resize-handle-thumb": {
@@ -259,7 +259,7 @@ const styles = (theme: any) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      backgroundColor: theme.palette.c_gray4,
+      backgroundColor: theme.palette.grey[400],
       borderRadius: "4px"
     }
   });

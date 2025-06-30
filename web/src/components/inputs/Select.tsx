@@ -80,34 +80,34 @@ const menuStyles = (theme: any) =>
       whiteSpace: "nowrap"
     },
     ".options-list .option:first-of-type": {
-      color: theme.palette.c_gray3
+      color: theme.palette.grey[500]
     },
 
     ".option": {
       padding: ".1em 1em",
       cursor: "pointer",
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",
 
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         color: theme.palette.c_white
       },
 
       "&.matching": {
-        backgroundColor: theme.palette.c_gray3,
+        backgroundColor: theme.palette.grey[500],
         fontWeight: "bold"
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         color: theme.palette.c_hl1
       },
 
       "&.highlighted": {
-        backgroundColor: theme.palette.c_gray3,
+        backgroundColor: theme.palette.grey[500],
         color: theme.palette.c_white
       }
     },
@@ -118,7 +118,7 @@ const menuStyles = (theme: any) =>
       top: "-3px",
       padding: "0px 5px",
       margin: "0",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
       cursor: "pointer",
@@ -128,19 +128,19 @@ const menuStyles = (theme: any) =>
       backgroundColor: theme.palette.c_node_bg,
 
       "&:hover": {
-        borderColor: theme.palette.c_gray4
+        borderColor: theme.palette.grey[400]
       }
     },
 
     ".select-header-text": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       fontSize: theme.fontSizeSmall,
       userSelect: "none"
     },
 
     ".chevron": {
       transition: "transform 0.2s ease",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       transform: "rotate(0deg)",
 
       "&.open": {
@@ -156,15 +156,15 @@ const menuStyles = (theme: any) =>
       width: "100%",
       margin: "-4px 0 0 0",
       padding: "3px .5em",
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: theme.palette.grey[800],
+      border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: ".3em",
       color: theme.palette.c_white,
       fontSize: theme.fontSizeSmaller,
 
       "&:focus": {
         outline: "none",
-        borderColor: theme.palette.c_gray4
+        borderColor: theme.palette.grey[400]
       }
     }
   });

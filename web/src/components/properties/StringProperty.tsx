@@ -32,7 +32,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: ".5em",
       opacity: 0.8,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       borderRadius: "4px",
       padding: "2px",
       flexShrink: 0,
@@ -61,8 +61,8 @@ const styles = (theme: any) =>
       textOverflow: "ellipsis",
       userSelect: "none",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-        border: "1px solid " + theme.palette.c_gray3
+        backgroundColor: theme.palette.grey[600],
+        border: "1px solid " + theme.palette.grey[500]
       },
       "&.empty": {
         color: theme.palette.text.secondary,

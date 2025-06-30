@@ -36,16 +36,16 @@ const styles = (theme: any) =>
       background: "linear-gradient(55deg, #333, #393939 65%, #393939 75%, #333)"
     },
     "&.missing": {
-      background: theme.palette.c_gray1
+      background: theme.palette.grey[800]
     },
     "&.missing:hover": {
-      background: theme.palette.c_gray1
+      background: theme.palette.grey[800]
     },
     ".model-download-button": {
       color: theme.palette.c_hl1,
       margin: "1em 0.1em 0 1em",
       padding: ".25em .5em",
-      border: "1px solid" + theme.palette.c_gray3,
+      border: "1px solid" + theme.palette.grey[500],
       "&:hover": {
         borderColor: theme.palette.c_hl1
       }
@@ -83,8 +83,8 @@ const styles = (theme: any) =>
       lineHeight: "1.1em",
       width: "fit-content",
       wordBreak: "break-word",
-      color: theme.palette.c_gray0,
-      backgroundColor: theme.palette.c_gray5,
+      color: theme.palette.grey[900],
+      backgroundColor: theme.palette.grey[200],
       marginTop: ".5em",
       padding: "0.1em 0.4em",
       borderRadius: 5,
@@ -106,18 +106,18 @@ const styles = (theme: any) =>
     },
     ".tag": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.grey[100],
+      backgroundColor: theme.palette.grey[800],
       padding: "0 0.1em",
       borderRadius: 8,
-      border: "1px solid" + theme.palette.c_gray3,
+      border: "1px solid" + theme.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
       margin: "0 0 .5em 0",
       padding: 0,
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_gray3,
+      color: theme.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     },
     ".text-model-type": {
@@ -132,10 +132,10 @@ const styles = (theme: any) =>
     },
     ".download": {
       boxShadow: "none",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       border: "1px solid" + ThemeNodetool.palette.c_gray1,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray0,
+        backgroundColor: theme.palette.grey[900],
         border: "1px solid" + ThemeNodetool.palette.c_gray0
       }
     },
@@ -144,15 +144,15 @@ const styles = (theme: any) =>
       position: "absolute",
       top: ".25em",
       right: ".25em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".delete-button:hover": {
       color: theme.palette.c_delete
     },
     ".button-link": {
       boxShadow: "none",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[200],
       textDecoration: "none",
       lineHeight: "1.1em",
       "&:hover": {
@@ -163,7 +163,7 @@ const styles = (theme: any) =>
       position: "absolute",
       bottom: "2.5em",
       right: "0em",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       "&:hover": {
         color: theme.palette.c_white
       }

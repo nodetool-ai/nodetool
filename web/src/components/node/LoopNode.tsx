@@ -40,7 +40,7 @@ const styles = (theme: any) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray2}`,
+    border: `1px solid ${theme.palette.grey[600]}`,
     backgroundColor: theme.palette.c_bg_loop,
     h6: {
       display: "block",

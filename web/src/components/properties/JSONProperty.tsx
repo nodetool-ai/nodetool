@@ -11,14 +11,14 @@ import "prismjs/components/prism-json";
 const styles = (theme: any) =>
   css({
     ".editor": {
-      backgroundColor: theme.palette.c_gray2,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: theme.palette.grey[600],
+      border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: "4px",
       fontSize: "12px",
       minHeight: "100px",
       width: "100%",
       "&:focus-within": {
-        borderColor: theme.palette.c_gray4
+        borderColor: theme.palette.grey[400]
       }
     },
     ".textarea": {

@@ -52,7 +52,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { collections, fetchCollections, isLoading } = useCollectionStore();
-  
+
   useEffect(() => {
     if (!collections) {
       fetchCollections();
@@ -69,14 +69,14 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
 
   const handleToggle = (collectionName: string) => {
     const newValue = value.includes(collectionName)
-      ? value.filter(name => name !== collectionName)
+      ? value.filter((name) => name !== collectionName)
       : [...value, collectionName];
     onChange(newValue);
   };
 
   const handleSelectAll = () => {
     if (collections) {
-      onChange(collections.collections.map(c => c.name));
+      onChange(collections.collections.map((c) => c.name));
     }
   };
 
@@ -92,7 +92,9 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
       <Tooltip
         title={
           selectedCount > 0
-            ? `${selectedCount} collection${selectedCount === 1 ? '' : 's'} selected`
+            ? `${selectedCount} collection${
+                selectedCount === 1 ? "" : "s"
+              } selected`
             : "Select Collections"
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -122,7 +124,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             color: theme.palette.c_white,
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.c_gray3
+              backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
               borderColor: theme.palette.c_hl1,

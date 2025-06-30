@@ -33,7 +33,7 @@ const styles = (theme: any) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.grey[900],
       alignItems: "center",
       position: "relative",
       padding: "0",
@@ -75,7 +75,7 @@ const styles = (theme: any) =>
       minWidth: "80px",
       flex: "0 0 auto",
       cursor: "pointer",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       background: "transparent",
       borderRadius: "2px 2px 0 0",
       fontSize: "13px",
@@ -181,7 +181,7 @@ const styles = (theme: any) =>
       background: theme.palette.background.default,
       border: "none",
       cursor: "pointer",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       transition: "all 0.1s ease-in-out",
       padding: 0,
       flexShrink: 0,
@@ -193,13 +193,13 @@ const styles = (theme: any) =>
 
       "&:hover": {
         color: theme.palette.c_white,
-        background: theme.palette.c_gray1
+        background: theme.palette.grey[800]
       },
 
       "&:disabled": {
         opacity: 0.3,
         "&:hover": {
-          color: theme.palette.c_gray5,
+          color: theme.palette.grey[200],
           background: theme.palette.background.default
         }
       }
@@ -211,9 +211,9 @@ const styles = (theme: any) =>
       width: "30px",
       height: "30px",
       background: theme.palette.background.default,
-      border: `1px solid ${theme.palette.c_gray1}`,
+      border: `1px solid ${theme.palette.grey[800]}`,
       borderBottom: "none",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       cursor: "pointer",
       borderRadius: "5px 5px 0 0",
       padding: 0,
@@ -224,8 +224,8 @@ const styles = (theme: any) =>
       zIndex: 1001,
 
       "&:hover": {
-        color: theme.palette.c_gray6,
-        background: theme.palette.c_gray1
+        color: theme.palette.grey[100],
+        background: theme.palette.grey[800]
       },
 
       "& svg": {
@@ -261,8 +261,8 @@ const styles = (theme: any) =>
     "& .actions-container": {
       flexShrink: 0,
       width: "100%",
-      backgroundColor: theme.palette.c_gray0,
-      borderBottom: `1px solid ${theme.palette.c_gray1}`
+      backgroundColor: theme.palette.grey[900],
+      borderBottom: `1px solid ${theme.palette.grey[800]}`
     }
   });
 

@@ -57,7 +57,7 @@ const styles = (theme: any) =>
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     "&:hover .asset .image": {
       opacity: 1
@@ -71,7 +71,7 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       opacity: 0.6,
       fontSize: "2.5em"
     },
@@ -167,14 +167,14 @@ const styles = (theme: any) =>
       overflow: "hidden"
     },
     "&.image img": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       width: "100%",
       height: "auto",
       fontSize: theme.fontSizeSmaller
     },
     // ITEM
     "&.selected:after": {
-      border: `4px solid ${theme.palette.c_gray0}`,
+      border: `4px solid ${theme.palette.grey[900]}`,
       outline: `8px solid ${theme.palette.c_hl1}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
@@ -192,7 +192,7 @@ const styles = (theme: any) =>
       zIndex: 100
     },
     "&:hover:after": {
-      border: `2px solid ${theme.palette.c_gray2}`,
+      border: `2px solid ${theme.palette.grey[600]}`,
       backgroundColor: "#437cb522"
     },
     // FOLDER UP BUTTON

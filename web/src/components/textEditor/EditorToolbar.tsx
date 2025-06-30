@@ -35,31 +35,31 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.25em",
       "&:not(:last-child)": {
-        borderRight: `1px solid ${theme.palette.c_gray2}`,
+        borderRight: `1px solid ${theme.palette.grey[600]}`,
         paddingRight: "0.5em",
         marginRight: "0.25em"
       }
     },
     ".toolbar-button": {
       padding: "2px",
-      color: `${theme.palette.c_gray5} !important`,
+      color: `${theme.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: `${theme.palette.c_gray1} !important`,
+        backgroundColor: `${theme.palette.grey[800]} !important`,
         color: `${theme.palette.c_white} !important`
       },
       "&.active": {
-        backgroundColor: `${theme.palette.c_gray2} !important`,
+        backgroundColor: `${theme.palette.grey[600]} !important`,
         color: `${theme.palette.c_white} !important`
       },
       "&.disabled": {
-        color: `${theme.palette.c_gray3} !important`,
+        color: `${theme.palette.grey[500]} !important`,
         cursor: "not-allowed",
         "&:hover": {
           backgroundColor: "transparent !important",
-          color: `${theme.palette.c_gray3} !important`
+          color: `${theme.palette.grey[500]} !important`
         }
       }
     }

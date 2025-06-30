@@ -42,7 +42,7 @@ const styles = (theme: any) =>
         borderColor: theme.palette.c_hl1
       },
       "& svg": {
-        color: theme.palette.c_gray4
+        color: theme.palette.grey[400]
       },
       "&:hover svg": {
         fill: theme.palette.c_hl1

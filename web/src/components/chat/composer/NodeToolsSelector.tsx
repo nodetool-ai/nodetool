@@ -12,10 +12,7 @@ import {
   Modal
 } from "@mui/material";
 import { isEqual } from "lodash";
-import {
-  Extension,
-  Close
-} from "@mui/icons-material";
+import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import SearchInput from "../../search/SearchInput";
@@ -35,17 +32,17 @@ const toolsSelectorStyles = (theme: any) =>
       maxHeight: "min(60vh, 400px)",
       minHeight: "250px",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.c_gray3}`,
+      border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       minWidth: "600px",
       maxWidth: "800px",
       outline: "none"
     },
     ".modal-header": {
       borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       width: "100%",
       minHeight: "40px",
       userSelect: "none",
@@ -57,21 +54,21 @@ const toolsSelectorStyles = (theme: any) =>
         margin: "0",
         fontSize: theme.fontSizeNormal,
         fontWeight: 500,
-        color: theme.palette.c_gray6
+        color: theme.palette.grey[100]
       }
     },
     ".modal-header:hover": {
       opacity: 0.95
     },
     ".close-button": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       width: "28px",
       height: "28px",
       padding: "2px",
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: "rgba(0, 0, 0, 0.04)",
-        color: theme.palette.c_gray6
+        color: theme.palette.grey[100]
       }
     },
     ".tools-content": {
@@ -105,8 +102,8 @@ const toolsSelectorStyles = (theme: any) =>
       alignItems: "center",
       gap: "0.5em",
       padding: "0.5em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
-      backgroundColor: theme.palette.c_gray2,
+      borderBottom: `1px solid ${theme.palette.grey[500]}`,
+      backgroundColor: theme.palette.grey[600],
       ".selected-count": {
         backgroundColor: theme.palette.c_hl1,
         color: theme.palette.c_black,
@@ -131,7 +128,7 @@ const toolsSelectorStyles = (theme: any) =>
     },
     ".no-nodes-message": {
       padding: theme.spacing(4),
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       textAlign: "center",
       flex: 1,
       display: "flex",
@@ -176,11 +173,11 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     // 2. Search term has at least 2 characters
     const hasNamespaceSelected = selectedPath.length > 0;
     const hasMinSearchChars = searchTerm.trim().length >= 2;
-    
+
     if (!hasNamespaceSelected && !hasMinSearchChars) {
       return [];
     }
-    
+
     // Filter out nodes with default namespace and return sorted results
     return searchResults.filter((node) => node.namespace !== "default");
   }, [searchResults, searchTerm, selectedPath]);
@@ -204,9 +201,12 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     [selectedNodeTypes, onChange]
   );
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value);
-  }, [setSearchTerm]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchTerm(value);
+    },
+    [setSearchTerm]
+  );
 
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
@@ -224,9 +224,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       >
         <Button
           ref={buttonRef}
-          className={`node-tools-button ${
-            selectedCount > 0 ? "active" : ""
-          }`}
+          className={`node-tools-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
           startIcon={<Extension fontSize="small" />}
@@ -250,7 +248,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             color: theme.palette.c_white,
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.c_gray3
+              backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
               borderColor: theme.palette.c_hl1,
@@ -262,16 +260,13 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           })}
         />
       </Tooltip>
-      
+
       <Modal
         open={isMenuOpen}
         onClose={handleClose}
         aria-labelledby="node-tools-selector-title"
       >
-        <Box
-          css={memoizedStyles}
-          className="node-tools-selector-menu"
-        >
+        <Box css={memoizedStyles} className="node-tools-selector-menu">
           <div className="modal-header">
             <Typography variant="h4" id="node-tools-selector-title">
               Node Tools Selector
@@ -285,7 +280,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
               <Close />
             </IconButton>
           </div>
-          
+
           <div className="tools-content">
             <div className="search-toolbar">
               <SearchInput
@@ -329,7 +324,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                     {(() => {
                       const hasNamespaceSelected = selectedPath.length > 0;
                       const searchLength = searchTerm.trim().length;
-                      
+
                       if (hasNamespaceSelected && searchLength === 0) {
                         return "No nodes available in selected namespace.";
                       } else if (hasNamespaceSelected && searchLength > 0) {

@@ -37,7 +37,7 @@ const styles = (theme: any) =>
     alignItems: "center",
     padding: "0.2em 0.5em 0.5em 1em",
     justifyContent: "start",
-    backgroundColor: theme.palette.c_gray1,
+    backgroundColor: theme.palette.grey[800],
     gap: "0.5em",
     ".search-group": {
       display: "flex",
@@ -47,7 +47,7 @@ const styles = (theme: any) =>
     },
     ".search-input": {
       "& .MuiInputBase-root": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         color: theme.palette.c_white,
         fontSize: theme.fontSizeSmaller,
         border: "none",
@@ -57,7 +57,7 @@ const styles = (theme: any) =>
         }
       },
       "& .MuiInputBase-input::placeholder": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
@@ -69,13 +69,13 @@ const styles = (theme: any) =>
         },
         "&.Mui-focused": {
           color: theme.palette.c_white,
-          backgroundColor: theme.palette.c_gray3
+          backgroundColor: theme.palette.grey[500]
         }
       }
     },
     ".replace-input": {
       "& .MuiInputBase-root": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         color: theme.palette.c_white,
         fontSize: theme.fontSizeSmaller,
         height: "2em",
@@ -84,15 +84,15 @@ const styles = (theme: any) =>
         }
       },
       "& .MuiInputBase-input::placeholder": {
-        color: theme.palette.c_gray4,
+        color: theme.palette.grey[400],
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
         "& fieldset": {
-          borderColor: theme.palette.c_gray3
+          borderColor: theme.palette.grey[500]
         },
         "&:hover fieldset": {
-          borderColor: theme.palette.c_gray4
+          borderColor: theme.palette.grey[400]
         },
         "&.Mui-focused fieldset": {
           borderColor: theme.palette.c_white
@@ -101,18 +101,18 @@ const styles = (theme: any) =>
     },
     ".match-info": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       minWidth: "4em",
       textAlign: "center"
     },
     ".toolbar-button": {
       padding: "4px",
       marginRight: "0",
-      color: `${theme.palette.c_gray5} !important`,
+      color: `${theme.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
       "&:hover": {
-        backgroundColor: `${theme.palette.c_gray2} !important`,
+        backgroundColor: `${theme.palette.grey[600]} !important`,
         color: `${theme.palette.c_white} !important`
       }
     }

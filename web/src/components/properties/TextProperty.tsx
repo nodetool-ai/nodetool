@@ -11,7 +11,7 @@ const styles = (theme: any) =>
   css({
     ".text": {
       outline: "none",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       border: "none",
       borderRadius: "0",
       fontFamily: theme.fontFamily1,
@@ -32,13 +32,13 @@ const styles = (theme: any) =>
       fontSize: "1em",
       padding: 0,
       border: "none",
-      color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.grey[100],
+      backgroundColor: theme.palette.grey[600],
       fontWeight: "bold"
     },
     ".button-expand:hover": {
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.grey[600]
     }
   });
 

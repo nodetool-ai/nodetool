@@ -20,7 +20,7 @@ export const createStyles = (theme: any) =>
       textTransform: "none",
       justifyContent: "center",
       transition: "background 0.2s",
-      "&:hover": { backgroundColor: theme.palette.c_gray2 }
+      "&:hover": { backgroundColor: theme.palette.grey[600] }
     },
 
     ".thread-list": {
@@ -34,7 +34,7 @@ export const createStyles = (theme: any) =>
     ".thread-date-group": {
       padding: "0.5em 1em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
@@ -48,19 +48,19 @@ export const createStyles = (theme: any) =>
       transition: "all 0.2s",
 
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         ".delete-button": { opacity: 1 }
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         borderLeft: `2px solid ${theme.palette.c_hl1}`
       },
       ".date": {
         fontSize: theme.fontSizeTiny,
         marginTop: "-0.25em",
         textTransform: "uppercase",
-        color: theme.palette.c_gray5
+        color: theme.palette.grey[200]
       },
       p: {
         fontWeight: "300"
@@ -80,7 +80,7 @@ export const createStyles = (theme: any) =>
 
     ".date": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
 
     ".delete-button": {
@@ -91,12 +91,12 @@ export const createStyles = (theme: any) =>
       opacity: 0,
       padding: "4px",
       minWidth: "unset",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       transition: "opacity 0.2s",
 
       "&:hover": {
         color: theme.palette.c_error,
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.grey[500]
       },
 
       svg: { fontSize: "1.2em" }

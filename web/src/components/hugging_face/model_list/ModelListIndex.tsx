@@ -32,7 +32,7 @@ const styles = (theme: any) =>
       maxWidth: "350px",
       paddingRight: "2em",
       overflowY: "auto",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".model-list-header": {
       display: "flex",
@@ -43,7 +43,7 @@ const styles = (theme: any) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       width: "100%"
     },
     ".model-list-header button": {
@@ -54,12 +54,12 @@ const styles = (theme: any) =>
       padding: "0.25em 1em",
       backgroundColor: "transparent",
       "&:hover": {
-        color: theme.palette.c_gray6,
-        backgroundColor: theme.palette.c_gray2
+        color: theme.palette.grey[100],
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".model-type-button.Mui-selected": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       transition: "background-color 0.2s ease-in"
     },
     ".model-type-button span": {

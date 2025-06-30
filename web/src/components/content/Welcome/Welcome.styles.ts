@@ -12,7 +12,7 @@ const welcomeStyles = (theme: any) =>
       top: "0",
       left: "0",
       overflowY: "hidden",
-      border: `8px solid ${theme.palette.c_gray0}`,
+      border: `8px solid ${theme.palette.grey[900]}`,
       display: "flex",
       flexDirection: "column"
     },
@@ -26,7 +26,7 @@ const welcomeStyles = (theme: any) =>
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".content": {
       padding: "1em",
@@ -54,7 +54,7 @@ const welcomeStyles = (theme: any) =>
     ".MuiAccordion-root": {
       background: "transparent",
       color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      borderBottom: `1px solid ${theme.palette.grey[500]}`,
       marginBottom: "1em",
       "&:before": {
         display: "none"
@@ -92,11 +92,11 @@ const welcomeStyles = (theme: any) =>
       marginTop: "1em"
     },
     ".link": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       display: "inline-block",
       padding: "4px 8px",
       textDecoration: "none",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       borderRadius: "4px",
       transition: "all 0.2s"
     },
@@ -108,7 +108,7 @@ const welcomeStyles = (theme: any) =>
     ".link-body": {
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       marginTop: ".25em",
       marginBottom: "2em",
       display: "block"
@@ -158,11 +158,11 @@ const welcomeStyles = (theme: any) =>
       transition: "all 0.2s"
     },
     ".overview button:hover:not(.Mui-selected)": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".fake-button": {
       color: "#fff",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
@@ -181,7 +181,7 @@ const welcomeStyles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".remote-settings-container": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       padding: "1.5em",
       borderRadius: "8px"
     },
@@ -205,8 +205,8 @@ const welcomeStyles = (theme: any) =>
       borderRadius: ".2em",
       transition: "all 0.4s",
       "&:hover": {
-        outline: `2px solid ${theme.palette.c_gray0}`,
-        boxShadow: `inset 0 0 .2em 0 ${theme.palette.c_gray0}`,
+        outline: `2px solid ${theme.palette.grey[900]}`,
+        boxShadow: `inset 0 0 .2em 0 ${theme.palette.grey[900]}`,
         opacity: 0.9,
         color: theme.palette.c_black
       }

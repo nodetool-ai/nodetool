@@ -33,10 +33,10 @@ const dialogStyles = (theme: any) =>
       fontWeight: "bold"
     },
     ".button-confirm:hover": {
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.grey[900]
     },
     ".button-cancel": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     }
   });
 

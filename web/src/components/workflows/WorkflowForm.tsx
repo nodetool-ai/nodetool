@@ -40,7 +40,7 @@ const styles = (theme: any) =>
     },
     ".thumbnail-img": {
       position: "relative",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       borderRadius: "4px",
       display: "flex",
       alignItems: "center",
@@ -51,7 +51,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "64px",
       userSelect: "none",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       padding: "0px 10px",
       fontSize: theme.fontSizeSmall
     },
@@ -71,23 +71,23 @@ const styles = (theme: any) =>
         color: theme.palette.c_white
       },
       "& .MuiAutocomplete-popper": {
-        backgroundColor: theme.palette.c_gray1,
+        backgroundColor: theme.palette.grey[800],
         "& .MuiPaper-root": {
-          backgroundColor: theme.palette.c_gray1,
+          backgroundColor: theme.palette.grey[800],
           color: theme.palette.c_white
         },
         "& .MuiAutocomplete-option": {
           "&:hover": {
-            backgroundColor: theme.palette.c_gray2
+            backgroundColor: theme.palette.grey[600]
           },
           "&[aria-selected='true']": {
-            backgroundColor: theme.palette.c_gray3
+            backgroundColor: theme.palette.grey[500]
           }
         }
       },
       "& .MuiChip-root": {
         color: theme.palette.c_white,
-        borderColor: theme.palette.c_gray3
+        borderColor: theme.palette.grey[500]
       }
     },
     ".workflow-header": {
@@ -110,8 +110,8 @@ const styles = (theme: any) =>
       justifyContent: "space-between"
     },
     ".save-button": {
-      backgroundColor: theme.palette.c_gray1,
-      border: "1px solid" + theme.palette.c_gray3,
+      backgroundColor: theme.palette.grey[800],
+      border: "1px solid" + theme.palette.grey[500],
       color: theme.palette.c_hl1,
       width: "120px",
       height: "40px",
@@ -124,11 +124,11 @@ const styles = (theme: any) =>
     },
     ".cancel-button": {
       backgroundColor: "transparent",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       width: "120px",
       height: "40px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".shortcut-input": {
@@ -137,7 +137,7 @@ const styles = (theme: any) =>
         fontFamily: theme.fontFamily1,
         color: theme.palette.c_white,
         "&.Mui-focused": {
-          backgroundColor: theme.palette.c_gray2
+          backgroundColor: theme.palette.grey[600]
         }
       }
     },
@@ -148,7 +148,7 @@ const styles = (theme: any) =>
       "& .clear-button": {
         position: "absolute",
         right: "8px",
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         "&:hover": {
           color: theme.palette.c_white
         }

@@ -9,9 +9,9 @@ export const createStyles = (theme: any) =>
     ".compose-message": {
       height: "auto",
       width: "100%",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       border: "1px solid",
-      borderColor: theme.palette.c_gray1,
+      borderColor: theme.palette.grey[800],
       display: "flex",
       alignItems: "flex-end",
       borderRadius: "16px",
@@ -22,7 +22,7 @@ export const createStyles = (theme: any) =>
 
       "&.dragging": {
         borderColor: theme.palette.c_hl1,
-        backgroundColor: `${theme.palette.c_gray2}80`
+        backgroundColor: `${theme.palette.grey[600]}80`
       }
     },
 
@@ -42,7 +42,7 @@ export const createStyles = (theme: any) =>
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
-        color: theme.palette.c_gray3
+        color: theme.palette.grey[500]
       }
     },
 

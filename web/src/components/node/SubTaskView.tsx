@@ -21,7 +21,7 @@ const styles = (theme: any) =>
       borderLeft: `2px solid ${theme.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".subtask-content": {
@@ -29,7 +29,7 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
     ".subtask-completed": {
-      color: theme.palette.c_gray10
+      color: theme.palette.grey[800]0
     },
     ".subtask-tool svg": {
       fontSize: "0.5rem"

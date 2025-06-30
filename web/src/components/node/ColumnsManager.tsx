@@ -103,9 +103,9 @@ const styles = (theme: any) =>
       height: "1em",
       borderRadius: "0",
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         color: theme.palette.c_delete
       },
       "& svg": {
@@ -117,7 +117,7 @@ const styles = (theme: any) =>
       padding: ".1em",
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       "& svg": {
         fontSize: theme.fontSizeBig
       },

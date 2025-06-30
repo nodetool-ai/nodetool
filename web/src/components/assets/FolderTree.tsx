@@ -29,7 +29,7 @@ const styles = (theme: any) =>
       justifyContent: "flex-start",
       height: "100%",
       padding: ".5em 0 0",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       fontFamily: theme.fontFamily1
     },
     ".tree-view": {
@@ -42,7 +42,7 @@ const styles = (theme: any) =>
         alignItems: "flex-start",
         padding: ".25em",
         "&:hover": {
-          backgroundColor: theme.palette.c_gray3
+          backgroundColor: theme.palette.grey[500]
         }
       },
       "& svg": {
@@ -57,7 +57,7 @@ const styles = (theme: any) =>
       position: "absolute",
       right: 0,
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       padding: ".25em",
       height: "1.5em"
     }

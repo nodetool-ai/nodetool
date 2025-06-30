@@ -14,7 +14,7 @@ const styles = (theme: any) =>
       display: "grid",
       gridTemplateRows: "1fr auto",
       gridTemplateColumns: "100%",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       padding: "0",
       width: "100%",
       maxWidth: "500px",
@@ -69,7 +69,7 @@ const styles = (theme: any) =>
     ".node-property textarea": {
       margin: 0,
       padding: "0.25em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       fontSize: theme.fontSizeSmall,
       minHeight: "1.75em",
       maxHeight: "20em"
@@ -82,7 +82,7 @@ const styles = (theme: any) =>
     },
     ".node-property.enum .mui-select": {
       height: "2em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       marginTop: "0.25em",
       padding: "0.5em .5em",
       fontSize: theme.fontSizeSmall
@@ -103,8 +103,8 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "0.5em",
       width: "100%",
-      borderBottom: "1px solid " + theme.palette.c_gray4,
-      borderTop: "1px solid " + theme.palette.c_gray4,
+      borderBottom: "1px solid " + theme.palette.grey[400],
+      borderTop: "1px solid " + theme.palette.grey[400],
       padding: "0.5em 0",
       marginBottom: "1em"
     },

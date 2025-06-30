@@ -20,7 +20,7 @@ const dialogStyles = (theme: any) =>
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       wordSpacing: "normal",
       margin: ".5em 0 0",
       padding: "1em"
@@ -42,7 +42,7 @@ const dialogStyles = (theme: any) =>
       transition: "border-color 0.2s ease-in-out"
     },
     ".input-field:hover fieldset": {
-      borderColor: theme.palette.c_gray6
+      borderColor: theme.palette.grey[100]
     },
     ".input-field .Mui-focused fieldset": {
       borderColor: theme.palette.c_hl1,
@@ -50,7 +50,7 @@ const dialogStyles = (theme: any) =>
     },
     ".input-field .MuiOutlinedInput-root": {
       "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_gray6
+        borderColor: theme.palette.grey[100]
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.palette.c_hl1,
@@ -62,10 +62,10 @@ const dialogStyles = (theme: any) =>
       fontWeight: "bold"
     },
     ".button-confirm:hover": {
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.grey[900]
     },
     ".button-cancel": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".error-message": {
       color: theme.palette.c_black,
@@ -96,11 +96,11 @@ const dialogStyles = (theme: any) =>
       width: "90%",
       height: "100px",
       overflowY: "auto",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       listStyleType: "square",
       margin: "0 0 0 1em",
       padding: ".25em 1.5em",
-      borderBottom: `1px solid ${theme.palette.c_gray1}`,
+      borderBottom: `1px solid ${theme.palette.grey[800]}`,
       fontSize: theme.fontSizeSmaller
     },
     ".delete": {

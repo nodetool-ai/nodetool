@@ -61,7 +61,7 @@ const styles = (theme: any) =>
       zIndex: 5000,
       padding: "0.5em",
       borderTop: `2px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".controls .zoom": {
       maxWidth: "200px",
@@ -71,7 +71,7 @@ const styles = (theme: any) =>
       display: "block",
       left: "0",
       fontSize: ThemeNodetool.fontSizeNormal,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       margin: "2em 0 0 0"
     },
     ".folder-slash": {
@@ -82,7 +82,7 @@ const styles = (theme: any) =>
     },
     ".selected-asset-info": {
       fontSize: "12px !important",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       minHeight: "25px",
       padding: "0",
       margin: "0 0 0 0.5em"

@@ -53,7 +53,7 @@ const nodeInfoStyles = (theme: any) =>
       textTransform: "uppercase",
       padding: "0",
       margin: ".5em 0 0",
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".replicate-status": {
       fontWeight: "400",
@@ -91,7 +91,7 @@ const nodeInfoStyles = (theme: any) =>
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
       color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_gray4,
+      backgroundColor: theme.palette.grey[400],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",
@@ -106,7 +106,7 @@ const nodeInfoStyles = (theme: any) =>
     ".node-usecases div": {
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       lineHeight: "1.3em",
       ul: {
         margin: "0.5em 0",
@@ -121,7 +121,7 @@ const nodeInfoStyles = (theme: any) =>
           content: '"•"',
           position: "absolute",
           left: "0.5em",
-          color: theme.palette.c_gray6
+          color: theme.palette.grey[100]
         }
       }
     },
@@ -155,11 +155,11 @@ const nodeInfoStyles = (theme: any) =>
     ".inputs-outputs .item .type": {
       color: theme.palette.c_white,
       textAlign: "right",
-      borderRight: `4px solid ${theme.palette.c_gray4}`,
+      borderRight: `4px solid ${theme.palette.grey[400]}`,
       paddingRight: ".5em"
     },
     ".inputs-outputs .item .property": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".inputs-outputs .item .property.description": {
       color: theme.palette.c_white

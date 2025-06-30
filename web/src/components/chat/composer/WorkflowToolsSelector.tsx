@@ -48,10 +48,10 @@ const menuStyles = (theme: any) =>
     },
     ".workflow-tool-item": {
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".workflow-name": {
@@ -59,13 +59,13 @@ const menuStyles = (theme: any) =>
       fontSize: "0.875rem"
     },
     ".workflow-description": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: "0.75rem",
       marginTop: "2px"
     },
     ".no-tools-message": {
       padding: theme.spacing(2),
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       textAlign: "center"
     },
     ".selected-count": {
@@ -73,7 +73,7 @@ const menuStyles = (theme: any) =>
       backgroundColor: theme.palette.c_hl1,
       color: theme.palette.c_black,
       "& .MuiChip-label": {
-        padding: "0 4px",
+        padding: "0 4px"
       }
     }
   });
@@ -93,13 +93,15 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const selectedTools = useMemo(() => value || [], [value]);
 
   // Get workflow tools from context
-  const { workflowTools, workflowToolsLoading: isLoading, workflowToolsError } = useWorkflowManager(
-    (state) => ({
-      workflowTools: state.workflowTools,
-      workflowToolsLoading: state.workflowToolsLoading,
-      workflowToolsError: state.workflowToolsError
-    })
-  );
+  const {
+    workflowTools,
+    workflowToolsLoading: isLoading,
+    workflowToolsError
+  } = useWorkflowManager((state) => ({
+    workflowTools: state.workflowTools,
+    workflowToolsLoading: state.workflowToolsLoading,
+    workflowToolsError: state.workflowToolsError
+  }));
   const isError = Boolean(workflowToolsError);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -159,7 +161,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             color: theme.palette.c_white,
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.c_gray3
+              backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
               borderColor: theme.palette.c_hl1,

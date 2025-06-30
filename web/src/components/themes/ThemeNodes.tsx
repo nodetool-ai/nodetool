@@ -96,7 +96,7 @@ const ThemeNodes: Theme = createTheme({
           minWidth: "20px",
           backgroundColor: "#333",
           "&:hover": {
-            backgroundColor: theme.palette.c_gray3
+            backgroundColor: theme.palette.grey[500]
           }
         })
       },
@@ -328,13 +328,13 @@ const ThemeNodes: Theme = createTheme({
         switchBase: ({ theme }) => ({
           margin: "0",
           padding: "0 !important",
-          color: theme.palette.c_gray4,
+          color: theme.palette.grey[400],
           "&.Mui-checked": {
-            color: theme.palette.c_gray6,
+            color: theme.palette.grey[100],
             transform: "translateX(12px) !important"
           },
           "&.Mui-checked + .MuiSwitch-track": {
-            backgroundColor: theme.palette.c_gray6
+            backgroundColor: theme.palette.grey[100]
           }
         })
       }
@@ -396,11 +396,11 @@ const ThemeNodes: Theme = createTheme({
           padding: "0 0 0 .4em",
           fontFamily: theme.fontFamily1,
           fontSize: theme.fontSizeSmaller,
-          backgroundColor: theme.palette.c_gray2,
+          backgroundColor: theme.palette.grey[600],
           margin: "0"
         }),
         icon: ({ theme }) => ({
-          color: theme.palette.c_gray4
+          color: theme.palette.grey[400]
         })
         // filled: {},
         // outlined: {}
@@ -455,11 +455,11 @@ const ThemeNodes: Theme = createTheme({
           },
           "&.MuiToggleButton-sizeSmall.Mui-selected": {
             color: theme.palette.c_white,
-            backgroundColor: theme.palette.c_gray1
+            backgroundColor: theme.palette.grey[800]
           },
           "&.MuiToggleButton-sizeSmall": {
             fontSize: "12px",
-            color: theme.palette.c_gray4,
+            color: theme.palette.grey[400],
             padding: "0 4px",
             margin: 0,
             border: 0
