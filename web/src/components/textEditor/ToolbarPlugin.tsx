@@ -164,7 +164,7 @@ const ToolbarPlugin = () => {
         }}
         className={isBold ? "active" : ""}
         aria-label="Format Bold"
-        title="Bold (Ctrl+B)"
+        title="Bold (Ctrl+B / ⌘+B)"
       >
         <b>B</b>
       </button>
@@ -174,7 +174,7 @@ const ToolbarPlugin = () => {
         }}
         className={isItalic ? "active" : ""}
         aria-label="Format Italic"
-        title="Italic (Ctrl+I)"
+        title="Italic (Ctrl+I / ⌘+I)"
       >
         <i>I</i>
       </button>
