@@ -1,7 +1,8 @@
 import {
-  PaletteOptions,
-  PaletteColorOptions,
-  PaletteColor
+  PaletteOptions
+  // PaletteColorOptions,
+  // PaletteColor,
+  // SimplePaletteColorOptions
 } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
@@ -35,9 +36,6 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    primary?: PaletteColorOptions;
-    secondary?: PaletteColorOptions;
-    tertiary?: PaletteColorOptions;
     background?: { default?: string; paper?: string };
     Paper?: {
       default?: string;
@@ -76,9 +74,6 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    primary: PaletteColor;
-    secondary: PaletteColor;
-    tertiary: PaletteColorOptions;
     background: { default: string; paper: string };
     Paper: {
       default: string;
@@ -106,8 +101,8 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#000"
   },
   grey: {
-    0: "#000000", // pure black
-    50: "#F5F5F5",
+    0: "#fff", //  white
+    50: "#F5F5F5", // Standard MUI light grey
     100: "#D9D9D9", // from c_gray6
     200: "#BDBDBD", // from c_gray5
     300: "#A9A9A9", // spare
@@ -117,7 +112,7 @@ export const paletteDark: PaletteOptions = {
     700: "#333333", // spare
     800: "#242424", // from c_gray1
     900: "#0E0E0E", // from c_gray0
-    1000: "#FFFFFF" // pure white
+    1000: "#000" // black
   } as any,
   c_black: "#020202",
   c_bg_comment: "#fff",
@@ -151,16 +146,14 @@ export const paletteDark: PaletteOptions = {
 
   primary: {
     main: "#77b4e6",
+    light: "#9bc5f0",
+    dark: "#4a7bc4",
     contrastText: "#000"
   },
   secondary: {
-    main: "##5aa3b8",
-    contrastText: "#FFFFFF"
-  },
-  tertiary: {
-    light: "#9bc5f0",
-    main: "#6ba3e6",
-    dark: "#4a7bc4",
+    main: "#d23f9e",
+    light: "#e993c5",
+    dark: "#ba008a",
     contrastText: "#fff"
   },
   background: {
