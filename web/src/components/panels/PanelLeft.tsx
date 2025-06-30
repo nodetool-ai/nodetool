@@ -160,7 +160,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Chat</div>
-            <div className="tooltip-key">Key&nbsp;1</div>
+            <div className="tooltip-key">
+              <kbd>1</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -178,7 +180,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Workflows</div>
-            <div className="tooltip-key">Key&nbsp;2</div>
+            <div className="tooltip-key">
+              <kbd>2</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -198,7 +202,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Assets</div>
-            <div className="tooltip-key">Key&nbsp;3</div>
+            <div className="tooltip-key">
+              <kbd>3</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -230,7 +236,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Collections</div>
-            <div className="tooltip-key">Key&nbsp;4</div>
+            <div className="tooltip-key">
+              <kbd>4</kbd>
+            </div>
           </div>
         }
         placement="right-start"
@@ -256,7 +264,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Packs</div>
-            <div className="tooltip-key">Key&nbsp;5</div>
+            <div className="tooltip-key">
+              <kbd>5</kbd>
+            </div>
           </div>
         }
         placement="right-start"
