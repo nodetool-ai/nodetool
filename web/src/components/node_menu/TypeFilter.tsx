@@ -122,7 +122,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: ThemeNodetool.palette.c_gray4,
+        color: ThemeNodetool.palette.grey[400],
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {

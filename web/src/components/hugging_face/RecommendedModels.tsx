@@ -138,7 +138,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       )}
       <Typography
         variant="body1"
-        sx={{ marginTop: "1em", color: ThemeNodes.palette.c_gray6 }}
+        sx={{ marginTop: "1em", color: ThemeNodes.palette.grey[100] }}
       >
         <AnnouncementIcon
           fontSize="small"

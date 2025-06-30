@@ -64,7 +64,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
         {isOllama && !downloaded && (
           <Typography
             variant="h5"
-            style={{ color: ThemeNodetool.palette.c_gray4 }}
+            style={{ color: ThemeNodetool.palette.grey[400] }}
           >
             Model not downloaded
           </Typography>

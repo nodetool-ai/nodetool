@@ -63,18 +63,17 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   );
 });
 
-const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({ 
-  nodes, 
-  showCheckboxes = false, 
-  selectedNodeTypes = [], 
+const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
+  nodes,
+  showCheckboxes = false,
+  selectedNodeTypes = [],
   onToggleSelection,
   onNodeClick
 }) => {
-  const { groupedSearchResults, searchTerm } =
-    useNodeMenuStore((state) => ({
-      groupedSearchResults: state.groupedSearchResults,
-      searchTerm: state.searchTerm
-    }));
+  const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
+    groupedSearchResults: state.groupedSearchResults,
+    searchTerm: state.searchTerm
+  }));
 
   // No-op drag start for selection mode
   const handleDragStart = useCallback(
@@ -114,7 +113,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
           <AccordionSummary
             expandIcon={
-              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.c_gray3 }} />
+              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.grey[500] }} />
             }
           >
             <GroupTitle title={group.title} />
@@ -152,7 +151,14 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         </Accordion>
       );
     },
-    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleNodeClick]
+    [
+      selectedPath,
+      handleDragStart,
+      showCheckboxes,
+      selectedNodeTypes,
+      onToggleSelection,
+      handleNodeClick
+    ]
   );
 
   const elements = useMemo(() => {
