@@ -54,6 +54,20 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
       const isAudio = selectedAsset?.content_type.match("audio") !== null;
 
+      // DEBUG LOGS
+      console.debug("[useAssetSelection] click", {
+        assetId,
+        shiftKeyPressed,
+        controlKeyPressed,
+        metaKeyPressed,
+        lastSelectedAssetId,
+        selectedAssetIds_before: selectedAssetIds,
+        assetIndexMapSize: assetIndexMap.size,
+        selectedAssetIndex,
+        lastSelectedIndex,
+        isAudio
+      });
+
       if (shiftKeyPressed && lastSelectedIndex !== -1) {
         const existingSelection = new Set(selectedAssetIds);
         const start = lastSelectedIndex;
@@ -65,14 +79,25 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         }
         const newSelectedIds = Array.from(existingSelection);
         updateSelection(newSelectedIds);
+        console.debug(
+          "[useAssetSelection] shift selection result",
+          newSelectedIds
+        );
       } else if (controlKeyPressed || metaKeyPressed) {
         const newAssetIds = selectedAssetIds.includes(assetId)
           ? selectedAssetIds.filter((id) => id !== assetId)
           : [...selectedAssetIds, assetId];
         updateSelection(newAssetIds);
+        console.debug(
+          "[useAssetSelection] ctrl/meta selection result",
+          newAssetIds
+        );
       } else {
         if (selectedAssetIds[0] !== assetId) {
           updateSelection([assetId]);
+          console.debug("[useAssetSelection] single selection result", [
+            assetId
+          ]);
         }
       }
 
