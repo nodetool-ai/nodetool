@@ -121,11 +121,11 @@ const listStyles = (theme: any) =>
       width: "calc(100% - 20px)",
       cursor: "pointer",
       borderBottom: "1px solid black",
-      backgroundColor: ThemeNodetool.palette.c_gray1,
+      backgroundColor: ThemeNodetool.palette.grey[800],
       transition: "background-color 0.2s ease-in-out"
     },
     ".workflow:hover": {
-      backgroundColor: ThemeNodetool.palette.c_gray2,
+      backgroundColor: ThemeNodetool.palette.grey[600],
       outline: `0`
     },
     ".name-and-description": {

@@ -36,7 +36,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             width: "100%",
             padding: "8px",
             background: "transparent",
-            border: `1px dashed ${ThemeNodes.palette.c_gray2}`,
+            border: `1px dashed ${ThemeNodes.palette.grey[600]}`,
             borderRadius: "4px",
             cursor: "pointer",
             color: ThemeNodes.palette.c_white,
@@ -47,7 +47,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             justifyContent: "center",
             gap: "4px",
             "&:hover": {
-              background: ThemeNodes.palette.c_gray1,
+              background: ThemeNodes.palette.grey[800],
               borderStyle: "solid"
             }
           })}
@@ -70,7 +70,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           css={css({
             width: "100%",
             "& .MuiOutlinedInput-root": {
-              background: ThemeNodes.palette.c_gray0
+              background: ThemeNodes.palette.grey[900]
             }
           })}
         />

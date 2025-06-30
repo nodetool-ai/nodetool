@@ -324,7 +324,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
           width: "100%",
           height: "100%",
           borderLeft: isHorizontal
-            ? "1px solid" + ThemeNodetool.palette.c_gray2
+            ? "1px solid" + ThemeNodetool.palette.grey[600]
             : "none",
           paddingLeft: isHorizontal ? ".5em" : "0"
         }}
@@ -356,7 +356,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
         width: "100%",
         height: "100%",
         borderLeft: isHorizontal
-          ? "1px solid" + ThemeNodetool.palette.c_gray2
+          ? "1px solid" + ThemeNodetool.palette.grey[600]
           : "none",
         paddingLeft: isHorizontal ? ".5em" : "0"
       }}

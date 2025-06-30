@@ -366,23 +366,23 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                       wordSpacing: "0.1em"
                     },
                     "& .MuiOutlinedInput-root": {
-                      backgroundColor: ThemeNodetool.palette.c_gray1,
+                      backgroundColor: ThemeNodetool.palette.grey[800],
                       borderRadius: "4px",
                       "& input": {
                         color: ThemeNodetool.palette.c_white
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_gray3
+                        borderColor: ThemeNodetool.palette.grey[500]
                       },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_gray4
+                        borderColor: ThemeNodetool.palette.grey[400]
                       },
                       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                         borderColor: ThemeNodetool.palette.c_hl1
                       }
                     },
                     "& .MuiInputLabel-outlined": {
-                      color: ThemeNodetool.palette.c_gray5,
+                      color: ThemeNodetool.palette.grey[200],
                       "&.Mui-focused": {
                         color: ThemeNodetool.palette.c_hl1
                       }
@@ -456,7 +456,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                                   style={{
                                     border: "0",
                                     marginLeft: ".5em",
-                                    color: ThemeNodetool.palette.c_gray6,
+                                    color: ThemeNodetool.palette.grey[100],
                                     fontSize: ThemeNodetool.fontSizeSmaller
                                   }}
                                 >

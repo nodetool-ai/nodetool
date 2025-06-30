@@ -133,10 +133,10 @@ const styles = (theme: any) =>
     ".download": {
       boxShadow: "none",
       backgroundColor: theme.palette.grey[800],
-      border: "1px solid" + ThemeNodetool.palette.c_gray1,
+      border: "1px solid" + ThemeNodetool.palette.grey[800],
       "&:hover": {
         backgroundColor: theme.palette.grey[900],
-        border: "1px solid" + ThemeNodetool.palette.c_gray0
+        border: "1px solid" + ThemeNodetool.palette.grey[900]
       }
     },
 

@@ -119,7 +119,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
       return (
         <div className="warning">
           {nodeType} <br />
-          <span style={{ color: ThemeNodetool.palette.c_gray6 }}>
+          <span style={{ color: ThemeNodetool.palette.grey[100] }}>
             Sorry, this node does not exist.
           </span>
           <Button

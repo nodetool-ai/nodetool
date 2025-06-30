@@ -162,7 +162,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       <DialogContent className="asset-delete-confirmation-content">
         <Typography
           variant="body1"
-          color={ThemeNodetool.palette.c_gray5}
+          color={ThemeNodetool.palette.grey[200]}
           style={{ marginBottom: "1em" }}
         >
           You can right click selected assets and download them before deleting.

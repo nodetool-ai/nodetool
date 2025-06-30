@@ -69,11 +69,11 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   );
 });
 
-const RenderNodes: React.FC<RenderNodesProps> = ({ 
-  nodes, 
-  showCheckboxes = false, 
-  selectedNodeTypes = [], 
-  onToggleSelection 
+const RenderNodes: React.FC<RenderNodesProps> = ({
+  nodes,
+  showCheckboxes = false,
+  selectedNodeTypes = [],
+  onToggleSelection
 }) => {
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
@@ -104,7 +104,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
           <AccordionSummary
             expandIcon={
-              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.c_gray3 }} />
+              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.grey[500] }} />
             }
           >
             <GroupTitle title={group.title} />
@@ -142,7 +142,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         </Accordion>
       );
     },
-    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleCreateNode]
+    [
+      selectedPath,
+      handleDragStart,
+      showCheckboxes,
+      selectedNodeTypes,
+      onToggleSelection,
+      handleCreateNode
+    ]
   );
 
   const elements = useMemo(() => {

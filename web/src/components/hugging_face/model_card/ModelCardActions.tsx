@@ -125,7 +125,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                 <CloudDownloadIcon
                   fontSize="small"
                   sx={{
-                    color: ThemeNodetool.palette.c_gray3,
+                    color: ThemeNodetool.palette.grey[500],
                     marginRight: ".1em"
                   }}
                 />
@@ -137,7 +137,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
               <Tooltip title="Likes on HF">
                 <FavoriteIcon
                   fontSize="small"
-                  sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
+                  sx={{ ml: 2, color: ThemeNodetool.palette.grey[500] }}
                 />
               </Tooltip>
               {modelData?.likes?.toLocaleString() || "N/A"}
