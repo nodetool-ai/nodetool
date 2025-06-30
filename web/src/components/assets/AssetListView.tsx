@@ -398,7 +398,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                           {isFolder ? (
                             <FolderIcon
                               style={{
-                                color: "var(--c_gray5)",
+                                color: "var(--palette-grey-200)",
                                 fontSize: "1.2rem"
                               }}
                             />

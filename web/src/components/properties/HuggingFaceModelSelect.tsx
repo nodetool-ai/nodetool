@@ -94,7 +94,7 @@ const HuggingFaceModelSelect = ({
               fontSize: "var(--fontSizeSmall)",
               fontWeight: "normal",
               lineHeight: "1.2",
-              color: "var(--c_gray6)",
+              color: "var(--palette-grey-100)",
               fontStyle: "italic"
             }}
           >

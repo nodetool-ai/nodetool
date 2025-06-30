@@ -115,7 +115,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".description": {
-      color: "var(--c_gray6)",
+      color: "var(--palette-grey-100)",
       fontSize: theme.fontSizeSmall,
       paddingRight: "0.5em",
       maxHeight: "400px",
@@ -154,7 +154,10 @@ const Inspector: React.FC = () => {
         <div className="top">
           <div className="top-content">
             <div className="inspector-header">
-              <div className="title" style={{ color: "var(--c_gray4)" }}>
+              <div
+                className="title"
+                style={{ color: "var(--palette-grey-400)" }}
+              >
                 Select a node to edit
               </div>
             </div>

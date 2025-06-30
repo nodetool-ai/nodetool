@@ -208,7 +208,7 @@ const ModelListIndex: React.FC = () => {
                       {prettifyModelType(modelType)}{" "}
                       <span
                         style={{
-                          color: "var(--c_gray4)",
+                          color: "var(--palette-grey-400)",
                           display: "inline-block",
                           fontSize: "var(--fontSizeSmaller)"
                         }}

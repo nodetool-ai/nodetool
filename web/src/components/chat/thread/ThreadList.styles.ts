@@ -15,7 +15,7 @@ export const createStyles = (theme: any) =>
       textAlign: "center",
       padding: "0.5em 1em",
       borderRadius: "8px",
-      backgroundColor: "var(--c_gray1)",
+      backgroundColor: "var(--palette-grey-800)",
       color: theme.palette.c_white,
       textTransform: "none",
       justifyContent: "center",

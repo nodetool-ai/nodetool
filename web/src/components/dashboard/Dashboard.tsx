@@ -160,7 +160,7 @@ const styles = (theme: any) =>
       cursor: "pointer",
       borderRadius: theme.spacing(1),
       overflow: "hidden",
-      backgroundColor: "var(--c_gray1)",
+      backgroundColor: "var(--palette-grey-800)",
       "&:hover": {
         opacity: 0.9
       },

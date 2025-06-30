@@ -72,7 +72,7 @@ const styles = (theme: any) =>
       marginTop: ".5em",
       lineHeight: "1.1em",
       whiteSpace: "nowrap",
-      color: "var(--c_gray0)",
+      color: "var(--palette-grey-900)",
       backgroundColor: "var(--c_warning)",
       "&:hover": {
         opacity: 0.85

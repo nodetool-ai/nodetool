@@ -12,7 +12,7 @@
   border-radius: 12px;
   overflow: hidden;
   padding: 8px;
-  color: var(--c_gray1);
+  color: var(--palette-grey-800);
   font-family: var(--font-family-1);
   box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
   border: 1px solid var(--c_gray8);
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 16px;
-  color: var(--c_gray6);
+  color: var(--palette-grey-100);
   user-select: none;
   will-change: background, color;
   transition: all 150ms ease;
@@ -85,7 +85,7 @@
 [cmdk-item] svg {
   width: 18px;
   height: 18px;
-  color: var(--c_gray5);
+  color: var(--palette-grey-200);
 }
 
 [cmdk-list] {
@@ -96,7 +96,7 @@
   transition: 100ms ease;
   transition-property: height;
   scrollbar-width: thin;
-  scrollbar-color: var(--c_gray6) transparent;
+  scrollbar-color: var(--palette-grey-100) transparent;
 }
 
 [cmdk-list]::-webkit-scrollbar {
@@ -104,7 +104,7 @@
 }
 
 [cmdk-list]::-webkit-scrollbar-thumb {
-  background-color: var(--c_gray6);
+  background-color: var(--palette-grey-100);
   border-radius: 3px;
 }
 
@@ -113,7 +113,7 @@
   font-size: 12px;
   font-weight: 600;
   margin: 16px 16px 8px;
-  color: var(--c_gray3);
+  color: var(--palette-grey-500);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -125,5 +125,5 @@
   justify-content: center;
   height: 64px;
   white-space: pre-wrap;
-  color: var(--c_gray6);
+  color: var(--palette-grey-100);
 }

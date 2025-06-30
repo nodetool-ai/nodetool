@@ -200,7 +200,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--c_gray1)",
+                  backgroundColor: "var(--palette-grey-800)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
@@ -241,7 +241,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--c_gray1)",
+                    backgroundColor: "var(--palette-grey-800)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-input"
@@ -321,7 +321,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--c_gray1)",
+                  backgroundColor: "var(--palette-grey-800)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
@@ -362,7 +362,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--c_gray1)",
+                    backgroundColor: "var(--palette-grey-800)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-output"

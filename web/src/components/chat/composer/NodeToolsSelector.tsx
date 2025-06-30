@@ -307,7 +307,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   label={selectedCount}
                   className="selected-count"
                 />
-                <Typography variant="body2" sx={{ color: "var(--c_gray5)" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "var(--palette-grey-200)" }}
+                >
                   {selectedCount === 1 ? "node" : "nodes"}
                 </Typography>
               </div>

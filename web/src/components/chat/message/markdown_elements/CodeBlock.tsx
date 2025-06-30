@@ -69,12 +69,12 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
           language={language}
           PreTag="div"
           customStyle={{
-            background: "var(--c_gray0)",
+            background: "var(--palette-grey-900)",
             fontFamily: '"JetBrains Mono", monospace',
             marginTop: 0,
             padding: "1em",
             margin: 0,
-            border: "2px solid var(--c_gray1)",
+            border: "2px solid var(--palette-grey-800)",
             boxSizing: "border-box",
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,

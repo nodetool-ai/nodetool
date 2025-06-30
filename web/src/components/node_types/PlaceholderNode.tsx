@@ -59,19 +59,19 @@ const styles = (theme: any) =>
       margin: "8px 0"
     },
     ".search-button": {
-      backgroundColor: "var(--c_gray4)",
+      backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: "var(--c_gray5)"
+        backgroundColor: "var(--palette-grey-200)"
       }
     },
     ".install-button": {
-      backgroundColor: "var(--c_gray4)",
+      backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: "var(--c_gray5)"
+        backgroundColor: "var(--palette-grey-200)"
       }
     }
   });

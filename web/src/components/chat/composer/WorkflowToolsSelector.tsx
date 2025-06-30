@@ -218,7 +218,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                   ) : (
                     <CheckBoxOutlineBlank
                       fontSize="small"
-                      sx={{ color: "var(--c_gray5)" }}
+                      sx={{ color: "var(--palette-grey-200)" }}
                     />
                   )}
                 </ListItemIcon>

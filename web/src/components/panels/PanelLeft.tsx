@@ -61,7 +61,7 @@ const styles = (theme: any) =>
 
       "& svg": {
         fontSize: "0.8em !important",
-        color: "var(--c_gray5)",
+        color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
         transition: "all 0.5s ease"
@@ -477,7 +477,7 @@ const PanelLeft: React.FC = () => {
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
           style: {
-            // borderRight: isVisible ? "1px solid var(--c_gray2)" : "none",
+            // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
           }

@@ -22,7 +22,7 @@ export const createStyles = (theme: any) => ({
     marginRight: ".1em",
     position: "relative",
     scrollbarWidth: "auto",
-    scrollbarColor: "var(--c_gray2) transparent",
+    scrollbarColor: "var(--palette-grey-600) transparent",
 
     "&::-webkit-scrollbar": {
       width: "12px !important"
@@ -31,7 +31,7 @@ export const createStyles = (theme: any) => ({
       background: "transparent !important"
     },
     "&::-webkit-scrollbar-thumb": {
-      background: "var(--c_gray2) !important",
+      background: "var(--palette-grey-600) !important",
       borderRadius: "4px"
     },
     "&::-webkit-scrollbar-thumb:hover": {

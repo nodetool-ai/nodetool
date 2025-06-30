@@ -33,7 +33,7 @@ const styles = (theme: any) =>
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
       borderLeft: "none",
-      backgroundColor: "var(--c_gray1)",
+      backgroundColor: "var(--palette-grey-800)",
       position: "absolute",
       overflow: "hidden",
       width: "100%",
@@ -56,14 +56,14 @@ const styles = (theme: any) =>
 
       "& svg": {
         fontSize: "0.8em !important",
-        color: "var(--c_gray5)",
+        color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
         transition: "all 0.5s ease"
       },
 
       "&:hover": {
-        backgroundColor: "var(--c_gray1)",
+        backgroundColor: "var(--palette-grey-800)",
         "& svg": {
           opacity: 1,
           fontSize: "1em !important"
@@ -216,7 +216,9 @@ const PanelRight: React.FC = () => {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
             height: isVisible ? "calc(100vh - 72px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
-            backgroundColor: isVisible ? "var(--c_gray1)" : "transparent",
+            backgroundColor: isVisible
+              ? "var(--palette-grey-800)"
+              : "transparent",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "none"
           }
         }}
