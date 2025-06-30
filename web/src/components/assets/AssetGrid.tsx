@@ -393,6 +393,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
                   ? "global-search-mode"
                   : "normal-grid-mode"
               }`}
+              style={{ height: "100%" }}
             >
               {isGlobalSearchMode && isGlobalSearchActive ? (
                 <GlobalSearchResults

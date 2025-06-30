@@ -105,7 +105,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   );
 
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["image", "audio", "video", "text", "other"])
+    new Set(["folder", "image", "audio", "video", "text", "other"])
   );
 
   const toggleExpanded = useCallback((type: string) => {
@@ -121,7 +121,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   }, []);
 
   const preparedItems = useMemo(() => {
-    return prepareItems(assets || [], expandedTypes);
+    const prepared = prepareItems(assets || [], expandedTypes);
+    return prepared;
   }, [assets, expandedTypes]);
 
   const updateGridDimensions = useCallback(
@@ -346,19 +347,21 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     >
       <div className="asset-list">
         <AutoSizer>
-          {({ height, width }: { height: number; width: number }) => (
-            <List
-              ref={listRef}
-              className="autosizer-list"
-              height={height}
-              itemCount={rowCount}
-              itemSize={getRowHeight}
-              width={width}
-              itemData={itemData}
-            >
-              {AssetGridRow}
-            </List>
-          )}
+          {({ height, width }: { height: number; width: number }) => {
+            return (
+              <List
+                ref={listRef}
+                className="autosizer-list"
+                height={height}
+                itemCount={rowCount}
+                itemSize={getRowHeight}
+                width={width}
+                itemData={itemData}
+              >
+                {AssetGridRow}
+              </List>
+            );
+          }}
         </AutoSizer>
       </div>
     </div>

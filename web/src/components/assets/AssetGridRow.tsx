@@ -51,6 +51,20 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
 
+  // Debug: Track row rendering
+  console.log(`AssetGridRow Debug - Row ${index}:`, {
+    index,
+    rowItemsCount: rowItems.length,
+    isDividerRow: rowItems[0]?.isDivider,
+    dividerType: rowItems[0]?.isDivider ? (rowItems[0] as any).type : null,
+    assetNames: rowItems
+      .filter((item) => !item.isDivider)
+      .map((item) => (item as any).name),
+    gridDimensions,
+    styleHeight: style.height,
+    expandedTypes: Array.from(expandedTypes)
+  });
+
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
