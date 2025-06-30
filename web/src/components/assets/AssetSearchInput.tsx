@@ -147,9 +147,17 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
 
   const { searchAssets } = useAssetSearch();
 
+  // Keep track of current search abort controller
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
   // Debounced search implementation for both local and global search
   const debouncedSetSearchTerm = useDebouncedCallback(async (value: string) => {
     if (isGlobalSearchMode) {
+      // Cancel any previous search
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
       // Handle global search
       if (value.length < 2) {
         setIsGlobalSearchActive(false);
@@ -158,17 +166,32 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         return;
       }
 
+      // Create new abort controller for this search
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       try {
-        const result = await searchAssets(value);
-        if (result) {
+        const result = await searchAssets(
+          value,
+          undefined,
+          100,
+          undefined,
+          abortController.signal
+        );
+
+        // Only update state if this search wasn't aborted
+        if (!abortController.signal.aborted && result) {
           setGlobalSearchResults(result.assets);
           setIsGlobalSearchActive(true);
           setGlobalSearchQuery(value);
         }
       } catch (error) {
-        console.error("Global search error:", error);
-        setIsGlobalSearchActive(false);
-        setGlobalSearchResults([]);
+        // Don't log errors for aborted requests
+        if (!abortController.signal.aborted) {
+          console.error("Global search error:", error);
+          setIsGlobalSearchActive(false);
+          setGlobalSearchResults([]);
+        }
       }
     } else {
       // Handle local search
@@ -178,6 +201,12 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
 
   // Reset search state and cancel any pending searches
   const resetSearch = useCallback(() => {
+    // Cancel any in-flight API requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     // Clear local input state
     setLocalSearchTerm("");
 
@@ -233,6 +262,15 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       inputRef.current?.focus();
     }
   }, [focusSearchInput]);
+
+  // Cleanup: cancel any pending requests when component unmounts
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

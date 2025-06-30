@@ -8,6 +8,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
 import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
 import GlobalSearchResults from "./GlobalSearchResults";
+import SearchErrorBoundary from "../SearchErrorBoundary";
 import { AssetWithPath } from "../../stores/ApiTypes";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetGridContent from "./AssetGridContent";
@@ -396,12 +397,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               style={{ height: "100%" }}
             >
               {isGlobalSearchMode && isGlobalSearchActive ? (
-                <GlobalSearchResults
-                  results={globalSearchResults}
-                  onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
-                  onNavigateToFolder={handleNavigateToFolder}
-                  containerWidth={containerRef.current?.offsetWidth || 800}
-                />
+                <SearchErrorBoundary fallbackTitle="Search Results Error">
+                  <GlobalSearchResults
+                    results={globalSearchResults}
+                    onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
+                    onNavigateToFolder={handleNavigateToFolder}
+                    containerWidth={containerRef.current?.offsetWidth || 800}
+                  />
+                </SearchErrorBoundary>
               ) : (
                 <AssetGridContent
                   isHorizontal={isHorizontal}
