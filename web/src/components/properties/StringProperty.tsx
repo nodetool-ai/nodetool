@@ -84,7 +84,7 @@ const styles = (theme: any) =>
         minHeight: "1.25em",
         padding: "0.25em 0",
         lineHeight: "1.25em",
-        border: "1px solid var(--palette-c_gray2)"
+        border: "1px solid var(--palette.grey[600])"
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderWidth: "0"
@@ -100,7 +100,7 @@ const styles = (theme: any) =>
       },
       "&.Mui-focused": {
         "& .MuiOutlinedInput-input": {
-          backgroundColor: "var(--palette-c_gray2)"
+          backgroundColor: "var(--palette.grey[600])"
         }
       }
     },

@@ -15,7 +15,6 @@
   color: var(--palette-grey-800);
   font-family: var(--font-family-1);
   box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--c_gray8);
   background: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(10px);
 }
