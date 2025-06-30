@@ -145,7 +145,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
           sx={{
             verticalAlign: "middle",
             marginRight: "0.5em",
-            color: ThemeNodes.palette.c_warning
+            color: ThemeNodes.palette.warning.main
           }}
         />
         Models will be downloaded to your local cache folder in the standard

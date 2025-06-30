@@ -119,7 +119,7 @@ const DownloadManagerDialog: React.FC = () => {
         >
           <AnnouncementIcon
             fontSize="small"
-            sx={{ color: ThemeNodetool.palette.c_warning }}
+            sx={{ color: ThemeNodetool.palette.warning.main }}
           />
           {infoMessage}
         </Typography>

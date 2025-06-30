@@ -156,7 +156,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       open={dialogOpen}
       onClose={() => setDialogOpen(false)}
     >
-      <DialogTitle sx={{ color: ThemeNodetool.palette.c_warning }}>
+      <DialogTitle sx={{ color: ThemeNodetool.palette.warning.main }}>
         {getDialogTitle()}
       </DialogTitle>
       <DialogContent className="asset-delete-confirmation-content">

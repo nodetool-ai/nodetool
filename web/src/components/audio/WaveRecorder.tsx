@@ -55,13 +55,13 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         opacity: "0.6"
       },
       "& button.recording": {
-        backgroundColor: theme.palette.c_error,
+        backgroundColor: theme.palette.error.main,
         marginLeft: "0.5em",
         color: theme.palette.grey[900],
         minWidth: "33px"
       },
       "& .error": {
-        color: theme.palette.c_error,
+        color: theme.palette.error.main,
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
       }

@@ -315,7 +315,7 @@ export const settingsStyles = (theme: any): any =>
       display: "flex",
       alignItems: "center",
       gap: "0.8em",
-      border: `1px solid ${theme.palette.c_warning}`,
+      border: `1px solid ${theme.palette.warning.main}`,
       boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
     },
 
@@ -775,9 +775,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       <div
                         className="settings-section"
                         style={{
-                          border: "1px solid" + ThemeNodetool.palette.c_warning,
+                          border:
+                            "1px solid" + ThemeNodetool.palette.warning.main,
                           borderRight:
-                            "1px solid" + ThemeNodetool.palette.c_warning
+                            "1px solid" + ThemeNodetool.palette.warning.main
                         }}
                       >
                         {isProduction && (

@@ -18,7 +18,7 @@ const styles = (theme: any) =>
 
     .error {
       font-size: 1.2rem;
-      color: ${theme.palette.c_error};
+      color: ${theme.palette.error.main};
     }
   `;
 

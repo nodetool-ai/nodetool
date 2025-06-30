@@ -95,7 +95,7 @@ export const createStyles = (theme: any) =>
       transition: "opacity 0.2s",
 
       "&:hover": {
-        color: theme.palette.c_error,
+        color: theme.palette.error.main,
         backgroundColor: theme.palette.grey[500]
       },
 

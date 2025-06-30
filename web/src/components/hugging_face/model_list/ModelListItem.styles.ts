@@ -150,7 +150,7 @@ const modelListItemStyles = (theme: any) =>
         color: theme.palette.grey[200],
         "&:hover": {
           backgroundColor: "transparent",
-          color: theme.palette.c_success
+          color: theme.palette.success.main
         }
       },
       "& .show-in-explorer-button": {

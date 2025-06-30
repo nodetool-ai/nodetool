@@ -54,19 +54,19 @@ const styles = (theme: any) =>
       letterSpacing: "0.01em"
     },
     "li.info span.message": {
-      color: theme.palette.c_info
+      color: theme.palette.info.main
     },
     "li.debug span.message": {
       color: theme.palette.c_debug
     },
     "li.error span.message": {
-      color: theme.palette.c_error
+      color: theme.palette.error.main
     },
     "li.warn span.message": {
-      color: theme.palette.c_warning
+      color: theme.palette.warning.main
     },
     "li.warning span.message": {
-      color: theme.palette.c_warning
+      color: theme.palette.warning.main
     },
     "li.progress span.message": {
       color: theme.palette.c_progress
@@ -78,7 +78,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_job
     },
     "li.success span.message": {
-      color: theme.palette.c_success
+      color: theme.palette.success.main
     },
     ".MuiListItemText-primary": {
       fontSize: "1em"

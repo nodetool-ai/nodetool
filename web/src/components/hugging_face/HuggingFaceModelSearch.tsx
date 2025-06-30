@@ -41,7 +41,7 @@ const styles = (theme: any) =>
       color: theme.palette.grey[900]
     },
     ".download-info": {
-      color: theme.palette.c_warning
+      color: theme.palette.warning.main
     },
     ".search-results": {
       marginTop: theme.spacing(2)

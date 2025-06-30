@@ -538,7 +538,7 @@ const TextEditorModal = ({
                   className="description"
                   style={{
                     color: readOnly
-                      ? ThemeNodes.palette.c_warning
+                      ? ThemeNodes.palette.warning.main
                       : ThemeNodes.palette.c_white
                   }}
                 >
