@@ -10,6 +10,9 @@ export const ThemeToggle: React.FC = () => {
     setMode(mode === "dark" ? "light" : "dark");
   };
 
+  // Don't render until we have the mode
+  if (!mode) return null;
+
   return (
     <Tooltip title={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}>
       <IconButton
