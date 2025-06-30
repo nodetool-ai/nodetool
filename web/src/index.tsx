@@ -213,7 +213,11 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <CssVarsProvider theme={ThemeNodetool}>
+        <CssVarsProvider
+          theme={ThemeNodetool}
+          defaultMode="dark"
+          modeStorageKey="mui-mode"
+        >
           <CssBaseline />
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
