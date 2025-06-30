@@ -367,11 +367,11 @@ const ThemeNodes: Theme = createTheme({
             }
           },
           "&.Mui-hover": {
-            color: 'var(--palette-primary-main)'_1,
+            color: "var(--palette-primary-light)",
             backgroundColor: "#444"
           },
           "&.Mui-selected": {
-            color: 'var(--palette-primary-main)',
+            color: "var(--palette-primary-main)",
             backgroundColor: "#333"
           }
         })

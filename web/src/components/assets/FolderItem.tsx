@@ -32,7 +32,6 @@ const styles = (theme: any) =>
       width: "25px",
       height: "100%",
       left: "0",
-      backgroundColor: theme.palette.grey[800],
       color: theme.palette.grey[500]
     },
     ".folder-icon:hover": {

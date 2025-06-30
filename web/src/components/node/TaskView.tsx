@@ -15,12 +15,12 @@ const styles = (theme: any) =>
     },
     ".task-title": {
       fontWeight: "bold",
-      color: theme.palette.grey[800]0
+      color: theme.palette.grey[800]
     },
     ".task-description": {
       marginTop: "0.5rem",
       marginBottom: "1rem",
-      color: theme.palette.grey[800]0
+      color: theme.palette.grey[800]
     }
   });
 
