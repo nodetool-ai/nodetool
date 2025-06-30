@@ -40,7 +40,8 @@ const styles = (theme: any) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "var(--c_gray0)",
+      borderRadius: "0.5em",
       overflow: "hidden"
     },
     ".asset .image, .asset .image-aspect-ratio": {
@@ -177,7 +178,7 @@ const styles = (theme: any) =>
       outline: `8px solid ${theme.palette.c_hl1}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
-      borderRadius: "7px",
+      borderRadius: ".75em",
       zIndex: 2000
     },
     "&:after": {
