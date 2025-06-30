@@ -14,7 +14,6 @@ const styles = (theme: any) =>
   css({
     "&": {
       width: "100%",
-      minWidth: "300px",
       display: "flex",
       position: "relative",
       flexDirection: "row",
@@ -113,7 +112,6 @@ interface AssetSearchInputProps {
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   debounceTime?: number;
-  maxWidth?: string;
   width?: number;
 }
 
@@ -121,7 +119,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   onLocalSearchChange,
   focusSearchInput = false,
   focusOnTyping = false,
-  maxWidth = "unset",
   debounceTime = 500,
   width = 150
 }) => {
@@ -288,7 +285,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         isGlobalSearchMode ? "global-mode" : "local-mode"
       }`}
       css={styles}
-      style={{ maxWidth: maxWidth, width: `${width}px` }}
+      style={{ width: `${width}px` }}
     >
       <Tooltip
         title={
