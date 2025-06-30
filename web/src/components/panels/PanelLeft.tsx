@@ -17,6 +17,7 @@ import PackageList from "../packages/PackageList";
 import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -272,6 +273,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
+      <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
