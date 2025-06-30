@@ -73,7 +73,7 @@ const styles = (theme: any) =>
       lineHeight: "1.1em",
       whiteSpace: "nowrap",
       color: "var(--palette-grey-900)",
-      backgroundColor: "var(--c_warning)",
+      backgroundColor: "var(--palette-warning-main)",
       "&:hover": {
         opacity: 0.85
       }

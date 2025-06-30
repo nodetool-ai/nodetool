@@ -199,7 +199,7 @@
 .react-flow__node .tool-call-container {
   margin: 1em;
   border-top: 1px solid var(--palette-grey-600);
-  font-size: 0.7reml;
+  font-size: 0.7em;
   color: var(--palette-primary-main);
   word-break: break-word;
 }
@@ -212,7 +212,7 @@
 .react-flow__node .node-status {
   max-width: 250px;
   padding: 10px;
-  color: var(--c_warning);
+  color: var(--palette-warning-main);
   font-family: var(--font-family-1);
 }
 

@@ -127,7 +127,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               sx={{
                 fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
-                backgroundColor: "var(--c_warning)",
+                backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
                 borderRadius: "0.2em",

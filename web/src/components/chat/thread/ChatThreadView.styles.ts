@@ -35,7 +35,7 @@ export const createStyles = (theme: any) => ({
       borderRadius: "4px"
     },
     "&::-webkit-scrollbar-thumb:hover": {
-      background: "var(--c_warn) !important"
+      background: "var(--palette-warning-main) !important"
     }
   }),
   chatMessagesList: css({

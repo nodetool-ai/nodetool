@@ -23,7 +23,7 @@ const errorBoundaryStyles = (theme: any) =>
     },
 
     ".error-title": {
-      color: theme.palette?.c_error,
+      color: theme.palette?.error.main,
       marginBottom: theme.spacing?.(2) || "16px"
     },
 
