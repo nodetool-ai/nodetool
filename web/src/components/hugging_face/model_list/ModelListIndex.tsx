@@ -71,7 +71,7 @@ const styles = (theme: any) =>
       filter: "saturate(0)"
     },
     ".model-type-button.Mui-selected span": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".content": {
       width: "80%",

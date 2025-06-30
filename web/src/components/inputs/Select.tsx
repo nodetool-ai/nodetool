@@ -103,7 +103,7 @@ const menuStyles = (theme: any) =>
 
       "&.selected": {
         backgroundColor: theme.palette.grey[600],
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       },
 
       "&.highlighted": {

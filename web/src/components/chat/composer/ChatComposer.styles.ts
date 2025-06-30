@@ -21,7 +21,7 @@ export const createStyles = (theme: any) =>
       padding: "6px 6px 0px 12px",
 
       "&.dragging": {
-        borderColor: theme.palette.c_hl1,
+        borderColor: "var(--palette-primary-main)",
         backgroundColor: `${theme.palette.grey[600]}80`
       }
     },

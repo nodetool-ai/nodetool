@@ -175,7 +175,7 @@ const styles = (theme: any) =>
     // ITEM
     "&.selected:after": {
       border: `4px solid ${theme.palette.grey[900]}`,
-      outline: `8px solid ${theme.palette.c_hl1}`,
+      outline: `8px solid ${"var(--palette-primary-main)"}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
       borderRadius: ".75em",
@@ -197,7 +197,7 @@ const styles = (theme: any) =>
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".folder-up-button.disabled": {
       color: "gray"

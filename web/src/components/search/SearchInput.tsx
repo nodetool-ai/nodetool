@@ -44,7 +44,7 @@ const styles = (theme: any) =>
     },
     "input[type='text']:focus": {
       backgroundColor: "#2a2a2a",
-      borderColor: theme.palette.c_hl1,
+      borderColor: "var(--palette-primary-main)",
       outline: "none"
     },
     ".clear-search-btn": {
@@ -69,7 +69,7 @@ const styles = (theme: any) =>
         backgroundColor: "transparent"
       },
       "&:not(.disabled):hover svg": {
-        color: theme.palette.c_hl1,
+        color: "var(--palette-primary-main)",
         backgroundColor: "transparent"
       },
       "&.disabled": {

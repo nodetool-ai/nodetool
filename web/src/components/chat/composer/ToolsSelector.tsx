@@ -49,7 +49,7 @@ const menuStyles = (theme: any) =>
       },
       "&.selected": {
         backgroundColor: theme.palette.grey[600],
-        borderLeft: `3px solid ${theme.palette.c_hl1}`,
+        borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
         paddingLeft: "13px"
       }
     },
@@ -59,7 +59,7 @@ const menuStyles = (theme: any) =>
     },
 
     ".tool-name.selected": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
 
     ".tool-description": {
@@ -72,7 +72,7 @@ const menuStyles = (theme: any) =>
     },
 
     ".tool-icon.selected": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     }
   });
 
@@ -289,8 +289,8 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               borderColor: theme.palette.grey[400]
             },
             "&.active": {
-              borderColor: theme.palette.c_hl1,
-              color: theme.palette.c_hl1
+              borderColor: "var(--palette-primary-main)",
+              color: "var(--palette-primary-main)"
             }
           })}
         ></Button>

@@ -78,11 +78,11 @@ export const tableStyles = (theme: any) =>
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `6px solid ${theme.palette.c_hl1}`
+        borderBottom: `6px solid ${"var(--palette-primary-main)"}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `6px solid ${theme.palette.c_hl1}`
+        borderTop: `6px solid ${"var(--palette-primary-main)"}`
       },
 
     // cell
@@ -126,7 +126,7 @@ export const tableStyles = (theme: any) =>
 
     // Datetime picker
     ".datetime-picker": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
@@ -144,7 +144,7 @@ export const tableStyles = (theme: any) =>
         borderRadius: "0",
         backgroundColor: "white",
         "&:hover svg": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         },
         "& svg": {
           color: theme.palette.c_black,
@@ -163,7 +163,7 @@ export const tableStyles = (theme: any) =>
       color: theme.palette.c_black,
       fontSize: theme.fontSizeSmall,
       "&::selection": {
-        backgroundColor: theme.palette.c_hl1
+        backgroundColor: "var(--palette-primary-main)"
       }
     },
 

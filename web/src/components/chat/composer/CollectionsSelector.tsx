@@ -111,7 +111,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                 label={selectedCount}
                 sx={{
                   marginLeft: 1,
-                  backgroundColor: "var(--c_hl1)",
+                  backgroundColor: "var(--palette-primary-main)",
                   color: "var(--c_black)",
                   "& .MuiChip-label": {
                     padding: "0 4px"
@@ -127,10 +127,10 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
-              borderColor: theme.palette.c_hl1,
-              color: theme.palette.c_hl1,
+              borderColor: "var(--palette-primary-main)",
+              color: "var(--palette-primary-main)",
               "& .MuiSvgIcon-root": {
-                color: theme.palette.c_hl1
+                color: "var(--palette-primary-main)"
               }
             }
           })}

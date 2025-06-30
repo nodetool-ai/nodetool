@@ -46,7 +46,7 @@ const styles = (theme: any) =>
         }
       },
       "& svg": {
-        color: theme.palette.c_hl1,
+        color: "var(--palette-primary-main)",
         marginTop: ".25em"
       },
       "& .MuiTreeItem-label": {
@@ -56,7 +56,7 @@ const styles = (theme: any) =>
     button: {
       position: "absolute",
       right: 0,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[600],
       padding: ".25em",
       height: "1.5em"

@@ -131,7 +131,7 @@ const styles = (theme: any) =>
       overflow: "hidden",
       wordBreak: "break-word",
       lineHeight: "1.25em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       textTransform: "uppercase",
       fontSize: theme.fontSizeSmaller
     }

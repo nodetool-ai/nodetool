@@ -106,7 +106,7 @@ const ThemeNodetool: Theme = createTheme({
           fontWeight: 300,
           fontFamily: theme.fontFamily2,
           wordSpacing: "-3px",
-          color: theme.palette.c_hl1,
+          color: "var(--palette-primary-main)",
           lineHeight: "1.1em",
           wordBreak: "break-word"
         }),

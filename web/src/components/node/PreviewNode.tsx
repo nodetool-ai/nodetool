@@ -98,7 +98,7 @@ const styles = (theme: any) =>
         padding: 0,
         minWidth: "unset",
         "&:hover": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         },
         "& svg": {
           width: "100%",

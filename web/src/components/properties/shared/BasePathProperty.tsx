@@ -123,7 +123,7 @@ const createPathPropertyStyles = (theme: any) =>
         justifyContent: "center",
         transition: "all 0.2s ease",
         "&:hover": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       },
 
@@ -165,7 +165,8 @@ const treeViewStyles = (theme: any) => ({
     userSelect: "none"
   },
   ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: (theme: any) => `${theme.palette.c_hl1} !important`,
+    backgroundColor: (theme: any) =>
+      `${"var(--palette-primary-main)"} !important`,
     color: (theme: any) => theme.palette.c_black
   },
   ".MuiTreeItem-content:hover": {
@@ -173,7 +174,8 @@ const treeViewStyles = (theme: any) => ({
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
-    backgroundColor: (theme: any) => `${theme.palette.c_hl1} !important`
+    backgroundColor: (theme: any) =>
+      `${"var(--palette-primary-main)"} !important`
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",

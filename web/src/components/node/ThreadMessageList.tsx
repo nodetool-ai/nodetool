@@ -47,7 +47,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".messages li a": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".messages li a:hover": {
       color: `${theme.c_gray4} !important`

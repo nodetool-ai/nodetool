@@ -29,7 +29,7 @@ const dialogStyles = (theme: any) =>
       top: "-1em"
     },
     ".button-confirm": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "bold"
     },
     ".button-confirm:hover": {

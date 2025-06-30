@@ -112,7 +112,7 @@ const styles = (theme: any) =>
     ".save-button": {
       backgroundColor: theme.palette.grey[800],
       border: "1px solid" + theme.palette.grey[500],
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       width: "120px",
       height: "40px",
       "&.MuiButton-root": {

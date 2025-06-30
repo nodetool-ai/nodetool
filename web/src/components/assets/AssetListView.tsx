@@ -99,8 +99,8 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_hl1 + "22",
-        borderLeft: `1px solid ${theme.palette.c_hl1}`
+        backgroundColor: "var(--palette-primary-main)" + "22",
+        borderLeft: `1px solid ${"var(--palette-primary-main)"}`
       }
     },
     ".asset-item-icon": {
@@ -160,7 +160,7 @@ const styles = (theme: any) =>
     },
     ".asset-item-name.folder": {
       fontWeight: 500,
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".asset-item-size": {
       flex: "0 0 80px",

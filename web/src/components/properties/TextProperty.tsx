@@ -37,7 +37,7 @@ const styles = (theme: any) =>
       fontWeight: "bold"
     },
     ".button-expand:hover": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[600]
     }
   });

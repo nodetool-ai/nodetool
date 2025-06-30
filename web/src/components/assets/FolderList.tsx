@@ -88,7 +88,7 @@ const styles = (theme: any) =>
       transform: "none"
     },
     ".MuiAccordionSummary-expandIconWrapper:hover": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".MuiAccordionSummary-expandIconWrapper svg": {
       width: "25px",
@@ -139,7 +139,7 @@ const styles = (theme: any) =>
       }
     },
     ".resize-handle:hover::after, .resize-handle.resizing::after": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     }
   });
 

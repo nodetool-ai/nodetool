@@ -77,7 +77,7 @@ const helpStyles = (theme: any) =>
       paddingTop: "0",
       lineHeight: "1.5",
       "& .MuiTabs-indicator": {
-        backgroundColor: theme.palette.c_hl1,
+        backgroundColor: "var(--palette-primary-main)",
         height: "3px",
         borderRadius: "1.5px"
       },

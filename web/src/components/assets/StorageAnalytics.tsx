@@ -34,7 +34,7 @@ const styles = (theme: any) =>
     },
     ".storage-stats": {
       minWidth: "120px",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeNormal,
       display: "flex",
       alignItems: "flex-end",

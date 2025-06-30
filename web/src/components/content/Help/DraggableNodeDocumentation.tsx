@@ -61,7 +61,7 @@ const styles = (theme: any) => css`
   }
 
   .open-node-menu-button {
-    color: ${theme.palette.c_hl1};
+    color: ${"var(--palette-primary-main)"};
     margin-top: 10px;
     margin-right: 10px;
   }

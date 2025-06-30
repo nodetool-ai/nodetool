@@ -43,7 +43,7 @@ const namespaceStyles = (theme: any) =>
     },
     "& h4": {
       fontSize: "1em",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".info-box": {
       position: "absolute",
@@ -152,7 +152,7 @@ const namespaceStyles = (theme: any) =>
       padding: "0 2em 2em 0"
     },
     ".explanation h5": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       margin: " 0 0 0.3em",
       padding: "0",
       fontWeight: "300"
@@ -179,7 +179,7 @@ const namespaceStyles = (theme: any) =>
       margin: "1em .5em 0 0"
     },
     ".result-info span": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "500"
     },
     ".result-label": {
@@ -205,10 +205,10 @@ const namespaceStyles = (theme: any) =>
     ".highlighted": {
       paddingLeft: ".25em",
       marginLeft: ".1em",
-      borderLeft: `2px solid ${theme.palette.c_hl1}`
+      borderLeft: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".highlighted-text": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".nodes": {
       display: "flex",
@@ -244,7 +244,7 @@ const namespaceStyles = (theme: any) =>
       backgroundColor: theme.palette.grey[800]
     },
     ".node.focused": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[800],
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
@@ -265,7 +265,7 @@ const namespaceStyles = (theme: any) =>
       marginLeft: "auto"
     },
     ".node-info:hover": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".node-info": {
       cursor: "pointer",
@@ -316,7 +316,7 @@ const namespaceStyles = (theme: any) =>
     },
     ".namespaces .list-item:hover": {
       backgroundColor: theme.palette.grey[500],
-      borderLeft: `3px solid ${theme.palette.c_hl1}`
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -329,8 +329,8 @@ const namespaceStyles = (theme: any) =>
       overflow: "hidden"
     },
     ".namespaces .list-item.selected": {
-      backgroundColor: theme.palette.c_hl1,
-      borderLeft: `3px solid ${theme.palette.c_hl1}`,
+      backgroundColor: "var(--palette-primary-main)",
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
       fontWeight: "500"
     },
     ".namespaces .list-item.selected .namespace-item": {
@@ -341,7 +341,7 @@ const namespaceStyles = (theme: any) =>
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
-      borderLeft: `3px solid ${theme.palette.c_hl1}`
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.highlighted.selected .namespace-item": {
       color: theme.palette.c_black

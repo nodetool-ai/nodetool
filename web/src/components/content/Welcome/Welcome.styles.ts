@@ -25,7 +25,7 @@ const welcomeStyles = (theme: any) =>
     ".summary": {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[800]
     },
     ".content": {
@@ -85,7 +85,7 @@ const welcomeStyles = (theme: any) =>
       }
     },
     ".highlight": {
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: "var(--palette-primary-main)",
       color: theme.palette.c_black
     },
     ".tab-content": {
@@ -102,7 +102,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".link:hover": {
       color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     },
 
     ".link-body": {
@@ -193,11 +193,11 @@ const welcomeStyles = (theme: any) =>
       listStyleType: "square"
     },
     ".start-button": {
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: "var(--palette-primary-main)",
       color: theme.palette.c_black,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
-      outline: `1px solid ${theme.palette.c_hl1}`,
+      outline: `1px solid ${"var(--palette-primary-main)"}`,
       flexGrow: 1,
       margin: "0",
       padding: "0.5em 8em",
@@ -227,7 +227,7 @@ const welcomeStyles = (theme: any) =>
     ".setup-list-title": {
       fontWeight: "bold",
       paddingTop: ".5em",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".setup-list-content": {
       marginTop: ".25em"
