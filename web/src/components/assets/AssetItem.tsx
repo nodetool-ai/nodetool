@@ -97,10 +97,14 @@ const styles = (theme: any) =>
       width: "95%",
       height: "3em",
       overflow: "hidden",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      textAlign: "center"
     },
     ".name.large": {
-      height: "5em"
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1.25em",
+      height: "5em",
+      marginTop: ".25em"
     },
     ".filetype": {
       top: "0"
