@@ -196,11 +196,17 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const isGlobalSearchActive = useAssetGridStore(
     (state) => state.isGlobalSearchActive
   );
+  const isGlobalSearchMode = useAssetGridStore(
+    (state) => state.isGlobalSearchMode
+  );
   const globalSearchResults = useAssetGridStore(
     (state) => state.globalSearchResults
   );
   const setIsGlobalSearchActive = useAssetGridStore(
     (state) => state.setIsGlobalSearchActive
+  );
+  const setIsGlobalSearchMode = useAssetGridStore(
+    (state) => state.setIsGlobalSearchMode
   );
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
@@ -223,8 +229,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     (folderId: string, folderPath: string) => {
       setCurrentFolderId(folderId);
       setIsGlobalSearchActive(false);
+      setIsGlobalSearchMode(false);
     },
-    [setCurrentFolderId, setIsGlobalSearchActive]
+    [setCurrentFolderId, setIsGlobalSearchActive, setIsGlobalSearchMode]
   );
 
   const { user } = useAuth();
@@ -316,7 +323,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
-      {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
+      {error && (
+        <Typography
+          className="error-message"
+          sx={{
+            position: "absolute",
+            top: "1em",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            color: "var(--c_error)"
+          }}
+        >
+          {error.message}
+        </Typography>
+      )}
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -368,10 +389,12 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           >
             <div
               className={`asset-content-wrapper ${
-                isGlobalSearchActive ? "global-search-mode" : "normal-grid-mode"
+                isGlobalSearchMode && isGlobalSearchActive
+                  ? "global-search-mode"
+                  : "normal-grid-mode"
               }`}
             >
-              {isGlobalSearchActive && globalSearchResults.length >= 0 ? (
+              {isGlobalSearchMode && isGlobalSearchActive ? (
                 <GlobalSearchResults
                   results={globalSearchResults}
                   onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}

@@ -54,11 +54,13 @@ interface AssetGridState {
   globalSearchResults: AssetWithPath[];
   isGlobalSearchActive: boolean;
   globalSearchQuery: string;
+  isGlobalSearchMode: boolean;
 
   // Global search actions
   setGlobalSearchResults: (results: AssetWithPath[]) => void;
   setIsGlobalSearchActive: (active: boolean) => void;
   setGlobalSearchQuery: (query: string) => void;
+  setIsGlobalSearchMode: (mode: boolean) => void;
 }
 
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
@@ -134,9 +136,11 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   globalSearchResults: [],
   isGlobalSearchActive: false,
   globalSearchQuery: "",
+  isGlobalSearchMode: false,
 
   // Global search actions
   setGlobalSearchResults: (results) => set({ globalSearchResults: results }),
   setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
-  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query })
+  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
+  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode })
 }));
