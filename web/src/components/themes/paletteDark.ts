@@ -18,14 +18,9 @@ declare module "@mui/material/styles" {
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
     c_scroll_bg?: string;
@@ -64,14 +59,9 @@ declare module "@mui/material/styles" {
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
     c_scroll_bg?: string;
@@ -139,14 +129,9 @@ export const paletteDark: PaletteOptions = {
   c_attention: "#E35BFF",
   c_delete: "#FF2222",
   c_debug: "#FF3355",
-  c_error: "#FF5555",
-  c_info: "#E0E028",
   c_job: "#223399",
   c_node: "#029486",
   c_progress: "#556611",
-  c_success: "#50FA7B",
-  c_warn: "#FFB86C",
-  c_warning: "#FFB86C",
   c_link: "#e4ffde",
   c_link_visited: "#d1e2cd",
   c_scroll_bg: "transparent",

@@ -58,7 +58,7 @@ const styles = (theme: any) =>
     },
     ".logo-button": {
       "& svg": {
-        color: "var(--c_warn)"
+        color: "var(--palette-warning-main)"
       },
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"

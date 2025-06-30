@@ -19,7 +19,7 @@ const searchErrorBoundaryStyles = (theme: any) =>
     padding: "2rem",
 
     ".error-title": {
-      color: theme.palette?.c_error,
+      color: theme.palette?.error.main,
       marginBottom: theme.spacing?.(1) || "8px",
       fontSize: theme.fontSizeNormal
     },

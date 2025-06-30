@@ -333,7 +333,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1000,
-            color: "var(--c_error)"
+            color: "var(--palette-error-main)"
           }}
         >
           {error.message}
