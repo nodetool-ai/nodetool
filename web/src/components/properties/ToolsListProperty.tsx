@@ -165,9 +165,9 @@ const ToolsListProperty = (props: PropertyProps) => {
             sx={{
               padding: "1px",
               marginLeft: "0 !important",
-              color: "c_gray4",
+              color: "palette-grey-400",
               "&:hover": {
-                color: "c_gray6"
+                color: "palette-grey-100"
               },
               "& svg": {
                 fontSize: "12px"
