@@ -40,7 +40,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
                 width: "100%",
                 margin: "0",
                 padding: ".5em .5em .5em 2em",
-                color: ThemeNodespalette.grey[0],
+                color: ThemeNodes.palette.grey[0],
                 display: "block"
               }}
             >
