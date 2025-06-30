@@ -163,6 +163,7 @@ const styles = (theme: any) =>
     ".size-filter": {
       width: "90px",
       margin: "0",
+      padding: "0 0.25em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
