@@ -39,7 +39,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             border: `1px dashed ${ThemeNodes.palette.grey[600]}`,
             borderRadius: "4px",
             cursor: "pointer",
-            color: ThemeNodespalette.grey[0],
+            color: ThemeNodes.palette.grey[0],
             fontSize: "0.9em",
             transition: "all 0.2s ease",
             display: "flex",

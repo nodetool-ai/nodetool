@@ -539,7 +539,7 @@ const TextEditorModal = ({
                   style={{
                     color: readOnly
                       ? ThemeNodes.palette.warning.main
-                      : ThemeNodespalette.grey[0]
+                      : ThemeNodes.palette.grey[0]
                   }}
                 >
                   <Markdown>{propertyDescription}</Markdown>

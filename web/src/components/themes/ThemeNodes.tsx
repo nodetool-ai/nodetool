@@ -41,7 +41,7 @@ declare module "@mui/system/createTheme" {
 }
 
 const ThemeNodes: Theme = createTheme({
-  defaultColorScheme: "light",
+  defaultColorScheme: "dark",
   colorSchemes: {
     dark: {
       palette: paletteDark

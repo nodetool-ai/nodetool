@@ -22,7 +22,7 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--palette-grey-900)22",
+      backgroundColor: "var(--palette-grey-900)",
       paddingLeft: "8px"
     },
     ".toolbar": {
