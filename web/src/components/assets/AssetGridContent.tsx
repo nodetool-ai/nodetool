@@ -50,7 +50,6 @@ const styles = (theme: any) =>
       padding: "0.5em 0",
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
-      textAlign: "center",
       textTransform: "uppercase"
     },
     ".content-type-header button": {

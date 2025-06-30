@@ -10,7 +10,6 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { colorForType, IconForType } from "../../config/data_types";
 import FolderIcon from "@mui/icons-material/Folder";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface AssetListViewProps {
   assets: Asset[];
