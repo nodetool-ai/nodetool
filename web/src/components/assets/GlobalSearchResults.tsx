@@ -186,10 +186,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   // Optimize selection hook to prevent new arrays on every render
-  const memoizedResults = useMemo(
-    () => results,
-    [results.map((r) => r.id).join(",")]
+  const resultsSignature = useMemo(
+    () => results.map((r) => r.id).join(","),
+    [results]
   );
+
+  const memoizedResults = useMemo(() => results, [results]);
   const { selectedAssetIds, handleSelectAsset } =
     useAssetSelection(memoizedResults);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
