@@ -12,13 +12,15 @@ const dialogStyles = (theme: any) =>
     },
     "& .MuiPaper-root": {
       width: "100%",
-      maxWidth: "300px"
+      maxWidth: "400px"
     },
     ".dialog-content": {
       padding: "0 .5em"
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray6,
       wordSpacing: "normal",
       margin: ".5em 0 0",
       padding: "1em"

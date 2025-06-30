@@ -22,6 +22,9 @@ const styles = (theme: any) =>
     ".asset-explorer": {
       width: "100%"
     },
+    ".asset-menu": {
+      marginLeft: "1em"
+    },
     ".audio-controls-container": {
       padding: "2em"
     },
@@ -35,15 +38,15 @@ const styles = (theme: any) =>
     },
     ".selected-asset-info": {
       position: "absolute",
-      top: "2em",
+      top: "5em",
       right: "2em",
       maxWidth: "500px",
       textAlign: "right"
     },
     ".asset-size-slider": {
       width: "200px",
-      maxWidth: "unset",
-      paddingLeft: "1em"
+      maxWidth: "200px",
+      paddingLeft: ".5em"
     },
     ".dropzone": {
       outline: "none"
@@ -53,7 +56,8 @@ const styles = (theme: any) =>
     },
     ".asset-explorer .file-upload-button": {
       position: "absolute",
-      top: "-48px",
+      top: "-40px",
+      right: "1em",
       marginRight: "auto",
       height: "fit-content ",
       width: "fit-content"

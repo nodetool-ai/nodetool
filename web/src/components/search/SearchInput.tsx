@@ -7,7 +7,6 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { useCreateNode } from "../../hooks/useCreateNode";
 
 const styles = (theme: any) =>
   css({
@@ -123,11 +122,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   // - Cancels pending searches if user types again
   // - Assigns unique ID to each search request
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
-    // Increment counter to get new unique search ID
     const searchId = ++searchIdCounter.current;
-    // Update store with current search ID
     setCurrentSearchId(searchId);
-    // Trigger search with new term
     onSearchChange(value);
   }, debounceTime);
 
@@ -135,13 +131,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const resetSearch = useCallback(() => {
     // Clear local input state
     setLocalSearchTerm("");
-    // Generate new search ID to cancel any pending searches
+
+    // Reset search state
     const searchId = ++searchIdCounter.current;
     setCurrentSearchId(searchId);
+    onSearchChange("");
+
     // Cancel any pending debounced searches
     debouncedSetSearchTerm.cancel();
-    // Trigger immediate search with empty term
-    onSearchChange("");
   }, [debouncedSetSearchTerm, onSearchChange, setCurrentSearchId]);
 
   const { closeNodeMenu } = useNodeMenuStore((state) => ({
@@ -159,7 +156,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     },
     [debouncedSetSearchTerm]
   );
-  // const handleCreateNode = useCreateNode();
+
   const clearSearch = useCallback(() => {
     resetSearch();
     inputRef.current?.focus();
@@ -205,37 +202,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
           }
         }
       }
-
-      // if (searchResults.length > 0) {
-      //   switch (event.key) {
-      //     case "ArrowDown":
-      //       event.preventDefault();
-      //       setFocusedNodeIndex(
-      //         focusedNodeIndex < searchResults.length - 1
-      //           ? focusedNodeIndex + 1
-      //           : focusedNodeIndex
-      //       );
-      //       break;
-
-      //     case "ArrowUp":
-      //       event.preventDefault();
-      //       setFocusedNodeIndex(
-      //         focusedNodeIndex > 0 ? focusedNodeIndex - 1 : focusedNodeIndex
-      //       );
-      //       break;
-
-      //     case "Enter":
-      //       event.preventDefault();
-      //       if (
-      //         focusedNodeIndex >= 0 &&
-      //         focusedNodeIndex < (searchResults?.length ?? 0)
-      //       ) {
-      //         handleCreateNode?.(searchResults[focusedNodeIndex]);
-      //         closeNodeMenu();
-      //       }
-      //       break;
-      //   }
-      // }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -261,7 +227,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       style={{ maxWidth: maxWidth, width: `${width}px` }}
     >
       <input
-        id={`search-input`}
+        id="search-input"
         className="search-input"
         ref={inputRef}
         type="text"
@@ -272,6 +238,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         autoCapitalize="none"
         spellCheck="false"
         autoComplete="off"
+        data-testid="search-input-field"
       />
 
       <button
@@ -280,6 +247,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }`}
         tabIndex={-1}
         onClick={clearSearch}
+        data-testid="search-clear-btn"
       >
         <BackspaceIcon />
       </button>

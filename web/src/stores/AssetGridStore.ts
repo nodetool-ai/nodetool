@@ -1,10 +1,12 @@
 import { create } from "zustand";
-import { Asset } from "./ApiTypes";
-import { useAssetStore } from "./AssetStore";
+import { Asset, AssetWithPath } from "./ApiTypes";
+import { SizeFilterKey } from "../utils/formatUtils";
 
 interface AssetGridState {
   assetItemSize: number;
   assetSearchTerm: string | null;
+  sizeFilter: SizeFilterKey;
+  viewMode: "grid" | "list";
   currentAudioAsset: Asset | null;
   currentFolder: Asset | null;
   currentFolderId: string | null;
@@ -24,6 +26,8 @@ interface AssetGridState {
   selectedFolderIds: string[];
   setAssetItemSize: (size: number) => void;
   setAssetSearchTerm: (term: string) => void;
+  setSizeFilter: (filter: SizeFilterKey) => void;
+  setViewMode: (mode: "grid" | "list") => void;
   setCurrentAudioAsset: (asset: Asset | null) => void;
   setCurrentFolder: (folder: Asset | null) => void;
   setCurrentFolderId: (folderId: string | null) => void;
@@ -36,6 +40,7 @@ interface AssetGridState {
   setRenameDialogOpen: (open: boolean) => void;
   setSearchTerm: (term: string) => void;
   setSelectedAssetIds: (assetIds: string[]) => void;
+  setSelectedAssets: (assets: Asset[]) => void;
   setSelectedFolderId: (id: string | null) => void;
   setSelectedFolderIds: (ids: string[]) => void;
 
@@ -44,10 +49,24 @@ interface AssetGridState {
 
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
+
+  // Global search properties
+  globalSearchResults: AssetWithPath[];
+  isGlobalSearchActive: boolean;
+  globalSearchQuery: string;
+  isGlobalSearchMode: boolean;
+
+  // Global search actions
+  setGlobalSearchResults: (results: AssetWithPath[]) => void;
+  setIsGlobalSearchActive: (active: boolean) => void;
+  setGlobalSearchQuery: (query: string) => void;
+  setIsGlobalSearchMode: (mode: boolean) => void;
 }
 
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   assetItemSize: 2,
+  sizeFilter: "all",
+  viewMode: "grid",
   currentFolder: null,
   currentFolderId: null,
   deleteDialogOpen: false,
@@ -88,6 +107,8 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   // },
   assetSearchTerm: null,
   setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
+  setSizeFilter: (filter: SizeFilterKey) => set({ sizeFilter: filter }),
+  setViewMode: (mode: "grid" | "list") => set({ viewMode: mode }),
 
   // AUDIO ASSET
   currentAudioAsset: null,
@@ -101,19 +122,25 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   handleDeselectAssets: () => set({ selectedAssetIds: [] }),
   setSelectedAssetIds: (ids) => {
     set({ selectedAssetIds: ids });
-    const fetchAndSetAssets = async () => {
-      const { get: getAssetById } = useAssetStore.getState();
-      const assets = await Promise.all(ids.map((id) => getAssetById(id)));
-      const validAssets = assets.filter(
-        (asset): asset is Asset => asset !== undefined
-      );
-      set({ selectedAssets: validAssets });
-    };
-    fetchAndSetAssets();
+  },
+  setSelectedAssets: (assets) => {
+    set({ selectedAssets: assets });
   },
 
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
   isRenaming: null,
-  setIsRenaming: (isRenaming) => set({ isRenaming })
+  setIsRenaming: (isRenaming) => set({ isRenaming }),
+
+  // Global search initial state
+  globalSearchResults: [],
+  isGlobalSearchActive: false,
+  globalSearchQuery: "",
+  isGlobalSearchMode: false,
+
+  // Global search actions
+  setGlobalSearchResults: (results) => set({ globalSearchResults: results }),
+  setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
+  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
+  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode })
 }));

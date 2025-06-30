@@ -19,6 +19,10 @@ export const getFooterHeight = (size: number): number => {
       return 10;
   }
 };
+
+export const getExtraFooterSpace = (assetItemSize: number): number => {
+  return assetItemSize > 3 ? assetItemSize * 8 : 0;
+};
 export const DIVIDER_HEIGHT = 30;
 
 export const calculateGridDimensions = (

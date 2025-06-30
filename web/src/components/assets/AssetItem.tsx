@@ -7,12 +7,15 @@ import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DataObjectIcon from "@mui/icons-material/DataObject";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
 import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
+import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
-import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -37,7 +40,8 @@ const styles = (theme: any) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: "var(--c_gray0)",
+      borderRadius: "0.5em",
       overflow: "hidden"
     },
     ".asset .image, .asset .image-aspect-ratio": {
@@ -67,7 +71,9 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray4,
+      opacity: 0.6,
+      fontSize: "2.5em"
     },
     p: {
       fontSize: theme.fontSizeTiny,
@@ -92,11 +98,23 @@ const styles = (theme: any) =>
       width: "95%",
       height: "3em",
       overflow: "hidden",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      textAlign: "center"
+    },
+    ".name.large": {
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "1.25em",
+      height: "5em",
+      marginTop: ".25em"
     },
     ".filetype": {
-      top: "0",
-      fontWeight: "bold"
+      top: "0"
+    },
+    ".filesize": {
+      top: "1.6em",
+      left: "0.25em",
+      color: "white",
+      fontSize: theme.fontSizeSmaller
     },
     ".duration": {
       bottom: "2px",
@@ -160,7 +178,7 @@ const styles = (theme: any) =>
       outline: `8px solid ${theme.palette.c_hl1}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
-      borderRadius: "7px",
+      borderRadius: ".75em",
       zIndex: 2000
     },
     "&:after": {
@@ -217,6 +235,7 @@ export type AssetItemProps = {
   showInfo?: boolean;
   showFiletype?: boolean;
   showDuration?: boolean;
+  showFileSize?: boolean;
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
@@ -237,6 +256,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     showInfo = true,
     showFiletype = true,
     showDuration = true,
+    showFileSize = true,
     onSelect,
     onDoubleClick,
     onClickParent,
@@ -288,8 +308,20 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     () => asset?.content_type?.match("pdf") !== null,
     [asset?.content_type]
   );
+  const isJson = useMemo(
+    () =>
+      asset?.content_type?.includes("json") ||
+      asset?.name?.toLowerCase().endsWith(".json"),
+    [asset?.content_type, asset?.name]
+  );
+  const isCsv = useMemo(
+    () =>
+      asset?.content_type?.includes("csv") ||
+      asset?.name?.toLowerCase().endsWith(".csv"),
+    [asset?.content_type, asset?.name]
+  );
 
-  return (
+  const result = (
     <div
       css={styles}
       className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
@@ -324,30 +356,40 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         {!asset.get_url && <div className="asset-missing" />}
         {isImage && (
           <>
-            <ImageIcon className="placeholder" />
-            <div
-              className="image"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
-            <div
-              className="image-aspect-ratio"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
+            {!asset.get_url && <ImageIcon className="placeholder" />}
+            {asset.get_url && (
+              <>
+                <div
+                  className="image"
+                  style={{
+                    backgroundImage: `url(${asset.get_url})`
+                  }}
+                  aria-label={asset.id}
+                />
+                <div
+                  className="image-aspect-ratio"
+                  style={{
+                    backgroundImage: `url(${asset.get_url})`
+                  }}
+                  aria-label={asset.id}
+                />
+              </>
+            )}
           </>
         )}
-        {isText && <TextSnippetIcon className="placeholder" />}
+        {isText && !isJson && !isCsv && (
+          <TextSnippetIcon
+            className="placeholder"
+            titleAccess={asset.content_type || "Text file"}
+          />
+        )}
         {isAudio && (
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
               onClick={() => onSetCurrentAudioAsset?.(asset)}
               className="placeholder"
+              titleAccess={asset.content_type || "Audio file"}
             />
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
@@ -361,6 +403,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <VideoFileIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+              titleAccess={asset.content_type || "Video file"}
             />
             <div
               className="image"
@@ -381,6 +424,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <PictureAsPdfIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
+              titleAccess={asset.content_type || "PDF file"}
             />
             {asset.get_url !== "/images/placeholder.png" && (
               <div
@@ -393,12 +437,40 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             )}
           </>
         )}
+        {isJson && (
+          <DataObjectIcon
+            className="placeholder"
+            style={{ color: `var(--c_${assetType})` }}
+            titleAccess={asset.content_type || "JSON file"}
+          />
+        )}
+        {isCsv && (
+          <TableChartIcon
+            className="placeholder"
+            style={{ color: `var(--c_${assetType})` }}
+            titleAccess={asset.content_type || "CSV file"}
+          />
+        )}
+        {!isImage &&
+          !isVideo &&
+          !isAudio &&
+          !isText &&
+          !isPdf &&
+          !isJson &&
+          !isCsv && (
+            <InsertDriveFileIcon
+              className="placeholder"
+              style={{ color: `var(--c_${assetType})` }}
+              titleAccess={asset.content_type || "Unknown file type"}
+            />
+          )}
       </div>
       {showInfo && (
         <>
           {showFiletype && assetFileEnding && assetItemSize > 2 && (
             <Typography
               className="filetype info"
+              title={asset.content_type || "Unknown content type"}
               style={{
                 borderLeft: `2px solid var(--c_${assetType})`,
                 color: "white",
@@ -408,12 +480,27 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               {assetFileEnding}
             </Typography>
           )}
+          {showFileSize &&
+            (asset as any).size !== undefined &&
+            (asset as any).size > 0 &&
+            assetItemSize > 2 && (
+              <Typography
+                className="filesize info"
+                title={`File size: ${formatFileSize((asset as any).size)}`}
+                style={{
+                  color: "white",
+                  backgroundColor: "#333aa"
+                }}
+              >
+                {formatFileSize((asset as any).size)}
+              </Typography>
+            )}
           {showName && assetItemSize > 1 && (
             <Typography
               aria-label={asset.name}
               data-microtip-position="bottom"
               role="tooltip"
-              className="name info"
+              className={`name info ${assetItemSize > 4 ? "large" : ""}`}
             >
               {asset.name}
               {/* {asset.parent_id} */}
@@ -423,6 +510,21 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       )}
     </div>
   );
+
+  return result;
 };
 
-export default memo(AssetItem, isEqual);
+// Optimized memo: only re-render when THIS asset's selection state changes
+export default memo(AssetItem, (prevProps, nextProps) => {
+  // Only re-render if this specific asset's selection state changed
+  // or if other relevant props changed
+  const selectionChanged = prevProps.isSelected !== nextProps.isSelected;
+  const assetChanged = prevProps.asset.id !== nextProps.asset.id;
+  const functionsChanged =
+    prevProps.onSelect !== nextProps.onSelect ||
+    prevProps.onDoubleClick !== nextProps.onDoubleClick;
+
+  const shouldUpdate = selectionChanged || assetChanged || functionsChanged;
+
+  return !shouldUpdate; // memo returns true to skip re-render
+});

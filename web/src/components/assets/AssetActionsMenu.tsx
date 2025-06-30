@@ -3,8 +3,9 @@ import { css } from "@emotion/react";
 
 import React, { useCallback } from "react";
 import { Box } from "@mui/material";
-import SearchInput from "../search/SearchInput";
+import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
+import SearchErrorBoundary from "../SearchErrorBoundary";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -48,7 +49,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
 
-  const onSearchChange = useCallback(
+  const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
       setAssetSearchTerm(newSearchTerm);
     },
@@ -56,13 +57,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   );
 
   return (
-    <Box className="asset-menu" css={styles}>
-      <SearchInput
-        onSearchChange={onSearchChange}
-        focusOnTyping={false}
-        focusSearchInput={false}
-        maxWidth={"9em"}
-      />
+    <Box className="asset-menu asset-menu-with-global-search" css={styles}>
+      <SearchErrorBoundary fallbackTitle="Search Input Error">
+        <AssetSearchInput
+          onLocalSearchChange={onLocalSearchChange}
+          focusOnTyping={false}
+          focusSearchInput={false}
+          width={333}
+        />
+      </SearchErrorBoundary>
       <AssetActions
         setSelectedAssetIds={setSelectedAssetIds}
         handleSelectAllAssets={handleSelectAllAssets}
