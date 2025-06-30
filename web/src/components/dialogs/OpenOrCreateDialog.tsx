@@ -39,7 +39,7 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "1em",
       transition: "all .6s",
-      background: theme.palette.c_gray1
+      background: theme.palette.grey[800]
     },
     ".title": {
       position: "absolute",
@@ -51,7 +51,7 @@ const styles = (theme: any) =>
     },
     ".recent-hl": {
       marginLeft: ".75em",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily1
     },
@@ -141,7 +141,7 @@ const listStyles = (theme: any) =>
     },
     ".description": {
       margin: "0.1em 0 .1em",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: theme.fontSizeSmaller,
       paddingTop: "0.5em"
     },
@@ -162,11 +162,11 @@ const listStyles = (theme: any) =>
       wordSpacing: "-2px",
       textAlign: "right",
       right: "0",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       minWidth: "150px"
     },
     ".date.relative": {
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".image-wrapper": {
       flexShrink: 0,
@@ -174,7 +174,7 @@ const listStyles = (theme: any) =>
       height: "40px",
       overflow: "hidden",
       position: "relative",
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.grey[500]
     }
   });
 

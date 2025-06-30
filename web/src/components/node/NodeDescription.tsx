@@ -24,7 +24,7 @@ const styles = (theme: any) =>
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
       color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_gray4,
+      backgroundColor: theme.palette.grey[400],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",

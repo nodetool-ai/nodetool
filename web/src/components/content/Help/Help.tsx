@@ -66,7 +66,7 @@ const helpStyles = (theme: any) =>
       alignItems: "center",
       marginBottom: "0.5em",
       padding: "0em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`
+      borderBottom: `1px solid ${theme.palette.grey[600]}`
     },
     ".content": {
       height: "calc(100% - 40px)",
@@ -82,7 +82,7 @@ const helpStyles = (theme: any) =>
         borderRadius: "1.5px"
       },
       "& .MuiTab-root": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
@@ -112,14 +112,14 @@ const helpStyles = (theme: any) =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.palette.c_gray1
+        background: theme.palette.grey[800]
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.palette.c_gray3,
+        background: theme.palette.grey[500],
         borderRadius: "4px"
       },
       "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.palette.c_gray4
+        background: theme.palette.grey[400]
       }
     },
     ".help-item": {
@@ -134,8 +134,8 @@ const helpStyles = (theme: any) =>
       },
       button: {
         marginTop: "2px",
-        color: theme.palette.c_gray5,
-        border: `1px solid ${theme.palette.c_gray2}`,
+        color: theme.palette.grey[200],
+        border: `1px solid ${theme.palette.grey[600]}`,
         padding: "1px 6px",
         textAlign: "left",
         lineHeight: "1.3em",
@@ -150,7 +150,7 @@ const helpStyles = (theme: any) =>
     ".explanation": {
       marginBottom: "1em",
       fontSize: "var(--fontSizeNormal)",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     }
   });
 

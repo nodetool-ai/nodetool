@@ -107,7 +107,7 @@ export const getSharedSettingsStyles = (theme: any): SerializedStyles => {
       padding: 1.2em;
       margin: 1.5em 0 1.5em 0;
       boxshadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      border: 1px solid ${theme.palette.c_gray2};
+      border: 1px solid ${theme.palette.grey[600]};
       width: 100%;
       display: flex;
       flexdirection: column;

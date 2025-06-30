@@ -45,8 +45,8 @@ const styles = (theme: any) =>
     ".list-button": {
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
-      background: theme.palette.c_gray0,
-      color: theme.palette.c_gray5,
+      background: theme.palette.grey[900],
+      color: theme.palette.grey[200],
       textTransform: "none",
       padding: "0 .5em"
     },
@@ -61,7 +61,7 @@ const styles = (theme: any) =>
       padding: "1.5em 1em"
     },
     ".gsi-material-button:hover": {
-      background: theme.palette.c_gray6
+      background: theme.palette.grey[100]
     }
   });
 

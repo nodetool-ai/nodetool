@@ -16,7 +16,7 @@ const styles = (theme: any) =>
       position: "absolute",
       top: "0.5em",
       right: "0.5em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     "button:hover": {
       backgroundColor: "transparent",

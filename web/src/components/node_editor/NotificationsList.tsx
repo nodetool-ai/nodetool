@@ -38,7 +38,7 @@ const styles = (theme: any) =>
       whiteSpace: "nowrap",
       flexShrink: 0,
       marginRight: "1.2em",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       opacity: 0.8
     },
     "li span.message": {

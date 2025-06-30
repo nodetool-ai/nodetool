@@ -81,15 +81,15 @@ const scrollableContentStyles = (theme: any) =>
         backgroundColor: "transparent !important"
       },
       ".icon-bg svg": {
-        color: theme.palette.c_gray4
+        color: theme.palette.grey[400]
       }
     },
     ".node:hover": {
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.grey[600]
     },
     ".node.focused": {
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
     },

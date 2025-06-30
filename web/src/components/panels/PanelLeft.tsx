@@ -79,7 +79,7 @@ const styles = (theme: any) =>
       minHeight: "2em"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".messages": {
       overflowY: "auto"
@@ -123,8 +123,8 @@ const styles = (theme: any) =>
         wordWrap: "break-word",
         textTransform: "none",
         maxWidth: "160px",
-        borderColor: theme.palette.c_gray5,
-        color: theme.palette.c_gray5,
+        borderColor: theme.palette.grey[200],
+        color: theme.palette.grey[200],
         margin: "0.5em",
         padding: "0.5em 1em",
         "&:hover": {

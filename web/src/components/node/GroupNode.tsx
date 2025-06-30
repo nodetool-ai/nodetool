@@ -37,7 +37,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray2}`,
+    border: `1px solid ${theme.palette.grey[600]}`,
     backgroundColor: theme.palette.c_bg_group,
     h6: {
       display: "block",
@@ -130,7 +130,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       whiteSpace: "nowrap",
       zIndex: 100,
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-      border: `1px solid ${theme.palette.c_gray3}`,
+      border: `1px solid ${theme.palette.grey[500]}`,
       opacity: 0,
       visibility: "hidden",
       transition: "opacity 0.2s 2s ease, visibility 0.2s 2s ease"

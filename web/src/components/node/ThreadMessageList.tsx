@@ -28,8 +28,8 @@ const styles = (theme: any) =>
       fontWeight: "400"
     },
     ".messages li.user": {
-      color: theme.palette.c_gray5,
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      color: theme.palette.grey[200],
+      borderBottom: `1px solid ${theme.palette.grey[600]}`,
       padding: "0.1em 0.2em 0",
       margin: "2em 0 1em 0"
     },

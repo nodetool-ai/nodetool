@@ -35,7 +35,7 @@ const styles = (theme: any) =>
     pre: {
       width: "90%",
       overflow: "auto",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.grey[900],
       borderRadius: "5px",
       padding: "1em"
     },
@@ -47,7 +47,7 @@ const styles = (theme: any) =>
       borderCollapse: "collapse"
     },
     th: {
-      border: `1px solid ${theme.palette.c_gray3}`,
+      border: `1px solid ${theme.palette.grey[500]}`,
       padding: "0.5em"
     },
     "li, ol": {

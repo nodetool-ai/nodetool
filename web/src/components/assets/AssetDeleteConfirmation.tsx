@@ -37,7 +37,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "4em",
       display: "block",
-      background: `linear-gradient(to top, ${theme.palette.c_gray2}, transparent)`,
+      background: `linear-gradient(to top, ${theme.palette.grey[600]}, transparent)`,
       position: "absolute",
       bottom: "3em",
       left: 0

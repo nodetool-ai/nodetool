@@ -12,7 +12,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 const styles = (theme: any) =>
   css({
     width: "fit-content",
-    backgroundColor: theme.palette.c_gray0,
+    backgroundColor: theme.palette.grey[900],
 
     "&:hover, &:hover .back-to-editor-title": {
       color: theme.palette.c_white,
@@ -22,7 +22,7 @@ const styles = (theme: any) =>
       width: "fit-content"
     },
     ".back-to-editor-title": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       marginLeft: "0.5em",
       fontSize: "var(--fontSizeSmaller)",
       transition: "color 0.25s"

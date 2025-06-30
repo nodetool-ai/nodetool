@@ -26,17 +26,17 @@ const styles = (theme: any) =>
       transition: "background-color 0.2s ease"
     },
     "&:hover p": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".folder-icon": {
       width: "25px",
       height: "100%",
       left: "0",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray3
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[500]
     },
     ".folder-icon:hover": {
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     "&.selected .folder-icon": {
       color: theme.palette.c_hl2
@@ -64,13 +64,13 @@ const styles = (theme: any) =>
       color: theme.palette.c_hl1
     },
     "&:hover": {
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     "&:hover .delete-button": {
       opacity: 0
     },
     "&.drag-hover": {
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.grey[500]
     },
     ".delete-button": {
       position: "absolute",
@@ -82,7 +82,7 @@ const styles = (theme: any) =>
       right: "0",
       top: "0",
       border: "none",
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".delete-button:hover": {
       border: "none",

@@ -113,8 +113,8 @@ const styles = (theme: any) =>
       left: "-4px",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[200],
       padding: "0.2em 0.4em",
       margin: "0",
       zIndex: 110
@@ -163,7 +163,7 @@ const styles = (theme: any) =>
       height: "200px",
       overflow: "visible",
       position: "relative",
-      background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.c_gray1}22)`
+      background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.grey[800]}22)`
     },
     ".image-wrapper:hover": {
       animation: "sciFiPulse 2s infinite",
@@ -217,7 +217,7 @@ const styles = (theme: any) =>
       letterSpacing: "1px",
       fontWeight: "bold",
       color: theme.palette.text.primary,
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       "&:hover": {
         border: `1px solid ${theme.palette.c_hl1}`,
         // transform: "translateY(-2px)",
@@ -310,16 +310,16 @@ const styles = (theme: any) =>
       borderRadius: ".3em",
       color: theme.palette.c_black,
       wordBreak: "break-word",
-      backgroundColor: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[200],
       opacity: 0.96
     },
     ".matched-item-name": {
       fontSize: "14px",
-      color: theme.palette.c_gray0
+      color: theme.palette.grey[900]
     },
     ".matched-item-namespace": {
       display: "block",
-      color: theme.palette.c_gray1,
+      color: theme.palette.grey[800],
       fontSize: "11px",
       fontWeight: 600
     },

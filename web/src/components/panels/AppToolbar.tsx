@@ -39,7 +39,7 @@ const styles = (theme: any) =>
       top: "4px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".dashboard-button": {
       position: "absolute",
@@ -47,14 +47,14 @@ const styles = (theme: any) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.c_gray1}ee`,
+      backgroundColor: `${theme.palette.grey[800]}ee`,
       color: theme.palette.c_hl1,
-      border: `2px solid ${theme.palette.c_gray3}`,
+      border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         borderColor: theme.palette.c_hl1,
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
@@ -90,14 +90,14 @@ const styles = (theme: any) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.c_gray1}ee`,
+      backgroundColor: `${theme.palette.grey[800]}ee`,
       color: theme.palette.c_hl1,
-      border: `2px solid ${theme.palette.c_gray3}`,
+      border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         borderColor: theme.palette.c_hl1,
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
@@ -154,12 +154,12 @@ const styles = (theme: any) =>
       "& .MuiSelect-select": {
         fontSize: "0.75rem",
         padding: "0px 8px",
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         lineHeight: "24px",
         height: "24px"
       },
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_gray3
+        borderColor: theme.palette.grey[500]
       }
     },
     ".status-message-container": {
@@ -172,11 +172,11 @@ const styles = (theme: any) =>
       height: "32px",
       minWidth: "32px",
       padding: "4px",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       position: "relative",
       borderRadius: "4px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
       "& svg": {
         fontSize: "20px",
@@ -191,7 +191,7 @@ const styles = (theme: any) =>
       border: `1px solid ${theme.palette.c_hl1}66`
     },
     ".action-button.disabled": {
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       "&:hover": {
         boxShadow: "none"
       }
@@ -205,7 +205,7 @@ const styles = (theme: any) =>
       }
     },
     ".run-stop-button": {
-      backgroundColor: `${theme.palette.c_gray2}cc`,
+      backgroundColor: `${theme.palette.grey[600]}cc`,
       color: theme.palette.c_hl1,
       minWidth: "40px",
       height: "26px",
@@ -232,8 +232,8 @@ const styles = (theme: any) =>
       top: "25px",
       fontSize: theme.fontSizeSmaller,
       padding: "0.2em 0.8em",
-      color: theme.palette.c_gray6,
-      boxShadow: `0 2px 8px ${theme.palette.c_gray1}40`
+      color: theme.palette.grey[100],
+      boxShadow: `0 2px 8px ${theme.palette.grey[800]}40`
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },

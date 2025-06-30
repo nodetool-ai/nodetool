@@ -50,7 +50,7 @@ const styles = (theme: any) =>
     ".MuiPaper-root": {
       overflow: "hidden",
       height: "100%",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.grey[900],
       width: "100%",
       maxWidth: "100%",
       maxHeight: "100%",
@@ -93,7 +93,7 @@ const styles = (theme: any) =>
       width: "1.75em",
       height: "1.75em",
       backgroundColor: "#999999aa",
-      color: theme.palette.c_gray0,
+      color: theme.palette.grey[900],
       borderRadius: "0.2em",
       padding: "0.3em"
     },
@@ -101,7 +101,7 @@ const styles = (theme: any) =>
       fontSize: "1.5em"
     },
     ".actions .button:hover": {
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.grey[500]
     },
     // -------------------
     ".asset-navigation": {
@@ -114,7 +114,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "120px",
       padding: "0 0 .5em 0",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       bottom: 0,
       zIndex: 200
     },
@@ -131,7 +131,7 @@ const styles = (theme: any) =>
       height: "2em",
       zIndex: 20000,
       cursor: "pointer",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       backgroundColor: "#44444499",
       border: "2px solid #aaaaaa33"
     },

@@ -386,7 +386,7 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.palette.c_gray1,
+                    backgroundColor: theme.palette.grey[800],
                     padding: "20px",
                     borderRadius: "20px"
                   }}
@@ -529,7 +529,7 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1.6,
-                    backgroundColor: theme.palette.c_gray1,
+                    backgroundColor: theme.palette.grey[800],
                     padding: "20px",
                     borderRadius: "20px"
                   }}

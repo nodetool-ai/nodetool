@@ -65,7 +65,7 @@ const styles = (theme: any) =>
       padding: 0
     },
     ".asset-button-group.MuiButtonGroup-root button": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       minWidth: "20px",
       border: 0,
       margin: "0",
@@ -77,7 +77,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-button-group .MuiButton-root.disabled": {
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     // size slider
     ".asset-size-slider": {
@@ -93,7 +93,7 @@ const styles = (theme: any) =>
       margin: "0",
       padding: "0",
       top: "0.2em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".asset-size-slider .MuiSlider-root:hover": {
       color: theme.palette.c_hl1
@@ -118,8 +118,8 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".sort-assets .MuiSelect-select": {
-      color: theme.palette.c_gray5,
-      border: "1px solid " + theme.palette.c_gray5,
+      color: theme.palette.grey[200],
+      border: "1px solid " + theme.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "clip",
@@ -173,8 +173,8 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".size-filter .MuiSelect-select": {
-      color: theme.palette.c_gray5,
-      border: "1px solid " + theme.palette.c_gray5,
+      color: theme.palette.grey[200],
+      border: "1px solid " + theme.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "ellipsis",

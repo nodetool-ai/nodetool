@@ -28,7 +28,7 @@ const styles = (theme: any) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",

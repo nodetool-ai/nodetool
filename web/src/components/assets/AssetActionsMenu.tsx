@@ -30,7 +30,7 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       fontSize: ThemeNodetool.fontSizeSmall,
       padding: "0.1em 0.2em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     }
   });
 

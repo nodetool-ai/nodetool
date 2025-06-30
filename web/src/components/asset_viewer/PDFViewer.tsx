@@ -99,7 +99,7 @@ const styles = (theme: any) =>
     ".page-controls": {
       position: "sticky",
       bottom: "1em",
-      background: theme.palette.c_gray2,
+      background: theme.palette.grey[600],
       padding: "0.8em 1em",
       borderRadius: "4px 4px 0 0",
       zIndex: 1,
@@ -133,21 +133,21 @@ const styles = (theme: any) =>
         height: "100%",
         width: ".2em",
         "& .MuiSlider-track": {
-          backgroundColor: theme.palette.c_gray3
+          backgroundColor: theme.palette.grey[500]
         },
         "& .MuiSlider-rail": {
-          backgroundColor: theme.palette.c_gray1
+          backgroundColor: theme.palette.grey[800]
         },
         "& .MuiSlider-thumb": {
-          backgroundColor: theme.palette.c_gray4,
+          backgroundColor: theme.palette.grey[400],
           width: "16px",
           height: "16px",
           "&:hover, &.Mui-focusVisible": {
-            boxShadow: `0px 0px 0px 8px ${theme.palette.c_gray2}40`
+            boxShadow: `0px 0px 0px 8px ${theme.palette.grey[600]}40`
           }
         },
         "& .MuiSlider-mark": {
-          backgroundColor: theme.palette.c_gray2,
+          backgroundColor: theme.palette.grey[600],
           borderRadius: "0",
           width: "4px",
           height: "4px"

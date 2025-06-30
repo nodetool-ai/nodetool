@@ -187,7 +187,7 @@ const ThemeNodetool: Theme = createTheme({
     MuiToolbar: {
       styleOverrides: {
         dense: ({ theme }) => ({
-          backgroundColor: theme.palette.c_gray1,
+          backgroundColor: theme.palette.grey[800],
           height: "100%",
           display: "flex",
           justifyContent: "space-between"
