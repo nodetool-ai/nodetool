@@ -35,6 +35,12 @@ interface AssetGridRowProps {
 }
 
 const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
+  // Debug render log
+  console.debug("[AssetGridRow] render", {
+    rowIndex: index,
+    selectedAssetIds: data.selectedAssetIds
+  });
+
   const {
     getItemsForRow,
     gridDimensions,
@@ -207,34 +213,4 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   return result;
 };
 
-export default React.memo(AssetGridRow, (prevProps, nextProps) => {
-  // Only re-render if the row content or grid dimensions changed
-  // Don't re-render just because a different asset was selected
-  const prevItems = prevProps.data.getItemsForRow(prevProps.index);
-  const nextItems = nextProps.data.getItemsForRow(nextProps.index);
-
-  // Check if this specific row's items selection state changed
-  const thisRowSelectionChanged = prevItems.some((item, idx) => {
-    if (item.isDivider || nextItems[idx]?.isDivider) return false;
-    const prevSelected =
-      prevProps.data.selectedAssetIds?.includes(item.id) || false;
-    const nextSelected =
-      nextProps.data.selectedAssetIds?.includes(item.id) || false;
-    return prevSelected !== nextSelected;
-  });
-
-  // Re-render only if:
-  // 1. This row's selection actually changed, OR
-  // 2. Grid structure changed, OR
-  // 3. Other non-selection props changed
-  const gridChanged =
-    prevProps.data.gridDimensions !== nextProps.data.gridDimensions ||
-    prevProps.style !== nextProps.style ||
-    prevProps.index !== nextProps.index;
-
-  const shouldUpdate = thisRowSelectionChanged || gridChanged;
-
-  // Skip re-render if no relevant changes
-
-  return !shouldUpdate; // memo returns true to skip re-render
-});
+export default React.memo(AssetGridRow);

@@ -82,12 +82,37 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
+
+  // Base asset list (without dividers)
   const assets = useMemo(() => {
     if (propAssets) return propAssets;
     return folderFilesFiltered || [];
   }, [propAssets, folderFilesFiltered]);
 
-  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(assets);
+  // State for which content-types are expanded / collapsed must be defined
+  // *before* we compute the prepared items that depend on it, so that the
+  // hook order remains stable.
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["folder", "image", "audio", "video", "text", "other"])
+  );
+
+  // Prepare items (adds dividers, respects expanded types)
+  const preparedItems = useMemo(() => {
+    return prepareItems(assets || [], expandedTypes);
+  }, [assets, expandedTypes]);
+
+  // Extract visual order of assets excluding dividers – this is the order that
+  // users actually see and therefore the order that shift-range selection must
+  // follow.
+  const visualOrderAssets = useMemo(() => {
+    return preparedItems.filter((item) => !item.isDivider) as Asset[];
+  }, [preparedItems]);
+
+  // Use the *visual* order for the selection algorithm so shift-click works
+  // intuitively.  Ctrl-click behaviour is also more predictable because the
+  // hook's internal maps match what the user sees.
+  const { selectedAssetIds, handleSelectAsset } =
+    useAssetSelection(visualOrderAssets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const viewMode = useAssetGridStore((state) => state.viewMode);
 
@@ -104,10 +129,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [assetItemSize]
   );
 
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "text", "other"])
-  );
-
   const toggleExpanded = useCallback((type: string) => {
     setExpandedTypes((prev) => {
       const newSet = new Set(prev);
@@ -119,11 +140,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       return newSet;
     });
   }, []);
-
-  const preparedItems = useMemo(() => {
-    const prepared = prepareItems(assets || [], expandedTypes);
-    return prepared;
-  }, [assets, expandedTypes]);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
