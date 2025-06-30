@@ -1,5 +1,4 @@
-import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
-// import type {} from "@mui/material/themeCssVarsAugmentation"; // No longer strictly needed for this approach
+import { Theme, createTheme } from "@mui/material/styles";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 
@@ -42,28 +41,19 @@ declare module "@mui/system/createTheme" {
 }
 
 const ThemeNodes: Theme = createTheme({
-  defaultColorScheme: "dark",
+  defaultColorScheme: "light",
   colorSchemes: {
     dark: {
       palette: paletteDark
     },
     light: {
-      palette: paletteDark
+      palette: paletteLight
     }
   },
   cssVariables: {
     colorSchemeSelector: "[data-mui-color-scheme]",
     cssVarPrefix: ""
   },
-
-  // fontSizeGiant: "2.5em",
-  // fontSizeBigger: "1.25em",
-  // fontSizeBig: "1.125em",
-  // fontSizeNormal: "12px",
-  // fontSizeSmall: "0.875em",
-  // fontSizeSmaller: "0.75em",
-  // fontSizeTiny: "0.65em",
-  // fontSizeTinyer: "0.55em",
   fontSizeGiant: "2em",
   fontSizeBigger: "1.25em",
   fontSizeBig: "1.125em",
