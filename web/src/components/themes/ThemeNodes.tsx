@@ -118,6 +118,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h1: ({ theme }) => ({
           fontSize: "2em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -125,6 +126,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h2: ({ theme }) => ({
           fontSize: "1.75em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -132,6 +134,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h3: ({ theme }) => ({
           fontSize: "1.5em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -174,6 +177,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         body2: ({ theme }) => ({
           fontSize: "1em",
+          fontWeight: 300,
           lineHeight: 1.1,
           fontFamily: theme.fontFamily1
         })

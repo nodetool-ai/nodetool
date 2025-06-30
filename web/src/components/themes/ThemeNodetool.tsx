@@ -82,6 +82,7 @@ const ThemeNodetool: Theme = createTheme({
         h1: ({ theme }) => ({
           cursor: "default",
           fontSize: "2em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -90,12 +91,14 @@ const ThemeNodetool: Theme = createTheme({
         h2: ({ theme }) => ({
           cursor: "default",
           fontSize: "1.5em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2)
         }),
         h3: ({ theme }) => ({
           cursor: "default",
           fontSize: "1.1em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily1
@@ -103,10 +106,10 @@ const ThemeNodetool: Theme = createTheme({
         h4: ({ theme }) => ({
           cursor: "default",
           fontSize: "0.8em",
+          fontWeight: 300,
           marginTop: theme.spacing(2),
           marginBottom: theme.spacing(1),
           textTransform: "uppercase",
-          fontWeight: 300,
           fontFamily: theme.fontFamily2,
           wordSpacing: "-3px",
           color: "var(--palette-primary-main)",
@@ -116,10 +119,10 @@ const ThemeNodetool: Theme = createTheme({
         h5: ({ theme }) => ({
           cursor: "default",
           fontSize: "0.8em",
+          fontWeight: 600,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           textTransform: "uppercase",
-          fontWeight: 600,
           fontFamily: theme.fontFamily2,
           wordSpacing: "-3px"
         }),
