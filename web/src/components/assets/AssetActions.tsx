@@ -86,7 +86,7 @@ const styles = (theme: any) =>
       flexShrink: 1,
       paddingRight: "0.5em",
       minWidth: "80px",
-      maxWidth: "250px"
+      maxWidth: "170px"
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",

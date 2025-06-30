@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Asset } from "./ApiTypes";
+import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey } from "../utils/formatUtils";
 
 interface AssetGridState {
@@ -49,6 +49,16 @@ interface AssetGridState {
 
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
+
+  // Global search properties
+  globalSearchResults: AssetWithPath[];
+  isGlobalSearchActive: boolean;
+  globalSearchQuery: string;
+
+  // Global search actions
+  setGlobalSearchResults: (results: AssetWithPath[]) => void;
+  setIsGlobalSearchActive: (active: boolean) => void;
+  setGlobalSearchQuery: (query: string) => void;
 }
 
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
@@ -118,5 +128,15 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
   isRenaming: null,
-  setIsRenaming: (isRenaming) => set({ isRenaming })
+  setIsRenaming: (isRenaming) => set({ isRenaming }),
+
+  // Global search initial state
+  globalSearchResults: [],
+  isGlobalSearchActive: false,
+  globalSearchQuery: "",
+
+  // Global search actions
+  setGlobalSearchResults: (results) => set({ globalSearchResults: results }),
+  setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
+  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query })
 }));

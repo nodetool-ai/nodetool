@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implement a server-side global search feature that allows users to search across all folders in their asset library, with a toggle between local (current folder) and global search modes.
+Implement a server-side global search feature that allows users to search across all folders in their asset library. Local search within current folder is handled efficiently by the frontend.
 Take extra care not to remove or change existing functionality and styles.
 
 ## Phase 1: Backend API Implementation
@@ -15,10 +15,8 @@ Add new endpoint: `GET /api/assets/search`
 
 ```python
 @router.get("/search")
-async def search_assets(
+async def search_assets_global(
     query: str,
-    global_search: bool = False,
-    parent_id: Optional[str] = None,
     content_type: Optional[str] = None,
     page_size: Optional[int] = 100,
     cursor: Optional[str] = None,
@@ -29,12 +27,12 @@ async def search_assets(
 **Parameters**:
 
 - `query`: Search term (minimum 2 characters)
-- `global_search`: Boolean flag for global vs local search
-- `parent_id`: Current folder ID (used when global_search=False)
 - `content_type`: Optional content type filter
 - `page_size`: Results per page (default 100)
 - `cursor`: Pagination cursor
 - `user`: Current user ID
+
+**Note**: Local search is handled efficiently in the frontend by filtering already-loaded folder assets.
 
 **Response Model**:
 
@@ -66,18 +64,16 @@ Add new methods to AssetModel:
 
 ```python
 @classmethod
-def search_assets(
+def search_assets_global(
     cls,
     user_id: str,
     query: str,
-    global_search: bool = False,
-    parent_id: Optional[str] = None,
     content_type: Optional[str] = None,
     limit: int = 100,
     start_key: Optional[str] = None,
 ) -> Tuple[List['AssetModel'], Optional[str], List[Dict[str, str]]]:
     """
-    Search assets with optional global scope and return path information
+    Search assets globally across all user folders and return path information
     """
     # Implementation details for database query
     pass
@@ -104,13 +100,11 @@ interface AssetGridState {
   // ... existing properties
 
   // New global search properties
-  isGlobalSearchEnabled: boolean;
   globalSearchResults: AssetWithPath[];
   isGlobalSearchActive: boolean;
   globalSearchQuery: string;
 
   // New actions
-  setIsGlobalSearchEnabled: (enabled: boolean) => void;
   setGlobalSearchResults: (results: AssetWithPath[]) => void;
   setIsGlobalSearchActive: (active: boolean) => void;
   setGlobalSearchQuery: (query: string) => void;
@@ -175,6 +169,7 @@ Add integration with new search API and handle search result state.
 **Implementation**:
 
 - **List View Only**: Display folder context inline with asset details (folder name + navigation button)
+- **Global Search Only**: Backend only handles global search; local search is handled efficiently in frontend
 - **Future Enhancement**: Grid view support can be added later with careful UX consideration for small item sizes
 - **Tooltip**: Show full folder path on hover
 
@@ -184,17 +179,16 @@ Add integration with new search API and handle search result state.
 
 Features:
 
-- Toggle button for global/local search
-- Search input with 500ms debounce
+- Search input with 500ms debounce for global search
 - Minimum 2 characters validation
 - Loading indicator
 - Clear search button
+- **Note**: Local search is handled by existing frontend filtering
 
 ```typescript
 interface AssetSearchInputProps {
-  onSearchChange: (query: string, isGlobal: boolean) => void;
-  isGlobalSearchEnabled: boolean;
-  onToggleGlobalSearch: (enabled: boolean) => void;
+  onSearchChange: (query: string) => void;
+  onClearSearch: () => void;
 }
 ```
 
@@ -293,7 +287,7 @@ interface FolderContextProps {
 
 ### 7.1 CSS Updates
 
-- Search toggle button styling
+- Global search input styling
 - Folder context inline styling (for list view)
 - Search results list styling
 - Loading and empty state styling
