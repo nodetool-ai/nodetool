@@ -200,7 +200,15 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
-  // Group assets by content type
+  // Group assets by content type - optimized with asset IDs dependency
+  const assetIds = useMemo(
+    () =>
+      assets
+        .map((asset) => `${asset.id}-${asset.name}-${asset.content_type}`)
+        .join(","),
+    [assets]
+  );
+
   const assetsByType = useMemo(() => {
     const grouped: Record<string, Asset[]> = {};
 
@@ -222,7 +230,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     });
 
     return grouped;
-  }, [assets]);
+  }, [assetIds, assets]);
 
   const [expandedTypes, setExpandedTypes] = React.useState<Set<string>>(
     new Set(["folder", "image", "audio", "video", "text", "other"])
@@ -357,7 +365,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
                 typeAssets.map((asset) => {
                   const isSelected = selectedAssetIds.includes(asset.id);
                   const isFolder = asset.content_type === "folder";
-                  const assetSize = (asset as any).size as number | undefined;
+                  const assetSize = asset.size;
                   const hasVisualContent =
                     (type === "image" || type === "video") &&
                     asset.get_url &&
