@@ -61,7 +61,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       padding: "0.75em 1em",
       borderBottom: `1px solid ${theme.palette.c_gray1}`,
-      cursor: "pointer",
+      cursor: "grab",
       transition: "background-color 0.2s",
       "&:hover": {
         backgroundColor: theme.palette.c_gray1
@@ -69,6 +69,9 @@ const styles = (theme: any) =>
       "&.selected": {
         backgroundColor: theme.palette.c_hl1 + "22",
         borderLeft: `3px solid ${theme.palette.c_hl1}`
+      },
+      "&:active": {
+        cursor: "grabbing"
       }
     },
     ".result-item-icon": {
@@ -217,6 +220,45 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     [openContextMenu]
   );
 
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, asset: AssetWithPath) => {
+      let assetIds;
+
+      if (selectedAssetIds && selectedAssetIds.includes(asset.id)) {
+        assetIds = selectedAssetIds;
+      } else {
+        assetIds = [asset.id];
+        handleSelectAsset(asset.id);
+      }
+
+      e.dataTransfer.setData("selectedAssetIds", JSON.stringify(assetIds));
+      e.dataTransfer.setData("asset", JSON.stringify(asset));
+
+      const dragImage = document.createElement("div");
+      dragImage.textContent = assetIds.length.toString();
+      dragImage.style.cssText = `
+        position: absolute;
+        top: -99999px;
+        background-color: #222;
+        color: #999;
+        border: 3px solid #333;
+        border-radius: 4px;
+        height: 40px;
+        width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+      `;
+
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 25, 30);
+      setTimeout(() => document.body.removeChild(dragImage), 0);
+    },
+    [selectedAssetIds, handleSelectAsset]
+  );
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -309,6 +351,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 className={`global-search-result-item search-result-item ${
                   isSelected ? "selected global-search-selected" : ""
                 }`}
+                draggable={true}
+                onDragStart={(e) => handleDragStart(e, asset)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectAsset(asset.id);
