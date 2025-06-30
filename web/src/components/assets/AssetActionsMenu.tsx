@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useCallback } from "react";
 import { Box } from "@mui/material";
-import SearchInput from "../search/SearchInput";
+import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -48,7 +48,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
 
-  const onSearchChange = useCallback(
+  const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
       setAssetSearchTerm(newSearchTerm);
     },
@@ -57,12 +57,11 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
 
   return (
     <Box className="asset-menu asset-menu-with-global-search" css={styles}>
-      <SearchInput
-        onSearchChange={onSearchChange}
+      <AssetSearchInput
+        onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}
         focusSearchInput={false}
-        maxWidth={"12em"}
-        enableGlobalSearch={true}
+        maxWidth={"15em"}
       />
       <AssetActions
         setSelectedAssetIds={setSelectedAssetIds}
