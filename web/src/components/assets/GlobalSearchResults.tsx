@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
-import { Typography, Box, Button, Chip, Tooltip } from "@mui/material";
+import { Typography, Box, Button, Tooltip } from "@mui/material";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -11,10 +11,9 @@ import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
-import { colorForType, IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
