@@ -29,7 +29,7 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
     ".subtask-completed": {
-      color: theme.palette.grey[800]0
+      color: theme.palette.grey[800]
     },
     ".subtask-tool svg": {
       fontSize: "0.5rem"
@@ -51,7 +51,7 @@ const styles = (theme: any) =>
       "100%": { backgroundPosition: "200%" }
     },
     ".shine-effect": {
-      background: `linear-gradient(90deg, ${'var(--palette-primary-main)'}, ${'var(--palette-secondary-main)'}, ${'var(--palette-primary-main)'})`,
+      background: `linear-gradient(90deg, ${"var(--palette-primary-main)"}, ${"var(--palette-secondary-main)"}, ${"var(--palette-primary-main)"})`,
       backgroundSize: "200%",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
