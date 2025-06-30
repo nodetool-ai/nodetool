@@ -35,12 +35,6 @@ interface AssetGridRowProps {
 }
 
 const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
-  // Debug render log
-  console.debug("[AssetGridRow] render", {
-    rowIndex: index,
-    selectedAssetIds: data.selectedAssetIds
-  });
-
   const {
     getItemsForRow,
     gridDimensions,
