@@ -73,7 +73,7 @@ const menuStyles = (theme: any) =>
       padding: ".5em 0",
       listStyle: "none",
       backgroundColor: theme.palette.c_node_bg,
-      border: `1px solid var(--palette.grey[800])`,
+      border: `1px solid var(--palette-grey-800)`,
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.5)",
       borderRadius: ".3em",
       zIndex: 1000,

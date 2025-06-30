@@ -84,7 +84,7 @@ const ThemeNodes: Theme = createTheme({
           height: "15px",
           fontSize: theme.fontSizeSmall,
           minWidth: "20px",
-          backgroundColor: "#333",
+          backgroundColor: theme.palette.grey[600],
           "&:hover": {
             backgroundColor: theme.palette.grey[500]
           }
@@ -197,12 +197,12 @@ const ThemeNodes: Theme = createTheme({
             border: "0"
           }
         }),
-        inputMultiline: {
+        inputMultiline: ({ theme }) => ({
           margin: "0",
           padding: "2px 8px 0px 4px !important",
-          backgroundColor: "#4b4b4b",
+          backgroundColor: theme.palette.grey[600],
           resize: "vertical"
-        },
+        }),
         input: ({ theme }) => ({
           padding: "0px",
           maxHeight: "40em"
@@ -333,36 +333,36 @@ const ThemeNodes: Theme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           fontFamily: theme.fontFamily1,
-          backgroundColor: "#333",
+          backgroundColor: theme.palette.grey[600],
           marginBottom: "0px",
           paddingTop: "4px",
           paddingBottom: "4px",
           fontWeight: 300,
           "&:nth-of-type(even)": {
-            backgroundColor: "#313131",
+            backgroundColor: theme.palette.grey[700],
             "&:hover": {
-              backgroundColor: "#444"
+              backgroundColor: theme.palette.grey[500]
             },
             "&:selected": {
-              backgroundColor: "#333"
+              backgroundColor: theme.palette.grey[600]
             }
           },
           "&:nth-of-type(odd)": {
-            backgroundColor: "#363636",
+            backgroundColor: theme.palette.grey[600],
             "&:hover": {
-              backgroundColor: "#444"
+              backgroundColor: theme.palette.grey[500]
             },
             "&:selected": {
-              backgroundColor: "#333"
+              backgroundColor: theme.palette.grey[600]
             }
           },
           "&.Mui-hover": {
             color: "var(--palette-primary-light)",
-            backgroundColor: "#444"
+            backgroundColor: theme.palette.grey[500]
           },
           "&.Mui-selected": {
             color: "var(--palette-primary-main)",
-            backgroundColor: "#333"
+            backgroundColor: theme.palette.grey[600]
           }
         })
       }
@@ -428,9 +428,9 @@ const ThemeNodes: Theme = createTheme({
           padding: "5px",
           margin: "5px",
           fontSize: theme.fontSizeSmaller,
-          border: " 1px dashed #333",
-          backgroundColor: "#333",
-          color: "#eee",
+          border: `1px dashed ${theme.palette.grey[600]}`,
+          backgroundColor: theme.palette.grey[600],
+          color: theme.palette.text.primary,
           cursor: "default",
           userSelect: "text"
         })
