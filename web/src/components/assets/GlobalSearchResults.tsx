@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
-import { Typography, Box, Button, Chip } from "@mui/material";
+import { Typography, Box, Button, Chip, Tooltip } from "@mui/material";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -31,7 +31,8 @@ const styles = (theme: any) =>
     ".search-results-container": {
       display: "flex",
       flexDirection: "column",
-      height: "100%"
+      height: "100%",
+      paddingBottom: "1em"
     },
     ".search-results-header": {
       display: "flex",
@@ -52,7 +53,8 @@ const styles = (theme: any) =>
     },
     ".search-results-content": {
       flex: 1,
-      overflow: "auto"
+      overflow: "auto",
+      paddingBottom: "4em"
     },
     ".search-result-item": {
       display: "flex",
@@ -123,14 +125,16 @@ const styles = (theme: any) =>
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      userSelect: "none"
     },
     ".result-item-details": {
       display: "flex",
       alignItems: "center",
       gap: "0.75em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray4,
+      userSelect: "none"
     },
     ".result-item-location": {
       display: "flex",
@@ -143,7 +147,8 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5
+      color: theme.palette.c_gray5,
+      userSelect: "none"
     },
     ".folder-navigate-btn": {
       minWidth: "auto",
@@ -321,9 +326,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 
                   {showDetails && (
                     <div className="global-search-result-details result-item-details">
-                      <span className="global-search-result-type">
-                        {asset.content_type.split("/")[1] || "Unknown"}
-                      </span>
                       {assetSize && assetSize > 0 && (
                         <span className="global-search-result-size">
                           {formatFileSize(assetSize)}
@@ -331,6 +333,9 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       )}
                       <span className="global-search-result-date">
                         {formatDate(asset.created_at)}
+                      </span>
+                      <span className="global-search-result-type">
+                        {asset.content_type.split("/")[1] || ""}
                       </span>
                     </div>
                   )}
@@ -349,23 +354,23 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       </span>
                     </div>
                     {onNavigateToFolder && (
-                      <Button
-                        className="global-search-navigate-btn folder-navigate-btn"
-                        size="small"
-                        variant="text"
-                        startIcon={<NavigateIcon fontSize="small" />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNavigateToFolder(
-                            asset.folder_id,
-                            asset.folder_path
-                          );
-                        }}
-                        data-testid="global-search-navigate-folder"
-                        data-folder-id={asset.folder_id}
-                      >
-                        Go to folder
-                      </Button>
+                      <Tooltip title="Go to folder">
+                        <Button
+                          className="global-search-navigate-btn folder-navigate-btn"
+                          size="small"
+                          variant="text"
+                          startIcon={<NavigateIcon fontSize="small" />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateToFolder(
+                              asset.folder_id,
+                              asset.folder_path
+                            );
+                          }}
+                          data-testid="global-search-navigate-folder"
+                          data-folder-id={asset.folder_id}
+                        ></Button>
+                      </Tooltip>
                     )}
                   </div>
                 </div>
