@@ -125,7 +125,7 @@ const styles = (theme: any) =>
     },
     ".result-item-name": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",

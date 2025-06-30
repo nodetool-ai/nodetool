@@ -77,7 +77,7 @@ const styles = (theme: any) =>
     },
     p: {
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       lineHeight: "0.95em",
       margin: "2px 0 4px 2px"
     },
@@ -85,7 +85,7 @@ const styles = (theme: any) =>
       position: "absolute",
       pointerEvents: "none",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: "#11111188",
       margin: "0",
       padding: "0.2em 0.5em",

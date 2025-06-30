@@ -112,7 +112,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                 sx={{
                   marginLeft: 1,
                   backgroundColor: "var(--palette-primary-main)",
-                  color: "var(--c_black)",
+                  color: "var(--palette-grey-1000)",
                   "& .MuiChip-label": {
                     padding: "0 4px"
                   }
@@ -121,7 +121,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
               backgroundColor: theme.palette.grey[500]

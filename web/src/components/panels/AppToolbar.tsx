@@ -58,7 +58,7 @@ const styles = (theme: any) =>
         borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"
@@ -101,7 +101,7 @@ const styles = (theme: any) =>
         borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"

@@ -153,7 +153,7 @@ const styles = (theme: any) =>
       minWidth: "150px",
       fontSize: theme.fontSizeNormal,
       userSelect: "none",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"

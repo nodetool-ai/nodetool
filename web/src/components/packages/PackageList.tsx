@@ -35,7 +35,7 @@ type InstalledPackageListResponse =
 const styles = (theme: any) =>
   css({
     backgroundColor: theme.palette.grey[800],
-    color: theme.palette.c_white,
+    color: theme.palette.grey[0],
     height: "100%",
     display: "flex",
     flexDirection: "column",
@@ -109,7 +109,7 @@ const styles = (theme: any) =>
 
     "& .progressText": {
       marginTop: theme.spacing(2),
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500
     }
   });
@@ -297,7 +297,7 @@ const PackageList: React.FC = () => {
           sx={{
             "& .MuiOutlinedInput-root": {
               backgroundColor: theme.palette.grey[900],
-              color: theme.palette.c_white,
+              color: theme.palette.grey[0],
               "& fieldset": {
                 borderColor: theme.palette.grey[600]
               },
@@ -326,7 +326,7 @@ const PackageList: React.FC = () => {
             <ListItem className="packagelist-item-empty">
               <ListItemText
                 primary={
-                  <Typography sx={{ color: theme.palette.c_white }}>
+                  <Typography sx={{ color: theme.palette.grey[0] }}>
                     No packs found
                   </Typography>
                 }

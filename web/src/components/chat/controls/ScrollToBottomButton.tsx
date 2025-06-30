@@ -27,7 +27,7 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
     borderRadius: "50%",
     padding: 0,
     backgroundColor: theme.palette.grey[500],
-    color: theme.palette.c_white,
+    color: theme.palette.grey[0],
     transition: "opacity 0.4s ease",
     "&:hover": {
       backgroundColor: `${theme.palette.grey[400]} !important`

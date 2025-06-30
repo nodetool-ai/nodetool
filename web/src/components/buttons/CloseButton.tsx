@@ -20,7 +20,7 @@ const styles = (theme: any) =>
     },
     "button:hover": {
       backgroundColor: "transparent",
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     }
   });
 

@@ -167,7 +167,7 @@ const treeViewStyles = (theme: any) => ({
   ".MuiTreeItem-content.Mui-selected": {
     backgroundColor: (theme: any) =>
       `${"var(--palette-primary-main)"} !important`,
-    color: (theme: any) => theme.palette.c_black
+    color: (theme: any) => theme.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
     backgroundColor: (theme: any) => `${theme.palette.grey[500]} !important`

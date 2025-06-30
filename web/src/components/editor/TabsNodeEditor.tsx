@@ -101,7 +101,7 @@ const styles = (theme: any) =>
 
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.03)",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         "&::before": {
           opacity: 0.3,
           transform: "scaleX(0.3)"
@@ -109,7 +109,7 @@ const styles = (theme: any) =>
       },
 
       "&.active": {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         "&::before": {
           opacity: 0.8,
@@ -192,7 +192,7 @@ const styles = (theme: any) =>
       },
 
       "&:hover": {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         background: theme.palette.grey[800]
       },
 
@@ -243,7 +243,7 @@ const styles = (theme: any) =>
       height: "100%",
       border: "none",
       background: "transparent",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: "14px",
       display: "flex",
       alignItems: "center",

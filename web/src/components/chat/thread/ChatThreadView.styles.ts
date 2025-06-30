@@ -70,7 +70,7 @@ export const createStyles = (theme: any) => ({
       // fontSize: theme.fontSizeNormal,
       // lineHeight: "1.5em"
       // fontWeight: "300"
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     "li.user": {
@@ -88,7 +88,7 @@ export const createStyles = (theme: any) => ({
     },
 
     "li.assistant": {
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     "li pre": {
@@ -100,7 +100,7 @@ export const createStyles = (theme: any) => ({
 
     "li pre code": {
       // fontFamily: theme.fontFamily2,
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     ".code-block-container": {

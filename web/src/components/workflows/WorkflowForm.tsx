@@ -68,13 +68,13 @@ const styles = (theme: any) =>
       marginBottom: theme.spacing(2),
       "& .MuiOutlinedInput-root": {
         fontFamily: theme.fontFamily1,
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       },
       "& .MuiAutocomplete-popper": {
         backgroundColor: theme.palette.grey[800],
         "& .MuiPaper-root": {
           backgroundColor: theme.palette.grey[800],
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         },
         "& .MuiAutocomplete-option": {
           "&:hover": {
@@ -86,7 +86,7 @@ const styles = (theme: any) =>
         }
       },
       "& .MuiChip-root": {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         borderColor: theme.palette.grey[500]
       }
     },
@@ -100,7 +100,7 @@ const styles = (theme: any) =>
         margin: 0,
         fontSize: "1.5rem",
         fontWeight: 500,
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       }
     },
     ".button-container": {
@@ -119,7 +119,7 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeNormal
       },
       "&:hover": {
-        border: "1px solid" + theme.palette.c_white
+        border: "1px solid" + theme.palette.grey[0]
       }
     },
     ".cancel-button": {
@@ -135,7 +135,7 @@ const styles = (theme: any) =>
       "& .MuiOutlinedInput-root": {
         cursor: "pointer",
         fontFamily: theme.fontFamily1,
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         "&.Mui-focused": {
           backgroundColor: theme.palette.grey[600]
         }
@@ -150,7 +150,7 @@ const styles = (theme: any) =>
         right: "8px",
         color: theme.palette.grey[100],
         "&:hover": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       }
     }

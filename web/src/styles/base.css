@@ -71,7 +71,7 @@ ul li {
 /* Tooltip */
 span.tooltip-small {
   font-size: var(--fontSizeSmall);
-  color: var(--c_white) !important;
+  color: var(--palette-grey-0) !important;
 }
 
 /* tooltips */

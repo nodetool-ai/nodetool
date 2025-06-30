@@ -147,7 +147,7 @@ export const tableStyles = (theme: any) =>
           color: "var(--palette-primary-main)"
         },
         "& svg": {
-          color: theme.palette.c_black,
+          color: theme.palette.grey[1000],
           width: "100%",
           height: "100%"
         }
@@ -159,8 +159,8 @@ export const tableStyles = (theme: any) =>
 
     // Cell editing
     ".tabulator .tabulator-cell.tabulator-editing input": {
-      backgroundColor: theme.palette.c_white,
-      color: theme.palette.c_black,
+      backgroundColor: theme.palette.grey[0],
+      color: theme.palette.grey[1000],
       fontSize: theme.fontSizeSmall,
       "&::selection": {
         backgroundColor: "var(--palette-primary-main)"

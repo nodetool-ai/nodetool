@@ -18,7 +18,7 @@ import ModelsManager from "../hugging_face/ModelsManager";
 const styles = (theme: any) =>
   css({
     ".command-icon": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       padding: "0 .5em"
     }
   });

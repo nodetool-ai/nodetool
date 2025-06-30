@@ -33,7 +33,7 @@ const searchErrorBoundaryStyles = (theme: any) =>
 
     ".retry-button": {
       backgroundColor: theme.palette?.c_hl1,
-      color: theme.palette?.c_black,
+      color: theme.palette?.grey[1000],
       textTransform: "none",
       fontSize: theme.fontSizeSmaller,
       "&:hover": {

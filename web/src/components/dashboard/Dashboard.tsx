@@ -124,7 +124,7 @@ const styles = (theme: any) =>
     },
 
     ".workflow-name": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500,
       marginBottom: theme.spacing(0.5),
       overflow: "hidden",
@@ -167,8 +167,8 @@ const styles = (theme: any) =>
       ".example-description-tooltip": {
         visibility: "hidden",
         width: "200px",
-        backgroundColor: theme.palette.c_black,
-        color: theme.palette.c_white,
+        backgroundColor: theme.palette.grey[1000],
+        color: theme.palette.grey[0],
         textAlign: "center",
         borderRadius: "6px",
         padding: "5px 0",
@@ -187,7 +187,7 @@ const styles = (theme: any) =>
           marginLeft: "-5px",
           borderWidth: "5px",
           borderStyle: "solid",
-          borderColor: `${theme.palette.c_black} transparent transparent transparent`
+          borderColor: `${theme.palette.grey[1000]} transparent transparent transparent`
         }
       },
       "&:hover .example-description-tooltip": {
@@ -205,7 +205,7 @@ const styles = (theme: any) =>
 
     ".example-name": {
       padding: ".2em .5em .5em 0",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: theme.palette.grey[800],
       fontSize: "var(--fontSizeSmall)"
     },
@@ -220,7 +220,7 @@ const styles = (theme: any) =>
     ".create-button": {
       padding: ".3em 1em",
       backgroundColor: theme.palette.grey[600],
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       "&:hover": {
         backgroundColor: theme.palette.grey[500]
       }
@@ -233,7 +233,7 @@ const styles = (theme: any) =>
         borderColor: theme.palette.grey[500],
         "&.Mui-selected": {
           backgroundColor: theme.palette.grey[500],
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       }
     },

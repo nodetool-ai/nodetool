@@ -45,7 +45,7 @@ const logoStyles = (
       fontSize: fontSize,
       lineHeight: "1em",
       padding: "0px",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       borderRadius: ".1em",
       // boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.2)",
       cursor: "pointer",

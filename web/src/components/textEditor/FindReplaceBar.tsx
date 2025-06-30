@@ -48,7 +48,7 @@ const styles = (theme: any) =>
     ".search-input": {
       "& .MuiInputBase-root": {
         backgroundColor: theme.palette.grey[600],
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeSmaller,
         border: "none",
         height: "2em",
@@ -68,7 +68,7 @@ const styles = (theme: any) =>
           opacity: 0.9
         },
         "&.Mui-focused": {
-          color: theme.palette.c_white,
+          color: theme.palette.grey[0],
           backgroundColor: theme.palette.grey[500]
         }
       }
@@ -76,7 +76,7 @@ const styles = (theme: any) =>
     ".replace-input": {
       "& .MuiInputBase-root": {
         backgroundColor: theme.palette.grey[600],
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeSmaller,
         height: "2em",
         "& input": {
@@ -95,7 +95,7 @@ const styles = (theme: any) =>
           borderColor: theme.palette.grey[400]
         },
         "&.Mui-focused fieldset": {
-          borderColor: theme.palette.c_white
+          borderColor: theme.palette.grey[0]
         }
       }
     },
@@ -113,7 +113,7 @@ const styles = (theme: any) =>
       borderRadius: "4px !important",
       "&:hover": {
         backgroundColor: `${theme.palette.grey[600]} !important`,
-        color: `${theme.palette.c_white} !important`
+        color: `${theme.palette.grey[0]} !important`
       }
     }
   });

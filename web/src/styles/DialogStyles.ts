@@ -68,7 +68,7 @@ const dialogStyles = (theme: any) =>
       color: theme.palette.grey[100]
     },
     ".error-message": {
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       backgroundColor: theme.palette.error.main,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
@@ -76,7 +76,7 @@ const dialogStyles = (theme: any) =>
       padding: ".5em 1em"
     },
     ".error-notice": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "0 0 1em",
@@ -84,7 +84,7 @@ const dialogStyles = (theme: any) =>
     },
     ".notice": {
       backgroundColor: theme.palette.c_attention,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       padding: ".5em 1em"

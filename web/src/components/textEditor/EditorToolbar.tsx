@@ -48,11 +48,11 @@ const styles = (theme: any) =>
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: `${theme.palette.grey[800]} !important`,
-        color: `${theme.palette.c_white} !important`
+        color: `${theme.palette.grey[0]} !important`
       },
       "&.active": {
         backgroundColor: `${theme.palette.grey[600]} !important`,
-        color: `${theme.palette.c_white} !important`
+        color: `${theme.palette.grey[0]} !important`
       },
       "&.disabled": {
         color: `${theme.palette.grey[500]} !important`,

@@ -265,7 +265,7 @@ const ThemeNodes: Theme = createTheme({
           minHeight: "1.2em",
           margin: " 0",
           "&.Mui-focused": {
-            color: theme.palette.c_white
+            color: theme.palette.grey[0]
           }
         })
       }
@@ -444,7 +444,7 @@ const ThemeNodes: Theme = createTheme({
             lineHeight: "1.2em !important"
           },
           "&.MuiToggleButton-sizeSmall.Mui-selected": {
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             backgroundColor: theme.palette.grey[800]
           },
           "&.MuiToggleButton-sizeSmall": {

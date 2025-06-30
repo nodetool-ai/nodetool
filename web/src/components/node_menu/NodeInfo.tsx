@@ -58,7 +58,7 @@ const nodeInfoStyles = (theme: any) =>
     ".replicate-status": {
       fontWeight: "400",
       width: "fit-content",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25em 0.5em",
@@ -74,7 +74,7 @@ const nodeInfoStyles = (theme: any) =>
     ".node-description": {
       fontWeight: "400",
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
       marginBottom: "0.5em",
@@ -90,7 +90,7 @@ const nodeInfoStyles = (theme: any) =>
     ".node-tags span": {
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       backgroundColor: theme.palette.grey[400],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
@@ -153,7 +153,7 @@ const nodeInfoStyles = (theme: any) =>
       backgroundColor: "#1e1e1e"
     },
     ".inputs-outputs .item .type": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       textAlign: "right",
       borderRight: `4px solid ${theme.palette.grey[400]}`,
       paddingRight: ".5em"
@@ -162,7 +162,7 @@ const nodeInfoStyles = (theme: any) =>
       color: theme.palette.grey[100]
     },
     ".inputs-outputs .item .property.description": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".preview-image": {
       width: "100%",

@@ -16,7 +16,7 @@ interface ContextMenuItemProps {
 const styles = (theme: any) =>
   css({
     "&": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       transition: "all 0.2s ease-in-out"
     },
     "&:hover": {
@@ -34,7 +34,7 @@ const styles = (theme: any) =>
       listStyleType: "none"
     },
     "li.MuiListSubheader-root": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeNormal,
       fontWeight: 500,
       letterSpacing: "0.3px",

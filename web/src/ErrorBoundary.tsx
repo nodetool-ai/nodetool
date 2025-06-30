@@ -33,7 +33,7 @@ const errorBoundaryStyles = (theme: any) =>
       marginBottom: theme.spacing?.(2) || "16px"
     },
     ".error-text": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: theme.palette?.c_gray0,
       border: "1px solid " + theme.palette?.c_gray1,
       fontFamily: theme.fontFamily2,
@@ -51,14 +51,14 @@ const errorBoundaryStyles = (theme: any) =>
 
     ".refresh-button": {
       backgroundColor: theme.palette?.c_hl1,
-      color: theme.palette?.c_black,
+      color: theme.palette?.grey[1000],
       "&:hover": {
         backgroundColor: theme.palette?.c_hl2
       }
     },
 
     ".error-stack-trace": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: theme.palette.grey[900],
       border: "1px solid " + theme.palette.grey[800],
       fontFamily: "monospace",

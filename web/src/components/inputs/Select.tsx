@@ -93,7 +93,7 @@ const menuStyles = (theme: any) =>
 
       "&:hover": {
         backgroundColor: theme.palette.grey[600],
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       },
 
       "&.matching": {
@@ -108,7 +108,7 @@ const menuStyles = (theme: any) =>
 
       "&.highlighted": {
         backgroundColor: theme.palette.grey[500],
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       }
     },
 
@@ -159,7 +159,7 @@ const menuStyles = (theme: any) =>
       backgroundColor: theme.palette.grey[800],
       border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: ".3em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeSmaller,
 
       "&:focus": {

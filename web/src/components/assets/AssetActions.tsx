@@ -115,7 +115,7 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".sort-assets .MuiSelect-select": {
       color: theme.palette.grey[200],
@@ -170,7 +170,7 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".size-filter:hover, .size-filter [aria-expanded='true']": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".size-filter .MuiSelect-select": {
       color: theme.palette.grey[200],
