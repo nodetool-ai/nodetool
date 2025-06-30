@@ -154,7 +154,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             marginRight: ".5em !important",
             padding: "0.25em 0.75em !important",
             "&:hover": {
-              backgroundColor: "var(--c_gray3)"
+              backgroundColor: "var(--palette-grey-500)"
             }
           }}
           onClick={handleClick}
@@ -163,7 +163,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             <SmartToyIcon
               fontSize="small"
               sx={{
-                color: "var(--c_gray5)",
+                color: "var(--palette-grey-200)",
                 marginRight: "0.5em"
               }}
             />

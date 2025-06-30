@@ -32,11 +32,11 @@ const DataTypesList = ({
     css({
       "&": {
         padding: "0",
-        backgroundColor: "var(--c_gray1)"
+        backgroundColor: "var(--palette-grey-800)"
       },
       ".help-item": {
         padding: ".5em 0",
-        borderBottom: "1px solid var(--c_gray2)"
+        borderBottom: "1px solid var(--palette-grey-600)"
       },
       ".datatype-list": {
         padding: "1em",
@@ -59,11 +59,11 @@ const DataTypesList = ({
         alignItems: "flex-start"
       },
       h5: {
-        color: "var(--c_gray5)",
+        color: "var(--palette-grey-200)",
         fontSize: "1em",
         paddingLeft: "1em",
         "&:hover": {
-          color: "var(--c_gray6)"
+          color: "var(--palette-grey-100)"
         }
       }
     });

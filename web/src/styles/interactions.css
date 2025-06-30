@@ -22,7 +22,7 @@
 /* Drag selection */
 .react-flow__selection {
   outline: none;
-  border: 1px solid var(--c_gray6) !important;
+  border: 1px solid var(--palette-grey-100) !important;
   background-color: #33333355;
   border-radius: 0.25em;
 }

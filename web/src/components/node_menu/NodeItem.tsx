@@ -16,7 +16,17 @@ interface NodeItemProps {
 
 const NodeItem = memo(
   forwardRef<HTMLDivElement, NodeItemProps>(
-    ({ node, onDragStart, onClick, showCheckbox = false, isSelected = false, onToggleSelection }, ref) => {
+    (
+      {
+        node,
+        onDragStart,
+        onClick,
+        showCheckbox = false,
+        isSelected = false,
+        onToggleSelection
+      },
+      ref
+    ) => {
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
@@ -37,19 +47,24 @@ const NodeItem = memo(
         [searchTerm, node.searchInfo]
       );
 
-      const handleClick = useCallback((e: React.MouseEvent) => {
-        if (showCheckbox && onToggleSelection) {
-          e.preventDefault();
-          onToggleSelection(node.node_type);
-        } else {
-          onClick();
-        }
-      }, [showCheckbox, onToggleSelection, node.node_type, onClick]);
+      const handleClick = useCallback(
+        (e: React.MouseEvent) => {
+          if (showCheckbox && onToggleSelection) {
+            e.preventDefault();
+            onToggleSelection(node.node_type);
+          } else {
+            onClick();
+          }
+        },
+        [showCheckbox, onToggleSelection, node.node_type, onClick]
+      );
 
       return (
         <div
           ref={ref}
-          className={`node ${isHovered ? "hovered" : ""} ${showCheckbox && isSelected ? "selected" : ""}`}
+          className={`node ${isHovered ? "hovered" : ""} ${
+            showCheckbox && isSelected ? "selected" : ""
+          }`}
           draggable={!showCheckbox}
           onMouseEnter={onMouseEnter}
           onDragStart={(e) => {
@@ -76,7 +91,7 @@ const NodeItem = memo(
                 onChange={() => onToggleSelection?.(node.node_type)}
                 size="small"
                 sx={{
-                  color: "var(--c_gray5)",
+                  color: "var(--palette-grey-200)",
                   "&.Mui-checked": {
                     color: "var(--c_hl1)"
                   },

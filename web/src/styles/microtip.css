@@ -47,7 +47,7 @@
 }
 
 [aria-label][role~="tooltip"]::after {
-  background: var(--c_gray1);
+  background: var(--palette-grey-800);
   border-radius: 4px;
   color: #ffffff;
   content: attr(aria-label);

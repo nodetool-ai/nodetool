@@ -93,8 +93,8 @@ const styles = (theme: any) =>
     ".search-spinner": {
       width: "16px",
       height: "16px",
-      border: "2px solid var(--c_gray3)",
-      borderTop: "2px solid var(--c_gray6)",
+      border: "2px solid var(--palette-grey-500)",
+      borderTop: "2px solid var(--palette-grey-100)",
       borderRadius: "50%",
       animation: "spin 1s linear infinite"
     },

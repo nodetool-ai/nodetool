@@ -103,7 +103,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
                   margin: "0 0 .5em 0",
-                  color: "var(--c_gray6)"
+                  color: "var(--palette-grey-100)"
                 }}
               >
                 Input Devices
@@ -128,7 +128,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                 fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
                 backgroundColor: "var(--c_warning)",
-                color: "var(--c_gray0)",
+                color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
                 borderRadius: "0.2em",
                 zIndex: 100,

@@ -20,7 +20,7 @@ const styles = (theme: any) =>
       transition: "all 0.2s ease-in-out"
     },
     "&:hover": {
-      backgroundColor: "var(--c_gray1)"
+      backgroundColor: "var(--palette-grey-800)"
     },
     ".MuiMenuItem-root": {
       padding: 0

@@ -84,12 +84,12 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
             maxWidth: "300px",
             border: "none",
             "& .MuiOutlinedInput-root": {
-              backgroundColor: "var(--c_gray1)",
+              backgroundColor: "var(--palette-grey-800)",
               border: "none",
               "& fieldset": { border: "none " },
               "&:hover": { opacity: 0.9 },
               "&:focus": {
-                backgroundColor: "var(--c_gray3)"
+                backgroundColor: "var(--palette-grey-500)"
               }
             }
           }}
@@ -97,7 +97,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "var(--c_gray5)" }} />
+                  <SearchIcon sx={{ color: "var(--palette-grey-200)" }} />
                 </InputAdornment>
               )
             }
@@ -108,7 +108,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       {filteredModels.length === 0 ? (
         <Typography
           variant="body1"
-          sx={{ color: "var(--c_gray5)", ml: 2, mt: 8, mb: 10 }}
+          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
         >
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Typography>

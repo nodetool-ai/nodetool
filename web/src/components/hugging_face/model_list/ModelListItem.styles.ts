@@ -91,7 +91,7 @@ const modelListItemStyles = (theme: any) =>
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
-        color: "var(--c_gray1)",
+        color: "var(--palette-grey-800)",
         fontSize: "var(--fontSizeSmaller)",
         fontWeight: "bold",
         padding: "8px .5em",
@@ -221,7 +221,7 @@ const modelListItemStyles = (theme: any) =>
       },
       ".model-type-list .model-type-button:first-of-type": {
         "&, & .MuiListItemText-primary": {
-          color: "var(--c_gray6)"
+          color: "var(--palette-grey-100)"
         }
       },
       ".model-type-list .model-type-button:first-of-type.Mui-selected": {
@@ -231,7 +231,7 @@ const modelListItemStyles = (theme: any) =>
       },
       // missing model
       "&.missing .model-header": {
-        color: "var(--c_gray4)"
+        color: "var(--palette-grey-400)"
       },
       "&.missing .model-details": {
         maxWidth: "25px"

@@ -125,7 +125,7 @@ const styles = (theme: any) =>
     },
     ".folder-name": {
       fontSize: ThemeNodetool.fontSizeNormal,
-      color: "var(--c_gray6)",
+      color: "var(--palette-grey-100)",
       verticalAlign: "middle",
       "&:hover": {
         color: theme.palette.primary.main

@@ -27,7 +27,7 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = ({
     background: "rgba(0, 0, 0, 0.2)",
     borderRadius: "0.5em",
     ".markdown p": {
-      color: "var(--c_gray5)"
+      color: "var(--palette-grey-200)"
     }
   });
 
