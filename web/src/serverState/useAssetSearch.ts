@@ -12,11 +12,17 @@ export const useAssetSearch = () => {
       query: string,
       contentType?: string,
       pageSize: number = 100,
-      cursor?: string
+      cursor?: string,
+      signal?: AbortSignal
     ): Promise<AssetSearchResult | null> => {
       // Validate query length
       if (query.trim().length < 2) {
         setSearchError("Search query must be at least 2 characters long");
+        return null;
+      }
+
+      // Check if already aborted
+      if (signal?.aborted) {
         return null;
       }
 
@@ -31,8 +37,18 @@ export const useAssetSearch = () => {
           cursor: cursor
         });
 
+        // Check if aborted after async operation
+        if (signal?.aborted) {
+          return null;
+        }
+
         return result;
       } catch (error) {
+        // Don't set error if request was aborted
+        if (signal?.aborted) {
+          return null;
+        }
+
         const errorMessage =
           error instanceof Error
             ? error.message
@@ -40,7 +56,9 @@ export const useAssetSearch = () => {
         setSearchError(errorMessage);
         return null;
       } finally {
-        setIsSearching(false);
+        if (!signal?.aborted) {
+          setIsSearching(false);
+        }
       }
     },
     [search]

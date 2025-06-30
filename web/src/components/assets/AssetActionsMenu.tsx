@@ -5,6 +5,7 @@ import React, { useCallback } from "react";
 import { Box } from "@mui/material";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
+import SearchErrorBoundary from "../SearchErrorBoundary";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -57,12 +58,14 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
 
   return (
     <Box className="asset-menu asset-menu-with-global-search" css={styles}>
-      <AssetSearchInput
-        onLocalSearchChange={onLocalSearchChange}
-        focusOnTyping={false}
-        focusSearchInput={false}
-        width={333}
-      />
+      <SearchErrorBoundary fallbackTitle="Search Input Error">
+        <AssetSearchInput
+          onLocalSearchChange={onLocalSearchChange}
+          focusOnTyping={false}
+          focusSearchInput={false}
+          width={333}
+        />
+      </SearchErrorBoundary>
       <AssetActions
         setSelectedAssetIds={setSelectedAssetIds}
         handleSelectAllAssets={handleSelectAllAssets}
