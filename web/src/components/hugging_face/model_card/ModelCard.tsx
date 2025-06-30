@@ -42,12 +42,12 @@ const styles = (theme: any) =>
       background: theme.palette.grey[800]
     },
     ".model-download-button": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       margin: "1em 0.1em 0 1em",
       padding: ".25em .5em",
       border: "1px solid" + theme.palette.grey[500],
       "&:hover": {
-        borderColor: theme.palette.c_hl1
+        borderColor: "var(--palette-primary-main)"
       }
     },
     ".downloaded-indicator": {

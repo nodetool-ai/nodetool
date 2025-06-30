@@ -26,7 +26,7 @@ const dialogStyles = (theme: any) =>
       padding: "1em"
     },
     ".dialog-title span": {
-      borderBottom: `2px solid ${theme.palette.c_hl1}`
+      borderBottom: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".dialog-actions": {
       padding: ".5em 1em"
@@ -45,7 +45,7 @@ const dialogStyles = (theme: any) =>
       borderColor: theme.palette.grey[100]
     },
     ".input-field .Mui-focused fieldset": {
-      borderColor: theme.palette.c_hl1,
+      borderColor: "var(--palette-primary-main)",
       borderWidth: "2px"
     },
     ".input-field .MuiOutlinedInput-root": {
@@ -53,12 +53,12 @@ const dialogStyles = (theme: any) =>
         borderColor: theme.palette.grey[100]
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_hl1,
+        borderColor: "var(--palette-primary-main)",
         borderWidth: "2px"
       }
     },
     ".button-confirm": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "bold"
     },
     ".button-confirm:hover": {

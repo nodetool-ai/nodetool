@@ -185,7 +185,7 @@
 }
 
 .react-flow__node .node-header .color-picker-button:hover svg {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 .react-flow__node .planning-update-container {
@@ -200,7 +200,7 @@
   margin: 1em;
   border-top: 1px solid var(--palette-grey-600);
   font-size: 0.7reml;
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
   word-break: break-word;
 }
 
@@ -228,7 +228,7 @@
 }
 
 .react-flow .has-result {
-  border-bottom: 3px solid var(--c_hl1);
+  border-bottom: 3px solid var(--palette-primary-main);
 }
 
 /* Node selection */
@@ -435,11 +435,11 @@
 
 .node-footer .namespace-button:hover {
   background-color: transparent;
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 .node-footer .namespace-button:hover .pretty-namespace span {
-  color: var(--c_hl1) !important;
+  color: var(--palette-primary-main) !important;
 }
 
 .node-footer svg {
@@ -482,7 +482,7 @@
 }
 
 .node-inputs .advanced-fields-button.active svg {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
   transform: rotate(180deg);
 }
 

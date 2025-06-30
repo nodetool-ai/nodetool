@@ -54,7 +54,7 @@ export const createStyles = (theme: any) =>
 
       "&.selected": {
         backgroundColor: theme.palette.grey[600],
-        borderLeft: `2px solid ${theme.palette.c_hl1}`
+        borderLeft: `2px solid ${"var(--palette-primary-main)"}`
       },
       ".date": {
         fontSize: theme.fontSizeTiny,

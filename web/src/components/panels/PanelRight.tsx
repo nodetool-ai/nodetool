@@ -82,7 +82,7 @@ const styles = (theme: any) =>
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "&.active svg": {
-          color: "var(--c_hl1)"
+          color: "var(--palette-primary-main)"
         }
       }
     },

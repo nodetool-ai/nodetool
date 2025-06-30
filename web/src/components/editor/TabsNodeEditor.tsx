@@ -93,7 +93,7 @@ const styles = (theme: any) =>
         left: 4,
         right: 4,
         height: "2px",
-        background: theme.palette.c_hl1,
+        background: "var(--palette-primary-main)",
         opacity: 0,
         transform: "scaleX(0.7)",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
         "&:hover": {
           opacity: 1,
           transform: "scale(1.1) rotate(90deg)",
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -137,10 +137,10 @@ const styles = (theme: any) =>
       width: "2px",
       background: `linear-gradient(to bottom, 
         transparent 0%, 
-        ${theme.palette.c_hl1} 50%, 
+        ${"var(--palette-primary-main)"} 50%, 
         transparent 100%
       )`,
-      boxShadow: `0 0 8px ${theme.palette.c_hl1}`
+      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
     },
     "& .tab.drop-target-right::after": {
       content: '""',
@@ -151,10 +151,10 @@ const styles = (theme: any) =>
       width: "2px",
       background: `linear-gradient(to bottom, 
         transparent 0%, 
-        ${theme.palette.c_hl1} 50%, 
+        ${"var(--palette-primary-main)"} 50%, 
         transparent 100%
       )`,
-      boxShadow: `0 0 8px ${theme.palette.c_hl1}`
+      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
     },
     "& .editor-container": {
       flex: 1,

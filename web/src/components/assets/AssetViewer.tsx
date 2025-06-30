@@ -122,7 +122,7 @@ const styles = (theme: any) =>
       fontWeight: "bold",
       bottom: "3em",
       textAlign: "right",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".prev-next-button": {
       position: "absolute",

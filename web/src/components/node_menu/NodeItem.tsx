@@ -93,7 +93,7 @@ const NodeItem = memo(
                 sx={{
                   color: "var(--palette-grey-200)",
                   "&.Mui-checked": {
-                    color: "var(--c_hl1)"
+                    color: "var(--palette-primary-main)"
                   },
                   padding: "2px"
                 }}

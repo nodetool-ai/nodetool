@@ -128,8 +128,8 @@ const styles = (theme: any) =>
         margin: "0.5em",
         padding: "0.5em 1em",
         "&:hover": {
-          borderColor: theme.palette.c_hl1,
-          color: theme.palette.c_hl1
+          borderColor: "var(--palette-primary-main)",
+          color: "var(--palette-primary-main)"
         }
       }
     },

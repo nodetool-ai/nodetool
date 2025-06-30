@@ -226,7 +226,7 @@ const modelListItemStyles = (theme: any) =>
       },
       ".model-type-list .model-type-button:first-of-type.Mui-selected": {
         "&, & .MuiListItemText-primary": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       },
       // missing model

@@ -75,7 +75,7 @@ const styles = (theme: any) =>
       margin: "2em 0 0 0"
     },
     ".folder-slash": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: 600,
       marginRight: "0.25em",
       userSelect: "none"
@@ -137,10 +137,10 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       "& .folder-name": {
         fontWeight: "600",
-        color: "var(--c_hl1)"
+        color: "var(--palette-primary-main)"
       },
       "& .folder-icon": {
-        color: "var(--c_hl1)"
+        color: "var(--palette-primary-main)"
       }
     },
     ".root-folder": {

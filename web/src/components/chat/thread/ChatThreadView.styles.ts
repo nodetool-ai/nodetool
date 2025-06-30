@@ -108,7 +108,7 @@ export const createStyles = (theme: any) => ({
     },
 
     "li a": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
 
     "li a:hover": {

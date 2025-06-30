@@ -88,7 +88,7 @@ const scrollableContentStyles = (theme: any) =>
       backgroundColor: theme.palette.grey[600]
     },
     ".node.focused": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[600],
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"

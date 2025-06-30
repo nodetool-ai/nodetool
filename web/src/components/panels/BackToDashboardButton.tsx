@@ -10,7 +10,7 @@ const styles = (theme: any) =>
     backgroundColor: theme.palette.grey[900],
     "&:hover": {
       color: theme.palette.c_white,
-      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+      boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     },
     ".back-to-dashboard": {
       width: "fit-content"

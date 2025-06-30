@@ -57,7 +57,7 @@ export const settingsStyles = (theme: any): any =>
       paddingTop: "0em",
       lineHeight: "1.5",
       "& .MuiTabs-indicator": {
-        backgroundColor: theme.palette.c_hl1,
+        backgroundColor: "var(--palette-primary-main)",
         height: "3px",
         borderRadius: "1.5px"
       },
@@ -148,13 +148,13 @@ export const settingsStyles = (theme: any): any =>
       },
       "&.active": {
         opacity: 1,
-        borderLeftColor: theme.palette.c_hl1,
+        borderLeftColor: "var(--palette-primary-main)",
         backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".settings-sidebar-category": {
       padding: "1em 1.5em 0.5em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
       letterSpacing: "0.05em",
@@ -263,7 +263,7 @@ export const settingsStyles = (theme: any): any =>
         padding: "0 1em 0 0.5em",
         lineHeight: "1.6",
         a: {
-          color: theme.palette.c_hl1,
+          color: "var(--palette-primary-main)",
           backgroundColor: theme.palette.grey[800],
           padding: ".3em 1em",
           borderRadius: ".3em",

@@ -39,7 +39,7 @@ const styles = (theme: any) =>
       color: theme.palette.grey[400]
     },
     "&.selected .folder-icon": {
-      color: theme.palette.c_hl2
+      color: "var(--palette-secondary-main)"
     },
     ".parent-icon": {
       position: "absolute",
@@ -61,7 +61,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     "&.selected .name": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     "&:hover": {
       color: theme.palette.grey[200]

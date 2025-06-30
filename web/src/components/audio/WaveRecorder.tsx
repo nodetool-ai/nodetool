@@ -29,7 +29,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         border: "0",
         padding: "2px",
         margin: ".5em",
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       },
       "& button.device-button": {
         float: "right",

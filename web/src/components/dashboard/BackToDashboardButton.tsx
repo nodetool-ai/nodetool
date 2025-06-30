@@ -11,7 +11,7 @@ const styles = (theme: any) =>
     "&:hover": {
       color: theme.palette.c_white,
       backgroundColor: theme.palette.grey[800],
-      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+      boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     }
   });
 

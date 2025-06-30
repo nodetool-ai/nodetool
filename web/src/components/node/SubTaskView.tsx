@@ -51,7 +51,7 @@ const styles = (theme: any) =>
       "100%": { backgroundPosition: "200%" }
     },
     ".shine-effect": {
-      background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2}, ${theme.palette.c_hl1})`,
+      background: `linear-gradient(90deg, ${'var(--palette-primary-main)'}, ${'var(--palette-secondary-main)'}, ${'var(--palette-primary-main)'})`,
       backgroundSize: "200%",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",

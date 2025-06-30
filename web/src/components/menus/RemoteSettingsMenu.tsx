@@ -26,7 +26,7 @@ const ExternalLinkButton = ({
       textDecoration: "none",
       fontSize: "var(--fontSizeSmall) !important",
       color: "var(--c_black) !important",
-      backgroundColor: "var(--c_hl1) !important",
+      backgroundColor: "var(--palette-primary-main) !important",
 
       "&:hover": {
         color: "primary.light",

@@ -27,7 +27,7 @@ const sliderBasicStyles = (theme: any) =>
       height: "8px",
       "&:hover, &:focus, &:active": {
         boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
-        backgroundColor: theme.palette.c_hl1
+        backgroundColor: "var(--palette-primary-main)"
       },
       "&.Mui-focusVisible": {
         boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"

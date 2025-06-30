@@ -28,7 +28,7 @@ export const getSharedSettingsStyles = (theme: any): SerializedStyles => {
       font-family: ${theme.fontFamily2};
       word-spacing: -0.2em;
       color: ${theme.palette.primary.contrastText};
-      background-color: ${theme.palette.c_hl1};
+      background-color: ${"var(--palette-primary-main)"};
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
       border-radius: 0.3em;
@@ -66,7 +66,7 @@ export const getSharedSettingsStyles = (theme: any): SerializedStyles => {
       margin: 1.5em 0 0.5em 0;
       padding: 0;
       font-weight: 500;
-      color: ${theme.palette.c_hl1};
+      color: ${"var(--palette-primary-main)"};
       position: relative;
       display: inline-block;
     }

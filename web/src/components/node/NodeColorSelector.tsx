@@ -39,7 +39,7 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
         rotate: "-86deg"
       },
       "&:hover svg": {
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       }
     },
     "&:hover .color-picker-button": {

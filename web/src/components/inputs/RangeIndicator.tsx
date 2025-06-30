@@ -4,7 +4,7 @@ const SLIDER_HEIGHT_DRAGGING = "3px";
 const SLIDER_HEIGHT = "1px";
 const SLIDER_OPACITY = 0.3;
 const SLIDER_COLOR = "var(--palette-grey-100)";
-const SLIDER_COLOR_DRAGGING = "var(--c_hl1)";
+const SLIDER_COLOR_DRAGGING = "var(--palette-primary-main)";
 const SLIDER_BG_COLOR = "var(--palette-grey-600)";
 const SLIDER_BG_COLOR_DRAGGING = "var(--palette-grey-600)";
 

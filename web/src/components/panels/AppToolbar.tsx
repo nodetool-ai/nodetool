@@ -48,16 +48,16 @@ const styles = (theme: any) =>
       width: "48px",
       height: "40px",
       backgroundColor: `${theme.palette.grey[800]}ee`,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
         backgroundColor: theme.palette.grey[600],
-        borderColor: theme.palette.c_hl1,
+        borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
-        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
+        boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
         color: theme.palette.c_white
       },
       "&:active": {
@@ -74,7 +74,7 @@ const styles = (theme: any) =>
         left: "-2px",
         right: "-2px",
         bottom: "-2px",
-        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        background: `linear-gradient(45deg, ${"var(--palette-primary-main)"}20, transparent, ${"var(--palette-secondary-main)"}20)`,
         borderRadius: "14px",
         opacity: 0,
         transition: "opacity 0.3s ease",
@@ -91,16 +91,16 @@ const styles = (theme: any) =>
       width: "48px",
       height: "40px",
       backgroundColor: `${theme.palette.grey[800]}ee`,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
         backgroundColor: theme.palette.grey[600],
-        borderColor: theme.palette.c_hl1,
+        borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
-        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
+        boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
         color: theme.palette.c_white
       },
       "&:active": {
@@ -117,7 +117,7 @@ const styles = (theme: any) =>
         left: "-2px",
         right: "-2px",
         bottom: "-2px",
-        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        background: `linear-gradient(45deg, ${"var(--palette-primary-main)"}20, transparent, ${"var(--palette-secondary-main)"}20)`,
         borderRadius: "14px",
         opacity: 0,
         transition: "opacity 0.3s ease",
@@ -188,7 +188,7 @@ const styles = (theme: any) =>
       }
     },
     ".action-button.active": {
-      border: `1px solid ${theme.palette.c_hl1}66`
+      border: `1px solid ${"var(--palette-primary-main)"}66`
     },
     ".action-button.disabled": {
       color: theme.palette.grey[400],
@@ -198,19 +198,19 @@ const styles = (theme: any) =>
     },
     ".node-menu-button": {
       "& svg": {
-        fill: `${theme.palette.c_hl1}cc`
+        fill: `${"var(--palette-primary-main)"}cc`
       },
       "&:hover svg": {
-        fill: `${theme.palette.c_hl1}ff`
+        fill: `${"var(--palette-primary-main)"}ff`
       }
     },
     ".run-stop-button": {
       backgroundColor: `${theme.palette.grey[600]}cc`,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       minWidth: "40px",
       height: "26px",
       "&:hover": {
-        boxShadow: `0 0 4px ${theme.palette.c_hl1}55`,
+        boxShadow: `0 0 4px ${"var(--palette-primary-main)"}55`,
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
       "&.disabled": {
@@ -220,7 +220,7 @@ const styles = (theme: any) =>
         "& svg": {
           animation:
             "spin 2s linear infinite, rainbow-rotate 3s linear infinite",
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -242,7 +242,7 @@ const styles = (theme: any) =>
     },
     ".connecting-status": {
       animation: "pulse 1.5s infinite ease-in-out",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     "@keyframes rainbow-rotate": {
       "0%": { filter: "hue-rotate(0deg)" },
@@ -254,10 +254,10 @@ const styles = (theme: any) =>
     },
     "@keyframes dashboardPulse": {
       "0%, 100%": {
-        boxShadow: `0 0 0 0 ${theme.palette.c_hl1}40`
+        boxShadow: `0 0 0 0 ${"var(--palette-primary-main)"}40`
       },
       "50%": {
-        boxShadow: `0 0 0 8px ${theme.palette.c_hl1}00`
+        boxShadow: `0 0 0 8px ${"var(--palette-primary-main)"}00`
       }
     },
     ".dashboard-button::after": {

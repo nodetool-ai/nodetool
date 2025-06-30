@@ -73,7 +73,7 @@ const styles = (theme: any) =>
     },
     ".asset-button-group .MuiButton-root:hover": {
       border: 0,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: "transparent"
     },
     ".asset-button-group .MuiButton-root.disabled": {
@@ -96,10 +96,10 @@ const styles = (theme: any) =>
       color: theme.palette.grey[200]
     },
     ".asset-size-slider .MuiSlider-root:hover": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".asset-size-slider .MuiSlider-root:hover .MuiSlider-thumb": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     },
     ".asset-size-slider .MuiSlider-track": {
       backgroundColor: "transparent",
@@ -109,7 +109,7 @@ const styles = (theme: any) =>
     ".sort-assets": {
       width: "45px",
       margin: "0 1em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
@@ -131,7 +131,7 @@ const styles = (theme: any) =>
     },
 
     ".sort-assets .MuiSelect-select:hover": {
-      border: "1px solid " + theme.palette.c_hl1,
+      border: "1px solid " + "var(--palette-primary-main)",
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "clip",
@@ -144,7 +144,7 @@ const styles = (theme: any) =>
 
     ".sort-assets .MuiSelect-icon": {
       display: "none",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       right: "0"
     },
     ".sort-assets.MuiInput-root::before": {
@@ -164,7 +164,7 @@ const styles = (theme: any) =>
       width: "90px",
       margin: "0",
       padding: "0 0.25em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
@@ -185,8 +185,8 @@ const styles = (theme: any) =>
       height: "auto"
     },
     ".size-filter .MuiSelect-select:hover": {
-      border: "1px solid " + theme.palette.c_hl1,
-      color: theme.palette.c_hl1
+      border: "1px solid " + "var(--palette-primary-main)",
+      color: "var(--palette-primary-main)"
     },
     ".size-filter .MuiSelect-icon": {
       display: "none"

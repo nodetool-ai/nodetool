@@ -60,12 +60,12 @@
 }
 /* values */
 .value-changed .value {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 .value-changed textarea,
 .value-changed .MuiInput-root {
-  border-right: 2px solid var(--c_hl1) !important;
+  border-right: 2px solid var(--palette-primary-main) !important;
 }
 
 .value-changed .MuiSwitch-track {
@@ -86,7 +86,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--c_hl1);
+  background: var(--palette-primary-main);
   border-radius: 1px;
 }
 
@@ -191,7 +191,7 @@
 }
 
 .value-changed .string-property input {
-  border-right: 2px solid var(--c_hl1);
+  border-right: 2px solid var(--palette-primary-main);
 }
 
 .string-property .container .expand-button {
@@ -230,7 +230,7 @@
   transition: color 0.2s;
 }
 .string-property .expand-button:hover {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 /* SELECT */
@@ -279,7 +279,7 @@
 
 .value-changed .enum-property select,
 .value-changed .model-property select {
-  border-right: 2px solid var(--c_hl1);
+  border-right: 2px solid var(--palette-primary-main);
 }
 .enum-property select option,
 .model-property select option {
@@ -354,7 +354,7 @@
   min-width: 25px;
 }
 .value-changed .number-input .value {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 .number-input .edit-value {
   position: absolute;

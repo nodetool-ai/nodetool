@@ -70,7 +70,7 @@ const menuStyles = (theme: any) =>
     },
     ".selected-count": {
       marginLeft: theme.spacing(1),
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: "var(--palette-primary-main)",
       color: theme.palette.c_black,
       "& .MuiChip-label": {
         padding: "0 4px"
@@ -164,10 +164,10 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
               backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
-              borderColor: theme.palette.c_hl1,
-              color: theme.palette.c_hl1,
+              borderColor: "var(--palette-primary-main)",
+              color: "var(--palette-primary-main)",
               "& .MuiSvgIcon-root": {
-                color: theme.palette.c_hl1
+                color: "var(--palette-primary-main)"
               }
             }
           })}
@@ -214,7 +214,10 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
               >
                 <ListItemIcon>
                   {isSelected ? (
-                    <CheckBox fontSize="small" sx={{ color: "var(--c_hl1)" }} />
+                    <CheckBox
+                      fontSize="small"
+                      sx={{ color: "var(--palette-primary-main)" }}
+                    />
                   ) : (
                     <CheckBoxOutlineBlank
                       fontSize="small"

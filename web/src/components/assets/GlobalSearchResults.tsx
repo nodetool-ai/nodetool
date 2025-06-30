@@ -68,8 +68,8 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_hl1 + "22",
-        borderLeft: `3px solid ${theme.palette.c_hl1}`
+        backgroundColor: "var(--palette-primary-main)" + "22",
+        borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
       "&:active": {
         cursor: "grabbing"
@@ -158,9 +158,9 @@ const styles = (theme: any) =>
       padding: "0.25em 0.5em",
       fontSize: theme.fontSizeSmaller,
       textTransform: "none",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       "&:hover": {
-        backgroundColor: theme.palette.c_hl1 + "22"
+        backgroundColor: "var(--palette-primary-main)" + "22"
       }
     },
     ".result-duration": {
