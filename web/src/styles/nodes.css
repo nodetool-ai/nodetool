@@ -36,7 +36,7 @@
   /* background-color: var(--c_node_header_bg); */
   background-color: transparent;
 
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   margin: 0;
   border-radius: 2px 2px 0 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -74,7 +74,7 @@
   max-width: 170px;
   word-wrap: break-word;
   line-height: 1em;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   font-family: var(--font-family-1);
   font-size: var(--fontSizeNormal);
   font-weight: 300;
@@ -108,7 +108,7 @@
   font-weight: 300;
   font-family: var(--font-family-1);
   font-style: italic;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: transparent;
 }
 
@@ -121,7 +121,7 @@
   position: absolute;
   right: 0;
   top: 0;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: transparent;
   border: none;
   cursor: pointer;
@@ -135,7 +135,7 @@
   padding: "1em";
   bottom: 0;
   width: 100%;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   font-size: var(--fontSizeNormal);
   line-height: 1.1em;
   font-weight: 300;
@@ -161,7 +161,7 @@
 }
 
 .react-flow__node .node-header .menu-button:hover {
-  color: var(--c_white);
+  color: var(--palette-grey-0);
 }
 
 .react-flow__node .node-header .menu-button svg {
@@ -263,7 +263,7 @@
 }
 
 .react-flow .selected .process-timer {
-  color: var(--c_black);
+  color: var(--palette-grey-1000);
   background-color: transparent;
 }
 
@@ -478,7 +478,7 @@
 }
 
 .node-inputs .advanced-fields-button:hover {
-  color: var(--c_white);
+  color: var(--palette-grey-0);
 }
 
 .node-inputs .advanced-fields-button.active svg {

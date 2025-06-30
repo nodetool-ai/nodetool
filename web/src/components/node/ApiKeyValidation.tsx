@@ -74,7 +74,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               padding: ".2em 0 0",
               height: "1.8em",
               lineHeight: "1.2em",
-              color: ThemeNodes.palette.c_black,
+              color: ThemeNodes.palette.grey[1000],
               backgroundColor: ThemeNodes.palette.warning.main,
               fontSize: ThemeNodes.fontSizeSmaller,
               borderRadius: ".1em"

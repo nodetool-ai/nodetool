@@ -55,7 +55,7 @@ const menuStyles = (theme: any) =>
     },
 
     ".tool-name": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
 
     ".tool-name.selected": {
@@ -283,7 +283,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
             )
           }
           sx={(theme) => ({
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             "&:hover": {
               backgroundColor: theme.palette.grey[500],
               borderColor: theme.palette.grey[400]

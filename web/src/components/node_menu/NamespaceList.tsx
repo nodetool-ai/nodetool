@@ -116,7 +116,7 @@ const namespaceStyles = (theme: any) =>
     ".no-selection": {
       maxWidth: "200px",
       flexDirection: "column",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily1,
       wordSpacing: "0",
       padding: "0 1em",
@@ -167,7 +167,7 @@ const namespaceStyles = (theme: any) =>
       }
     },
     ".result-info": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       cursor: "default",
       display: "flex",
       alignItems: "center",
@@ -279,7 +279,7 @@ const namespaceStyles = (theme: any) =>
       gap: "0"
     },
     ".namespace-item": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       textTransform: "capitalize",
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -334,7 +334,7 @@ const namespaceStyles = (theme: any) =>
       fontWeight: "500"
     },
     ".namespaces .list-item.selected .namespace-item": {
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".namespaces .list-item.disabled.selected": {
       backgroundColor: theme.palette.grey[600],
@@ -344,7 +344,7 @@ const namespaceStyles = (theme: any) =>
       borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.highlighted.selected .namespace-item": {
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".namespaces .sublist": {
       paddingLeft: "1em"
@@ -387,7 +387,7 @@ const namespaceStyles = (theme: any) =>
       border: "none",
       borderRadius: "0 4px 4px 0",
       cursor: "pointer",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

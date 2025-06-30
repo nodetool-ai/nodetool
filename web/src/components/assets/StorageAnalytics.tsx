@@ -51,7 +51,7 @@ const styles = (theme: any) =>
       textTransform: "uppercase"
     },
     ".stat-value": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     }
   });
 

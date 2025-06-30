@@ -30,7 +30,7 @@ export const createStyles = (theme: any) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       resize: "none",
       overflowY: "auto",
       flex: 1,

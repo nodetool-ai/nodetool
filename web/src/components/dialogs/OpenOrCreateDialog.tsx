@@ -44,7 +44,7 @@ const styles = (theme: any) =>
     ".title": {
       position: "absolute",
       left: "2em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: "1.1em",
       margin: "0",
       textAlign: "center"
@@ -137,7 +137,7 @@ const listStyles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".description": {
       margin: "0.1em 0 .1em",

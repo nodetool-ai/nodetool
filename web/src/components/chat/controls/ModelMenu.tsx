@@ -49,7 +49,7 @@ const menuStyles = (theme: any) =>
       }
     },
     ".model-name": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".loading-container": {
       display: "flex",
@@ -150,7 +150,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           className={`select-model-button ${selectedModel ? "active" : ""}`}
           sx={{
             border: "1px solid transparent",
-            color: "var(--c_white)",
+            color: "var(--palette-grey-0)",
             marginRight: ".5em !important",
             padding: "0.25em 0.75em !important",
             "&:hover": {

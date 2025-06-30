@@ -28,7 +28,7 @@
   border: none;
   outline: none;
   background: rgba(255, 255, 255, 0.06);
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   border-radius: 8px;
   transition: all 0.2s ease;
 }
@@ -63,7 +63,7 @@
 
 [cmdk-item][data-selected="true"] {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--c_white);
+  color: var(--palette-grey-0);
 }
 
 [cmdk-item][data-selected="true"]:after {

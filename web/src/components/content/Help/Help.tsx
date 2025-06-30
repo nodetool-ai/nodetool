@@ -86,10 +86,10 @@ const helpStyles = (theme: any) =>
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         },
         "&:hover": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       },
       button: {
@@ -369,7 +369,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                       backgroundColor: ThemeNodetool.palette.grey[800],
                       borderRadius: "4px",
                       "& input": {
-                        color: ThemeNodetool.palette.c_white
+                        color: ThemeNodetoolpalette.grey[0]
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: ThemeNodetool.palette.grey[500]

@@ -240,12 +240,12 @@ const styles = (theme: any) =>
         ${"var(--palette-primary-main)"}dd
       )`,
       boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       animation: "glowPulse 1.5s infinite",
       "&:hover": {
         transform: "none",
         boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-        color: theme.palette.c_black
+        color: theme.palette.grey[1000]
       }
     },
     "@keyframes glowPulse": {
@@ -310,7 +310,7 @@ const styles = (theme: any) =>
       padding: ".2em .4em",
       marginRight: ".5em",
       borderRadius: ".3em",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       wordBreak: "break-word",
       backgroundColor: theme.palette.grey[200],
       opacity: 0.96

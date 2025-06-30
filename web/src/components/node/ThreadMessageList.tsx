@@ -34,17 +34,17 @@ const styles = (theme: any) =>
       margin: "2em 0 1em 0"
     },
     ".messages li.assistant": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.c_black,
+      backgroundColor: theme.palette.grey[1000],
       padding: "1em"
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".messages li a": {
       color: "var(--palette-primary-main)"

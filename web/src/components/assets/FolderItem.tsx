@@ -57,7 +57,7 @@ const styles = (theme: any) =>
       maxWidth: "100%",
       maxHeight: "2.5em",
       overflow: "hidden",
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     "&.selected .name": {
       color: "var(--palette-primary-main)"

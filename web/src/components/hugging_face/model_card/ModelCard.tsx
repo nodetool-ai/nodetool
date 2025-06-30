@@ -156,7 +156,7 @@ const styles = (theme: any) =>
       textDecoration: "none",
       lineHeight: "1.1em",
       "&:hover": {
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       }
     },
     ".readme-toggle-button": {
@@ -165,7 +165,7 @@ const styles = (theme: any) =>
       right: "0em",
       color: theme.palette.grey[200],
       "&:hover": {
-        color: theme.palette.c_white
+        color: theme.palette.grey[0]
       }
     },
     "& .model-external-link-icon": {

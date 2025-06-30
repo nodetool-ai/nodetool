@@ -37,7 +37,7 @@ const styles = (theme: any) =>
       borderRadius: "0"
     },
     "button:hover": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     "button svg": {
       fontSize: theme.fontSizeBig

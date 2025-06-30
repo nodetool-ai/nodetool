@@ -72,7 +72,7 @@ const styles = (theme: any) =>
       textAlign: "center",
       display: "block",
       backgroundColor: theme.palette.c_input,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeSmall
     },
     ".output-label": {
@@ -94,7 +94,7 @@ const styles = (theme: any) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     }

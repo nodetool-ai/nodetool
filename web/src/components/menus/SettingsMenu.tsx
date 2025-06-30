@@ -66,10 +66,10 @@ export const settingsStyles = (theme: any): any =>
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         },
         "&:hover": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       }
     },
@@ -102,7 +102,7 @@ export const settingsStyles = (theme: any): any =>
         marginTop: "0",
         marginBottom: "0.5em",
         padding: "0",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeBigger,
         lineHeight: "1.5",
         fontWeight: "500"
@@ -138,7 +138,7 @@ export const settingsStyles = (theme: any): any =>
       padding: "0.75em 1.5em",
       cursor: "pointer",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       opacity: "0.7",
       transition: "all 0.2s ease",
       borderLeft: "3px solid transparent",
@@ -234,7 +234,7 @@ export const settingsStyles = (theme: any): any =>
           transform: "none",
           marginBottom: "8px",
           fontWeight: "500",
-          color: theme.palette.c_white,
+          color: theme.palette.grey[0],
           fontSize: theme.fontSizeNormal
         },
         "& .MuiInputBase-root": {
@@ -251,7 +251,7 @@ export const settingsStyles = (theme: any): any =>
         }
       },
       label: {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeBig,
         fontWeight: "500",
         padding: ".5em 0 .25em 0"
@@ -307,7 +307,7 @@ export const settingsStyles = (theme: any): any =>
     ".secrets": {
       backgroundColor: "rgba(30, 30, 30, 0.6)",
       backdropFilter: "blur(5px)",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeBig,
       marginTop: ".8em",
       padding: ".8em 1em",
@@ -321,7 +321,7 @@ export const settingsStyles = (theme: any): any =>
 
     h2: {
       fontSize: theme.fontSizeHuge,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       margin: "0.5em 0 0.25em 0",
       padding: "0",
       fontWeight: "500"
@@ -331,7 +331,7 @@ export const settingsStyles = (theme: any): any =>
       margin: "2em 0 0.5em 0",
       padding: "0.5em 0 0",
       fontWeight: "500",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       borderBottom: `1px solid ${theme.palette.grey[500]}`,
       paddingBottom: "0.3em"
     },

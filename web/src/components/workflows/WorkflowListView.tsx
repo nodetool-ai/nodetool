@@ -73,7 +73,7 @@ const listStyles = (theme: any) =>
       fontWeight: "lighter",
       margin: "0",
       lineHeight: "1.2em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       userSelect: "none",
       flex: "1"
     },

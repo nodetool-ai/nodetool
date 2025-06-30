@@ -49,7 +49,7 @@
 }
 .tooltip-handle span {
   padding: 0.1em 0.5em;
-  color: var(--c_black);
+  color: var(--palette-grey-1000);
 }
 
 /* CONNECTABLE  */

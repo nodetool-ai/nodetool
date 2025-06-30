@@ -146,7 +146,7 @@ const styles = (theme: any) =>
         fontFamily: theme.fontFamily1,
         fontSize: theme.fontSizeSmall,
         lineHeight: "1.2",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         // backgroundColor: theme.palette.grey[600],
         outline: "none",
         overflow: "auto !important",
@@ -196,7 +196,7 @@ const styles = (theme: any) =>
       zIndex: 10,
       padding: "8px !important",
       backgroundColor: "transparent",
-      color: `${theme.palette.c_white} !important`,
+      color: `${theme.palette.grey[0]} !important`,
       borderRadius: "4px !important",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
@@ -211,7 +211,7 @@ const styles = (theme: any) =>
       padding: "10px 14px",
       cursor: "pointer",
       backgroundColor: theme.palette.grey[600],
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       textTransform: "uppercase",
       border: "none",
       borderRadius: "4px",
@@ -539,7 +539,7 @@ const TextEditorModal = ({
                   style={{
                     color: readOnly
                       ? ThemeNodes.palette.warning.main
-                      : ThemeNodes.palette.c_white
+                      : ThemeNodespalette.grey[0]
                   }}
                 >
                   <Markdown>{propertyDescription}</Markdown>

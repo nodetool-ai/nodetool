@@ -106,7 +106,7 @@ const toolsSelectorStyles = (theme: any) =>
       backgroundColor: theme.palette.grey[600],
       ".selected-count": {
         backgroundColor: "var(--palette-primary-main)",
-        color: theme.palette.c_black,
+        color: theme.palette.grey[1000],
         fontSize: "0.75rem",
         height: "20px",
         "& .MuiChip-label": {
@@ -236,7 +236,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 sx={{
                   marginLeft: 1,
                   backgroundColor: "var(--palette-primary-main)",
-                  color: "var(--c_black)",
+                  color: "var(--palette-grey-1000)",
                   "& .MuiChip-label": {
                     padding: "0 4px"
                   }
@@ -245,7 +245,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
               backgroundColor: theme.palette.grey[500]
@@ -299,7 +299,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
 
             {selectedCount > 0 && (
               <div className="selection-info">
-                <Typography variant="body2" sx={{ color: "var(--c_white)" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "var(--palette-grey-0)" }}
+                >
                   Selected:
                 </Typography>
                 <Chip

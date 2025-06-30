@@ -16,7 +16,7 @@ export const createStyles = (theme: any) =>
       padding: "0.5em 1em",
       borderRadius: "8px",
       backgroundColor: "var(--palette-grey-800)",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       textTransform: "none",
       justifyContent: "center",
       transition: "background 0.2s",
@@ -70,7 +70,7 @@ export const createStyles = (theme: any) =>
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "normal",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       marginBottom: "0.25em",
       overflow: "hidden",
       textOverflow: "ellipsis",

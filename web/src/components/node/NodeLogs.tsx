@@ -65,7 +65,7 @@ const styles = (theme: any) =>
       padding: "0.5em",
       overflow: "auto",
       userSelect: "text",
-      backgroundColor: theme.palette.c_black
+      backgroundColor: theme.palette.grey[1000]
     }
   });
 

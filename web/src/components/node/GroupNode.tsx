@@ -45,7 +45,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       marginTop: "10px",
       left: "10px",
       top: "0px",
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".info": {
       position: "absolute",
@@ -56,7 +56,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     },
@@ -86,7 +86,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         padding: ".5em 0.5em",
         border: 0,
         fontSize: "1.5em",
@@ -122,8 +122,8 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.c_white, GROUP_COLOR_OPACITY),
-      color: "var(--c_black)",
+      backgroundColor: hexToRgba(theme.palette.grey[0], GROUP_COLOR_OPACITY),
+      color: "var(--palette-grey-1000)",
       padding: "0.75em 1em",
       borderRadius: "4px",
       fontSize: theme.fontSizeSmall,

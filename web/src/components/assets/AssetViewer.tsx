@@ -180,7 +180,7 @@ const styles = (theme: any) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.c_white}`
+      border: `1px solid ${theme.palette.grey[0]}`
     },
     ".prev-next-items .item": {
       backgroundColor: "#44444466",

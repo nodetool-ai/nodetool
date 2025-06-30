@@ -47,7 +47,7 @@ const DataTypesList = ({
         alignItems: "flex-start"
       },
       ".help-item.datatype button": {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         borderRadius: "5px",
         minWidth: "180px",
         textAlign: "left",

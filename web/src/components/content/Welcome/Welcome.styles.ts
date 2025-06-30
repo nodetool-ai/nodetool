@@ -19,7 +19,7 @@ const welcomeStyles = (theme: any) =>
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       marginBottom: "1em"
     },
     ".summary": {
@@ -30,7 +30,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".content": {
       padding: "1em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBig
     },
@@ -53,7 +53,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".MuiAccordion-root": {
       background: "transparent",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       borderBottom: `1px solid ${theme.palette.grey[500]}`,
       marginBottom: "1em",
       "&:before": {
@@ -86,7 +86,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".highlight": {
       backgroundColor: "var(--palette-primary-main)",
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".tab-content": {
       marginTop: "1em"
@@ -101,7 +101,7 @@ const welcomeStyles = (theme: any) =>
       transition: "all 0.2s"
     },
     ".link:hover": {
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       backgroundColor: "var(--palette-primary-main)"
     },
 
@@ -178,7 +178,7 @@ const welcomeStyles = (theme: any) =>
       color: theme.palette.c_hl3
     },
     ".setup-tab .MuiListItemText-secondary": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".remote-settings-container": {
       backgroundColor: theme.palette.grey[800],
@@ -194,7 +194,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".start-button": {
       backgroundColor: "var(--palette-primary-main)",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
       outline: `1px solid ${"var(--palette-primary-main)"}`,
@@ -208,7 +208,7 @@ const welcomeStyles = (theme: any) =>
         outline: `2px solid ${theme.palette.grey[900]}`,
         boxShadow: `inset 0 0 .2em 0 ${theme.palette.grey[900]}`,
         opacity: 0.9,
-        color: theme.palette.c_black
+        color: theme.palette.grey[1000]
       }
     },
     // ".MuiTabs-root": {

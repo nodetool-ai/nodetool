@@ -56,7 +56,7 @@ export const getSharedSettingsStyles = (theme: any): SerializedStyles => {
       padding: 0;
       font-weight: 600;
       letter-spacing: -0.01em;
-      color: ${theme.palette.c_white};
+      color: ${theme.palette.grey[0]};
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 0.2em;
     }

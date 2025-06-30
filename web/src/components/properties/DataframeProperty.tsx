@@ -41,7 +41,7 @@ const styles = (theme: any) =>
         borderRadius: "0"
       },
       "button.add-column:hover": {
-        color: theme.palette.c_white + " !important"
+        color: theme.palette.grey[0] + " !important"
       },
       "button.add-column svg": {
         fontSize: theme.fontSizeSmall,

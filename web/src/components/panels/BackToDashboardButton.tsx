@@ -9,7 +9,7 @@ const styles = (theme: any) =>
     width: "fit-content",
     backgroundColor: theme.palette.grey[900],
     "&:hover": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     },
     ".back-to-dashboard": {

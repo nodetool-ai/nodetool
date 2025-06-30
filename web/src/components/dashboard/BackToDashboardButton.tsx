@@ -9,7 +9,7 @@ const styles = (theme: any) =>
     backgroundColor: theme.palette.grey[900],
     color: theme.palette.grey[100],
     "&:hover": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: theme.palette.grey[800],
       boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     }

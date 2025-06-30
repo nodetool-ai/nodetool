@@ -51,13 +51,13 @@ const styles = (theme: any) =>
       padding: "0 .5em"
     },
     ".list-button:hover": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".gsi-material-button": {
       width: "240px",
       fontSize: "1em",
       border: "none",
-      background: theme.palette.c_white,
+      background: theme.palette.grey[0],
       padding: "1.5em 1em"
     },
     ".gsi-material-button:hover": {

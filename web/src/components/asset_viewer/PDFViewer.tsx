@@ -80,7 +80,7 @@ const styles = (theme: any) =>
           display: "none",
           position: "absolute",
           right: "100px",
-          color: theme.palette.c_black,
+          color: theme.palette.grey[1000],
           top: 0,
           bottom: 0,
           zIndex: 3

@@ -102,7 +102,7 @@
   font-size: var(--fontSizeSmall);
   font-weight: 300;
   line-height: 1.3em;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: var(--palette-grey-800);
   border: 0;
   border-radius: 4px;
@@ -204,7 +204,7 @@
   outline: none;
   margin: 0;
   padding: 1em 0.5em;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0.1em;
@@ -256,7 +256,7 @@
 
 .node-property select option:checked,
 .node-property select option:active {
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: var(--palette-grey-600);
 }
 .enum-property select,
@@ -266,7 +266,7 @@
   margin: 0px;
   padding: 0px;
   background-color: var(--palette-grey-600);
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   border-radius: 0.1em;
   font-family: var(--font-family-1);
   font-size: var(--fontSizeNormal);
@@ -359,7 +359,7 @@
 .number-input .edit-value {
   position: absolute;
   outline: none;
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0;
