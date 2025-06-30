@@ -31,4 +31,18 @@ declare module "@mui/material/styles" {
   // you might need to augment the Theme interface as well, though the docs primarily show its usage
   // for accessing variables like theme.vars.palette.primary.main.
   // For now, let's focus on getting ThemeOptions right for createTheme.
+
+  // ----  ADD BELOW: permit grey[0] and grey[1000] ------------
+  interface PaletteColorOptions {
+    0?: string;
+    1000?: string;
+  }
+  interface SimplePaletteColorOptions {
+    0?: string;
+    1000?: string;
+  }
+  interface PaletteColor {
+    0: string;
+    1000: string;
+  }
 }

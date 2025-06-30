@@ -1,199 +1,180 @@
 import {
-  PaletteOptions,
-  PaletteColorOptions,
-  PaletteColor
+  PaletteOptions
+  // PaletteColorOptions,
+  // PaletteColor,
+  // SimplePaletteColorOptions
 } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
   interface PaletteOptions {
-    c_black?: string;
+    c_bg_comment?: string;
     c_brightest?: string;
+    c_black?: string;
     c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
-    /* Highlights */
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
-    /* Status */
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
-    /* Scrollbar*/
     c_scroll_bg?: string;
     c_scroll_hover?: string;
     c_scroll_thumb?: string;
-
     c_node_bg?: string;
     c_node_bg_group?: string;
     c_node_header_bg?: string;
     c_node_header_bg_group?: string;
     c_bg_loop?: string;
     c_bg_group?: string;
-    c_bg_comment?: string;
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    tertiary?: PaletteColorOptions;
+    background?: { default?: string; paper?: string };
+    Paper?: {
+      default?: string;
+      paper?: string;
+      overlay?: string;
+    };
   }
 
   interface Palette {
-    /* General */
     c_black?: string;
+    c_bg_comment?: string;
     c_brightest?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
+    c_white?: string;
     c_background?: string;
     c_node_menu?: string;
-
-    /* Highlights */
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
-
-    /* Status */
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
-
-    /* Scrollbar*/
     c_scroll_bg?: string;
     c_scroll_hover?: string;
     c_scroll_thumb?: string;
-
     c_node_bg?: string;
     c_node_bg_group?: string;
     c_node_header_bg?: string;
     c_node_header_bg_group?: string;
     c_bg_loop?: string;
     c_bg_group?: string;
-    c_bg_comment?: string;
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    tertiary: PaletteColorOptions;
+    background: { default: string; paper: string };
+    Paper: {
+      default: string;
+      paper: string;
+      overlay: string;
+    };
   }
 }
 
 export const paletteLight: PaletteOptions = {
-  /* General */
+  error: {
+    main: "#FF5555",
+    contrastText: "#fff"
+  },
+  warning: {
+    main: "#FFB86C",
+    contrastText: "#000"
+  },
+  info: {
+    main: "#E0E028",
+    contrastText: "#000"
+  },
+  success: {
+    main: "#50FA7B",
+    contrastText: "#000"
+  },
+  grey: {
+    0: "#000", // black
+    50: "#0E0E0E", // from c_gray0
+    100: "#242424", // from c_gray1
+    200: "#333333", // spare
+    300: "#444444", // from c_gray2
+    400: "#6D6D6D", // from c_gray3
+    500: "#959595", // from c_gray4
+    600: "#A9A9A9", // spare
+    700: "#BDBDBD", // from c_gray5
+    800: "#D9D9D9", // from c_gray6
+    900: "#F5F5F5", // Standard MUI light grey
+    1000: "#fff" //  white
+  } as any,
   c_black: "#020202",
+  c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
-  c_gray0: "#D9D9D9",
-  c_gray1: "#BDBDBD",
-  c_gray2: "#959595",
-  c_gray3: "#6D6D6D",
-  c_gray4: "#444444",
-  c_gray5: "#242424",
-  c_gray6: "#0E0E0E",
-  c_background: "#F5F5F7",
-  c_node_menu: "#FFFFFF",
-
-  /* Highlights */
-  c_hl1: "#007AFF",
-  c_hl1_1: "#5EADFF",
-  c_hl2: "#34C759",
-  c_selection: "#B4D7FFB3",
-  c_input: "#EFEFF0",
-  c_output: "#E0E0E0",
-
-  /* Statuses */
-  c_attention: "#FF9500", // Orange for attention
-  c_delete: "#FF3B30", // Red for delete
-  c_debug: "#5856D6", // Indigo/Purple for debug
-  c_error: "#FF3B30", // Red for error
-  c_info: "#5AC8FA", // Light blue for info
-  c_job: "#007AFF", // Blue for job
-  c_node: "#34C759", // Green for node status
-  c_progress: "#FFCC00", // Yellow for progress
-  c_success: "#34C759", // Green for success
-  c_warn: "#FF9500", // Orange for warn
-  c_warning: "#FF9500", // Orange for warning
-  c_link: "#007AFF",
-  c_link_visited: "#5856D6",
-
-  /* Scrollbar*/
+  c_background: "#424854",
+  c_node_menu: "#232323",
+  c_selection: "#8EACA777",
+  c_input: "#374f4f",
+  c_output: "#493f4d",
+  c_attention: "#E35BFF",
+  c_delete: "#FF2222",
+  c_debug: "#FF3355",
+  c_job: "#223399",
+  c_node: "#029486",
+  c_progress: "#556611",
+  c_link: "#e4ffde",
+  c_link_visited: "#d1e2cd",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#545454",
-  c_scroll_thumb: "#494949",
-
-  /* Node specific - adjust for light theme */
-  c_node_bg: "#FFFFFF",
-  c_node_bg_group: "#F7F7F7",
-  c_node_header_bg: "#EFEFEF",
-  c_node_header_bg_group: "#EAEAEA",
-  c_bg_loop: "#007AFF1A", // Light blue with alpha
-  c_bg_group: "#34C7591A", // Light green with alpha
-  c_bg_comment: "#FFFFE0", // Light yellow for comments
-  c_editor_bg_color: "#FFFFFF",
-  c_editor_grid_color: "#E0E0E0",
-  c_editor_axis_color: "#D3D3D3",
+  c_scroll_hover: "#585858",
+  c_scroll_thumb: "#535353",
+  c_node_bg: "#2a2a2a",
+  c_node_bg_group: "#3d3d3d",
+  c_node_header_bg: "#202020",
+  c_node_header_bg_group: "#444",
+  c_bg_loop: "#305c9d17",
+  c_bg_group: "#9bcfdb17",
+  c_editor_bg_color: "#111",
+  c_editor_grid_color: "#313131",
+  c_editor_axis_color: "#292929",
 
   primary: {
-    main: "#76e5b8",
+    main: "#77b4e6",
+    light: "#9bc5f0",
+    dark: "#4a7bc4",
     contrastText: "#000"
   },
   secondary: {
-    main: "#757575",
-    contrastText: "#FFFFFF"
-  },
-  tertiary: {
-    light: "#a7d0c3",
-    main: "#68a89a",
-    dark: "#387c6d",
+    main: "#d23f9e",
+    light: "#e993c5",
+    dark: "#ba008a",
     contrastText: "#fff"
   },
   background: {
-    default: "#880000",
-    paper: "#FDFDFD"
+    default: "#202020",
+    paper: "#232323"
   },
   text: {
-    primary: "#000",
-    secondary: "#222",
-    disabled: "#444"
+    primary: "#fff",
+    secondary: "#ddd",
+    disabled: "#aaa"
   },
   action: {
-    active: "#000",
-    hover: "#222",
-    selected: "#444"
-  }
+    active: "#fff",
+    hover: "#ddd",
+    selected: "#aaa",
+    disabled: "#666"
+  },
+  Paper: {
+    default: "#232323",
+    paper: "#232323",
+    overlay: "#2a2a2a"
+  },
+  divider: "#555"
 };
