@@ -31,7 +31,7 @@ const styles = (theme: any) =>
     ".search-results-container": {
       display: "flex",
       flexDirection: "column",
-      height: "100%",
+      height: "calc(100% - 120px)",
       paddingBottom: "1em"
     },
     ".search-results-header": {
@@ -39,17 +39,18 @@ const styles = (theme: any) =>
       alignItems: "center",
       justifyContent: "space-between",
       padding: "1.5em 1em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
-      backgroundColor: theme.palette.c_gray0 + "80"
+      backgroundColor: theme.palette.c_gray1
     },
     ".search-results-title": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_white,
+      fontFamily: theme.fontFamily2,
+      textTransform: "uppercase",
+      color: theme.palette.c_gray6,
       fontWeight: 500
     },
     ".search-results-count": {
-      fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray5
     },
     ".search-results-content": {
       flex: 1,
@@ -120,7 +121,7 @@ const styles = (theme: any) =>
       minWidth: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "0.25em"
+      gap: 0
     },
     ".result-item-name": {
       fontSize: theme.fontSizeNormal,
@@ -142,8 +143,7 @@ const styles = (theme: any) =>
     ".result-item-location": {
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
-      marginTop: "0.25em"
+      gap: "0.5em"
     },
     ".folder-breadcrumb": {
       display: "flex",
