@@ -71,7 +71,8 @@ const styles = (theme: any) =>
       transform: "translate(-50%, -50%)",
       zIndex: 0,
       color: theme.palette.c_gray4,
-      fontSize: "3rem"
+      opacity: 0.6,
+      fontSize: "2.5em"
     },
     p: {
       fontSize: theme.fontSizeTiny,
