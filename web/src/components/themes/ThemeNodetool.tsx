@@ -1,4 +1,4 @@
-import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
+import { Theme, createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
@@ -48,7 +48,7 @@ const ThemeNodetool: Theme = createTheme({
       palette: paletteDark
     },
     light: {
-      palette: paletteDark
+      palette: paletteLight
     }
   },
   cssVariables: {

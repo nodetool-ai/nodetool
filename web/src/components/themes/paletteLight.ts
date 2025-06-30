@@ -1,5 +1,7 @@
 import {
-  PaletteOptions
+  PaletteOptions,
+  Color,
+  PaletteColor
   // PaletteColorOptions,
   // PaletteColor,
   // SimplePaletteColorOptions
@@ -113,13 +115,13 @@ export const paletteLight: PaletteOptions = {
     800: "#D9D9D9", // from c_gray6
     900: "#F5F5F5", // Standard MUI light grey
     1000: "#fff" //  white
-  } as any,
+  } as Color,
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
   c_background: "#424854",
-  c_node_menu: "#232323",
+  c_node_menu: "#ccc",
   c_selection: "#8EACA777",
   c_input: "#374f4f",
   c_output: "#493f4d",
@@ -134,15 +136,15 @@ export const paletteLight: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#2a2a2a",
+  c_node_bg: "#ccc",
   c_node_bg_group: "#3d3d3d",
   c_node_header_bg: "#202020",
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
   c_bg_group: "#9bcfdb17",
-  c_editor_bg_color: "#111",
-  c_editor_grid_color: "#313131",
-  c_editor_axis_color: "#292929",
+  c_editor_bg_color: "#eee",
+  c_editor_grid_color: "#ccc",
+  c_editor_axis_color: "#ddd",
 
   primary: {
     main: "#77b4e6",
@@ -157,13 +159,13 @@ export const paletteLight: PaletteOptions = {
     contrastText: "#fff"
   },
   background: {
-    default: "#202020",
-    paper: "#232323"
+    default: "#eee",
+    paper: "#ccc"
   },
   text: {
-    primary: "#fff",
-    secondary: "#ddd",
-    disabled: "#aaa"
+    primary: "#000",
+    secondary: "#333",
+    disabled: "#777"
   },
   action: {
     active: "#fff",
@@ -172,9 +174,9 @@ export const paletteLight: PaletteOptions = {
     disabled: "#666"
   },
   Paper: {
-    default: "#232323",
-    paper: "#232323",
-    overlay: "#2a2a2a"
+    default: "#ccc",
+    paper: "#ddd",
+    overlay: "#eee"
   },
   divider: "#555"
 };
