@@ -43,7 +43,7 @@ const styles = (theme: any) => css`
 
   .warning {
     font-size: 1rem;
-    color: ${theme.palette.c_warning};
+    color: ${theme.palette.warning.main};
   }
   .content {
     padding: 10px;

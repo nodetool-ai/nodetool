@@ -74,7 +74,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <>
             <Typography
               variant="h5"
-              style={{ color: ThemeNodetool.palette.c_warning }}
+              style={{ color: ThemeNodetool.palette.warning.main }}
             >
               No matching repository found.
             </Typography>

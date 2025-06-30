@@ -69,7 +69,7 @@ const dialogStyles = (theme: any) =>
     },
     ".error-message": {
       color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_error,
+      backgroundColor: theme.palette.error.main,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "0 0 1em",

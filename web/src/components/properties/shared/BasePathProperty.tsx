@@ -73,7 +73,7 @@ const createPathPropertyStyles = (theme: any) =>
         marginTop: "0.5em",
 
         ".error-item > .MuiTreeItem-content": {
-          backgroundColor: `${theme.palette.c_warning} !important`
+          backgroundColor: `${theme.palette.warning.main} !important`
         }
       },
 
@@ -186,7 +186,7 @@ const treeViewStyles = (theme: any) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: (theme: any) => theme.palette.c_warning
+    color: (theme: any) => theme.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
     color: (theme: any) => theme.palette.grey[500]

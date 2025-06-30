@@ -217,8 +217,8 @@ const styles = (theme: any) =>
       textAlign: "center",
       lineHeight: "1.1em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_error,
-      borderBottom: "1px solid" + theme.palette.c_error,
+      color: theme.palette.error.main,
+      borderBottom: "1px solid" + theme.palette.error.main,
       width: "100%",
       height: "100%"
     }

@@ -69,11 +69,11 @@ const styles = (theme: any) =>
     },
     ".repo-name .owner": {
       fontSize: ".8em",
-      color: theme.palette.c_info,
+      color: theme.palette.info.main,
       padding: "0 "
     },
     "&.missing .repo-name": {
-      color: theme.palette.c_warning
+      color: theme.palette.warning.main
     },
     ".tags-container": {
       position: "relative"
@@ -128,7 +128,7 @@ const styles = (theme: any) =>
     ".text-model-size": {
       float: "right",
       padding: 0,
-      color: theme.palette.c_warning
+      color: theme.palette.warning.main
     },
     ".download": {
       boxShadow: "none",

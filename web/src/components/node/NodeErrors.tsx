@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 export const errorStyles = (theme: any) =>
   css({
     position: "relative",
-    backgroundColor: theme.palette.c_error,
+    backgroundColor: theme.palette.error.main,
     borderRadius: "1px",
     padding: "10px",
     transition: "background-color 0.2s",
