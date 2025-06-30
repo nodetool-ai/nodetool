@@ -7,11 +7,22 @@ export const ThemeToggle: React.FC = () => {
   const { mode, setMode } = useColorScheme();
 
   const toggleTheme = () => {
+    console.log(
+      "Current mode:",
+      mode,
+      "Switching to:",
+      mode === "dark" ? "light" : "dark"
+    );
     setMode(mode === "dark" ? "light" : "dark");
   };
 
   // Don't render until we have the mode
-  if (!mode) return null;
+  if (!mode) {
+    console.log("ThemeToggle: mode is not available yet");
+    return null;
+  }
+
+  console.log("ThemeToggle: current mode is", mode);
 
   return (
     <Tooltip title={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}>
