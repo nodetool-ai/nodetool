@@ -8,6 +8,12 @@ import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
 import { useNodes } from "../../contexts/NodeContext";
+
+// Node spacing when dropping multiple assets
+const MULTI_NODE_HORIZONTAL_SPACING = 250;
+const MULTI_NODE_VERTICAL_SPACING = 250;
+const NODES_PER_ROW = 2;
+
 // File type detection
 function detectFileType(file: File): string {
   switch (file.type) {
@@ -68,11 +74,37 @@ export const useDropHandler = () => {
 
       // Create nodes on asset drop
       const assetJSON = event.dataTransfer.getData("asset");
+      const selectedAssetIdsJSON =
+        event.dataTransfer.getData("selectedAssetIds");
       const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
-      if (targetIsPane && asset !== null) {
-        getAsset(asset.id).then((asset: Asset) => {
-          addNodeFromAsset(asset, position);
-        });
+      const selectedAssetIds = selectedAssetIdsJSON
+        ? (JSON.parse(selectedAssetIdsJSON) as string[])
+        : null;
+
+      if (targetIsPane && (asset !== null || selectedAssetIds !== null)) {
+        // If multiple assets are selected, create nodes for all of them
+        if (selectedAssetIds && selectedAssetIds.length > 1) {
+          selectedAssetIds.forEach((assetId, index) => {
+            // Offset each node to avoid overlap
+            const offsetX =
+              (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
+            const offsetY =
+              Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING;
+            const nodePosition = {
+              x: position.x + offsetX,
+              y: position.y + offsetY
+            };
+
+            getAsset(assetId).then((asset: Asset) => {
+              addNodeFromAsset(asset, nodePosition);
+            });
+          });
+        } else if (asset !== null) {
+          // Single asset drop (fallback)
+          getAsset(asset.id).then((asset: Asset) => {
+            addNodeFromAsset(asset, position);
+          });
+        }
       }
 
       // Create nodes on file drop
