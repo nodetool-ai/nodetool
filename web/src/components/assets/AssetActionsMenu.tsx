@@ -61,7 +61,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
         onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}
         focusSearchInput={false}
-        maxWidth={"15em"}
+        width={333}
       />
       <AssetActions
         setSelectedAssetIds={setSelectedAssetIds}
