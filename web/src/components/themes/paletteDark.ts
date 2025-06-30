@@ -106,6 +106,7 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#000"
   },
   grey: {
+    0: "#000000", // pure black
     50: "#F5F5F5",
     100: "#D9D9D9", // from c_gray6
     200: "#BDBDBD", // from c_gray5
@@ -115,8 +116,9 @@ export const paletteDark: PaletteOptions = {
     600: "#444444", // from c_gray2
     700: "#333333", // spare
     800: "#242424", // from c_gray1
-    900: "#0E0E0E" // from c_gray0
-  },
+    900: "#0E0E0E", // from c_gray0
+    1000: "#FFFFFF" // pure white
+  } as any,
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
