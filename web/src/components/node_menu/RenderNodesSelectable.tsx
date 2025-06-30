@@ -52,7 +52,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         variant="h6"
         component="div"
         sx={{
-          color: ThemeNodes.palette.c_hl1,
+          color: ThemeNodes.palette.primary.main,
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}

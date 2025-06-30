@@ -42,7 +42,7 @@ declare module "@mui/system/createTheme" {
 }
 
 const ThemeNodetool: Theme = createTheme({
-  defaultColorScheme: "dark",
+  defaultColorScheme: "light",
   colorSchemes: {
     dark: {
       palette: paletteDark
@@ -76,6 +76,9 @@ const ThemeNodetool: Theme = createTheme({
   components: {
     MuiTypography: {
       styleOverrides: {
+        // root: {
+        //   color: "var(--palette-text-primary)"
+        // },
         h1: ({ theme }) => ({
           cursor: "default",
           fontSize: "2em",

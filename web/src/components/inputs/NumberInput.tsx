@@ -460,7 +460,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       style={{
         fontFamily: ThemeNodes.fontFamily1,
         fontSize: ThemeNodes.fontSizeSmall,
-        color: ThemeNodes.palette.c_hl1,
+        color: ThemeNodes.palette.primary.main,
         position: "relative"
       }}
     >

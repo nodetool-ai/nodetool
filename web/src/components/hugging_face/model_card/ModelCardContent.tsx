@@ -52,7 +52,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <Typography
             variant="h3"
             style={{
-              color: ThemeNodetool.palette.c_hl1,
+              color: ThemeNodetool.palette.primary.main,
               fontSize: "0.85em",
               overflowWrap: "break-word"
             }}

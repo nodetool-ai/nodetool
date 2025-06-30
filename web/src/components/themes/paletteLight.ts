@@ -168,10 +168,10 @@ export const paletteLight: PaletteOptions = {
     disabled: "#777"
   },
   action: {
-    active: "#fff",
-    hover: "#ddd",
-    selected: "#aaa",
-    disabled: "#666"
+    active: "#111",
+    hover: "#333",
+    selected: "#555",
+    disabled: "#777"
   },
   Paper: {
     default: "#ccc",

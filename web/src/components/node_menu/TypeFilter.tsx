@@ -188,7 +188,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setInputHover(false);
               }}
             >
-              <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
+              <MenuItem
+                style={{ color: ThemeNodetool.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
@@ -309,7 +312,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setOutputHover(false);
               }}
             >
-              <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
+              <MenuItem
+                style={{ color: ThemeNodetool.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
