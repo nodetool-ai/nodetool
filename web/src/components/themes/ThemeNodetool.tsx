@@ -52,8 +52,7 @@ const ThemeNodetool: Theme = createTheme({
     }
   },
   cssVariables: {
-    colorSchemeSelector: "html",
-    cssVarPrefix: ""
+    colorSchemeSelector: "[data-mui-color-scheme]"
   },
   fontSizeGiant: "2em",
   fontSizeBigger: "1.25em",
