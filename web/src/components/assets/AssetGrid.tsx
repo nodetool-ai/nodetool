@@ -7,6 +7,8 @@ import { Box, Divider, Typography } from "@mui/material";
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
 import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
+import GlobalSearchResults from "./GlobalSearchResults";
+import { AssetWithPath } from "../../stores/ApiTypes";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetGridContent from "./AssetGridContent";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
@@ -189,11 +191,40 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
+
+  // Global search state
+  const isGlobalSearchActive = useAssetGridStore(
+    (state) => state.isGlobalSearchActive
+  );
+  const globalSearchResults = useAssetGridStore(
+    (state) => state.globalSearchResults
+  );
+  const setIsGlobalSearchActive = useAssetGridStore(
+    (state) => state.setIsGlobalSearchActive
+  );
+  const setCurrentFolderId = useAssetGridStore(
+    (state) => state.setCurrentFolderId
+  );
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
       setOpenAsset(asset);
     },
     [setOpenAsset]
+  );
+
+  const handleGlobalSearchAssetDoubleClick = useCallback(
+    (asset: AssetWithPath) => {
+      setOpenAsset(asset);
+    },
+    [setOpenAsset]
+  );
+
+  const handleNavigateToFolder = useCallback(
+    (folderId: string, folderPath: string) => {
+      setCurrentFolderId(folderId);
+      setIsGlobalSearchActive(false);
+    },
+    [setCurrentFolderId, setIsGlobalSearchActive]
   );
 
   const { user } = useAuth();
@@ -335,11 +366,26 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               paddingLeft: isHorizontal ? "1em" : ""
             }}
           >
-            <AssetGridContent
-              isHorizontal={isHorizontal}
-              itemSpacing={itemSpacing}
-              onDoubleClick={handleDoubleClick}
-            />
+            <div
+              className={`asset-content-wrapper ${
+                isGlobalSearchActive ? "global-search-mode" : "normal-grid-mode"
+              }`}
+            >
+              {isGlobalSearchActive && globalSearchResults.length >= 0 ? (
+                <GlobalSearchResults
+                  results={globalSearchResults}
+                  onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
+                  onNavigateToFolder={handleNavigateToFolder}
+                  containerWidth={containerRef.current?.offsetWidth || 800}
+                />
+              ) : (
+                <AssetGridContent
+                  isHorizontal={isHorizontal}
+                  itemSpacing={itemSpacing}
+                  onDoubleClick={handleDoubleClick}
+                />
+              )}
+            </div>
           </div>
         </div>
       </Dropzone>
