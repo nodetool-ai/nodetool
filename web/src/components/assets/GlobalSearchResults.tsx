@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Typography, Box, Button, Chip, Tooltip } from "@mui/material";
 import {
   Folder as FolderIcon,
@@ -13,6 +13,7 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { colorForType, IconForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useAssetSearch } from "../../serverState/useAssetSearch";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface GlobalSearchResultsProps {
@@ -172,6 +173,10 @@ const styles = (theme: any) =>
       height: "200px",
       color: theme.palette.c_gray4,
       fontSize: theme.fontSizeNormal
+    },
+    "@keyframes spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
     }
   });
 
@@ -181,11 +186,18 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   onNavigateToFolder,
   containerWidth = 1200
 }) => {
-  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
+  // Optimize selection hook to prevent new arrays on every render
+  const memoizedResults = useMemo(
+    () => results,
+    [results.map((r) => r.id).join(",")]
+  );
+  const { selectedAssetIds, handleSelectAsset } =
+    useAssetSelection(memoizedResults);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const globalSearchQuery = useAssetGridStore(
     (state) => state.globalSearchQuery
   );
+  const { isSearching } = useAssetSearch();
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -225,14 +237,35 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
               Search Results
             </Typography>
             <Typography className="global-search-results-count search-results-count">
-              No results for &quot;{globalSearchQuery}&quot;
+              {isSearching
+                ? `Searching for "${globalSearchQuery}"...`
+                : `No results for "${globalSearchQuery}"`}
             </Typography>
           </div>
           <div
             className="global-search-empty-results empty-results"
             data-testid="global-search-no-results"
           >
-            <Typography>No assets found matching your search.</Typography>
+            {isSearching ? (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5em" }}
+              >
+                <div
+                  className="search-spinner"
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    border: "2px solid var(--c_gray3)",
+                    borderTop: "2px solid var(--c_gray6)",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                  }}
+                ></div>
+                <Typography>Searching...</Typography>
+              </div>
+            ) : (
+              <Typography>No assets found matching your search.</Typography>
+            )}
           </div>
         </div>
       </Box>
@@ -263,7 +296,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           {results.map((asset) => {
             const isSelected = selectedAssetIds.includes(asset.id);
             const assetType = getAssetType(asset.content_type);
-            const assetSize = (asset as any).size as number | undefined;
+            const assetSize = asset.size;
             const hasVisualContent =
               (assetType === "image" || assetType === "video") &&
               asset.get_url &&

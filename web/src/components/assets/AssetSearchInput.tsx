@@ -79,6 +79,29 @@ const styles = (theme: any) =>
         color: theme.palette.c_gray3
       }
     },
+    ".search-loading-indicator": {
+      position: "absolute",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "2em",
+      height: "100%",
+      top: 0,
+      right: "0.7em",
+      padding: 0
+    },
+    ".search-spinner": {
+      width: "16px",
+      height: "16px",
+      border: "2px solid var(--c_gray3)",
+      borderTop: "2px solid var(--c_gray6)",
+      borderRadius: "50%",
+      animation: "spin 1s linear infinite"
+    },
+    "@keyframes spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
+    },
     ".search-mode-toggle": {
       position: "absolute",
       cursor: "pointer",
@@ -145,7 +168,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     (state) => state.setGlobalSearchQuery
   );
 
-  const { searchAssets } = useAssetSearch();
+  const { searchAssets, isSearching } = useAssetSearch();
 
   // Keep track of current search abort controller
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -360,16 +383,22 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         data-search-mode={isGlobalSearchMode ? "global" : "local"}
       />
 
-      <button
-        className={`clear-search-btn ${
-          localSearchTerm.trim() === "" ? "disabled" : ""
-        }`}
-        tabIndex={-1}
-        onClick={clearSearch}
-        data-testid="asset-search-clear-btn"
-      >
-        <BackspaceIcon />
-      </button>
+      {isSearching && isGlobalSearchMode && localSearchTerm.length >= 2 ? (
+        <div className="search-loading-indicator">
+          <div className="search-spinner"></div>
+        </div>
+      ) : (
+        <button
+          className={`clear-search-btn ${
+            localSearchTerm.trim() === "" ? "disabled" : ""
+          }`}
+          tabIndex={-1}
+          onClick={clearSearch}
+          data-testid="asset-search-clear-btn"
+        >
+          <BackspaceIcon />
+        </button>
+      )}
     </div>
   );
 };
