@@ -49,7 +49,7 @@ const styles = css({
     maxHeight: "80px"
   },
   ".MuiIconButton-root svg": {
-    color: "var(--palette.grey[800])"
+    color: "var(--palette-grey-800)"
   },
   ".copy-button": {
     position: "absolute",
