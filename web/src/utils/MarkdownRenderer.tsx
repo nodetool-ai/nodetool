@@ -7,7 +7,6 @@ import DraggableNodeDocumentation from "../components/content/Help/DraggableNode
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { usePanelStore } from "../stores/PanelStore";
-import ThemeNodes from "../components/themes/ThemeNodes";
 
 interface MarkdownRendererProps {
   content: string;

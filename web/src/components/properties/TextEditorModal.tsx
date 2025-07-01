@@ -3,7 +3,7 @@
 import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import { CircularProgress, Tooltip } from "@mui/material";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
@@ -20,7 +20,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCombo } from "../../stores/KeyPressedStore";
 
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
@@ -538,8 +538,8 @@ const TextEditorModal = ({
                   className="description"
                   style={{
                     color: readOnly
-                      ? ThemeNodes.palette.warning.main
-                      : ThemeNodes.palette.grey[0]
+                      ? theme.palette.warning.main
+                      : theme.palette.grey[0]
                   }}
                 >
                   <Markdown>{propertyDescription}</Markdown>
