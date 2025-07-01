@@ -19,10 +19,14 @@ import {
   prepareItems,
   calculateRowCount,
   getItemsForRow,
+  getExtraFooterSpace,
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import AssetListView from "./AssetListView";
 
 const styles = (theme: any) =>
   css({
@@ -78,13 +82,39 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
+
+  // Base asset list (without dividers)
   const assets = useMemo(() => {
     if (propAssets) return propAssets;
     return folderFilesFiltered || [];
   }, [propAssets, folderFilesFiltered]);
 
-  const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
-    useAssetSelection(assets);
+  // State for which content-types are expanded / collapsed must be defined
+  // *before* we compute the prepared items that depend on it, so that the
+  // hook order remains stable.
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["folder", "image", "audio", "video", "text", "other"])
+  );
+
+  // Prepare items (adds dividers, respects expanded types)
+  const preparedItems = useMemo(() => {
+    return prepareItems(assets || [], expandedTypes);
+  }, [assets, expandedTypes]);
+
+  // Extract visual order of assets excluding dividers – this is the order that
+  // users actually see and therefore the order that shift-range selection must
+  // follow.
+  const visualOrderAssets = useMemo(() => {
+    return preparedItems.filter((item) => !item.isDivider) as Asset[];
+  }, [preparedItems]);
+
+  // Use the *visual* order for the selection algorithm so shift-click works
+  // intuitively.  Ctrl-click behaviour is also more predictable because the
+  // hook's internal maps match what the user sees.
+  const { selectedAssetIds, handleSelectAsset } =
+    useAssetSelection(visualOrderAssets);
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const viewMode = useAssetGridStore((state) => state.viewMode);
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -99,10 +129,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [assetItemSize]
   );
 
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["image", "audio", "video", "text", "other"])
-  );
-
   const toggleExpanded = useCallback((type: string) => {
     setExpandedTypes((prev) => {
       const newSet = new Set(prev);
@@ -114,10 +140,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       return newSet;
     });
   }, []);
-
-  const preparedItems = useMemo(() => {
-    return prepareItems(assets || [], expandedTypes);
-  }, [assets, expandedTypes]);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -152,6 +174,31 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [selectedAssetIds]
   );
 
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Only show context menu if clicking on the grid content itself,
+      // not on asset items or other elements
+      const target = event.target as HTMLElement;
+      const isGridContentArea =
+        target.classList.contains("asset-grid-content") ||
+        target.classList.contains("asset-list") ||
+        target.classList.contains("autosizer-list");
+
+      if (isGridContentArea) {
+        openContextMenu(
+          "asset-grid-context-menu",
+          "",
+          event.clientX,
+          event.clientY
+        );
+      }
+    },
+    [openContextMenu]
+  );
+
   const getRowHeight = useCallback(
     (index: number) => {
       const rowItems = getItemsForRow(
@@ -166,40 +213,69 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       if (type && !expandedTypes.has(type)) {
         return 0; // Hide collapsed rows
       }
-      return gridDimensions.itemHeight + footerHeight + itemSpacing * 2;
+      // Add extra space for filenames when item size is large (matching AssetGridRow logic)
+      const extraFooterSpace = getExtraFooterSpace(assetItemSize);
+      return (
+        gridDimensions.itemHeight +
+        footerHeight +
+        extraFooterSpace +
+        itemSpacing * 2
+      );
     },
-    [preparedItems, gridDimensions, footerHeight, itemSpacing, expandedTypes]
-  );
-
-  const itemData = useMemo(
-    () => ({
-      getItemsForRow: (index: number) =>
-        getItemsForRow(preparedItems, index, gridDimensions.columns),
-      gridDimensions,
-      footerHeight,
-      itemSpacing,
-      selectedAssetIds,
-      handleSelectAsset,
-      setSelectedAssetIds,
-      onDragStart,
-      onDoubleClick: onDoubleClick || (() => {}),
-      expandedTypes,
-      toggleExpanded
-    }),
     [
       preparedItems,
       gridDimensions,
       footerHeight,
       itemSpacing,
-      selectedAssetIds,
-      handleSelectAsset,
-      setSelectedAssetIds,
-      onDragStart,
-      onDoubleClick,
       expandedTypes,
-      toggleExpanded
+      assetItemSize
     ]
   );
+
+  // Separate stable data from selection state to prevent unnecessary re-renders
+  const stableItemData = useMemo(() => {
+    const data = {
+      getItemsForRow: (index: number) =>
+        getItemsForRow(preparedItems, index, gridDimensions.columns),
+      gridDimensions,
+      footerHeight,
+      itemSpacing,
+      assetItemSize,
+      handleSelectAsset,
+      onDragStart,
+      onDoubleClick: onDoubleClick || (() => {}),
+      expandedTypes,
+      toggleExpanded
+    };
+    return data;
+  }, [
+    preparedItems,
+    gridDimensions,
+    footerHeight,
+    itemSpacing,
+    assetItemSize,
+    handleSelectAsset,
+    onDragStart,
+    onDoubleClick,
+    expandedTypes,
+    toggleExpanded
+    // Note: selectedAssetIds is NOT included here!
+  ]);
+
+  // Create a selection context that changes less frequently
+  const selectionData = useMemo(() => {
+    const data = { selectedAssetIds };
+    return data;
+  }, [selectedAssetIds]);
+
+  // Combine stable and selection data
+  const itemData = useMemo(() => {
+    const data = {
+      ...stableItemData,
+      ...selectionData
+    };
+    return data;
+  }, [stableItemData, selectionData]);
 
   // useEffect(() => {
   //   if (!propAssets) {
@@ -236,11 +312,46 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     }
   }, [gridDimensions, assetItemSize, preparedItems]);
 
+  // If list view is selected, render AssetListView instead
+  if (viewMode === "list") {
+    return (
+      <div
+        className="asset-grid-content"
+        css={styles}
+        ref={containerRef}
+        onContextMenu={handleContextMenu}
+        style={{
+          width: "100%",
+          height: "100%",
+          borderLeft: isHorizontal
+            ? "1px solid" + ThemeNodetool.palette.c_gray2
+            : "none",
+          paddingLeft: isHorizontal ? ".5em" : "0"
+        }}
+      >
+        <AutoSizer>
+          {({ height, width }: { height: number; width: number }) => (
+            <div style={{ width, height }}>
+              <AssetListView
+                assets={assets}
+                onDoubleClick={onDoubleClick}
+                containerWidth={width}
+                isHorizontal={isHorizontal}
+              />
+            </div>
+          )}
+        </AutoSizer>
+      </div>
+    );
+  }
+
+  // Default grid view
   return (
     <div
       className="asset-grid-content"
       css={styles}
       ref={containerRef}
+      onContextMenu={handleContextMenu}
       style={{
         width: "100%",
         height: "100%",
@@ -252,19 +363,21 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     >
       <div className="asset-list">
         <AutoSizer>
-          {({ height, width }: { height: number; width: number }) => (
-            <List
-              ref={listRef}
-              className="autosizer-list"
-              height={height}
-              itemCount={rowCount}
-              itemSize={getRowHeight}
-              width={width}
-              itemData={itemData}
-            >
-              {AssetGridRow}
-            </List>
-          )}
+          {({ height, width }: { height: number; width: number }) => {
+            return (
+              <List
+                ref={listRef}
+                className="autosizer-list"
+                height={height}
+                itemCount={rowCount}
+                itemSize={getRowHeight}
+                width={width}
+                itemData={itemData}
+              >
+                {AssetGridRow}
+              </List>
+            );
+          }}
         </AutoSizer>
       </div>
     </div>

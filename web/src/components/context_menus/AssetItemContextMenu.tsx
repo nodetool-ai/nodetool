@@ -99,15 +99,30 @@ const AssetItemContextMenu = () => {
           IconComponent={<DriveFileRenameOutlineIcon />}
           tooltip="Rename selected assets"
         />
+        <Divider />
         <ContextMenuItem
           onClick={(e: any) => {
             e.stopPropagation();
             setMoveToFolderDialogOpen(true);
           }}
-          label="Move to folder"
+          label="Move to existing folder"
           IconComponent={<DriveFileMoveIcon />}
-          tooltip="Move selected assets to a different folder"
+          tooltip="Move selected assets to an existing folder"
         />
+        <ContextMenuItem
+          onClick={(e: any) => {
+            e.stopPropagation();
+            setCreateFolderDialogOpen(true);
+          }}
+          label={hasSelectedAssets ? "Move to new folder" : "Create new folder"}
+          IconComponent={<CreateNewFolderIcon />}
+          tooltip={
+            hasSelectedAssets
+              ? "Create a new folder and move selected assets into it"
+              : "Create a new folder in the current location"
+          }
+        />
+        <Divider />
         <ContextMenuItem
           onClick={(e: any) => {
             e.stopPropagation();
@@ -118,24 +133,7 @@ const AssetItemContextMenu = () => {
           tooltip="Download selected assets to your Downloads folder"
         />
         <Divider />
-        <ContextMenuItem
-          onClick={(e: any) => {
-            e.stopPropagation();
-            setCreateFolderDialogOpen(true);
-          }}
-          label={
-            hasSelectedAssets
-              ? "Move selected to new folder"
-              : "Create new folder"
-          }
-          IconComponent={<CreateNewFolderIcon />}
-          tooltip={
-            hasSelectedAssets
-              ? "Create a new folder and move selected assets into it"
-              : "Create a new folder in the current location"
-          }
-        />
-        <Divider />
+        <div style={{ height: ".5em" }} />
         <ContextMenuItem
           onClick={(e) => {
             if (e) {

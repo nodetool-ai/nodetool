@@ -5,11 +5,13 @@ import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
+import { SIZE_FILTERS } from "../utils/formatUtils";
 
-type SortOrder = "name" | "date";
+type SortOrder = "name" | "date" | "size";
 type FilterOptions = {
   searchTerm: string;
   contentType?: string | null;
+  sizeFilter?: string;
 };
 
 type AssetUpdate = {
@@ -50,6 +52,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     (state) => state.setSelectedAssetIds
   );
   const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
+  const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
 
   if (currentUser === null) {
     throw new Error("User not logged");
@@ -120,6 +123,19 @@ export const useAssets = (initialFolderId: string | null = null) => {
       }
       if (settings.assetsOrder === "name") {
         return a.name.localeCompare(b.name);
+      } else if (settings.assetsOrder === "date") {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } else if (settings.assetsOrder === "size") {
+        // Sort by file size (largest first)
+        const aSize = (a as any).size as number | undefined;
+        const bSize = (b as any).size as number | undefined;
+        if (aSize !== undefined && bSize !== undefined) {
+          return bSize - aSize;
+        }
+        // Fall back to name sorting if size is not available
+        return a.name.localeCompare(b.name);
       } else {
         return (
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -138,7 +154,26 @@ export const useAssets = (initialFolderId: string | null = null) => {
         const typeMatch = options.contentType
           ? asset.content_type === options.contentType
           : true;
-        return nameMatch && typeMatch;
+
+        // Size filtering
+        let sizeMatch = true;
+        if (options.sizeFilter && options.sizeFilter !== "all") {
+          const sizeFilterConfig = SIZE_FILTERS.find(
+            (f) => f.key === options.sizeFilter
+          );
+          if (sizeFilterConfig && (asset as any).size !== undefined) {
+            const assetSize = (asset as any).size as number;
+            if (sizeFilterConfig.key === "empty") {
+              sizeMatch = assetSize === 0;
+            } else {
+              sizeMatch =
+                assetSize >= sizeFilterConfig.min &&
+                assetSize <= sizeFilterConfig.max;
+            }
+          }
+        }
+
+        return nameMatch && typeMatch && sizeMatch;
       });
     },
     []
@@ -146,9 +181,10 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const folderFilesFiltered = useMemo(() => {
     return filterAssets(processedAssets, {
       searchTerm: assetSearchTerm || "",
-      contentType: null
+      contentType: null,
+      sizeFilter: sizeFilter
     });
-  }, [filterAssets, processedAssets, assetSearchTerm]);
+  }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter]);
 
   // Create folder mutation
   const createFolderMutation = useMutation({

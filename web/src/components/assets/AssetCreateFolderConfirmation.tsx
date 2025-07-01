@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -18,17 +18,20 @@ import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAssets from "../../serverState/useAssets";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { Asset } from "../../stores/ApiTypes";
 
 const AssetCreateFolderConfirmation: React.FC = () => {
   const setDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
   const dialogOpen = useAssetGridStore((state) => state.createFolderDialogOpen);
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
+  );
+  const setSelectedAssets = useAssetGridStore(
+    (state) => state.setSelectedAssets
   );
 
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -38,10 +41,18 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
   const createFolder = useAssetStore((state) => state.createFolder);
   const updateAsset = useAssetStore((state) => state.update);
-  const { refetchAssetsAndFolders } = useAssets();
+  const { refetchAssetsAndFolders, folderFilesFiltered } = useAssets();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+
+  // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
+  const selectedAssets = useMemo(() => {
+    if (selectedAssetIds.length === 0) return [];
+    return selectedAssetIds
+      .map((id) => folderFilesFiltered.find((asset) => asset.id === id))
+      .filter(Boolean) as Asset[];
+  }, [selectedAssetIds, folderFilesFiltered]);
 
   // Check if we have non-folder assets selected for moving
   const isFolder = selectedAssets.some(
@@ -130,6 +141,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
         // Clear selection since assets were moved
         setSelectedAssetIds([]);
+        setSelectedAssets([]);
       } else {
         addNotification({
           type: "success",
@@ -153,11 +165,12 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     addNotification,
     setDialogOpen,
     refetchAssetsAndFolders,
-    setSelectedAssetIds
+    setSelectedAssetIds,
+    setSelectedAssets
   ]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 400;
+  const objectWidth = 800;
   const leftPosition = dialogPosition.x - objectWidth;
 
   const safeLeft = Math.min(
@@ -165,69 +178,124 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     screenWidth - objectWidth - 50
   );
 
-  return (
-    <Dialog
-      css={dialogStyles}
-      open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-      componentsProps={{
-        backdrop: {
-          style: {
-            backgroundColor: "transparent"
-          }
-        }
-      }}
-      style={{
-        left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`
-      }}
-    >
-      <DialogTitle className="dialog-title" id="alert-dialog-title">
-        {hasSelectedAssets
-          ? "Move selected to new folder"
-          : "Create new folder"}
-      </DialogTitle>
+  // Handle backdrop click
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.target === event.currentTarget) {
+        setDialogOpen(false);
+      }
+    },
+    [setDialogOpen]
+  );
 
-      <DialogContent className="dialog-content">
-        {showAlert && (
-          <Alert severity="error" onClose={() => setShowAlert(null)}>
-            {showAlert}
-          </Alert>
-        )}
-        <TextField
-          className="input-field"
-          inputRef={inputRef}
-          value={folderName}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleCreateFolder();
-            }
+  return (
+    <>
+      {dialogOpen && (
+        <div
+          className="asset-create-folder-backdrop"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "transparent",
+            zIndex: 1300
           }}
-          onChange={(e) => setFolderName(e.target.value)}
-          fullWidth
-          autoCorrect="off"
-          spellCheck="false"
-        />
-      </DialogContent>
-      <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button className="button-confirm" onClick={handleCreateFolder}>
-          {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
-        </Button>
-      </DialogActions>
-      {hasSelectedAssets && (
-        <div>
-          <Typography className="notice" variant="body2">
-            <span>{selectedAssets.length} assets selected:</span> <br />
-            They will be moved to the new folder.
-          </Typography>
+          onClick={handleBackdropClick}
+        >
+          <Dialog
+            className="asset-create-folder-dialog"
+            css={dialogStyles}
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+            componentsProps={{
+              backdrop: {
+                style: {
+                  backgroundColor: "transparent"
+                }
+              }
+            }}
+            PaperProps={{
+              className: "asset-create-folder-dialog-paper",
+              style: {
+                backgroundColor: "rgba(0, 0, 0, 0.9)",
+                backdropFilter: "blur(10px)",
+                position: "absolute",
+                left: `${safeLeft}px`,
+                top: `${dialogPosition.y - 300}px`,
+                margin: 0
+              }
+            }}
+          >
+            <DialogTitle
+              className="asset-create-folder-dialog-title dialog-title"
+              id="alert-dialog-title"
+            >
+              {hasSelectedAssets
+                ? "Move selected to new folder"
+                : "Create new folder"}
+            </DialogTitle>
+
+            <DialogContent className="asset-create-folder-dialog-content dialog-content">
+              {showAlert && (
+                <Alert
+                  className="asset-create-folder-error-alert"
+                  severity="error"
+                  onClose={() => setShowAlert(null)}
+                >
+                  {showAlert}
+                </Alert>
+              )}
+              <TextField
+                className="asset-create-folder-input input-field"
+                inputRef={inputRef}
+                value={folderName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateFolder();
+                  }
+                }}
+                onChange={(e) => setFolderName(e.target.value)}
+                fullWidth
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            </DialogContent>
+            <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
+              <Button
+                className="asset-create-folder-cancel-button button-cancel"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="asset-create-folder-confirm-button button-confirm"
+                onClick={handleCreateFolder}
+              >
+                {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}
+              </Button>
+            </DialogActions>
+            {hasSelectedAssets && (
+              <div className="asset-create-folder-notice-container">
+                <Typography
+                  className="asset-create-folder-notice notice"
+                  variant="body2"
+                >
+                  <span className="asset-create-folder-selected-count">
+                    {selectedAssets.length} assets selected:
+                  </span>{" "}
+                  <br />
+                  They will be moved to the new folder.
+                </Typography>
+              </div>
+            )}
+          </Dialog>
         </div>
       )}
-    </Dialog>
+    </>
   );
 };
 
