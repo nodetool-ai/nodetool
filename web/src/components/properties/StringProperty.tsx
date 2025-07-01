@@ -14,18 +14,19 @@ import { css, useTheme } from "@emotion/react";
 const styles = (theme: any) =>
   css({
     ".property-row": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em",
-      position: "relative",
+      // display: "flex",
+      // alignItems: "center",
+      // gap: "0.5em",
+      // position: "relative",
       width: "100%"
     },
     ".value-container": {
-      flex: "1 1 auto",
-      minWidth: 0
+      width: "100%"
+      // flex: "1 1 auto",
+      // minWidth: 0
     },
     "& .string-value-input": {
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmaller,
     },
     "& .string-action-buttons": {
       display: "flex",
@@ -44,9 +45,8 @@ const styles = (theme: any) =>
     },
 
     "& .string-value-display": {
-      minHeight: "1.5em",
-      marginTop: "-5px",
-      padding: "0.5em 0",
+      // minHeight: "1.5em",
+      padding: "0",
       lineHeight: "1em",
       cursor: "pointer",
       borderRadius: "4px",
@@ -70,13 +70,6 @@ const styles = (theme: any) =>
       }
     },
 
-    "& .MuiInputBase-input": {
-      minHeight: "1.25em",
-      marginTop: "-5px",
-      padding: "0.25em 0",
-      fontSize: theme.fontSizeSmall,
-      lineHeight: "1.25em"
-    },
     "& .MuiOutlinedInput-root": {
       padding: "0",
       "& textarea": {
@@ -186,60 +179,40 @@ const StringProperty = ({
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {!value && (
-            <PropertyLabel
-              name={property.name}
-              description={property.description}
-              id={id}
-            />
-          )}
+          <PropertyLabel
+            name={property.name}
+            description={property.description}
+            id={id}
+          />
           <div className="value-container">
-            {isEditing ? (
-              <TextField
-                className={`string-value-input ${isFocused ? "nowheel" : ""}`}
-                value={value || ""}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onChange(e.target.value)
-                }
-                onFocus={(e) => {
-                  handleFocus(e);
-                  setIsFocused(true);
-                }}
-                onBlur={() => {
-                  setIsFocused(false);
-                  stopEditing();
-                }}
-                onKeyDown={handleKeyDown}
-                tabIndex={tabIndex}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck="false"
-                multiline
-                minRows={1}
-                maxRows={2}
-                fullWidth
-                size="small"
-                variant="outlined"
-                autoFocus
-              />
-            ) : (
-              <div
-                className={`string-value-display ${!value ? "empty" : ""}`}
-                onClick={startEditing}
-                role="button"
-                tabIndex={tabIndex}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    startEditing();
-                  }
-                }}
-                title={value || ""}
-              >
-                {value || "Click to edit..."}
-              </div>
-            )}
+            <TextField
+              className={`string-value-input ${isFocused ? "nowheel" : ""}`}
+              value={value || ""}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange(e.target.value)
+              }
+              onFocus={(e) => {
+                handleFocus(e);
+                setIsFocused(true);
+              }}
+              onBlur={() => {
+                setIsFocused(false);
+                stopEditing();
+              }}
+              onKeyDown={handleKeyDown}
+              tabIndex={tabIndex}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              multiline
+              minRows={1}
+              maxRows={2}
+              fullWidth
+              size="small"
+              variant="outlined"
+              autoFocus
+            />
           </div>
           {isHovered && (
             <div className="string-action-buttons">

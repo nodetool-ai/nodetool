@@ -64,13 +64,11 @@ const ModelProperty = (props: PropertyProps) => {
 
   return (
     <div className={`model-property ${modelClass}`}>
-      {!props.value && (
-        <PropertyLabel
-          name={props.property.name}
-          description={props.property.description}
-          id={id}
-        />
-      )}
+      <PropertyLabel
+        name={props.property.name}
+        description={props.property.description}
+        id={id}
+      />
       {!isConnected && renderModelSelect()}
     </div>
   );
