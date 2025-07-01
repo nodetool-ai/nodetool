@@ -68,7 +68,7 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: "var(--palette-primary-main)" + "22",
+        backgroundColor: `${theme.palette.primary.main}22`,
         borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
       "&:active": {
