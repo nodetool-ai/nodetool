@@ -35,8 +35,8 @@ const styles = (theme: any) =>
     ".color-picker-button": {
       width: "100%",
       height: "100%",
-      minWidth: "unset",
-      minHeight: "unset",
+      minWidth: "unset !important",
+      minHeight: "unset !important",
       borderRadius: "100%",
       pointerEvents: "all",
       margin: 0,

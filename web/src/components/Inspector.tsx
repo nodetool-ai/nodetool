@@ -7,6 +7,8 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
+import allComponentStyles from "../node_styles/all-styles";
+import { useTheme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({
@@ -147,6 +149,7 @@ const Inspector: React.FC = () => {
     return { selectedNode: node, metadata: md };
   });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const theme = useTheme();
 
   if (!selectedNode) {
     return (
@@ -191,7 +194,7 @@ const Inspector: React.FC = () => {
   return (
     <div className="inspector" css={styles}>
       <div className="top">
-        <div className="top-content">
+        <div className="top-content" css={allComponentStyles(theme)}>
           <div className="inspector-header">
             <div className="title">{metadata.title}</div>
           </div>
