@@ -3,13 +3,14 @@ import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo, useCallback } from "react";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import NodeInfo from "../node_menu/NodeInfo";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
+  const theme = useTheme();
   const parts = namespace.split(".");
   return (
     <div className="pretty-namespace">
@@ -20,9 +21,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
           style={{
             fontWeight: index === parts.length - 1 ? "500" : "300",
             color:
-              index === parts.length - 1
-                ? ThemeNodes.palette.grey[400]
-                : "inherit"
+              index === parts.length - 1 ? theme.palette.grey[400] : "inherit"
           }}
         >
           {part.replace("huggingface", "HF").replace("nodetool", "NT")}
@@ -48,6 +47,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   backgroundColor,
   nodeType
 }) => {
+  const theme = useTheme();
   const { openNodeMenu } = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
   }));

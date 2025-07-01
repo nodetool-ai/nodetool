@@ -11,8 +11,7 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
-import ThemeNodes from "../themes/ThemeNodes";
+
 // icons
 import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -237,9 +236,7 @@ const PanelRight: React.FC = () => {
             <ContextMenuProvider>
               <ReactFlowProvider>
                 <NodeContext.Provider value={activeNodeStore}>
-                  <MuiThemeProvider theme={ThemeNodes}>
-                    <Inspector />
-                  </MuiThemeProvider>
+                  <Inspector />
                 </NodeContext.Provider>
               </ReactFlowProvider>
             </ContextMenuProvider>
