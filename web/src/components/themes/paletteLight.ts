@@ -147,11 +147,17 @@ export const paletteLight: PaletteOptions = {
   c_editor_axis_color: "#ddd",
 
   primary: {
-    main: "#77b4e6",
-    light: "#9bc5f0",
-    dark: "#4a7bc4",
+    main: "#11ff22",
+    light: "#55ff88",
+    dark: "#11cc22",
     contrastText: "#000"
   },
+  // primary: {
+  //   main: "#77b4e6",
+  //   light: "#9bc5f0",
+  //   dark: "#4a7bc4",
+  //   contrastText: "#000"
+  // },
   secondary: {
     main: "#d23f9e",
     light: "#e993c5",
