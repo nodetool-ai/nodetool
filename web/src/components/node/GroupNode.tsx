@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
@@ -151,6 +151,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
   });
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const theme = useTheme();
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -205,7 +206,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const [color, setColor] = useState(
-    props.data.properties.group_color || ThemeNodes.palette.c_bg_group
+    props.data.properties.group_color || theme.palette.c_bg_group
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -308,19 +309,19 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <div
-      css={styles(ThemeNodes, MIN_WIDTH, MIN_HEIGHT)}
+      css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} 
       }`}
       style={{
         ...(nodeHovered
-          ? { border: `2px solid ${ThemeNodes.palette.primary.main}` }
+          ? { border: `2px solid ${theme.palette.primary.main}` }
           : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(
-          color || ThemeNodes.palette.c_bg_group,
+          color || theme.palette.c_bg_group,
           GROUP_COLOR_OPACITY
         )
       }}
