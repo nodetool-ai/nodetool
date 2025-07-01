@@ -175,7 +175,6 @@ const ThemeNodetool: Theme = createTheme({
     MuiFormControl: {
       styleOverrides: {
         root: ({ theme }) => ({
-          margin: theme.spacing(0, 0, 5, 0),
           width: "100%"
         })
       }
