@@ -92,7 +92,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
       <Tooltip
         placement="bottom-start"
         enterDelay={600}
-        title={<NodeInfo nodeMetadata={metadata} />}
+        title={<NodeInfo nodeMetadata={metadata} menuWidth={250} />}
       >
         <HelpOutlineIcon />
       </Tooltip>

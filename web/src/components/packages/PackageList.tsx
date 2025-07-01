@@ -15,7 +15,6 @@ import {
   Divider,
   TextField,
   InputAdornment,
-  IconButton,
   Tooltip,
   useTheme
 } from "@mui/material";
@@ -26,6 +25,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { components } from "../../api";
 import { loadMetadata } from "../../serverState/useMetadata";
+import ExternalLink from "../common/ExternalLink";
 
 // Define types based on the API schema
 type PackageListResponse = components["schemas"]["PackageListResponse"];
@@ -337,97 +337,86 @@ const PackageList: React.FC = () => {
               const isInstalled = isPackageInstalled(pkg.repo_id);
 
               return (
-                <Tooltip title={pkg.description} key={pkg.repo_id}>
-                  <ListItem
-                    className="packageItem packagelist-item"
-                    sx={{
-                      opacity:
-                        installMutation.isPending || uninstallMutation.isPending
-                          ? activePackageId === pkg.repo_id
-                            ? 1
-                            : 0.6
-                          : 1,
-                      transition: "opacity 0.2s ease-in-out"
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center">
-                          <Typography
-                            className="packageName packagelist-item-name"
-                            sx={{ color: "white" }}
-                          >
-                            {pkg.name}
-                          </Typography>
-                          {isInstalled && (
-                            <Tooltip title="Installed">
-                              <CheckCircleIcon
-                                color="success"
-                                fontSize="small"
-                                style={{ marginLeft: 8 }}
-                                className="packagelist-item-installed-icon"
-                              />
-                            </Tooltip>
-                          )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box mt={1} className="packagelist-item-secondary">
-                          <Chip
-                            className="packagelist-item-chip"
-                            key={pkg.repo_id}
-                            label={
-                              <a
-                                href={"https://github.com/" + pkg.repo_id}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                css={{
-                                  color: theme.palette.grey[200],
-                                  textDecoration: "none",
-                                  "&:hover": {
-                                    textDecoration: "underline"
-                                  }
-                                }}
-                              >
-                                {pkg.repo_id}
-                              </a>
-                            }
-                            size="small"
-                          />
-                        </Box>
-                      }
-                    />
-                    <ListItemSecondaryAction>
-                      <Button
-                        variant="outlined"
-                        color={isInstalled ? "secondary" : "primary"}
-                        size="small"
-                        className="installButton packagelist-item-button"
-                        onClick={() =>
-                          handlePackageAction(pkg.repo_id, isInstalled)
-                        }
-                        startIcon={
-                          activePackageId === pkg.repo_id ? (
-                            <CircularProgress size={16} color="inherit" />
-                          ) : isInstalled ? null : (
-                            <CloudDownloadIcon />
-                          )
-                        }
-                        disabled={
+                <Tooltip
+                  title={pkg.description}
+                  key={pkg.repo_id}
+                  placement="right"
+                >
+                  <div>
+                    <ListItem
+                      className="packageItem packagelist-item"
+                      sx={{
+                        opacity:
                           installMutation.isPending ||
                           uninstallMutation.isPending
+                            ? activePackageId === pkg.repo_id
+                              ? 1
+                              : 0.6
+                            : 1,
+                        transition: "opacity 0.2s ease-in-out"
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center">
+                            <Typography
+                              className="packageName packagelist-item-name"
+                              sx={{ color: "white" }}
+                            >
+                              {pkg.name}
+                            </Typography>
+                            {isInstalled && (
+                              <Tooltip title="Installed" placement="bottom">
+                                <CheckCircleIcon
+                                  color="success"
+                                  fontSize="small"
+                                  style={{ marginLeft: 8 }}
+                                  className="packagelist-item-installed-icon"
+                                />
+                              </Tooltip>
+                            )}
+                          </Box>
                         }
-                      >
-                        {activePackageId === pkg.repo_id
-                          ? isInstalled
-                            ? "Uninstalling..."
-                            : "Installing..."
-                          : isInstalled
-                          ? "Uninstall"
-                          : "Install"}
-                      </Button>
-                    </ListItemSecondaryAction>
-                  </ListItem>
+                        secondary={
+                          <ExternalLink
+                            href={"https://github.com/" + pkg.repo_id}
+                          >
+                            {pkg.repo_id}
+                          </ExternalLink>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <Button
+                          variant="outlined"
+                          color={isInstalled ? "secondary" : "primary"}
+                          size="small"
+                          className="installButton packagelist-item-button"
+                          onClick={() =>
+                            handlePackageAction(pkg.repo_id, isInstalled)
+                          }
+                          startIcon={
+                            activePackageId === pkg.repo_id ? (
+                              <CircularProgress size={16} color="inherit" />
+                            ) : isInstalled ? null : (
+                              <CloudDownloadIcon />
+                            )
+                          }
+                          disabled={
+                            installMutation.isPending ||
+                            uninstallMutation.isPending
+                          }
+                        >
+                          {activePackageId === pkg.repo_id
+                            ? isInstalled
+                              ? "Uninstalling..."
+                              : "Installing..."
+                            : isInstalled
+                            ? "Uninstall"
+                            : "Install"}
+                        </Button>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  </div>
                 </Tooltip>
               );
             })
