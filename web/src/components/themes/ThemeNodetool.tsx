@@ -48,6 +48,7 @@ const ThemeNodetool: Theme = createTheme({
       palette: paletteDark
     },
     light: {
+      // ⚠️ dark mode does not get the correct css vars if this is set to paletteLigt
       palette: paletteDark
     }
   },

@@ -1,3 +1,9 @@
+// ⚠️ DEPRECATED ⚠️
+// ================
+// This file is OBSOLETE and will be REMOVED in a future version.
+// Use ThemeNodetool instead.
+// ================
+
 import { Theme, createTheme } from "@mui/material/styles";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
