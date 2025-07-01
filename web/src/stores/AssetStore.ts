@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { client, BASE_URL, authHeader } from "../stores/ApiClient";
-import { Asset, AssetList } from "../stores/ApiTypes";
+import { Asset, AssetList, AssetSearchResult } from "../stores/ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
@@ -46,6 +46,13 @@ export type AssetQuery = {
   recursive?: boolean;
 };
 
+export type AssetSearchQuery = {
+  query: string;
+  content_type?: string;
+  page_size?: number;
+  cursor?: string;
+};
+
 export type AssetUpdate = {
   id: string;
   status?: string;
@@ -75,6 +82,7 @@ export interface AssetStore {
   loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   loadFolderById: (id: string) => Promise<AssetList>;
+  search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => Promise<boolean>;
@@ -249,6 +257,39 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   loadFolderById: async (id: string) => {
     return get().load({ parent_id: id });
+  },
+
+  /**
+   * Search assets globally with folder path information.
+   *
+   * @param query The search query parameters.
+   * @returns A promise that resolves to the search results.
+   */
+  search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
+    try {
+      const headers = await authHeader();
+      const params = new URLSearchParams();
+      params.append("query", query.query);
+      if (query.content_type) params.append("content_type", query.content_type);
+      if (query.page_size)
+        params.append("page_size", query.page_size.toString());
+      if (query.cursor) params.append("cursor", query.cursor);
+
+      const response = await axios.get(
+        `${BASE_URL}/api/assets/search?${params.toString()}`,
+        { headers }
+      );
+
+      return response.data as AssetSearchResult;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw createErrorMessage(
+          error.response?.data,
+          "Failed to search assets"
+        );
+      }
+      throw new Error("Failed to search assets");
+    }
   },
 
   /**

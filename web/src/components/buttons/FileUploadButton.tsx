@@ -37,6 +37,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
             </Typography>
             <ul
               style={{
+                width: "100%",
                 margin: "0",
                 padding: ".5em .5em .5em 2em",
                 color: ThemeNodes.palette.c_white,
@@ -44,10 +45,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
               }}
             >
               <li>Click to select files</li>
-              <li>
-                Drop any file from a file explorer
-                <br /> onto the assets area
-              </li>
+              <li>Drop any file from a file explorer in the assets area</li>
             </ul>
           </>
         }

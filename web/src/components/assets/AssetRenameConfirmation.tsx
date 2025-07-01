@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
-import { useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
@@ -33,7 +32,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const [baseNewName, setBaseNewName] = useState("");
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const getAsset = useAssetStore((state) => state.get);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const { refetchAssetsAndFolders } = useAssets();
   const { mutation } = useAssetUpdate();
 
@@ -43,9 +42,12 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       log.info("dialogOpen", dialogOpen);
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
-      getAsset(assets[0]).then((asset) => {
-        setBaseNewName(asset.name);
-      });
+
+      // Use the first selected asset from store instead of fetching
+      if (selectedAssets.length > 0) {
+        setBaseNewName(selectedAssets[0].name);
+      }
+
       setShowAlert("");
       const timer = setTimeout(() => {
         if (inputRef.current) {
@@ -54,7 +56,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [dialogOpen, assets, getAsset]);
+  }, [dialogOpen, selectedAssets]);
 
   const handleRename = useCallback(async () => {
     const invalidCharsRegex = /[/*?"<>|#%{}^[\]`'=&$§!°äüö;+~|$!]+/g;
@@ -115,7 +117,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   }, [baseNewName, assets, mutation, setDialogOpen, refetchAssetsAndFolders]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 400;
+  const objectWidth = 600;
   const leftPosition = dialogPosition.x - objectWidth;
 
   const safeLeft = Math.min(
@@ -123,70 +125,124 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     screenWidth - objectWidth - 50
   );
 
-  return (
-    <Dialog
-      css={dialogStyles}
-      open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-      componentsProps={{
-        backdrop: {
-          style: {
-            backgroundColor: "transparent"
-          }
-        }
-      }}
-      style={{
-        left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`
-      }}
-    >
-      <DialogTitle className="dialog-title" id="alert-dialog-title">
-        <span>
-          {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
-        </span>
-        {" will be renamed to:"}
-      </DialogTitle>
+  // Handle backdrop click
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.target === event.currentTarget) {
+        setDialogOpen(false);
+      }
+    },
+    [setDialogOpen]
+  );
 
-      <DialogContent className="dialog-content">
-        {showAlert && (
-          <Alert severity="success" onClose={() => setShowAlert(null)}>
-            {showAlert}
-          </Alert>
-        )}
-        <TextField
-          className="input-field"
-          inputRef={inputRef}
-          value={baseNewName}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleRename();
-            }
+  return (
+    <>
+      {dialogOpen && (
+        <div
+          className="asset-rename-backdrop"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "transparent",
+            zIndex: 1300
           }}
-          onChange={(e) => setBaseNewName(e.target.value)}
-          fullWidth
-          autoCorrect="off"
-          spellCheck="false"
-        />
-      </DialogContent>
-      <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button className="button-confirm" onClick={handleRename}>
-          Rename
-        </Button>
-      </DialogActions>
-      <div>
-        {assets && assets.length > 1 && (
-          <Typography className="notice" variant="body2">
-            <span>Multiple assets selected:</span> <br />
-            Names will be appended with a number.
-          </Typography>
-        )}
-      </div>
-    </Dialog>
+          onClick={handleBackdropClick}
+        >
+          <Dialog
+            className="asset-rename-dialog"
+            css={dialogStyles}
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+            componentsProps={{
+              backdrop: {
+                style: {
+                  backgroundColor: "transparent"
+                }
+              }
+            }}
+            PaperProps={{
+              className: "asset-rename-dialog-paper",
+              style: {
+                backgroundColor: "rgba(0, 0, 0, 0.9)",
+                backdropFilter: "blur(10px)",
+                position: "absolute",
+                left: `${safeLeft}px`,
+                top: `${dialogPosition.y - 300}px`,
+                margin: 0
+              }
+            }}
+          >
+            <DialogTitle
+              className="asset-rename-dialog-title dialog-title"
+              id="alert-dialog-title"
+            >
+              <span>
+                {`${assets?.length} ${
+                  assets?.length === 1 ? "asset" : "assets"
+                }`}
+              </span>
+              {" will be renamed to:"}
+            </DialogTitle>
+
+            <DialogContent className="asset-rename-dialog-content dialog-content">
+              {showAlert && (
+                <Alert
+                  className="asset-rename-error-alert"
+                  severity="success"
+                  onClose={() => setShowAlert(null)}
+                >
+                  {showAlert}
+                </Alert>
+              )}
+              <TextField
+                className="asset-rename-input input-field"
+                inputRef={inputRef}
+                value={baseNewName}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRename();
+                  }
+                }}
+                onChange={(e) => setBaseNewName(e.target.value)}
+                fullWidth
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            </DialogContent>
+            <DialogActions className="asset-rename-dialog-actions dialog-actions">
+              <Button
+                className="asset-rename-cancel-button button-cancel"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="asset-rename-confirm-button button-confirm"
+                onClick={handleRename}
+              >
+                Rename
+              </Button>
+            </DialogActions>
+            {assets && assets.length > 1 && (
+              <div className="asset-rename-notice-container">
+                <Typography
+                  className="asset-rename-notice notice"
+                  variant="body2"
+                >
+                  <span>Multiple assets selected:</span> <br />
+                  Names will be appended with a number.
+                </Typography>
+              </div>
+            )}
+          </Dialog>
+        </div>
+      )}
+    </>
   );
 };
 

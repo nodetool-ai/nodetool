@@ -7,9 +7,13 @@ import { Box, Divider, Typography } from "@mui/material";
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
 import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
+import GlobalSearchResults from "./GlobalSearchResults";
+import SearchErrorBoundary from "../SearchErrorBoundary";
+import { AssetWithPath } from "../../stores/ApiTypes";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetGridContent from "./AssetGridContent";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
@@ -25,7 +29,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { isEqual } from "lodash";
+import StorageAnalytics from "./StorageAnalytics";
 
 const styles = (theme: any) =>
   css({
@@ -93,7 +97,9 @@ const styles = (theme: any) =>
     },
     ".folder-item": {
       position: "relative",
-      padding: "0 0 4px 2em",
+      alignItems: "center",
+      padding: "0 0 4px 0",
+      marginLeft: "2em",
       "&::before, &::after": {
         content: '""',
         position: "absolute",
@@ -101,13 +107,11 @@ const styles = (theme: any) =>
       },
       "&::before": {
         top: "0",
-        height: "100%",
-        borderLeft: `1px solid ${theme.palette.divider}`
+        height: "100%"
       },
       "&::after": {
         top: "12px",
-        width: "12px",
-        borderTop: `1px solid ${theme.palette.divider}`
+        width: "12px"
       },
       "&:last-child::before": {
         height: "12px"
@@ -115,20 +119,28 @@ const styles = (theme: any) =>
     },
     ".folder-icon": {
       marginRight: "0.1em",
-      color: theme.palette.text.secondary,
-      verticalAlign: "middle"
+      color: "var(--c_folder)",
+      verticalAlign: "middle",
+      backgroundColor: "transparent"
     },
     ".folder-name": {
-      fontSize: ThemeNodetool.fontSizeSmall,
+      fontSize: ThemeNodetool.fontSizeNormal,
+      color: "var(--c_gray6)",
       verticalAlign: "middle",
       "&:hover": {
         color: theme.palette.primary.main
       }
     },
-    ".selected-folder": {
-      backgroundColor: theme.palette.action.selected,
-      "&::before, &::after": {
-        borderColor: theme.palette.primary.main
+    ".folder-item.selected ": {
+      padding: "0 0.5em 0 0",
+      width: "calc(100% - 2em)",
+      backgroundColor: "transparent",
+      "& .folder-name": {
+        fontWeight: "600",
+        color: "var(--c_hl1)"
+      },
+      "& .folder-icon": {
+        color: "var(--c_hl1)"
       }
     },
     ".root-folder": {
@@ -163,7 +175,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets
 }) => {
-  const { error } = useAssets();
+  const { error, folderFilesFiltered } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
@@ -178,12 +190,49 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     (state) => state.currentAudioAsset
   );
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
+
+  // Global search state
+  const isGlobalSearchActive = useAssetGridStore(
+    (state) => state.isGlobalSearchActive
+  );
+  const isGlobalSearchMode = useAssetGridStore(
+    (state) => state.isGlobalSearchMode
+  );
+  const globalSearchResults = useAssetGridStore(
+    (state) => state.globalSearchResults
+  );
+  const setIsGlobalSearchActive = useAssetGridStore(
+    (state) => state.setIsGlobalSearchActive
+  );
+  const setIsGlobalSearchMode = useAssetGridStore(
+    (state) => state.setIsGlobalSearchMode
+  );
+  const setCurrentFolderId = useAssetGridStore(
+    (state) => state.setCurrentFolderId
+  );
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
       setOpenAsset(asset);
     },
     [setOpenAsset]
+  );
+
+  const handleGlobalSearchAssetDoubleClick = useCallback(
+    (asset: AssetWithPath) => {
+      setOpenAsset(asset);
+    },
+    [setOpenAsset]
+  );
+
+  const handleNavigateToFolder = useCallback(
+    (folderId: string, folderPath: string) => {
+      setCurrentFolderId(folderId);
+      setIsGlobalSearchActive(false);
+      setIsGlobalSearchMode(false);
+    },
+    [setCurrentFolderId, setIsGlobalSearchActive, setIsGlobalSearchMode]
   );
 
   const { user } = useAuth();
@@ -275,7 +324,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
-      {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
+      {error && (
+        <Typography
+          className="error-message"
+          sx={{
+            position: "absolute",
+            top: "1em",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            color: "var(--c_error)"
+          }}
+        >
+          {error.message}
+        </Typography>
+      )}
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -285,6 +348,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       <AssetActionsMenu maxItemSize={maxItemSize} />
+      <StorageAnalytics
+        assets={sortedAssets || folderFilesFiltered || []}
+        currentFolder={currentFolder}
+      />
       <div className="header-info">
         <div className="selected-asset-info">
           <Typography variant="body1" className="selected-info">
@@ -321,11 +388,31 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               paddingLeft: isHorizontal ? "1em" : ""
             }}
           >
-            <AssetGridContent
-              isHorizontal={isHorizontal}
-              itemSpacing={itemSpacing}
-              onDoubleClick={handleDoubleClick}
-            />
+            <div
+              className={`asset-content-wrapper ${
+                isGlobalSearchMode && isGlobalSearchActive
+                  ? "global-search-mode"
+                  : "normal-grid-mode"
+              }`}
+              style={{ height: "100%" }}
+            >
+              {isGlobalSearchMode && isGlobalSearchActive ? (
+                <SearchErrorBoundary fallbackTitle="Search Results Error">
+                  <GlobalSearchResults
+                    results={globalSearchResults}
+                    onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
+                    onNavigateToFolder={handleNavigateToFolder}
+                    containerWidth={containerRef.current?.offsetWidth || 800}
+                  />
+                </SearchErrorBoundary>
+              ) : (
+                <AssetGridContent
+                  isHorizontal={isHorizontal}
+                  itemSpacing={itemSpacing}
+                  onDoubleClick={handleDoubleClick}
+                />
+              )}
+            </div>
           </div>
         </div>
       </Dropzone>
@@ -348,6 +435,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
+      {openMenuType === "asset-grid-context-menu" && <AssetGridContextMenu />}
       <AssetCreateFolderConfirmation />
       <AssetDeleteConfirmation assets={selectedAssetIds} />
       <AssetRenameConfirmation assets={selectedAssetIds} />
@@ -357,4 +445,4 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 };
 
-export default memo(AssetGrid, isEqual);
+export default memo(AssetGrid);

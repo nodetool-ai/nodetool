@@ -19,6 +19,9 @@ const styles = (theme: any) =>
       color: theme.palette.c_white,
       transition: "all 0.2s ease-in-out"
     },
+    "&:hover": {
+      backgroundColor: "var(--c_gray1)"
+    },
     ".MuiMenuItem-root": {
       padding: 0
     },
@@ -75,6 +78,9 @@ const styles = (theme: any) =>
     ".checkbox .MuiTypography-root": {
       margin: "0 0 0 0.6em",
       fontFamily: theme.fontFamily1
+    },
+    "&:hover button.action.delete svg": {
+      color: theme.palette.c_delete
     }
   });
 

@@ -19,7 +19,6 @@ import { InsertDriveFile } from "@mui/icons-material";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssets } from "../../serverState/useAssets";
-import { useAssetStore } from "../../stores/AssetStore";
 import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
@@ -64,29 +63,29 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const setDialogOpen = useAssetGridStore((state) => state.setDeleteDialogOpen);
   const { mutation } = useAssetDeletion();
   const { refetchAssetsAndFolders } = useAssets();
-  const getAsset = useAssetStore((state) => state.get);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
 
   useEffect(() => {
-    const countAssetTypes = async () => {
+    if (!dialogOpen) return; // Only process when dialog is actually open
+
+    const countAssetTypes = () => {
       setIsPreparingDelete(true);
       let folders = 0;
       let files = 0;
       const fileAssetsTemp: Asset[] = [];
       setTotalAssets(0);
       let hasRootFolder = false;
-      for (const assetId of assets) {
-        const asset = await getAsset(assetId);
-        if (asset) {
-          if (asset.content_type === "folder") {
-            folders++;
-            if (asset.id === "1" || (user && asset.id === user.id)) {
-              hasRootFolder = true;
-            }
-          } else {
-            files++;
-            fileAssetsTemp.push(asset);
+
+      for (const asset of selectedAssets) {
+        if (asset.content_type === "folder") {
+          folders++;
+          if (asset.id === "1" || (user && asset.id === user.id)) {
+            hasRootFolder = true;
           }
+        } else {
+          files++;
+          fileAssetsTemp.push(asset);
         }
       }
 
@@ -104,7 +103,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     };
 
     countAssetTypes();
-  }, [assets, getAsset, user]);
+  }, [dialogOpen, selectedAssets, user]);
 
   const handleTotalAssetsCalculated = useCallback((assetCount: number) => {
     setTotalAssets(assetCount);

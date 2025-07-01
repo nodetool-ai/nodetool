@@ -2,8 +2,24 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node"];
 export type Edge = components["schemas"]["Edge"];
-export type Asset = components["schemas"]["Asset"];
+export type Asset = components["schemas"]["Asset"] & {
+  size?: number; // File size in bytes - added for size sorting
+};
 export type AssetList = components["schemas"]["AssetList"];
+
+// New types for global search functionality
+export interface AssetWithPath extends Asset {
+  folder_name: string;
+  folder_path: string;
+  folder_id: string;
+}
+
+export interface AssetSearchResult {
+  assets: AssetWithPath[];
+  next_cursor?: string;
+  total_count: number;
+  is_global_search: boolean;
+}
 export type AssetRef = components["schemas"]["AssetRef"];
 export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
 export type ImageRef = components["schemas"]["ImageRef"];

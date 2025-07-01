@@ -14,13 +14,13 @@ import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { Asset } from "../../stores/ApiTypes";
 
-const INITIAL_FOLDER_LIST_HEIGHT = 100;
-const MIN_FOLDER_LIST_HEIGHT = 100;
-const MAX_FOLDER_LIST_HEIGHT = 1500;
-const RESIZE_HANDLE_HEIGHT = 20;
-const ROW_HEIGHT = 1.75;
-const LIST_MIN_WIDTH = "200aaaaapx";
-const LEVEL_PADDING = 0.7;
+const INITIAL_FOLDER_LIST_HEIGHT = 100; // initial height of the folder list in px
+const MIN_FOLDER_LIST_HEIGHT = 100; // minimum height of the folder list in px
+const MAX_FOLDER_LIST_HEIGHT = 1500; // maximum height of the folder list in px
+const RESIZE_HANDLE_HEIGHT = 20; // height of the resize handle in px
+const ROW_HEIGHT = 1.5; // height of each row in the folder list in em
+const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
+const LEVEL_PADDING = 1; // padding for each level of the folder tree in em
 
 const styles = (theme: any) =>
   css({
@@ -38,6 +38,9 @@ const styles = (theme: any) =>
       padding: "0",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
       overflow: "hidden auto"
+    },
+    ".childless": {
+      marginBottom: "0.25em"
     },
     ".accordion": {
       height: ROW_HEIGHT + "em",
@@ -68,7 +71,7 @@ const styles = (theme: any) =>
     },
     ".accordion .MuiAccordionDetails-root": {
       padding: "0",
-      marginTop: "-.25em !important"
+      marginTop: "0"
     },
     ".accordion .MuiAccordionDetails-root .MuiBox-root": {
       height: "1.5em"
@@ -214,10 +217,16 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       <Accordion
         className={"accordion " + (isRoot ? "root-folder" : "")}
         key={folder.id}
+        sx={{
+          marginTop: "0 !important",
+          marginBottom: "0 !important"
+        }}
       >
         <AccordionSummary
           className="accordion-summary"
           sx={{
+            marginTop: 0,
+            marginBottom: 0,
             paddingLeft: `${level * LEVEL_PADDING}em !important`
           }}
           expandIcon={<ExpandMoreIcon />}
@@ -241,6 +250,8 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         className={"childless " + (isRoot ? "root-folder" : "")}
         sx={{
           height: ROW_HEIGHT + "em",
+          marginTop: 0,
+          marginBottom: 0,
           paddingLeft: `${level * LEVEL_PADDING}em !important`
         }}
         key={folder.id}

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
-import NorthWestIcon from "@mui/icons-material/NorthWest";
+import NorthIcon from "@mui/icons-material/North";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import { Refresh } from "@mui/icons-material";
@@ -18,7 +18,8 @@ import {
   DialogContent,
   DialogTitle,
   Select,
-  MenuItem
+  MenuItem,
+  Box
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
@@ -31,6 +32,9 @@ import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -73,7 +77,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-button-group .MuiButton-root.disabled": {
-      color: theme.palette.c_gray2
+      color: theme.palette.c_gray4
     },
     // size slider
     ".asset-size-slider": {
@@ -82,7 +86,7 @@ const styles = (theme: any) =>
       flexShrink: 1,
       paddingRight: "0.5em",
       minWidth: "80px",
-      maxWidth: "250px"
+      maxWidth: "170px"
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",
@@ -103,10 +107,12 @@ const styles = (theme: any) =>
     },
     // sort by
     ".sort-assets": {
-      width: "42px",
+      width: "45px",
+      margin: "0 1em",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase"
+      textTransform: "uppercase",
+      position: "relative"
     },
     ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
       color: theme.palette.c_white
@@ -114,21 +120,26 @@ const styles = (theme: any) =>
     ".sort-assets .MuiSelect-select": {
       color: theme.palette.c_gray5,
       border: "1px solid " + theme.palette.c_gray5,
-
       borderRadius: ".25em",
-      padding: "0 .2em",
+      padding: "0 .25em",
       textOverflow: "clip",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "center",
+      boxSizing: "border-box",
+      lineHeight: "1.2",
+      height: "auto"
     },
 
     ".sort-assets .MuiSelect-select:hover": {
       border: "1px solid " + theme.palette.c_hl1,
       borderRadius: ".25em",
-      padding: "0 .2em",
+      padding: "0 .25em",
       textOverflow: "clip",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "center",
+      boxSizing: "border-box",
+      lineHeight: "1.2",
+      height: "auto"
     },
 
     ".sort-assets .MuiSelect-icon": {
@@ -146,6 +157,50 @@ const styles = (theme: any) =>
       border: "none !important  "
     },
     ".sort-assets.MuiInput-root:hover::after": {
+      border: "none"
+    },
+    // size filter
+    ".size-filter": {
+      width: "90px",
+      margin: "0",
+      padding: "0 0.25em",
+      color: theme.palette.c_hl1,
+      fontSize: theme.fontSizeSmaller,
+      textTransform: "uppercase",
+      position: "relative"
+    },
+    ".size-filter:hover, .size-filter [aria-expanded='true']": {
+      color: theme.palette.c_white
+    },
+    ".size-filter .MuiSelect-select": {
+      color: theme.palette.c_gray5,
+      border: "1px solid " + theme.palette.c_gray5,
+      borderRadius: ".25em",
+      padding: "0 .25em",
+      textOverflow: "ellipsis",
+      backgroundColor: "transparent",
+      textAlign: "center",
+      boxSizing: "border-box",
+      lineHeight: "1.2",
+      height: "auto"
+    },
+    ".size-filter .MuiSelect-select:hover": {
+      border: "1px solid " + theme.palette.c_hl1,
+      color: theme.palette.c_hl1
+    },
+    ".size-filter .MuiSelect-icon": {
+      display: "none"
+    },
+    ".size-filter.MuiInput-root::before": {
+      borderBottom: "none"
+    },
+    ".size-filter.MuiInput-root::after": {
+      borderBottom: "none"
+    },
+    ".size-filter.MuiInput-root:hover::before": {
+      border: "none !important"
+    },
+    ".size-filter.MuiInput-root:hover::after": {
       border: "none"
     }
   });
@@ -171,12 +226,30 @@ const AssetActions = ({
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
     (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder]
   );
+  const [sizeFilter, setSizeFilter] = useAssetGridStore((state) => [
+    state.sizeFilter,
+    state.setSizeFilter
+  ]);
+  const [viewMode, setViewMode] = useAssetGridStore((state) => [
+    state.viewMode,
+    state.setViewMode
+  ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = (_: any, newOrder: any) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
+  };
+
+  const handleSizeFilterChange = (_: any, newSizeFilter: SizeFilterKey) => {
+    if (newSizeFilter !== null) {
+      setSizeFilter(newSizeFilter);
+    }
+  };
+
+  const handleViewModeToggle = () => {
+    setViewMode(viewMode === "grid" ? "list" : "grid");
   };
 
   useEffect(() => {
@@ -213,25 +286,34 @@ const AssetActions = ({
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
-          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : ""}
+          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : "Go up"}
         >
-          <span>
-            {/* // span is needed for disabled buttons*/}
-            <Button
-              disabled={!currentFolder?.parent_id}
-              onClick={() => {
+          <Button
+            sx={{
+              width: "2em",
+              height: "2em",
+              borderRadius: "50%",
+              padding: "0",
+              margin: "0",
+              "& svg": {
+                height: ".75em",
+                width: "1em"
+              }
+            }}
+            onClick={() => {
+              if (currentFolder?.parent_id) {
                 navigateToFolderId(
                   currentFolder?.parent_id || currentUser?.id || ""
                 );
-              }}
-              className={`folder-up-button ${
-                currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-              }`}
-              tabIndex={-1}
-            >
-              <NorthWestIcon />
-            </Button>
-          </span>
+              }
+            }}
+            className={`folder-up-button ${
+              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+            }`}
+            tabIndex={-1}
+          >
+            <NorthIcon />
+          </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
           <Button
@@ -256,20 +338,31 @@ const AssetActions = ({
             <Refresh />
           </Button>
         </Tooltip>
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+        >
+          <Button onClick={handleViewModeToggle} tabIndex={-1}>
+            {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
+          </Button>
+        </Tooltip>
 
         {isLoading && (
-          <div
+          <Box
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
-            style={{
+            sx={{
               position: "absolute",
-              right: "5px",
-              top: "10px",
+              right: "4em",
+              top: "1.4em",
               left: "unset",
-              width: "50px"
+              "& span": {
+                height: "1em !important",
+                width: "1em !important"
+              }
             }}
           >
             <CircularProgress />
-          </div>
+          </Box>
         )}
       </ButtonGroup>
 
@@ -289,24 +382,56 @@ const AssetActions = ({
         >
           <MenuItem value="name">Name</MenuItem>
           <MenuItem value="date">Date</MenuItem>
+          <MenuItem value="size">Size</MenuItem>
         </Select>
       </Tooltip>
 
-      <div className="asset-size-slider">
-        <SliderBasic
-          defaultValue={settings.assetItemSize}
-          aria-label="Small"
-          tooltipText="Item Size"
-          tooltipPlacement="bottom"
-          valueLabelDisplay="auto"
-          step={1}
-          marks
-          min={1}
-          max={maxItemSize}
-          onChange={handleChange}
-          value={settings.assetItemSize}
-        />
-      </div>
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title="Filter by file size"
+        placement="bottom"
+      >
+        <Select
+          className="size-filter"
+          variant="standard"
+          value={sizeFilter}
+          sx={{
+            "& .MuiSelect-select": {
+              minWidth: "80px"
+            }
+          }}
+          onChange={(e) =>
+            handleSizeFilterChange(null, e.target.value as SizeFilterKey)
+          }
+          displayEmpty
+          inputProps={{ "aria-label": "Filter by size" }}
+          tabIndex={-1}
+        >
+          {SIZE_FILTERS.map((filter) => (
+            <MenuItem key={filter.key} value={filter.key}>
+              {filter.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </Tooltip>
+
+      {viewMode === "grid" && (
+        <div className="asset-size-slider">
+          <SliderBasic
+            defaultValue={settings.assetItemSize}
+            aria-label="Small"
+            tooltipText="Item Size"
+            tooltipPlacement="bottom"
+            valueLabelDisplay="auto"
+            step={1}
+            marks
+            min={1}
+            max={maxItemSize}
+            onChange={handleChange}
+            value={settings.assetItemSize}
+          />
+        </div>
+      )}
       <Popover
         css={dialogStyles}
         style={{ minWidth: "100%", minHeight: "100%" }}
