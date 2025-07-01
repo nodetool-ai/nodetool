@@ -59,6 +59,9 @@ interface GlobalChatState {
   currentTaskUpdate: TaskUpdate | null;
   setTaskUpdate: (update: TaskUpdate | null) => void;
 
+  // Workflow graph updates
+  lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
+
   // Actions
   connect: (workflowId?: string) => Promise<void>;
   disconnect: () => void;
@@ -91,6 +94,12 @@ export type MsgpackData =
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
   type: "workflow_created";
+  workflow_id: string;
+  graph: any;
+}
+
+interface WorkflowUpdatedUpdate {
+  type: "workflow_updated";
   workflow_id: string;
   graph: any;
 }
@@ -143,6 +152,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Task updates
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) => set({ currentTaskUpdate: update }),
+
+      // Workflow graph updates
+      lastWorkflowGraphUpdate: null,
 
       connect: async (workflowId?: string) => {
         log.info("Connecting to global chat");
@@ -689,15 +701,54 @@ function handleWebSocketMessage(
   } else if (data.type === "subtask_result") {
     const update = data as SubTaskResult;
     // TODO: update the thread with the subtask result
-  } else if (data.type === "workflow_created") {
-    const update = data as WorkflowCreatedUpdate;
+  } else if (data.type === "workflow_updated") {
+    const update = data as WorkflowUpdatedUpdate;
     const threadId = get().currentThreadId;
+    
+    // Store the workflow graph update
+    set({ lastWorkflowGraphUpdate: update });
+    
     if (threadId) {
       // Add a message to the thread about the created workflow
       const message: Message = {
         role: "assistant",
         type: "message",
-        content: "Workflow created successfully! <a href='/editor/" + update.workflow_id + "'>View workflow</a>",
+        content: "Workflow updated successfully!",
+        workflow_id: get().workflowId,
+        graph: update.graph 
+      };
+      set((state) => {
+        const thread = state.threads[threadId];
+        if (thread) {
+          return {
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...thread.messages, message],
+                updatedAt: new Date().toISOString()
+              }
+            },
+            status: "connected",
+            statusMessage: null
+          };
+        }
+        return state;
+      });
+    }
+  } else if (data.type === "workflow_created") {
+    const update = data as WorkflowCreatedUpdate;
+    const threadId = get().currentThreadId;
+    
+    // Store the workflow graph update
+    set({ lastWorkflowGraphUpdate: update });
+    
+    if (threadId) {
+      // Add a message to the thread about the created workflow
+      const message: Message = {
+        role: "assistant",
+        type: "message",
+        content: "Workflow created successfully!",
         workflow_id: get().workflowId,
         graph: update.graph 
       };

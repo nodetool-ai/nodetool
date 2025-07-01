@@ -11,7 +11,8 @@ import {
   Typography,
   Tooltip,
   CircularProgress,
-  Box
+  Box,
+  IconButton
 } from "@mui/material";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -145,32 +146,23 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <IconButton
           ref={buttonRef}
           className={`select-model-button ${selectedModel ? "active" : ""}`}
           sx={{
             border: "1px solid transparent",
             color: "var(--c_white)",
-            marginRight: ".5em !important",
-            padding: "0.25em 0.75em !important",
-            "&:hover": {
-              backgroundColor: "var(--c_gray3)"
-            }
           }}
           onClick={handleClick}
           size="small"
-          startIcon={
-            <SmartToyIcon
-              fontSize="small"
-              sx={{
-                color: "var(--c_gray5)",
-                marginRight: "0.5em"
-              }}
-            />
-          }
         >
-          {currentSelectedModelDetails?.name || selectedModel || "Model"}
-        </Button>
+          <SmartToyIcon
+            fontSize="small"
+            sx={{
+              color: "var(--c_gray5)",
+            }}
+          />
+        </IconButton>
       </Tooltip>
       <Menu
         className="model-menu"

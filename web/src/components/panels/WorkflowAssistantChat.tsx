@@ -3,12 +3,16 @@ import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState } from "react";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
-import { Message } from "../../stores/ApiTypes";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { Message } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
 import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import ThreadList from "../chat/thread/ThreadList";
+import { useNodes } from "../../contexts/NodeContext";
+import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
+import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
+import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
 
 const containerStyles = css({
   flex: 1,
@@ -62,9 +66,15 @@ const WorkflowAssistantChat: React.FC = () => {
     deleteThread
   } = useGlobalChatStore();
 
-  const messages = getCurrentMessages();
+  // Subscribe to workflow graph updates from chat messages
+  useWorkflowGraphUpdater();
 
+  const messages = getCurrentMessages();
   const total = progress.total;
+  const { nodes, edges } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges
+  }));
 
   // Local UI state (model & toggles)
   const [selectedModel, setSelectedModel] = useState<string>(() => {
@@ -229,6 +239,10 @@ const WorkflowAssistantChat: React.FC = () => {
         workflowAssistant={true}
         onStop={stopGeneration}
         noMessagesPlaceholder={<AssistantWelcome />}
+        graph={{
+          nodes: nodes.map(reactFlowNodeToGraphNode),
+          edges: edges.map(reactFlowEdgeToGraphEdge)
+        }}
       />
     </div>
   );

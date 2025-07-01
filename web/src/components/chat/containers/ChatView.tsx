@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import {
+  Node,
+  Edge,
   Message,
   MessageContent,
   PlanningUpdate,
-  TaskUpdate
+  TaskUpdate,
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
@@ -50,6 +52,10 @@ type ChatViewProps = {
   total: number;
   messages: Array<Message>;
   model?: string;
+  graph?: {
+    nodes: Node[];
+    edges: Edge[];
+  };
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
   selectedTools?: string[];
@@ -92,7 +98,8 @@ const ChatView = ({
   onHelpModeToggle,
   currentPlanningUpdate,
   currentTaskUpdate,
-  noMessagesPlaceholder
+  noMessagesPlaceholder,
+  graph
 }: ChatViewProps) => {
   const handleSendMessage = useCallback(
     async (
@@ -112,7 +119,8 @@ const ChatView = ({
             selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: messageAgentMode,
           help_mode: helpMode,
-          workflow_assistant: workflowAssistant
+          workflow_assistant: workflowAssistant,
+          graph: graph
         });
       } catch (error) {
         console.error("Error sending message:", error);
@@ -124,7 +132,8 @@ const ChatView = ({
       selectedTools,
       selectedCollections,
       helpMode,
-      workflowAssistant
+      workflowAssistant,
+      graph
     ]
   );
 
