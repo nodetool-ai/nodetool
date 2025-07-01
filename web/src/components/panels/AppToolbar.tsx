@@ -351,7 +351,9 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
       title={
         <div className="tooltip-span">
           <div className="tooltip-title">Save workflow</div>
-          <div className="tooltip-key">CTRL / ⌘ +S</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd>
+          </div>
         </div>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
@@ -490,7 +492,9 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       title={
         <div className="tooltip-span">
           <div className="tooltip-title">Run Workflow</div>
-          <div className="tooltip-key">CTRL+Enter</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd>
+          </div>
         </div>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
@@ -536,7 +540,9 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
       title={
         <div className="tooltip-span">
           <div className="tooltip-title">Stop Workflow</div>
-          <div className="tooltip-key">ESC</div>
+          <div className="tooltip-key">
+            <kbd>ESC</kbd>
+          </div>
         </div>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}

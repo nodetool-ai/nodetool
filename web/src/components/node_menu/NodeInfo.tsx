@@ -12,11 +12,11 @@ import { titleizeString } from "../../utils/titleizeString";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { isEqual } from "lodash";
-import NodeDescription from "../node/NodeDescription";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
   showConnections?: boolean;
+  menuWidth?: number;
 }
 
 const nodeInfoStyles = (theme: any) =>
@@ -28,7 +28,6 @@ const nodeInfoStyles = (theme: any) =>
     gap: ".5em",
     padding: "1em",
     maxHeight: "55vh",
-    width: "300px",
     position: "relative",
     ".node-title": {
       fontSize: theme.fontSizeBigger,
@@ -175,11 +174,11 @@ const nodeInfoStyles = (theme: any) =>
 
 const NodeInfo: React.FC<NodeInfoProps> = ({
   nodeMetadata,
+  menuWidth = 300,
   showConnections = true
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
-
   // const description = useMemo(
   //   () => nodeMetadata?.description || "",
   //   [nodeMetadata]
@@ -256,7 +255,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   ).html;
 
   return (
-    <div css={nodeInfoStyles}>
+    <div css={nodeInfoStyles} style={{ width: menuWidth }}>
       <div className="title-container">
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}

@@ -139,7 +139,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">Duplicate</div>
-            <div className="tooltip-key">CTRL+D / ⌘D</div>
+            <div className="tooltip-key">
+              <kbd>CTRL</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>D</kbd>
+            </div>
           </div>
         }
       />
@@ -150,7 +152,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">Copy</div>
-            <div className="tooltip-key">CTRL+C / ⌘C</div>
+            <div className="tooltip-key">
+              <kbd>CTRL</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>C</kbd>
+            </div>
           </div>
         }
       />
@@ -175,7 +179,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">Align</div>
-            <div className="tooltip-key">A</div>
+            <div className="tooltip-key">
+              <kbd>A</kbd>
+            </div>
           </div>
         }
         addButtonClassName={`action ${
@@ -191,7 +197,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">Arrange</div>
-            <div className="tooltip-key">SHIFT+A</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>A</kbd>
+            </div>
           </div>
         }
         addButtonClassName={`action ${
@@ -209,7 +217,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           tooltip={
             <div className="tooltip-span">
               <div className="tooltip-title">Surround With Group</div>
-              <div className="tooltip-key">CTRL/⌘+G</div>
+              <div className="tooltip-key">
+                <kbd>CTRL</kbd>/<kbd>⌘</kbd>+<kbd>G</kbd>
+              </div>
             </div>
           }
           addButtonClassName={`action ${
@@ -228,7 +238,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           tooltip={
             <div className="tooltip-span">
               <div className="tooltip-title">Remove From Group</div>
-              <div className="tooltip-key">Right-Click</div>
+              <div className="tooltip-key">
+                <kbd>Right-Click</kbd>
+              </div>
             </div>
           }
           addButtonClassName={`action ${
@@ -244,7 +256,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">Delete</div>
-            <div className="tooltip-key">Backspace / Del</div>
+            <div className="tooltip-key">
+              <kbd>Backspace</kbd> / <kbd>Del</kbd>
+            </div>
           </div>
         }
         addButtonClassName="delete"
