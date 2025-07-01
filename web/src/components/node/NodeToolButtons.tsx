@@ -80,7 +80,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Duplicate</div>
-            <div className="tooltip-key">Space+D</div>
+            <div className="tooltip-key">
+              <kbd>Space</kbd>+<kbd>D</kbd>
+            </div>
           </div>
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -93,7 +95,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Copy</div>
-            <div className="tooltip-key">CTRL+C / ⌘C</div>
+            <div className="tooltip-key">
+              <kbd>CTRL</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>C</kbd>
+            </div>
           </div>
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -106,7 +110,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         title={
           <div className="tooltip-span">
             <div className="tooltip-title">Delete</div>
-            <div className="tooltip-key">Backspace / Del</div>
+            <div className="tooltip-key">
+              <kbd>Backspace</kbd> / <kbd>Del</kbd>
+            </div>
           </div>
         }
         enterDelay={TOOLTIP_ENTER_DELAY}

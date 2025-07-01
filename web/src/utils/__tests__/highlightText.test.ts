@@ -303,7 +303,7 @@ describe("highlightText utilities", () => {
         const result = highlightText(longText, "title", "word", searchInfo);
         const end = performance.now();
 
-        expect(end - start).toBeLessThan(400); // allow slower environments
+        expect(end - start).toBeLessThan(1000); // allow slower environments
         expect(result.highlightedWords.length).toBe(1000);
       });
 

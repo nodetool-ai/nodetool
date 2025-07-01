@@ -1,7 +1,29 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import AssetSearchInput from "../../../components/assets/AssetSearchInput";
+
+// Create a simple mock theme for testing
+const mockTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: {
+      main: "#77b4e6"
+    },
+    background: {
+      default: "#202020",
+      paper: "#232323"
+    },
+    text: {
+      primary: "#fff"
+    },
+    // Add the custom palette properties
+    c_hl1: "#77b4e6",
+    c_white: "#FCFCFC",
+    c_gray1: "#242424"
+  } as any // Use 'as any' to bypass TypeScript checking for custom properties
+});
 
 // Mock the stores and hooks
 jest.mock("../../../stores/AssetGridStore", () => ({
@@ -24,6 +46,10 @@ jest.mock("../../../serverState/useAssetSearch", () => ({
   })
 }));
 
+const renderWithTheme = (component: React.ReactElement) => {
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+};
+
 describe("AssetSearchInput - Basic Functionality", () => {
   const mockOnLocalSearchChange = jest.fn();
 
@@ -34,7 +60,9 @@ describe("AssetSearchInput - Basic Functionality", () => {
   it("should not crash when switching modes", async () => {
     const user = userEvent.setup();
 
-    render(<AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />);
+    renderWithTheme(
+      <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
+    );
 
     const toggleButton = screen.getByTestId("asset-search-mode-toggle");
 
@@ -49,7 +77,9 @@ describe("AssetSearchInput - Basic Functionality", () => {
   it("should not crash with empty search input", async () => {
     const user = userEvent.setup();
 
-    render(<AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />);
+    renderWithTheme(
+      <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
+    );
 
     const searchInput = screen.getByTestId("asset-search-input-field");
 
@@ -62,7 +92,9 @@ describe("AssetSearchInput - Basic Functionality", () => {
   it("should not break keyboard navigation", async () => {
     const user = userEvent.setup();
 
-    render(<AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />);
+    renderWithTheme(
+      <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
+    );
 
     const searchInput = screen.getByTestId("asset-search-input-field");
 
@@ -77,7 +109,9 @@ describe("AssetSearchInput - Basic Functionality", () => {
   it("should handle rapid mode switching gracefully", async () => {
     const user = userEvent.setup();
 
-    render(<AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />);
+    renderWithTheme(
+      <AssetSearchInput onLocalSearchChange={mockOnLocalSearchChange} />
+    );
 
     const toggleButton = screen.getByTestId("asset-search-mode-toggle");
     const searchInput = screen.getByTestId("asset-search-input-field");

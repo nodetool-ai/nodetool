@@ -1,7 +1,31 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import GlobalSearchResults from "../../../components/assets/GlobalSearchResults";
 import { AssetWithPath } from "../../../stores/ApiTypes";
+
+// Create a simple mock theme for testing
+const mockTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: {
+      main: "#77b4e6"
+    },
+    background: {
+      default: "#202020",
+      paper: "#232323"
+    },
+    text: {
+      primary: "#fff"
+    },
+    // Add the custom palette properties
+    c_hl1: "#77b4e6",
+    c_white: "#FCFCFC",
+    c_gray1: "#242424",
+    c_gray2: "#444444",
+    c_gray3: "#6D6D6D"
+  } as any // Use 'as any' to bypass TypeScript checking for custom properties
+});
 
 // Mock the stores and hooks
 jest.mock("../../../hooks/assets/useAssetSelection", () => ({
@@ -30,6 +54,10 @@ jest.mock("../../../stores/AssetGridStore", () => ({
   }
 }));
 
+const renderWithTheme = (component: React.ReactElement) => {
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+};
+
 describe("GlobalSearchResults - Stability", () => {
   const mockAssets: AssetWithPath[] = [
     {
@@ -51,23 +79,25 @@ describe("GlobalSearchResults - Stability", () => {
 
   it("should render without crashing", () => {
     expect(() => {
-      render(<GlobalSearchResults results={mockAssets} />);
+      renderWithTheme(<GlobalSearchResults results={mockAssets} />);
     }).not.toThrow();
   });
 
   it("should handle empty results gracefully", () => {
     expect(() => {
-      render(<GlobalSearchResults results={[]} />);
+      renderWithTheme(<GlobalSearchResults results={[]} />);
     }).not.toThrow();
 
     // Should show empty state
-    expect(screen.getByText(/no results found/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no assets found matching your search/i)
+    ).toBeInTheDocument();
   });
 
   it("should not break when clicking results", () => {
     const mockOnAssetDoubleClick = jest.fn();
 
-    render(
+    renderWithTheme(
       <GlobalSearchResults
         results={mockAssets}
         onAssetDoubleClick={mockOnAssetDoubleClick}
@@ -107,7 +137,7 @@ describe("GlobalSearchResults - Stability", () => {
     );
 
     expect(() => {
-      render(<GlobalSearchResults results={largeAssetList} />);
+      renderWithTheme(<GlobalSearchResults results={largeAssetList} />);
     }).not.toThrow();
   });
 });
