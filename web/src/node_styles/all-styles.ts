@@ -25,13 +25,13 @@ export const allComponentStyles = (theme: any) =>
   css(
     formStyles(theme),
     buttonStyles(theme),
-    // inputStyles(theme),
-    // typographyStyles(theme),
-    // selectStyles(theme),
-    // navigationStyles(theme),
-    // feedbackStyles(theme),
-    // surfacesStyles(theme),
-    // toggleStyles(theme),
+    inputStyles(theme),
+    typographyStyles(theme),
+    selectStyles(theme),
+    navigationStyles(theme),
+    feedbackStyles(theme),
+    surfacesStyles(theme),
+    toggleStyles(theme),
     utilityStyles(theme)
   );
 
