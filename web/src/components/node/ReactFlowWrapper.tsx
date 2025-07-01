@@ -43,7 +43,7 @@ import { useFitView } from "../../hooks/useFitView";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import { isEqual } from "lodash";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
 import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
@@ -88,6 +88,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
   active
 }) => {
+  const theme = useTheme();
   const {
     nodes,
     edges,
@@ -468,10 +469,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           gap={100}
           offset={4}
           size={8}
-          color={ThemeNodes.palette.c_editor_grid_color}
+          color={theme.palette.c_editor_grid_color}
           lineWidth={1}
           style={{
-            backgroundColor: ThemeNodes.palette.c_editor_bg_color
+            backgroundColor: theme.palette.c_editor_bg_color
           }}
           variant={BackgroundVariant.Cross}
         />
