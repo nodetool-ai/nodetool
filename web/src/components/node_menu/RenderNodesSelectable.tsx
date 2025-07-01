@@ -113,11 +113,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
       return (
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
-          <AccordionSummary
-            expandIcon={
-              <ExpandMoreIcon sx={{ color: theme.palette.grey[500] }} />
-            }
-          >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <GroupTitle title={group.title} />
           </AccordionSummary>
           <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
