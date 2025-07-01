@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, memo, useEffect } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -171,7 +171,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   const { searchAssets, isSearching } = useAssetSearch();
 
   // Keep track of current search abort controller
-  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Debounced search implementation for both local and global search
   const debouncedSetSearchTerm = useDebouncedCallback(async (value: string) => {
@@ -280,14 +280,14 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     inputRef.current?.focus();
   }, [resetSearch]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (focusSearchInput) {
       inputRef.current?.focus();
     }
   }, [focusSearchInput]);
 
   // Cleanup: cancel any pending requests when component unmounts
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -295,7 +295,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const shouldHandleEvent =
         document.activeElement === inputRef.current ||
@@ -403,4 +403,4 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   );
 };
 
-export default React.memo(AssetSearchInput);
+export default memo(AssetSearchInput);
