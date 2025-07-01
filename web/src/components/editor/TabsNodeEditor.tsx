@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css, ThemeProvider } from "@emotion/react";
+import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useMemo, useState } from "react";
 import NodeEditor from "../node_editor/NodeEditor";
@@ -10,7 +10,7 @@ import AppToolbar from "../panels/AppToolbar";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
-import ThemeNodes from "../themes/ThemeNodes";
+
 import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -362,79 +362,75 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <ThemeProvider theme={ThemeNodes}>
-        <div css={styles}>
-          <div className="tabs-container">
-            <TabsBar workflows={tabsToRender} />
-            {!isMac && isElectron && <WindowControls />}
-          </div>
-          <div
-            className="editor-container"
-            css={generateCSS}
-            style={{ flex: 1, minHeight: 0, minWidth: 0 }}
-          >
-            {activeNodeStore ? (
-              <Box
-                key={currentWorkflowId}
-                sx={{
-                  overflow: "hidden",
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                <NodeContext.Provider value={activeNodeStore}>
-                  <ReactFlowProvider>
-                    <ContextMenuProvider>
-                      <ConnectableNodesProvider>
-                        <KeyboardProvider>
-                          <div
-                            style={{
-                              flexShrink: 0,
-                              position: "relative",
-                              zIndex: 1
-                            }}
-                          >
-                            <AppHeader />
-                            <div className="actions-container">
-                              <AppToolbar
-                                setWorkflowToEdit={setWorkflowToEdit}
-                              />
-                            </div>
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              flex: 1,
-                              minHeight: 0,
-                              position: "relative",
-                              width: "100%",
-                              height: "100%"
-                            }}
-                          >
-                            <NodeEditor
-                              workflowId={currentWorkflowId!}
-                              active={true}
-                            />
-                          </div>
-                        </KeyboardProvider>
-                      </ConnectableNodesProvider>
-                    </ContextMenuProvider>
-                  </ReactFlowProvider>
-                </NodeContext.Provider>
-              </Box>
-            ) : (
-              <StatusMessage />
-            )}
-          </div>
+      <div css={styles}>
+        <div className="tabs-container">
+          <TabsBar workflows={tabsToRender} />
+          {!isMac && isElectron && <WindowControls />}
         </div>
-      </ThemeProvider>
+        <div
+          className="editor-container"
+          css={generateCSS}
+          style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+        >
+          {activeNodeStore ? (
+            <Box
+              key={currentWorkflowId}
+              sx={{
+                overflow: "hidden",
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                minHeight: 0,
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              <NodeContext.Provider value={activeNodeStore}>
+                <ReactFlowProvider>
+                  <ContextMenuProvider>
+                    <ConnectableNodesProvider>
+                      <KeyboardProvider>
+                        <div
+                          style={{
+                            flexShrink: 0,
+                            position: "relative",
+                            zIndex: 1
+                          }}
+                        >
+                          <AppHeader />
+                          <div className="actions-container">
+                            <AppToolbar setWorkflowToEdit={setWorkflowToEdit} />
+                          </div>
+                          <div className="status-message-container">
+                            <StatusMessage />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 0,
+                            position: "relative",
+                            width: "100%",
+                            height: "100%"
+                          }}
+                        >
+                          <NodeEditor
+                            workflowId={currentWorkflowId!}
+                            active={true}
+                          />
+                        </div>
+                      </KeyboardProvider>
+                    </ConnectableNodesProvider>
+                  </ContextMenuProvider>
+                </ReactFlowProvider>
+              </NodeContext.Provider>
+            </Box>
+          ) : (
+            <StatusMessage />
+          )}
+        </div>
+      </div>
     </>
   );
 };
