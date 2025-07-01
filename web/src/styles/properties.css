@@ -157,8 +157,9 @@
 
 /* PROPERTY STYLES */
 .property-label {
-  max-width: 90%;
-  margin-bottom: 1px;
+  width: 100%;
+  height: 18px;
+  /* max-width: 90%; */
   padding: 0;
   overflow: visible;
   flex-grow: 1;
@@ -414,12 +415,13 @@
 }
 
 .custom-select {
-  position: relative;
   width: 100%;
+  display: block;
+  font-family: var(--font-family-1);
 }
 
 .custom-select .select-header {
-  display: flex;
+  display: block;
   justify-content: space-between;
   align-items: center;
   margin: 2px 0 4px 0;

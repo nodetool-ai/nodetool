@@ -36,16 +36,13 @@ const AudioProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {(props.nodeType === "nodetool.constant.Audio" ||
-        props.nodeType === "nodetool.input.AudioInput") && (
-        <PropertyDropzone
-          asset={asset}
-          uri={uri || ""}
-          onChange={props.onChange}
-          contentType="audio"
-          props={props}
-        />
-      )}
+      <PropertyDropzone
+        asset={asset}
+        uri={uri || ""}
+        onChange={props.onChange}
+        contentType="audio"
+        props={props}
+      />
     </div>
   );
 };
