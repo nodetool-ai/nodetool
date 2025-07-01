@@ -11,7 +11,7 @@ import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -146,6 +146,7 @@ interface PreviewNodeProps extends NodeProps {
 }
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
+  const theme = useTheme();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -300,8 +301,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
         backgroundColor: hasParent
-          ? ThemeNodes.palette.c_node_bg_group
-          : ThemeNodes.palette.c_node_bg
+          ? theme.palette.c_node_bg_group
+          : theme.palette.c_node_bg
       }}
       className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""

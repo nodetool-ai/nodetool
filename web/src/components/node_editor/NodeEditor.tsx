@@ -26,7 +26,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 declare global {
   interface Window {
@@ -40,6 +40,7 @@ interface NodeEditorProps {
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
+  const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
   const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
@@ -136,7 +137,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       )}
       <div
         className="node-editor"
-        style={{ backgroundColor: ThemeNodes.palette.c_editor_bg_color }}
+        style={{ backgroundColor: theme.palette.c_editor_bg_color }}
       >
         {isUploading && (
           <div className="loading-overlay">

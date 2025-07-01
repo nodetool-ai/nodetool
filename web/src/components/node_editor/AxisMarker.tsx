@@ -1,6 +1,5 @@
 import React from "react";
 import { Viewport, useOnViewportChange } from "@xyflow/react";
-import ThemeNodes from "../themes/ThemeNodes";
 
 const AxisMarker: React.FC = () => {
   const horizontalLineRef = React.useRef<HTMLDivElement>(null);

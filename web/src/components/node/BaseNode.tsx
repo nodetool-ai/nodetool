@@ -2,7 +2,7 @@
 import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,
@@ -182,12 +182,12 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
-const getHeaderFooterColors = (metadata: NodeMetadata) => {
+const getHeaderFooterColors = (metadata: NodeMetadata, theme: any) => {
   const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
   if (!firstOutputColor) return { headerColor: "", footerColor: "" };
 
   const baseColor = colorForType(firstOutputColor);
-  const bg = ThemeNodes.palette.c_node_bg;
+  const bg = theme.palette.c_node_bg;
 
   return {
     headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90),
@@ -196,6 +196,7 @@ const getHeaderFooterColors = (metadata: NodeMetadata) => {
 };
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const theme = useTheme();
   const { id, type, data, selected, parentId } = props;
   const { workflow_id, title } = data;
   const hasParent = Boolean(parentId);
@@ -284,8 +285,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
   const { headerColor, footerColor } = useMemo(
-    () => getHeaderFooterColors(metadata),
-    [metadata]
+    () => getHeaderFooterColors(metadata, theme),
+    [metadata, theme]
   );
 
   const task = useResultsStore((state) => state.getTask(workflow_id, id));
@@ -312,7 +313,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
         backgroundColor:
-          hasParent && !isLoading ? parentColor : ThemeNodes.palette.c_node_bg
+          hasParent && !isLoading ? parentColor : theme.palette.c_node_bg
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
 import { useFocusPan } from "../../hooks/useFocusPan";
@@ -251,6 +251,7 @@ const DisplayValue: React.FC<{
 );
 
 const NumberInput: React.FC<InputProps> = (props) => {
+  const theme = useTheme();
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
     localValue: props.value?.toString() ?? "",
@@ -458,9 +459,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onContextMenu={handleContextMenu}
       tabIndex={-1}
       style={{
-        fontFamily: ThemeNodes.fontFamily1,
-        fontSize: ThemeNodes.fontSizeSmall,
-        color: ThemeNodes.palette.primary.main,
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeSmall,
+        color: theme.palette.primary.main,
         position: "relative"
       }}
     >

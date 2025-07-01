@@ -3,7 +3,7 @@ import { memo } from "react";
 import NodeOutput from "./NodeOutput";
 import { Property } from "../../stores/ApiTypes";
 import { Typography } from "@mui/material";
-import ThemeNodes from "../themes/ThemeNodes";
+
 import { isEqual } from "lodash";
 
 export interface NodeOutputsProps {

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
-import ThemeNodes from "../../components/themes/ThemeNodes";
+import ThemeNodetool from "../../components/themes/ThemeNodetool";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
@@ -63,7 +63,7 @@ export const useSurroundWithGroup = () => {
         groupNode.data.properties = {};
       }
 
-      groupNode.data.properties.group_color = ThemeNodes.palette.c_bg_group;
+      groupNode.data.properties.group_color = ThemeNodetool.palette.c_bg_group;
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {
