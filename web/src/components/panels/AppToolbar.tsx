@@ -139,10 +139,9 @@ const styles = (theme: any) =>
       padding: "0 1em"
     },
     ".mode-select": {
-      top: "-2px",
       padding: "0",
-      minWidth: "80px",
-      marginRight: "12px",
+      minWidth: "90px",
+      margin: "0 0.5em",
       height: "24px",
       "& svg": {
         right: "2px"
@@ -198,10 +197,7 @@ const styles = (theme: any) =>
     },
     ".node-menu-button": {
       "& svg": {
-        fill: `${"var(--palette-primary-main)"}cc`
-      },
-      "&:hover svg": {
-        fill: `${"var(--palette-primary-main)"}ff`
+        fill: `${"var(--palette-action-active)"}`
       }
     },
     ".run-stop-button": {

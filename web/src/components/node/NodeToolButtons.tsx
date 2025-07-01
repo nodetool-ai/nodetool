@@ -61,7 +61,11 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   if (!nodeId) return null;
 
   return (
-    <Toolbar variant="dense" className="node-toolbar">
+    <Toolbar
+      variant="dense"
+      className="node-toolbar"
+      sx={{ backgroundColor: "transparent" }}
+    >
       {/* {node?.parentId && (
         <Tooltip title="Remove from Group">
           <IconButton
