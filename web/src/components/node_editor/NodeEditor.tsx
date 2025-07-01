@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect } from "react";
 
-import { CircularProgress } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -27,6 +27,7 @@ import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
 import { useTheme } from "@mui/material/styles";
+import allComponentStyles from "../../node_styles/all-styles";
 
 declare global {
   interface Window {
@@ -135,7 +136,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <div
+      <Box
+        css={allComponentStyles(theme)}
         className="node-editor"
         style={{ backgroundColor: theme.palette.c_editor_bg_color }}
       >
@@ -151,7 +153,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <NodeMenu focusSearchInput={true} />
           </>
         )}
-      </div>
+      </Box>
     </>
   );
 };
