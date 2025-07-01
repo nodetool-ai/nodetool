@@ -337,7 +337,11 @@ const PackageList: React.FC = () => {
               const isInstalled = isPackageInstalled(pkg.repo_id);
 
               return (
-                <Tooltip title={pkg.description} key={pkg.repo_id}>
+                <Tooltip
+                  title={pkg.description}
+                  key={pkg.repo_id}
+                  placement="right"
+                >
                   <div>
                     <ListItem
                       className="packageItem packagelist-item"
@@ -362,7 +366,7 @@ const PackageList: React.FC = () => {
                               {pkg.name}
                             </Typography>
                             {isInstalled && (
-                              <Tooltip title="Installed">
+                              <Tooltip title="Installed" placement="bottom">
                                 <CheckCircleIcon
                                   color="success"
                                   fontSize="small"
