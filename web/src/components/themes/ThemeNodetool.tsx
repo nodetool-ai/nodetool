@@ -48,7 +48,7 @@ const ThemeNodetool: Theme = createTheme({
       palette: paletteDark
     },
     light: {
-      palette: paletteLight
+      palette: paletteDark
     }
   },
   cssVariables: {
