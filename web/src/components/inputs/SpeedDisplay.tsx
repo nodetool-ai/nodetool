@@ -3,20 +3,17 @@ import { createPortal } from "react-dom";
 
 interface SpeedDisplayProps {
   speedFactor: number;
-  zoom: number;
   mousePosition: { x: number; y: number };
   isDragging: boolean;
-  sliderWidth: number;
 }
 
 const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
-  speedFactor,
-  zoom,
+  speedFactor = 1,
   mousePosition,
-  isDragging,
-  sliderWidth
+  isDragging
 }) => {
-  if (!isDragging) return null;
+  // Hide entirely if not dragging or if slowdown is not active (speedFactor ~ 1)
+  if (!isDragging || speedFactor >= 0.999) return null;
 
   const speedDisplay = (
     <div
@@ -24,26 +21,24 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
         position: "fixed",
         left: mousePosition.x - 25,
         top: mousePosition.y + 30,
-        backgroundColor: "rgba(0, 0, 0, 0.9)",
+        backgroundColor: "var(--color-background-paper)",
         color: "white",
-        padding: "6px 10px",
-        borderRadius: "6px",
-        fontSize: "12px",
+        padding: ".5em 1em",
+        borderRadius: ".5em",
+        fontSize: "var(--fontSizeSmall)",
         pointerEvents: "none",
         zIndex: 999999,
-        fontFamily: "monospace",
-        whiteSpace: "nowrap",
-        border: "1px solid rgba(255, 255, 255, 0.2)",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
+        fontFamily: "var(--fontFamily)",
+        textAlign: "center",
+        maxWidth: "200px",
+        opacity: 0.4,
+        transition: "opacity 0.1s ease-in-out"
       }}
     >
-      <div>Speed: {(speedFactor * 100).toFixed(1)}%</div>
-      <div>Zoom: {(zoom * 100).toFixed(0)}%</div>
-      <div>WidthScreen: {(sliderWidth * zoom).toFixed(0)}px</div>
+      <div>{(speedFactor * 100).toFixed(0)}%</div>
     </div>
   );
 
-  // Render the display as a portal to the document body to avoid clipping
   try {
     return createPortal(speedDisplay, document.body);
   } catch (error) {
