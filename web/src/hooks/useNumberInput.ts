@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useKeyPressedStore } from "../stores/KeyPressedStore";
 import {
   InputProps,
   NumberInputState,
@@ -7,14 +7,14 @@ import {
   DRAG_SLOWDOWN_DEAD_ZONE_PX,
   DEBUG,
   REFERENCE_SLIDER_WIDTH
-} from "./NumberInput.types";
+} from "../components/inputs/NumberInput";
 import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
   calculateVisualScreenWidth,
   applyValueConstraints
-} from "./NumberInput.utils";
+} from "../components/inputs/NumberInput.utils";
 
 export const useValueCalculation = () => {
   const calculateStepCb = useCallback(calculateStep, []);
@@ -107,7 +107,8 @@ export const useDragHandling = (
         const { actualSliderWidth } = dragStateRef.current;
         const visualScreenWidth = calculateVisualScreenWidth(
           !!props.zoomAffectsDragging,
-          zoom
+          zoom,
+          actualSliderWidth
         );
         const visualPercentage = deltaX / visualScreenWidth;
 
