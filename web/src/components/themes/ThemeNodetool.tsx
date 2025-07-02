@@ -56,19 +56,19 @@ const ThemeNodetool: Theme = createTheme({
     colorSchemeSelector: "[data-mui-color-scheme]",
     cssVarPrefix: ""
   },
-  fontSizeGiant: "2em",
-  fontSizeBigger: "1.25em",
-  fontSizeBig: "1.125em",
-  fontSizeNormal: "16px",
-  fontSizeSmall: "0.875em",
-  fontSizeSmaller: "0.75em",
-  fontSizeTiny: "0.65em",
-  fontSizeTinyer: "0.55em",
+  fontSizeGiant: "2rem",
+  fontSizeBigger: "1.25rem",
+  fontSizeBig: "1.125rem",
+  fontSizeNormal: "15px",
+  fontSizeSmall: "0.875rem",
+  fontSizeSmaller: "0.75rem",
+  fontSizeTiny: "0.65rem",
+  fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   typography: {
     fontFamily: "'Inter', sans-serif",
-    fontSize: 14
+    fontSize: 15
   },
   spacing: 4,
   shape: {
