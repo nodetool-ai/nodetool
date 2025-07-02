@@ -1,20 +1,29 @@
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useTheme } from "@mui/material/styles";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
 import { useFocusPan } from "../../hooks/useFocusPan";
+import { useViewport } from "@xyflow/react";
+import { getMousePosition } from "../../utils/MousePosition";
+// Debug mode
+const DEBUG = false;
 
 // Drag-tuning constants
 const DRAG_THRESHOLD = 10; // px before drag counts
-const PIXELS_PER_STEP = 10; // horizontal px per base-step
 const DRAG_SLOWDOWN_DEAD_ZONE_PX = 10; // no-slow band above/below slider
-const DRAG_SLOWDOWN_RAMP_BASE_PX = 50; // ramp half-height in px
+const DRAG_SLOWDOWN_RAMP_BASE_PX = 450; // ramp half-height in px
 const DRAG_SLOWDOWN_RAMP_PX = DRAG_SLOWDOWN_RAMP_BASE_PX * 2; // full ramp span
 const MIN_SPEED_FACTOR = 0.1; // min speed (normal)
 const SHIFT_MIN_SPEED_FACTOR = 0.01; // min speed with Shift
 const SHIFT_SLOWDOWN_DIVIDER = 5; // Shift divides speed by this
+const REFERENCE_SLIDER_WIDTH = 180; // px - base slider width for zoom calculations
+
+// Zoom mapping constants (moved from constants.ts)
+const ZOOM_DRAG_MIN_SCALE = 0.5; // Drag scaling at MIN_ZOOM (18%)
+const ZOOM_DRAG_MAX_SCALE = 2.0; // Drag scaling at MAX_ZOOM (400%)
 
 interface InputProps {
   nodeId: string;
@@ -31,6 +40,7 @@ interface InputProps {
   inputType?: "int" | "float";
   hideLabel?: boolean;
   tabIndex?: number;
+  zoomAffectsDragging?: boolean;
 }
 
 interface NumberInputState {
@@ -45,39 +55,92 @@ interface NumberInputState {
   currentDragValue: number;
   lastClientX: number;
   dragPointerY: number | null;
+  actualSliderWidth: number;
 }
+
+// Utility Functions
+const calculateStep = (
+  min: number,
+  max: number,
+  inputType: "int" | "float"
+): number => {
+  const range = max - min;
+  let baseStep: number;
+
+  if (inputType === "float") {
+    if (range <= 1) baseStep = 0.01;
+    else if (range <= 20) baseStep = 0.5;
+    else if (range > 20 && range <= 100) baseStep = 0.5;
+    else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
+  } else {
+    if (range <= 20) baseStep = 0.1;
+    else if (range <= 1000) baseStep = 1;
+    else if (range > 1000 && range <= 5000) baseStep = 16;
+    else if (range > 5000 && range <= 10000) baseStep = 32;
+    else if (range > 10000) baseStep = 64;
+    else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
+  }
+
+  return baseStep;
+};
+
+const calculateDecimalPlaces = (baseStep: number): number => {
+  return Math.max(0, Math.ceil(Math.log10(1 / baseStep)));
+};
+
+const calculateSpeedFactor = (
+  distanceOutside: number,
+  shiftKey: boolean
+): number => {
+  const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
+  let speedFactor = Math.pow(0.1, t);
+  speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
+
+  if (shiftKey) {
+    speedFactor = Math.max(
+      speedFactor / SHIFT_SLOWDOWN_DIVIDER,
+      SHIFT_MIN_SPEED_FACTOR
+    );
+  }
+
+  return speedFactor;
+};
+
+const calculateVisualScreenWidth = (
+  zoomEnabled: boolean,
+  zoom: number
+): number => {
+  return zoomEnabled && zoom > 0
+    ? REFERENCE_SLIDER_WIDTH * zoom
+    : REFERENCE_SLIDER_WIDTH;
+};
+
+const applyValueConstraints = (
+  value: number,
+  min: number,
+  max: number,
+  inputType: "int" | "float",
+  decimalPlaces: number
+): number => {
+  let constrainedValue = value;
+
+  if (inputType === "float") {
+    constrainedValue = parseFloat(value.toFixed(decimalPlaces));
+  } else {
+    constrainedValue = Math.round(value);
+  }
+
+  return Math.max(min, Math.min(max, constrainedValue));
+};
 
 // Custom Hooks
 const useValueCalculation = () => {
-  const calculateStep = useCallback(
-    (min: number, max: number, inputType: "int" | "float"): number => {
-      const range = max - min;
-      let baseStep: number;
-
-      if (inputType === "float") {
-        if (range <= 1) baseStep = 0.01;
-        else if (range <= 20) baseStep = 0.5;
-        else if (range > 20 && range <= 100) baseStep = 0.5;
-        else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
-      } else {
-        if (range <= 20) baseStep = 0.1;
-        else if (range <= 1000) baseStep = 1;
-        else if (range > 1000 && range <= 5000) baseStep = 16;
-        else if (range > 5000 && range <= 10000) baseStep = 32;
-        else if (range > 10000) baseStep = 64;
-        else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
-      }
-
-      return baseStep;
-    },
-    []
-  );
-
-  const calculateDecimalPlaces = useCallback((baseStep: number) => {
-    return Math.max(0, Math.ceil(Math.log10(1 / baseStep)));
-  }, []);
-
-  return { calculateStep, calculateDecimalPlaces };
+  const calculateStepCb = useCallback(calculateStep, []);
+  const calculateDecimalPlacesCb = useCallback(calculateDecimalPlaces, []);
+  return {
+    calculateStep: calculateStepCb,
+    calculateDecimalPlaces: calculateDecimalPlacesCb
+  };
 };
 
 const useDragHandling = (
@@ -88,7 +151,8 @@ const useDragHandling = (
   setInputIsFocused: (focused: boolean) => void,
   containerRef: React.RefObject<HTMLDivElement>,
   dragStateRef: React.MutableRefObject<NumberInputState>,
-  setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>
+  setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>,
+  zoom: number
 ) => {
   const { shiftKeyPressed } = useKeyPressedStore((state) => ({
     shiftKeyPressed: state.isKeyPressed("Shift")
@@ -137,15 +201,7 @@ const useDragHandling = (
         );
       }
 
-      const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
-      let speedFactor = 1 - t * t;
-      speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
-      if (e.shiftKey) {
-        speedFactor = Math.max(
-          speedFactor / SHIFT_SLOWDOWN_DIVIDER,
-          SHIFT_MIN_SPEED_FACTOR
-        );
-      }
+      const speedFactor = calculateSpeedFactor(distanceOutside, e.shiftKey);
 
       // expose to overlay/debug
       setSpeedFactorState(speedFactor);
@@ -165,37 +221,61 @@ const useDragHandling = (
       if (Math.abs(deltaX) < 0.5) {
         newValue = currentDragValue;
       } else {
-        if (isOverSlider && !e.shiftKey) {
-          // Direct pixel-to-value mapping when over slider (range-independent)
-          const range = (props.max ?? 4096) - (props.min ?? 0);
-          const pixelToValueRatio =
-            range / (containerRef.current?.offsetWidth || 200);
-          const valueIncrement = deltaX * pixelToValueRatio;
-          newValue = currentDragValue + valueIncrement;
-        } else {
-          // Use pixel-to-value mapping with slowdown factors (range-independent)
-          const range = (props.max ?? 4096) - (props.min ?? 0);
-          const basePixelToValueRatio =
-            range / (containerRef.current?.offsetWidth || 200);
-          const slowedPixelToValueRatio = basePixelToValueRatio * speedFactor;
-          const valueIncrement = deltaX * slowedPixelToValueRatio;
-          newValue = currentDragValue + valueIncrement;
+        // Step 1: Convert pixel movement to visual percentage
+        const { actualSliderWidth } = dragStateRef.current;
+        const visualScreenWidth = calculateVisualScreenWidth(
+          !!props.zoomAffectsDragging,
+          zoom
+        );
+        const visualPercentage = deltaX / visualScreenWidth;
+
+        // Step 2: Convert to raw value change
+        const range = (props.max ?? 4096) - (props.min ?? 0);
+        const rawValueChange = visualPercentage * range;
+
+        // Step 3: Apply modifiers (speedFactor for vertical slowdown + shift)
+        const effectiveSpeedFactor =
+          isOverSlider && !e.shiftKey ? 1.0 : speedFactor;
+        const finalValueChange = rawValueChange * effectiveSpeedFactor;
+
+        // Step 4: Apply to current value
+        newValue = currentDragValue + finalValueChange;
+
+        // Debug logging
+        if (DEBUG) {
+          console.log("Drag Debug:", {
+            deltaX: deltaX.toFixed(2),
+            actualSliderWidth: actualSliderWidth.toFixed(0),
+            zoom: zoom.toFixed(2),
+            referenceWidth: REFERENCE_SLIDER_WIDTH,
+            visualScreenWidth: visualScreenWidth.toFixed(0),
+            visualPercentage: (visualPercentage * 100).toFixed(2) + "%",
+            range,
+            rawValueChange: rawValueChange.toFixed(4),
+            speedFactor: speedFactor.toFixed(3),
+            effectiveSpeedFactor: effectiveSpeedFactor.toFixed(3),
+            finalValueChange: finalValueChange.toFixed(4),
+            oldValue: currentDragValue.toFixed(4),
+            newValue: newValue.toFixed(4),
+            isOverSlider,
+            shiftKey: e.shiftKey
+          });
         }
       }
 
-      if (props.inputType === "float") {
-        const newDecimalPlaces = calculateDecimalPlaces(baseStep);
-        if (newDecimalPlaces !== decimalPlaces) {
-          dragStateRef.current.decimalPlaces = newDecimalPlaces;
-        }
-        newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
-      } else {
-        newValue = Math.round(newValue);
+      // Apply decimal places and value constraints
+      const newDecimalPlaces =
+        props.inputType === "float" ? calculateDecimalPlaces(baseStep) : 0;
+      if (newDecimalPlaces !== decimalPlaces) {
+        dragStateRef.current.decimalPlaces = newDecimalPlaces;
       }
 
-      newValue = Math.max(
+      newValue = applyValueConstraints(
+        newValue,
         props.min ?? 0,
-        Math.min(props.max ?? 4096, newValue)
+        props.max ?? 4096,
+        props.inputType || "float",
+        newDecimalPlaces
       );
 
       if (newValue !== currentDragValue) {
@@ -211,11 +291,13 @@ const useDragHandling = (
       props.max,
       props.inputType,
       props.onChange,
+      props.zoomAffectsDragging,
       calculateStep,
       calculateDecimalPlaces,
       setInputIsFocused,
       containerRef,
-      setSpeedFactorState
+      setSpeedFactorState,
+      zoom
     ]
   );
 
@@ -233,7 +315,7 @@ const useDragHandling = (
         setInputIsFocused(true);
       }
     }
-  }, [setInputIsFocused]);
+  }, [setInputIsFocused, dragStateRef, setState]);
 
   return { handleMouseMove, handleMouseUp };
 };
@@ -252,6 +334,51 @@ const DisplayValue: React.FC<{
   </div>
 );
 
+// Floating Speed Display Component
+const SpeedDisplay: React.FC<{
+  speedFactor: number;
+  zoom: number;
+  mousePosition: { x: number; y: number };
+  isDragging: boolean;
+  sliderWidth: number;
+}> = ({ speedFactor, zoom, mousePosition, isDragging, sliderWidth }) => {
+  if (!isDragging) return null;
+
+  const speedDisplay = (
+    <div
+      style={{
+        position: "fixed",
+        left: mousePosition.x - 25,
+        top: mousePosition.y + 30,
+        backgroundColor: "rgba(0, 0, 0, 0.9)",
+        color: "white",
+        padding: "6px 10px",
+        borderRadius: "6px",
+        fontSize: "12px",
+        pointerEvents: "none",
+        zIndex: 999999,
+        fontFamily: "monospace",
+        whiteSpace: "nowrap",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
+      }}
+    >
+      <div>Speed: {(speedFactor * 100).toFixed(1)}%</div>
+      <div>Zoom: {(zoom * 100).toFixed(0)}%</div>
+      <div>WidthScreen: {(sliderWidth * zoom).toFixed(0)}px</div>
+    </div>
+  );
+
+  // Render the display as a portal to the document body to avoid clipping
+  try {
+    return createPortal(speedDisplay, document.body);
+  } catch (error) {
+    // Fallback: render normally if portal fails
+    console.warn("Failed to create portal for SpeedDisplay:", error);
+    return speedDisplay;
+  }
+};
+
 const NumberInput: React.FC<InputProps> = (props) => {
   const theme = useTheme();
   const [state, setState] = useState<NumberInputState>({
@@ -265,14 +392,18 @@ const NumberInput: React.FC<InputProps> = (props) => {
     dragInitialValue: props.value ?? 0,
     currentDragValue: props.value ?? 0,
     lastClientX: 0,
-    dragPointerY: null
+    dragPointerY: null,
+    actualSliderWidth: 180
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
   const [speedFactorState, setSpeedFactorState] = useState(1);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef(state);
   dragStateRef.current = state;
+
+  const { zoom } = useViewport();
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
@@ -282,7 +413,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setInputIsFocused,
     containerRef,
     dragStateRef,
-    setSpeedFactorState
+    setSpeedFactorState,
+    zoom
   );
 
   const handleFocusPan = useFocusPan(props.nodeId);
@@ -359,6 +491,12 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.button === 0) {
         setInputIsFocused(false);
+        // Set initial mouse position for the display
+        setMousePosition({ x: e.clientX, y: e.clientY });
+
+        // Capture actual slider width at drag start
+        const sliderWidth = containerRef.current?.offsetWidth || 180;
+
         setState((prevState) => ({
           ...prevState,
           dragStartX: e.clientX,
@@ -367,7 +505,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
           dragInitialValue: props.value,
           currentDragValue: props.value,
           lastClientX: e.clientX,
-          dragPointerY: e.clientY
+          dragPointerY: e.clientY,
+          actualSliderWidth: sliderWidth
         }));
       }
     },
@@ -449,6 +588,19 @@ const NumberInput: React.FC<InputProps> = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isDragging]);
 
+  // Track mouse position during drag
+  useEffect(() => {
+    if (state.isDragging) {
+      const updateMousePos = () => {
+        const pos = getMousePosition();
+        setMousePosition(pos);
+      };
+      updateMousePos(); // Initial position
+      const interval = setInterval(updateMousePos, 16); // ~60fps
+      return () => clearInterval(interval);
+    }
+  }, [state.isDragging]);
+
   return (
     <div
       ref={containerRef}
@@ -494,6 +646,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
         max={props.max || 4096}
         isDragging={state.isDragging}
         isEditable={inputIsFocused}
+      />
+      {/* SpeedDisplay is now rendered as a portal to document.body */}
+      <SpeedDisplay
+        speedFactor={speedFactorState}
+        zoom={zoom}
+        mousePosition={mousePosition}
+        isDragging={state.isDragging}
+        sliderWidth={state.actualSliderWidth}
       />
     </div>
   );
