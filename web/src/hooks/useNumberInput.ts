@@ -3,8 +3,7 @@ import {
   InputProps,
   NumberInputState,
   DRAG_THRESHOLD,
-  DRAG_SLOWDOWN_DEAD_ZONE_PX,
-  DEBUG
+  DRAG_SLOWDOWN_DEAD_ZONE_PX
 } from "../components/inputs/NumberInput";
 import {
   calculateStep,
@@ -119,26 +118,6 @@ export const useDragHandling = (
 
         // Step 4: Apply to current value
         newValue = currentDragValue + finalValueChange;
-
-        // Debug logging
-        if (DEBUG) {
-          console.log("Drag Debug:", {
-            deltaX: deltaX.toFixed(2),
-            actualSliderWidth: actualSliderWidth.toFixed(0),
-            zoom: zoom.toFixed(2),
-            visualScreenWidth: visualScreenWidth.toFixed(0),
-            visualPercentage: (visualPercentage * 100).toFixed(2) + "%",
-            range,
-            rawValueChange: rawValueChange.toFixed(4),
-            speedFactor: speedFactor.toFixed(3),
-            effectiveSpeedFactor: effectiveSpeedFactor.toFixed(3),
-            finalValueChange: finalValueChange.toFixed(4),
-            oldValue: currentDragValue.toFixed(4),
-            newValue: newValue.toFixed(4),
-            isOverSlider,
-            shiftKey: e.shiftKey
-          });
-        }
       }
 
       // Apply decimal places and value constraints
