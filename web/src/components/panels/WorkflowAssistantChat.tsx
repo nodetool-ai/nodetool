@@ -13,6 +13,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
+import SvgFileIcon from "../SvgFileIcon";
 
 const containerStyles = css({
   flex: 1,
@@ -169,16 +170,21 @@ const WorkflowAssistantChat: React.FC = () => {
         padding: "1.5em"
       }}
     >
-      <h2>Workflow Assistant</h2>
-      <p>Ask a question or describe a task to generate a workflow.</p>
-      <p
-        style={{
-          opacity: 0.7,
-          fontSize: "var(--fontSizeSmall)",
-          marginTop: "0.5em"
+      <SvgFileIcon
+        wrapperStyle=" color: 'var(--c_hl)' "
+        iconName="assistant"
+        svgProp={{
+          width: 44,
+          height: 44,
+          opacity: 0.4,
+          color: "var(--palette-primary-main)"
         }}
-      >
-        Start typing to begin.
+      />
+      <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
+        OPERATOR
+      </h2>
+      <p>
+        Ask me questions about your workflow or describe what you want to do.
       </p>
     </div>
   );
