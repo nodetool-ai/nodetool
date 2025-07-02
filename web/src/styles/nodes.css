@@ -422,7 +422,7 @@
   border-radius: 0;
   background-color: transparent;
   color: var(--palette-grey-200);
-  font-size: var(--fontSizeSmaller);
+  font-size: var(--fontSizeTinyer);
   text-transform: uppercase;
   text-align: left;
   flex-grow: 1;

@@ -72,8 +72,8 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
       <Tooltip
         title={
           <span>
-            <span>
-              <small>{nodeNamespace}</small>
+            <span style={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}>
+              {nodeNamespace}
             </span>
             <span style={{ display: "block" }}>Click to show in NodeMenu</span>
           </span>
