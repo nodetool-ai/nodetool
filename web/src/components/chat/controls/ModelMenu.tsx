@@ -2,16 +2,15 @@
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
-  Button,
   Menu,
   MenuItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   Typography,
   Tooltip,
   CircularProgress,
-  Box
+  Box,
+  IconButton
 } from "@mui/material";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -145,7 +144,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <IconButton
           ref={buttonRef}
           className={`select-model-button ${selectedModel ? "active" : ""}`}
           sx={{
@@ -159,18 +158,15 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           }}
           onClick={handleClick}
           size="small"
-          startIcon={
-            <SmartToyIcon
-              fontSize="small"
-              sx={{
-                color: "var(--palette-grey-200)",
-                marginRight: "0.5em"
-              }}
-            />
-          }
         >
-          {currentSelectedModelDetails?.name || selectedModel || "Model"}
-        </Button>
+          <SmartToyIcon
+            fontSize="small"
+            sx={{
+              color: "var(--palette-grey-200)",
+              marginRight: "0.5em"
+            }}
+          />
+        </IconButton>
       </Tooltip>
       <Menu
         className="model-menu"
