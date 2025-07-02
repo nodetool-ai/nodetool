@@ -17,11 +17,12 @@ export const DEBUG = false;
 // Drag-tuning constants
 export const DRAG_THRESHOLD = 10; // px before drag counts
 export const DRAG_SLOWDOWN_DEAD_ZONE_PX = 10; // no-slow band above/below slider
-export const DRAG_SLOWDOWN_RAMP_BASE_PX = 450; // ramp half-height in px
-export const DRAG_SLOWDOWN_RAMP_PX = DRAG_SLOWDOWN_RAMP_BASE_PX * 2; // full ramp span
-export const MIN_SPEED_FACTOR = 0.1; // min speed (normal)
-export const SHIFT_MIN_SPEED_FACTOR = 0.01; // min speed with Shift
-export const SHIFT_SLOWDOWN_DIVIDER = 5; // Shift divides speed by this
+export const DRAG_SLOWDOWN_RAMP_PX = 300; // full ramp span in px (matches previous 450*2)
+
+// Minimum horizontal speed factors
+export const MIN_SPEED_FACTOR = 0.01; // min speed (normal)
+export const SHIFT_MIN_SPEED_FACTOR = 0.001; // min speed with Shift
+export const SHIFT_SLOWDOWN_DIVIDER = 10; // Shift divides speed by this
 
 export interface InputProps {
   nodeId: string;
