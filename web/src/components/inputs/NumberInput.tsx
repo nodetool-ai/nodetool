@@ -11,16 +11,13 @@ import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
 
-// Debug mode
-export const DEBUG = false;
-
 // Drag-tuning constants
-export const DRAG_THRESHOLD = 10; // px before drag counts
-export const DRAG_SLOWDOWN_DEAD_ZONE_PX = 10; // no-slow band above/below slider
-export const DRAG_SLOWDOWN_RAMP_PX = 300; // full ramp span in px (matches previous 450*2)
+export const DRAG_THRESHOLD = 10; // px before drag counts (to prevent accidental dragging when clicking to set value)
+export const DRAG_SLOWDOWN_DEAD_ZONE_PX = 10; // no-slow band above/below slider (slider should feel responsive when dragging normally)
+export const DRAG_SLOWDOWN_RAMP_PX = 300; // range in px for slow-down
 
 // Minimum horizontal speed factors
-export const MIN_SPEED_FACTOR = 0.01; // min speed (normal)
+export const MIN_SPEED_FACTOR = 0.01; // min speed
 export const SHIFT_MIN_SPEED_FACTOR = 0.001; // min speed with Shift
 export const SHIFT_SLOWDOWN_DIVIDER = 10; // Shift divides speed by this
 
@@ -169,6 +166,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
         // Set initial mouse position for the display
         setMousePosition({ x: e.clientX, y: e.clientY });
 
+        // Reset speed factor to default (no slowdown)
+        setSpeedFactorState(1);
+
         // Capture actual slider width at drag start
         const sliderWidth = containerRef.current?.offsetWidth || 180;
 
@@ -228,9 +228,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     if (!inputIsFocused && !state.isDragging) {
       const newValueStr = (props.value ?? 0).toString();
       setState((prevState) => {
-        // Only update if the string representation has actually changed to prevent
-        // an infinite re-render loop that eventually triggers the React "Maximum
-        // update depth exceeded" warning.
+        // Only update if the string representation changed to prevent
+        // an infinite re-render loop.
         if (prevState.localValue === newValueStr) {
           return prevState;
         }
@@ -269,7 +268,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         const pos = getMousePosition();
         setMousePosition(pos);
       };
-      updateMousePos(); // Initial position
+      updateMousePos();
       const interval = setInterval(updateMousePos, 16); // ~60fps
       return () => clearInterval(interval);
     }
@@ -327,13 +326,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
         isDragging={state.isDragging}
         isEditable={inputIsFocused}
       />
-      {/* SpeedDisplay is now rendered as a portal to document.body */}
       <SpeedDisplay
         speedFactor={speedFactorState}
-        zoom={zoom}
         mousePosition={mousePosition}
         isDragging={state.isDragging}
-        sliderWidth={state.actualSliderWidth}
       />
     </div>
   );
