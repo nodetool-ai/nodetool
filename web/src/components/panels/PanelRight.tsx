@@ -232,16 +232,18 @@ const PanelRight: React.FC = () => {
             activeView={activeView}
             panelVisible={isVisible}
           />
-          {isVisible && activeView === "inspector" && activeNodeStore && (
+          {isVisible && (
             <ContextMenuProvider>
               <ReactFlowProvider>
-                <NodeContext.Provider value={activeNodeStore}>
-                  <Inspector />
-                </NodeContext.Provider>
+                {activeNodeStore && (
+                  <NodeContext.Provider value={activeNodeStore}>
+                    {activeView === "inspector" && <Inspector />}
+                    {activeView === "assistant" && <WorkflowAssistantChat />}
+                  </NodeContext.Provider>
+                )}
               </ReactFlowProvider>
             </ContextMenuProvider>
           )}
-          {isVisible && activeView === "assistant" && <WorkflowAssistantChat />}
         </div>
       </Drawer>
     </div>
