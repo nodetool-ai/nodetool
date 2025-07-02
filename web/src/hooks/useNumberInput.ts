@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-import { useKeyPressedStore } from "../stores/KeyPressedStore";
 import {
   InputProps,
   NumberInputState,
@@ -11,7 +10,7 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  calculateVisualScreenWidth,
+  getEffectiveSliderWidth,
   applyValueConstraints
 } from "../components/inputs/NumberInput.utils";
 
@@ -35,9 +34,6 @@ export const useDragHandling = (
   setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>,
   zoom: number
 ) => {
-  const { shiftKeyPressed } = useKeyPressedStore((state) => ({
-    shiftKeyPressed: state.isKeyPressed("Shift")
-  }));
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
 
   const handleMouseMove = useCallback(
@@ -105,7 +101,7 @@ export const useDragHandling = (
         // Step 1: Convert pixel movement to visual percentage
         const { actualSliderWidth } = dragStateRef.current;
         const zoomEnabled = props.zoomAffectsDragging !== false; // default to true
-        const visualScreenWidth = calculateVisualScreenWidth(
+        const visualScreenWidth = getEffectiveSliderWidth(
           zoomEnabled,
           zoom,
           actualSliderWidth

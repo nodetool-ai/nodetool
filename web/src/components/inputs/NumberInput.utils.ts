@@ -52,13 +52,13 @@ export const calculateSpeedFactor = (
   return speedFactor;
 };
 
-export const calculateVisualScreenWidth = (
+export const getEffectiveSliderWidth = (
   zoomEnabled: boolean,
   zoom: number,
   actualSliderWidth: number
 ): number => {
   // The visible width of the slider on-screen is its layout width multiplied by the current canvas zoom.
-  // If zoom adjustments are disabled we simply return the layout width so horizontal dragging maps 1-to-1.
+  // If zoom adjustments are disabled, we simply return the layout width so horizontal dragging maps 1-to-1.
   return zoomEnabled && zoom > 0 ? actualSliderWidth * zoom : actualSliderWidth;
 };
 
