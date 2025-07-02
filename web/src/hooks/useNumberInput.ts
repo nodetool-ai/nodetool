@@ -132,7 +132,8 @@ export const useDragHandling = (
         props.min ?? 0,
         props.max ?? 4096,
         props.inputType || "float",
-        newDecimalPlaces
+        newDecimalPlaces,
+        isWithinDeadZone ? baseStep : undefined
       );
 
       if (newValue !== currentDragValue) {

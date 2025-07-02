@@ -26,7 +26,7 @@ export const calculateStep = (
     else if (range > 10000) baseStep = 64;
     else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
   }
-
+  console.log("baseStep", baseStep);
   return baseStep;
 };
 
@@ -73,15 +73,26 @@ export const applyValueConstraints = (
   min: number,
   max: number,
   inputType: "int" | "float",
-  decimalPlaces: number
+  decimalPlaces: number,
+  baseStep?: number
 ): number => {
   let constrainedValue = value;
 
-  if (inputType === "float") {
-    constrainedValue = parseFloat(value.toFixed(decimalPlaces));
-  } else {
-    constrainedValue = Math.round(value);
+  // Snap to step if baseStep is provided and greater than zero
+  if (baseStep && baseStep > 0) {
+    const reference = min; // align step snapping relative to the minimum value
+    constrainedValue =
+      reference +
+      Math.round((constrainedValue - reference) / baseStep) * baseStep;
   }
 
+  // Apply rounding based on the input type
+  if (inputType === "float") {
+    constrainedValue = parseFloat(constrainedValue.toFixed(decimalPlaces));
+  } else {
+    constrainedValue = Math.round(constrainedValue);
+  }
+
+  // Clamp to min/max bounds
   return Math.max(min, Math.min(max, constrainedValue));
 };
