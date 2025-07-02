@@ -75,8 +75,7 @@
   word-wrap: break-word;
   line-height: 1em;
   color: var(--palette-grey-0);
-  font-family: var(--font-family-1);
-  font-size: var(--fontSizeNormal);
+  font-size: var(--fontSizeSmaller);
   font-weight: 300;
   font-feature-settings: "smcp";
   padding: 0.3em 0 0.3em 0.5em;
@@ -106,7 +105,6 @@
   font-size: var(--fontSizeNormal);
   line-height: 1.1em;
   font-weight: 300;
-  font-family: var(--font-family-1);
   font-style: italic;
   color: var(--palette-grey-0);
   background-color: transparent;
@@ -213,7 +211,6 @@
   max-width: 250px;
   padding: 10px;
   color: var(--palette-warning-main);
-  font-family: var(--font-family-1);
 }
 
 .react-flow__node .node-body {
@@ -425,7 +422,6 @@
   border-radius: 0;
   background-color: transparent;
   color: var(--palette-grey-200);
-  font-family: var(--font-family-1);
   font-size: var(--fontSizeSmaller);
   text-transform: uppercase;
   text-align: left;

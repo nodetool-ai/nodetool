@@ -13,14 +13,12 @@
   overflow: hidden;
   padding: 8px;
   color: var(--palette-grey-800);
-  font-family: var(--font-family-1);
   box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
   background: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(10px);
 }
 
 [cmdk-input] {
-  font-family: var(--font-family-1);
   width: calc(100% - 32px);
   margin: 16px;
   padding: 12px 16px;
