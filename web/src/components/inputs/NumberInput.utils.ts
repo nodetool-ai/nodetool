@@ -2,9 +2,8 @@ import {
   DRAG_SLOWDOWN_RAMP_PX,
   MIN_SPEED_FACTOR,
   SHIFT_MIN_SPEED_FACTOR,
-  SHIFT_SLOWDOWN_DIVIDER,
-  REFERENCE_SLIDER_WIDTH
-} from "./NumberInput.types";
+  SHIFT_SLOWDOWN_DIVIDER
+} from "./NumberInput";
 
 export const calculateStep = (
   min: number,
@@ -55,11 +54,12 @@ export const calculateSpeedFactor = (
 
 export const calculateVisualScreenWidth = (
   zoomEnabled: boolean,
-  zoom: number
+  zoom: number,
+  actualSliderWidth: number
 ): number => {
-  return zoomEnabled && zoom > 0
-    ? REFERENCE_SLIDER_WIDTH * zoom
-    : REFERENCE_SLIDER_WIDTH;
+  // The visible width of the slider on-screen is its layout width multiplied by the current canvas zoom.
+  // If zoom adjustments are disabled we simply return the layout width so horizontal dragging maps 1-to-1.
+  return zoomEnabled && zoom > 0 ? actualSliderWidth * zoom : actualSliderWidth;
 };
 
 export const applyValueConstraints = (
