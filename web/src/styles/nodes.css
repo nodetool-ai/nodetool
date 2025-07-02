@@ -75,7 +75,7 @@
   word-wrap: break-word;
   line-height: 1em;
   color: var(--palette-grey-0);
-  font-size: var(--fontSizeSmaller);
+  font-size: var(--fontSizeSmall);
   font-weight: 300;
   font-feature-settings: "smcp";
   padding: 0.3em 0 0.3em 0.5em;
