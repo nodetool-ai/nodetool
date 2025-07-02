@@ -52,7 +52,6 @@ export interface NumberInputState {
   dragInitialValue: number;
   currentDragValue: number;
   lastClientX: number;
-  dragPointerY: number | null;
   actualSliderWidth: number;
 }
 
@@ -68,7 +67,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     dragInitialValue: props.value ?? 0,
     currentDragValue: props.value ?? 0,
     lastClientX: 0,
-    dragPointerY: null,
     actualSliderWidth: 180
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
@@ -181,7 +179,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
           dragInitialValue: props.value,
           currentDragValue: props.value,
           lastClientX: e.clientX,
-          dragPointerY: e.clientY,
           actualSliderWidth: sliderWidth
         }));
       }
