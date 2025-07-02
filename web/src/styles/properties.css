@@ -97,9 +97,9 @@
   max-height: 200px;
   overflow-y: auto !important;
   margin-top: 0;
-  padding: 0 1em .5em 0;
+  padding: 0 1em 0.5em 0;
   font-family: var(--font_family);
-  font-size: var(--fontSizeSmall);
+  font-size: var(--fontSizeSmaller);
   font-weight: 300;
   line-height: 1.3em;
   color: var(--palette-grey-0);
@@ -168,8 +168,7 @@
   display: block;
   font-weight: 300;
   color: var(--palette-grey-100);
-  font-family: var(--font-family-1);
-  font-size: var(--fontSizeSmall);
+  font-size: var(--fontSizeSmaller);
   padding: 0;
   margin: 0;
   line-height: 1em;
@@ -208,7 +207,6 @@
   background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0.1em;
-  font-family: var(--font-family-1);
   font-weight: 300;
   font-size: var(--fontSizeSmaller);
   line-height: 1.2em;
@@ -268,7 +266,6 @@
   background-color: var(--palette-grey-600);
   color: var(--palette-grey-0);
   border-radius: 0.1em;
-  font-family: var(--font-family-1);
   font-size: var(--fontSizeNormal);
   /* box-sizing: content-box; */
 }
@@ -343,8 +340,7 @@
   right: 0px;
   margin: 0;
   line-height: 1em;
-  font-size: var(--fontSizeSmall);
-  font-family: var(--font_family2);
+  font-size: var(--fontSizeSmaller);
   background-color: transparent;
   padding: 0px;
   overflow: hidden;
@@ -364,7 +360,7 @@
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--fontSizeSmall);
+  font-size: var(--fontSizeSmaller);
   line-height: 1.5em;
   height: 12px;
   top: -2px;
@@ -420,7 +416,6 @@
 .custom-select {
   position: relative;
   width: 100%;
-  font-family: var(--font-family-1);
 }
 
 .custom-select .select-header {

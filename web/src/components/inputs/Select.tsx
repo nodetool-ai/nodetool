@@ -86,7 +86,7 @@ const menuStyles = (theme: any) =>
     ".option": {
       padding: ".1em 1em",
       cursor: "pointer",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.grey[200],
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",
@@ -134,7 +134,7 @@ const menuStyles = (theme: any) =>
 
     ".select-header-text": {
       color: theme.palette.grey[100],
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeTiny,
       userSelect: "none"
     },
 
