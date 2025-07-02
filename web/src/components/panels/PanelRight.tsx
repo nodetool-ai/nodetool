@@ -138,9 +138,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <Tooltip
         title={
           <div className="tooltip-span">
-            <div className="tooltip-title">Workflow Assistant</div>
+            <div className="tooltip-title">Operator</div>
             <div className="tooltip-key">
-              <kbd>A</kbd>
+              <kbd>O</kbd>
             </div>
           </div>
         }
