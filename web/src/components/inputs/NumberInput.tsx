@@ -22,7 +22,6 @@ export const DRAG_SLOWDOWN_RAMP_PX = DRAG_SLOWDOWN_RAMP_BASE_PX * 2; // full ram
 export const MIN_SPEED_FACTOR = 0.1; // min speed (normal)
 export const SHIFT_MIN_SPEED_FACTOR = 0.01; // min speed with Shift
 export const SHIFT_SLOWDOWN_DIVIDER = 5; // Shift divides speed by this
-export const REFERENCE_SLIDER_WIDTH = 180; // px - base slider width for zoom calculations
 
 export interface InputProps {
   nodeId: string;

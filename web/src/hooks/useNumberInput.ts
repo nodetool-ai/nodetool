@@ -5,8 +5,7 @@ import {
   NumberInputState,
   DRAG_THRESHOLD,
   DRAG_SLOWDOWN_DEAD_ZONE_PX,
-  DEBUG,
-  REFERENCE_SLIDER_WIDTH
+  DEBUG
 } from "../components/inputs/NumberInput";
 import {
   calculateStep,
@@ -105,8 +104,9 @@ export const useDragHandling = (
       } else {
         // Step 1: Convert pixel movement to visual percentage
         const { actualSliderWidth } = dragStateRef.current;
+        const zoomEnabled = props.zoomAffectsDragging !== false; // default to true
         const visualScreenWidth = calculateVisualScreenWidth(
-          !!props.zoomAffectsDragging,
+          zoomEnabled,
           zoom,
           actualSliderWidth
         );
@@ -130,7 +130,6 @@ export const useDragHandling = (
             deltaX: deltaX.toFixed(2),
             actualSliderWidth: actualSliderWidth.toFixed(0),
             zoom: zoom.toFixed(2),
-            referenceWidth: REFERENCE_SLIDER_WIDTH,
             visualScreenWidth: visualScreenWidth.toFixed(0),
             visualPercentage: (visualPercentage * 100).toFixed(2) + "%",
             range,
