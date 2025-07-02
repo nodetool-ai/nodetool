@@ -20,6 +20,7 @@ export const DUPLICATE_SPACING = 50;
 export const MIN_ZOOM = 0.18;
 export const MAX_ZOOM = 4.0;
 export const ZOOMED_OUT = 0.45;
+
 // MODEL
 export const DEFAULT_MODEL = "qwen3:4b";
 
