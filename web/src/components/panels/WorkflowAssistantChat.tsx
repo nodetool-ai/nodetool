@@ -171,7 +171,16 @@ const WorkflowAssistantChat: React.FC = () => {
         padding: "1.5em"
       }}
     >
-      <AnimatedAssistantIcon width={44} height={44} />
+      <SvgFileIcon
+        wrapperStyle=" color: 'var(--c_hl)' "
+        iconName="assistant"
+        svgProp={{
+          width: 44,
+          height: 44,
+          opacity: 0.8,
+          color: "var(--palette-primary-main)"
+        }}
+      />
       <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
         OPERATOR
       </h2>
