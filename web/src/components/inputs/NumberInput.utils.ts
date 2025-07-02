@@ -38,8 +38,14 @@ export const calculateSpeedFactor = (
   distanceOutside: number,
   shiftKey: boolean
 ): number => {
+  // t is 0 when the mouse is at the slider; 1 once it has moved the full ramp distance.
   const t = Math.min(distanceOutside / DRAG_SLOWDOWN_RAMP_PX, 1);
-  let speedFactor = Math.pow(0.1, t);
+
+  // Interpolate exponentially between 1 (no slowdown) and MIN_SPEED_FACTOR (full slowdown).
+  // Using MIN_SPEED_FACTOR as the base ensures we can go below 10 % when the constant is set smaller.
+  let speedFactor = Math.pow(MIN_SPEED_FACTOR, t);
+
+  // Numerical stability guard (shouldn't be needed, but keeps us safe from NaNs).
   speedFactor = Math.max(speedFactor, MIN_SPEED_FACTOR);
 
   if (shiftKey) {
