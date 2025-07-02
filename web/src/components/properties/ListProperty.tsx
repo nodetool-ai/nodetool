@@ -48,7 +48,11 @@ const ListProperty = (props: PropertyProps) => {
   if (props.nodeType === "nodetool.constant.List") {
     return (
       <>
-        <FormControl fullWidth style={{ marginBottom: "8px" }}>
+        <FormControl
+          fullWidth
+          style={{ marginBottom: "8px" }}
+          className="list-property-form-control"
+        >
           <InputLabel id={id}>Data Type</InputLabel>
           <Select
             labelId={id}

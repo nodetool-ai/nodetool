@@ -27,7 +27,7 @@ import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
 import { useTheme } from "@mui/material/styles";
-import allComponentStyles from "../../node_styles/all-styles";
+import allNodeStyles from "../../node_styles/node-styles";
 
 declare global {
   interface Window {
@@ -137,7 +137,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         />
       )}
       <Box
-        css={allComponentStyles(theme)}
+        css={allNodeStyles(theme)}
         className="node-editor"
         style={{ backgroundColor: theme.palette.c_editor_bg_color }}
       >
