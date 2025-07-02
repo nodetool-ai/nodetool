@@ -176,16 +176,14 @@ const WorkflowAssistantChat: React.FC = () => {
         svgProp={{
           width: 44,
           height: 44,
-          opacity: 0.4,
+          opacity: 0.8,
           color: "var(--palette-primary-main)"
         }}
       />
       <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
         OPERATOR
       </h2>
-      <p>
-        Ask me questions about your workflow or describe what you want to do.
-      </p>
+      <p>Ask questions about your workflow or describe what you want to do.</p>
     </div>
   );
 
