@@ -7,7 +7,7 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
-import allComponentStyles from "../node_styles/all-styles";
+import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
@@ -194,7 +194,7 @@ const Inspector: React.FC = () => {
   return (
     <div className="inspector" css={styles}>
       <div className="top">
-        <div className="top-content" css={allComponentStyles(theme)}>
+        <div className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">
             <div className="title">{metadata.title}</div>
           </div>

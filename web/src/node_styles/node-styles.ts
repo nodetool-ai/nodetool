@@ -21,7 +21,7 @@ import {
  * that takes a theme and returns the combined styles.
  */
 
-export const allComponentStyles = (theme: any) =>
+export const allNodeStyles = (theme: any) =>
   css(
     formStyles(theme),
     buttonStyles(theme),
@@ -35,4 +35,4 @@ export const allComponentStyles = (theme: any) =>
     utilityStyles(theme)
   );
 
-export default allComponentStyles;
+export default allNodeStyles;
