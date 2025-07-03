@@ -158,26 +158,28 @@ const useDragHandling = (
         props.inputType || "float"
       );
 
+      // Always use incremental dragging logic to prevent value jumping
+      const deltaX = e.clientX - lastClientX;
+
       let newValue: number;
-
-      if (isOverSlider && !e.shiftKey) {
-        // Direct slider mapping: left => min, right => max
-        const ratio = (e.clientX - rect.left) / rect.width;
-        newValue =
-          (props.min ?? 0) +
-          Math.max(0, Math.min(1, ratio)) *
-            ((props.max ?? 4096) - (props.min ?? 0));
+      if (Math.abs(deltaX) < 0.5) {
+        newValue = currentDragValue;
       } else {
-        // Incremental dragging logic
-        const deltaX = e.clientX - lastClientX;
-
-        const effectivePixelsPerStep = PIXELS_PER_STEP / speedFactor;
-
-        if (Math.abs(deltaX) < 0.5) {
-          newValue = currentDragValue;
+        if (isOverSlider && !e.shiftKey) {
+          // Direct pixel-to-value mapping when over slider (range-independent)
+          const range = (props.max ?? 4096) - (props.min ?? 0);
+          const pixelToValueRatio =
+            range / (containerRef.current?.offsetWidth || 200);
+          const valueIncrement = deltaX * pixelToValueRatio;
+          newValue = currentDragValue + valueIncrement;
         } else {
-          const stepIncrement = deltaX / effectivePixelsPerStep;
-          newValue = currentDragValue + stepIncrement * baseStep;
+          // Use pixel-to-value mapping with slowdown factors (range-independent)
+          const range = (props.max ?? 4096) - (props.min ?? 0);
+          const basePixelToValueRatio =
+            range / (containerRef.current?.offsetWidth || 200);
+          const slowedPixelToValueRatio = basePixelToValueRatio * speedFactor;
+          const valueIncrement = deltaX * slowedPixelToValueRatio;
+          newValue = currentDragValue + valueIncrement;
         }
       }
 
