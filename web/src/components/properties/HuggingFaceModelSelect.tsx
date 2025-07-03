@@ -61,16 +61,15 @@ const HuggingFaceModelSelect = ({
                   model.type === "hf.ltxv"
               )
             : recommendedModels?.filter((model) => model.type === modelType);
-        const models = await loadHuggingFaceModels();
         return (
           recommended?.reduce((acc, recommendedModel) => {
-            const model = models.find(
+            const model = hfModels?.find(
               (m) => m.repo_id === recommendedModel.repo_id
             );
             if (model) {
               acc.push({
                 type: modelType,
-                repo_id: model.repo_id,
+                repo_id: model.repo_id || "",
                 path: recommendedModel.path || ""
               });
             }
