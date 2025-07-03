@@ -2,7 +2,8 @@
 
 ## Overview
 
-Add a third tab to the existing Help modal that shows an interactive on-screen keyboard. Keys used by any shortcut are highlighted and reveal a tooltip describing the shortcut when hovered. The layout can be toggled between macOS (⌘) and Windows/Linux (Ctrl) variants.
+Add a third tab to the existing Help modal that shows an interactive on-screen keyboard. Keys used by any shortcut are highlighted and reveal a tooltip describing the shortcut when hovered. The layout shows macOS (⌘) and Windows/Linux (Ctrl) automatically by using global isMac boolean.
+isMac to be added in 2.
 
 We will leverage **react-simple-keyboard** for rendering, which keeps implementation lightweight while avoiding hand-rolled key positioning.
 
@@ -13,7 +14,6 @@ We will leverage **react-simple-keyboard** for rendering, which keeps implementa
 1. Add the package to the web workspace:
    ```bash
    pnpm add -w web react-simple-keyboard
-   # or: yarn workspace web add react-simple-keyboard
    ```
 2. Import its default stylesheet once in `web/src/index.tsx`:
    ```ts
@@ -24,10 +24,14 @@ We will leverage **react-simple-keyboard** for rendering, which keeps implementa
 
 ## 2 Global platform helper
 
-Create `web/src/utils/platform.ts`:
+decide what is better:
+ A as /hooks/usePlatform
+  B create `web/src/utils/platform.ts`:
 
 ```ts
 export const isMac = () => navigator.userAgent.includes("Mac");
+// OR like this? (should also work in electron)
+  const isMac = window.navigator.platform.toLowerCase().includes("mac");
 ```
 
 Exported **function** instead of constant so it can be mocked in tests.
@@ -42,8 +46,8 @@ Exported **function** instead of constant so it can be mocked in tests.
 export interface Shortcut {
   /** Short, human-readable name e.g. "Copy" */
   title: string;
-  /** Stable slug/key so other components can reference this shortcut (e.g. "copy", "fit-view") */
-  slug: string;
+  /** Name as stable slug/key so other components can reference this shortcut (e.g. "copy", "fit-view") */
+  name: string;
   /** Key combo for Windows/Linux variant – array of key labels as used by useCombo */
   keyCombo: string[];
   /** Optional override for macOS variant – if omitted we derive it by swapping ⌘/Ctrl & PgUp/PgDn-equivalents */
@@ -106,6 +110,14 @@ export const getShortcutTooltip = (slug: string, isMac: boolean): string => {
   return `${sc.title} (${comboStr})`;
 };
 ```
+NOTE:
+should be using this classnames and <kbd> 
+ <div className="tooltip-span">
+          <div className="tooltip-title">Run Workflow</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd>
+          </div>
+        </div>
 
 2. Modify `useNodeEditorShortcuts.ts` to import `NODE_EDITOR_SHORTCUTS` and optionally the helper so the runtime hook and UI share one source of truth.
 
@@ -203,8 +215,6 @@ Responsibilities:
 
 - Listen to `keydown`/`keyup` globally inside `KeyboardShortcutsView` (only while the tab is visible) and add/remove the `pressed` class on the corresponding key(s) – giving immediate visual feedback when the user physically presses a shortcut.
 - Debounce keyup events so momentary taps are still visible.
-- Opt-out on accessibility if the user has `prefers-reduced-motion`.
-
 ---
 
 ## 10 De-duplicate help data source
@@ -215,7 +225,10 @@ Action:
 
 1. Refactor `helpItems` creation so it consumes the central `NODE_EDITOR_SHORTCUTS` array and groups items by category (Nodes, Workflows, etc.).
 2. This guarantees both the keyboard view and list view display exactly the same bindings.
-
+3. check KeyPressedStore, specifically this part:
+    const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
+    comboCallbacks.set(combo, options);
+};
 ---
 
 ## 11 Remove local `ControlOrMeta` constants
@@ -229,25 +242,10 @@ const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 This keeps platform detection consistent and testable.
 
----
-
-## 12 Code-splitting / bundle size
-
-_Code-splitting is optional._ `react-simple-keyboard` is roughly **15 kB gzipped**, so we can safely include it in the main bundle. However, if we notice bundle growth later, converting the component to lazy-loaded with `React.lazy` remains straightforward.
-
-```tsx
-// Example (future) opt-in if needed
-// const KeyboardShortcutsView = React.lazy(() => import('./KeyboardShortcutsView'));
-// <Suspense fallback={<CircularProgress />}>
-//   <KeyboardShortcutsView ... />
-// </Suspense>
-```
-
-The inline example is left in comments for later reference.
 
 ---
 
-## 13 Types & Linting
+## 12 Types & Linting
 
 - Install types: `@types/react-simple-keyboard` (if available) or declare a minimal module in `src/types/`.
 - Extend ESLint rule overrides for the new directory if necessary.
