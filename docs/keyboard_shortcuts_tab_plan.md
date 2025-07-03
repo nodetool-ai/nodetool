@@ -42,6 +42,8 @@ Exported **function** instead of constant so it can be mocked in tests.
 export interface Shortcut {
   /** Short, human-readable name e.g. "Copy" */
   title: string;
+  /** Stable slug/key so other components can reference this shortcut (e.g. "copy", "fit-view") */
+  slug: string;
   /** Key combo for Windows/Linux variant – array of key labels as used by useCombo */
   keyCombo: string[];
   /** Optional override for macOS variant – if omitted we derive it by swapping ⌘/Ctrl & PgUp/PgDn-equivalents */
@@ -77,12 +79,32 @@ export const expandShortcutsForOS = (
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Copy",
+    slug: "copy",
     keyCombo: ["Control", "C"],
     keyComboMac: ["Meta", "C"],
     description: "Copy selected nodes",
   },
   // … add the rest, extracted from useNodeEditorShortcuts.ts
 ];
+
+/** --------------------------------------------------
+ * Tooltip helper
+ * Given a slug and OS flag, returns a formatted tooltip, e.g.
+ * "Copy (⌘ + C)"  or  "Copy (Ctrl + C)"
+ */
+export const getShortcutTooltip = (slug: string, isMac: boolean): string => {
+  const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
+  if (!sc) return slug;
+  const mapKey = (key: string) => {
+    if (!isMac) return key === "Meta" ? "Ctrl" : key;
+    return key === "Control" ? "⌘" : key;
+  };
+  const comboArr = isMac
+    ? sc.keyComboMac ?? sc.keyCombo.map(mapKey)
+    : sc.keyCombo;
+  const comboStr = comboArr.join(" + ");
+  return `${sc.title} (${comboStr})`;
+};
 ```
 
 2. Modify `useNodeEditorShortcuts.ts` to import `NODE_EDITOR_SHORTCUTS` and optionally the helper so the runtime hook and UI share one source of truth.
@@ -174,3 +196,78 @@ Responsibilities:
 - International keyboard layouts support.
 - Touch-friendly interaction.
 - Animating keypresses in real-time when user actually triggers a shortcut.
+
+---
+
+## 9 Real-time key-press highlight (nice-to-have)
+
+- Listen to `keydown`/`keyup` globally inside `KeyboardShortcutsView` (only while the tab is visible) and add/remove the `pressed` class on the corresponding key(s) – giving immediate visual feedback when the user physically presses a shortcut.
+- Debounce keyup events so momentary taps are still visible.
+- Opt-out on accessibility if the user has `prefers-reduced-motion`.
+
+---
+
+## 10 De-duplicate help data source
+
+The textual **Controls & Shortcuts** list in `Help.tsx` manually repeats much of the same information we are now storing in `NODE_EDITOR_SHORTCUTS`.
+
+Action:
+
+1. Refactor `helpItems` creation so it consumes the central `NODE_EDITOR_SHORTCUTS` array and groups items by category (Nodes, Workflows, etc.).
+2. This guarantees both the keyboard view and list view display exactly the same bindings.
+
+---
+
+## 11 Remove local `ControlOrMeta` constants
+
+Multiple files (e.g. `useNodeEditorShortcuts.ts`) define their own `ControlOrMeta` logic. Replace these with:
+
+```ts
+import { isMac } from "../utils/platform";
+const ControlOrMeta = isMac() ? "Meta" : "Control";
+```
+
+This keeps platform detection consistent and testable.
+
+---
+
+## 12 Code-splitting / bundle size
+
+_Code-splitting is optional._ `react-simple-keyboard` is roughly **15 kB gzipped**, so we can safely include it in the main bundle. However, if we notice bundle growth later, converting the component to lazy-loaded with `React.lazy` remains straightforward.
+
+```tsx
+// Example (future) opt-in if needed
+// const KeyboardShortcutsView = React.lazy(() => import('./KeyboardShortcutsView'));
+// <Suspense fallback={<CircularProgress />}>
+//   <KeyboardShortcutsView ... />
+// </Suspense>
+```
+
+The inline example is left in comments for later reference.
+
+---
+
+## 13 Types & Linting
+
+- Install types: `@types/react-simple-keyboard` (if available) or declare a minimal module in `src/types/`.
+- Extend ESLint rule overrides for the new directory if necessary.
+
+---
+
+## 14 Unit/Integration tests
+
+1. Snapshot test: mount `KeyboardShortcutsView` with a small subset of shortcuts and verify highlighted/tooltip logic.
+2. Simulate keydown event (`Ctrl+C`) and expect the corresponding keys to receive `pressed` class.
+3. Jest DOM: assert that switching OS toggle remaps keys.
+
+---
+
+## 15 Documentation
+
+Update `docs/architecture.md` or a new MD file describing the shortcut architecture and how to add new bindings:
+
+- Add entry to "Conventions" section about updating `NODE_EDITOR_SHORTCUTS`.
+
+---
+
+✔️ With these extra steps the feature will be consistent, maintainable, and performant across the app.
