@@ -29,18 +29,16 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller,
     },
     "& .string-action-buttons": {
-      display: "flex",
-      alignItems: "center",
-      gap: ".5em",
+      position: "absolute",
+      right: "0",
+      top: "-3px",
       opacity: 0.8,
-      backgroundColor: theme.palette.grey[800],
-      borderRadius: "4px",
-      padding: "2px",
-      flexShrink: 0,
-      marginTop: "-5px",
       "& .MuiIconButton-root": {
-        margin: 0,
+        margin: "0 0 0 5px",
         padding: 0
+      },
+      "& .MuiIconButton-root svg": {
+        fontSize: "0.75rem"
       }
     },
 
@@ -75,7 +73,7 @@ const styles = (theme: any) =>
       "& textarea": {
         resize: "none",
         minHeight: "1.25em",
-        padding: "0.25em 0",
+        padding: "0.25em 0.5em",
         lineHeight: "1.25em",
         border: "1px solid var(--palette-grey-600)"
       },
@@ -184,6 +182,16 @@ const StringProperty = ({
             description={property.description}
             id={id}
           />
+          {isHovered && (
+            <div className="string-action-buttons">
+              <Tooltip title="Open Editor" placement="bottom">
+                <IconButton size="small" onClick={toggleExpand}>
+                  <OpenInFullIcon />
+                </IconButton>
+              </Tooltip>
+              <CopyToClipboardButton textToCopy={value || ""} size="small" />
+            </div>
+          )}
           <div className="value-container">
             <TextField
               className={`string-value-input ${isFocused ? "nowheel" : ""}`}
@@ -214,16 +222,6 @@ const StringProperty = ({
               autoFocus
             />
           </div>
-          {isHovered && (
-            <div className="string-action-buttons">
-              <Tooltip title="Open Editor" placement="bottom">
-                <IconButton size="small" onClick={toggleExpand}>
-                  <OpenInFullIcon sx={{ fontSize: "0.75rem" }} />
-                </IconButton>
-              </Tooltip>
-              <CopyToClipboardButton textToCopy={value || ""} size="small" />
-            </div>
-          )}
         </div>
         {isExpanded && (
           <TextEditorModal
@@ -250,11 +248,6 @@ const StringProperty = ({
           description={property.description}
           id={id}
         />
-        {isHovered && (
-          <div className="string-action-buttons">
-            <CopyToClipboardButton textToCopy={value || ""} size="small" />
-          </div>
-        )}
       </div>
     </div>
   );
