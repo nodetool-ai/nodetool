@@ -6,6 +6,8 @@ import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useRecommendedModels } from "../../hooks/useRecommendedModels";
+import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -18,12 +20,9 @@ const HuggingFaceModelSelect = ({
   onChange,
   value
 }: HuggingFaceModelSelectProps) => {
-  const recommendedModels = useMetadataStore(
-    (state) => state.recommendedModels
-  );
-  const loadHuggingFaceModels = useModelStore(
-    (state) => state.loadHuggingFaceModels
-  );
+  const { hfModels } = useHuggingFaceModels();
+  const { recommendedModels } = useRecommendedModels();
+  const { loadHuggingFaceModels } = useModelStore();
 
   const {
     data: models,
@@ -34,7 +33,7 @@ const HuggingFaceModelSelect = ({
     queryKey: ["models", modelType],
     queryFn: async () => {
       if (modelType.startsWith("hf.lora_sd")) {
-        const loras = recommendedModels.filter(
+        const loras = recommendedModels?.filter(
           (model) => model.type === modelType
         );
         const loraPaths = loras?.map((lora) => ({
@@ -53,7 +52,7 @@ const HuggingFaceModelSelect = ({
       } else {
         const recommended =
           modelType === "hf.checkpoint_model"
-            ? recommendedModels.filter(
+            ? recommendedModels?.filter(
                 (model) =>
                   model.type === "hf.stable_diffusion" ||
                   model.type === "hf.stable_diffusion_xl" ||
@@ -61,7 +60,7 @@ const HuggingFaceModelSelect = ({
                   model.type === "hf.flux" ||
                   model.type === "hf.ltxv"
               )
-            : recommendedModels.filter((model) => model.type === modelType);
+            : recommendedModels?.filter((model) => model.type === modelType);
         const models = await loadHuggingFaceModels();
         return (
           recommended?.reduce((acc, recommendedModel) => {
