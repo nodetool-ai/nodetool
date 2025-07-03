@@ -65,7 +65,7 @@ const styles = (theme: any) =>
       padding: 0
     },
     ".asset-button-group.MuiButtonGroup-root button": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       minWidth: "20px",
       border: 0,
       margin: "0",
@@ -73,11 +73,11 @@ const styles = (theme: any) =>
     },
     ".asset-button-group .MuiButton-root:hover": {
       border: 0,
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       backgroundColor: "transparent"
     },
     ".asset-button-group .MuiButton-root.disabled": {
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     // size slider
     ".asset-size-slider": {
@@ -93,13 +93,13 @@ const styles = (theme: any) =>
       margin: "0",
       padding: "0",
       top: "0.2em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".asset-size-slider .MuiSlider-root:hover": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".asset-size-slider .MuiSlider-root:hover .MuiSlider-thumb": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     },
     ".asset-size-slider .MuiSlider-track": {
       backgroundColor: "transparent",
@@ -109,17 +109,17 @@ const styles = (theme: any) =>
     ".sort-assets": {
       width: "45px",
       margin: "0 1em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },
     ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".sort-assets .MuiSelect-select": {
-      color: theme.palette.c_gray5,
-      border: "1px solid " + theme.palette.c_gray5,
+      color: theme.palette.grey[200],
+      border: "1px solid " + theme.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "clip",
@@ -131,7 +131,7 @@ const styles = (theme: any) =>
     },
 
     ".sort-assets .MuiSelect-select:hover": {
-      border: "1px solid " + theme.palette.c_hl1,
+      border: "1px solid " + "var(--palette-primary-main)",
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "clip",
@@ -144,7 +144,7 @@ const styles = (theme: any) =>
 
     ".sort-assets .MuiSelect-icon": {
       display: "none",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       right: "0"
     },
     ".sort-assets.MuiInput-root::before": {
@@ -164,17 +164,17 @@ const styles = (theme: any) =>
       width: "90px",
       margin: "0",
       padding: "0 0.25em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },
     ".size-filter:hover, .size-filter [aria-expanded='true']": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".size-filter .MuiSelect-select": {
-      color: theme.palette.c_gray5,
-      border: "1px solid " + theme.palette.c_gray5,
+      color: theme.palette.grey[200],
+      border: "1px solid " + theme.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "ellipsis",
@@ -185,8 +185,8 @@ const styles = (theme: any) =>
       height: "auto"
     },
     ".size-filter .MuiSelect-select:hover": {
-      border: "1px solid " + theme.palette.c_hl1,
-      color: theme.palette.c_hl1
+      border: "1px solid " + "var(--palette-primary-main)",
+      color: "var(--palette-primary-main)"
     },
     ".size-filter .MuiSelect-icon": {
       display: "none"

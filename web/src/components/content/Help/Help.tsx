@@ -66,7 +66,7 @@ const helpStyles = (theme: any) =>
       alignItems: "center",
       marginBottom: "0.5em",
       padding: "0em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`
+      borderBottom: `1px solid ${theme.palette.grey[600]}`
     },
     ".content": {
       height: "calc(100% - 40px)",
@@ -77,19 +77,19 @@ const helpStyles = (theme: any) =>
       paddingTop: "0",
       lineHeight: "1.5",
       "& .MuiTabs-indicator": {
-        backgroundColor: theme.palette.c_hl1,
+        backgroundColor: "var(--palette-primary-main)",
         height: "3px",
         borderRadius: "1.5px"
       },
       "& .MuiTab-root": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         },
         "&:hover": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       },
       button: {
@@ -112,14 +112,14 @@ const helpStyles = (theme: any) =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.palette.c_gray1
+        background: theme.palette.grey[800]
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.palette.c_gray3,
+        background: theme.palette.grey[500],
         borderRadius: "4px"
       },
       "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.palette.c_gray4
+        background: theme.palette.grey[400]
       }
     },
     ".help-item": {
@@ -134,8 +134,8 @@ const helpStyles = (theme: any) =>
       },
       button: {
         marginTop: "2px",
-        color: theme.palette.c_gray5,
-        border: `1px solid ${theme.palette.c_gray2}`,
+        color: theme.palette.grey[200],
+        border: `1px solid ${theme.palette.grey[600]}`,
         padding: "1px 6px",
         textAlign: "left",
         lineHeight: "1.3em",
@@ -150,7 +150,7 @@ const helpStyles = (theme: any) =>
     ".explanation": {
       marginBottom: "1em",
       fontSize: "var(--fontSizeNormal)",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     }
   });
 
@@ -366,25 +366,25 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                       wordSpacing: "0.1em"
                     },
                     "& .MuiOutlinedInput-root": {
-                      backgroundColor: ThemeNodetool.palette.c_gray1,
+                      backgroundColor: ThemeNodetool.palette.grey[800],
                       borderRadius: "4px",
                       "& input": {
-                        color: ThemeNodetool.palette.c_white
+                        color: ThemeNodetool.palette.grey[0]
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_gray3
+                        borderColor: ThemeNodetool.palette.grey[500]
                       },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_gray4
+                        borderColor: ThemeNodetool.palette.grey[400]
                       },
                       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.c_hl1
+                        borderColor: ThemeNodetool.palette.primary.main
                       }
                     },
                     "& .MuiInputLabel-outlined": {
-                      color: ThemeNodetool.palette.c_gray5,
+                      color: ThemeNodetool.palette.grey[200],
                       "&.Mui-focused": {
-                        color: ThemeNodetool.palette.c_hl1
+                        color: ThemeNodetool.palette.primary.main
                       }
                     }
                   }}
@@ -456,7 +456,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                                   style={{
                                     border: "0",
                                     marginLeft: ".5em",
-                                    color: ThemeNodetool.palette.c_gray6,
+                                    color: ThemeNodetool.palette.grey[100],
                                     fontSize: ThemeNodetool.fontSizeSmaller
                                   }}
                                 >

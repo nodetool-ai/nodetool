@@ -39,19 +39,19 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "1em",
       transition: "all .6s",
-      background: theme.palette.c_gray1
+      background: theme.palette.grey[800]
     },
     ".title": {
       position: "absolute",
       left: "2em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: "1.1em",
       margin: "0",
       textAlign: "center"
     },
     ".recent-hl": {
       marginLeft: ".75em",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily1
     },
@@ -121,11 +121,11 @@ const listStyles = (theme: any) =>
       width: "calc(100% - 20px)",
       cursor: "pointer",
       borderBottom: "1px solid black",
-      backgroundColor: ThemeNodetool.palette.c_gray1,
+      backgroundColor: ThemeNodetool.palette.grey[800],
       transition: "background-color 0.2s ease-in-out"
     },
     ".workflow:hover": {
-      backgroundColor: ThemeNodetool.palette.c_gray2,
+      backgroundColor: ThemeNodetool.palette.grey[600],
       outline: `0`
     },
     ".name-and-description": {
@@ -137,11 +137,11 @@ const listStyles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".description": {
       margin: "0.1em 0 .1em",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: theme.fontSizeSmaller,
       paddingTop: "0.5em"
     },
@@ -162,11 +162,11 @@ const listStyles = (theme: any) =>
       wordSpacing: "-2px",
       textAlign: "right",
       right: "0",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       minWidth: "150px"
     },
     ".date.relative": {
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".image-wrapper": {
       flexShrink: 0,
@@ -174,7 +174,7 @@ const listStyles = (theme: any) =>
       height: "40px",
       overflow: "hidden",
       position: "relative",
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.grey[500]
     }
   });
 

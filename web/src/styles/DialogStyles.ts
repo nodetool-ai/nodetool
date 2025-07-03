@@ -20,13 +20,13 @@ const dialogStyles = (theme: any) =>
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       wordSpacing: "normal",
       margin: ".5em 0 0",
       padding: "1em"
     },
     ".dialog-title span": {
-      borderBottom: `2px solid ${theme.palette.c_hl1}`
+      borderBottom: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".dialog-actions": {
       padding: ".5em 1em"
@@ -42,41 +42,41 @@ const dialogStyles = (theme: any) =>
       transition: "border-color 0.2s ease-in-out"
     },
     ".input-field:hover fieldset": {
-      borderColor: theme.palette.c_gray6
+      borderColor: theme.palette.grey[100]
     },
     ".input-field .Mui-focused fieldset": {
-      borderColor: theme.palette.c_hl1,
+      borderColor: "var(--palette-primary-main)",
       borderWidth: "2px"
     },
     ".input-field .MuiOutlinedInput-root": {
       "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_gray6
+        borderColor: theme.palette.grey[100]
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_hl1,
+        borderColor: "var(--palette-primary-main)",
         borderWidth: "2px"
       }
     },
     ".button-confirm": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "bold"
     },
     ".button-confirm:hover": {
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.grey[900]
     },
     ".button-cancel": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".error-message": {
-      color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_error,
+      color: theme.palette.grey[1000],
+      backgroundColor: theme.palette.error.main,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "0 0 1em",
       padding: ".5em 1em"
     },
     ".error-notice": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "0 0 1em",
@@ -84,7 +84,7 @@ const dialogStyles = (theme: any) =>
     },
     ".notice": {
       backgroundColor: theme.palette.c_attention,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       padding: ".5em 1em"
@@ -96,11 +96,11 @@ const dialogStyles = (theme: any) =>
       width: "90%",
       height: "100px",
       overflowY: "auto",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       listStyleType: "square",
       margin: "0 0 0 1em",
       padding: ".25em 1.5em",
-      borderBottom: `1px solid ${theme.palette.c_gray1}`,
+      borderBottom: `1px solid ${theme.palette.grey[800]}`,
       fontSize: theme.fontSizeSmaller
     },
     ".delete": {

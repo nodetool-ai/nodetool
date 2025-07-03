@@ -21,7 +21,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
   const styles = (theme: any) =>
     css({
-      background: theme.palette.c_gray1,
+      background: theme.palette.grey[800],
       minHeight: "50px",
       marginTop: "0.5em",
       "& button": {
@@ -29,7 +29,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         border: "0",
         padding: "2px",
         margin: ".5em",
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       },
       "& button.device-button": {
         float: "right",
@@ -42,7 +42,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         position: "relative",
         maxWidth: "200px",
         fontSize: theme.fontSizeTiny,
-        color: theme.palette.c_gray5
+        color: theme.palette.grey[200]
       },
       "& .toggle-on": {
         width: "10px",
@@ -55,13 +55,13 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         opacity: "0.6"
       },
       "& button.recording": {
-        backgroundColor: theme.palette.c_error,
+        backgroundColor: theme.palette.error.main,
         marginLeft: "0.5em",
-        color: theme.palette.c_gray0,
+        color: theme.palette.grey[900],
         minWidth: "33px"
       },
       "& .error": {
-        color: theme.palette.c_error,
+        color: theme.palette.error.main,
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
       }
@@ -103,7 +103,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
                   margin: "0 0 .5em 0",
-                  color: "var(--c_gray6)"
+                  color: "var(--palette-grey-100)"
                 }}
               >
                 Input Devices
@@ -127,8 +127,8 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               sx={{
                 fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
-                backgroundColor: "var(--c_warning)",
-                color: "var(--c_gray0)",
+                backgroundColor: "var(--palette-warning-main)",
+                color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
                 borderRadius: "0.2em",
                 zIndex: 100,

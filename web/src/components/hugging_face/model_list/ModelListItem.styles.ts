@@ -5,9 +5,9 @@ const modelListItemStyles = (theme: any) =>
     "&.model-list-item": {
       padding: "0.5em 1em",
       marginBottom: "0",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       boxSizing: "border-box",
-      borderBottom: "1px solid " + theme.palette.c_gray2,
+      borderBottom: "1px solid " + theme.palette.grey[600],
       wordBreak: "break-word",
       transition: "background-color 0.125s ease-in, border 0.125s ease-in",
       "&.compact": {
@@ -16,7 +16,7 @@ const modelListItemStyles = (theme: any) =>
 
       "&:hover": {
         opacity: 0.9,
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
 
       "& .model-content": {
@@ -65,7 +65,7 @@ const modelListItemStyles = (theme: any) =>
       },
       "& .model-path": {
         display: "block",
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         fontSize: "var(--fontSizeSmaller)"
       },
       "& .model-details": {
@@ -80,7 +80,7 @@ const modelListItemStyles = (theme: any) =>
       },
 
       "& .model-size": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         fontSize: "var(--fontSizeSmall)",
         textAlign: "right",
         minWidth: "7em"
@@ -91,7 +91,7 @@ const modelListItemStyles = (theme: any) =>
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
-        color: "var(--c_gray1)",
+        color: "var(--palette-grey-800)",
         fontSize: "var(--fontSizeSmaller)",
         fontWeight: "bold",
         padding: "8px .5em",
@@ -113,7 +113,7 @@ const modelListItemStyles = (theme: any) =>
 
       "& .model-stats": {
         fontSize: "var(--fontSizeSmaller)",
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         display: "flex",
         flexDirection: "column",
         alignItems: "start",
@@ -147,10 +147,10 @@ const modelListItemStyles = (theme: any) =>
       "& .downloaded-icon": {
         marginBottom: "-0.25em",
         marginRight: "0.5em",
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         "&:hover": {
           backgroundColor: "transparent",
-          color: theme.palette.c_success
+          color: theme.palette.success.main
         }
       },
       "& .show-in-explorer-button": {
@@ -163,10 +163,10 @@ const modelListItemStyles = (theme: any) =>
       //
       ".model-item": {
         padding: 0,
-        borderBottom: `1px solid ${theme.palette.c_gray0}`,
+        borderBottom: `1px solid ${theme.palette.grey[900]}`,
         marginBottom: theme.spacing(1),
         "&:hover": {
-          backgroundColor: theme.palette.c_gray2
+          backgroundColor: theme.palette.grey[600]
         }
       },
       ".model-text": {
@@ -182,7 +182,7 @@ const modelListItemStyles = (theme: any) =>
         paddingTop: theme.spacing(1)
       },
       button: {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         margin: "0",
         padding: "0 .5em"
       },
@@ -207,13 +207,13 @@ const modelListItemStyles = (theme: any) =>
       },
       ".model-category": {},
       ".model-category.empty": {
-        color: theme.palette.c_gray3,
+        color: theme.palette.grey[500],
         marginBottom: "2em"
       },
       ".model-type-button.empty": {
-        color: theme.palette.c_gray4,
+        color: theme.palette.grey[400],
         "& span": {
-          color: theme.palette.c_gray4
+          color: theme.palette.grey[400]
         }
       },
       ".model-type-button.Mui-selected.empty span": {
@@ -221,17 +221,17 @@ const modelListItemStyles = (theme: any) =>
       },
       ".model-type-list .model-type-button:first-of-type": {
         "&, & .MuiListItemText-primary": {
-          color: "var(--c_gray6)"
+          color: "var(--palette-grey-100)"
         }
       },
       ".model-type-list .model-type-button:first-of-type.Mui-selected": {
         "&, & .MuiListItemText-primary": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       },
       // missing model
       "&.missing .model-header": {
-        color: "var(--c_gray4)"
+        color: "var(--palette-grey-400)"
       },
       "&.missing .model-details": {
         maxWidth: "25px"

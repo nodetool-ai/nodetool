@@ -45,7 +45,7 @@ export const settingsStyles = (theme: any): any =>
     ".MuiPaper-root": {
       backgroundColor: "rgba(0, 0, 0, 0.5)",
       backdropFilter: "blur(10px)",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       borderRadius: ".5em",
       maxWidth: "1000px",
       overflow: "hidden",
@@ -57,19 +57,19 @@ export const settingsStyles = (theme: any): any =>
       paddingTop: "0em",
       lineHeight: "1.5",
       "& .MuiTabs-indicator": {
-        backgroundColor: theme.palette.c_hl1,
+        backgroundColor: "var(--palette-primary-main)",
         height: "3px",
         borderRadius: "1.5px"
       },
       "& .MuiTab-root": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         },
         "&:hover": {
-          color: theme.palette.c_white
+          color: theme.palette.grey[0]
         }
       }
     },
@@ -97,12 +97,12 @@ export const settingsStyles = (theme: any): any =>
       justifyContent: "space-between",
       alignItems: "center",
       padding: "0em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      borderBottom: `1px solid ${theme.palette.grey[600]}`,
       h2: {
         marginTop: "0",
         marginBottom: "0.5em",
         padding: "0",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeBigger,
         lineHeight: "1.5",
         fontWeight: "500"
@@ -132,13 +132,13 @@ export const settingsStyles = (theme: any): any =>
       padding: "1.5em 0",
       height: "calc(75vh - 48px)",
       overflowY: "auto",
-      borderRight: `1px solid ${theme.palette.c_gray2}`
+      borderRight: `1px solid ${theme.palette.grey[600]}`
     },
     ".settings-sidebar-item": {
       padding: "0.75em 1.5em",
       cursor: "pointer",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       opacity: "0.7",
       transition: "all 0.2s ease",
       borderLeft: "3px solid transparent",
@@ -148,13 +148,13 @@ export const settingsStyles = (theme: any): any =>
       },
       "&.active": {
         opacity: 1,
-        borderLeftColor: theme.palette.c_hl1,
+        borderLeftColor: "var(--palette-primary-main)",
         backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".settings-sidebar-category": {
       padding: "1em 1.5em 0.5em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
       letterSpacing: "0.05em",
@@ -168,7 +168,7 @@ export const settingsStyles = (theme: any): any =>
       padding: "0 1em",
       display: "block",
       backgroundColor: "rgba(0, 0, 0, 0.4)",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`
+      borderBottom: `1px solid ${theme.palette.grey[600]}`
     },
     ".settings-content": {
       flex: 1,
@@ -179,14 +179,14 @@ export const settingsStyles = (theme: any): any =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.palette.c_gray1
+        background: theme.palette.grey[800]
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.palette.c_gray3,
+        background: theme.palette.grey[500],
         borderRadius: "4px"
       },
       "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.palette.c_gray4
+        background: theme.palette.grey[400]
       }
     },
     ".settings-section": {
@@ -196,7 +196,7 @@ export const settingsStyles = (theme: any): any =>
       padding: "1.2em",
       margin: "1.5em 0 1.5em 0",
       boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       width: "100%",
       display: "flex",
       flexDirection: "column",
@@ -209,7 +209,7 @@ export const settingsStyles = (theme: any): any =>
     },
     ".settings-item": {
       padding: "1em 0",
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      borderBottom: `1px solid ${theme.palette.grey[600]}`,
       "&:last-child": {
         borderBottom: "none",
         paddingBottom: "0"
@@ -234,12 +234,12 @@ export const settingsStyles = (theme: any): any =>
           transform: "none",
           marginBottom: "8px",
           fontWeight: "500",
-          color: theme.palette.c_white,
+          color: theme.palette.grey[0],
           fontSize: theme.fontSizeNormal
         },
         "& .MuiInputBase-root": {
           maxWidth: "34em",
-          backgroundColor: theme.palette.c_gray1,
+          backgroundColor: theme.palette.grey[800],
           borderRadius: ".3em",
           margin: "0",
           padding: ".3em 1em",
@@ -251,20 +251,20 @@ export const settingsStyles = (theme: any): any =>
         }
       },
       label: {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         fontSize: theme.fontSizeBig,
         fontWeight: "500",
         padding: ".5em 0 .25em 0"
       },
       ".description": {
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         fontSize: theme.fontSizeNormal,
         margin: "0",
         padding: "0 1em 0 0.5em",
         lineHeight: "1.6",
         a: {
-          color: theme.palette.c_hl1,
-          backgroundColor: theme.palette.c_gray1,
+          color: "var(--palette-primary-main)",
+          backgroundColor: theme.palette.grey[800],
           padding: ".3em 1em",
           borderRadius: ".3em",
           marginTop: ".5em",
@@ -279,7 +279,7 @@ export const settingsStyles = (theme: any): any =>
         listStyleType: "square",
         li: {
           margin: "0.3em 0",
-          color: theme.palette.c_gray6
+          color: theme.palette.grey[100]
         }
       }
     },
@@ -307,7 +307,7 @@ export const settingsStyles = (theme: any): any =>
     ".secrets": {
       backgroundColor: "rgba(30, 30, 30, 0.6)",
       backdropFilter: "blur(5px)",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeBig,
       marginTop: ".8em",
       padding: ".8em 1em",
@@ -315,13 +315,13 @@ export const settingsStyles = (theme: any): any =>
       display: "flex",
       alignItems: "center",
       gap: "0.8em",
-      border: `1px solid ${theme.palette.c_warning}`,
+      border: `1px solid ${theme.palette.warning.main}`,
       boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
     },
 
     h2: {
       fontSize: theme.fontSizeHuge,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       margin: "0.5em 0 0.25em 0",
       padding: "0",
       fontWeight: "500"
@@ -331,8 +331,8 @@ export const settingsStyles = (theme: any): any =>
       margin: "2em 0 0.5em 0",
       padding: "0.5em 0 0",
       fontWeight: "500",
-      color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      color: theme.palette.grey[0],
+      borderBottom: `1px solid ${theme.palette.grey[500]}`,
       paddingBottom: "0.3em"
     },
 
@@ -775,9 +775,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       <div
                         className="settings-section"
                         style={{
-                          border: "1px solid" + ThemeNodetool.palette.c_warning,
+                          border:
+                            "1px solid" + ThemeNodetool.palette.warning.main,
                           borderRight:
-                            "1px solid" + ThemeNodetool.palette.c_warning
+                            "1px solid" + ThemeNodetool.palette.warning.main
                         }}
                       >
                         {isProduction && (

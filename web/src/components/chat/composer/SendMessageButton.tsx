@@ -37,7 +37,9 @@ export const SendMessageButton = forwardRef<
       <ArrowUpwardIcon
         fontSize="small"
         sx={{
-          color: isDisabled ? "var(--palette-text-disabled)" : "var(--c_gray1)"
+          color: isDisabled
+            ? "var(--palette-text-disabled)"
+            : "var(--palette-grey-800)"
         }}
       />
     </IconButton>

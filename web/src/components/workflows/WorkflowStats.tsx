@@ -29,7 +29,7 @@
 //       left: "50%",
 //       transform: "translate(-50%, -50%)",
 //       overflowY: "auto",
-//       border: `2px solid ${theme.palette.c_gray3}`
+//       border: `2px solid ${theme.palette.grey[500]}`
 //     }
 //   });
 

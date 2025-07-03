@@ -14,7 +14,7 @@ import {
   AccordionDetails
 } from "@mui/material";
 import { isEqual } from "lodash";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 
@@ -40,6 +40,7 @@ const groupNodes = (nodes: NodeMetadata[]) => {
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   title
 }) {
+  const theme = useTheme();
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -52,7 +53,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         variant="h6"
         component="div"
         sx={{
-          color: ThemeNodes.palette.c_hl1,
+          color: theme.palette.primary.main,
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}
@@ -63,18 +64,18 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   );
 });
 
-const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({ 
-  nodes, 
-  showCheckboxes = false, 
-  selectedNodeTypes = [], 
+const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
+  nodes,
+  showCheckboxes = false,
+  selectedNodeTypes = [],
   onToggleSelection,
   onNodeClick
 }) => {
-  const { groupedSearchResults, searchTerm } =
-    useNodeMenuStore((state) => ({
-      groupedSearchResults: state.groupedSearchResults,
-      searchTerm: state.searchTerm
-    }));
+  const theme = useTheme();
+  const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
+    groupedSearchResults: state.groupedSearchResults,
+    searchTerm: state.searchTerm
+  }));
 
   // No-op drag start for selection mode
   const handleDragStart = useCallback(
@@ -112,11 +113,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
       return (
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
-          <AccordionSummary
-            expandIcon={
-              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.c_gray3 }} />
-            }
-          >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <GroupTitle title={group.title} />
           </AccordionSummary>
           <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
@@ -152,7 +149,14 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         </Accordion>
       );
     },
-    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleNodeClick]
+    [
+      selectedPath,
+      handleDragStart,
+      showCheckboxes,
+      selectedNodeTypes,
+      onToggleSelection,
+      handleNodeClick
+    ]
   );
 
   const elements = useMemo(() => {

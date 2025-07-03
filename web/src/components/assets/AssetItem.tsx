@@ -40,7 +40,7 @@ const styles = (theme: any) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: "var(--c_gray0)",
+      backgroundColor: "var(--palette-grey-900)",
       borderRadius: "0.5em",
       overflow: "hidden"
     },
@@ -57,7 +57,7 @@ const styles = (theme: any) =>
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     "&:hover .asset .image": {
       opacity: 1
@@ -71,13 +71,13 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       opacity: 0.6,
       fontSize: "2.5em"
     },
     p: {
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       lineHeight: "0.95em",
       margin: "2px 0 4px 2px"
     },
@@ -85,7 +85,7 @@ const styles = (theme: any) =>
       position: "absolute",
       pointerEvents: "none",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       backgroundColor: "#11111188",
       margin: "0",
       padding: "0.2em 0.5em",
@@ -167,15 +167,15 @@ const styles = (theme: any) =>
       overflow: "hidden"
     },
     "&.image img": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       width: "100%",
       height: "auto",
       fontSize: theme.fontSizeSmaller
     },
     // ITEM
     "&.selected:after": {
-      border: `4px solid ${theme.palette.c_gray0}`,
-      outline: `8px solid ${theme.palette.c_hl1}`,
+      border: `4px solid ${theme.palette.grey[900]}`,
+      outline: `8px solid ${"var(--palette-primary-main)"}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
       borderRadius: ".75em",
@@ -192,12 +192,12 @@ const styles = (theme: any) =>
       zIndex: 100
     },
     "&:hover:after": {
-      border: `2px solid ${theme.palette.c_gray2}`,
+      border: `2px solid ${theme.palette.grey[600]}`,
       backgroundColor: "#437cb522"
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".folder-up-button.disabled": {
       color: "gray"
@@ -217,8 +217,8 @@ const styles = (theme: any) =>
       textAlign: "center",
       lineHeight: "1.1em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_error,
-      borderBottom: "1px solid" + theme.palette.c_error,
+      color: theme.palette.error.main,
+      borderBottom: "1px solid" + theme.palette.error.main,
       width: "100%",
       height: "100%"
     }

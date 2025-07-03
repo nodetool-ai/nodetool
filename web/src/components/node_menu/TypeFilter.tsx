@@ -109,7 +109,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexDirection: "row",
         gap: ".5em",
         width: "500px",
-        backgroundColor: theme.palette.c_gray1,
+        backgroundColor: theme.palette.grey[800],
         padding: "0",
         marginLeft: ".5em"
       },
@@ -122,7 +122,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: ThemeNodetool.palette.c_gray4,
+        color: ThemeNodetool.palette.grey[400],
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
@@ -188,7 +188,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setInputHover(false);
               }}
             >
-              <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
+              <MenuItem
+                style={{ color: ThemeNodetool.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
@@ -200,7 +203,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--c_gray1)",
+                  backgroundColor: "var(--palette-grey-800)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
@@ -241,7 +244,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--c_gray1)",
+                    backgroundColor: "var(--palette-grey-800)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-input"
@@ -309,7 +312,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setOutputHover(false);
               }}
             >
-              <MenuItem style={{ color: ThemeNodetool.palette.c_hl1 }} value="">
+              <MenuItem
+                style={{ color: ThemeNodetool.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
@@ -321,7 +327,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   userSelect: "none",
                   display: "flex",
                   alignItems: "center",
-                  backgroundColor: "var(--c_gray1)",
+                  backgroundColor: "var(--palette-grey-800)",
                   "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                 }}
                 disableSticky
@@ -362,7 +368,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     userSelect: "none",
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: "var(--c_gray1)",
+                    backgroundColor: "var(--palette-grey-800)",
                     "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.04)" }
                   }}
                   key="comfy-header-output"

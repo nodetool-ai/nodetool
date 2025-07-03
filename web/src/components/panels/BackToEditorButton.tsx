@@ -12,17 +12,17 @@ import { createErrorMessage } from "../../utils/errorHandling";
 const styles = (theme: any) =>
   css({
     width: "fit-content",
-    backgroundColor: theme.palette.c_gray0,
+    backgroundColor: theme.palette.grey[900],
 
     "&:hover, &:hover .back-to-editor-title": {
-      color: theme.palette.c_white,
-      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+      color: theme.palette.grey[0],
+      boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     },
     ".back-to-editor": {
       width: "fit-content"
     },
     ".back-to-editor-title": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       marginLeft: "0.5em",
       fontSize: "var(--fontSizeSmaller)",
       transition: "color 0.25s"

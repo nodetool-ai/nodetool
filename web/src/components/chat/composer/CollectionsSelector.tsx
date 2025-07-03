@@ -52,7 +52,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { collections, fetchCollections, isLoading } = useCollectionStore();
-  
+
   useEffect(() => {
     if (!collections) {
       fetchCollections();
@@ -69,14 +69,14 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
 
   const handleToggle = (collectionName: string) => {
     const newValue = value.includes(collectionName)
-      ? value.filter(name => name !== collectionName)
+      ? value.filter((name) => name !== collectionName)
       : [...value, collectionName];
     onChange(newValue);
   };
 
   const handleSelectAll = () => {
     if (collections) {
-      onChange(collections.collections.map(c => c.name));
+      onChange(collections.collections.map((c) => c.name));
     }
   };
 
@@ -92,7 +92,9 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
       <Tooltip
         title={
           selectedCount > 0
-            ? `${selectedCount} collection${selectedCount === 1 ? '' : 's'} selected`
+            ? `${selectedCount} collection${
+                selectedCount === 1 ? "" : "s"
+              } selected`
             : "Select Collections"
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -109,8 +111,8 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                 label={selectedCount}
                 sx={{
                   marginLeft: 1,
-                  backgroundColor: "var(--c_hl1)",
-                  color: "var(--c_black)",
+                  backgroundColor: "var(--palette-primary-main)",
+                  color: "var(--palette-grey-1000)",
                   "& .MuiChip-label": {
                     padding: "0 4px"
                   }
@@ -119,16 +121,16 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.c_gray3
+              backgroundColor: theme.palette.grey[500]
             },
             "&.active": {
-              borderColor: theme.palette.c_hl1,
-              color: theme.palette.c_hl1,
+              borderColor: "var(--palette-primary-main)",
+              color: "var(--palette-primary-main)",
               "& .MuiSvgIcon-root": {
-                color: theme.palette.c_hl1
+                color: "var(--palette-primary-main)"
               }
             }
           })}

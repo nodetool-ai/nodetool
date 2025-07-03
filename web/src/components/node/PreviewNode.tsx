@@ -11,7 +11,7 @@ import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -30,7 +30,7 @@ const styles = (theme: any) =>
         display: "flex",
         flexDirection: "column",
         padding: 0,
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -88,9 +88,9 @@ const styles = (theme: any) =>
         transition: "opacity 0.2s"
       },
       ".actions button": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         borderRadius: ".1em",
-        backgroundColor: theme.palette.c_gray2,
+        backgroundColor: theme.palette.grey[600],
 
         width: "17px",
         height: "17px",
@@ -98,7 +98,7 @@ const styles = (theme: any) =>
         padding: 0,
         minWidth: "unset",
         "&:hover": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         },
         "& svg": {
           width: "100%",
@@ -116,7 +116,7 @@ const styles = (theme: any) =>
         fontWeight: "300",
         transform: "translate(-50%, -50%)",
         zIndex: 0,
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         transition: "opacity 0.2s 1s ease-out"
       },
       "&:hover .hint": {
@@ -133,7 +133,7 @@ const styles = (theme: any) =>
         textTransform: "uppercase",
         fontSize: "var(--fontSizeTiny)",
         fontFamily: "var(--fontFamily2)",
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         marginTop: "0.25em"
       }
     },
@@ -146,6 +146,7 @@ interface PreviewNodeProps extends NodeProps {
 }
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
+  const theme = useTheme();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -300,8 +301,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
         backgroundColor: hasParent
-          ? ThemeNodes.palette.c_node_bg_group
-          : ThemeNodes.palette.c_node_bg
+          ? theme.palette.c_node_bg_group
+          : theme.palette.c_node_bg
       }}
       className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""

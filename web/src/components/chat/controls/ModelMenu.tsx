@@ -2,12 +2,10 @@
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
-  Button,
   Menu,
   MenuItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   Typography,
   Tooltip,
   CircularProgress,
@@ -23,8 +21,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 const menuStyles = (theme: any) =>
   css({
     "& button": {
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: theme.palette.grey[800],
+      border: `1px solid ${theme.palette.grey[500]}`,
       minWidth: "280px",
       maxHeight: "400px"
     },
@@ -32,15 +30,15 @@ const menuStyles = (theme: any) =>
       marginTop: "1em",
       padding: "0.5em 1em",
       userSelect: "none",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[100],
       fontSize: "var(--fontSizeNormal)",
       fontVariant: "small-caps",
       textTransform: "uppercase"
     },
     ".model-item": {
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
       "&.selected": {
         backgroundColor: theme.palette.primary.dark
@@ -50,7 +48,7 @@ const menuStyles = (theme: any) =>
       }
     },
     ".model-name": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".loading-container": {
       display: "flex",
@@ -151,7 +149,12 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           className={`select-model-button ${selectedModel ? "active" : ""}`}
           sx={{
             border: "1px solid transparent",
-            color: "var(--c_white)",
+            color: "var(--palette-grey-0)",
+            marginRight: ".5em !important",
+            padding: "0.25em 0.75em !important",
+            "&:hover": {
+              backgroundColor: "var(--palette-grey-500)"
+            }
           }}
           onClick={handleClick}
           size="small"
@@ -159,7 +162,8 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           <SmartToyIcon
             fontSize="small"
             sx={{
-              color: "var(--c_gray5)",
+              color: "var(--palette-grey-200)",
+              marginRight: "0.5em"
             }}
           />
         </IconButton>

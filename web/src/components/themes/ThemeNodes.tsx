@@ -1,5 +1,10 @@
-import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
-// import type {} from "@mui/material/themeCssVarsAugmentation"; // No longer strictly needed for this approach
+// ⚠️ DEPRECATED ⚠️
+// ================
+// This file is OBSOLETE and will be REMOVED in a future version.
+// Use ThemeNodetool instead.
+// ================
+
+import { Theme, createTheme } from "@mui/material/styles";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 
@@ -48,22 +53,13 @@ const ThemeNodes: Theme = createTheme({
       palette: paletteDark
     },
     light: {
-      palette: paletteDark
+      palette: paletteLight
     }
   },
-  cssVariables: {
-    colorSchemeSelector: "[data-mui-color-scheme]",
-    cssVarPrefix: ""
-  },
-
-  // fontSizeGiant: "2.5em",
-  // fontSizeBigger: "1.25em",
-  // fontSizeBig: "1.125em",
-  // fontSizeNormal: "12px",
-  // fontSizeSmall: "0.875em",
-  // fontSizeSmaller: "0.75em",
-  // fontSizeTiny: "0.65em",
-  // fontSizeTinyer: "0.55em",
+  // cssVariables: {
+  //   colorSchemeSelector: "[data-mui-color-scheme]",
+  //   cssVarPrefix: ""
+  // },
   fontSizeGiant: "2em",
   fontSizeBigger: "1.25em",
   fontSizeBig: "1.125em",
@@ -94,9 +90,9 @@ const ThemeNodes: Theme = createTheme({
           height: "15px",
           fontSize: theme.fontSizeSmall,
           minWidth: "20px",
-          backgroundColor: "#333",
+          backgroundColor: theme.palette.grey[600],
           "&:hover": {
-            backgroundColor: theme.palette.c_gray3
+            backgroundColor: theme.palette.grey[500]
           }
         })
       },
@@ -128,6 +124,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h1: ({ theme }) => ({
           fontSize: "2em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -135,6 +132,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h2: ({ theme }) => ({
           fontSize: "1.75em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -142,6 +140,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         h3: ({ theme }) => ({
           fontSize: "1.5em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -184,6 +183,7 @@ const ThemeNodes: Theme = createTheme({
         }),
         body2: ({ theme }) => ({
           fontSize: "1em",
+          fontWeight: 300,
           lineHeight: 1.1,
           fontFamily: theme.fontFamily1
         })
@@ -207,12 +207,12 @@ const ThemeNodes: Theme = createTheme({
             border: "0"
           }
         }),
-        inputMultiline: {
+        inputMultiline: ({ theme }) => ({
           margin: "0",
           padding: "2px 8px 0px 4px !important",
-          backgroundColor: "#4b4b4b",
+          backgroundColor: theme.palette.grey[600],
           resize: "vertical"
-        },
+        }),
         input: ({ theme }) => ({
           padding: "0px",
           maxHeight: "40em"
@@ -275,7 +275,7 @@ const ThemeNodes: Theme = createTheme({
           minHeight: "1.2em",
           margin: " 0",
           "&.Mui-focused": {
-            color: theme.palette.c_white
+            color: theme.palette.grey[0]
           }
         })
       }
@@ -328,13 +328,13 @@ const ThemeNodes: Theme = createTheme({
         switchBase: ({ theme }) => ({
           margin: "0",
           padding: "0 !important",
-          color: theme.palette.c_gray4,
+          color: theme.palette.grey[400],
           "&.Mui-checked": {
-            color: theme.palette.c_gray6,
+            color: theme.palette.grey[100],
             transform: "translateX(12px) !important"
           },
           "&.Mui-checked + .MuiSwitch-track": {
-            backgroundColor: theme.palette.c_gray6
+            backgroundColor: theme.palette.grey[100]
           }
         })
       }
@@ -343,36 +343,36 @@ const ThemeNodes: Theme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           fontFamily: theme.fontFamily1,
-          backgroundColor: "#333",
+          backgroundColor: theme.palette.grey[600],
           marginBottom: "0px",
           paddingTop: "4px",
           paddingBottom: "4px",
           fontWeight: 300,
           "&:nth-of-type(even)": {
-            backgroundColor: "#313131",
+            backgroundColor: theme.palette.grey[700],
             "&:hover": {
-              backgroundColor: "#444"
+              backgroundColor: theme.palette.grey[500]
             },
             "&:selected": {
-              backgroundColor: "#333"
+              backgroundColor: theme.palette.grey[600]
             }
           },
           "&:nth-of-type(odd)": {
-            backgroundColor: "#363636",
+            backgroundColor: theme.palette.grey[600],
             "&:hover": {
-              backgroundColor: "#444"
+              backgroundColor: theme.palette.grey[500]
             },
             "&:selected": {
-              backgroundColor: "#333"
+              backgroundColor: theme.palette.grey[600]
             }
           },
           "&.Mui-hover": {
-            color: theme.palette.c_hl1_1,
-            backgroundColor: "#444"
+            color: "var(--palette-primary-light)",
+            backgroundColor: theme.palette.grey[500]
           },
           "&.Mui-selected": {
-            color: theme.palette.c_hl1,
-            backgroundColor: "#333"
+            color: "var(--palette-primary-main)",
+            backgroundColor: theme.palette.grey[600]
           }
         })
       }
@@ -396,11 +396,11 @@ const ThemeNodes: Theme = createTheme({
           padding: "0 0 0 .4em",
           fontFamily: theme.fontFamily1,
           fontSize: theme.fontSizeSmaller,
-          backgroundColor: theme.palette.c_gray2,
+          backgroundColor: theme.palette.grey[600],
           margin: "0"
         }),
         icon: ({ theme }) => ({
-          color: theme.palette.c_gray4
+          color: theme.palette.grey[400]
         })
         // filled: {},
         // outlined: {}
@@ -438,9 +438,9 @@ const ThemeNodes: Theme = createTheme({
           padding: "5px",
           margin: "5px",
           fontSize: theme.fontSizeSmaller,
-          border: " 1px dashed #333",
-          backgroundColor: "#333",
-          color: "#eee",
+          border: `1px dashed ${theme.palette.grey[600]}`,
+          backgroundColor: theme.palette.grey[600],
+          color: theme.palette.text.primary,
           cursor: "default",
           userSelect: "text"
         })
@@ -454,12 +454,12 @@ const ThemeNodes: Theme = createTheme({
             lineHeight: "1.2em !important"
           },
           "&.MuiToggleButton-sizeSmall.Mui-selected": {
-            color: theme.palette.c_white,
-            backgroundColor: theme.palette.c_gray1
+            color: theme.palette.grey[0],
+            backgroundColor: theme.palette.grey[800]
           },
           "&.MuiToggleButton-sizeSmall": {
             fontSize: "12px",
-            color: theme.palette.c_gray4,
+            color: theme.palette.grey[400],
             padding: "0 4px",
             margin: 0,
             border: 0

@@ -42,7 +42,7 @@ const styles = (theme: any) =>
     },
 
     ".section": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       borderRadius: theme.spacing(1),
       padding: theme.spacing(4),
       display: "flex",
@@ -52,7 +52,7 @@ const styles = (theme: any) =>
     },
 
     ".section-title": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       marginBottom: theme.spacing(3)
     },
 
@@ -100,10 +100,10 @@ const styles = (theme: any) =>
       marginBottom: theme.spacing(1),
       cursor: "pointer",
       borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       transition: "all 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
 
@@ -112,7 +112,7 @@ const styles = (theme: any) =>
       height: "60px",
       borderRadius: theme.shape.borderRadius,
       backgroundColor: "transparent",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       flexShrink: 0
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
     },
 
     ".workflow-name": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500,
       marginBottom: theme.spacing(0.5),
       overflow: "hidden",
@@ -133,7 +133,7 @@ const styles = (theme: any) =>
     },
 
     ".workflow-description": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: "0.875rem",
       lineHeight: "1.2em",
       display: "-webkit-box",
@@ -143,7 +143,7 @@ const styles = (theme: any) =>
     },
 
     ".workflow-date": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       fontSize: "0.75rem",
       marginLeft: "auto",
       flexShrink: 0
@@ -160,15 +160,15 @@ const styles = (theme: any) =>
       cursor: "pointer",
       borderRadius: theme.spacing(1),
       overflow: "hidden",
-      backgroundColor: "var(--c_gray1)",
+      backgroundColor: "var(--palette-grey-800)",
       "&:hover": {
         opacity: 0.9
       },
       ".example-description-tooltip": {
         visibility: "hidden",
         width: "200px",
-        backgroundColor: theme.palette.c_black,
-        color: theme.palette.c_white,
+        backgroundColor: theme.palette.grey[1000],
+        color: theme.palette.grey[0],
         textAlign: "center",
         borderRadius: "6px",
         padding: "5px 0",
@@ -187,7 +187,7 @@ const styles = (theme: any) =>
           marginLeft: "-5px",
           borderWidth: "5px",
           borderStyle: "solid",
-          borderColor: `${theme.palette.c_black} transparent transparent transparent`
+          borderColor: `${theme.palette.grey[1000]} transparent transparent transparent`
         }
       },
       "&:hover .example-description-tooltip": {
@@ -200,13 +200,13 @@ const styles = (theme: any) =>
       width: "100%",
       height: "180px",
       objectFit: "cover",
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.grey[600]
     },
 
     ".example-name": {
       padding: ".2em .5em .5em 0",
-      color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.grey[0],
+      backgroundColor: theme.palette.grey[800],
       fontSize: "var(--fontSizeSmall)"
     },
 
@@ -219,21 +219,21 @@ const styles = (theme: any) =>
 
     ".create-button": {
       padding: ".3em 1em",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_white,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[0],
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.grey[500]
       }
     },
 
     ".sort-toggle": {
       "& .MuiToggleButton-root": {
         lineHeight: "1.2em",
-        color: theme.palette.c_gray5,
-        borderColor: theme.palette.c_gray3,
+        color: theme.palette.grey[200],
+        borderColor: theme.palette.grey[500],
         "&.Mui-selected": {
-          backgroundColor: theme.palette.c_gray3,
-          color: theme.palette.c_white
+          backgroundColor: theme.palette.grey[500],
+          color: theme.palette.grey[0]
         }
       }
     },

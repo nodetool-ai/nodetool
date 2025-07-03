@@ -43,7 +43,7 @@ const styles = (theme: any) => css`
 
   .warning {
     font-size: 1rem;
-    color: ${theme.palette.c_warning};
+    color: ${theme.palette.warning.main};
   }
   .content {
     padding: 10px;
@@ -61,7 +61,7 @@ const styles = (theme: any) => css`
   }
 
   .open-node-menu-button {
-    color: ${theme.palette.c_hl1};
+    color: ${"var(--palette-primary-main)"};
     margin-top: 10px;
     margin-right: 10px;
   }
@@ -119,7 +119,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
       return (
         <div className="warning">
           {nodeType} <br />
-          <span style={{ color: ThemeNodetool.palette.c_gray6 }}>
+          <span style={{ color: ThemeNodetool.palette.grey[100] }}>
             Sorry, this node does not exist.
           </span>
           <Button

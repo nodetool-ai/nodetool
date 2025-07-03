@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css, ThemeProvider } from "@emotion/react";
+import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useMemo, useState } from "react";
 import NodeEditor from "../node_editor/NodeEditor";
@@ -10,7 +10,7 @@ import AppToolbar from "../panels/AppToolbar";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
-import ThemeNodes from "../themes/ThemeNodes";
+
 import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -33,7 +33,7 @@ const styles = (theme: any) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.grey[900],
       alignItems: "center",
       position: "relative",
       padding: "0",
@@ -75,7 +75,7 @@ const styles = (theme: any) =>
       minWidth: "80px",
       flex: "0 0 auto",
       cursor: "pointer",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       background: "transparent",
       borderRadius: "2px 2px 0 0",
       fontSize: "13px",
@@ -93,7 +93,7 @@ const styles = (theme: any) =>
         left: 4,
         right: 4,
         height: "2px",
-        background: theme.palette.c_hl1,
+        background: "var(--palette-primary-main)",
         opacity: 0,
         transform: "scaleX(0.7)",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
@@ -101,7 +101,7 @@ const styles = (theme: any) =>
 
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.03)",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         "&::before": {
           opacity: 0.3,
           transform: "scaleX(0.3)"
@@ -109,7 +109,7 @@ const styles = (theme: any) =>
       },
 
       "&.active": {
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         "&::before": {
           opacity: 0.8,
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
         "&:hover": {
           opacity: 1,
           transform: "scale(1.1) rotate(90deg)",
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -137,10 +137,10 @@ const styles = (theme: any) =>
       width: "2px",
       background: `linear-gradient(to bottom, 
         transparent 0%, 
-        ${theme.palette.c_hl1} 50%, 
+        ${"var(--palette-primary-main)"} 50%, 
         transparent 100%
       )`,
-      boxShadow: `0 0 8px ${theme.palette.c_hl1}`
+      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
     },
     "& .tab.drop-target-right::after": {
       content: '""',
@@ -151,10 +151,10 @@ const styles = (theme: any) =>
       width: "2px",
       background: `linear-gradient(to bottom, 
         transparent 0%, 
-        ${theme.palette.c_hl1} 50%, 
+        ${"var(--palette-primary-main)"} 50%, 
         transparent 100%
       )`,
-      boxShadow: `0 0 8px ${theme.palette.c_hl1}`
+      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
     },
     "& .editor-container": {
       flex: 1,
@@ -181,7 +181,7 @@ const styles = (theme: any) =>
       background: theme.palette.background.default,
       border: "none",
       cursor: "pointer",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       transition: "all 0.1s ease-in-out",
       padding: 0,
       flexShrink: 0,
@@ -192,14 +192,14 @@ const styles = (theme: any) =>
       },
 
       "&:hover": {
-        color: theme.palette.c_white,
-        background: theme.palette.c_gray1
+        color: theme.palette.grey[0],
+        background: theme.palette.grey[800]
       },
 
       "&:disabled": {
         opacity: 0.3,
         "&:hover": {
-          color: theme.palette.c_gray5,
+          color: theme.palette.grey[200],
           background: theme.palette.background.default
         }
       }
@@ -211,9 +211,9 @@ const styles = (theme: any) =>
       width: "30px",
       height: "30px",
       background: theme.palette.background.default,
-      border: `1px solid ${theme.palette.c_gray1}`,
+      border: `1px solid ${theme.palette.grey[800]}`,
       borderBottom: "none",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       cursor: "pointer",
       borderRadius: "5px 5px 0 0",
       padding: 0,
@@ -224,8 +224,8 @@ const styles = (theme: any) =>
       zIndex: 1001,
 
       "&:hover": {
-        color: theme.palette.c_gray6,
-        background: theme.palette.c_gray1
+        color: theme.palette.grey[100],
+        background: theme.palette.grey[800]
       },
 
       "& svg": {
@@ -243,7 +243,7 @@ const styles = (theme: any) =>
       height: "100%",
       border: "none",
       background: "transparent",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: "14px",
       display: "flex",
       alignItems: "center",
@@ -261,8 +261,8 @@ const styles = (theme: any) =>
     "& .actions-container": {
       flexShrink: 0,
       width: "100%",
-      backgroundColor: theme.palette.c_gray0,
-      borderBottom: `1px solid ${theme.palette.c_gray1}`
+      backgroundColor: theme.palette.grey[900],
+      borderBottom: `1px solid ${theme.palette.grey[800]}`
     }
   });
 
@@ -362,79 +362,75 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <ThemeProvider theme={ThemeNodes}>
-        <div css={styles}>
-          <div className="tabs-container">
-            <TabsBar workflows={tabsToRender} />
-            {!isMac && isElectron && <WindowControls />}
-          </div>
-          <div
-            className="editor-container"
-            css={generateCSS}
-            style={{ flex: 1, minHeight: 0, minWidth: 0 }}
-          >
-            {activeNodeStore ? (
-              <Box
-                key={currentWorkflowId}
-                sx={{
-                  overflow: "hidden",
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                <NodeContext.Provider value={activeNodeStore}>
-                  <ReactFlowProvider>
-                    <ContextMenuProvider>
-                      <ConnectableNodesProvider>
-                        <KeyboardProvider>
-                          <div
-                            style={{
-                              flexShrink: 0,
-                              position: "relative",
-                              zIndex: 1
-                            }}
-                          >
-                            <AppHeader />
-                            <div className="actions-container">
-                              <AppToolbar
-                                setWorkflowToEdit={setWorkflowToEdit}
-                              />
-                            </div>
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              flex: 1,
-                              minHeight: 0,
-                              position: "relative",
-                              width: "100%",
-                              height: "100%"
-                            }}
-                          >
-                            <NodeEditor
-                              workflowId={currentWorkflowId!}
-                              active={true}
-                            />
-                          </div>
-                        </KeyboardProvider>
-                      </ConnectableNodesProvider>
-                    </ContextMenuProvider>
-                  </ReactFlowProvider>
-                </NodeContext.Provider>
-              </Box>
-            ) : (
-              <StatusMessage />
-            )}
-          </div>
+      <div css={styles}>
+        <div className="tabs-container">
+          <TabsBar workflows={tabsToRender} />
+          {!isMac && isElectron && <WindowControls />}
         </div>
-      </ThemeProvider>
+        <div
+          className="editor-container"
+          css={generateCSS}
+          style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+        >
+          {activeNodeStore ? (
+            <Box
+              key={currentWorkflowId}
+              sx={{
+                overflow: "hidden",
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                minHeight: 0,
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              <NodeContext.Provider value={activeNodeStore}>
+                <ReactFlowProvider>
+                  <ContextMenuProvider>
+                    <ConnectableNodesProvider>
+                      <KeyboardProvider>
+                        <div
+                          style={{
+                            flexShrink: 0,
+                            position: "relative",
+                            zIndex: 1
+                          }}
+                        >
+                          <AppHeader />
+                          <div className="actions-container">
+                            <AppToolbar setWorkflowToEdit={setWorkflowToEdit} />
+                          </div>
+                          <div className="status-message-container">
+                            <StatusMessage />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 0,
+                            position: "relative",
+                            width: "100%",
+                            height: "100%"
+                          }}
+                        >
+                          <NodeEditor
+                            workflowId={currentWorkflowId!}
+                            active={true}
+                          />
+                        </div>
+                      </KeyboardProvider>
+                    </ConnectableNodesProvider>
+                  </ContextMenuProvider>
+                </ReactFlowProvider>
+              </NodeContext.Provider>
+            </Box>
+          ) : (
+            <StatusMessage />
+          )}
+        </div>
+      </div>
     </>
   );
 };

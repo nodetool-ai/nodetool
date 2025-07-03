@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 const styles = (theme: any) =>
   css({
     width: "fit-content",
-    backgroundColor: theme.palette.c_gray0,
+    backgroundColor: theme.palette.grey[900],
     "&:hover": {
-      color: theme.palette.c_white,
-      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+      color: theme.palette.grey[0],
+      boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     },
     ".back-to-dashboard": {
       width: "fit-content"

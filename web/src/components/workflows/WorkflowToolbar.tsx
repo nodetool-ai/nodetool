@@ -35,27 +35,27 @@ const styles = (theme: any) =>
     },
     ".tools button": {
       fontSize: "0.7em",
-      borderColor: `${theme.palette.c_hl1}33`,
+      borderColor: `${"var(--palette-primary-main)"}33`,
       width: "3em",
       height: "3em",
       "&:hover": {
-        borderColor: theme.palette.c_hl1
+        borderColor: "var(--palette-primary-main)"
       },
       "& svg": {
-        color: theme.palette.c_gray4
+        color: theme.palette.grey[400]
       },
       "&:hover svg": {
-        fill: theme.palette.c_hl1
+        fill: "var(--palette-primary-main)"
       }
     },
     ".tools .delete-selected-button": {
-      borderColor: `${theme.palette.c_hl1}33`,
-      color: theme.palette.c_hl1,
+      borderColor: `${"var(--palette-primary-main)"}33`,
+      color: "var(--palette-primary-main)",
       "&:hover": {
-        borderColor: theme.palette.c_hl1
+        borderColor: "var(--palette-primary-main)"
       },
       "& svg": {
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       }
     },
     ".MuiOutlinedInput-root": {

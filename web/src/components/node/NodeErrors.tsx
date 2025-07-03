@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 export const errorStyles = (theme: any) =>
   css({
     position: "relative",
-    backgroundColor: theme.palette.c_error,
+    backgroundColor: theme.palette.error.main,
     borderRadius: "1px",
     padding: "10px",
     transition: "background-color 0.2s",
@@ -21,7 +21,7 @@ export const errorStyles = (theme: any) =>
       maxHeight: "6em",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       cursor: "auto",
       userSelect: "text",
       lineHeight: "1.1em",
@@ -29,7 +29,7 @@ export const errorStyles = (theme: any) =>
       overflowX: "hidden",
       overflowY: "auto",
       "&::selection": {
-        backgroundColor: theme.palette.c_white
+        backgroundColor: theme.palette.grey[0]
       }
     },
     ".copy-button": {
@@ -46,7 +46,7 @@ export const errorStyles = (theme: any) =>
         opacity: 1
       },
       transition: "opacity 0.2s ease",
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     }
   });
 

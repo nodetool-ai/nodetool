@@ -61,7 +61,7 @@ const styles = (theme: any) =>
       zIndex: 5000,
       padding: "0.5em",
       borderTop: `2px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".controls .zoom": {
       maxWidth: "200px",
@@ -71,18 +71,18 @@ const styles = (theme: any) =>
       display: "block",
       left: "0",
       fontSize: ThemeNodetool.fontSizeNormal,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       margin: "2em 0 0 0"
     },
     ".folder-slash": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: 600,
       marginRight: "0.25em",
       userSelect: "none"
     },
     ".selected-asset-info": {
       fontSize: "12px !important",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       minHeight: "25px",
       padding: "0",
       margin: "0 0 0 0.5em"
@@ -125,7 +125,7 @@ const styles = (theme: any) =>
     },
     ".folder-name": {
       fontSize: ThemeNodetool.fontSizeNormal,
-      color: "var(--c_gray6)",
+      color: "var(--palette-grey-100)",
       verticalAlign: "middle",
       "&:hover": {
         color: theme.palette.primary.main
@@ -137,10 +137,10 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       "& .folder-name": {
         fontWeight: "600",
-        color: "var(--c_hl1)"
+        color: "var(--palette-primary-main)"
       },
       "& .folder-icon": {
-        color: "var(--c_hl1)"
+        color: "var(--palette-primary-main)"
       }
     },
     ".root-folder": {
@@ -333,7 +333,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1000,
-            color: "var(--c_error)"
+            color: "var(--palette-error-main)"
           }}
         >
           {error.message}

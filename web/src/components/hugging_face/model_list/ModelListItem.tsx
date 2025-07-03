@@ -96,7 +96,11 @@ const ModelListItem: React.FC<
             <div className="model-details">
               <Tooltip title="No matching repository found.">
                 <WarningAmberIcon
-                  sx={{ color: "var(--c_warning)", margin: 0, width: "1em" }}
+                  sx={{
+                    color: "var(--palette-warning-main)",
+                    margin: 0,
+                    width: "1em"
+                  }}
                 />
               </Tooltip>
             </div>

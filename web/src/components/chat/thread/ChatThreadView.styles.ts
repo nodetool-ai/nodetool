@@ -22,7 +22,7 @@ export const createStyles = (theme: any) => ({
     marginRight: ".1em",
     position: "relative",
     scrollbarWidth: "auto",
-    scrollbarColor: "var(--c_gray2) transparent",
+    scrollbarColor: "var(--palette-grey-600) transparent",
 
     "&::-webkit-scrollbar": {
       width: "12px !important"
@@ -31,11 +31,11 @@ export const createStyles = (theme: any) => ({
       background: "transparent !important"
     },
     "&::-webkit-scrollbar-thumb": {
-      background: "var(--c_gray2) !important",
+      background: "var(--palette-grey-600) !important",
       borderRadius: "4px"
     },
     "&::-webkit-scrollbar-thumb:hover": {
-      background: "var(--c_warn) !important"
+      background: "var(--palette-warning-main) !important"
     }
   }),
   chatMessagesList: css({
@@ -70,15 +70,15 @@ export const createStyles = (theme: any) => ({
       // fontSize: theme.fontSizeNormal,
       // lineHeight: "1.5em"
       // fontWeight: "300"
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     "li.user": {
       width: "60%",
       margin: "4em 0 2em auto",
       padding: "0.2em",
-      color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.grey[100],
+      backgroundColor: theme.palette.grey[600],
       opacity: 0.9,
       borderRadius: "20px"
     },
@@ -88,7 +88,7 @@ export const createStyles = (theme: any) => ({
     },
 
     "li.assistant": {
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     "li pre": {
@@ -100,7 +100,7 @@ export const createStyles = (theme: any) => ({
 
     "li pre code": {
       // fontFamily: theme.fontFamily2,
-      // color: theme.palette.c_white
+      // color: theme.palette.grey[0]
     },
 
     ".code-block-container": {
@@ -108,7 +108,7 @@ export const createStyles = (theme: any) => ({
     },
 
     "li a": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
 
     "li a:hover": {
@@ -133,13 +133,13 @@ export const createStyles = (theme: any) => ({
       width: "10px",
       height: "10px",
       borderRadius: "50%",
-      backgroundColor: theme.palette.c_gray6,
+      backgroundColor: theme.palette.grey[100],
       margin: "0 5px"
     },
 
     ".node-status": {
       textAlign: "center",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
     },

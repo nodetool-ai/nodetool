@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { NodeResizer as ReactFlowNodeResizer } from "@xyflow/react";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 interface NodeResizerProps {
   minWidth: number;
@@ -25,7 +25,7 @@ const styles = (theme: any) =>
     ".react-flow__resize-control.line": {
       opacity: 0,
       borderWidth: "1px",
-      borderColor: theme.palette.c_gray2,
+      borderColor: theme.palette.grey[600],
       transition: "all 0.15s ease-in-out"
     },
     ".react-flow__resize-control.line:hover": {
@@ -34,8 +34,9 @@ const styles = (theme: any) =>
   });
 
 const NodeResizer: React.FC<NodeResizerProps> = ({ minWidth, minHeight }) => {
+  const theme = useTheme();
   return (
-    <div className="node-resizer" css={styles(ThemeNodes)}>
+    <div className="node-resizer" css={styles(theme)}>
       <ReactFlowNodeResizer minWidth={minWidth} minHeight={minHeight} />
     </div>
   );

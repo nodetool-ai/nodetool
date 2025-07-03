@@ -73,42 +73,42 @@ const menuStyles = (theme: any) =>
       padding: ".5em 0",
       listStyle: "none",
       backgroundColor: theme.palette.c_node_bg,
-      border: `1px solid var(--palette-c_gray1)`,
+      border: `1px solid var(--palette-grey-800)`,
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.5)",
       borderRadius: ".3em",
       zIndex: 1000,
       whiteSpace: "nowrap"
     },
     ".options-list .option:first-of-type": {
-      color: theme.palette.c_gray3
+      color: theme.palette.grey[500]
     },
 
     ".option": {
       padding: ".1em 1em",
       cursor: "pointer",
-      fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray5,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.grey[200],
       transition: "all 0.2s ease",
       whiteSpace: "nowrap",
 
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-        color: theme.palette.c_white
+        backgroundColor: theme.palette.grey[600],
+        color: theme.palette.grey[0]
       },
 
       "&.matching": {
-        backgroundColor: theme.palette.c_gray3,
+        backgroundColor: theme.palette.grey[500],
         fontWeight: "bold"
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2,
-        color: theme.palette.c_hl1
+        backgroundColor: theme.palette.grey[600],
+        color: "var(--palette-primary-main)"
       },
 
       "&.highlighted": {
-        backgroundColor: theme.palette.c_gray3,
-        color: theme.palette.c_white
+        backgroundColor: theme.palette.grey[500],
+        color: theme.palette.grey[0]
       }
     },
 
@@ -118,7 +118,7 @@ const menuStyles = (theme: any) =>
       top: "-3px",
       padding: "0px 5px",
       margin: "0",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       fontSize: theme.fontSizeSmaller,
       borderRadius: ".3em",
       cursor: "pointer",
@@ -128,19 +128,19 @@ const menuStyles = (theme: any) =>
       backgroundColor: theme.palette.c_node_bg,
 
       "&:hover": {
-        borderColor: theme.palette.c_gray4
+        borderColor: theme.palette.grey[400]
       }
     },
 
     ".select-header-text": {
-      color: theme.palette.c_gray6,
-      fontSize: theme.fontSizeSmall,
+      color: theme.palette.grey[100],
+      fontSize: theme.fontSizeTiny,
       userSelect: "none"
     },
 
     ".chevron": {
       transition: "transform 0.2s ease",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       transform: "rotate(0deg)",
 
       "&.open": {
@@ -156,15 +156,15 @@ const menuStyles = (theme: any) =>
       width: "100%",
       margin: "-4px 0 0 0",
       padding: "3px .5em",
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray3}`,
+      backgroundColor: theme.palette.grey[800],
+      border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: ".3em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeSmaller,
 
       "&:focus": {
         outline: "none",
-        borderColor: theme.palette.c_gray4
+        borderColor: theme.palette.grey[400]
       }
     }
   });

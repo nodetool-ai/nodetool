@@ -29,17 +29,17 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
       width: ".85em",
       height: ".85em",
       zIndex: 10000,
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       borderRadius: ".1em 0  0 0",
       "& svg": {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         width: ".6em",
         height: ".6em",
         scale: ".9",
         rotate: "-86deg"
       },
       "&:hover svg": {
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       }
     },
     "&:hover .color-picker-button": {
@@ -75,13 +75,13 @@ export const colorSelectDialogStyles = (theme: any) =>
       borderRadius: 0
     },
     ".MuiDialogTitle-root": {
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[200],
       padding: "0.5em .75em"
     },
     ".MuiDialogContent-root": {
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[200],
       padding: "0.5em .5em 2em .5em"
     },
     ".search": {
@@ -89,7 +89,7 @@ export const colorSelectDialogStyles = (theme: any) =>
       padding: "0 .5em",
       marginBottom: "1em",
       backgroundColor: "transparent",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     }
   });
 

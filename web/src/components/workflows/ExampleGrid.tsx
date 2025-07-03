@@ -86,11 +86,11 @@ const styles = (theme: any) =>
       zIndex: 10,
       borderRadius: "4px",
       backdropFilter: "blur(2px)",
-      boxShadow: `0 0 15px ${theme.palette.c_hl1}60`,
-      border: `1px solid ${theme.palette.c_hl1}80`
+      boxShadow: `0 0 15px ${"var(--palette-primary-main)"}60`,
+      border: `1px solid ${"var(--palette-primary-main)"}80`
     },
     ".loading-text": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: "0.9rem",
       marginTop: "12px",
       textAlign: "center",
@@ -113,8 +113,8 @@ const styles = (theme: any) =>
       left: "-4px",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[200],
       padding: "0.2em 0.4em",
       margin: "0",
       zIndex: 110
@@ -163,25 +163,27 @@ const styles = (theme: any) =>
       height: "200px",
       overflow: "visible",
       position: "relative",
-      background: `linear-gradient(0deg, ${theme.palette.c_hl1}20, ${theme.palette.c_gray1}22)`
+      background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
+        theme.palette.grey[800]
+      }22)`
     },
     ".image-wrapper:hover": {
       animation: "sciFiPulse 2s infinite",
-      boxShadow: `0 0 10px ${theme.palette.c_hl1}`,
-      outline: `2px solid ${theme.palette.c_hl1}`
+      boxShadow: `0 0 10px ${"var(--palette-primary-main)"}`,
+      outline: `2px solid ${"var(--palette-primary-main)"}`
     },
 
     "@keyframes sciFiPulse": {
       "0%": {
-        boxShadow: `0 0 5px ${theme.palette.c_hl1}`,
+        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}`,
         filter: "brightness(1)"
       },
       "50%": {
-        boxShadow: `0 0 20px ${theme.palette.c_hl1}`,
+        boxShadow: `0 0 20px ${"var(--palette-primary-main)"}`,
         filter: "brightness(1.2)"
       },
       "100%": {
-        boxShadow: `0 0 5px ${theme.palette.c_hl1}`,
+        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}`,
         filter: "brightness(1)"
       }
     },
@@ -217,9 +219,9 @@ const styles = (theme: any) =>
       letterSpacing: "1px",
       fontWeight: "bold",
       color: theme.palette.text.primary,
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: `1px solid ${theme.palette.grey[600]}`,
       "&:hover": {
-        border: `1px solid ${theme.palette.c_hl1}`,
+        border: `1px solid ${"var(--palette-primary-main)"}`,
         // transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
         color: theme.palette.common.white,
@@ -234,27 +236,27 @@ const styles = (theme: any) =>
     },
     ".tag-menu .selected": {
       background: `linear-gradient(0deg, 
-        ${theme.palette.c_hl2}dd, 
-        ${theme.palette.c_hl1}dd
+        ${"var(--palette-secondary-main)"}dd, 
+        ${"var(--palette-primary-main)"}dd
       )`,
       boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       animation: "glowPulse 1.5s infinite",
       "&:hover": {
         transform: "none",
         boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-        color: theme.palette.c_black
+        color: theme.palette.grey[1000]
       }
     },
     "@keyframes glowPulse": {
       "0%": {
-        boxShadow: `0 0 5px ${theme.palette.c_hl1}50`
+        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}50`
       },
       "50%": {
-        boxShadow: `0 0 15px ${theme.palette.c_hl1}90`
+        boxShadow: `0 0 15px ${"var(--palette-primary-main)"}90`
       },
       "100%": {
-        boxShadow: `0 0 5px ${theme.palette.c_hl1}50`
+        boxShadow: `0 0 5px ${"var(--palette-primary-main)"}50`
       }
     },
     ".search-container": {
@@ -270,10 +272,10 @@ const styles = (theme: any) =>
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
         "&:hover fieldset": {
-          borderColor: theme.palette.c_hl1
+          borderColor: "var(--palette-primary-main)"
         },
         "&.Mui-focused fieldset": {
-          borderColor: theme.palette.c_hl1
+          borderColor: "var(--palette-primary-main)"
         }
       }
     },
@@ -308,18 +310,18 @@ const styles = (theme: any) =>
       padding: ".2em .4em",
       marginRight: ".5em",
       borderRadius: ".3em",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       wordBreak: "break-word",
-      backgroundColor: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[200],
       opacity: 0.96
     },
     ".matched-item-name": {
       fontSize: "14px",
-      color: theme.palette.c_gray0
+      color: theme.palette.grey[900]
     },
     ".matched-item-namespace": {
       display: "block",
-      color: theme.palette.c_gray1,
+      color: theme.palette.grey[800],
       fontSize: "11px",
       fontWeight: 600
     },
@@ -616,7 +618,7 @@ const ExampleGrid = () => {
             <Box className="no-results">
               <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                 Nothing found for
-                <strong style={{ color: ThemeNodetool.palette.c_hl1 }}>
+                <strong style={{ color: ThemeNodetool.palette.primary.main }}>
                   {" "}
                   &quot;{searchQuery}&quot;
                 </strong>

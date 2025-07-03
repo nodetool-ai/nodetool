@@ -40,7 +40,7 @@ const styles = (theme: any) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray2}`,
+    border: `1px solid ${theme.palette.grey[600]}`,
     backgroundColor: theme.palette.c_bg_loop,
     h6: {
       display: "block",
@@ -72,7 +72,7 @@ const styles = (theme: any) =>
       textAlign: "center",
       display: "block",
       backgroundColor: theme.palette.c_input,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontSize: theme.fontSizeSmall
     },
     ".output-label": {
@@ -94,7 +94,7 @@ const styles = (theme: any) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     }
@@ -202,7 +202,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       css={styles}
       style={
         nodeHovered
-          ? { border: `2px solid ${ThemeNodetool.palette.c_hl1}` }
+          ? { border: `2px solid ${ThemeNodetool.palette.primary.main}` }
           : {}
       }
     >

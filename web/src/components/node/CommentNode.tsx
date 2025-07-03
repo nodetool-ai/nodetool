@@ -6,7 +6,7 @@ import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
-import ThemeNodes from "../../components/themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
@@ -168,13 +168,14 @@ const initialConfigTemplate = {
 };
 
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const theme = useTheme();
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
   }));
   const [color, setColor] = useState(
     props.data.properties.comment_color ||
-      ThemeNodes.palette.c_bg_comment ||
+      theme.palette.c_bg_comment ||
       "#ffffff"
   );
   const containerRef = useRef<HTMLDivElement>(null);
@@ -317,7 +318,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}
-        css={styles(ThemeNodes)}
+        css={styles(theme)}
       >
         <div className="format-toolbar-container">
           <ToolbarPlugin />

@@ -34,8 +34,8 @@ type InstalledPackageListResponse =
 
 const styles = (theme: any) =>
   css({
-    backgroundColor: theme.palette.c_gray1,
-    color: theme.palette.c_white,
+    backgroundColor: theme.palette.grey[800],
+    color: theme.palette.grey[0],
     height: "100%",
     display: "flex",
     flexDirection: "column",
@@ -53,7 +53,7 @@ const styles = (theme: any) =>
       position: "sticky",
       top: 0,
       zIndex: 1,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
 
     "& .listContainer": {
@@ -62,7 +62,7 @@ const styles = (theme: any) =>
     },
 
     "& .packageItem": {
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      borderBottom: `1px solid ${theme.palette.grey[600]}`,
       "&:last-child": {
         borderBottom: "none"
       }
@@ -76,7 +76,7 @@ const styles = (theme: any) =>
       padding: "0",
       margin: 0,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
 
     "& .installButton": {
@@ -109,7 +109,7 @@ const styles = (theme: any) =>
 
     "& .progressText": {
       marginTop: theme.spacing(2),
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500
     }
   });
@@ -296,29 +296,29 @@ const PackageList: React.FC = () => {
           disabled={installMutation.isPending || uninstallMutation.isPending}
           sx={{
             "& .MuiOutlinedInput-root": {
-              backgroundColor: theme.palette.c_gray0,
-              color: theme.palette.c_white,
+              backgroundColor: theme.palette.grey[900],
+              color: theme.palette.grey[0],
               "& fieldset": {
-                borderColor: theme.palette.c_gray2
+                borderColor: theme.palette.grey[600]
               },
               "&:hover fieldset": {
-                borderColor: theme.palette.c_gray3
+                borderColor: theme.palette.grey[500]
               }
             },
             "& .MuiInputLabel-root": {
-              color: theme.palette.c_gray4
+              color: theme.palette.grey[400]
             }
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: theme.palette.c_gray4 }} />
+                <SearchIcon sx={{ color: theme.palette.grey[400] }} />
               </InputAdornment>
             )
           }}
         />
       </Box>
-      <Divider sx={{ backgroundColor: theme.palette.c_gray2 }} />
+      <Divider sx={{ backgroundColor: theme.palette.grey[600] }} />
 
       <Box className="listContainer packagelist-list">
         <List>
@@ -326,7 +326,7 @@ const PackageList: React.FC = () => {
             <ListItem className="packagelist-item-empty">
               <ListItemText
                 primary={
-                  <Typography sx={{ color: theme.palette.c_white }}>
+                  <Typography sx={{ color: theme.palette.grey[0] }}>
                     No packs found
                   </Typography>
                 }

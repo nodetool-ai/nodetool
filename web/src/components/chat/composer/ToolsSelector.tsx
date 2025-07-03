@@ -35,8 +35,8 @@ const menuStyles = (theme: any) =>
   css({
     ".category-header": {
       padding: "8px 16px",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[200],
       fontSize: "0.75rem",
       fontWeight: 600,
       textTransform: "uppercase",
@@ -45,34 +45,34 @@ const menuStyles = (theme: any) =>
 
     ".tool-item": {
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_gray2,
-        borderLeft: `3px solid ${theme.palette.c_hl1}`,
+        backgroundColor: theme.palette.grey[600],
+        borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
         paddingLeft: "13px"
       }
     },
 
     ".tool-name": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
 
     ".tool-name.selected": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
 
     ".tool-description": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: "0.75rem"
     },
 
     ".tool-icon": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
 
     ".tool-icon.selected": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     }
   });
 
@@ -200,8 +200,8 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const selectedTools = useMemo(() => {
-    const toolIds = new Set(TOOLS.map(tool => tool.id));
-    return (value || []).filter(toolId => toolIds.has(toolId));
+    const toolIds = new Set(TOOLS.map((tool) => tool.id));
+    return (value || []).filter((toolId) => toolIds.has(toolId));
   }, [value]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -283,14 +283,14 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
             )
           }
           sx={(theme) => ({
-            color: theme.palette.c_white,
+            color: theme.palette.grey[0],
             "&:hover": {
-              backgroundColor: theme.palette.c_gray3,
-              borderColor: theme.palette.c_gray4
+              backgroundColor: theme.palette.grey[500],
+              borderColor: theme.palette.grey[400]
             },
             "&.active": {
-              borderColor: theme.palette.c_hl1,
-              color: theme.palette.c_hl1
+              borderColor: "var(--palette-primary-main)",
+              color: "var(--palette-primary-main)"
             }
           })}
         ></Button>

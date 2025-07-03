@@ -11,8 +11,7 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
-import ThemeNodes from "../themes/ThemeNodes";
+
 // icons
 import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -28,12 +27,12 @@ const styles = (theme: any) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
       borderLeft: "none",
-      backgroundColor: "var(--c_gray1)",
+      backgroundColor: "var(--palette-grey-800)",
       position: "absolute",
       overflow: "hidden",
       width: "100%",
@@ -56,14 +55,14 @@ const styles = (theme: any) =>
 
       "& svg": {
         fontSize: "0.8em !important",
-        color: "var(--c_gray5)",
+        color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
         transition: "all 0.5s ease"
       },
 
       "&:hover": {
-        backgroundColor: "var(--c_gray1)",
+        backgroundColor: "var(--palette-grey-800)",
         "& svg": {
           opacity: 1,
           fontSize: "1em !important"
@@ -82,7 +81,7 @@ const styles = (theme: any) =>
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "&.active svg": {
-          color: "var(--c_hl1)"
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -216,7 +215,9 @@ const PanelRight: React.FC = () => {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
             height: isVisible ? "calc(100vh - 72px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
-            backgroundColor: isVisible ? "var(--c_gray1)" : "transparent",
+            backgroundColor: isVisible
+              ? "var(--palette-grey-800)"
+              : "transparent",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "none"
           }
         }}
@@ -232,15 +233,13 @@ const PanelRight: React.FC = () => {
             panelVisible={isVisible}
           />
           {isVisible && (
-          <ContextMenuProvider>
-            <ReactFlowProvider>
-              {activeNodeStore && (
-                <NodeContext.Provider value={activeNodeStore}>
-                  <MuiThemeProvider theme={ThemeNodes}>
+            <ContextMenuProvider>
+              <ReactFlowProvider>
+                {activeNodeStore && (
+                  <NodeContext.Provider value={activeNodeStore}>
                     {activeView === "inspector" && <Inspector />}
                     {activeView === "assistant" && <WorkflowAssistantChat />}
-                  </MuiThemeProvider>
-                </NodeContext.Provider>
+                  </NodeContext.Provider>
                 )}
               </ReactFlowProvider>
             </ContextMenuProvider>

@@ -206,7 +206,7 @@ const TabHeader = ({
             <span
               className="dirty-indicator"
               style={{
-                color: "var(--c_warning)",
+                color: "var(--palette-warning-main)",
                 fontWeight: "bold",
                 marginLeft: "2px"
               }}

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { NodeResizeControl, NodeResizer } from "@xyflow/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 interface NodeResizeHandleProps {
   minWidth: number;
@@ -52,8 +52,9 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
   minHeight,
   onResize
 }) => {
+  const theme = useTheme();
   return (
-    <div className="node-resize-handle" css={styles(ThemeNodes)}>
+    <div className="node-resize-handle" css={styles(theme)}>
       <NodeResizeControl
         minWidth={minWidth}
         minHeight={minHeight}

@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 // Mock theme to avoid font imports
 jest.mock('../themes/ThemeNodetool', () => ({
   __esModule: true,
-  default: { palette: { c_white: '#fff' }, fontFamily1: 'monospace' },
+  default: { palette: { grey[0]: '#fff' }, fontFamily1: 'monospace' },
 }));
 
 // Mock data types to avoid svg imports

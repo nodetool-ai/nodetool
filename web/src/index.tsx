@@ -19,7 +19,7 @@ import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
 
 import { CircularProgress, CssBaseline } from "@mui/material";
-import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+import { Experimental_CssVarsProvider as CssVarsProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 
 import "@xyflow/react/dist/style.css";
@@ -213,7 +213,11 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <MuiThemeProvider theme={ThemeNodetool}>
+        <CssVarsProvider
+          theme={ThemeNodetool}
+          defaultMode="dark"
+          modeStorageKey="mui-mode"
+        >
           <CssBaseline />
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
@@ -254,7 +258,7 @@ const AppWrapper = () => {
               </KeyboardProvider>
             </WorkflowManagerProvider>
           </MenuProvider>{" "}
-        </MuiThemeProvider>
+        </CssVarsProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );
