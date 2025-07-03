@@ -2,6 +2,7 @@ import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
+import PropertyLabel from "../node/PropertyLabel";
 
 const IntegerProperty = (props: PropertyProps) => {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
@@ -16,6 +17,13 @@ const IntegerProperty = (props: PropertyProps) => {
 
   return (
     <>
+      {props.hideLabel ? null : (
+        <PropertyLabel
+          name={name}
+          description={description}
+          id={id}
+        />
+      )}
       <NumberInput
         id={id}
         nodeId={props.nodeId}

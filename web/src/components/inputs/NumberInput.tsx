@@ -476,14 +476,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
         shouldFocus={inputIsFocused}
       />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
-        {props.hideLabel ? null : (
-          <PropertyLabel
-            name={props.name}
-            description={props.description}
-            id={props.id}
-            showTooltip={!state.isDragging}
-          />
-        )}
         {!inputIsFocused && (
           <DisplayValue
             value={props.value}
