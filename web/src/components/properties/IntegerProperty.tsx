@@ -17,13 +17,6 @@ const IntegerProperty = (props: PropertyProps) => {
 
   return (
     <>
-      {props.hideLabel ? null : (
-        <PropertyLabel
-          name={name}
-          description={description}
-          id={id}
-        />
-      )}
       <NumberInput
         id={id}
         nodeId={props.nodeId}
