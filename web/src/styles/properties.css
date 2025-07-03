@@ -622,3 +622,26 @@
 .model-property .select-header {
   padding: 0 4px !important;
 }
+
+.model-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex-grow: 1;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+.model-label-repo-id {
+  font-size: var(--fontSizeTiny);
+  color: var(--palette-grey-100);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.5em;
+}
+
+.model-label-path {
+  font-size: var(--fontSizeTiny);
+} 
