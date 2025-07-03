@@ -1,8 +1,8 @@
 
-.hg-button {
+.hg-theme-default .hg-button {
   background: var(--palette-background-default);
   color: var(--palette-text-primary);
 }
-.hg-button.has-shortcut {
+.hg-theme-default .hg-button.has-shortcut {
   border: 2px solid var(--nt-hl, #5ac8fa);
 } 
