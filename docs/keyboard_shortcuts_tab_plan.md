@@ -36,17 +36,56 @@ Exported **function** instead of constant so it can be mocked in tests.
 
 ## 3 Centralising shortcut metadata
 
-1. Make a new file `web/src/config/shortcuts.ts` that exports:
-   ```ts
-   export interface Shortcut { combo: string[]; description: string; os?: 'mac' | 'win'; }
-   export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
-     // Copy existing combos from useNodeEditorShortcuts.ts
-     { combo: ['Meta', 'C'], description: 'Copy', os: 'mac' },
-     { combo: ['Control', 'C'], description: 'Copy', os: 'win' },
-     ...
-   ];
-   ```
-2. Modify `useNodeEditorShortcuts.ts` to **import** this list so behaviour stays in sync with the visualisation.
+1. Create a new file `web/src/config/shortcuts.ts` that exports:
+
+```ts
+export interface Shortcut {
+  /** Short, human-readable name e.g. "Copy" */
+  title: string;
+  /** Key combo for Windows/Linux variant – array of key labels as used by useCombo */
+  keyCombo: string[];
+  /** Optional override for macOS variant – if omitted we derive it by swapping ⌘/Ctrl & PgUp/PgDn-equivalents */
+  keyComboMac?: string[];
+  /** A longer explanation shown in tooltip / Help list. Could be a plain string or a React node for rich text. */
+  description: string | React.ReactNode;
+}
+
+/**
+ * Convenience helper: provide a list with only keyCombo (ctrl-style).
+ * `expandShortcutsForOS()` returns the appropriate layout for the
+ * current OS by automatically replacing platform keys.
+ */
+export const expandShortcutsForOS = (
+  shortcuts: Shortcut[],
+  isMac: boolean
+): Shortcut[] => {
+  const mapKey = (key: string) => {
+    if (!isMac) return key === "Meta" ? "Control" : key;
+    // macOS replacements
+    if (key === "Control") return "Meta";
+    if (key === "PageUp") return "Shift"; // example – we separately handle prev/next tab mapping
+    if (key === "PageDown") return "]";
+    return key;
+  };
+  return shortcuts.map((s) => ({
+    ...s,
+    // Prefer explicit mac override, else automap.
+    keyCombo: isMac ? s.keyComboMac ?? s.keyCombo.map(mapKey) : s.keyCombo,
+  }));
+};
+
+export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
+  {
+    title: "Copy",
+    keyCombo: ["Control", "C"],
+    keyComboMac: ["Meta", "C"],
+    description: "Copy selected nodes",
+  },
+  // … add the rest, extracted from useNodeEditorShortcuts.ts
+];
+```
+
+2. Modify `useNodeEditorShortcuts.ts` to import `NODE_EDITOR_SHORTCUTS` and optionally the helper so the runtime hook and UI share one source of truth.
 
 ---
 
