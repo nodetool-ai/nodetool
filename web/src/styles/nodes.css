@@ -74,9 +74,9 @@
   max-width: 170px;
   word-wrap: break-word;
   line-height: 1em;
-  color: var(--palette-grey-0);
+  color: var(--palette-grey-200);
   font-size: var(--fontSizeSmaller);
-  font-weight: 300;
+  font-weight: 600;
   font-feature-settings: "smcp";
   padding: 0.5em 0 0.5em 0.5em;
 }
