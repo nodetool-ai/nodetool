@@ -26,7 +26,6 @@ export const calculateStep = (
     else if (range > 10000) baseStep = 64;
     else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
   }
-  console.log("baseStep", baseStep);
   return baseStep;
 };
 
