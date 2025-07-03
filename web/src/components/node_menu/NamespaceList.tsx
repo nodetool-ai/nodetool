@@ -43,7 +43,7 @@ const namespaceStyles = (theme: any) =>
     },
     "& h4": {
       fontSize: "1em",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".info-box": {
       position: "absolute",
@@ -96,11 +96,11 @@ const namespaceStyles = (theme: any) =>
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px solid ${theme.palette.c_gray0}`,
+      borderTop: `1px solid ${theme.palette.grey[900]}`,
       marginTop: "0.5em",
       paddingTop: "0.5em",
       ".namespace-item": {
-        color: theme.palette.c_gray5
+        color: theme.palette.grey[200]
       }
     },
     ".node-list": {
@@ -116,7 +116,7 @@ const namespaceStyles = (theme: any) =>
     ".no-selection": {
       maxWidth: "200px",
       flexDirection: "column",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily1,
       wordSpacing: "0",
       padding: "0 1em",
@@ -146,13 +146,13 @@ const namespaceStyles = (theme: any) =>
     ".explanation": {
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontWeight: "300",
       margin: "0",
       padding: "0 2em 2em 0"
     },
     ".explanation h5": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       margin: " 0 0 0.3em",
       padding: "0",
       fontWeight: "300"
@@ -167,7 +167,7 @@ const namespaceStyles = (theme: any) =>
       }
     },
     ".result-info": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       cursor: "default",
       display: "flex",
       alignItems: "center",
@@ -175,15 +175,15 @@ const namespaceStyles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       padding: "0.25em .75em .2em .75em",
       borderRadius: "4px",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       margin: "1em .5em 0 0"
     },
     ".result-info span": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "500"
     },
     ".result-label": {
-      color: `${theme.palette.c_gray4} !important`,
+      color: `${theme.palette.grey[400]} !important`,
       fontSize: "0.8em",
       fontWeight: "400",
       marginLeft: "0.5em",
@@ -197,18 +197,18 @@ const namespaceStyles = (theme: any) =>
       padding: "0 0 0 2em",
       margin: "0",
       fontSize: "0.8em",
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     h6: {
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".highlighted": {
       paddingLeft: ".25em",
       marginLeft: ".1em",
-      borderLeft: `2px solid ${theme.palette.c_hl1}`
+      borderLeft: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".highlighted-text": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".nodes": {
       display: "flex",
@@ -237,23 +237,23 @@ const namespaceStyles = (theme: any) =>
         backgroundColor: "transparent !important"
       },
       ".icon-bg svg": {
-        color: theme.palette.c_gray4
+        color: theme.palette.grey[400]
       }
     },
     ".node:hover": {
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".node.focused": {
-      color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1,
+      color: "var(--palette-primary-main)",
+      backgroundColor: theme.palette.grey[800],
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
     },
     ".namespace-text": {
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       fontWeight: "500",
       fontSize: "75%",
-      borderTop: `1px solid ${theme.palette.c_gray2}`,
+      borderTop: `1px solid ${theme.palette.grey[600]}`,
       padding: ".5em 0 0 0",
       margin: "1em 0 .5em 0",
       letterSpacing: "0.5px",
@@ -265,7 +265,7 @@ const namespaceStyles = (theme: any) =>
       marginLeft: "auto"
     },
     ".node-info:hover": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".node-info": {
       cursor: "pointer",
@@ -279,7 +279,7 @@ const namespaceStyles = (theme: any) =>
       gap: "0"
     },
     ".namespace-item": {
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       textTransform: "capitalize",
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -287,13 +287,13 @@ const namespaceStyles = (theme: any) =>
       userSelect: "none"
     },
     ".disabled .namespace-item": {
-      color: theme.palette.c_gray4
+      color: theme.palette.grey[400]
     },
     ".namespaces .list-item": {
       cursor: "pointer",
       padding: ".3em .75em",
       backgroundColor: "transparent",
-      borderLeft: `3px solid ${theme.palette.c_gray1}`,
+      borderLeft: `3px solid ${theme.palette.grey[800]}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       fontWeight: "300",
@@ -305,18 +305,18 @@ const namespaceStyles = (theme: any) =>
     ".namespaces .list-item.disabled": {
       backgroundColor: "transparent",
       border: "none !important",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".list-item.firstDisabled": {
-      borderTop: `1px solid ${theme.palette.c_gray5}`,
+      borderTop: `1px solid ${theme.palette.grey[200]}`,
       marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: theme.palette.c_gray3,
-      borderLeft: `3px solid ${theme.palette.c_hl1}`
+      backgroundColor: theme.palette.grey[500],
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -329,34 +329,34 @@ const namespaceStyles = (theme: any) =>
       overflow: "hidden"
     },
     ".namespaces .list-item.selected": {
-      backgroundColor: theme.palette.c_hl1,
-      borderLeft: `3px solid ${theme.palette.c_hl1}`,
+      backgroundColor: "var(--palette-primary-main)",
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
       fontWeight: "500"
     },
     ".namespaces .list-item.selected .namespace-item": {
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".namespaces .list-item.disabled.selected": {
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       border: "none"
     },
     ".namespaces .list-item.highlighted": {
-      borderLeft: `3px solid ${theme.palette.c_hl1}`
+      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.highlighted.selected .namespace-item": {
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".namespaces .sublist": {
       paddingLeft: "1em"
     },
     ".api-key-warning": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
     },
     "&.has-search-results .namespace-list-enabled .no-highlight .namespace-item":
       {
-        color: theme.palette.c_gray5
+        color: theme.palette.grey[200]
       },
     "&.has-search-results .no-highlight": {
       pointerEvents: "none"
@@ -387,7 +387,7 @@ const namespaceStyles = (theme: any) =>
       border: "none",
       borderRadius: "0 4px 4px 0",
       cursor: "pointer",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

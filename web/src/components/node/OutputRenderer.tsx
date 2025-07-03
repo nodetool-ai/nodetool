@@ -176,7 +176,7 @@ const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
 const styles = (theme: any) =>
   css({
     "&": {
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       height: "calc(100% - 43px)",
       width: "100%",
       padding: ".25em",
@@ -207,7 +207,7 @@ const styles = (theme: any) =>
     pre: {
       margin: "0",
       padding: ".25em",
-      backgroundColor: theme.palette.c_gray0,
+      backgroundColor: theme.palette.grey[900],
       width: "100%",
       overflowX: "scroll"
     },
@@ -232,7 +232,7 @@ const styles = (theme: any) =>
       width: "auto",
       lineHeight: "1.5em",
       padding: ".3em .3em 0 .3em",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall
     }

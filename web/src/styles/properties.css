@@ -35,7 +35,7 @@
   display: block;
   margin: 0.6em 0 0;
   font-size: var(--fontSizeSmaller);
-  background-color: var(--c_gray1);
+  background-color: var(--palette-grey-800);
   padding: 0.1em 0.2em;
   user-select: text;
   cursor: text;
@@ -56,16 +56,16 @@
   gap: 5px;
 }
 .MuiSwitch-track {
-  background-color: var(--c_gray2) !important;
+  background-color: var(--palette-grey-600) !important;
 }
 /* values */
 .value-changed .value {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 .value-changed textarea,
 .value-changed .MuiInput-root {
-  border-right: 2px solid var(--c_hl1) !important;
+  border-right: 2px solid var(--palette-primary-main) !important;
 }
 
 .value-changed .MuiSwitch-track {
@@ -86,7 +86,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--c_hl1);
+  background: var(--palette-primary-main);
   border-radius: 1px;
 }
 
@@ -97,13 +97,13 @@
   max-height: 200px;
   overflow-y: auto !important;
   margin-top: 0;
-  padding: 0 1em .5em 0;
+  padding: 0 1em 0.5em 0;
   font-family: var(--font_family);
-  font-size: var(--fontSizeSmall);
+  font-size: var(--fontSizeSmaller);
   font-weight: 300;
   line-height: 1.3em;
-  color: var(--c_white);
-  background-color: var(--c_gray1);
+  color: var(--palette-grey-0);
+  background-color: var(--palette-grey-800);
   border: 0;
   border-radius: 4px;
   outline: none;
@@ -138,7 +138,7 @@
   font-family: var(--font_family2);
   word-spacing: -2px;
   font-size: var(--fontSizeTiny);
-  color: var(--c_gray4);
+  color: var(--palette-grey-400);
 }
 
 .dropzone img {
@@ -167,9 +167,8 @@
 .property-label label {
   display: block;
   font-weight: 300;
-  color: var(--c_gray6);
-  font-family: var(--font-family-1);
-  font-size: var(--fontSizeSmall);
+  color: var(--palette-grey-100);
+  font-size: var(--fontSizeSmaller);
   padding: 0;
   margin: 0;
   line-height: 1em;
@@ -191,7 +190,7 @@
 }
 
 .value-changed .string-property input {
-  border-right: 2px solid var(--c_hl1);
+  border-right: 2px solid var(--palette-primary-main);
 }
 
 .string-property .container .expand-button {
@@ -204,11 +203,10 @@
   outline: none;
   margin: 0;
   padding: 1em 0.5em;
-  color: var(--c_white);
-  background-color: var(--c_gray1);
+  color: var(--palette-grey-0);
+  background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0.1em;
-  font-family: var(--font-family-1);
   font-weight: 300;
   font-size: var(--fontSizeSmaller);
   line-height: 1.2em;
@@ -225,12 +223,12 @@
   border-radius: 0.1em;
   border: none;
   color: var(--c-gray6);
-  background-color: var(--c_gray2);
+  background-color: var(--palette-grey-600);
   font-weight: bold;
   transition: color 0.2s;
 }
 .string-property .expand-button:hover {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 
 /* SELECT */
@@ -241,8 +239,8 @@
 .node-property select {
   /* appearance: none; */
   position: relative;
-  color: var(--c_gray6);
-  background-color: var(--c_gray1);
+  color: var(--palette-grey-100);
+  background-color: var(--palette-grey-800);
   border-radius: 0.25em;
   border: none;
   padding: 0 1em 0 0;
@@ -256,8 +254,8 @@
 
 .node-property select option:checked,
 .node-property select option:active {
-  color: var(--c_white);
-  background-color: var(--c_gray2);
+  color: var(--palette-grey-0);
+  background-color: var(--palette-grey-600);
 }
 .enum-property select,
 .model-property select {
@@ -265,25 +263,24 @@
   height: 18px;
   margin: 0px;
   padding: 0px;
-  background-color: var(--c_gray2);
-  color: var(--c_white);
+  background-color: var(--palette-grey-600);
+  color: var(--palette-grey-0);
   border-radius: 0.1em;
-  font-family: var(--font-family-1);
   font-size: var(--fontSizeNormal);
   /* box-sizing: content-box; */
 }
 .enum-property select:hover,
 .model-property select:hover {
-  background-color: var(--c_gray3);
+  background-color: var(--palette-grey-500);
 }
 
 .value-changed .enum-property select,
 .value-changed .model-property select {
-  border-right: 2px solid var(--c_hl1);
+  border-right: 2px solid var(--palette-primary-main);
 }
 .enum-property select option,
 .model-property select option {
-  background-color: var(--c_gray1);
+  background-color: var(--palette-grey-800);
   padding: 2em 1em;
   font-size: var(--fontSizeBigger);
 }
@@ -336,15 +333,14 @@
 
 .number-input .slider-value .value {
   position: absolute;
-  color: var(--c_gray6);
+  color: var(--palette-grey-100);
   max-width: 80px;
   height: 1em;
   top: 0px;
   right: 0px;
   margin: 0;
   line-height: 1em;
-  font-size: var(--fontSizeSmall);
-  font-family: var(--font_family2);
+  font-size: var(--fontSizeSmaller);
   background-color: transparent;
   padding: 0px;
   overflow: hidden;
@@ -354,17 +350,17 @@
   min-width: 25px;
 }
 .value-changed .number-input .value {
-  color: var(--c_hl1);
+  color: var(--palette-primary-main);
 }
 .number-input .edit-value {
   position: absolute;
   outline: none;
-  color: var(--c_white);
-  background-color: var(--c_gray1);
+  color: var(--palette-grey-0);
+  background-color: var(--palette-grey-800);
   border: none;
   border-radius: 0;
   font-family: var(--font_family2);
-  font-size: var(--fontSizeSmall);
+  font-size: var(--fontSizeSmaller);
   line-height: 1.5em;
   height: 12px;
   top: -2px;
@@ -420,7 +416,6 @@
 .custom-select {
   position: relative;
   width: 100%;
-  font-family: var(--font-family-1);
 }
 
 .custom-select .select-header {
@@ -429,7 +424,7 @@
   align-items: center;
   margin: 2px 0 4px 0;
   padding: 0px 3px;
-  background-color: var(--c_gray1);
+  background-color: var(--palette-grey-800);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -445,7 +440,7 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 5px solid var(--c_gray4);
+  border-top: 5px solid var(--palette-grey-400);
   flex-shrink: 0;
   margin-left: 5px;
 }
@@ -458,7 +453,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: var(--c_gray1);
+  background-color: var(--palette-grey-800);
   border-radius: 0 0 2px 2px;
   list-style-type: none;
   padding: 0;
@@ -478,11 +473,11 @@
 }
 
 .custom-select .option:hover {
-  background-color: var(--c_gray2);
+  background-color: var(--palette-grey-600);
 }
 
 .custom-select .option.selected {
-  background-color: var(--c_gray3);
+  background-color: var(--palette-grey-500);
   font-weight: bold;
 }
 
@@ -505,7 +500,7 @@
 }
 
 .expand-button:hover {
-  background-color: var(--c_gray2);
+  background-color: var(--palette-grey-600);
   border-color: var(--c_hl);
   border-width: 1px;
   border-style: solid;
@@ -528,7 +523,7 @@
 .container input {
   flex: 1;
   padding: 1em 0.5em;
-  border: 1px solid var(--c_gray3);
+  border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
   color: var(--text-primary);
 }
@@ -607,7 +602,7 @@
   /* Smaller font for better density */
   font-size: var(--fontSizeSmaller) !important;
   /* Visual separator between items */
-  border-top: 1px solid var(--c_gray2);
+  border-top: 1px solid var(--palette-grey-600);
 }
 
 /* Remove the first top border to avoid double line on top */
@@ -617,7 +612,7 @@
 
 /* Improve hover visibility within model property selects */
 .model-property .option:hover {
-  background-color: var(--c_gray3) !important;
+  background-color: var(--palette-grey-500) !important;
 }
 
 .model-property .select-header-text {

@@ -29,14 +29,14 @@ const dialogStyles = (theme: any) =>
       top: "-1em"
     },
     ".button-confirm": {
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontWeight: "bold"
     },
     ".button-confirm:hover": {
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.grey[900]
     },
     ".button-cancel": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     }
   });
 

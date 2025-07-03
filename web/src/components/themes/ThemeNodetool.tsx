@@ -1,4 +1,4 @@
-import { Theme, createTheme, ThemeOptions } from "@mui/material/styles";
+import { Theme, createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
@@ -48,6 +48,7 @@ const ThemeNodetool: Theme = createTheme({
       palette: paletteDark
     },
     light: {
+      // ⚠️ dark mode does not get the correct css vars if this is set to paletteLigt
       palette: paletteDark
     }
   },
@@ -55,19 +56,19 @@ const ThemeNodetool: Theme = createTheme({
     colorSchemeSelector: "[data-mui-color-scheme]",
     cssVarPrefix: ""
   },
-  fontSizeGiant: "2em",
-  fontSizeBigger: "1.25em",
-  fontSizeBig: "1.125em",
-  fontSizeNormal: "16px",
-  fontSizeSmall: "0.875em",
-  fontSizeSmaller: "0.75em",
-  fontSizeTiny: "0.65em",
-  fontSizeTinyer: "0.55em",
+  fontSizeGiant: "2rem",
+  fontSizeBigger: "1.25rem",
+  fontSizeBig: "1.125rem",
+  fontSizeNormal: "15px",
+  fontSizeSmall: "0.875rem",
+  fontSizeSmaller: "0.75rem",
+  fontSizeTiny: "0.65rem",
+  fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   typography: {
     fontFamily: "'Inter', sans-serif",
-    fontSize: 14
+    fontSize: 15
   },
   spacing: 4,
   shape: {
@@ -76,9 +77,13 @@ const ThemeNodetool: Theme = createTheme({
   components: {
     MuiTypography: {
       styleOverrides: {
+        // root: {
+        //   color: "var(--palette-text-primary)"
+        // },
         h1: ({ theme }) => ({
           cursor: "default",
           fontSize: "2em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily2,
@@ -87,12 +92,14 @@ const ThemeNodetool: Theme = createTheme({
         h2: ({ theme }) => ({
           cursor: "default",
           fontSize: "1.5em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2)
         }),
         h3: ({ theme }) => ({
           cursor: "default",
           fontSize: "1.1em",
+          fontWeight: 400,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily1
@@ -100,23 +107,23 @@ const ThemeNodetool: Theme = createTheme({
         h4: ({ theme }) => ({
           cursor: "default",
           fontSize: "0.8em",
+          fontWeight: 300,
           marginTop: theme.spacing(2),
           marginBottom: theme.spacing(1),
           textTransform: "uppercase",
-          fontWeight: 300,
           fontFamily: theme.fontFamily2,
           wordSpacing: "-3px",
-          color: theme.palette.c_hl1,
+          color: "var(--palette-primary-main)",
           lineHeight: "1.1em",
           wordBreak: "break-word"
         }),
         h5: ({ theme }) => ({
           cursor: "default",
           fontSize: "0.8em",
+          fontWeight: 600,
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           textTransform: "uppercase",
-          fontWeight: 600,
           fontFamily: theme.fontFamily2,
           wordSpacing: "-3px"
         }),
@@ -139,7 +146,7 @@ const ThemeNodetool: Theme = createTheme({
         body2: ({ theme }) => ({
           fontSize: "1em",
           lineHeight: 1.2,
-          color: theme.palette.c_white,
+          color: theme.palette.grey[0],
           fontFamily: theme.fontFamily1
         })
       }
@@ -159,7 +166,7 @@ const ThemeNodetool: Theme = createTheme({
           fontWeight: "lighter",
           lineHeight: "1em",
           padding: theme.spacing(0, 0, 2, 0),
-          color: theme.palette.c_white,
+          color: theme.palette.grey[0],
           "&.Mui-focused": {
             color: theme.palette.primary.main
           }
@@ -169,7 +176,6 @@ const ThemeNodetool: Theme = createTheme({
     MuiFormControl: {
       styleOverrides: {
         root: ({ theme }) => ({
-          margin: theme.spacing(0, 0, 5, 0),
           width: "100%"
         })
       }
@@ -187,7 +193,7 @@ const ThemeNodetool: Theme = createTheme({
     MuiToolbar: {
       styleOverrides: {
         dense: ({ theme }) => ({
-          backgroundColor: theme.palette.c_gray1,
+          backgroundColor: theme.palette.grey[800],
           height: "100%",
           display: "flex",
           justifyContent: "space-between"

@@ -3,7 +3,7 @@
 import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
 import { CircularProgress, Tooltip } from "@mui/material";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
@@ -20,7 +20,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useCombo } from "../../stores/KeyPressedStore";
 
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
@@ -83,8 +83,8 @@ const styles = (theme: any) =>
       alignItems: "flex-start"
     },
     ".modal-content": {
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.grey[100],
       fontSize: theme.fontSizeBigger,
       width: "100%",
       height: "100%",
@@ -99,7 +99,7 @@ const styles = (theme: any) =>
       alignItems: "flex-start",
       padding: ".5em 1em",
       minHeight: "2em",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       h4: {
         cursor: "default",
         fontWeight: "600",
@@ -124,7 +124,7 @@ const styles = (theme: any) =>
       margin: "0",
       fontSize: theme.fontSizeSmaller,
       p: {
-        color: theme.palette.c_gray5,
+        color: theme.palette.grey[200],
         margin: "0 0 0.5em 0",
         "&:last-child": {
           margin: 0
@@ -146,8 +146,8 @@ const styles = (theme: any) =>
         fontFamily: theme.fontFamily1,
         fontSize: theme.fontSizeSmall,
         lineHeight: "1.2",
-        color: theme.palette.c_white,
-        // backgroundColor: theme.palette.c_gray2,
+        color: theme.palette.grey[0],
+        // backgroundColor: theme.palette.grey[600],
         outline: "none",
         overflow: "auto !important",
         height: "100vh",
@@ -196,7 +196,7 @@ const styles = (theme: any) =>
       zIndex: 10,
       padding: "8px !important",
       backgroundColor: "transparent",
-      color: `${theme.palette.c_white} !important`,
+      color: `${theme.palette.grey[0]} !important`,
       borderRadius: "4px !important",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
@@ -204,14 +204,14 @@ const styles = (theme: any) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: `${theme.palette.c_gray2} `
+        backgroundColor: `${theme.palette.grey[600]} `
       }
     },
     ".button": {
       padding: "10px 14px",
       cursor: "pointer",
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_white,
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[0],
       textTransform: "uppercase",
       border: "none",
       borderRadius: "4px",
@@ -224,7 +224,7 @@ const styles = (theme: any) =>
       minWidth: "44px",
       minHeight: "44px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        backgroundColor: theme.palette.grey[500]
       }
     },
     ".button-close": {
@@ -235,7 +235,7 @@ const styles = (theme: any) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".resize-handle": {
@@ -244,12 +244,12 @@ const styles = (theme: any) =>
       width: "100%",
       cursor: "row-resize",
       // borderRadius: "4px",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       "&:hover": {
-        // backgroundColor: theme.palette.c_gray1
+        // backgroundColor: theme.palette.grey[800]
       },
       "&:hover .resize-handle-thumb": {
-        backgroundColor: theme.palette.c_gray6
+        backgroundColor: theme.palette.grey[100]
       }
     },
     ".resize-handle-thumb": {
@@ -259,7 +259,7 @@ const styles = (theme: any) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      backgroundColor: theme.palette.c_gray4,
+      backgroundColor: theme.palette.grey[400],
       borderRadius: "4px"
     }
   });
@@ -538,8 +538,8 @@ const TextEditorModal = ({
                   className="description"
                   style={{
                     color: readOnly
-                      ? ThemeNodes.palette.c_warning
-                      : ThemeNodes.palette.c_white
+                      ? theme.palette.warning.main
+                      : theme.palette.grey[0]
                   }}
                 >
                   <Markdown>{propertyDescription}</Markdown>

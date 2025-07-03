@@ -21,7 +21,7 @@ const styles = (theme: any) =>
       padding: "2em 1em 4em 1em",
       margin: "2em 1em 1em 8em",
       maxWidth: "1000px",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       scrollbarWidth: "initial"
     },
     p: {

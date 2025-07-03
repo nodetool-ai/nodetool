@@ -1,41 +1,29 @@
 import {
   PaletteOptions,
-  PaletteColorOptions,
-  PaletteColor
+  Color
+  // PaletteColor,
+  // PaletteColorOptions,
+  // PaletteColor,
+  // SimplePaletteColorOptions
 } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
   interface PaletteOptions {
-    c_black?: string;
     c_bg_comment?: string;
     c_brightest?: string;
+    c_black?: string;
     c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
     c_scroll_bg?: string;
@@ -50,9 +38,6 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    primary?: PaletteColorOptions;
-    secondary?: PaletteColorOptions;
-    tertiary?: PaletteColorOptions;
     background?: { default?: string; paper?: string };
     Paper?: {
       default?: string;
@@ -66,32 +51,17 @@ declare module "@mui/material/styles" {
     c_bg_comment?: string;
     c_brightest?: string;
     c_white?: string;
-    c_gray0?: string;
-    c_gray1?: string;
-    c_gray2?: string;
-    c_gray3?: string;
-    c_gray4?: string;
-    c_gray5?: string;
-    c_gray6?: string;
     c_background?: string;
     c_node_menu?: string;
-    c_hl1?: string;
-    c_hl1_1?: string;
-    c_hl2?: string;
     c_selection?: string;
     c_input?: string;
     c_output?: string;
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
-    c_error?: string;
-    c_info?: string;
     c_job?: string;
     c_node?: string;
     c_progress?: string;
-    c_success?: string;
-    c_warn?: string;
-    c_warning?: string;
     c_link?: string;
     c_link_visited?: string;
     c_scroll_bg?: string;
@@ -106,9 +76,6 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
-    primary: PaletteColor;
-    secondary: PaletteColor;
-    tertiary: PaletteColorOptions;
     background: { default: string; paper: string };
     Paper: {
       default: string;
@@ -119,36 +86,51 @@ declare module "@mui/material/styles" {
 }
 
 export const paletteDark: PaletteOptions = {
+  error: {
+    main: "#FF5555",
+    contrastText: "#fff"
+  },
+  warning: {
+    main: "#FFB86C",
+    contrastText: "#000"
+  },
+  info: {
+    main: "#E0E028",
+    contrastText: "#000"
+  },
+  success: {
+    main: "#50FA7B",
+    contrastText: "#000"
+  },
+  grey: {
+    0: "#fff", //  white
+    50: "#F5F5F5", // Standard MUI light grey
+    100: "#D9D9D9", // from c_gray6
+    200: "#BDBDBD", // from c_gray5
+    300: "#A9A9A9", // spare
+    400: "#959595", // from c_gray4
+    500: "#6D6D6D", // from c_gray3
+    600: "#444444", // from c_gray2
+    700: "#333333", // spare
+    800: "#242424", // from c_gray1
+    900: "#0E0E0E", // from c_gray0
+    1000: "#000" // black
+  } as Color,
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
-  c_gray0: "#0E0E0E",
-  c_gray1: "#242424",
-  c_gray2: "#444444",
-  c_gray3: "#6D6D6D",
-  c_gray4: "#959595",
-  c_gray5: "#BDBDBD",
-  c_gray6: "#D9D9D9",
   c_background: "#424854",
   c_node_menu: "#232323",
-  c_hl1: "#77b4e6",
-  c_hl1_1: "#6d94cc",
-  c_hl2: "#719dd9",
   c_selection: "#8EACA777",
   c_input: "#374f4f",
   c_output: "#493f4d",
   c_attention: "#E35BFF",
   c_delete: "#FF2222",
   c_debug: "#FF3355",
-  c_error: "#FF5555",
-  c_info: "#E0E028",
   c_job: "#223399",
   c_node: "#029486",
   c_progress: "#556611",
-  c_success: "#50FA7B",
-  c_warn: "#FFB86C",
-  c_warning: "#FFB86C",
   c_link: "#e4ffde",
   c_link_visited: "#d1e2cd",
   c_scroll_bg: "transparent",
@@ -166,16 +148,14 @@ export const paletteDark: PaletteOptions = {
 
   primary: {
     main: "#77b4e6",
+    light: "#9bc5f0",
+    dark: "#4a7bc4",
     contrastText: "#000"
   },
   secondary: {
-    main: "##5aa3b8",
-    contrastText: "#FFFFFF"
-  },
-  tertiary: {
-    light: "#9bc5f0",
-    main: "#6ba3e6",
-    dark: "#4a7bc4",
+    main: "#d23f9e",
+    light: "#e993c5",
+    dark: "#ba008a",
     contrastText: "#fff"
   },
   background: {

@@ -12,16 +12,13 @@
   border-radius: 12px;
   overflow: hidden;
   padding: 8px;
-  color: var(--c_gray1);
-  font-family: var(--font-family-1);
+  color: var(--palette-grey-800);
   box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--c_gray8);
   background: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(10px);
 }
 
 [cmdk-input] {
-  font-family: var(--font-family-1);
   width: calc(100% - 32px);
   margin: 16px;
   padding: 12px 16px;
@@ -29,7 +26,7 @@
   border: none;
   outline: none;
   background: rgba(255, 255, 255, 0.06);
-  color: var(--c_white);
+  color: var(--palette-grey-0);
   border-radius: 8px;
   transition: all 0.2s ease;
 }
@@ -37,7 +34,7 @@
 [cmdk-input]:hover,
 [cmdk-input]:focus {
   background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 2px var(--c_hl1);
+  box-shadow: 0 0 0 2px var(--palette-primary-main);
 }
 
 [cmdk-input]::placeholder {
@@ -54,7 +51,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 16px;
-  color: var(--c_gray6);
+  color: var(--palette-grey-100);
   user-select: none;
   will-change: background, color;
   transition: all 150ms ease;
@@ -64,7 +61,7 @@
 
 [cmdk-item][data-selected="true"] {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--c_white);
+  color: var(--palette-grey-0);
 }
 
 [cmdk-item][data-selected="true"]:after {
@@ -73,7 +70,7 @@
   left: 0;
   width: 3px;
   height: 20px;
-  background: var(--c_hl1);
+  background: var(--palette-primary-main);
   border-radius: 0 3px 3px 0;
   transition: all 150ms ease;
 }
@@ -85,7 +82,7 @@
 [cmdk-item] svg {
   width: 18px;
   height: 18px;
-  color: var(--c_gray5);
+  color: var(--palette-grey-200);
 }
 
 [cmdk-list] {
@@ -96,7 +93,7 @@
   transition: 100ms ease;
   transition-property: height;
   scrollbar-width: thin;
-  scrollbar-color: var(--c_gray6) transparent;
+  scrollbar-color: var(--palette-grey-100) transparent;
 }
 
 [cmdk-list]::-webkit-scrollbar {
@@ -104,7 +101,7 @@
 }
 
 [cmdk-list]::-webkit-scrollbar-thumb {
-  background-color: var(--c_gray6);
+  background-color: var(--palette-grey-100);
   border-radius: 3px;
 }
 
@@ -113,7 +110,7 @@
   font-size: 12px;
   font-weight: 600;
   margin: 16px 16px 8px;
-  color: var(--c_gray3);
+  color: var(--palette-grey-500);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -125,5 +122,5 @@
   justify-content: center;
   height: 64px;
   white-space: pre-wrap;
-  color: var(--c_gray6);
+  color: var(--palette-grey-100);
 }

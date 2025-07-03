@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Typography, Button } from "@mui/material";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;
@@ -10,6 +10,7 @@ interface ApiKeyValidationProps {
 
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
+    const theme = useTheme();
     const secrets = useRemoteSettingsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
@@ -55,7 +56,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             sx={{
               width: "100%",
               textAlign: "center",
-              fontSize: ThemeNodes.fontSizeTiny,
+              fontSize: theme.fontSizeTiny,
               textTransform: "uppercase",
               padding: ".5em !important",
               marginBottom: "0"
@@ -74,9 +75,9 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               padding: ".2em 0 0",
               height: "1.8em",
               lineHeight: "1.2em",
-              color: ThemeNodes.palette.c_black,
-              backgroundColor: ThemeNodes.palette.c_warning,
-              fontSize: ThemeNodes.fontSizeSmaller,
+              color: theme.palette.grey[1000],
+              backgroundColor: theme.palette.warning.main,
+              fontSize: theme.fontSizeSmaller,
               borderRadius: ".1em"
             }}
           >

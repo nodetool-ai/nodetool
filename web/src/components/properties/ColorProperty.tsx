@@ -5,7 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import ColorPicker from "../inputs/ColorPicker";
 import { isEqual } from "lodash";
 import { Box } from "@mui/material";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 const ColorProperty: React.FC<PropertyProps> = ({
   property,
@@ -13,6 +13,7 @@ const ColorProperty: React.FC<PropertyProps> = ({
   propertyIndex,
   onChange
 }) => {
+  const theme = useTheme();
   const handleColorChange = useCallback(
     (newColor: string | null) => {
       onChange({ type: "color", value: newColor });
@@ -45,8 +46,8 @@ const ColorProperty: React.FC<PropertyProps> = ({
 
         <span
           css={{
-            color: ThemeNodes.palette.c_gray4,
-            fontSize: ThemeNodes.fontSizeNormal
+            color: theme.palette.grey[400],
+            fontSize: theme.fontSizeNormal
           }}
         >
           {color || "No color selected"}

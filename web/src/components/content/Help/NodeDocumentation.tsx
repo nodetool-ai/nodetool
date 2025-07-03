@@ -13,12 +13,12 @@ const styles = (theme: any) =>
 
     .loading {
       font-size: 1.2rem;
-      color: ${theme.palette.c_gray4};
+      color: ${theme.palette.grey[400]};
     }
 
     .error {
       font-size: 1.2rem;
-      color: ${theme.palette.c_error};
+      color: ${theme.palette.error.main};
     }
   `;
 

@@ -28,26 +28,26 @@ const styles = (theme: any) =>
       fontWeight: "400"
     },
     ".messages li.user": {
-      color: theme.palette.c_gray5,
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      color: theme.palette.grey[200],
+      borderBottom: `1px solid ${theme.palette.grey[600]}`,
       padding: "0.1em 0.2em 0",
       margin: "2em 0 1em 0"
     },
     ".messages li.assistant": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.c_black,
+      backgroundColor: theme.palette.grey[1000],
       padding: "1em"
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".messages li a": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".messages li a:hover": {
       color: `${theme.c_gray4} !important`

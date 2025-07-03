@@ -91,7 +91,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
     >
       <DialogContent
         sx={{
-          backgroundColor: "var(--c_gray1)"
+          backgroundColor: "var(--palette-grey-800)"
         }}
       >
         <IconButton

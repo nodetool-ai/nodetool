@@ -13,9 +13,9 @@ const styles = (theme: any) =>
     alignItems: "center",
     justifyContent: "space-between",
     padding: "0.5em 1em 0 1em",
-    backgroundColor: theme.palette.c_gray1,
+    backgroundColor: theme.palette.grey[800],
     fontSize: theme.fontSizeSmaller,
-    color: theme.palette.c_gray5,
+    color: theme.palette.grey[200],
     fontFamily: theme.fontFamily2,
     height: "1.75em",
     ".stats": {
@@ -31,7 +31,7 @@ const styles = (theme: any) =>
           fontWeight: "400"
         },
         ".value": {
-          color: theme.palette.c_gray6,
+          color: theme.palette.grey[100],
           fontWeight: "600"
         }
       }
@@ -40,7 +40,7 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       gap: "0.5em",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       fontSize: theme.fontSizeTiny
     }
   });

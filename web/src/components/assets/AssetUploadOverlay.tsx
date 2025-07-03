@@ -28,8 +28,8 @@ const styles = (theme: any) =>
       maxWidth: "600px",
       maxHeight: "500px",
       overflowY: "auto",
-      backgroundColor: theme.palette.c_gray2,
-      outline: `2px solid ${theme.palette.c_gray0}`,
+      backgroundColor: theme.palette.grey[600],
+      outline: `2px solid ${theme.palette.grey[900]}`,
       boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.01)",
       padding: "1em",
       borderRadius: "8px"

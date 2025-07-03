@@ -33,11 +33,11 @@ interface PlaceholderNodeData extends Node<NodeData> {
 const styles = (theme: any) =>
   css({
     "&": {
-      outline: "2px solid" + theme.palette.c_error
+      outline: "2px solid" + theme.palette.error.main
     },
     ".node-header ": {
       minWidth: "50px",
-      backgroundColor: theme.palette.c_error
+      backgroundColor: theme.palette.error.main
     },
     ".node-property": {
       width: "100%",
@@ -48,7 +48,7 @@ const styles = (theme: any) =>
     ".missing-node-text": {
       fontWeight: "bold",
       textAlign: "center",
-      color: theme.palette.c_error,
+      color: theme.palette.error.main,
       padding: 0,
       margin: ".5em 0 0"
     },
@@ -59,19 +59,19 @@ const styles = (theme: any) =>
       margin: "8px 0"
     },
     ".search-button": {
-      backgroundColor: "var(--c_gray4)",
+      backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: "var(--c_gray5)"
+        backgroundColor: "var(--palette-grey-200)"
       }
     },
     ".install-button": {
-      backgroundColor: "var(--c_gray4)",
+      backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2em",
       "&:hover": {
-        backgroundColor: "var(--c_gray5)"
+        backgroundColor: "var(--palette-grey-200)"
       }
     }
   });

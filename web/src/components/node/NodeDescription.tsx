@@ -6,7 +6,7 @@ const styles = (theme: any) =>
   css({
     fontWeight: "400",
     fontSize: theme.fontSizeNormal,
-    color: theme.palette.c_white,
+    color: theme.palette.grey[0],
     whiteSpace: "pre-wrap",
     marginBottom: "0.5em",
     display: "flex",
@@ -23,8 +23,8 @@ const styles = (theme: any) =>
     ".tag": {
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_gray4,
+      color: theme.palette.grey[1000],
+      backgroundColor: theme.palette.grey[400],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",

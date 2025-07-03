@@ -52,7 +52,7 @@ const styles = (theme: any) =>
       margin: "-.5em 1em -1em 2em",
       padding: 0,
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     }
   });
 

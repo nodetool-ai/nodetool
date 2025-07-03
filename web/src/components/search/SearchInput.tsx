@@ -44,7 +44,7 @@ const styles = (theme: any) =>
     },
     "input[type='text']:focus": {
       backgroundColor: "#2a2a2a",
-      borderColor: theme.palette.c_hl1,
+      borderColor: "var(--palette-primary-main)",
       outline: "none"
     },
     ".clear-search-btn": {
@@ -59,7 +59,7 @@ const styles = (theme: any) =>
       right: "0.7em",
       border: 0,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
@@ -69,11 +69,11 @@ const styles = (theme: any) =>
         backgroundColor: "transparent"
       },
       "&:not(.disabled):hover svg": {
-        color: theme.palette.c_hl1,
+        color: "var(--palette-primary-main)",
         backgroundColor: "transparent"
       },
       "&.disabled": {
-        color: theme.palette.c_gray3
+        color: theme.palette.grey[500]
       }
     }
   });

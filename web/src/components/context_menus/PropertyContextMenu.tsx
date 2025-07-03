@@ -2,7 +2,7 @@ import React from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
@@ -11,6 +11,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { Property } from "../../stores/ApiTypes";
 
 const PropertyContextMenu: React.FC = () => {
+  const theme = useTheme();
   const {
     menuPosition,
     closeContextMenu,
@@ -128,7 +129,7 @@ const PropertyContextMenu: React.FC = () => {
           <Typography
             variant="body2"
             sx={{
-              fontSize: ThemeNodes.fontSizeSmall,
+              fontSize: theme.fontSizeSmall,
               padding: "4px 0"
             }}
           >

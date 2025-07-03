@@ -2,13 +2,14 @@ import { useRef, useCallback, ChangeEvent } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 
 export type FileUploadButtonProps = {
   onFileChange: (files: File[]) => void;
 };
 
 const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
+  const theme = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = useCallback(
@@ -31,7 +32,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
           <>
             <Typography
               variant="h4"
-              style={{ fontSize: ThemeNodes.fontSizeBig, paddingLeft: ".5em" }}
+              style={{ fontSize: theme.fontSizeBig, paddingLeft: ".5em" }}
             >
               Add assets
             </Typography>
@@ -40,7 +41,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
                 width: "100%",
                 margin: "0",
                 padding: ".5em .5em .5em 2em",
-                color: ThemeNodes.palette.c_white,
+                color: theme.palette.grey[0],
                 display: "block"
               }}
             >

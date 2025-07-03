@@ -124,7 +124,7 @@ export const highlightText = (
   const parts: string[] = [];
   let lastEnd = 0;
   let hasColoredMatch = false;
-  const rgbColor = hexToRgb(ThemeNodetool.palette.c_hl1 || "#fff");
+  const rgbColor = hexToRgb(ThemeNodetool.palette.primary.main || "#fff");
 
   for (const match of orderedMatches) {
     // Add text before match
@@ -144,7 +144,9 @@ export const highlightText = (
       `<span class="highlight" style="border-bottom: ${borderWidth} solid rgba(${
         rgbColor || "255, 0, 0"
       }, ${opacity}%);${
-        shouldColor ? `color: ${ThemeNodetool.palette.c_hl1 || "#fff"};` : ""
+        shouldColor
+          ? `color: ${ThemeNodetool.palette.primary.main || "#fff"};`
+          : ""
       }transition: all 0.2s ease;">${escapeHtml(match.text)}</span>`
     );
 

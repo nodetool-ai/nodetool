@@ -51,7 +51,7 @@ const listStyles = (theme: any) =>
       position: "relative"
     },
     ".workflow.alternate": {
-      backgroundColor: `${theme.palette.c_gray2}20`
+      backgroundColor: `${theme.palette.grey[600]}20`
     },
     ".workflow.current .name": {
       color: "var(--palette-primary-light)",
@@ -61,7 +61,7 @@ const listStyles = (theme: any) =>
       fontSize: "1em"
     },
     ".workflow:hover": {
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.grey[600]
     },
     ".workflow img": {
       width: "100%",
@@ -73,14 +73,14 @@ const listStyles = (theme: any) =>
       fontWeight: "lighter",
       margin: "0",
       lineHeight: "1.2em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       userSelect: "none",
       flex: "1"
     },
     ".date": {
       position: "absolute",
       right: "0.5em",
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       wordSpacing: "-0.1em",
@@ -111,9 +111,9 @@ const listStyles = (theme: any) =>
       button: {
         opacity: 0,
         padding: "0",
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         "&:hover": {
-          backgroundColor: theme.palette.c_gray3
+          backgroundColor: theme.palette.grey[500]
         },
         svg: {
           fontSize: "1.5em"

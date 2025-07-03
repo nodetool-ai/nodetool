@@ -28,7 +28,7 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "row",
       justifyContent: "center",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       margin: "2em 0",
       padding: "1em"
     },

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
@@ -37,7 +37,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray2}`,
+    border: `1px solid ${theme.palette.grey[600]}`,
     backgroundColor: theme.palette.c_bg_group,
     h6: {
       display: "block",
@@ -45,7 +45,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       marginTop: "10px",
       left: "10px",
       top: "0px",
-      color: theme.palette.c_black
+      color: theme.palette.grey[1000]
     },
     ".info": {
       position: "absolute",
@@ -56,7 +56,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.c_black,
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     },
@@ -86,7 +86,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none",
-        color: theme.palette.c_white,
+        color: theme.palette.grey[0],
         padding: ".5em 0.5em",
         border: 0,
         fontSize: "1.5em",
@@ -122,15 +122,15 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.c_white, GROUP_COLOR_OPACITY),
-      color: "var(--c_black)",
+      backgroundColor: hexToRgba(theme.palette.grey[0], GROUP_COLOR_OPACITY),
+      color: "var(--palette-grey-1000)",
       padding: "0.75em 1em",
       borderRadius: "4px",
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
       zIndex: 100,
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-      border: `1px solid ${theme.palette.c_gray3}`,
+      border: `1px solid ${theme.palette.grey[500]}`,
       opacity: 0,
       visibility: "hidden",
       transition: "opacity 0.2s 2s ease, visibility 0.2s 2s ease"
@@ -151,6 +151,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
   });
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const theme = useTheme();
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -205,7 +206,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const [color, setColor] = useState(
-    props.data.properties.group_color || ThemeNodes.palette.c_bg_group
+    props.data.properties.group_color || theme.palette.c_bg_group
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -308,19 +309,19 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <div
-      css={styles(ThemeNodes, MIN_WIDTH, MIN_HEIGHT)}
+      css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} 
       }`}
       style={{
         ...(nodeHovered
-          ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
+          ? { border: `2px solid ${theme.palette.primary.main}` }
           : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(
-          color || ThemeNodes.palette.c_bg_group,
+          color || theme.palette.c_bg_group,
           GROUP_COLOR_OPACITY
         )
       }}

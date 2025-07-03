@@ -29,12 +29,12 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller
     },
     ".folder-info": {
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontWeight: 500
     },
     ".storage-stats": {
       minWidth: "120px",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeNormal,
       display: "flex",
       alignItems: "flex-end",
@@ -46,12 +46,12 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
     ".stat-label": {
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       fontSize: theme.fontSizeTiny,
       textTransform: "uppercase"
     },
     ".stat-value": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     }
   });
 

@@ -9,8 +9,8 @@ const styles = (theme: any) =>
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    border: `1px solid ${theme.palette.c_gray3}40`,
-    backgroundColor: `${theme.palette.c_gray1}80`,
+    border: `1px solid ${theme.palette.grey[500]}40`,
+    backgroundColor: `${theme.palette.grey[800]}80`,
     borderRadius: 20,
     overflow: "hidden",
     margin: 0,
@@ -29,7 +29,7 @@ const styles = (theme: any) =>
     "&.minimized": {
       width: "120px",
       height: "60px",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
 
     "&.closed": {

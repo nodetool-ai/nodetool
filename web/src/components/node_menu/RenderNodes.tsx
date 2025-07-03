@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { isEqual } from "lodash";
 import ApiKeyValidation from "../node/ApiKeyValidation";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { SearchResultGroup } from "../../utils/nodeSearch";
@@ -46,6 +46,7 @@ const getServiceFromNamespace = (namespace: string): string => {
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   title
 }) {
+  const theme = useTheme();
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -58,7 +59,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         variant="h6"
         component="div"
         sx={{
-          color: ThemeNodes.palette.c_hl1,
+          color: theme.palette.primary.main,
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}
@@ -69,12 +70,13 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   );
 });
 
-const RenderNodes: React.FC<RenderNodesProps> = ({ 
-  nodes, 
-  showCheckboxes = false, 
-  selectedNodeTypes = [], 
-  onToggleSelection 
+const RenderNodes: React.FC<RenderNodesProps> = ({
+  nodes,
+  showCheckboxes = false,
+  selectedNodeTypes = [],
+  onToggleSelection
 }) => {
+  const theme = useTheme();
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
       setDragToCreate: state.setDragToCreate,
@@ -104,7 +106,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
           <AccordionSummary
             expandIcon={
-              <ExpandMoreIcon sx={{ color: ThemeNodes.palette.c_gray3 }} />
+              <ExpandMoreIcon sx={{ color: theme.palette.grey[500] }} />
             }
           >
             <GroupTitle title={group.title} />
@@ -142,7 +144,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         </Accordion>
       );
     },
-    [selectedPath, handleDragStart, showCheckboxes, selectedNodeTypes, onToggleSelection, handleCreateNode]
+    [
+      selectedPath,
+      handleDragStart,
+      showCheckboxes,
+      selectedNodeTypes,
+      onToggleSelection,
+      handleCreateNode
+    ]
   );
 
   const elements = useMemo(() => {

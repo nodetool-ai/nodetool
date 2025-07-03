@@ -39,18 +39,18 @@ const styles = (theme: any) =>
       alignItems: "center",
       justifyContent: "space-between",
       padding: "1.5em 1em 1em",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".search-results-title": {
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       fontWeight: 500
     },
     ".search-results-count": {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".search-results-content": {
       flex: 1,
@@ -61,15 +61,15 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       padding: "0.75em 1em",
-      borderBottom: `1px solid ${theme.palette.c_gray1}`,
+      borderBottom: `1px solid ${theme.palette.grey[800]}`,
       cursor: "grab",
       transition: "background-color 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray1
+        backgroundColor: theme.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: theme.palette.c_hl1 + "22",
-        borderLeft: `3px solid ${theme.palette.c_hl1}`
+        backgroundColor: `${theme.palette.primary.main}22`,
+        borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
       "&:active": {
         cursor: "grabbing"
@@ -96,8 +96,8 @@ const styles = (theme: any) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.palette.c_gray1,
-      border: `1px solid ${theme.palette.c_gray2}`,
+      backgroundColor: theme.palette.grey[800],
+      border: `1px solid ${theme.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -111,7 +111,7 @@ const styles = (theme: any) =>
         left: 0,
         right: 0,
         bottom: 0,
-        border: `1px solid ${theme.palette.c_gray3}22`,
+        border: `1px solid ${theme.palette.grey[500]}22`,
         borderRadius: "4px",
         pointerEvents: "none"
       }
@@ -125,7 +125,7 @@ const styles = (theme: any) =>
     },
     ".result-item-name": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -137,7 +137,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.75em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       userSelect: "none"
     },
     ".result-item-location": {
@@ -150,7 +150,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       userSelect: "none"
     },
     ".folder-navigate-btn": {
@@ -158,14 +158,14 @@ const styles = (theme: any) =>
       padding: "0.25em 0.5em",
       fontSize: theme.fontSizeSmaller,
       textTransform: "none",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       "&:hover": {
-        backgroundColor: theme.palette.c_hl1 + "22"
+        backgroundColor: "var(--palette-primary-main)" + "22"
       }
     },
     ".result-duration": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     ".empty-results": {
       display: "flex",
@@ -173,7 +173,7 @@ const styles = (theme: any) =>
       alignItems: "center",
       justifyContent: "center",
       height: "200px",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       fontSize: theme.fontSizeNormal
     },
     "@keyframes spin": {
@@ -298,8 +298,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   style={{
                     width: "20px",
                     height: "20px",
-                    border: "2px solid var(--c_gray3)",
-                    borderTop: "2px solid var(--c_gray6)",
+                    border: "2px solid var(--palette-grey-500)",
+                    borderTop: "2px solid var(--palette-grey-100)",
                     borderRadius: "50%",
                     animation: "spin 1s linear infinite"
                   }}

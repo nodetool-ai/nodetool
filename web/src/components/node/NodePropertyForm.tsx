@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { Add } from "@mui/icons-material";
 import { Box, TextField } from "@mui/material";
 import { useState, useCallback, memo } from "react";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 
 interface NodePropertyFormProps {
@@ -13,6 +13,7 @@ interface NodePropertyFormProps {
 const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   onAddProperty
 }) => {
+  const theme = useTheme();
   const [showPropertyForm, setShowPropertyForm] = useState(false);
   const [newPropertyName, setNewPropertyName] = useState("");
 
@@ -36,10 +37,10 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             width: "100%",
             padding: "8px",
             background: "transparent",
-            border: `1px dashed ${ThemeNodes.palette.c_gray2}`,
+            border: `1px dashed ${theme.palette.grey[600]}`,
             borderRadius: "4px",
             cursor: "pointer",
-            color: ThemeNodes.palette.c_white,
+            color: theme.palette.grey[0],
             fontSize: "0.9em",
             transition: "all 0.2s ease",
             display: "flex",
@@ -47,7 +48,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             justifyContent: "center",
             gap: "4px",
             "&:hover": {
-              background: ThemeNodes.palette.c_gray1,
+              background: theme.palette.grey[800],
               borderStyle: "solid"
             }
           })}
@@ -70,7 +71,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           css={css({
             width: "100%",
             "& .MuiOutlinedInput-root": {
-              background: ThemeNodes.palette.c_gray0
+              background: theme.palette.grey[900]
             }
           })}
         />

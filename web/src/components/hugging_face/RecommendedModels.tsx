@@ -10,7 +10,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
-import ThemeNodes from "../themes/ThemeNodes";
+import { useTheme } from "@mui/material/styles";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
@@ -33,6 +33,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   recommendedModels,
   startDownload
 }) => {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const modelsWithSize = useModelsWithSize(recommendedModels);
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
@@ -84,12 +85,12 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
             maxWidth: "300px",
             border: "none",
             "& .MuiOutlinedInput-root": {
-              backgroundColor: "var(--c_gray1)",
+              backgroundColor: "var(--palette-grey-800)",
               border: "none",
               "& fieldset": { border: "none " },
               "&:hover": { opacity: 0.9 },
               "&:focus": {
-                backgroundColor: "var(--c_gray3)"
+                backgroundColor: "var(--palette-grey-500)"
               }
             }
           }}
@@ -97,7 +98,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "var(--c_gray5)" }} />
+                  <SearchIcon sx={{ color: "var(--palette-grey-200)" }} />
                 </InputAdornment>
               )
             }
@@ -108,7 +109,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       {filteredModels.length === 0 ? (
         <Typography
           variant="body1"
-          sx={{ color: "var(--c_gray5)", ml: 2, mt: 8, mb: 10 }}
+          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
         >
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Typography>
@@ -138,14 +139,14 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       )}
       <Typography
         variant="body1"
-        sx={{ marginTop: "1em", color: ThemeNodes.palette.c_gray6 }}
+        sx={{ marginTop: "1em", color: theme.palette.grey[100] }}
       >
         <AnnouncementIcon
           fontSize="small"
           sx={{
             verticalAlign: "middle",
             marginRight: "0.5em",
-            color: ThemeNodes.palette.c_warning
+            color: theme.palette.warning.main
           }}
         />
         Models will be downloaded to your local cache folder in the standard

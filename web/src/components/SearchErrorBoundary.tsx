@@ -19,7 +19,7 @@ const searchErrorBoundaryStyles = (theme: any) =>
     padding: "2rem",
 
     ".error-title": {
-      color: theme.palette?.c_error,
+      color: theme.palette?.error.main,
       marginBottom: theme.spacing?.(1) || "8px",
       fontSize: theme.fontSizeNormal
     },
@@ -33,7 +33,7 @@ const searchErrorBoundaryStyles = (theme: any) =>
 
     ".retry-button": {
       backgroundColor: theme.palette?.c_hl1,
-      color: theme.palette?.c_black,
+      color: theme.palette?.grey[1000],
       textTransform: "none",
       fontSize: theme.fontSizeSmaller,
       "&:hover": {

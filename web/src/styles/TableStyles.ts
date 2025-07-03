@@ -13,7 +13,7 @@ export const tableStyles = (theme: any) =>
       maxHeight: "800px",
       position: "relative",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.c_gray0}`
+      border: `1px solid ${theme.palette.grey[900]}`
     },
 
     // Tabulator base
@@ -25,8 +25,8 @@ export const tableStyles = (theme: any) =>
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
-      backgroundColor: theme.palette.c_gray1,
-      borderTop: `1px solid ${theme.palette.c_gray0}`
+      backgroundColor: theme.palette.grey[800],
+      borderTop: `1px solid ${theme.palette.grey[900]}`
     },
 
     // Column resize handle
@@ -45,13 +45,13 @@ export const tableStyles = (theme: any) =>
       minHeight: "15px",
       minWidth: "20px",
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.grey[900]
     },
     ".tabulator-row-even": {
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".tabulator-row:hover": {
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.grey[600]
     },
 
     // Header
@@ -60,13 +60,13 @@ export const tableStyles = (theme: any) =>
       minHeight: "20px",
       maxHeight: "30px",
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray5,
+      color: theme.palette.grey[200],
       fontWeight: "normal",
-      borderBottom: `1px solid ${theme.palette.c_gray0}`
+      borderBottom: `1px solid ${theme.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col": {
       minHeight: "2em",
-      borderRight: `1px solid ${theme.palette.c_gray0}`
+      borderRight: `1px solid ${theme.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col-title": {
       lineHeight: "1.1em"
@@ -78,21 +78,21 @@ export const tableStyles = (theme: any) =>
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `6px solid ${theme.palette.c_hl1}`
+        borderBottom: `6px solid ${"var(--palette-primary-main)"}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `6px solid ${theme.palette.c_hl1}`
+        borderTop: `6px solid ${"var(--palette-primary-main)"}`
       },
 
     // cell
     ".tabulator-row .tabulator-cell": {
-      borderColor: theme.palette.c_gray0
+      borderColor: theme.palette.grey[900]
     },
     // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
       paddingLeft: "2px !important",
-      borderRight: `1px solid ${theme.palette.c_gray0}`
+      borderRight: `1px solid ${theme.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
       padding: "5px 0px 0px 2px"
@@ -126,7 +126,7 @@ export const tableStyles = (theme: any) =>
 
     // Datetime picker
     ".datetime-picker": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: "var(--palette-primary-main)"
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
@@ -144,10 +144,10 @@ export const tableStyles = (theme: any) =>
         borderRadius: "0",
         backgroundColor: "white",
         "&:hover svg": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         },
         "& svg": {
-          color: theme.palette.c_black,
+          color: theme.palette.grey[1000],
           width: "100%",
           height: "100%"
         }
@@ -159,11 +159,11 @@ export const tableStyles = (theme: any) =>
 
     // Cell editing
     ".tabulator .tabulator-cell.tabulator-editing input": {
-      backgroundColor: theme.palette.c_white,
-      color: theme.palette.c_black,
+      backgroundColor: theme.palette.grey[0],
+      color: theme.palette.grey[1000],
       fontSize: theme.fontSizeSmall,
       "&::selection": {
-        backgroundColor: theme.palette.c_hl1
+        backgroundColor: "var(--palette-primary-main)"
       }
     },
 

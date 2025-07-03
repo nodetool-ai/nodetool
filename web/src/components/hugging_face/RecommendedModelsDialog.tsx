@@ -32,7 +32,7 @@ const styles = (theme: any) =>
       paddingRight: "1em"
     },
     ".model-download-button": {
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     }
   });
 

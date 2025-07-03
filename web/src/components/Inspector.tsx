@@ -7,6 +7,8 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
+import allNodeStyles from "../node_styles/node-styles";
+import { useTheme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({
@@ -14,7 +16,7 @@ const styles = (theme: any) =>
       display: "grid",
       gridTemplateRows: "1fr auto",
       gridTemplateColumns: "100%",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       padding: "0",
       width: "100%",
       maxWidth: "500px",
@@ -69,7 +71,7 @@ const styles = (theme: any) =>
     ".node-property textarea": {
       margin: 0,
       padding: "0.25em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       fontSize: theme.fontSizeSmall,
       minHeight: "1.75em",
       maxHeight: "20em"
@@ -82,7 +84,7 @@ const styles = (theme: any) =>
     },
     ".node-property.enum .mui-select": {
       height: "2em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       marginTop: "0.25em",
       padding: "0.5em .5em",
       fontSize: theme.fontSizeSmall
@@ -103,8 +105,8 @@ const styles = (theme: any) =>
       flexDirection: "column",
       gap: "0.5em",
       width: "100%",
-      borderBottom: "1px solid " + theme.palette.c_gray4,
-      borderTop: "1px solid " + theme.palette.c_gray4,
+      borderBottom: "1px solid " + theme.palette.grey[400],
+      borderTop: "1px solid " + theme.palette.grey[400],
       padding: "0.5em 0",
       marginBottom: "1em"
     },
@@ -115,7 +117,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".description": {
-      color: "var(--c_gray6)",
+      color: "var(--palette-grey-100)",
       fontSize: theme.fontSizeSmall,
       paddingRight: "0.5em",
       maxHeight: "400px",
@@ -131,7 +133,7 @@ const styles = (theme: any) =>
       overflow: "hidden",
       wordBreak: "break-word",
       lineHeight: "1.25em",
-      color: theme.palette.c_hl1,
+      color: "var(--palette-primary-main)",
       textTransform: "uppercase",
       fontSize: theme.fontSizeSmaller
     }
@@ -147,6 +149,7 @@ const Inspector: React.FC = () => {
     return { selectedNode: node, metadata: md };
   });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const theme = useTheme();
 
   if (!selectedNode) {
     return (
@@ -154,7 +157,10 @@ const Inspector: React.FC = () => {
         <div className="top">
           <div className="top-content">
             <div className="inspector-header">
-              <div className="title" style={{ color: "var(--c_gray4)" }}>
+              <div
+                className="title"
+                style={{ color: "var(--palette-grey-400)" }}
+              >
                 Select a node to edit
               </div>
             </div>
@@ -188,7 +194,7 @@ const Inspector: React.FC = () => {
   return (
     <div className="inspector" css={styles}>
       <div className="top">
-        <div className="top-content">
+        <div className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">
             <div className="title">{metadata.title}</div>
           </div>

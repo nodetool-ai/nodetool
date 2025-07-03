@@ -22,7 +22,7 @@ const styles = (theme: any) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--c_gray0)22",
+      backgroundColor: "var(--palette-grey-900)",
       paddingLeft: "8px"
     },
     ".toolbar": {
@@ -43,7 +43,7 @@ const styles = (theme: any) =>
       width: "32px",
       height: "32px",
       padding: "6px",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
       "&:hover": {
@@ -58,7 +58,7 @@ const styles = (theme: any) =>
     },
     ".logo-button": {
       "& svg": {
-        color: "var(--c_warn)"
+        color: "var(--palette-warning-main)"
       },
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"

@@ -44,7 +44,7 @@ const styles = (theme: any) =>
     },
     ".download-message": {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_info
+      color: theme.palette.info.main
     },
     ".progress-bar-container": {
       height: "6px",
@@ -72,8 +72,8 @@ const styles = (theme: any) =>
       marginTop: ".5em",
       lineHeight: "1.1em",
       whiteSpace: "nowrap",
-      color: "var(--c_gray0)",
-      backgroundColor: "var(--c_warning)",
+      color: "var(--palette-grey-900)",
+      backgroundColor: "var(--palette-warning-main)",
       "&:hover": {
         opacity: 0.85
       }
@@ -189,7 +189,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.c_success}
+            color={ThemeNodetool.palette.success.main}
           >
             Download completed
           </Typography>
@@ -200,7 +200,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.c_error}
+            color={ThemeNodetool.palette.error.main}
           >
             Download cancelled
           </Typography>
@@ -211,7 +211,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.c_error}
+            color={ThemeNodetool.palette.error.main}
           >
             Download error
           </Typography>

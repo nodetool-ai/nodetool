@@ -17,6 +17,7 @@ import PackageList from "../packages/PackageList";
 import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import ThemeToggle from "../ui/ThemeToggle";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -61,7 +62,7 @@ const styles = (theme: any) =>
 
       "& svg": {
         fontSize: "0.8em !important",
-        color: "var(--c_gray5)",
+        color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
         transition: "all 0.5s ease"
@@ -79,7 +80,7 @@ const styles = (theme: any) =>
       minHeight: "2em"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".messages": {
       overflowY: "auto"
@@ -123,13 +124,13 @@ const styles = (theme: any) =>
         wordWrap: "break-word",
         textTransform: "none",
         maxWidth: "160px",
-        borderColor: theme.palette.c_gray5,
-        color: theme.palette.c_gray5,
+        borderColor: theme.palette.grey[200],
+        color: theme.palette.grey[200],
         margin: "0.5em",
         padding: "0.5em 1em",
         "&:hover": {
-          borderColor: theme.palette.c_hl1,
-          color: theme.palette.c_hl1
+          borderColor: "var(--palette-primary-main)",
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -282,6 +283,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
+      <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <IconButton tabIndex={-1} onClick={handlePanelToggle}>
           <CodeIcon />
@@ -487,7 +489,7 @@ const PanelLeft: React.FC = () => {
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
           style: {
-            // borderRight: isVisible ? "1px solid var(--c_gray2)" : "none",
+            // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
           }

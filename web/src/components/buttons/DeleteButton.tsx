@@ -36,7 +36,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_delete
     },
     button: {
-      color: theme.palette.c_gray5
+      color: theme.palette.grey[200]
     },
     "&:hover": {
       color: theme.palette.c_delete,

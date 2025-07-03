@@ -21,7 +21,7 @@ const styles = (theme: any) =>
       borderLeft: `2px solid ${theme.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       }
     },
     ".subtask-content": {
@@ -29,7 +29,7 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
     ".subtask-completed": {
-      color: theme.palette.c_gray10
+      color: theme.palette.grey[800]
     },
     ".subtask-tool svg": {
       fontSize: "0.5rem"
@@ -51,7 +51,7 @@ const styles = (theme: any) =>
       "100%": { backgroundPosition: "200%" }
     },
     ".shine-effect": {
-      background: `linear-gradient(90deg, ${theme.palette.c_hl1}, ${theme.palette.c_hl2}, ${theme.palette.c_hl1})`,
+      background: `linear-gradient(90deg, ${"var(--palette-primary-main)"}, ${"var(--palette-secondary-main)"}, ${"var(--palette-primary-main)"})`,
       backgroundSize: "200%",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",

@@ -39,7 +39,7 @@ const styles = (theme: any) =>
       top: "4px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.grey[800]
     },
     ".dashboard-button": {
       position: "absolute",
@@ -47,18 +47,18 @@ const styles = (theme: any) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.c_gray1}ee`,
-      color: theme.palette.c_hl1,
-      border: `2px solid ${theme.palette.c_gray3}`,
+      backgroundColor: `${theme.palette.grey[800]}ee`,
+      color: "var(--palette-primary-main)",
+      border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-        borderColor: theme.palette.c_hl1,
+        backgroundColor: theme.palette.grey[600],
+        borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
-        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
-        color: theme.palette.c_white
+        boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
+        color: theme.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"
@@ -74,7 +74,7 @@ const styles = (theme: any) =>
         left: "-2px",
         right: "-2px",
         bottom: "-2px",
-        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        background: `linear-gradient(45deg, ${"var(--palette-primary-main)"}20, transparent, ${"var(--palette-secondary-main)"}20)`,
         borderRadius: "14px",
         opacity: 0,
         transition: "opacity 0.3s ease",
@@ -90,18 +90,18 @@ const styles = (theme: any) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.c_gray1}ee`,
-      color: theme.palette.c_hl1,
-      border: `2px solid ${theme.palette.c_gray3}`,
+      backgroundColor: `${theme.palette.grey[800]}ee`,
+      color: "var(--palette-primary-main)",
+      border: `2px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-        borderColor: theme.palette.c_hl1,
+        backgroundColor: theme.palette.grey[600],
+        borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
-        boxShadow: `0 8px 24px ${theme.palette.c_hl1}60, 0 0 40px ${theme.palette.c_hl1}30`,
-        color: theme.palette.c_white
+        boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
+        color: theme.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"
@@ -117,7 +117,7 @@ const styles = (theme: any) =>
         left: "-2px",
         right: "-2px",
         bottom: "-2px",
-        background: `linear-gradient(45deg, ${theme.palette.c_hl1}20, transparent, ${theme.palette.c_hl2}20)`,
+        background: `linear-gradient(45deg, ${"var(--palette-primary-main)"}20, transparent, ${"var(--palette-secondary-main)"}20)`,
         borderRadius: "14px",
         opacity: 0,
         transition: "opacity 0.3s ease",
@@ -139,10 +139,9 @@ const styles = (theme: any) =>
       padding: "0 1em"
     },
     ".mode-select": {
-      top: "-2px",
       padding: "0",
-      minWidth: "80px",
-      marginRight: "12px",
+      minWidth: "90px",
+      margin: "0 0.5em",
       height: "24px",
       "& svg": {
         right: "2px"
@@ -154,12 +153,12 @@ const styles = (theme: any) =>
       "& .MuiSelect-select": {
         fontSize: "0.75rem",
         padding: "0px 8px",
-        color: theme.palette.c_gray6,
+        color: theme.palette.grey[100],
         lineHeight: "24px",
         height: "24px"
       },
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.c_gray3
+        borderColor: theme.palette.grey[500]
       }
     },
     ".status-message-container": {
@@ -172,11 +171,11 @@ const styles = (theme: any) =>
       height: "32px",
       minWidth: "32px",
       padding: "4px",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       position: "relative",
       borderRadius: "4px",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.grey[600]
       },
       "& svg": {
         fontSize: "20px",
@@ -188,29 +187,26 @@ const styles = (theme: any) =>
       }
     },
     ".action-button.active": {
-      border: `1px solid ${theme.palette.c_hl1}66`
+      border: `1px solid ${"var(--palette-primary-main)"}66`
     },
     ".action-button.disabled": {
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       "&:hover": {
         boxShadow: "none"
       }
     },
     ".node-menu-button": {
       "& svg": {
-        fill: `${theme.palette.c_hl1}cc`
-      },
-      "&:hover svg": {
-        fill: `${theme.palette.c_hl1}ff`
+        fill: `${"var(--palette-action-active)"}`
       }
     },
     ".run-stop-button": {
-      backgroundColor: `${theme.palette.c_gray2}cc`,
-      color: theme.palette.c_hl1,
+      backgroundColor: `${theme.palette.grey[600]}cc`,
+      color: "var(--palette-primary-main)",
       minWidth: "40px",
       height: "26px",
       "&:hover": {
-        boxShadow: `0 0 4px ${theme.palette.c_hl1}55`,
+        boxShadow: `0 0 4px ${"var(--palette-primary-main)"}55`,
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
       },
       "&.disabled": {
@@ -220,7 +216,7 @@ const styles = (theme: any) =>
         "& svg": {
           animation:
             "spin 2s linear infinite, rainbow-rotate 3s linear infinite",
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       }
     },
@@ -232,8 +228,8 @@ const styles = (theme: any) =>
       top: "25px",
       fontSize: theme.fontSizeSmaller,
       padding: "0.2em 0.8em",
-      color: theme.palette.c_gray6,
-      boxShadow: `0 2px 8px ${theme.palette.c_gray1}40`
+      color: theme.palette.grey[100],
+      boxShadow: `0 2px 8px ${theme.palette.grey[800]}40`
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },
@@ -242,7 +238,7 @@ const styles = (theme: any) =>
     },
     ".connecting-status": {
       animation: "pulse 1.5s infinite ease-in-out",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     "@keyframes rainbow-rotate": {
       "0%": { filter: "hue-rotate(0deg)" },
@@ -254,10 +250,10 @@ const styles = (theme: any) =>
     },
     "@keyframes dashboardPulse": {
       "0%, 100%": {
-        boxShadow: `0 0 0 0 ${theme.palette.c_hl1}40`
+        boxShadow: `0 0 0 0 ${"var(--palette-primary-main)"}40`
       },
       "50%": {
-        boxShadow: `0 0 0 8px ${theme.palette.c_hl1}00`
+        boxShadow: `0 0 0 8px ${"var(--palette-primary-main)"}00`
       }
     },
     ".dashboard-button::after": {

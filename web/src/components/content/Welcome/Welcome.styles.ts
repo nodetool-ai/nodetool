@@ -12,25 +12,25 @@ const welcomeStyles = (theme: any) =>
       top: "0",
       left: "0",
       overflowY: "hidden",
-      border: `8px solid ${theme.palette.c_gray0}`,
+      border: `8px solid ${theme.palette.grey[900]}`,
       display: "flex",
       flexDirection: "column"
     },
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       marginBottom: "1em"
     },
     ".summary": {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
-      color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1
+      color: "var(--palette-primary-main)",
+      backgroundColor: theme.palette.grey[800]
     },
     ".content": {
       padding: "1em",
-      color: theme.palette.c_white,
+      color: theme.palette.grey[0],
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBig
     },
@@ -53,8 +53,8 @@ const welcomeStyles = (theme: any) =>
     },
     ".MuiAccordion-root": {
       background: "transparent",
-      color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      color: theme.palette.grey[0],
+      borderBottom: `1px solid ${theme.palette.grey[500]}`,
       marginBottom: "1em",
       "&:before": {
         display: "none"
@@ -85,30 +85,30 @@ const welcomeStyles = (theme: any) =>
       }
     },
     ".highlight": {
-      backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black
+      backgroundColor: "var(--palette-primary-main)",
+      color: theme.palette.grey[1000]
     },
     ".tab-content": {
       marginTop: "1em"
     },
     ".link": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       display: "inline-block",
       padding: "4px 8px",
       textDecoration: "none",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       borderRadius: "4px",
       transition: "all 0.2s"
     },
     ".link:hover": {
-      color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_hl1
+      color: theme.palette.grey[1000],
+      backgroundColor: "var(--palette-primary-main)"
     },
 
     ".link-body": {
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray6,
+      color: theme.palette.grey[100],
       marginTop: ".25em",
       marginBottom: "2em",
       display: "block"
@@ -158,11 +158,11 @@ const welcomeStyles = (theme: any) =>
       transition: "all 0.2s"
     },
     ".overview button:hover:not(.Mui-selected)": {
-      color: theme.palette.c_gray6
+      color: theme.palette.grey[100]
     },
     ".fake-button": {
       color: "#fff",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.grey[600],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
@@ -178,10 +178,10 @@ const welcomeStyles = (theme: any) =>
       color: theme.palette.c_hl3
     },
     ".setup-tab .MuiListItemText-secondary": {
-      color: theme.palette.c_white
+      color: theme.palette.grey[0]
     },
     ".remote-settings-container": {
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.grey[800],
       padding: "1.5em",
       borderRadius: "8px"
     },
@@ -193,11 +193,11 @@ const welcomeStyles = (theme: any) =>
       listStyleType: "square"
     },
     ".start-button": {
-      backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black,
+      backgroundColor: "var(--palette-primary-main)",
+      color: theme.palette.grey[1000],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
-      outline: `1px solid ${theme.palette.c_hl1}`,
+      outline: `1px solid ${"var(--palette-primary-main)"}`,
       flexGrow: 1,
       margin: "0",
       padding: "0.5em 8em",
@@ -205,10 +205,10 @@ const welcomeStyles = (theme: any) =>
       borderRadius: ".2em",
       transition: "all 0.4s",
       "&:hover": {
-        outline: `2px solid ${theme.palette.c_gray0}`,
-        boxShadow: `inset 0 0 .2em 0 ${theme.palette.c_gray0}`,
+        outline: `2px solid ${theme.palette.grey[900]}`,
+        boxShadow: `inset 0 0 .2em 0 ${theme.palette.grey[900]}`,
         opacity: 0.9,
-        color: theme.palette.c_black
+        color: theme.palette.grey[1000]
       }
     },
     // ".MuiTabs-root": {
@@ -227,7 +227,7 @@ const welcomeStyles = (theme: any) =>
     ".setup-list-title": {
       fontWeight: "bold",
       paddingTop: ".5em",
-      color: theme.palette.c_hl1
+      color: "var(--palette-primary-main)"
     },
     ".setup-list-content": {
       marginTop: ".25em"

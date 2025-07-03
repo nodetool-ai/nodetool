@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useRef, useState, memo, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -47,7 +47,7 @@ const styles = (theme: any) =>
     },
     "input[type='text']:focus": {
       backgroundColor: "#2a2a2a",
-      borderColor: theme.palette.c_hl1,
+      borderColor: "var(--palette-primary-main)",
       outline: "none"
     },
     ".clear-search-btn": {
@@ -62,7 +62,7 @@ const styles = (theme: any) =>
       right: "0.7em",
       border: 0,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
@@ -72,11 +72,11 @@ const styles = (theme: any) =>
         backgroundColor: "transparent"
       },
       "&:not(.disabled):hover svg": {
-        color: theme.palette.c_hl1,
+        color: "var(--palette-primary-main)",
         backgroundColor: "transparent"
       },
       "&.disabled": {
-        color: theme.palette.c_gray3
+        color: theme.palette.grey[500]
       }
     },
     ".search-loading-indicator": {
@@ -93,8 +93,8 @@ const styles = (theme: any) =>
     ".search-spinner": {
       width: "16px",
       height: "16px",
-      border: "2px solid var(--c_gray3)",
-      borderTop: "2px solid var(--c_gray6)",
+      border: "2px solid var(--palette-grey-500)",
+      borderTop: "2px solid var(--palette-grey-100)",
       borderRadius: "50%",
       animation: "spin 1s linear infinite"
     },
@@ -114,7 +114,7 @@ const styles = (theme: any) =>
       left: "0.5em",
       border: 0,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.grey[400],
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
@@ -122,10 +122,10 @@ const styles = (theme: any) =>
       },
       "&:hover": {
         backgroundColor: "transparent",
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       },
       "&.global-mode": {
-        color: theme.palette.c_hl1
+        color: "var(--palette-primary-main)"
       }
     }
   });

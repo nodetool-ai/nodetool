@@ -56,7 +56,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           cursor: "pointer",
           userSelect: "none",
           "&:hover": {
-            color: "c_gray6"
+            color: "palette-grey-100"
           }
         }}
       >

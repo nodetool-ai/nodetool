@@ -6,12 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 const styles = (theme: any) =>
   css({
-    backgroundColor: theme.palette.c_gray0,
-    color: theme.palette.c_gray6,
+    backgroundColor: theme.palette.grey[900],
+    color: theme.palette.grey[100],
     "&:hover": {
-      color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_gray1,
-      boxShadow: `0 0 5px ${theme.palette.c_hl1}20`
+      color: theme.palette.grey[0],
+      backgroundColor: theme.palette.grey[800],
+      boxShadow: `0 0 5px ${"var(--palette-primary-main)"}20`
     }
   });
 

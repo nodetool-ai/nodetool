@@ -67,13 +67,13 @@ const createPathPropertyStyles = (theme: any) =>
       ".file-browser": {
         maxHeight: "300px",
         overflowY: "auto",
-        border: `1px solid ${theme.palette.c_gray2}`,
+        border: `1px solid ${theme.palette.grey[600]}`,
         borderRadius: "2px",
         padding: "8px",
         marginTop: "0.5em",
 
         ".error-item > .MuiTreeItem-content": {
-          backgroundColor: `${theme.palette.c_warning} !important`
+          backgroundColor: `${theme.palette.warning.main} !important`
         }
       },
 
@@ -86,8 +86,8 @@ const createPathPropertyStyles = (theme: any) =>
       },
 
       ".path-picker__browse-button": {
-        backgroundColor: theme.palette.c_gray2,
-        border: `1px solid ${theme.palette.c_gray3}`,
+        backgroundColor: theme.palette.grey[600],
+        border: `1px solid ${theme.palette.grey[500]}`,
         borderRadius: "2px",
         color: theme.palette.common.white,
         cursor: "pointer",
@@ -95,12 +95,12 @@ const createPathPropertyStyles = (theme: any) =>
         height: "100%",
         transition: "all 0.2s ease",
         "&:hover": {
-          backgroundColor: theme.palette.c_gray3
+          backgroundColor: theme.palette.grey[500]
         }
       },
 
       ".path-picker__preview": {
-        color: theme.palette.c_gray4,
+        color: theme.palette.grey[400],
         display: "flex",
         alignItems: "center",
         flex: 1,
@@ -113,7 +113,7 @@ const createPathPropertyStyles = (theme: any) =>
         backgroundColor: "transparent",
         border: "none",
         borderRadius: "50%",
-        color: theme.palette.c_gray4,
+        color: theme.palette.grey[400],
         cursor: "pointer",
         padding: "4px 8px",
         minWidth: "24px",
@@ -123,7 +123,7 @@ const createPathPropertyStyles = (theme: any) =>
         justifyContent: "center",
         transition: "all 0.2s ease",
         "&:hover": {
-          color: theme.palette.c_hl1
+          color: "var(--palette-primary-main)"
         }
       },
 
@@ -135,13 +135,13 @@ const createPathPropertyStyles = (theme: any) =>
       },
 
       ".MuiDialog-paper": {
-        backgroundColor: theme.palette.c_gray1,
+        backgroundColor: theme.palette.grey[800],
         borderRadius: "8px",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
       },
 
       ".MuiDialogTitle-root": {
-        borderBottom: `1px solid ${theme.palette.c_gray3}`,
+        borderBottom: `1px solid ${theme.palette.grey[500]}`,
         padding: "16px 24px"
       },
 
@@ -151,7 +151,7 @@ const createPathPropertyStyles = (theme: any) =>
       },
 
       ".MuiDialogActions-root": {
-        borderTop: `1px solid ${theme.palette.c_gray3}`,
+        borderTop: `1px solid ${theme.palette.grey[500]}`,
         padding: "16px 24px",
         margin: 0
       }
@@ -165,15 +165,17 @@ const treeViewStyles = (theme: any) => ({
     userSelect: "none"
   },
   ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: (theme: any) => `${theme.palette.c_hl1} !important`,
-    color: (theme: any) => theme.palette.c_black
+    backgroundColor: (theme: any) =>
+      `${"var(--palette-primary-main)"} !important`,
+    color: (theme: any) => theme.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: (theme: any) => `${theme.palette.c_gray3} !important`
+    backgroundColor: (theme: any) => `${theme.palette.grey[500]} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
-    backgroundColor: (theme: any) => `${theme.palette.c_hl1} !important`
+    backgroundColor: (theme: any) =>
+      `${"var(--palette-primary-main)"} !important`
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",
@@ -184,10 +186,10 @@ const treeViewStyles = (theme: any) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: (theme: any) => theme.palette.c_warning
+    color: (theme: any) => theme.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
-    color: (theme: any) => theme.palette.c_gray3
+    color: (theme: any) => theme.palette.grey[500]
   }
 });
 
@@ -345,7 +347,7 @@ const PathDialog = ({
       }}
       PaperProps={{
         sx: {
-          backgroundColor: (theme) => theme.palette.c_gray0,
+          backgroundColor: (theme) => theme.palette.grey[900],
           borderRadius: "8px",
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
         }

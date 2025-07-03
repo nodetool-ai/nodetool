@@ -33,7 +33,7 @@ const sidebarStyles = (theme: any) => css`
     padding: 0.5em 1em;
     cursor: pointer;
     font-size: ${theme.fontSizeNormal};
-    color: ${theme.palette.c_white};
+    color: ${theme.palette.grey[0]};
     opacity: 0.7;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
@@ -45,14 +45,14 @@ const sidebarStyles = (theme: any) => css`
 
     &.active {
       opacity: 1;
-      border-left-color: ${theme.palette.c_hl1};
+      border-left-color: ${"var(--palette-primary-main)"};
       background-color: rgba(255, 255, 255, 0.05);
     }
   }
 
   .settings-sidebar-category {
     padding: 1em 1.5em 0.5em;
-    color: ${theme.palette.c_hl1};
+    color: ${"var(--palette-primary-main)"};
     font-size: ${theme.fontSizeSmaller};
     font-weight: 500;
     letter-spacing: 0.05em;
