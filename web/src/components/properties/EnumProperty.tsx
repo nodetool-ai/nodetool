@@ -2,6 +2,7 @@ import React, { memo, useMemo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
+import PropertyLabel from "../node/PropertyLabel";
 
 const EnumProperty: React.FC<PropertyProps> = ({
   property,
@@ -23,6 +24,11 @@ const EnumProperty: React.FC<PropertyProps> = ({
 
   return (
     <div className="enum-property">
+      <PropertyLabel
+        name={property.name}
+        description={property.description}
+        id={id}
+      />
       <Select
         value={value || ""}
         onChange={onChange}

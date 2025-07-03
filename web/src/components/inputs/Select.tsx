@@ -52,24 +52,24 @@ const ChevronIcon = ({ className }: { className?: string }) => (
 const menuStyles = (theme: any) =>
   css({
     ".select-container": {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
+      display: "block",
       width: "100%"
     },
     ".select-wrapper": {
       position: "relative",
       flex: 1,
-      minWidth: 0
+      minWidth: 0,
+      height: "36px",
+      minHeight: "36px"
     },
     ".options-list": {
       position: "absolute",
+      top: "-10px",
       width: "auto",
       minWidth: "100%",
       maxWidth: "300px",
       maxHeight: "300px",
       overflowY: "auto",
-      margin: "15px 0 0 0",
       padding: ".5em 0",
       listStyle: "none",
       backgroundColor: theme.palette.c_node_bg,
@@ -115,7 +115,8 @@ const menuStyles = (theme: any) =>
     ".select-header": {
       position: "absolute",
       width: "100%",
-      top: "-3px",
+      top: "0px",
+      height: "22",
       padding: "0px 5px",
       margin: "0",
       border: `1px solid ${theme.palette.grey[600]}`,
