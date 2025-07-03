@@ -23,6 +23,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -485,14 +486,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Run Workflow</div>
-          <div className="tooltip-key">
-            <kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("run-workflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>

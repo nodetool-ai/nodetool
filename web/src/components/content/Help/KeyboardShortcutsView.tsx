@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
@@ -6,6 +6,7 @@ import { Shortcut, expandShortcutsForOS } from "../../../config/shortcuts";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
+import KeyboardGrid from "./KeyboardGrid";
 
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
@@ -24,14 +25,17 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const activeShortcuts = expandShortcutsForOS(shortcuts, os === "mac");
 
   // Build mapping key -> titles for tooltip assignment
-  const keyTitleMap: Record<string, string[]> = {};
-  activeShortcuts.forEach((sc) => {
-    const combo = sc.keyCombo.map((k) => k.toLowerCase());
-    combo.forEach((key) => {
-      if (!keyTitleMap[key]) keyTitleMap[key] = [];
-      keyTitleMap[key].push(sc.title);
+  const keyTitleMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    activeShortcuts.forEach((sc) => {
+      const combo = sc.keyCombo.map((k) => k.toLowerCase());
+      combo.forEach((key) => {
+        if (!map[key]) map[key] = [];
+        map[key].push(sc.title);
+      });
     });
-  });
+    return map;
+  }, [activeShortcuts]);
 
   const highlightButtons = Object.keys(keyTitleMap).join(" ");
   const buttonTheme = [
@@ -49,12 +53,15 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     btns.forEach((btn) => {
       const key = btn.getAttribute("data-skbtn")?.toLowerCase();
       if (key && keyTitleMap[key]) {
-        btn.setAttribute("title", keyTitleMap[key].join(", "));
+        const title = keyTitleMap[key].join(", ");
+        btn.setAttribute("title", title);
+        btn.setAttribute("aria-label", title);
       } else {
         btn.removeAttribute("title");
+        btn.removeAttribute("aria-label");
       }
     });
-  }, [keyTitleMap, os]);
+  }, [keyTitleMap]);
 
   const handleOsToggle = (_: any, value: "mac" | "win") => {
     if (value) setOs(value);
@@ -94,8 +101,16 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         <ToggleButton value="win">Windows/Linux</ToggleButton>
       </ToggleButtonGroup>
 
-      <div ref={containerRef}>
-        <Keyboard layout={layout} display={display} buttonTheme={buttonTheme} />
+      <div ref={containerRef} className="keyboard-view">
+        <Keyboard
+          layout={layout}
+          display={display}
+          buttonTheme={buttonTheme}
+          physicalKeyboardHighlight={true}
+          physicalKeyboardHighlightPress={true}
+          physicalKeyboardHighlightBgColor="var(--nt-hl, #5ac8fa)"
+          physicalKeyboardHighlightTextColor="#000"
+        />
       </div>
     </div>
   );

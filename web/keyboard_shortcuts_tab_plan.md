@@ -69,8 +69,7 @@ export const expandShortcutsForOS = (
     if (!isMac) return key === "Meta" ? "Control" : key;
     // macOS replacements
     if (key === "Control") return "Meta";
-    if (key === "PageUp") return "Shift"; // example – we separately handle prev/next tab mapping
-    if (key === "PageDown") return "]";
+    //...
     return key;
   };
   return shortcuts.map((s) => ({

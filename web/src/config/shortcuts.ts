@@ -1,3 +1,5 @@
+import React from "react";
+
 export interface Shortcut {
   /** Human-readable title, e.g. "Copy" */
   title: string;
@@ -14,12 +16,10 @@ export interface Shortcut {
 /** Simple platform map helper */
 const mapKeyForMac = (key: string): string => {
   switch (key) {
+    case "Alt":
+      return "Option";
     case "Control":
-      return "Meta"; // ⌘ replacement
-    case "PageUp":
-      return "Shift"; // example mapping
-    case "PageDown":
-      return "Shift"; // example mapping
+      return "Meta";
     default:
       return key;
   }
@@ -40,18 +40,82 @@ export const expandShortcutsForOS = (
   });
 };
 
-export const getShortcutTooltip = (slug: string, mac: boolean): string => {
+/**
+ * Returns a JSX tooltip element containing title and both Win/Mac key combos.
+ * Example structure:
+ * <div class="tooltip-span">
+ *   <div class="tooltip-title">Run Workflow</div>
+ *   <div class="tooltip-key"><kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd></div>
+ * </div>
+ */
+export const getShortcutTooltip = (
+  slug: string
+): React.ReactElement | string => {
   const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
   if (!sc) return slug;
-  const comboArr = mac
-    ? sc.keyComboMac ?? sc.keyCombo.map(mapKeyForMac)
-    : sc.keyCombo;
-  const comboStr = comboArr.join(" + ");
-  return `${sc.title} (${comboStr})`;
+
+  const winCombo = sc.keyCombo.join(" + ");
+  const macCombo = (sc.keyComboMac ?? sc.keyCombo.map(mapKeyForMac)).join(
+    " + "
+  );
+
+  const humanizeKey = (key: string): string => {
+    switch (key.toLowerCase()) {
+      case "control":
+        return "CTRL";
+      case "meta":
+        return "⌘";
+      case "alt":
+        return "ALT";
+      case "option":
+        return "OPT";
+      case "shift":
+        return "SHIFT";
+      case " ":
+      case "space":
+        return "Space";
+      case "arrowup":
+        return "↑";
+      case "arrowdown":
+        return "↓";
+      case "arrowleft":
+        return "←";
+      case "arrowright":
+        return "→";
+      default:
+        return key.length === 1 ? key.toUpperCase() : key;
+    }
+  };
+
+  const renderKbdSeries = (combo: string): React.ReactNode[] => {
+    const parts = combo.split(" + ");
+    return parts.flatMap((part, idx) => {
+      const elements: React.ReactNode[] = [
+        React.createElement("kbd", { key: `k-${idx}` }, humanizeKey(part))
+      ];
+      if (idx < parts.length - 1) {
+        elements.push("+");
+      }
+      return elements;
+    });
+  };
+
+  return React.createElement(
+    "div",
+    { className: "tooltip-span" },
+    React.createElement("div", { className: "tooltip-title" }, sc.title),
+    React.createElement(
+      "div",
+      { className: "tooltip-key" },
+      ...renderKbdSeries(winCombo),
+      " / ",
+      ...renderKbdSeries(macCombo)
+    )
+  );
 };
 
 // --- NODE EDITOR SHORTCUTS --------------------------------------------------
-// NOTE: This is an *initial* set. Feel free to expand.
+
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Copy",
@@ -96,20 +160,6 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Select all nodes"
   },
   {
-    title: "Zoom In",
-    slug: "zoom-in",
-    keyCombo: ["Control", "="],
-    keyComboMac: ["Meta", "="],
-    description: "Zoom in on canvas"
-  },
-  {
-    title: "Zoom Out",
-    slug: "zoom-out",
-    keyCombo: ["Control", "-"],
-    keyComboMac: ["Meta", "-"],
-    description: "Zoom out on canvas"
-  },
-  {
     title: "Duplicate",
     slug: "duplicate",
     keyCombo: ["Control", "D"],
@@ -139,5 +189,19 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "fit-view",
     keyCombo: ["F"],
     description: "Fit all nodes into view"
+  },
+  {
+    title: "Run Workflow",
+    slug: "run-workflow",
+    keyCombo: ["Control", "Enter"],
+    keyComboMac: ["Meta", "Enter"],
+    description: "Execute the current workflow"
+  },
+  {
+    title: "Delete Node",
+    slug: "delete-node",
+    keyCombo: ["Delete"],
+    keyComboMac: ["Delete"],
+    description: "Delete selected node(s)"
   }
 ];

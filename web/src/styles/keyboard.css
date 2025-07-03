@@ -1,8 +1,46 @@
-
 .hg-theme-default .hg-button {
   background: var(--palette-background-default);
   color: var(--palette-text-primary);
 }
 .hg-theme-default .hg-button.has-shortcut {
   border: 2px solid var(--nt-hl, #5ac8fa);
+}
+
+.tooltip-span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--palette-text-primary);
+}
+.tooltip-title {
+  font-weight: 600;
+}
+.tooltip-key {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.tooltip-key kbd {
+  background: var(--palette-grey-800);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: inherit;
+  color: var(--palette-text-primary);
+}
+
+.grid-key.has-shortcut {
+  border: 2px solid var(--nt-hl, #5ac8fa);
+}
+
+/* Sizing adjustments for react-simple-keyboard */
+.keyboard-view .hg-button {
+  min-width: 42px;
+  height: 42px;
+  font-size: 0.85rem;
+}
+.keyboard-view .hg-row {
+  justify-content: center;
 } 
