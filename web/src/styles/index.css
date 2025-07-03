@@ -245,5 +245,5 @@ kbd {
   line-height: 1.2em;
   color: var(--palette-grey-50);
   background-color: var(--palette-error-dark);
-  padding: 0.5rem;
+  padding: 0.5em 1em;
 }
