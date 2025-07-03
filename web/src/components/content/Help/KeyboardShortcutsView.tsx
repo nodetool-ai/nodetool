@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
-import { Shortcut, expandShortcutsForOS } from "../../../config/shortcuts";
+import {
+  Shortcut,
+  expandShortcutsForOS,
+  getShortcutTooltip
+} from "../../../config/shortcuts";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
@@ -21,6 +25,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 }) => {
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const containerRef = useRef<HTMLDivElement>(null);
+  const [hoverSlug, setHoverSlug] = useState<string | null>(null);
 
   const activeShortcuts = expandShortcutsForOS(shortcuts, os === "mac");
 
@@ -45,6 +50,19 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     }
   ];
 
+  // Map key -> slugs for hover usage (memoize)
+  const keySlugMap = useMemo(() => {
+    const m: Record<string, string[]> = {};
+    activeShortcuts.forEach((s) => {
+      s.keyCombo.forEach((k) => {
+        const low = k.toLowerCase();
+        if (!m[low]) m[low] = [];
+        m[low].push(s.slug);
+      });
+    });
+    return m;
+  }, [activeShortcuts]);
+
   // After render, attach title attributes to every button
   useEffect(() => {
     if (!containerRef.current) return;
@@ -56,11 +74,30 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         const title = keyTitleMap[key].join(", ");
         btn.setAttribute("title", title);
         btn.setAttribute("aria-label", title);
+        // add hover listeners once
+        const handleEnter = () => setHoverSlug(keySlugMap[key][0]);
+        const handleLeave = () =>
+          setHoverSlug((prev) => (prev === keySlugMap[key][0] ? null : prev));
+        btn.addEventListener("mouseenter", handleEnter);
+        btn.addEventListener("mouseleave", handleLeave);
+        // store cleanup handler
+        (btn as any)._hoverHandlers = { handleEnter, handleLeave };
       } else {
         btn.removeAttribute("title");
         btn.removeAttribute("aria-label");
       }
     });
+
+    // cleanup on dependencies change
+    return () => {
+      btns.forEach((btn) => {
+        const handlers = (btn as any)._hoverHandlers;
+        if (handlers) {
+          btn.removeEventListener("mouseenter", handlers.handleEnter);
+          btn.removeEventListener("mouseleave", handlers.handleLeave);
+        }
+      });
+    };
   }, [keyTitleMap]);
 
   const handleOsToggle = (_: any, value: "mac" | "win") => {
@@ -112,6 +149,12 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           physicalKeyboardHighlightTextColor="#000"
         />
       </div>
+
+      {hoverSlug && (
+        <div style={{ marginTop: "1em", textAlign: "center" }}>
+          {getShortcutTooltip(hoverSlug)}
+        </div>
+      )}
     </div>
   );
 };
