@@ -16,7 +16,8 @@ import { FolderOutlined } from "@mui/icons-material";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { openInExplorer } from "../../utils/fileExplorer";
-import { useModels } from "./model_list/useModels";
+import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
+import { useOllamaModels } from "../../hooks/useOllamaModels";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -37,7 +38,8 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const modelsWithSize = useModelsWithSize(recommendedModels);
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
-  const { hfModels, ollamaModels } = useModels();
+  const { hfModels } = useHuggingFaceModels();
+  const { ollamaModels } = useOllamaModels();
   const downloadedModels = useMemo(
     () =>
       new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id)),
