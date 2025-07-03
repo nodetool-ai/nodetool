@@ -28,8 +28,8 @@ const bob = keyframes`
 
 const pulse = keyframes`
   0% { transform: scale(1) skew(0deg, 0deg);   }
-  30% { transform: scale(1.18) skew(5deg, 0deg); }
-  70% { transform: scale(0.9) skew(0deg, -5deg); }
+  30% { transform: scale(1.18) skew(-5deg, 0deg); }
+  70% { transform: scale(0.9) skew(5deg, 0deg); }
   100% { transform: scale(1) skew(0deg, 0deg); }
 `;
 
