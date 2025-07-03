@@ -458,12 +458,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onBlur={handleContainerBlur}
       onContextMenu={handleContextMenu}
       tabIndex={-1}
-      style={{
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeSmall,
-        color: theme.palette.primary.main,
-        position: "relative"
-      }}
     >
       <EditableInput
         value={state.localValue}
@@ -476,6 +470,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
         shouldFocus={inputIsFocused}
       />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
+        {props.hideLabel ? null : (
+          <PropertyLabel
+            name={props.name}
+            description={props.description}
+            id={props.id}
+            showTooltip={!state.isDragging}
+          />
+        )}
         {!inputIsFocused && (
           <DisplayValue
             value={props.value}
