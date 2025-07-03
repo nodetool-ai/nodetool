@@ -25,13 +25,13 @@ We will leverage **react-simple-keyboard** for rendering, which keeps implementa
 ## 2 Global platform helper
 
 decide what is better:
- A as /hooks/usePlatform
-  B create `web/src/utils/platform.ts`:
+A as /hooks/usePlatform
+B create `web/src/utils/platform.ts`:
 
 ```ts
 export const isMac = () => navigator.userAgent.includes("Mac");
 // OR like this? (should also work in electron)
-  const isMac = window.navigator.platform.toLowerCase().includes("mac");
+const isMac = window.navigator.platform.toLowerCase().includes("mac");
 ```
 
 Exported **function** instead of constant so it can be mocked in tests.
@@ -76,7 +76,7 @@ export const expandShortcutsForOS = (
   return shortcuts.map((s) => ({
     ...s,
     // Prefer explicit mac override, else automap.
-    keyCombo: isMac ? s.keyComboMac ?? s.keyCombo.map(mapKey) : s.keyCombo,
+    keyCombo: isMac ? s.keyComboMac ?? s.keyCombo.map(mapKey) : s.keyCombo
   }));
 };
 
@@ -86,8 +86,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "copy",
     keyCombo: ["Control", "C"],
     keyComboMac: ["Meta", "C"],
-    description: "Copy selected nodes",
-  },
+    description: "Copy selected nodes"
+  }
   // … add the rest, extracted from useNodeEditorShortcuts.ts
 ];
 
@@ -110,8 +110,10 @@ export const getShortcutTooltip = (slug: string, isMac: boolean): string => {
   return `${sc.title} (${comboStr})`;
 };
 ```
+
 NOTE:
-should be using this classnames and <kbd> 
+should be using this classnames and <kbd>
+
  <div className="tooltip-span">
           <div className="tooltip-title">Run Workflow</div>
           <div className="tooltip-key">
@@ -179,8 +181,8 @@ Responsibilities:
    .hg-button {
      border-radius: 4px;
      padding: 6px;
-     background: var(--nt-key-bg, #333);
-     color: var(--nt-key-fg, #ddd);
+     background: var(--palette-background-default);
+     color: var(--palette-text-primary);
    }
    .has-shortcut {
      border: 2px solid var(--nt-hl, #5ac8fa);
@@ -215,6 +217,7 @@ Responsibilities:
 
 - Listen to `keydown`/`keyup` globally inside `KeyboardShortcutsView` (only while the tab is visible) and add/remove the `pressed` class on the corresponding key(s) – giving immediate visual feedback when the user physically presses a shortcut.
 - Debounce keyup events so momentary taps are still visible.
+
 ---
 
 ## 10 De-duplicate help data source
@@ -226,9 +229,10 @@ Action:
 1. Refactor `helpItems` creation so it consumes the central `NODE_EDITOR_SHORTCUTS` array and groups items by category (Nodes, Workflows, etc.).
 2. This guarantees both the keyboard view and list view display exactly the same bindings.
 3. check KeyPressedStore, specifically this part:
-    const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
-    comboCallbacks.set(combo, options);
-};
+   const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
+   comboCallbacks.set(combo, options);
+   };
+
 ---
 
 ## 11 Remove local `ControlOrMeta` constants
@@ -241,7 +245,6 @@ const ControlOrMeta = isMac() ? "Meta" : "Control";
 ```
 
 This keeps platform detection consistent and testable.
-
 
 ---
 

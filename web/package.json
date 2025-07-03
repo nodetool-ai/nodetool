@@ -73,6 +73,7 @@
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.6.0",
     "react-simple-code-editor": "^0.14.1",
+    "react-simple-keyboard": "^3.8.89",
     "react-syntax-highlighter": "^15.6.1",
     "react-tag-autocomplete": "^7.4.0",
     "react-textarea-autosize": "^8.5.5",

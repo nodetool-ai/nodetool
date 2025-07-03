@@ -9,6 +9,8 @@ import ThemeNodetool from "../../themes/ThemeNodetool";
 import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import { COMFY_DATA_TYPES } from "../../../config/comfy_data_types";
+import KeyboardShortcutsView from "./KeyboardShortcutsView";
+import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 
 interface HelpItem {
   text: string;
@@ -347,6 +349,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           >
             <Tab label="Controls & Shortcuts" id="help-tab-0" />
             <Tab label="DataTypes" id="help-tab-1" />
+            <Tab label="Keyboard View" id="help-tab-2" />
           </Tabs>
           <div className="content">
             <TabPanel value={helpIndex} index={0}>
@@ -495,6 +498,9 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                 expanded={expandedComfy}
                 onChange={handleAccordionChange("comfy")}
               />
+            </TabPanel>
+            <TabPanel value={helpIndex} index={2}>
+              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
             </TabPanel>
           </div>
         </div>

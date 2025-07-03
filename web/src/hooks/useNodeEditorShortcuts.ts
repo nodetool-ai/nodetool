@@ -16,8 +16,9 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
+import { isMac } from "../utils/platform";
 
-const ControlOrMeta = navigator.userAgent.includes("Mac") ? "Meta" : "Control";
+const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (active: boolean) => {
   /* USE STORE */
@@ -172,10 +173,10 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   }, [saveExample, addNotification]);
 
   // Define OS-specific tab switching shortcuts
-  const prevTabShortcut = navigator.userAgent.includes("Mac")
+  const prevTabShortcut = isMac()
     ? [ControlOrMeta, "Shift", "["]
     : [ControlOrMeta, "PageUp"];
-  const nextTabShortcut = navigator.userAgent.includes("Mac")
+  const nextTabShortcut = isMac()
     ? [ControlOrMeta, "Shift", "]"]
     : [ControlOrMeta, "PageDown"];
 
