@@ -74,11 +74,11 @@
   max-width: 170px;
   word-wrap: break-word;
   line-height: 1em;
-  color: var(--palette-grey-0);
-  font-size: var(--fontSizeSmall);
-  font-weight: 300;
+  color: var(--palette-grey-200);
+  font-size: var(--fontSizeSmaller);
+  font-weight: 600;
   font-feature-settings: "smcp";
-  padding: 0.3em 0 0.3em 0.5em;
+  padding: 0.5em 0 0.5em 0.5em;
 }
 
 .react-flow__node .title-container {

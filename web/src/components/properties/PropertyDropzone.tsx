@@ -19,6 +19,7 @@ interface PropertyDropzoneProps {
   onChange: (value: { uri: string; type: string }) => void;
   contentType: string;
   props: PropertyProps;
+  showRecorder?: boolean;
 }
 
 const PropertyDropzone = ({
@@ -26,7 +27,8 @@ const PropertyDropzone = ({
   uri,
   props,
   onChange,
-  contentType
+  contentType,
+  showRecorder = true
 }: PropertyDropzoneProps) => {
   const onChangeAsset = (asset: Asset) =>
     props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
@@ -294,7 +296,7 @@ const PropertyDropzone = ({
             <p className="prop-drop centered uppercase">Drop {contentType}</p>
           )}
         </div>
-        {contentType.split("/")[0] === "audio" && (
+        {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
         )}
       </div>

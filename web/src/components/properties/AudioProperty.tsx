@@ -23,11 +23,12 @@ const styles = (theme: any) =>
     "& .url-input": {
       width: "100%"
     }
-  });
+});
 
 const AudioProperty = (props: PropertyProps) => {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
+  const showRecorder = props.nodeType === "nodetool.input.Audio";
 
   return (
     <div className="audio-property" css={styles}>
@@ -36,16 +37,14 @@ const AudioProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {(props.nodeType === "nodetool.constant.Audio" ||
-        props.nodeType === "nodetool.input.AudioInput") && (
-        <PropertyDropzone
-          asset={asset}
-          uri={uri || ""}
-          onChange={props.onChange}
-          contentType="audio"
-          props={props}
-        />
-      )}
+      <PropertyDropzone
+        asset={asset}
+        uri={uri || ""}
+        onChange={props.onChange}
+        contentType="audio"
+        props={props}
+        showRecorder={showRecorder}
+      />
     </div>
   );
 };
