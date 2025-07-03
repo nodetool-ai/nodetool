@@ -13,6 +13,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
+import SvgFileIcon from "../SvgFileIcon";
+import AnimatedAssistantIcon from "../AnimatedAssistantIcon";
 
 const containerStyles = css({
   flex: 1,
@@ -169,17 +171,11 @@ const WorkflowAssistantChat: React.FC = () => {
         padding: "1.5em"
       }}
     >
-      <h2>Workflow Assistant</h2>
-      <p>Ask a question or describe a task to generate a workflow.</p>
-      <p
-        style={{
-          opacity: 0.7,
-          fontSize: "var(--fontSizeSmall)",
-          marginTop: "0.5em"
-        }}
-      >
-        Start typing to begin.
-      </p>
+      <AnimatedAssistantIcon width={44} height={44} />
+      <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
+        OPERATOR
+      </h2>
+      <p>Ask questions about your workflow or describe what you want to do.</p>
     </div>
   );
 
@@ -220,7 +216,20 @@ const WorkflowAssistantChat: React.FC = () => {
         </DialogContent>
       </Dialog>
       {error && (
-        <div style={{ color: "var(--palette-error-main)", padding: "0.5rem" }}>
+        <div
+          className="error-message"
+          style={{
+            position: "absolute",
+            top: "140px",
+            left: "50%",
+            width: "100%",
+            height: "fit-content",
+            minWidth: "200px",
+            minHeight: "30px",
+            transform: "translate(-50%, -50%)",
+            zIndex: 99
+          }}
+        >
           {error}
         </div>
       )}
