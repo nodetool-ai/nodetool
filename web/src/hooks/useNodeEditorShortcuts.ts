@@ -187,12 +187,13 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo(["f"], () => handleFitView({ padding: 0.4 }));
   useCombo([ControlOrMeta, "="], handleZoomIn);
   useCombo([ControlOrMeta, "-"], handleZoomOut);
-  useCombo(["l"], handleAlign, selectedNodes.length > 0);
 
+  useCombo(["a"], handleAlign, selectedNodes.length > 0);
   useCombo(["Shift", "a"], handleAlignWithSpacing, selectedNodes.length > 0);
 
   useCombo([ControlOrMeta, "t"], handleNewWorkflow);
   useCombo([ControlOrMeta, "w"], closeCurrentWorkflow);
+
   useCombo([ControlOrMeta, "a"], selectAllNodes);
   useCombo([ControlOrMeta, "c"], handleCopy, false);
   useCombo([ControlOrMeta, "v"], handlePaste, false);

@@ -237,3 +237,13 @@ kbd {
   display: flex;
   flex-direction: column;
 }
+
+/* ERROR MESSAGE */
+.error-message {
+  font-size: var(--fontSizeNormal);
+  text-align: center;
+  line-height: 1.2em;
+  color: var(--palette-grey-50);
+  background-color: var(--palette-error-dark);
+  padding: 0.5rem;
+}
