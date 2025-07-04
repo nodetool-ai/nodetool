@@ -17,14 +17,14 @@ export const buttonStyles = (theme: any) =>
 
     ".MuiButton-sizeSmall": {
       margin: "0.5em !important",
-      padding: "0.5em 0.5em !important",
-      height: "1.5em !important",
+      padding: "0.25em 0.5em !important",
+      // height: "1.5em !important",
       fontSize: `${
         theme.fontSizeTiny || themeVariables.fontSizeTiny
       } !important`,
       minWidth: "20px !important",
       backgroundColor:
-        theme.palette?.grey?.[600] || "var(--palette-grey-600) !important"
+        theme.palette?.grey?.[700] || "var(--palette-grey-700) !important"
     },
 
     ".MuiButton-sizeSmall:hover": {
