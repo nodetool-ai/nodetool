@@ -49,4 +49,17 @@
 }
 .keyboard-view .hg-row {
   justify-content: center;
+}
+
+/* Modifier key widths */
+.keyboard-view .hg-button[data-skbtn="control"],
+.keyboard-view .hg-button[data-skbtn="alt"],
+.keyboard-view .hg-button[data-skbtn="meta"] {
+  flex: 0 0 96px;
+  max-width: 96px;
+}
+/* Spacebar wider */
+.keyboard-view .hg-button[data-skbtn="space"] {
+  flex: 1 0 320px;
+  max-width: none;
 } 

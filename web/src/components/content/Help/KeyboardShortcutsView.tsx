@@ -118,7 +118,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     meta: os === "mac" ? "⌘" : "Win",
     alt: os === "mac" ? "⌥" : "Alt",
     enter: "⏎",
-    space: "Space"
+    space: "Space",
+    escape: "ESC"
   } as Record<string, string>;
 
   return (
