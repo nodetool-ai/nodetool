@@ -126,7 +126,7 @@ const helpStyles = (theme: any) =>
       }
     },
     ".help-item": {
-      marginBottom: "0.5em",
+      marginBottom: "0.25em",
       paddingBottom: "0.5em",
       display: "flex",
       alignItems: "center",
@@ -228,15 +228,18 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             onChange={handleChange}
             aria-label="help tabs"
           >
-            <Tab label="Controls & Shortcuts" id="help-tab-0" />
-            <Tab label="DataTypes" id="help-tab-1" />
-            <Tab label="Keyboard Shortcuts" id="help-tab-2" />
+            <Tab label="Shortcuts" id="help-tab-0" />
+            <Tab label="Keyboard" id="help-tab-1" />
+            <Tab label="DataTypes" id="help-tab-2" />
           </Tabs>
           <div className="content">
             <TabPanel value={helpIndex} index={0}>
               <ControlsShortcutsTab />
             </TabPanel>
             <TabPanel value={helpIndex} index={1}>
+              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+            </TabPanel>
+            <TabPanel value={helpIndex} index={2}>
               <DataTypesList
                 title="Nodetool Data Types"
                 dataTypes={nodetoolTypes}
@@ -249,9 +252,6 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                 expanded={expandedComfy}
                 onChange={handleAccordionChange("comfy")}
               />
-            </TabPanel>
-            <TabPanel value={helpIndex} index={2}>
-              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
             </TabPanel>
           </div>
         </div>

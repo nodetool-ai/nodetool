@@ -46,7 +46,7 @@ const ControlsShortcutsTab: React.FC = () => {
           if (!list.length) return null;
           return (
             <Box key={cat} sx={{ mb: 3 }}>
-              <Typography variant="h2" color="#999" sx={{ mb: 1 }}>
+              <Typography variant="h2" color="#999" sx={{ mb: 4 }}>
                 {SHORTCUT_CATEGORIES[cat] ??
                   cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Typography>
@@ -58,7 +58,6 @@ const ControlsShortcutsTab: React.FC = () => {
                 >
                   {/* Title */}
                   <Typography sx={{ minWidth: 160 }}>{s.title}</Typography>
-                  {/* Key combo with fixed min width */}
                   <Box sx={{ minWidth: 200 }}>
                     {
                       getShortcutTooltip(
@@ -72,7 +71,10 @@ const ControlsShortcutsTab: React.FC = () => {
                   {s.description && (
                     <Typography
                       variant="body2"
-                      sx={{ color: "text.secondary" }}
+                      sx={{
+                        color: "var(--palette-grey-200)",
+                        fontWeight: 300
+                      }}
                     >
                       {s.description}
                     </Typography>
