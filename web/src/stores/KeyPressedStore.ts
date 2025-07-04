@@ -349,4 +349,10 @@ registerComboCallback("o", {
   callback: assistantCallback
 });
 
-export { useKeyPressedStore, initKeyListeners, useCombo };
+export {
+  useKeyPressedStore,
+  initKeyListeners,
+  useCombo,
+  registerComboCallback,
+  unregisterComboCallback
+};

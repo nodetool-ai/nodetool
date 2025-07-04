@@ -7,12 +7,18 @@ export interface Shortcut {
   slug: string;
   /** Base key combo (Windows / Linux). Example: ["Control", "C"] */
   keyCombo: string[];
+  /** Shortcut category */
+  category: "editor" | "panel" | "asset-viewer" | "workflow";
   /** macOS-specific combo; if omitted, keys are derived automatically */
   keyComboMac?: string[];
-  /** Shortcut category */
-  category: "nodes" | "panel" | "asset-viewer" | "workflow";
   /** Tooltip/body text */
   description?: string;
+  /** Whether this shortcut is only available in the Electron app */
+  electronOnly?: boolean;
+  /** Whether this shortcut should be registered inside useNodeEditorShortcuts  */
+  registerCombo?: boolean;
+  /** Additional alternative key combinations that trigger the same shortcut */
+  altKeyCombos?: string[][];
 }
 
 /** Simple platform map helper */
@@ -81,7 +87,7 @@ export const getShortcutTooltip = (
         return "SHIFT";
       case " ":
       case "space":
-        return "Space";
+        return "SPACE";
       case "arrowup":
         return "↑";
       case "arrowdown":
@@ -152,196 +158,331 @@ export const getShortcutTooltip = (
 // --- NODE EDITOR SHORTCUTS --------------------------------------------------
 
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
-  // NODES
+  // ---------- NODES -------------------------------------------------------
   {
     title: "Copy",
     slug: "copy",
     keyCombo: ["Control", "C"],
-    category: "nodes",
-    description: "Copy selected nodes"
+    category: "editor",
+    description: "Copy selected nodes",
+    registerCombo: true
   },
   {
     title: "Cut",
     slug: "cut",
     keyCombo: ["Control", "X"],
-    category: "nodes",
-    description: "Cut selected nodes"
+    category: "editor",
+    description: "Cut selected nodes",
+    registerCombo: true
   },
   {
     title: "Paste",
     slug: "paste",
     keyCombo: ["Control", "V"],
-    category: "nodes",
-    description: "Paste nodes from clipboard"
+    category: "editor",
+    description: "Paste nodes from clipboard",
+    registerCombo: true
   },
   {
     title: "Undo",
     slug: "undo",
     keyCombo: ["Control", "Z"],
-    category: "nodes",
-    description: "Undo last action"
+    category: "editor",
+    description: "Undo last action",
+    registerCombo: true
   },
   {
     title: "Redo",
     slug: "redo",
     keyCombo: ["Control", "Shift", "Z"],
-    category: "nodes",
-    description: "Redo last undone action"
+    category: "editor",
+    description: "Redo last undone action",
+    registerCombo: true
   },
   {
     title: "Select All",
-    slug: "select-all",
+    slug: "selectAll",
     keyCombo: ["Control", "A"],
-    category: "nodes",
-    description: "Select all nodes"
+    category: "editor",
+    description: "Select all nodes",
+    registerCombo: true
   },
   {
     title: "Align",
     slug: "align",
     keyCombo: ["A"],
-    category: "nodes",
-    description: "Align selected nodes"
+    category: "editor",
+    description: "Align selected nodes",
+    registerCombo: true
   },
   {
     title: "Align with Spacing",
-    slug: "align-with-spacing",
+    slug: "alignWithSpacing",
     keyCombo: ["Shift", "A"],
-    category: "nodes",
-    description: "Align selected nodes and distribute spacing"
+    category: "editor",
+    description: "Align selected nodes and distribute spacing",
+    registerCombo: true
   },
   {
     title: "Duplicate",
     slug: "duplicate",
     keyCombo: ["Control", "D"],
-    category: "nodes",
-    description: "Duplicate selected nodes"
+    category: "editor",
+    description: "Duplicate selected nodes",
+    registerCombo: true
   },
   {
     title: "Duplicate Vertical",
-    slug: "duplicate-vertical",
+    slug: "duplicateVertical",
     keyCombo: ["Control", "Shift", "D"],
-    category: "nodes",
-    description: "Duplicate selected nodes vertically"
+    category: "editor",
+    description: "Duplicate selected nodes vertically",
+    registerCombo: true
   },
   {
     title: "Fit View",
-    slug: "fit-view",
+    slug: "fitView",
     keyCombo: ["F"],
-    category: "nodes",
-    description: "Fit all / selected nodes into view"
+    category: "editor",
+    description: "Fit all / selected nodes into view",
+    registerCombo: true
   },
   {
     title: "Delete Node",
-    slug: "delete-node",
+    slug: "deleteNode",
     keyCombo: ["Delete"],
-    category: "nodes",
-    description: "Delete selected node(s)"
+    category: "editor",
+    description: "Delete selected node(s)",
+    registerCombo: false
   },
   {
     title: "Reset to Default",
-    slug: "reset-default",
+    slug: "resetDefault",
     keyCombo: ["Control", "MouseRight"],
-    category: "nodes",
-    description: "Reset property to default value"
+    category: "editor",
+    description: "Reset property to default value",
+    registerCombo: false
   },
   {
     title: "Group Selected",
-    slug: "group-selected",
+    slug: "groupSelected",
     keyCombo: ["Control", "G"],
-    category: "nodes",
-    description: "Group selected nodes"
+    category: "editor",
+    description: "Group selected nodes",
+    registerCombo: true
   },
-  // PANELS
+  {
+    title: "Move Left",
+    slug: "moveLeft",
+    keyCombo: ["ArrowLeft"],
+    category: "editor",
+    description: "Nudge selected nodes left",
+    registerCombo: true
+  },
+  {
+    title: "Move Right",
+    slug: "moveRight",
+    keyCombo: ["ArrowRight"],
+    category: "editor",
+    description: "Nudge selected nodes right",
+    registerCombo: true
+  },
+  {
+    title: "Move Up",
+    slug: "moveUp",
+    keyCombo: ["ArrowUp"],
+    category: "editor",
+    description: "Nudge selected nodes up",
+    registerCombo: true
+  },
+  {
+    title: "Move Down",
+    slug: "moveDown",
+    keyCombo: ["ArrowDown"],
+    category: "editor",
+    description: "Nudge selected nodes down",
+    registerCombo: true
+  },
+
+  // ---------- PANEL -------------------------------------------------------
   {
     title: "Open Node Menu",
-    slug: "open-node-menu",
+    slug: "openNodeMenu",
     keyCombo: [" "],
     category: "panel",
-    description: "Open Node Menu - also double-click canvas"
+    description: "Open Node Menu - also double-click canvas",
+    registerCombo: true
   },
   {
     title: "Chat",
-    slug: "toggle-chat",
+    slug: "toggleChat",
     keyCombo: ["1"],
     category: "panel",
-    description: "Toggle Chat panel"
+    description: "Toggle Chat panel",
+    registerCombo: false
   },
   {
     title: "Workflows",
-    slug: "toggle-workflows",
+    slug: "toggleWorkflows",
     keyCombo: ["2"],
     category: "panel",
-    description: "Toggle Workflows panel"
+    description: "Toggle Workflows panel",
+    registerCombo: false
   },
   {
     title: "Assets",
-    slug: "toggle-assets",
+    slug: "toggleAssets",
     keyCombo: ["3"],
     category: "panel",
-    description: "Toggle Assets panel"
+    description: "Toggle Assets panel",
+    registerCombo: false
   },
   {
     title: "Collections",
-    slug: "toggle-collections",
+    slug: "toggleCollections",
     keyCombo: ["4"],
     category: "panel",
-    description: "Toggle Collections panel"
+    description: "Toggle Collections panel",
+    registerCombo: false
   },
   {
     title: "Packs",
-    slug: "toggle-packs",
+    slug: "togglePacks",
     keyCombo: ["5"],
     category: "panel",
-    description: "Toggle Packs panel"
+    description: "Toggle Packs panel",
+    registerCombo: false
   },
   {
     title: "Inspector",
-    slug: "toggle-inspector",
+    slug: "toggleInspector",
     keyCombo: ["I"],
     category: "panel",
-    description: "Show or hide Inspector panel"
+    description: "Show or hide Inspector panel",
+    registerCombo: true
   },
   {
     title: "Operator",
-    slug: "toggle-operator",
+    slug: "toggleOperator",
     keyCombo: ["O"],
     category: "panel",
-    description: "Show or hide Operator panel"
+    description: "Show or hide Operator panel",
+    registerCombo: false
   },
   {
     title: "Keyboard Shortcuts",
-    slug: "show-keyboard-shortcuts",
+    slug: "showKeyboardShortcuts",
     keyCombo: ["K"],
     category: "panel",
-    description: "Show Keyboard Shortcuts"
+    description: "Show Keyboard Shortcuts",
+    registerCombo: true
   },
-  // WORKFLOWS
+
+  // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",
-    slug: "run-workflow",
+    slug: "runWorkflow",
     keyCombo: ["Control", "Enter"],
-    category: "workflow",
-    description: "Execute the current workflow"
+    category: "workflow" as const,
+    description: "Execute the current workflow",
+    registerCombo: false
   },
   {
     title: "Stop Workflow",
-    slug: "stop-workflow",
+    slug: "stopWorkflow",
     keyCombo: ["Escape"],
-    category: "workflow",
-    description: "Stop running workflow"
+    category: "workflow" as const,
+    description: "Stop running workflow",
+    registerCombo: false
   },
   {
     title: "Save Workflow",
-    slug: "save-workflow",
+    slug: "saveWorkflow",
     keyCombo: ["Control", "S"],
-    category: "workflow",
-    description: "Save current workflow"
-  }
-];
+    category: "workflow" as const,
+    description: "Save current workflow",
+    registerCombo: true
+  },
+  {
+    title: "Save Example",
+    slug: "saveExample",
+    keyCombo: ["Control", "Shift", "E"],
+    category: "workflow" as const,
+    description: "Save workflow as example",
+    registerCombo: true
+  },
+  {
+    title: "New Workflow",
+    slug: "newWorkflow",
+    keyCombo: ["Control", "T"],
+    category: "workflow" as const,
+    description: "Create a new workflow tab",
+    registerCombo: true,
+    electronOnly: true
+  },
+  {
+    title: "Close Workflow",
+    slug: "closeWorkflow",
+    keyCombo: ["Control", "W"],
+    category: "workflow" as const,
+    description: "Close current workflow tab",
+    registerCombo: true,
+    electronOnly: true
+  },
+  {
+    title: "Zoom In",
+    slug: "zoomIn",
+    keyCombo: ["Control", "="],
+    category: "workflow" as const,
+    description: "Zoom in on canvas",
+    registerCombo: true
+  },
+  {
+    title: "Zoom Out",
+    slug: "zoomOut",
+    keyCombo: ["Control", "-"],
+    category: "workflow" as const,
+    description: "Zoom out on canvas",
+    registerCombo: true
+  },
+  {
+    title: "Previous Tab",
+    slug: "prevTab",
+    keyCombo: ["Control", "PageUp"],
+    altKeyCombos: [
+      ["Control", "Shift", "["],
+      ["Control", "Alt", "ArrowLeft"]
+    ],
+    category: "workflow" as const,
+    description: "Activate previous workflow tab",
+    registerCombo: true
+  },
+  {
+    title: "Next Tab",
+    slug: "nextTab",
+    keyCombo: ["Control", "PageDown"],
+    altKeyCombos: [
+      ["Control", "Shift", "]"],
+      ["Control", "Alt", "ArrowRight"]
+    ],
+    category: "workflow" as const,
+    description: "Activate next workflow tab",
+    registerCombo: true
+  },
+  // Direct tab switching (Ctrl/Cmd 1-9)
+  ...([1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+    title: `Switch to Tab ${n}`,
+    slug: `switchToTab${n}`,
+    keyCombo: ["Control", `${n}`],
+    category: "workflow" as const,
+    description: `Activate workflow tab ${n}`,
+    registerCombo: true
+  }))
+] as Shortcut[];
 
 export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   workflow: "Workflows",
   panel: "Panels",
-  nodes: "Nodes",
+  editor: "Node Editor",
   "asset-viewer": "Asset Viewer"
 };
