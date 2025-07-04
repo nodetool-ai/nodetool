@@ -56,6 +56,7 @@ export const getShortcutTooltip = (
   navigator.userAgent.includes("Mac")
     ? "mac"
     : "win",
+  mode: "full" | "combo" = "full",
   showDescription = false
 ): React.ReactElement | string => {
   const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
@@ -111,6 +112,14 @@ export const getShortcutTooltip = (
   const keyChildren: React.ReactNode[] = showBoth
     ? [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
     : renderSeries(os === "mac" ? macCombo : winCombo);
+
+  if (mode === "combo") {
+    return React.createElement(
+      "span",
+      { className: "shortcut-combo" },
+      ...keyChildren
+    );
+  }
 
   const children: React.ReactNode[] = [
     React.createElement(

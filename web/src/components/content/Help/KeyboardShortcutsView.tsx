@@ -186,7 +186,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           {hoverSlugs.map((slug, idx) => (
             <React.Fragment key={idx}>
               <div style={{ marginBottom: ".2em", minWidth: "200px" }}>
-                {getShortcutTooltip(slug, os, true)}
+                {getShortcutTooltip(slug, os, "full", true)}
               </div>
             </React.Fragment>
           ))}
