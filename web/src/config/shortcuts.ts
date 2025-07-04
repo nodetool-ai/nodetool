@@ -10,7 +10,7 @@ export interface Shortcut {
   /** macOS-specific combo; if omitted, keys are derived automatically */
   keyComboMac?: string[];
   /** Tooltip/body text */
-  description: string;
+  description?: string;
 }
 
 /** Simple platform map helper */
@@ -145,42 +145,36 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Copy",
     slug: "copy",
     keyCombo: ["Control", "C"],
-    keyComboMac: ["Meta", "C"],
     description: "Copy selected nodes"
   },
   {
     title: "Paste",
     slug: "paste",
     keyCombo: ["Control", "V"],
-    keyComboMac: ["Meta", "V"],
     description: "Paste nodes from clipboard"
   },
   {
     title: "Cut",
     slug: "cut",
     keyCombo: ["Control", "X"],
-    keyComboMac: ["Meta", "X"],
     description: "Cut selected nodes"
   },
   {
     title: "Undo",
     slug: "undo",
     keyCombo: ["Control", "Z"],
-    keyComboMac: ["Meta", "Z"],
     description: "Undo last action"
   },
   {
     title: "Redo",
     slug: "redo",
     keyCombo: ["Control", "Shift", "Z"],
-    keyComboMac: ["Meta", "Shift", "Z"],
     description: "Redo last undone action"
   },
   {
     title: "Select All",
     slug: "select-all",
     keyCombo: ["Control", "A"],
-    keyComboMac: ["Meta", "A"],
     description: "Select all nodes"
   },
   {
@@ -199,8 +193,13 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Duplicate",
     slug: "duplicate",
     keyCombo: ["Control", "D"],
-    keyComboMac: ["Meta", "D"],
     description: "Duplicate selected nodes"
+  },
+  {
+    title: "Duplicate Vertical",
+    slug: "duplicate-vertical",
+    keyCombo: ["Control", "Shift", "D"],
+    description: "Duplicate selected nodes vertically"
   },
   {
     title: "Open Node Menu",
@@ -212,34 +211,30 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Fit View",
     slug: "fit-view",
     keyCombo: ["F"],
-    description: "Fit all nodes into view"
+    description: "Fit all / selected nodes into view"
   },
   {
     title: "Run Workflow",
     slug: "run-workflow",
     keyCombo: ["Control", "Enter"],
-    keyComboMac: ["Meta", "Enter"],
     description: "Execute the current workflow"
   },
   {
     title: "Delete Node",
     slug: "delete-node",
     keyCombo: ["Delete"],
-    keyComboMac: ["Delete"],
     description: "Delete selected node(s)"
   },
   {
     title: "Save Workflow",
     slug: "save-workflow",
     keyCombo: ["Control", "S"],
-    keyComboMac: ["Meta", "S"],
     description: "Save current workflow"
   },
   {
     title: "Stop Workflow",
     slug: "stop-workflow",
     keyCombo: ["Escape"],
-    keyComboMac: ["Escape"],
     description: "Stop running workflow"
   },
   {
@@ -247,5 +242,59 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "paste-selection",
     keyCombo: ["Shift", "V"],
     description: "Paste nodes from clipboard at pointer"
+  },
+  {
+    title: "Panel",
+    slug: "toggle-chat",
+    keyCombo: ["1"],
+    description: "Toggle Chat panel"
+  },
+  {
+    title: "Workflows",
+    slug: "toggle-workflows",
+    keyCombo: ["2"],
+    description: "Toggle Workflows panel"
+  },
+  {
+    title: "Assets",
+    slug: "toggle-assets",
+    keyCombo: ["3"],
+    description: "Toggle Assets panel"
+  },
+  {
+    title: "Collections",
+    slug: "toggle-collections",
+    keyCombo: ["4"],
+    description: "Toggle Collections panel"
+  },
+  {
+    title: "Packs",
+    slug: "toggle-packs",
+    keyCombo: ["5"],
+    description: "Toggle Packs panel"
+  },
+  {
+    title: "Inspector",
+    slug: "toggle-inspector",
+    keyCombo: ["I"],
+    description: "Show or hide Inspector panel"
+  },
+  {
+    title: "Operator",
+    slug: "toggle-operator",
+    keyCombo: ["O"],
+    description: "Show or hide Operator panel"
+  },
+  {
+    title: "Reset to Default",
+    slug: "reset-default",
+    keyCombo: ["Control", "MouseRight"],
+    description: "Reset property to default value"
+  },
+  {
+    title: "Group Selected",
+    slug: "group-selected",
+    keyCombo: ["Control", "G"],
+    description: "Group selected nodes"
   }
 ];
