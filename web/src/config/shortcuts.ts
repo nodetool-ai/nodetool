@@ -152,6 +152,7 @@ export const getShortcutTooltip = (
 // --- NODE EDITOR SHORTCUTS --------------------------------------------------
 
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
+  // NODES
   {
     title: "Copy",
     slug: "copy",
@@ -160,18 +161,18 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Copy selected nodes"
   },
   {
-    title: "Paste",
-    slug: "paste",
-    keyCombo: ["Control", "V"],
-    category: "nodes",
-    description: "Paste nodes from clipboard"
-  },
-  {
     title: "Cut",
     slug: "cut",
     keyCombo: ["Control", "X"],
     category: "nodes",
     description: "Cut selected nodes"
+  },
+  {
+    title: "Paste",
+    slug: "paste",
+    keyCombo: ["Control", "V"],
+    category: "nodes",
+    description: "Paste nodes from clipboard"
   },
   {
     title: "Undo",
@@ -223,25 +224,11 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Duplicate selected nodes vertically"
   },
   {
-    title: "Open Node Menu",
-    slug: "open-node-menu",
-    keyCombo: [" "],
-    category: "panel",
-    description: "Open Node Menu - also double-click canvas"
-  },
-  {
     title: "Fit View",
     slug: "fit-view",
     keyCombo: ["F"],
     category: "nodes",
     description: "Fit all / selected nodes into view"
-  },
-  {
-    title: "Run Workflow",
-    slug: "run-workflow",
-    keyCombo: ["Control", "Enter"],
-    category: "workflow",
-    description: "Execute the current workflow"
   },
   {
     title: "Delete Node",
@@ -251,18 +238,26 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Delete selected node(s)"
   },
   {
-    title: "Save Workflow",
-    slug: "save-workflow",
-    keyCombo: ["Control", "S"],
-    category: "workflow",
-    description: "Save current workflow"
+    title: "Reset to Default",
+    slug: "reset-default",
+    keyCombo: ["Control", "MouseRight"],
+    category: "nodes",
+    description: "Reset property to default value"
   },
   {
-    title: "Stop Workflow",
-    slug: "stop-workflow",
-    keyCombo: ["Escape"],
-    category: "workflow",
-    description: "Stop running workflow"
+    title: "Group Selected",
+    slug: "group-selected",
+    keyCombo: ["Control", "G"],
+    category: "nodes",
+    description: "Group selected nodes"
+  },
+  // PANELS
+  {
+    title: "Open Node Menu",
+    slug: "open-node-menu",
+    keyCombo: [" "],
+    category: "panel",
+    description: "Open Node Menu - also double-click canvas"
   },
   {
     title: "Chat",
@@ -314,32 +309,39 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel"
   },
   {
-    title: "Reset to Default",
-    slug: "reset-default",
-    keyCombo: ["Control", "MouseRight"],
-    category: "nodes",
-    description: "Reset property to default value"
-  },
-  {
-    title: "Group Selected",
-    slug: "group-selected",
-    keyCombo: ["Control", "G"],
-    category: "nodes",
-    description: "Group selected nodes"
-  },
-  {
     title: "Keyboard Shortcuts",
     slug: "show-keyboard-shortcuts",
     keyCombo: ["K"],
     category: "panel",
     description: "Show Keyboard Shortcuts"
+  },
+  // WORKFLOWS
+  {
+    title: "Run Workflow",
+    slug: "run-workflow",
+    keyCombo: ["Control", "Enter"],
+    category: "workflow",
+    description: "Execute the current workflow"
+  },
+  {
+    title: "Stop Workflow",
+    slug: "stop-workflow",
+    keyCombo: ["Escape"],
+    category: "workflow",
+    description: "Stop running workflow"
+  },
+  {
+    title: "Save Workflow",
+    slug: "save-workflow",
+    keyCombo: ["Control", "S"],
+    category: "workflow",
+    description: "Save current workflow"
   }
 ];
 
-// Export all distinct categories present in the shortcuts list (runtime & type-safe)
 export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
+  workflow: "Workflows",
   panel: "Panels",
   nodes: "Nodes",
-  workflow: "Workflows",
   "asset-viewer": "Asset Viewer"
 };
