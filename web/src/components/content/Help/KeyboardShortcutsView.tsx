@@ -114,16 +114,16 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     backspace: "⌫",
     capslock: "⇪",
     shift: "⇧",
-    control: os === "mac" ? "⌃" : "Ctrl",
+    control: os === "mac" ? "⌃" : "CTRL",
     meta: os === "mac" ? "⌘" : "Win",
     alt: os === "mac" ? "⌥" : "Alt",
     enter: "⏎",
-    space: "Space",
+    space: "SPACE",
     escape: "ESC"
   } as Record<string, string>;
 
   return (
-    <div style={{ padding: "1em" }}>
+    <div>
       <ToggleButtonGroup
         value={os}
         exclusive
@@ -142,27 +142,26 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           buttonTheme={buttonTheme}
           physicalKeyboardHighlight={true}
           physicalKeyboardHighlightPress={true}
-          physicalKeyboardHighlightBgColor="var(--nt-hl, #5ac8fa)"
-          physicalKeyboardHighlightTextColor="#000"
+          physicalKeyboardHighlightBgColor="var(--palette-primary-main)"
         />
       </div>
 
       {hoverSlugs && (
         <div
           style={{
-            marginTop: "1em",
+            marginTop: ".5em",
             textAlign: "center",
             display: "flex",
             flexDirection: "row",
             flexWrap: "wrap",
-            alignItems: "center",
-            gap: "1.5em",
+            alignItems: "flex-start",
+            gap: ".2em",
             justifyContent: "center"
           }}
         >
           {hoverSlugs.map((slug, idx) => (
             <React.Fragment key={idx}>
-              <div style={{ marginBottom: "1em" }}>
+              <div style={{ marginBottom: ".2em", minWidth: "200px" }}>
                 {getShortcutTooltip(slug, os, true)}
               </div>
             </React.Fragment>

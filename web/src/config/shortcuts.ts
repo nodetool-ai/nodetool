@@ -238,13 +238,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Stop running workflow"
   },
   {
-    title: "Paste",
-    slug: "paste-selection",
-    keyCombo: ["Shift", "V"],
-    description: "Paste nodes from clipboard at pointer"
-  },
-  {
-    title: "Panel",
+    title: "Chat",
     slug: "toggle-chat",
     keyCombo: ["1"],
     description: "Toggle Chat panel"
