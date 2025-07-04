@@ -131,8 +131,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         size="small"
         sx={{ mb: 2 }}
       >
-        <ToggleButton value="mac">macOS</ToggleButton>
-        <ToggleButton value="win">Windows/Linux</ToggleButton>
+        <ToggleButton value="mac">mac</ToggleButton>
+        <ToggleButton value="win">Windows / Linux</ToggleButton>
       </ToggleButtonGroup>
 
       <div ref={containerRef} className="keyboard-view">
@@ -163,7 +163,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           {hoverSlugs.map((slug, idx) => (
             <React.Fragment key={idx}>
               <div style={{ marginBottom: "1em" }}>
-                {getShortcutTooltip(slug, os)}
+                {getShortcutTooltip(slug, os, true)}
+                {/* add shortcut description */}
               </div>
             </React.Fragment>
           ))}

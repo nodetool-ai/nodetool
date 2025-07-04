@@ -53,7 +53,8 @@ export const getShortcutTooltip = (
   os: "mac" | "win" | "both" = typeof navigator !== "undefined" &&
   navigator.userAgent.includes("Mac")
     ? "mac"
-    : "win"
+    : "win",
+  showDescription = false
 ): React.ReactElement | string => {
   const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
   if (!sc) return slug;
@@ -109,12 +110,32 @@ export const getShortcutTooltip = (
     ? [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
     : renderSeries(os === "mac" ? macCombo : winCombo);
 
-  return React.createElement(
-    "div",
-    { className: "tooltip-span" },
-    React.createElement("div", { className: "tooltip-title" }, sc.title),
-    React.createElement("div", { className: "tooltip-key" }, ...keyChildren)
-  );
+  const children: React.ReactNode[] = [
+    React.createElement(
+      "div",
+      { key: "t", className: "tooltip-title" },
+      sc.title
+    ),
+    React.createElement(
+      "div",
+      { key: "k", className: "tooltip-key" },
+      ...keyChildren
+    )
+  ];
+  if (showDescription && sc.description) {
+    children.push(
+      React.createElement(
+        "div",
+        {
+          key: "d",
+          style: { fontSize: "0.75rem", color: "var(--palette-text-secondary)" }
+        },
+        sc.description
+      )
+    );
+  }
+
+  return React.createElement("div", { className: "tooltip-span" }, ...children);
 };
 
 // --- NODE EDITOR SHORTCUTS --------------------------------------------------

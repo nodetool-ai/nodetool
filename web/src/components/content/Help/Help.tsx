@@ -349,7 +349,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           >
             <Tab label="Controls & Shortcuts" id="help-tab-0" />
             <Tab label="DataTypes" id="help-tab-1" />
-            <Tab label="Keyboard View" id="help-tab-2" />
+            <Tab label="Shortcuts" id="help-tab-2" />
           </Tabs>
           <div className="content">
             <TabPanel value={helpIndex} index={0}>
