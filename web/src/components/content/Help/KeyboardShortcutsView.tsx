@@ -164,7 +164,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
             <React.Fragment key={idx}>
               <div style={{ marginBottom: "1em" }}>
                 {getShortcutTooltip(slug, os, true)}
-                {/* add shortcut description */}
               </div>
             </React.Fragment>
           ))}

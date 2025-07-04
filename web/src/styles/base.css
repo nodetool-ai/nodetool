@@ -89,6 +89,14 @@ span.tooltip-small {
   font-weight: 400 !important;
   color: var(--palette-grey-100);
   margin:0;
+  padding:.5em;
+}
+.tooltip-description {
+  max-width: 12em;
+  font-size: var(--fontSizeSmall);
+  color: var(--palette-grey-50);
+  margin:0;
+  padding:.5em;
 }
 
 .tooltip-key {

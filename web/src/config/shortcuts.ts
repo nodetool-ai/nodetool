@@ -128,7 +128,7 @@ export const getShortcutTooltip = (
         "div",
         {
           key: "d",
-          style: { fontSize: "0.75rem", color: "var(--palette-text-secondary)" }
+          className: "tooltip-description"
         },
         sc.description
       )
