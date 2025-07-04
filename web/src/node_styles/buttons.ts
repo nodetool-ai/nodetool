@@ -16,11 +16,11 @@ export const buttonStyles = (theme: any) =>
     },
 
     ".MuiButton-sizeSmall": {
-      margin: "2px !important",
-      padding: "2px 6px !important",
-      height: "15px !important",
+      margin: "0.5em !important",
+      padding: "0.5em 0.5em !important",
+      height: "1.5em !important",
       fontSize: `${
-        theme.fontSizeSmall || themeVariables.fontSizeSmall
+        theme.fontSizeTiny || themeVariables.fontSizeTiny
       } !important`,
       minWidth: "20px !important",
       backgroundColor:
