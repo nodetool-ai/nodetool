@@ -17,6 +17,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -92,14 +93,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </IconButton>
       </Tooltip>
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Copy</div>
-            <div className="tooltip-key">
-              <kbd>CTRL</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>C</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("copy")}
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton onClick={handleCopyClicked} tabIndex={-1}>
@@ -107,14 +101,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </IconButton>
       </Tooltip>
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Delete</div>
-            <div className="tooltip-key">
-              <kbd>Backspace</kbd> / <kbd>Del</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("delete-node")}
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton className="delete" onClick={handleDelete} tabIndex={-1}>

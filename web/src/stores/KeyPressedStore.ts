@@ -343,16 +343,16 @@ const assistantCallback = () => {
   handleViewChange("assistant");
 };
 
-// Lower-case 'a'
-registerComboCallback("a", {
+// Lower-case 'o'
+registerComboCallback("o", {
   preventDefault: false,
   callback: assistantCallback
 });
 
-// Upper-case 'A' (Shift+A)
-registerComboCallback("shift+a", {
-  preventDefault: false,
-  callback: assistantCallback
-});
-
-export { useKeyPressedStore, initKeyListeners, useCombo };
+export {
+  useKeyPressedStore,
+  initKeyListeners,
+  useCombo,
+  registerComboCallback,
+  unregisterComboCallback
+};
