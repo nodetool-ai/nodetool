@@ -26,7 +26,7 @@ interface ModelDownloadListProps {
 }
 
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
-  const { startDownload, downloads } = useModelDownloadStore((state) => ({
+  const { downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
   }));
