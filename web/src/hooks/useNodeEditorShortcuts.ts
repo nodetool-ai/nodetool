@@ -20,7 +20,10 @@ import { isMac } from "../utils/platform";
 
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
-export const useNodeEditorShortcuts = (active: boolean) => {
+export const useNodeEditorShortcuts = (
+  active: boolean,
+  onShowShortcuts?: () => void
+) => {
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
   const { selectedNodes, selectAllNodes, setNodes } = useNodes((state) => ({
@@ -172,6 +175,10 @@ export const useNodeEditorShortcuts = (active: boolean) => {
     }
   }, [saveExample, addNotification]);
 
+  const handleShowKeyboardShortcuts = useCallback(() => {
+    if (onShowShortcuts) onShowShortcuts();
+  }, [onShowShortcuts]);
+
   // Define OS-specific tab switching shortcuts
   const prevTabShortcut = isMac()
     ? [ControlOrMeta, "Shift", "["]
@@ -227,6 +234,8 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo([ControlOrMeta, "7"], () => handleSwitchToTab(6));
   useCombo([ControlOrMeta, "8"], () => handleSwitchToTab(7));
   useCombo([ControlOrMeta, "9"], () => handleSwitchToTab(8));
+
+  useCombo(["k"], handleShowKeyboardShortcuts);
 
   // useCombo(
   //   ["Alt", "k"],

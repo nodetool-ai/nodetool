@@ -290,5 +290,11 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "group-selected",
     keyCombo: ["Control", "G"],
     description: "Group selected nodes"
+  },
+  {
+    title: "Keyboard Shortcuts",
+    slug: "show-keyboard-shortcuts",
+    keyCombo: ["K"],
+    description: "Show Keyboard Shortcuts"
   }
 ];

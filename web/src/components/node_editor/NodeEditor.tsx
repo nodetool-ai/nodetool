@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Modal } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -28,6 +28,8 @@ import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
 import { useTheme } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
+import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
+import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 
 declare global {
   interface Window {
@@ -51,7 +53,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       clearMissingModels: state.clearMissingModels
     })
   );
-  useNodeEditorShortcuts(active);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // WorkflowRunner connection management
   const { connect, disconnect, state, current_url } = useWorkflowRunner(
@@ -119,6 +121,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     closeDocumentation: state.closeDocumentation
   }));
 
+  useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+
   return (
     <>
       {/* {missingModelRepos.length > 0 && (
@@ -151,6 +155,34 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           <>
             <WorkflowChat workflow_id="default" />
             <NodeMenu focusSearchInput={true} />
+            <Modal
+              open={showShortcuts}
+              onClose={() => setShowShortcuts(false)}
+              closeAfterTransition
+            >
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  backgroundColor: "var(--palette-background-default)",
+                  boxShadow: 24,
+                  borderRadius: 2,
+                  border: 0,
+                  outline: 0,
+                  padding: 4,
+                  width: "70vw",
+                  height: "80vh",
+                  maxHeight: "900px",
+                  maxWidth: "1000px",
+                  minWidth: "900px",
+                  overflow: "hidden"
+                }}
+              >
+                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+              </Box>
+            </Modal>
           </>
         )}
       </Box>
