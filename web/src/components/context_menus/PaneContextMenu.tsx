@@ -28,6 +28,7 @@ import {
   GROUP_NODE_METADATA,
   COMMENT_NODE_METADATA
 } from "../../utils/nodeUtils";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -212,7 +213,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         tooltip={
           !isClipboardValid ? (
             <span>
-              Shift+V
+              {getShortcutTooltip("paste-selection")}
               <br />
               <span className="attention">
                 no valid node data <br />
@@ -220,7 +221,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
               </span>
             </span>
           ) : (
-            <span>Shift+V</span>
+            getShortcutTooltip("paste-selection")
           )
         }
       />

@@ -24,6 +24,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { isMac } from "../../utils/platform";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -345,14 +346,7 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
 
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Save workflow</div>
-          <div className="tooltip-key">
-            <kbd>CTRL</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("save-workflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>
@@ -527,14 +521,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
   }));
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Stop Workflow</div>
-          <div className="tooltip-key">
-            <kbd>ESC</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("stop-workflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button

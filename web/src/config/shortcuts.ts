@@ -49,7 +49,11 @@ export const expandShortcutsForOS = (
  * </div>
  */
 export const getShortcutTooltip = (
-  slug: string
+  slug: string,
+  os: "mac" | "win" | "both" = typeof navigator !== "undefined" &&
+  navigator.userAgent.includes("Mac")
+    ? "mac"
+    : "win"
 ): React.ReactElement | string => {
   const sc = NODE_EDITOR_SHORTCUTS.find((s) => s.slug === slug);
   if (!sc) return slug;
@@ -87,30 +91,29 @@ export const getShortcutTooltip = (
     }
   };
 
-  const renderKbdSeries = (combo: string): React.ReactNode[] => {
-    const parts = combo.split(" + ");
+  // Helper to render combo as <kbd> elements
+  const renderSeries = (comboStr: string): React.ReactNode[] => {
+    const parts = comboStr.split(" + ");
     return parts.flatMap((part, idx) => {
-      const elements: React.ReactNode[] = [
+      const nodes: React.ReactNode[] = [
         React.createElement("kbd", { key: `k-${idx}` }, humanizeKey(part))
       ];
-      if (idx < parts.length - 1) {
-        elements.push("+");
-      }
-      return elements;
+      if (idx < parts.length - 1) nodes.push("+");
+      return nodes;
     });
   };
+
+  const showBoth = os === "both";
+
+  const keyChildren: React.ReactNode[] = showBoth
+    ? [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
+    : renderSeries(os === "mac" ? macCombo : winCombo);
 
   return React.createElement(
     "div",
     { className: "tooltip-span" },
     React.createElement("div", { className: "tooltip-title" }, sc.title),
-    React.createElement(
-      "div",
-      { className: "tooltip-key" },
-      ...renderKbdSeries(winCombo),
-      " / ",
-      ...renderKbdSeries(macCombo)
-    )
+    React.createElement("div", { className: "tooltip-key" }, ...keyChildren)
   );
 };
 
@@ -160,13 +163,6 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Select all nodes"
   },
   {
-    title: "Duplicate",
-    slug: "duplicate",
-    keyCombo: ["Control", "D"],
-    keyComboMac: ["Meta", "D"],
-    description: "Duplicate selected nodes"
-  },
-  {
     title: "Align",
     slug: "align",
     keyCombo: ["A"],
@@ -177,6 +173,13 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "align-with-spacing",
     keyCombo: ["Shift", "A"],
     description: "Align selected nodes and distribute spacing"
+  },
+  {
+    title: "Duplicate",
+    slug: "duplicate",
+    keyCombo: ["Control", "D"],
+    keyComboMac: ["Meta", "D"],
+    description: "Duplicate selected nodes"
   },
   {
     title: "Open Node Menu",
@@ -203,5 +206,25 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["Delete"],
     keyComboMac: ["Delete"],
     description: "Delete selected node(s)"
+  },
+  {
+    title: "Save Workflow",
+    slug: "save-workflow",
+    keyCombo: ["Control", "S"],
+    keyComboMac: ["Meta", "S"],
+    description: "Save current workflow"
+  },
+  {
+    title: "Stop Workflow",
+    slug: "stop-workflow",
+    keyCombo: ["Escape"],
+    keyComboMac: ["Escape"],
+    description: "Stop running workflow"
+  },
+  {
+    title: "Paste",
+    slug: "paste-selection",
+    keyCombo: ["Shift", "V"],
+    description: "Paste nodes from clipboard at pointer"
   }
 ];

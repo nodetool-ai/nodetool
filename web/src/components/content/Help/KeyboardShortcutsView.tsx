@@ -33,7 +33,10 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const keyTitleMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     activeShortcuts.forEach((sc) => {
-      const combo = sc.keyCombo.map((k) => k.toLowerCase());
+      const combo = sc.keyCombo.map((k) => {
+        const low = k.toLowerCase();
+        return low === " " ? "space" : low;
+      });
       combo.forEach((key) => {
         if (!map[key]) map[key] = [];
         map[key].push(sc.title);
@@ -55,9 +58,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     const m: Record<string, string[]> = {};
     activeShortcuts.forEach((s) => {
       s.keyCombo.forEach((k) => {
-        const low = k.toLowerCase();
-        if (!m[low]) m[low] = [];
-        m[low].push(s.slug);
+        const lowKey = k.toLowerCase() === " " ? "space" : k.toLowerCase();
+        if (!m[lowKey]) m[lowKey] = [];
+        m[lowKey].push(s.slug);
       });
     });
     return m;
@@ -98,7 +101,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         }
       });
     };
-  }, [keyTitleMap]);
+  }, [keyTitleMap, keySlugMap]);
 
   const handleOsToggle = (_: any, value: "mac" | "win") => {
     if (value) setOs(value);
@@ -152,7 +155,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 
       {hoverSlug && (
         <div style={{ marginTop: "1em", textAlign: "center" }}>
-          {getShortcutTooltip(hoverSlug)}
+          {getShortcutTooltip(hoverSlug, os)}
         </div>
       )}
     </div>
