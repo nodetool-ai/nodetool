@@ -87,7 +87,6 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyComboMac: ["Meta", "C"],
     description: "Copy selected nodes"
   }
-  // … add the rest, extracted from useNodeEditorShortcuts.ts
 ];
 
 /** --------------------------------------------------
@@ -120,7 +119,7 @@ should be using this classnames and <kbd>
           </div>
         </div>
 
-2. Modify `useNodeEditorShortcuts.ts` to import `NODE_EDITOR_SHORTCUTS` and optionally the helper so the runtime hook and UI share one source of truth.
+2. Modify `NodeEditorShortcuts.ts` to import `NODE_EDITOR_SHORTCUTS` and optionally the helper so the runtime hook and UI share one source of truth.
 
 ---
 
@@ -236,7 +235,7 @@ Action:
 
 ## 11 Remove local `ControlOrMeta` constants
 
-Multiple files (e.g. `useNodeEditorShortcuts.ts`) define their own `ControlOrMeta` logic. Replace these with:
+Multiple files (e.g. `useNodeEditorShortcuts`) define their own `ControlOrMeta` logic. Replace these with:
 
 ```ts
 import { isMac } from "../utils/platform";

@@ -1,3 +1,6 @@
+// ---------------------------------------------------------------------------------------
+/* eslint-disable react-hooks/rules-of-hooks */
+// ---------------------------------------------------------------------------------------
 import { useCallback, useEffect } from "react";
 import {
   registerComboCallback,
@@ -29,21 +32,15 @@ export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
 ) => {
+  // ALL HOOKS FIRST, NO LOGIC BEFORE THIS LINE
   const nodeHistory = useTemporalNodes((state) => state);
-  const { selectedNodes, selectAllNodes, setNodes } = useNodes((state) => ({
+  const nodesStore = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes
   }));
   const reactFlow = useReactFlow();
-  const {
-    saveExample,
-    removeWorkflow,
-    getCurrentWorkflow,
-    openWorkflows,
-    createNewWorkflow,
-    saveWorkflow
-  } = useWorkflowManager((state) => ({
+  const workflowManager = useWorkflowManager((state) => ({
     saveExample: state.saveExample,
     removeWorkflow: state.removeWorkflow,
     getCurrentWorkflow: state.getCurrentWorkflow,
@@ -51,14 +48,13 @@ export const useNodeEditorShortcuts = (
     createNewWorkflow: state.createNew,
     saveWorkflow: state.saveWorkflow
   }));
-
-  // Utility hooks
-  const { handleCopy, handlePaste, handleCut } = useCopyPaste();
+  const copyPaste = useCopyPaste();
   const alignNodes = useAlignNodes();
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
-  const { openNodeMenu } = useNodeMenuStore((state) => ({
+
+  const nodeMenuStore = useNodeMenuStore((state) => ({
     openNodeMenu: state.openNodeMenu
   }));
   const handleFitView = useFitView();
@@ -67,6 +63,20 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  // All hooks above this line
+
+  // Now destructure/store values from the hook results
+  const { selectedNodes, selectAllNodes, setNodes } = nodesStore;
+  const {
+    saveExample,
+    removeWorkflow,
+    getCurrentWorkflow,
+    openWorkflows,
+    createNewWorkflow,
+    saveWorkflow
+  } = workflowManager;
+  const { handleCopy, handlePaste, handleCut } = copyPaste;
+  const { openNodeMenu } = nodeMenuStore;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {

@@ -8,7 +8,7 @@ export interface Shortcut {
   /** Base key combo (Windows / Linux). Example: ["Control", "C"] */
   keyCombo: string[];
   /** Shortcut category */
-  category: "editor" | "panel" | "asset-viewer" | "workflow";
+  category: "editor" | "panel" | "assets" | "workflow";
   /** macOS-specific combo; if omitted, keys are derived automatically */
   keyComboMac?: string[];
   /** Tooltip/body text */
@@ -484,5 +484,5 @@ export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   workflow: "Workflows",
   panel: "Panels",
   editor: "Node Editor",
-  "asset-viewer": "Asset Viewer"
+  assets: "Asset Viewer"
 };

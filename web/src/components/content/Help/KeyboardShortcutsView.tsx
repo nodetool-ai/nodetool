@@ -10,7 +10,6 @@ import {
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
-import KeyboardGrid from "./KeyboardGrid";
 
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
@@ -25,7 +24,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 }) => {
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [categoryFilter, setCategoryFilter] = useState<
-    "all" | "nodes" | "panel" | "assets"
+    "all" | "editor" | "panel" | "assets" | "workflow"
   >("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
@@ -33,7 +32,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const filtered = useMemo(() => {
     if (categoryFilter === "all") return shortcuts;
     if (categoryFilter === "assets")
-      return shortcuts.filter((s) => s.category === "asset-viewer");
+      return shortcuts.filter((s) => s.category === "assets");
     return shortcuts.filter((s) => s.category === categoryFilter);
   }, [shortcuts, categoryFilter]);
 
@@ -73,8 +72,20 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         m[lowKey].push(s.slug);
       });
     });
+    // For ctrl/meta, group switchToTab shortcuts into one, but leave number keys untouched
+    if (os === "mac") {
+      if (!m["meta"]) m["meta"] = [];
+      m["meta"] = m["meta"].filter((slug) => !/^switchToTab\d+$/.test(slug));
+      m["meta"].push("switchToTabGroup");
+    } else {
+      if (!m["control"]) m["control"] = [];
+      m["control"] = m["control"].filter(
+        (slug) => !/^switchToTab\d+$/.test(slug)
+      );
+      m["control"].push("switchToTabGroup");
+    }
     return m;
-  }, [activeShortcuts]);
+  }, [activeShortcuts, os]);
 
   // After render, attach title attributes to every button
   useEffect(() => {
@@ -153,7 +164,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         sx={{ mb: 2, ml: 8 }}
       >
         <ToggleButton value="all">All</ToggleButton>
-        <ToggleButton value="nodes">Nodes</ToggleButton>
+        <ToggleButton value="editor">Editor</ToggleButton>
         <ToggleButton value="workflow">Workflow</ToggleButton>
         <ToggleButton value="panel">Panels</ToggleButton>
         <ToggleButton value="assets">Assets</ToggleButton>
@@ -185,8 +196,20 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         >
           {hoverSlugs.map((slug, idx) => (
             <React.Fragment key={idx}>
-              <div style={{ marginBottom: ".2em", minWidth: "200px" }}>
-                {getShortcutTooltip(slug, os, "full", true)}
+              <div style={{ marginBottom: ".2em", minWidth: "180px" }}>
+                {slug === "switchToTabGroup" ? (
+                  <div className="tooltip-span">
+                    <div className="tooltip-title">Switch to Tab</div>
+                    <div className="tooltip-key">
+                      <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
+                    </div>
+                    <div className="tooltip-description">
+                      Activate workflow tab 1-9
+                    </div>
+                  </div>
+                ) : (
+                  getShortcutTooltip(slug, os, "full", true)
+                )}
               </div>
             </React.Fragment>
           ))}

@@ -159,7 +159,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       <Tooltip
-        title={getShortcutTooltip("toggle-chat")}
+        title={getShortcutTooltip("toggleChat")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -194,7 +194,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
       <Tooltip
-        title={getShortcutTooltip("toggle-assets")}
+        title={getShortcutTooltip("toggleAssets")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -221,7 +221,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </Button>
       </Tooltip>
       <Tooltip
-        title={getShortcutTooltip("toggle-collections")}
+        title={getShortcutTooltip("toggleCollections")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -242,7 +242,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
       <Tooltip
-        title={getShortcutTooltip("toggle-packs")}
+        title={getShortcutTooltip("togglePacks")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >

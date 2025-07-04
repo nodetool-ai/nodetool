@@ -309,7 +309,10 @@ const NodeMenuButton = memo(function NodeMenuButton() {
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
   return (
-    <Tooltip title="Toggle Node Menu" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip
+      title={getShortcutTooltip("open NodeMenu")}
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
       <Button
         className={`action-button node-menu-button ${
           isMenuOpen ? "active" : ""
@@ -346,7 +349,7 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
 
   return (
     <Tooltip
-      title={getShortcutTooltip("save-workflow")}
+      title={getShortcutTooltip("saveWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>
@@ -480,7 +483,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   return (
     <Tooltip
-      title={getShortcutTooltip("run-workflow")}
+      title={getShortcutTooltip("runWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>
@@ -521,7 +524,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
   }));
   return (
     <Tooltip
-      title={getShortcutTooltip("stop-workflow")}
+      title={getShortcutTooltip("stopWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button
