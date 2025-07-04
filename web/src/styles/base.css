@@ -85,14 +85,17 @@ span.tooltip-small {
 }
 
 .tooltip-title {
-  font-size: 1.2em;
+  font-size: var(--fontSizeNormal);
+  font-weight: 400 !important;
   color: var(--palette-grey-100);
   margin:0;
 }
 
 .tooltip-key {
-  font-size: 0.8em;
   background-color: transparent;
-  color: var(--palette-grey-200);
+  color: var(--palette-grey-50);
+  word-spacing: 1em;
+  font-family: var(--fontFamily2);
+  letter-spacing: 0.15em;
   margin:0;
 }

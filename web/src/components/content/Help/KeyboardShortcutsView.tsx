@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import { ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { ToggleButtonGroup, ToggleButton, Divider } from "@mui/material";
 import {
   Shortcut,
   expandShortcutsForOS,
@@ -25,7 +25,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 }) => {
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hoverSlug, setHoverSlug] = useState<string | null>(null);
+  const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
 
   const activeShortcuts = expandShortcutsForOS(shortcuts, os === "mac");
 
@@ -78,9 +78,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         btn.setAttribute("title", title);
         btn.setAttribute("aria-label", title);
         // add hover listeners once
-        const handleEnter = () => setHoverSlug(keySlugMap[key][0]);
-        const handleLeave = () =>
-          setHoverSlug((prev) => (prev === keySlugMap[key][0] ? null : prev));
+        const handleEnter = () => setHoverSlugs(keySlugMap[key]);
+        const handleLeave = () => setHoverSlugs(null);
         btn.addEventListener("mouseenter", handleEnter);
         btn.addEventListener("mouseleave", handleLeave);
         // store cleanup handler
@@ -153,9 +152,26 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         />
       </div>
 
-      {hoverSlug && (
-        <div style={{ marginTop: "1em", textAlign: "center" }}>
-          {getShortcutTooltip(hoverSlug, os)}
+      {hoverSlugs && (
+        <div
+          style={{
+            marginTop: "1em",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "1.5em",
+            justifyContent: "center"
+          }}
+        >
+          {hoverSlugs.map((slug, idx) => (
+            <React.Fragment key={idx}>
+              <div style={{ marginBottom: "1em" }}>
+                {getShortcutTooltip(slug, os)}
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       )}
     </div>
