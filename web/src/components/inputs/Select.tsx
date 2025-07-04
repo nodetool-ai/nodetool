@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { isEqual } from "lodash";
 import React, {
   useCallback,
@@ -48,127 +47,6 @@ const ChevronIcon = ({ className }: { className?: string }) => (
     />
   </svg>
 );
-
-const menuStyles = (theme: any) =>
-  css({
-    ".select-container": {
-      display: "block",
-      width: "100%"
-    },
-    ".select-wrapper": {
-      position: "relative",
-      flex: 1,
-      minWidth: 0,
-      height: "36px",
-      minHeight: "36px"
-    },
-    ".options-list": {
-      position: "absolute",
-      top: "-10px",
-      width: "auto",
-      minWidth: "100%",
-      maxWidth: "300px",
-      maxHeight: "300px",
-      overflowY: "auto",
-      padding: ".5em 0",
-      listStyle: "none",
-      backgroundColor: theme.palette.c_node_bg,
-      border: `1px solid var(--palette-grey-800)`,
-      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.5)",
-      borderRadius: ".3em",
-      zIndex: 1000,
-      whiteSpace: "nowrap"
-    },
-    ".options-list .option:first-of-type": {
-      color: theme.palette.grey[500]
-    },
-
-    ".option": {
-      padding: ".1em 1em",
-      cursor: "pointer",
-      fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200],
-      transition: "all 0.2s ease",
-      whiteSpace: "nowrap",
-
-      "&:hover": {
-        backgroundColor: theme.palette.grey[600],
-        color: theme.palette.grey[0]
-      },
-
-      "&.matching": {
-        backgroundColor: theme.palette.grey[500],
-        fontWeight: "bold"
-      },
-
-      "&.selected": {
-        backgroundColor: theme.palette.grey[600],
-        color: "var(--palette-primary-main)"
-      },
-
-      "&.highlighted": {
-        backgroundColor: theme.palette.grey[500],
-        color: theme.palette.grey[0]
-      }
-    },
-
-    ".select-header": {
-      position: "absolute",
-      width: "100%",
-      top: "0px",
-      height: "22",
-      padding: "0px 5px",
-      margin: "0",
-      border: `1px solid ${theme.palette.grey[600]}`,
-      fontSize: theme.fontSizeSmaller,
-      borderRadius: ".3em",
-      cursor: "pointer",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      backgroundColor: theme.palette.c_node_bg,
-
-      "&:hover": {
-        borderColor: theme.palette.grey[400]
-      }
-    },
-
-    ".select-header-text": {
-      color: theme.palette.grey[100],
-      fontSize: theme.fontSizeTiny,
-      userSelect: "none"
-    },
-
-    ".chevron": {
-      transition: "transform 0.2s ease",
-      color: theme.palette.grey[400],
-      transform: "rotate(0deg)",
-
-      "&.open": {
-        transform: "rotate(180deg)"
-      }
-    },
-
-    ".search-input": {
-      marginTop: "-2px",
-      position: "absolute",
-      top: "1px",
-      zIndex: 11111,
-      width: "100%",
-      margin: "-4px 0 0 0",
-      padding: "3px .5em",
-      backgroundColor: theme.palette.grey[800],
-      border: `1px solid ${theme.palette.grey[500]}`,
-      borderRadius: ".3em",
-      color: theme.palette.grey[0],
-      fontSize: theme.fontSizeSmaller,
-
-      "&:focus": {
-        outline: "none",
-        borderColor: theme.palette.grey[400]
-      }
-    }
-  });
 
 const Select: React.FC<SelectProps> = ({
   options,
@@ -319,7 +197,7 @@ const Select: React.FC<SelectProps> = ({
   }, [searchQuery]);
 
   return (
-    <div className="select-container" css={menuStyles}>
+    <div className="select-container">
       <Tooltip title={label}>
         <div
           ref={selectRef}
