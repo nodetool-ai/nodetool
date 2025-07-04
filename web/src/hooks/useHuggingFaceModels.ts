@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
-import { UnifiedModel } from "../stores/ApiTypes";
+import { CachedModel, UnifiedModel } from "../stores/ApiTypes";
 
 export const useHuggingFaceModels = () => {
   const {
@@ -15,18 +15,21 @@ export const useHuggingFaceModels = () => {
         "/api/models/huggingface_models",
         {}
       );
+      console.log("data", data);
       if (error) throw error;
       return data.map(
-        (model: any): UnifiedModel => ({
+        (model: CachedModel): UnifiedModel => ({
           id: model.repo_id,
-          type: model.the_model_type || model.type,
+          type: model.the_model_type ?? "",
           name: model.repo_id,
           repo_id: model.repo_id,
-          path: model.path,
+          cache_path: model.path,
+          has_model_index: model.has_model_index,
           description: "",
           readme: model.readme ?? "",
           size_on_disk: model.size_on_disk,
-          downloaded: true
+          downloaded: true,
+          pipeline_tag: model.the_model_info?.pipeline_tag ?? ""
         })
       );
     },

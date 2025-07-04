@@ -4,26 +4,17 @@ import { UnifiedModel } from "../stores/ApiTypes";
 import { client } from "../stores/ApiClient";
 import { tryCacheFiles } from "../serverState/tryCacheFiles";
 import { createErrorMessage } from "../utils/errorHandling";
+import { useHuggingFaceModels } from "./useHuggingFaceModels";
 
-export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
-  const singleFileModels = recommendedModels.filter((model) => model.path);
+export function useModelsWithSize(models: UnifiedModel[]) {
+  const singleFileModels = models.filter((model) => model.path);
+  const { hfModels } = useHuggingFaceModels();
+  
   const filePaths = singleFileModels?.map((model) => ({
     repo_id: model.repo_id || "",
     path: model.path || "",
     downloaded: false
   }));
-
-  const { data: hfModels } = useQuery({
-    queryKey: ["huggingFaceModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET(
-        "/api/models/huggingface_models",
-        {}
-      );
-      if (error) throw error;
-      return data;
-    }
-  });
 
   const { data: fileInfos } = useQuery({
     queryKey: ["fileInfos"].concat(
@@ -51,7 +42,7 @@ export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
   });
 
   return useMemo(() => {
-    return recommendedModels.map((model) => {
+    return models.map((model) => {
       const singleFileModel = model.path
         ? downloadedSingleFileModels?.find(
             (m) => m.repo_id === model.repo_id && m.path === model.path
@@ -67,9 +58,9 @@ export function useModelsWithSize(recommendedModels: UnifiedModel[]) {
         size_on_disk: model.path ? singleFileModelSize : hfModel?.size_on_disk,
         downloaded: singleFileModel?.downloaded,
         readme: hfModel?.readme ?? "",
-        pipeline_tag: hfModel?.the_model_info?.pipeline_tag || undefined,
-        tags: hfModel?.the_model_info?.tags
+        pipeline_tag: hfModel?.pipeline_tag || undefined,
+        tags: hfModel?.tags
       };
     });
-  }, [recommendedModels, downloadedSingleFileModels, fileInfos, hfModels]);
+  }, [models, downloadedSingleFileModels, fileInfos, hfModels]);
 }

@@ -1,13 +1,10 @@
 import { useMemo, useCallback, memo } from "react";
 import { HuggingFaceModel } from "../../stores/ApiTypes";
-import useModelStore from "../../stores/ModelStore";
-import { useQuery } from "@tanstack/react-query";
-import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
-import useMetadataStore from "../../stores/MetadataStore";
 import { useRecommendedModels } from "../../hooks/useRecommendedModels";
 import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
+import { useLoraModels } from "../../hooks/useLoraModels";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -20,70 +17,82 @@ const HuggingFaceModelSelect = ({
   onChange,
   value
 }: HuggingFaceModelSelectProps) => {
-  const { hfModels } = useHuggingFaceModels();
+  const { hfModels, hfLoading, hfIsFetching, hfError } = useHuggingFaceModels();
   const { recommendedModels } = useRecommendedModels();
-  const { loadHuggingFaceModels } = useModelStore();
-
-  const {
-    data: models,
-    isError,
-    isLoading,
-    isSuccess
-  } = useQuery({
-    queryKey: ["models", modelType],
-    queryFn: async () => {
-      if (modelType.startsWith("hf.lora_sd")) {
-        const loras = recommendedModels?.filter(
-          (model) => model.type === modelType
-        );
-        const loraPaths = loras?.map((lora) => ({
-          repo_id: lora.repo_id || "",
-          path: lora.path || "",
-          downloaded: false
-        }));
-        const loraModels = await tryCacheFiles(loraPaths || []);
-        return loraModels
-          ?.filter((m) => m.downloaded)
-          .map((lora) => ({
-            type: modelType,
-            repo_id: lora.repo_id,
-            path: lora.path
-          }));
-      } else {
-        const recommended =
-          modelType === "hf.checkpoint_model"
-            ? recommendedModels?.filter(
-                (model) =>
-                  model.type === "hf.stable_diffusion" ||
-                  model.type === "hf.stable_diffusion_xl" ||
-                  model.type === "hf.stable_diffusion_3" ||
-                  model.type === "hf.flux" ||
-                  model.type === "hf.ltxv"
-              )
-            : recommendedModels?.filter((model) => model.type === modelType);
-        return (
-          recommended?.reduce((acc, recommendedModel) => {
-            const model = hfModels?.find(
-              (m) => m.repo_id === recommendedModel.repo_id
-            );
-            if (model) {
-              acc.push({
-                type: modelType,
-                repo_id: model.repo_id || "",
-                path: recommendedModel.path || ""
-              });
-            }
-            return acc;
-          }, [] as HuggingFaceModel[]) || []
-        );
-      }
-    }
+  const { data: loraModels, isLoading: loraIsLoading } = useLoraModels({
+    modelType,
+    enabled: !!modelType && !hfLoading && !hfIsFetching && !hfError
   });
 
-  const options = useMemo(() => {
-    if (!models || isLoading || isError) return [];
+  const models = useMemo(() => {
+    if (!modelType || hfLoading || hfIsFetching || hfError || modelType.startsWith("hf.lora_sd")) {
+      return null;
+    }
 
-    const modelOptions = (models as HuggingFaceModel[]).map((model) => ({
+    console.log("hfModels", hfModels);
+
+    if (modelType.startsWith("hf.text_to_image")) {
+      const textToImages = hfModels?.filter(
+        (model) => model.pipeline_tag === "text-to-image" && model.has_model_index
+      );
+      return textToImages
+        ?.map((textToImage) => ({
+          type: modelType,
+          repo_id: textToImage.repo_id || "",
+          path: textToImage.path || ""
+        }));
+    } else if (modelType.startsWith("hf.image_to_image")) {
+      const imageToImages = hfModels?.filter(
+        (model) =>
+          model.has_model_index &&
+          (model.pipeline_tag === "image-to-image" ||
+            model.pipeline_tag === "text-to-image")
+      );
+      return imageToImages
+        ?.map((imageToImage) => ({
+          type: modelType,
+          repo_id: imageToImage.repo_id || "",
+          path: imageToImage.path || ""
+        }));
+    } else {
+      const recommended =
+        modelType === "hf.checkpoint_model"
+          ? recommendedModels?.filter(
+              (model) =>
+                model.type === "hf.stable_diffusion" ||
+                model.type === "hf.stable_diffusion_xl" ||
+                model.type === "hf.stable_diffusion_3" ||
+                model.type === "hf.flux" ||
+                model.type === "hf.ltxv"
+            )
+          : recommendedModels?.filter((model) => model.type === modelType);
+      return (
+        recommended?.reduce((acc, recommendedModel) => {
+          const model = hfModels?.find(
+            (m) => m.repo_id === recommendedModel.repo_id
+          );
+          if (model) {
+            acc.push({
+              type: modelType,
+              repo_id: model.repo_id || "",
+              path: recommendedModel.path || ""
+            });
+          }
+          return acc;
+        }, [] as HuggingFaceModel[]) || []
+      );
+    }
+  }, [modelType, hfModels, hfLoading, hfIsFetching, hfError, recommendedModels]);
+
+  const options = useMemo(() => {
+    const isLoadingModels = hfLoading || hfIsFetching || (modelType.startsWith("hf.lora_sd") && loraIsLoading);
+    
+    // Use loraModels for lora model types, otherwise use models from useMemo
+    const currentModels = modelType.startsWith("hf.lora_sd") ? loraModels : models;
+    
+    if (!currentModels || isLoadingModels || hfError) return [];
+
+    const modelOptions = (currentModels as HuggingFaceModel[]).map((model) => ({
       value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
       label: model.path ? (
         <div className="model-label">
@@ -107,7 +116,7 @@ const HuggingFaceModelSelect = ({
       { value: "", label: "None", sortKey: "" },
       ...modelOptions.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
     ];
-  }, [models, isLoading, isError]);
+  }, [models, hfLoading, hfIsFetching, hfError, loraIsLoading, modelType, loraModels]);
 
   const handleChange = useCallback(
     (selectedValue: string) => {
@@ -132,19 +141,22 @@ const HuggingFaceModelSelect = ({
     selectValue && !options.some((opt) => opt.value === selectValue);
 
   const placeholder = useMemo(() => {
-    if (isLoading) return "Loading models...";
-    if (isError) return "Error loading models";
-    if (isSuccess && options.length === 1)
+    const isLoadingModels = hfLoading || hfIsFetching || (modelType.startsWith("hf.lora_sd") && loraIsLoading);
+    if (isLoadingModels) return "Loading models...";
+    if (hfError) return "Error loading models";
+    if (options.length === 1)
       return "No models found. Click RECOMMENDED MODELS above to find models.";
     if (isValueMissing) return `${selectValue} (missing)`;
     return "Select a model";
   }, [
-    isLoading,
-    isError,
-    isSuccess,
+    hfLoading,
+    hfIsFetching,
+    hfError,
     options.length,
     isValueMissing,
-    selectValue
+    selectValue,
+    loraIsLoading,
+    modelType
   ]);
 
   return (

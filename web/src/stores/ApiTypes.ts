@@ -105,6 +105,7 @@ export interface UnifiedModel {
   name: string;
   repo_id?: string;
   path?: string | null;
+  cache_path?: string | null;
   allow_patterns?: string[];
   ignore_patterns?: string[];
   description?: string;
@@ -113,6 +114,7 @@ export interface UnifiedModel {
   downloaded?: boolean;
   pipeline_tag?: string;
   tags?: string[];
+  has_model_index?: boolean;
 }
 
 export type Task = components["schemas"]["Task"];
