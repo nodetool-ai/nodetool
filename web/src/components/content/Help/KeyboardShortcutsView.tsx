@@ -24,10 +24,20 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   shortcuts = NODE_EDITOR_SHORTCUTS
 }) => {
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
+  const [categoryFilter, setCategoryFilter] = useState<
+    "all" | "nodes" | "panel" | "assets"
+  >("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
 
-  const activeShortcuts = expandShortcutsForOS(shortcuts, os === "mac");
+  const filtered = useMemo(() => {
+    if (categoryFilter === "all") return shortcuts;
+    if (categoryFilter === "assets")
+      return shortcuts.filter((s) => s.category === "asset-viewer");
+    return shortcuts.filter((s) => s.category === categoryFilter);
+  }, [shortcuts, categoryFilter]);
+
+  const activeShortcuts = expandShortcutsForOS(filtered, os === "mac");
 
   // Build mapping key -> titles for tooltip assignment
   const keyTitleMap = useMemo(() => {
@@ -131,8 +141,22 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         size="small"
         sx={{ mb: 2 }}
       >
-        <ToggleButton value="mac">mac</ToggleButton>
-        <ToggleButton value="win">Windows / Linux</ToggleButton>
+        <ToggleButton value="mac">macOS</ToggleButton>
+        <ToggleButton value="win">Windows/Linux</ToggleButton>
+      </ToggleButtonGroup>
+
+      <ToggleButtonGroup
+        value={categoryFilter}
+        exclusive
+        onChange={(_, v) => v && setCategoryFilter(v)}
+        size="small"
+        sx={{ mb: 2, ml: 8 }}
+      >
+        <ToggleButton value="all">All</ToggleButton>
+        <ToggleButton value="nodes">Nodes</ToggleButton>
+        <ToggleButton value="workflow">Workflow</ToggleButton>
+        <ToggleButton value="panel">Panels</ToggleButton>
+        <ToggleButton value="assets">Assets</ToggleButton>
       </ToggleButtonGroup>
 
       <div ref={containerRef} className="keyboard-view">

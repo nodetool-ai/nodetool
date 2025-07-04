@@ -30,31 +30,6 @@
   border: 2px solid var(--palette-primary-main);
 }
 
-.tooltip-span {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: var(--palette-text-primary);
-}
-.tooltip-title {
-  font-weight: 600;
-}
-.tooltip-key {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.tooltip-key kbd {
-  background: var(--palette-grey-800);
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-size: 0.7rem;
-  font-family: inherit;
-  color: var(--palette-text-primary);
-}
-
 .keyboard-view .hg-button {
   min-width: 32px;
   height: 42px;

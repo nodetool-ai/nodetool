@@ -9,6 +9,8 @@ export interface Shortcut {
   keyCombo: string[];
   /** macOS-specific combo; if omitted, keys are derived automatically */
   keyComboMac?: string[];
+  /** Shortcut category */
+  category: "nodes" | "panel" | "asset-viewer" | "workflow";
   /** Tooltip/body text */
   description?: string;
 }
@@ -145,156 +147,182 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Copy",
     slug: "copy",
     keyCombo: ["Control", "C"],
+    category: "nodes",
     description: "Copy selected nodes"
   },
   {
     title: "Paste",
     slug: "paste",
     keyCombo: ["Control", "V"],
+    category: "nodes",
     description: "Paste nodes from clipboard"
   },
   {
     title: "Cut",
     slug: "cut",
     keyCombo: ["Control", "X"],
+    category: "nodes",
     description: "Cut selected nodes"
   },
   {
     title: "Undo",
     slug: "undo",
     keyCombo: ["Control", "Z"],
+    category: "nodes",
     description: "Undo last action"
   },
   {
     title: "Redo",
     slug: "redo",
     keyCombo: ["Control", "Shift", "Z"],
+    category: "nodes",
     description: "Redo last undone action"
   },
   {
     title: "Select All",
     slug: "select-all",
     keyCombo: ["Control", "A"],
+    category: "nodes",
     description: "Select all nodes"
   },
   {
     title: "Align",
     slug: "align",
     keyCombo: ["A"],
+    category: "nodes",
     description: "Align selected nodes"
   },
   {
     title: "Align with Spacing",
     slug: "align-with-spacing",
     keyCombo: ["Shift", "A"],
+    category: "nodes",
     description: "Align selected nodes and distribute spacing"
   },
   {
     title: "Duplicate",
     slug: "duplicate",
     keyCombo: ["Control", "D"],
+    category: "nodes",
     description: "Duplicate selected nodes"
   },
   {
     title: "Duplicate Vertical",
     slug: "duplicate-vertical",
     keyCombo: ["Control", "Shift", "D"],
+    category: "nodes",
     description: "Duplicate selected nodes vertically"
   },
   {
     title: "Open Node Menu",
     slug: "open-node-menu",
     keyCombo: [" "],
+    category: "nodes",
     description: "Open the node creation menu"
   },
   {
     title: "Fit View",
     slug: "fit-view",
     keyCombo: ["F"],
+    category: "nodes",
     description: "Fit all / selected nodes into view"
   },
   {
     title: "Run Workflow",
     slug: "run-workflow",
     keyCombo: ["Control", "Enter"],
+    category: "workflow",
     description: "Execute the current workflow"
   },
   {
     title: "Delete Node",
     slug: "delete-node",
     keyCombo: ["Delete"],
+    category: "nodes",
     description: "Delete selected node(s)"
   },
   {
     title: "Save Workflow",
     slug: "save-workflow",
     keyCombo: ["Control", "S"],
+    category: "workflow",
     description: "Save current workflow"
   },
   {
     title: "Stop Workflow",
     slug: "stop-workflow",
     keyCombo: ["Escape"],
+    category: "workflow",
     description: "Stop running workflow"
   },
   {
     title: "Chat",
     slug: "toggle-chat",
     keyCombo: ["1"],
+    category: "panel",
     description: "Toggle Chat panel"
   },
   {
     title: "Workflows",
     slug: "toggle-workflows",
     keyCombo: ["2"],
+    category: "panel",
     description: "Toggle Workflows panel"
   },
   {
     title: "Assets",
     slug: "toggle-assets",
     keyCombo: ["3"],
+    category: "panel",
     description: "Toggle Assets panel"
   },
   {
     title: "Collections",
     slug: "toggle-collections",
     keyCombo: ["4"],
+    category: "panel",
     description: "Toggle Collections panel"
   },
   {
     title: "Packs",
     slug: "toggle-packs",
     keyCombo: ["5"],
+    category: "panel",
     description: "Toggle Packs panel"
   },
   {
     title: "Inspector",
     slug: "toggle-inspector",
     keyCombo: ["I"],
+    category: "panel",
     description: "Show or hide Inspector panel"
   },
   {
     title: "Operator",
     slug: "toggle-operator",
     keyCombo: ["O"],
+    category: "panel",
     description: "Show or hide Operator panel"
   },
   {
     title: "Reset to Default",
     slug: "reset-default",
     keyCombo: ["Control", "MouseRight"],
+    category: "nodes",
     description: "Reset property to default value"
   },
   {
     title: "Group Selected",
     slug: "group-selected",
     keyCombo: ["Control", "G"],
+    category: "nodes",
     description: "Group selected nodes"
   },
   {
     title: "Keyboard Shortcuts",
     slug: "show-keyboard-shortcuts",
     keyCombo: ["K"],
+    category: "panel",
     description: "Show Keyboard Shortcuts"
   }
 ];
