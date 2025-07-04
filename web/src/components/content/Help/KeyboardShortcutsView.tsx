@@ -119,7 +119,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     );
   }, [layout]);
 
-  // 2. Compute never-shortcut keys
+  // 2. Get never-shortcut keys
   const neverShortcutKeys = useMemo(
     () => allLayoutKeys.filter((key) => !allKeyMap[key]),
     [allLayoutKeys, allKeyMap]
@@ -150,7 +150,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       : [])
   ];
 
-  // Map key -> slugs for hover usage (memoize)
   const keySlugMap = useMemo(() => {
     const m: Record<string, string[]> = {};
     activeShortcuts.forEach((s) => {
@@ -160,7 +159,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         m[lowKey].push(s.slug);
       });
     });
-    // For ctrl/meta, group switchToTab shortcuts into one, but leave number keys untouched
+    // For ctrl/meta, group switchToTab shortcuts into one
     if (os === "mac") {
       if (!m["meta"]) m["meta"] = [];
       m["meta"] = m["meta"].filter((slug) => !/^switchToTab\d+$/.test(slug));
@@ -255,7 +254,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         />
       </div>
 
-      {/* {hoverSlugs && ( */}
       <div
         style={{
           marginTop: ".5em",
