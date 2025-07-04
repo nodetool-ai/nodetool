@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Box, Typography, TextField } from "@mui/material";
 import {
   NODE_EDITOR_SHORTCUTS,
-  getShortcutTooltip
+  getShortcutTooltip,
+  SHORTCUT_CATEGORIES
 } from "../../../config/shortcuts";
 
 const ControlsShortcutsTab: React.FC = () => {
@@ -18,7 +19,10 @@ const ControlsShortcutsTab: React.FC = () => {
     );
   });
 
-  const categories: Array<"panel" | "nodes"> = ["panel", "nodes"];
+  // List of category keys derived from the exported mapping
+  const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
+    keyof typeof SHORTCUT_CATEGORIES
+  >;
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -43,7 +47,8 @@ const ControlsShortcutsTab: React.FC = () => {
           return (
             <Box key={cat} sx={{ mb: 3 }}>
               <Typography variant="h2" color="#999" sx={{ mb: 1 }}>
-                {cat === "panel" ? "Panels" : "Nodes"}
+                {SHORTCUT_CATEGORIES[cat] ??
+                  cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Typography>
               {list.map((s) => (
                 <Box key={s.slug} className="help-item">
@@ -65,88 +70,76 @@ const ControlsShortcutsTab: React.FC = () => {
             </Box>
           );
         })}
-        {/* Static instructional sections */}
-        <Typography variant="h2" color="#999" sx={{ mb: 1 }}>
-          Nodes – Create
-        </Typography>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Open Node Menu</Typography>
-          <Typography variant="body2">
-            Double-click canvas or press Space
-          </Typography>
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Search in Node Menu</Typography>
-          <Typography variant="body2">
-            Start typing while the menu is open
-          </Typography>
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Connection Menu</Typography>
-          <Typography variant="body2">
-            Drop a connection on empty canvas
-          </Typography>
-        </Box>
-
-        <Typography variant="h2" color="#999" sx={{ mt: 3, mb: 1 }}>
-          Nodes – Parameters
-        </Typography>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Drag Number</Typography>
-          <Typography variant="body2">
-            Click & drag horizontally (Shift = fine)
-          </Typography>
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Edit Number</Typography>
-          <Typography variant="body2">
-            Click value and type new number
-          </Typography>
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Set Default</Typography>
-          <Typography variant="body2">Ctrl/⌘ + Right-Click</Typography>
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Confirm / Cancel</Typography>
-          <Typography variant="body2">Enter / Esc</Typography>
-        </Box>
-
-        <Typography variant="h2" color="#999" sx={{ mt: 3, mb: 1 }}>
-          Workflows
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 1 }}>
-          You can start and stop workflows with the top toolbar buttons or
-          shortcuts. Stopping may take a few seconds depending on the task.
-        </Typography>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Run Workflow</Typography>
-          {
-            getShortcutTooltip(
-              "run-workflow",
-              undefined,
-              "combo"
-            ) as unknown as string
+        {(() => {
+          interface StaticItem {
+            section: string;
+            title: string;
+            desc: string;
           }
-        </Box>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Cancel Workflow</Typography>
-          {
-            getShortcutTooltip(
-              "stop-workflow",
-              undefined,
-              "combo"
-            ) as unknown as string
-          }
-        </Box>
+          const staticItems: StaticItem[] = [
+            {
+              section: "Nodes – Create",
+              title: "Search in Node Menu",
+              desc: "Start typing while the menu is open"
+            },
+            {
+              section: "Nodes – Create",
+              title: "Connection Menu",
+              desc: "Drop a connection on empty canvas"
+            },
+            {
+              section: "Nodes – Parameters",
+              title: "Drag Number",
+              desc: "Click & drag horizontally (Shift = fine)"
+            },
+            {
+              section: "Nodes – Parameters",
+              title: "Edit Number",
+              desc: "Click value and type new number"
+            },
+            {
+              section: "Nodes – Parameters",
+              title: "Set Default",
+              desc: "Ctrl/⌘ + Right-Click"
+            },
+            {
+              section: "Nodes – Parameters",
+              title: "Confirm / Cancel",
+              desc: "Enter / Esc"
+            }
+          ];
 
-        <Typography variant="h2" color="#999" sx={{ mt: 3, mb: 1 }}>
-          Command Menu
-        </Typography>
-        <Box className="help-item">
-          <Typography sx={{ minWidth: 200 }}>Open Command Menu</Typography>
-          <Typography variant="body2">Alt + K / ⌘ + K</Typography>
-        </Box>
+          const filteredStatic = staticItems.filter((it) => {
+            if (!lower) return true;
+            return (
+              it.title.toLowerCase().includes(lower) ||
+              it.desc.toLowerCase().includes(lower) ||
+              it.section.toLowerCase().includes(lower)
+            );
+          });
+
+          const sectionOrder = [
+            "Nodes – Create",
+            "Nodes – Parameters",
+            "Workflows",
+            "Command Menu"
+          ];
+
+          return sectionOrder.map((sec) => {
+            const items = filteredStatic.filter((i) => i.section === sec);
+            if (!items.length) return null;
+            return (
+              <React.Fragment key={sec}>
+                {items.map((it, idx) => (
+                  <Box key={idx} className="help-item">
+                    <Typography sx={{ minWidth: 160 }}>{it.title}</Typography>
+                    <Typography variant="body2">{it.desc}</Typography>
+                  </Box>
+                ))}
+              </React.Fragment>
+            );
+          });
+        })()}
       </Box>
     </Box>
   );

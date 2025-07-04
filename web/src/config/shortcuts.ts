@@ -226,8 +226,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Open Node Menu",
     slug: "open-node-menu",
     keyCombo: [" "],
-    category: "nodes",
-    description: "Open the node creation menu"
+    category: "panel",
+    description: "Open Node Menu - also double-click canvas"
   },
   {
     title: "Fit View",
@@ -335,3 +335,11 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show Keyboard Shortcuts"
   }
 ];
+
+// Export all distinct categories present in the shortcuts list (runtime & type-safe)
+export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
+  panel: "Panels",
+  nodes: "Nodes",
+  workflow: "Workflows",
+  "asset-viewer": "Asset Viewer"
+};
