@@ -54,12 +54,100 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     return map;
   }, [activeShortcuts]);
 
+  // Build a map of all shortcut keys (unfiltered, for inactive highlighting)
+  const allShortcuts = useMemo(
+    () => expandShortcutsForOS(shortcuts, os === "mac"),
+    [shortcuts, os]
+  );
+  const allKeyMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    allShortcuts.forEach((sc) => {
+      sc.keyCombo.forEach((k) => {
+        const key = k.toLowerCase() === " " ? "space" : k.toLowerCase();
+        map[key] = true;
+      });
+    });
+    return map;
+  }, [allShortcuts]);
+
+  // Determine inactive shortcut keys
+  const activeKeys = useMemo(
+    () => new Set(Object.keys(keyTitleMap)),
+    [keyTitleMap]
+  );
+  const inactiveKeys = useMemo(
+    () => Object.keys(allKeyMap).filter((key) => !activeKeys.has(key)),
+    [allKeyMap, activeKeys]
+  );
+
   const highlightButtons = Object.keys(keyTitleMap).join(" ");
+  const inactiveButtons = inactiveKeys.join(" ");
+
+  const handleOsToggle = (_: any, value: "mac" | "win") => {
+    if (value) setOs(value);
+  };
+
+  const layout = useMemo(
+    () => ({
+      default: [
+        "escape 1 2 3 4 5 6 7 8 9 0 - = backspace",
+        "tab q w e r t y u i o p [ ] \\",
+        "capslock a s d f g h j k l ; ' enter",
+        "shift z x c v b n m , . / shift",
+        "control alt meta space alt control"
+      ],
+      german: [
+        "escape 1 2 3 4 5 6 7 8 9 0 ß ' backspace",
+        "tab q w e r t z u i o p ü + #",
+        "capslock a s d f g h j k l ö ä enter",
+        "shift < y x c v b n m , . - shift",
+        "control alt meta space alt control"
+      ]
+    }),
+    []
+  );
+
+  // 1. Get all keys in the layout
+  const allLayoutKeys = useMemo(() => {
+    return Array.from(
+      new Set(
+        layout.default
+          .join(" ")
+          .split(" ")
+          .map((k) => k.toLowerCase())
+      )
+    );
+  }, [layout]);
+
+  // 2. Compute never-shortcut keys
+  const neverShortcutKeys = useMemo(
+    () => allLayoutKeys.filter((key) => !allKeyMap[key]),
+    [allLayoutKeys, allKeyMap]
+  );
+  const neverShortcutButtons = neverShortcutKeys.join(" ");
+
+  // 3. Compose buttonTheme
   const buttonTheme = [
     {
       class: "has-shortcut",
       buttons: highlightButtons
-    }
+    },
+    ...(inactiveButtons
+      ? [
+          {
+            class: "has-shortcut-inactive",
+            buttons: inactiveButtons
+          }
+        ]
+      : []),
+    ...(neverShortcutButtons
+      ? [
+          {
+            class: "never-shortcut",
+            buttons: neverShortcutButtons
+          }
+        ]
+      : [])
   ];
 
   // Map key -> slugs for hover usage (memoize)
@@ -117,20 +205,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     };
   }, [keyTitleMap, keySlugMap]);
 
-  const handleOsToggle = (_: any, value: "mac" | "win") => {
-    if (value) setOs(value);
-  };
-
-  const layout = {
-    default: [
-      "escape 1 2 3 4 5 6 7 8 9 0 - = backspace",
-      "tab q w e r t y u i o p [ ] \\",
-      "capslock a s d f g h j k l ; ' enter",
-      "shift z x c v b n m , . / shift",
-      "control alt meta space alt control"
-    ]
-  };
-
   const display = {
     backspace: "⌫",
     capslock: "⇪",
@@ -181,40 +255,44 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         />
       </div>
 
-      {hoverSlugs && (
-        <div
-          style={{
-            marginTop: ".5em",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            gap: ".2em",
-            justifyContent: "center"
-          }}
-        >
-          {hoverSlugs.map((slug, idx) => (
-            <React.Fragment key={idx}>
-              <div style={{ marginBottom: ".2em", minWidth: "180px" }}>
-                {slug === "switchToTabGroup" ? (
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Switch to Tab</div>
-                    <div className="tooltip-key">
-                      <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
-                    </div>
-                    <div className="tooltip-description">
-                      Activate workflow tab 1-9
-                    </div>
+      {/* {hoverSlugs && ( */}
+      <div
+        style={{
+          marginTop: ".5em",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          gap: ".2em",
+          justifyContent: "center",
+          backgroundColor: "var(--palette-grey-900)",
+          padding: ".5em",
+          borderRadius: ".5em",
+          opacity: hoverSlugs ? 1 : 0,
+          transition: "opacity 0.3s ease"
+        }}
+      >
+        {hoverSlugs?.map((slug, idx) => (
+          <React.Fragment key={idx}>
+            <div style={{ marginBottom: ".2em", minWidth: "180px" }}>
+              {slug === "switchToTabGroup" ? (
+                <div className="tooltip-span">
+                  <div className="tooltip-title">Switch to Tab</div>
+                  <div className="tooltip-key">
+                    <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
                   </div>
-                ) : (
-                  getShortcutTooltip(slug, os, "full", true)
-                )}
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
+                  <div className="tooltip-description">
+                    Activate workflow tab 1-9
+                  </div>
+                </div>
+              ) : (
+                getShortcutTooltip(slug, os, "full", true)
+              )}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 };

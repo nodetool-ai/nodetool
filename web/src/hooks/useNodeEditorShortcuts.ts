@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------------------
-/* eslint-disable react-hooks/rules-of-hooks */
+
 // ---------------------------------------------------------------------------------------
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   registerComboCallback,
   unregisterComboCallback
@@ -338,48 +338,77 @@ export const useNodeEditorShortcuts = (
     combo.map((k) => (k === "Control" ? ControlOrMeta : k));
 
   // Mapping slug -> registration meta (callback, preventDefault, active)
-  const shortcutMeta: Record<
-    string,
-    { callback: () => void; preventDefault?: boolean; active?: boolean }
-  > = {
-    copy: { callback: handleCopy, preventDefault: false },
-    cut: { callback: handleCut },
-    paste: { callback: handlePaste, preventDefault: false },
-    undo: { callback: nodeHistory.undo },
-    redo: { callback: nodeHistory.redo },
-    selectAll: { callback: selectAllNodes },
-    align: { callback: handleAlign, active: selectedNodes.length > 0 },
-    alignWithSpacing: {
-      callback: handleAlignWithSpacing,
-      active: selectedNodes.length > 0
-    },
-    duplicate: { callback: duplicateNodes },
-    duplicateVertical: { callback: duplicateNodesVertical },
-    fitView: { callback: () => handleFitView({ padding: 0.4 }) },
-    openNodeMenu: { callback: handleOpenNodeMenu },
-    groupSelected: { callback: handleGroup },
-    toggleInspector: { callback: handleInspectorToggle },
-    showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
-    saveWorkflow: { callback: handleSave },
-    saveExample: { callback: handleSaveExample },
-    newWorkflow: { callback: handleNewWorkflow },
-    closeWorkflow: { callback: closeCurrentWorkflow },
-    zoomIn: { callback: handleZoomIn },
-    zoomOut: { callback: handleZoomOut },
-    prevTab: { callback: () => handleSwitchTab("prev") },
-    nextTab: { callback: () => handleSwitchTab("next") },
-    moveLeft: { callback: () => handleMoveNodes({ x: -10 }) },
-    moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
-    moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
-    moveDown: { callback: () => handleMoveNodes({ y: 10 }) }
-  };
-
-  // Switch-to-tab (1-9)
-  for (let i = 1; i <= 9; i++) {
-    shortcutMeta[`switchToTab${i}`] = {
-      callback: () => handleSwitchToTab(i - 1)
+  const shortcutMeta = useMemo(() => {
+    const meta: Record<
+      string,
+      { callback: () => void; preventDefault?: boolean; active?: boolean }
+    > = {
+      copy: { callback: handleCopy, preventDefault: false },
+      cut: { callback: handleCut },
+      paste: { callback: handlePaste, preventDefault: false },
+      undo: { callback: nodeHistory.undo },
+      redo: { callback: nodeHistory.redo },
+      selectAll: { callback: selectAllNodes },
+      align: { callback: handleAlign, active: selectedNodes.length > 0 },
+      alignWithSpacing: {
+        callback: handleAlignWithSpacing,
+        active: selectedNodes.length > 0
+      },
+      duplicate: { callback: duplicateNodes },
+      duplicateVertical: { callback: duplicateNodesVertical },
+      fitView: { callback: () => handleFitView({ padding: 0.4 }) },
+      openNodeMenu: { callback: handleOpenNodeMenu },
+      groupSelected: { callback: handleGroup },
+      toggleInspector: { callback: handleInspectorToggle },
+      showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
+      saveWorkflow: { callback: handleSave },
+      saveExample: { callback: handleSaveExample },
+      newWorkflow: { callback: handleNewWorkflow },
+      closeWorkflow: { callback: closeCurrentWorkflow },
+      zoomIn: { callback: handleZoomIn },
+      zoomOut: { callback: handleZoomOut },
+      prevTab: { callback: () => handleSwitchTab("prev") },
+      nextTab: { callback: () => handleSwitchTab("next") },
+      moveLeft: { callback: () => handleMoveNodes({ x: -10 }) },
+      moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
+      moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
+      moveDown: { callback: () => handleMoveNodes({ y: 10 }) }
     };
-  }
+
+    // Switch-to-tab (1-9)
+    for (let i = 1; i <= 9; i++) {
+      meta[`switchToTab${i}`] = {
+        callback: () => handleSwitchToTab(i - 1)
+      };
+    }
+    return meta;
+  }, [
+    handleCopy,
+    handleCut,
+    handlePaste,
+    nodeHistory.undo,
+    nodeHistory.redo,
+    selectAllNodes,
+    handleAlign,
+    handleAlignWithSpacing,
+    selectedNodes.length,
+    duplicateNodes,
+    duplicateNodesVertical,
+    handleFitView,
+    handleOpenNodeMenu,
+    handleGroup,
+    handleInspectorToggle,
+    handleShowKeyboardShortcuts,
+    handleSave,
+    handleSaveExample,
+    handleNewWorkflow,
+    closeCurrentWorkflow,
+    handleZoomIn,
+    handleZoomOut,
+    handleSwitchTab,
+    handleMoveNodes,
+    handleSwitchToTab
+  ]);
 
   // useEffect for shortcut registration
   useEffect(() => {
