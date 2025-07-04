@@ -1,5 +1,5 @@
 .hg-theme-default {
-  background: var(--palette-grey-400);
+  background: var(--palette-grey-900);
 }
 
 .keyboard-view {
@@ -33,7 +33,7 @@
 }
 
 .hg-theme-default .hg-button.has-shortcut-inactive {
-  background: var(--palette-grey-900);
+  background: var(--palette-grey-700);
   color: var(--palette-grey-500);
   cursor: default;
   opacity: .95;
@@ -47,8 +47,8 @@
   box-shadow: 1px 1px 2px var(--palette-grey-900);
 }
 .hg-theme-default .hg-button.never-shortcut {
-  color: var(--palette-grey-1000);
-  background: var(--palette-grey-700);
+  color: var(--palette-grey-600);
+  background: var(--palette-grey-900);
   pointer-events: none;
 }
 .hg-theme-default .hg-button.hg-activeButton {

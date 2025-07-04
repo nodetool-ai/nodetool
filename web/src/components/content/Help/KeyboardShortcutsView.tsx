@@ -264,7 +264,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           alignItems: "flex-start",
           gap: ".2em",
           justifyContent: "center",
-          backgroundColor: "var(--palette-grey-900)",
+          backgroundColor: "transparent",
           padding: ".5em",
           borderRadius: ".5em",
           opacity: hoverSlugs ? 1 : 0,
