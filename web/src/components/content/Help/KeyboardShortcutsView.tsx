@@ -74,9 +74,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     btns.forEach((btn) => {
       const key = btn.getAttribute("data-skbtn")?.toLowerCase();
       if (key && keyTitleMap[key]) {
-        const title = keyTitleMap[key].join(", ");
-        btn.setAttribute("title", title);
-        btn.setAttribute("aria-label", title);
         // add hover listeners once
         const handleEnter = () => setHoverSlugs(keySlugMap[key]);
         const handleLeave = () => setHoverSlugs(null);
@@ -84,9 +81,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         btn.addEventListener("mouseleave", handleLeave);
         // store cleanup handler
         (btn as any)._hoverHandlers = { handleEnter, handleLeave };
-      } else {
-        btn.removeAttribute("title");
-        btn.removeAttribute("aria-label");
       }
     });
 

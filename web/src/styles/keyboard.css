@@ -1,9 +1,20 @@
+.keyboard-view {
+  background-color: var(--palette-background-default);
+  padding: .5em;
+  border-radius: 0.5em;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+}
+.hg-theme-default {
+  background: var(--palette-grey-400);
+}
+
 .hg-theme-default .hg-button {
   background: var(--palette-background-default);
   color: var(--palette-text-primary);
+  box-sizing: border-box;
 }
 .hg-theme-default .hg-button.has-shortcut {
-  border: 2px solid var(--nt-hl, #5ac8fa);
+  border: 2px solid var(--palette-primary-main);
 }
 
 .tooltip-span {
@@ -31,13 +42,8 @@
   color: var(--palette-text-primary);
 }
 
-.grid-key.has-shortcut {
-  border: 2px solid var(--nt-hl, #5ac8fa);
-}
-
-/* Sizing adjustments for react-simple-keyboard */
 .keyboard-view .hg-button {
-  min-width: 42px;
+  min-width: 32px;
   height: 42px;
   font-size: 0.85rem;
 }
