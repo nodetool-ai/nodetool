@@ -90,8 +90,13 @@ const ModelListItem: React.FC<
           <div className="model-info-container">
             <div className="model-header">
               <Typography component="span" className="model-name">
-                {getShortModelName(model.id)}
+                {model.repo_id}
               </Typography>
+              {model.path && (
+                <Typography component="span" className="model-path">
+                  {model.path}
+                </Typography>
+              )}
             </div>
             <div className="model-details">
               <Tooltip title="No matching repository found.">
@@ -128,8 +133,13 @@ const ModelListItem: React.FC<
               className="model-name-link"
             >
               <Typography component="span" className="model-name">
-                {getShortModelName(model.id)}
+                {model.repo_id}
               </Typography>
+              {model.path && (
+                <Typography component="span" className="model-path">
+                  {model.path}
+                </Typography>
+              )}
             </Link>
           </div>
 

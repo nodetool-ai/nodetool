@@ -56,7 +56,7 @@ const modelListItemStyles = (theme: any) =>
 
       "& .model-name": {
         flexGrow: 1,
-        textTransform: "uppercase",
+        // textTransform: "uppercase",
         fontSize: "var(--fontSizeNormal)",
         fontWeight: "400",
         textDecoration: "none",
@@ -66,7 +66,8 @@ const modelListItemStyles = (theme: any) =>
       "& .model-path": {
         display: "block",
         color: theme.palette.grey[200],
-        fontSize: "var(--fontSizeSmaller)"
+        fontSize: "var(--fontSizeSmaller)",
+        marginTop: "0.25em"
       },
       "& .model-details": {
         flex: 1,
@@ -115,7 +116,7 @@ const modelListItemStyles = (theme: any) =>
         fontSize: "var(--fontSizeSmaller)",
         color: theme.palette.grey[100],
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         alignItems: "start",
         minWidth: "100px",
         gap: "0"
@@ -124,7 +125,13 @@ const modelListItemStyles = (theme: any) =>
       "& .model-stats-item": {
         display: "flex",
         alignItems: "center",
-        gap: "0.25em"
+        gap: "0.5em",
+        margin: "1em",
+        fontSize: "var(--fontSizeSmaller)"
+      },
+
+      "& .model-stats-item svg": {
+        fontSize: "var(--fontSizeTiny)"
       },
 
       "& .model-actions": {
