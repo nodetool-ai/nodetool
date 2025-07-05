@@ -3,7 +3,8 @@
 }
 
 .keyboard-view {
-  background-color: var(--palette-background-default);
+  /* background-color: var(--palette-background-default); */
+  background-color: transparent;
   padding: .5em;
   border-radius: 0.5em;
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import ReactDOM from "react-dom";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { ToggleButtonGroup, ToggleButton, Divider } from "@mui/material";
@@ -10,7 +11,8 @@ import {
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
-
+import { alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
 }
@@ -22,6 +24,7 @@ interface KeyboardShortcutsViewProps {
 const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   shortcuts = NODE_EDITOR_SHORTCUTS
 }) => {
+  const theme = useTheme();
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [categoryFilter, setCategoryFilter] = useState<
     "all" | "editor" | "panel" | "assets" | "workflow"
@@ -254,43 +257,61 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         />
       </div>
 
-      <div
-        style={{
-          marginTop: ".5em",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "row",
-          flexWrap: "wrap",
-          alignItems: "flex-start",
-          gap: ".2em",
-          justifyContent: "center",
-          backgroundColor: "transparent",
-          padding: ".5em",
-          borderRadius: ".5em",
-          opacity: hoverSlugs ? 1 : 0,
-          transition: "opacity 0.3s ease"
-        }}
-      >
-        {hoverSlugs?.map((slug, idx) => (
-          <React.Fragment key={idx}>
-            <div style={{ marginBottom: ".2em", minWidth: "180px" }}>
-              {slug === "switchToTabGroup" ? (
-                <div className="tooltip-span">
-                  <div className="tooltip-title">Switch to Tab</div>
-                  <div className="tooltip-key">
-                    <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
+      {ReactDOM.createPortal(
+        <div
+          style={{
+            position: "fixed",
+            backgroundColor: "transparent",
+            width: "90%",
+            top: "48vh",
+            left: "50%",
+            transform: "translateX(-50%)",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+            gap: ".2em",
+            justifyContent: "center",
+            padding: ".5em",
+            borderRadius: ".5em",
+            opacity: hoverSlugs ? 1 : 0,
+            transition: "opacity 0.3s ease",
+            pointerEvents: "none",
+            zIndex: 999999
+          }}
+        >
+          {hoverSlugs?.map((slug, idx) => (
+            <React.Fragment key={idx}>
+              <div
+                className="keyboard-tooltip-container"
+                style={{
+                  marginBottom: ".2em",
+                  minWidth: "180px",
+                  backgroundColor: alpha(theme.palette.grey[900], 0.85),
+                  borderRadius: ".5em",
+                  padding: ".1em"
+                }}
+              >
+                {slug === "switchToTabGroup" ? (
+                  <div className="tooltip-span">
+                    <div className="tooltip-title">Switch to Tab</div>
+                    <div className="tooltip-key">
+                      <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
+                    </div>
+                    <div className="tooltip-description">
+                      Activate workflow tab 1-9
+                    </div>
                   </div>
-                  <div className="tooltip-description">
-                    Activate workflow tab 1-9
-                  </div>
-                </div>
-              ) : (
-                getShortcutTooltip(slug, os, "full", true)
-              )}
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
+                ) : (
+                  getShortcutTooltip(slug, os, "full", true)
+                )}
+              </div>
+            </React.Fragment>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

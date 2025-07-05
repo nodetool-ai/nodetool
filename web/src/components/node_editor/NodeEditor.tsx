@@ -26,7 +26,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
@@ -163,20 +163,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <Box
                 sx={{
                   position: "absolute",
-                  top: "50%",
+                  top: "250px",
                   left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  backgroundColor: "var(--palette-background-default)",
+                  transform: "translateX(-50%)",
+                  padding: 4,
+                  backgroundColor: theme.palette.grey[800],
                   boxShadow: 24,
                   borderRadius: 2,
                   border: 0,
                   outline: 0,
-                  padding: 4,
-                  width: "70vw",
-                  height: "80vh",
-                  maxHeight: "900px",
-                  maxWidth: "1000px",
-                  minWidth: "900px",
+                  width: "80vw",
                   overflow: "hidden"
                 }}
               >
