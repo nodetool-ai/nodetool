@@ -1,8 +1,10 @@
 <h1 style="">
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - Agentic Workflow Builder
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - Swiss-Army Knife for AI Builders
 </h1>
 
-Build, automate, and integrate.
+**Drag, drop, build—one canvas for every model.**
+
+🔓 **100% Open Source • Privacy-First • Self-Hosted**
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -10,16 +12,27 @@ Build, automate, and integrate.
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-NodeTool is an open-source agentic workflow builder thet let's you build powerful tools. Connect your tools, streamline your work.
+NodeTool is the Swiss-Army Knife for AI builders. Unlike code-first stacks, NodeTool gives you every AI tool in one visual workspace. Connect your models, streamline your workflow, and turn ideas into reality.
 
-## 🚀 Why NodeTool?
+## 🔧 Why NodeTool?
 
-NodeTool empowers you to build powerful agentic workflows:
+**🔗 Snap:** Drag any AI model into your canvas. Connect with one click.  
+**☁️ Scale:** Keep data local, burst to cloud GPUs when you need power.  
+**🚀 Ship:** Build working demos in minutes. Turn ideas into reality.
 
-- **☁️ Models:** Use local models or connect to OpenAI, Gemini, Anthropic, and more. 
-- **🤖 Advanced Agent Design:** Build intelligent multi-agent systems that can plan, reason, and use tools like web browsing and file operations.
-- **🎨 Rapid Prototyping:** The fastest way to prototype agentic workflows. Visual editor with no coding required.
-- **💻 Integrations:** Fetch emails, create posts, access any tool.
+### 🔒 Privacy-First • Hybrid Execution
+
+Unlike cloud-only tools, NodeTool protects your privacy while giving you the power to scale. **Trust through transparency**—every line of code is open source.
+
+**Local-First:**
+- Process sensitive data locally
+- Run LLMs on your hardware  
+- Zero data transmission by default
+
+**Cloud-Ready:**
+- Burst to GPU cloud in seconds
+- Connect OpenAI, Anthropic, Fal, Replicate, Gemini
+- Control exactly what data gets shared
 
 ---
 
@@ -45,27 +58,36 @@ NodeTool empowers you to build powerful agentic workflows:
 
 ---
 
-## ✨ Features
+## ✨ Every Node You Need
 
-NodeTool empowers you with everything you need to build, automate, and deploy agentic workflows:
+NodeTool gives you every AI tool in one visual workspace:
 
-- **Visual Workflow Editor:** Build workflows with intuitive visual tools. No coding required.
-- **Local AI Models:** Run powerful open-source models from Hugging Face and Ollama directly on your hardware for complete privacy and offline capability.
-- **Cloud AI Integration:** Connect to major AI providers like OpenAI, Gemini, Anthropic, Replicate, and Fal.ai.
-- **Advanced Vector Storage & RAG:**
-  - Built-in ChromaDB integration for efficient embedding storage and retrieval.
-  - Easily create Retrieval-Augmented Generation (RAG) workflows.
-  - Index and query PDFs, documents, and other text sources.
-  - Combine vector search with any supported LLM for context-rich responses.
-- **Multimodal Capabilities:** Process text, images, audio, and video within a single workflow.
-- **System Tray Integration:** Access workflows quickly via the system tray. Assign global shortcuts, manage clipboard content with AI, and monitor task status.
-- **Asset Management:** Import, organize, and manage images, audio, video, and other media assets within your workflows.
-- **Ready-to-Use Templates:** Start quickly with pre-built workflow templates for common AI tasks.
-- **Mini-App Builder:** Convert workflows into standalone desktop applications with a few clicks.
-- **Chat Interface:** Build personalized chatbot interfaces tailored to your specific needs.
-- **API Access:** Integrate NodeTool with external applications and services via APIs.
-- **Custom Python Extensions:** Extend functionality with custom Python scripts and integrations.
-- **Cross-Platform:** Build and run workflows on Mac, Windows, and Linux.
+### **🔗 Snap Nodes Together**
+Drag any model into your canvas—LLMs, diffusion, agents, or custom code. Connect with one click and watch your AI workflow come alive.
+
+### **☁️ Scale to GPU Cloud**
+Keep data local until you need power. Burst to cloud GPUs in seconds without rebuilding your workflow.
+
+### **💬 Chat Interface**
+Access and trigger AI workflows through a unified chat interface.
+
+### **🤖 AI Agent Orchestration**
+Build intelligent agents that coordinate multiple AI models. Chain reasoning, planning, and execution across complex multi-step workflows.
+
+### **📁 Vector Storage & RAG**
+Built-in ChromaDB means your AI remembers everything. Create smart assistants that know your documents.
+
+### **🎯 Built-in Asset Manager**
+Import, organize, and manage all your media assets in one place. No more hunting through folders.
+
+**Additional Features:**
+- **Multimodal Capabilities:** Process text, images, audio, and video within a single workflow
+- **System Tray Integration:** Access workflows quickly via the system tray with global shortcuts
+- **Ready-to-Use Templates:** Start quickly with pre-built workflow templates
+- **Mini-App Builder:** Convert workflows into standalone desktop applications
+- **API Access:** Integrate with external applications and services
+- **Custom Python Extensions:** Extend functionality with custom Python scripts
+- **Cross-Platform:** Build and run on Mac, Windows, and Linux
 
 ## 🤖 NodeTool Agent System
 
@@ -90,16 +112,42 @@ NodeTool includes several pre-built agent examples:
 
 Find full implementations and more examples in the [examples directory](https://github.com/nodetool-ai/nodetool-core/tree/main/examples) of the `nodetool-core` repository.
 
-## ✨ Real-World Applications
+## 🎯 Build Anything
 
-See how NodeTool streamlines your workflows:
+From simple automations to complex multi-agent systems:
 
-- **📧 Email Automation:** Never miss important emails again. Automatically scan Gmail, extract key information, and create personalized daily summaries.
-- **🐉 Creative AI Generator:** Turn ideas into unique Pokemon with custom descriptions, images, types, and abilities using AI creativity.
-- **🔍 Smart Document Q&A:** Get instant answers from your documents. Upload PDFs and other files, then ask questions and get accurate responses.
-- **🎨 Image Style Transfer:** Transform any image with artistic styles while preserving the original structure and composition.
+### **🧠 Build Smart Assistants**
+Create AI that knows your documents, emails, and notes. Keep everything private on your machine.
 
----
+### **⚡ Automate Boring Tasks**
+Turn repetitive work into smart workflows. Let AI handle the routine while you focus on creating.
+
+### **🎨 Generate Creative Content**
+From text to images to music — create anything with AI. Combine models for unique results.
+
+### **📸 Enhance Images & Video**
+Upscale, enhance, and transform visual content. Professional results with consumer hardware.
+
+### **🎵 Process Voice & Audio**
+Transcribe, analyze, and generate speech. Build voice-first applications that actually work.
+
+### **📊 Analyze Data Visually**
+Turn spreadsheets into insights. Create charts, find patterns, and make decisions faster.
+
+### **🔗 Connect Multiple Models**
+Chain LLMs with diffusion models. Create workflows that no single AI can handle alone.
+
+### **🚀 Deploy Anywhere**
+From desktop shortcuts to web APIs. Your workflows run where your users are. *(Coming soon)*
+
+### **🛠️ Extend with Code**
+Add custom Python nodes when you need them. The visual canvas grows with your expertise.
+
+### **🔍 Monitor & Debug**
+See exactly what your AI is thinking. Debug workflows with clear visual feedback.
+
+### **🤝 Share & Collaborate**
+Export workflows as code or templates. Build on what others have created. *(Coming soon)*
 
 ## 💡 Join Our Community
 
