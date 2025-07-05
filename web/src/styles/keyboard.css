@@ -32,7 +32,9 @@
 .hg-theme-default .hg-button span {
   font-size: var(--fontSizeBig);
 }
-
+.hg-theme-default .hg-pressed {
+  color: gray !important;
+}
 .hg-theme-default .hg-button.has-shortcut-inactive {
   background: var(--palette-grey-700);
   color: var(--palette-grey-500);

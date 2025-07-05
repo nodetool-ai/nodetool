@@ -41,6 +41,11 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   const [tooltipAnchorEl, setTooltipAnchorEl] = useState<HTMLElement | null>(
     null
   );
+  const [keyboardHoverSlugs, setKeyboardHoverSlugs] = useState<string[] | null>(
+    null
+  );
+  const [keyboardTooltipAnchorEl, setKeyboardTooltipAnchorEl] =
+    useState<HTMLElement | null>(null);
 
   const filtered = useMemo(() => {
     if (categoryFilter === "all") return shortcuts;
@@ -235,6 +240,33 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     escape: "ESC"
   } as Record<string, string>;
 
+  const onKeyPress = (button: string) => {
+    const targetButton = containerRef.current?.querySelector(
+      `.hg-button[data-skbtn="${button.toLowerCase()}"]`
+    );
+    if (targetButton) {
+      targetButton.classList.add("hg-pressed");
+      if (keySlugMap[button.toLowerCase()]) {
+        setKeyboardHoverSlugs(keySlugMap[button.toLowerCase()]);
+        setKeyboardTooltipAnchorEl(targetButton as HTMLElement);
+      }
+    }
+  };
+
+  const onKeyReleased = (button: string) => {
+    const targetButton = containerRef.current?.querySelector(
+      `.hg-button[data-skbtn="${button.toLowerCase()}"]`
+    );
+    if (targetButton) {
+      targetButton.classList.remove("hg-pressed");
+    }
+    setKeyboardHoverSlugs(null);
+    setKeyboardTooltipAnchorEl(null);
+  };
+
+  const currentHoverSlugs = hoverSlugs || keyboardHoverSlugs;
+  const currentTooltipAnchorEl = tooltipAnchorEl || keyboardTooltipAnchorEl;
+
   return (
     <div>
       <ToggleButtonGroup
@@ -267,20 +299,17 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           layout={layout}
           display={display}
           buttonTheme={buttonTheme}
-          physicalKeyboardHighlight={true}
-          physicalKeyboardHighlightPress={true}
-          physicalKeyboardHighlightBgColor="var(--palette-primary-main)"
+          onKeyPress={onKeyPress}
+          onKeyReleased={onKeyReleased}
         />
       </div>
-      {hoverSlugs && ( // Only render Tooltip when there are hoverSlugs
+      {currentHoverSlugs && ( // Only render Tooltip when there are hoverSlugs
         <Tooltip
-          open={!!hoverSlugs}
+          open={!!currentHoverSlugs}
           placement="bottom"
           title={
             <div
               style={{
-                // backgroundColor: alpha(theme.palette.grey[900], 0.85),
-                // backgroundColor: alpha(theme.palette.grey[900], 0.5),
                 backgroundColor: "transparent",
                 borderRadius: ".5em",
                 padding: ".5em",
@@ -290,7 +319,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
                 gap: "2em"
               }}
             >
-              {hoverSlugs?.map((slug, idx) => (
+              {currentHoverSlugs?.map((slug, idx) => (
                 <React.Fragment key={idx}>
                   {slug === "switchToTabGroup" ? (
                     <div className="tooltip-span">
@@ -315,12 +344,12 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
               style: {
                 backgroundColor: "transparent"
               },
-              anchorEl: tooltipAnchorEl,
+              anchorEl: currentTooltipAnchorEl,
               modifiers: [
                 {
                   name: "offset",
                   options: {
-                    offset: [0, 8]
+                    offset: [0, -12]
                   }
                 }
               ]
