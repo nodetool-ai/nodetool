@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback
+} from "react";
 import ReactDOM from "react-dom";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
@@ -240,20 +246,23 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     escape: "ESC"
   } as Record<string, string>;
 
-  const onKeyPress = (button: string) => {
-    const targetButton = containerRef.current?.querySelector(
-      `.hg-button[data-skbtn="${button.toLowerCase()}"]`
-    );
-    if (targetButton) {
-      targetButton.classList.add("hg-pressed");
-      if (keySlugMap[button.toLowerCase()]) {
-        setKeyboardHoverSlugs(keySlugMap[button.toLowerCase()]);
-        setKeyboardTooltipAnchorEl(targetButton as HTMLElement);
+  const onKeyPress = useCallback(
+    (button: string) => {
+      const targetButton = containerRef.current?.querySelector(
+        `.hg-button[data-skbtn="${button.toLowerCase()}"]`
+      );
+      if (targetButton) {
+        targetButton.classList.add("hg-pressed");
+        if (keySlugMap[button.toLowerCase()]) {
+          setKeyboardHoverSlugs(keySlugMap[button.toLowerCase()]);
+          setKeyboardTooltipAnchorEl(targetButton as HTMLElement);
+        }
       }
-    }
-  };
+    },
+    [keySlugMap]
+  );
 
-  const onKeyReleased = (button: string) => {
+  const onKeyReleased = useCallback((button: string) => {
     const targetButton = containerRef.current?.querySelector(
       `.hg-button[data-skbtn="${button.toLowerCase()}"]`
     );
@@ -262,7 +271,27 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     }
     setKeyboardHoverSlugs(null);
     setKeyboardTooltipAnchorEl(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const button = event.key === " " ? "space" : event.key;
+      onKeyPress(button);
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const button = event.key === " " ? "space" : event.key;
+      onKeyReleased(button);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [onKeyPress, onKeyReleased]);
 
   const currentHoverSlugs = hoverSlugs || keyboardHoverSlugs;
   const currentTooltipAnchorEl = tooltipAnchorEl || keyboardTooltipAnchorEl;
