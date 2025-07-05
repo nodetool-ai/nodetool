@@ -34,6 +34,7 @@ const StringProperty = ({
   }, [edges, nodeId, property.name]);
 
   const showTextEditor = !isConnected;
+  const isConstant = nodeType.startsWith("nodetool.constant.");
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -77,7 +78,7 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className="string-property">
+      <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
         <div
           className="property-row"
           onMouseEnter={() => setIsHovered(true)}
@@ -121,7 +122,7 @@ const StringProperty = ({
               spellCheck="false"
               multiline
               minRows={1}
-              maxRows={2}
+              maxRows={isConstant ? 20 : 2}
               fullWidth
               size="small"
               variant="outlined"
@@ -143,7 +144,7 @@ const StringProperty = ({
   }
 
   return (
-    <div className="string-property">
+    <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}

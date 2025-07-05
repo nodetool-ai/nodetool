@@ -211,6 +211,24 @@
   width: 100%;
 }
 
+/* Constant node string properties - allow content to expand */
+.string-property.constant-node .string-value-display {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+  word-wrap: break-word;
+  max-height: none;
+}
+
+.string-property.constant-node .MuiOutlinedInput-root textarea {
+  max-height: 300px;
+  min-height: 2em;
+}
+
+.string-property.constant-node .value-container {
+  max-height: none;
+}
+
 /* List view */
 .node-property.list ul {
   max-height: 500px;
@@ -876,4 +894,45 @@
 .select-container .search-input:focus {
   outline: none;
   border-color: var(--palette-grey-600);
+}
+
+/* LANGUAGE MODEL SELECT STYLES */
+.model-menu button {
+  background-color: var(--palette-grey-800);
+  border: 1px solid var(--palette-grey-500);
+  min-width: 280px;
+  max-height: 400px;
+}
+
+.model-menu .provider-header {
+  margin-top: 1em;
+  padding: 0.5em 1em;
+  user-select: none;
+  background-color: var(--palette-grey-800);
+  color: var(--palette-grey-100);
+  font-size: var(--fontSizeNormal);
+  font-variant: small-caps;
+  text-transform: uppercase;
+}
+
+.model-menu .model-item:hover {
+  background-color: var(--palette-grey-600);
+}
+
+.model-menu .model-item.selected {
+  background-color: var(--palette-primary-dark);
+}
+
+.model-menu .model-item > div {
+  padding-left: 0;
+}
+
+.model-menu .model-name {
+  color: var(--palette-grey-0);
+}
+
+.model-menu .loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
 } 
