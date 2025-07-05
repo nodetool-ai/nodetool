@@ -152,6 +152,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             color: "var(--palette-grey-0)",
             marginRight: ".5em !important",
             padding: "0.25em 0.75em !important",
+            borderRadius: "0.25em",
             "&:hover": {
               backgroundColor: "var(--palette-grey-500)"
             }
