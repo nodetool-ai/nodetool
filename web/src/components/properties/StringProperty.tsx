@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import { useState, useCallback, memo, useRef, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -9,98 +8,6 @@ import { TextField, IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { css, useTheme } from "@emotion/react";
-
-const styles = (theme: any) =>
-  css({
-    ".property-row": {
-      // display: "flex",
-      // alignItems: "center",
-      // gap: "0.5em",
-      // position: "relative",
-      width: "100%"
-    },
-    ".value-container": {
-      width: "100%"
-      // flex: "1 1 auto",
-      // minWidth: 0
-    },
-    "& .string-value-input": {
-      fontSize: theme.fontSizeSmaller,
-    },
-    "& .string-action-buttons": {
-      position: "absolute",
-      right: "0",
-      top: "-3px",
-      opacity: 0.8,
-      "& .MuiIconButton-root": {
-        margin: "0 0 0 5px",
-        padding: 0
-      },
-      "& .MuiIconButton-root svg": {
-        fontSize: "0.75rem"
-      }
-    },
-
-    "& .string-value-display": {
-      // minHeight: "1.5em",
-      padding: "0",
-      lineHeight: "1em",
-      cursor: "pointer",
-      borderRadius: "4px",
-      border: "1px solid transparent",
-      backgroundColor: "transparent",
-      transition: "all 0.2s ease",
-      fontSize: theme.fontSizeSmaller,
-      color: theme.palette.text.primary,
-      fontFamily: "inherit",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      userSelect: "none",
-      "&:hover": {
-        backgroundColor: theme.palette.grey[600],
-        border: "1px solid " + theme.palette.grey[500]
-      },
-      "&.empty": {
-        color: theme.palette.text.secondary,
-        fontStyle: "italic"
-      }
-    },
-
-    "& .MuiOutlinedInput-root": {
-      padding: "0",
-      "& textarea": {
-        resize: "none",
-        minHeight: "1.25em",
-        padding: "0.25em 0.5em",
-        lineHeight: "1.25em",
-        border: "1px solid var(--palette-grey-600)"
-      },
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderWidth: "0"
-      },
-      "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderWidth: "0"
-      },
-      "&.Mui-hover .MuiOutlinedInput-notchedOutline": {
-        borderWidth: "0"
-      },
-      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderWidth: "0"
-      },
-      "&.Mui-focused": {
-        "& .MuiOutlinedInput-input": {
-          backgroundColor: "var(--palette-grey-600)"
-        }
-      }
-    },
-    "& .MuiTextField-root": {
-      marginTop: "-5px",
-      padding: "0",
-      width: "100%"
-    }
-  });
 
 const StringProperty = ({
   property,
@@ -112,7 +19,6 @@ const StringProperty = ({
   nodeType,
   isInspector
 }: PropertyProps) => {
-  const theme = useTheme();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -171,7 +77,7 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className="string-property" css={styles(theme)}>
+      <div className="string-property">
         <div
           className="property-row"
           onMouseEnter={() => setIsHovered(true)}
@@ -237,7 +143,7 @@ const StringProperty = ({
   }
 
   return (
-    <div className="string-property" css={styles(theme)}>
+    <div className="string-property">
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}
