@@ -53,7 +53,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       }`}
       onClick={handleHeaderClick}
       style={{
-        backgroundColor: selected ? backgroundColor : "transparent"
+        backgroundColor: backgroundColor,
       }}
     >
       <span className="node-title">{metadataTitle}</span>
