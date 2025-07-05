@@ -42,6 +42,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     "all" | "editor" | "panel" | "assets" | "workflow"
   >("all");
   const containerRef = useRef<HTMLDivElement>(null);
+  const isKeyPressedRef = useRef(false);
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
   const [tooltipAnchorEl, setTooltipAnchorEl] = useState<HTMLElement | null>(
     null
@@ -194,6 +195,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       if (key && keyTitleMap[key]) {
         // add hover listeners once
         const handleEnter = (event: MouseEvent) => {
+          if (isKeyPressedRef.current) return;
           setHoverSlugs(keySlugMap[key]);
           setTooltipAnchorEl(event.currentTarget as HTMLElement);
         };
@@ -234,6 +236,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 
   const onKeyPress = useCallback(
     (button: string) => {
+      isKeyPressedRef.current = true;
       const targetButton = containerRef.current?.querySelector(
         `.hg-button[data-skbtn="${button.toLowerCase()}"]`
       );
@@ -249,6 +252,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   );
 
   const onKeyReleased = useCallback((button: string) => {
+    isKeyPressedRef.current = false;
     const targetButton = containerRef.current?.querySelector(
       `.hg-button[data-skbtn="${button.toLowerCase()}"]`
     );
@@ -283,8 +287,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     };
   }, [onKeyPress, onKeyReleased]);
 
-  const currentHoverSlugs = hoverSlugs || keyboardHoverSlugs;
-  const currentTooltipAnchorEl = tooltipAnchorEl || keyboardTooltipAnchorEl;
+  const currentHoverSlugs = keyboardHoverSlugs || hoverSlugs;
+  const currentTooltipAnchorEl = keyboardTooltipAnchorEl || tooltipAnchorEl;
 
   return (
     <div>
