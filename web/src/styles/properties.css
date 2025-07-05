@@ -117,6 +117,100 @@
   outline: none;
 }
 
+/* STRING PROPERTY STYLES */
+.string-property .property-row {
+  width: 100%;
+}
+
+.string-property .value-container {
+  width: 100%;
+}
+
+.string-property .string-value-input {
+  font-size: var(--font-size-smaller);
+}
+
+.string-property .string-action-buttons {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  opacity: 0.8;
+}
+
+.string-property .string-action-buttons .MuiIconButton-root {
+  margin: 0 0 0 5px;
+  padding: 0;
+}
+
+.string-property .string-action-buttons .MuiIconButton-root svg {
+  font-size: 0.75rem;
+}
+
+.string-property .string-value-display {
+  padding: 0;
+  line-height: 1em;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-smaller);
+  color: var(--palette-text-primary);
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+.string-property .string-value-display:hover {
+  background-color: var(--palette-grey-600);
+  border: 1px solid var(--palette-grey-500);
+}
+
+.string-property .string-value-display.empty {
+  color: var(--palette-text-secondary);
+  font-style: italic;
+}
+
+.string-property .MuiOutlinedInput-root {
+  padding: 0;
+}
+
+.string-property .MuiOutlinedInput-root textarea {
+  resize: none;
+  min-height: 1.25em;
+  padding: 0.25em 0.5em;
+  line-height: 1.25em;
+  border: 1px solid var(--palette-grey-600);
+}
+
+.string-property .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-width: 0;
+}
+
+.string-property .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-width: 0;
+}
+
+.string-property .MuiOutlinedInput-root.Mui-hover .MuiOutlinedInput-notchedOutline {
+  border-width: 0;
+}
+
+.string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 0;
+}
+
+.string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
+  background-color: var(--palette-grey-600);
+}
+
+.string-property .MuiTextField-root {
+  margin-top: -5px;
+  padding: 0;
+  width: 100%;
+}
+
 /* List view */
 .node-property.list ul {
   max-height: 500px;
