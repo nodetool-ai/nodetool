@@ -15,7 +15,6 @@ export const useHuggingFaceModels = () => {
         "/api/models/huggingface_models",
         {}
       );
-      console.log("data", data);
       if (error) throw error;
       return data.map(
         (model: CachedModel): UnifiedModel => ({

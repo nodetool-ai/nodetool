@@ -29,8 +29,6 @@ const HuggingFaceModelSelect = ({
       return null;
     }
 
-    console.log("hfModels", hfModels);
-
     if (modelType.startsWith("hf.text_to_image")) {
       const textToImages = hfModels?.filter(
         (model) => model.pipeline_tag === "text-to-image" && model.has_model_index
