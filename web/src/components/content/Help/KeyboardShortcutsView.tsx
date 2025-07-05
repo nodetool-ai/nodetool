@@ -38,6 +38,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   >("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
+  const [tooltipAnchorEl, setTooltipAnchorEl] = useState<HTMLElement | null>(
+    null
+  );
 
   const filtered = useMemo(() => {
     if (categoryFilter === "all") return shortcuts;
@@ -193,8 +196,14 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       const key = btn.getAttribute("data-skbtn")?.toLowerCase();
       if (key && keyTitleMap[key]) {
         // add hover listeners once
-        const handleEnter = () => setHoverSlugs(keySlugMap[key]);
-        const handleLeave = () => setHoverSlugs(null);
+        const handleEnter = (event: MouseEvent) => {
+          setHoverSlugs(keySlugMap[key]);
+          setTooltipAnchorEl(event.currentTarget as HTMLElement);
+        };
+        const handleLeave = () => {
+          setHoverSlugs(null);
+          setTooltipAnchorEl(null);
+        };
         btn.addEventListener("mouseenter", handleEnter);
         btn.addEventListener("mouseleave", handleLeave);
         // store cleanup handler
@@ -270,13 +279,15 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           title={
             <div
               style={{
-                backgroundColor: alpha(theme.palette.grey[900], 0.85),
+                // backgroundColor: alpha(theme.palette.grey[900], 0.85),
+                // backgroundColor: alpha(theme.palette.grey[900], 0.5),
+                backgroundColor: "transparent",
                 borderRadius: ".5em",
                 padding: ".5em",
                 display: "flex",
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: ".2em"
+                gap: "2em"
               }}
             >
               {hoverSlugs?.map((slug, idx) => (
@@ -302,12 +313,9 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           slotProps={{
             popper: {
               style: {
-                backgroundColor: alpha(theme.palette.grey[900], 0.85),
-                borderRadius: ".5em",
-                padding: ".5em",
-                maxWidth: "none"
+                backgroundColor: "transparent"
               },
-              anchorEl: containerRef.current,
+              anchorEl: tooltipAnchorEl,
               modifiers: [
                 {
                   name: "offset",

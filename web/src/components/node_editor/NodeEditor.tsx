@@ -166,13 +166,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                   top: "250px",
                   left: "50%",
                   transform: "translateX(-50%)",
+                  width: "80vw",
+                  maxWidth: "1400px",
                   padding: 4,
                   backgroundColor: theme.palette.grey[800],
                   boxShadow: 24,
                   borderRadius: 2,
                   border: 0,
                   outline: 0,
-                  width: "80vw",
                   overflow: "hidden"
                 }}
               >

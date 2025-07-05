@@ -102,9 +102,10 @@ span.tooltip-small {
   margin: 0;
 }
 .tooltip-description {
-  max-width: 12em;
+  max-width: 13em;
   font-size: var(--fontSizeSmall);
   line-height: 1.2em;
+  text-align: center;
   color: var(--palette-grey-200);
   margin:0;
   padding:.5em;
