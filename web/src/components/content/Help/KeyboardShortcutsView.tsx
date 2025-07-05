@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import ReactDOM from "react-dom";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import { ToggleButtonGroup, ToggleButton, Divider } from "@mui/material";
+import {
+  ToggleButtonGroup,
+  ToggleButton,
+  Divider,
+  Tooltip
+} from "@mui/material";
 import {
   Shortcut,
   expandShortcutsForOS,
@@ -13,6 +18,8 @@ import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
 import { alpha } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
+import { getMousePosition } from "../../../utils/MousePosition";
+
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
 }
@@ -256,61 +263,69 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           physicalKeyboardHighlightBgColor="var(--palette-primary-main)"
         />
       </div>
-
-      {ReactDOM.createPortal(
-        <div
-          style={{
-            position: "fixed",
-            backgroundColor: "transparent",
-            width: "90%",
-            top: "48vh",
-            left: "50%",
-            transform: "translateX(-50%)",
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            gap: ".2em",
-            justifyContent: "center",
-            padding: ".5em",
-            borderRadius: ".5em",
-            opacity: hoverSlugs ? 1 : 0,
-            transition: "opacity 0.3s ease",
-            pointerEvents: "none",
-            zIndex: 999999
+      {hoverSlugs && ( // Only render Tooltip when there are hoverSlugs
+        <Tooltip
+          open={!!hoverSlugs}
+          placement="bottom"
+          title={
+            <div
+              style={{
+                backgroundColor: alpha(theme.palette.grey[900], 0.85),
+                borderRadius: ".5em",
+                padding: ".5em",
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: ".2em"
+              }}
+            >
+              {hoverSlugs?.map((slug, idx) => (
+                <React.Fragment key={idx}>
+                  {slug === "switchToTabGroup" ? (
+                    <div className="tooltip-span">
+                      <div className="tooltip-title">Switch to Tab</div>
+                      <div className="tooltip-key">
+                        <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
+                      </div>
+                      <div className="tooltip-description">
+                        Activate workflow tab 1-9
+                      </div>
+                    </div>
+                  ) : (
+                    getShortcutTooltip(slug, os, "full", true)
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          }
+          arrow
+          slotProps={{
+            popper: {
+              style: {
+                backgroundColor: alpha(theme.palette.grey[900], 0.85),
+                borderRadius: ".5em",
+                padding: ".5em",
+                maxWidth: "none"
+              },
+              anchorEl: containerRef.current,
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, 8]
+                  }
+                }
+              ]
+            },
+            tooltip: {
+              style: {
+                maxWidth: "none"
+              }
+            }
           }}
         >
-          {hoverSlugs?.map((slug, idx) => (
-            <React.Fragment key={idx}>
-              <div
-                className="keyboard-tooltip-container"
-                style={{
-                  marginBottom: ".2em",
-                  minWidth: "180px",
-                  backgroundColor: alpha(theme.palette.grey[900], 0.85),
-                  borderRadius: ".5em",
-                  padding: ".1em"
-                }}
-              >
-                {slug === "switchToTabGroup" ? (
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Switch to Tab</div>
-                    <div className="tooltip-key">
-                      <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
-                    </div>
-                    <div className="tooltip-description">
-                      Activate workflow tab 1-9
-                    </div>
-                  </div>
-                ) : (
-                  getShortcutTooltip(slug, os, "full", true)
-                )}
-              </div>
-            </React.Fragment>
-          ))}
-        </div>,
-        document.body
+          <div />
+        </Tooltip>
       )}
     </div>
   );
