@@ -32,8 +32,8 @@
 .hg-theme-default .hg-button span {
   font-size: var(--fontSizeBig);
 }
-.hg-theme-default .hg-pressed {
-  color: gray !important;
+.hg-theme-default .has-shortcut.hg-pressed {
+  color:white !important;
 }
 .hg-theme-default .hg-button.has-shortcut-inactive {
   background: var(--palette-grey-700);
@@ -48,11 +48,6 @@
   pointer-events: all;
   opacity: 1;
   box-shadow: 1px 1px 2px var(--palette-grey-900);
-}
-.hg-theme-default .hg-button.never-shortcut {
-  color: var(--palette-grey-600);
-  background: var(--palette-grey-900);
-  pointer-events: none;
 }
 .hg-theme-default .hg-button.hg-activeButton {
   background: var(--palette-grey-600);
@@ -69,6 +64,15 @@
   background-color: var(--palette-primary-light);
 }
 
+/* NEVER SHORTCUT */
+.hg-theme-default .hg-button.never-shortcut {
+  color: var(--palette-grey-600);
+  background: var(--palette-grey-900);
+  pointer-events: none;
+}
+.hg-theme-default .hg-button.never-shortcut.hg-pressed {
+  color: var(--palette-grey-900) !important;  
+}
 /* Modifier key widths */
 .keyboard-view .hg-button[data-skbtn="control"],
 .keyboard-view .hg-button[data-skbtn="alt"],
