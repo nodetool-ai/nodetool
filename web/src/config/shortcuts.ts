@@ -252,7 +252,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "deleteNode",
     keyCombo: ["Delete"],
     category: "editor",
-    description: "Delete selected node(s)",
+    description: "Delete selected nodes (Backspace or Delete)",
+    registerCombo: false
+  },
+  {
+    title: "Delete Node",
+    slug: "deleteNodeBackspace",
+    keyCombo: ["Backspace"],
+    category: "editor",
+    description: "Delete selected nodes (Backspace or Delete)",
     registerCombo: false
   },
   {

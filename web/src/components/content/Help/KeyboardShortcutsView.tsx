@@ -5,15 +5,9 @@ import React, {
   useMemo,
   useCallback
 } from "react";
-import ReactDOM from "react-dom";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import {
-  ToggleButtonGroup,
-  ToggleButton,
-  Divider,
-  Tooltip
-} from "@mui/material";
+import { ToggleButtonGroup, ToggleButton, Tooltip } from "@mui/material";
 import {
   Shortcut,
   expandShortcutsForOS,
@@ -22,9 +16,8 @@ import {
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
-import { alpha } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { getMousePosition } from "../../../utils/MousePosition";
+import { keyboardLayouts } from "./keyboard_layouts";
 
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
@@ -39,6 +32,12 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 }) => {
   const theme = useTheme();
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
+  const [layoutName, setLayoutName] = useState<"english" | "german">(() => {
+    if (typeof navigator !== "undefined") {
+      return navigator.language.startsWith("de") ? "german" : "english";
+    }
+    return "english";
+  });
   const [categoryFilter, setCategoryFilter] = useState<
     "all" | "editor" | "panel" | "assets" | "workflow"
   >("all");
@@ -111,31 +110,18 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     if (value) setOs(value);
   };
 
-  const layout = useMemo(
-    () => ({
-      default: [
-        "escape 1 2 3 4 5 6 7 8 9 0 - = backspace",
-        "tab q w e r t y u i o p [ ] \\",
-        "capslock a s d f g h j k l ; ' enter",
-        "shift z x c v b n m , . / shift",
-        "control alt meta space alt control"
-      ],
-      german: [
-        "escape 1 2 3 4 5 6 7 8 9 0 ß ' backspace",
-        "tab q w e r t z u i o p ü + #",
-        "capslock a s d f g h j k l ö ä enter",
-        "shift < y x c v b n m , . - shift",
-        "control alt meta space alt control"
-      ]
-    }),
-    []
-  );
+  const handleLayoutToggle = (_: any, value: "english" | "german") => {
+    if (value) setLayoutName(value);
+  };
+
+  const layout = keyboardLayouts;
 
   // 1. Get all keys in the layout
   const allLayoutKeys = useMemo(() => {
     return Array.from(
       new Set(
-        layout.default
+        layout.english
+          .concat(layout.german)
           .join(" ")
           .split(" ")
           .map((k) => k.toLowerCase())
@@ -314,6 +300,17 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       </ToggleButtonGroup>
 
       <ToggleButtonGroup
+        value={layoutName}
+        exclusive
+        onChange={handleLayoutToggle}
+        size="small"
+        sx={{ mb: 2, ml: 2 }}
+      >
+        <ToggleButton value="english">EN</ToggleButton>
+        <ToggleButton value="german">DE</ToggleButton>
+      </ToggleButtonGroup>
+
+      <ToggleButtonGroup
         value={categoryFilter}
         exclusive
         onChange={(_, v) => v && setCategoryFilter(v)}
@@ -330,6 +327,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       <div ref={containerRef} className="keyboard-view">
         <Keyboard
           layout={layout}
+          layoutName={layoutName}
           display={display}
           buttonTheme={buttonTheme}
           onKeyPress={onKeyPress}
