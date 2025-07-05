@@ -36,7 +36,7 @@ Unlike cloud-only tools, NodeTool protects your privacy while giving you the pow
 
 ---
 
-![NodeTool](screen.png)
+![NodeTool](screenshot.png)
 
 ---
 
