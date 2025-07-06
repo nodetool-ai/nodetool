@@ -45,6 +45,8 @@ const useNamespaceTree = (): NamespaceTree => {
       if (isProduction) return false;
 
       const apiKeyChecks: Record<string, () => boolean> = {
+        calendly: () => !isApiKeySet("CALENDLY_API_TOKEN"),
+        google: () => !isApiKeySet("GEMINI_API_KEY"),
         openai: () => !isApiKeySet("OPENAI_API_KEY"),
         aime: () => !isApiKeySet("AIME_API_KEY"),
         anthropic: () => !isApiKeySet("ANTHROPIC_API_KEY"),
