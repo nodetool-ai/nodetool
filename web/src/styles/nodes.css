@@ -318,6 +318,7 @@
 .react-flow.zoomed-out .expand-button-container,
 .react-flow.zoomed-out .tool-call-container,
 .react-flow.zoomed-out .node-chunk,
+.react-flow.zoomed-out .drop-container,
 .react-flow.zoomed-out .preview-node-content .output
   {
   opacity: 0;
