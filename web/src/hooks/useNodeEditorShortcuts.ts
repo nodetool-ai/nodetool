@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useCombo } from "../stores/KeyPressedStore";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
@@ -20,6 +20,9 @@ import { Node } from "@xyflow/react";
 const ControlOrMeta = navigator.userAgent.includes("Mac") ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (active: boolean) => {
+  const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
+  const [packageNameInput, setPackageNameInput] = useState("");
+
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
   const { selectedNodes, selectAllNodes, setNodes } = useNodes((state) => ({
@@ -153,9 +156,15 @@ export const useNodeEditorShortcuts = (active: boolean) => {
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
-  const handleSaveExample = useCallback(async () => {
+  const handleSaveExample = useCallback(() => {
+    setPackageNameDialogOpen(true);
+  }, []);
+
+  const handleSaveExampleConfirm = useCallback(async () => {
     try {
-      await saveExample();
+      await saveExample(packageNameInput);
+      setPackageNameDialogOpen(false);
+      setPackageNameInput("");
       addNotification({
         content: "Example saved successfully",
         type: "success",
@@ -169,7 +178,12 @@ export const useNodeEditorShortcuts = (active: boolean) => {
         alert: true
       });
     }
-  }, [saveExample, addNotification]);
+  }, [saveExample, packageNameInput, addNotification]);
+
+  const handleSaveExampleCancel = useCallback(() => {
+    setPackageNameDialogOpen(false);
+    setPackageNameInput("");
+  }, []);
 
   // Define OS-specific tab switching shortcuts
   const prevTabShortcut = navigator.userAgent.includes("Mac")
@@ -382,4 +396,13 @@ export const useNodeEditorShortcuts = (active: boolean) => {
 
   // Open/close Inspector panel
   useCombo(["i"], handleInspectorToggle);
+
+  // Return dialog state and handlers for external use
+  return {
+    packageNameDialogOpen,
+    packageNameInput,
+    setPackageNameInput,
+    handleSaveExampleConfirm,
+    handleSaveExampleCancel
+  };
 };

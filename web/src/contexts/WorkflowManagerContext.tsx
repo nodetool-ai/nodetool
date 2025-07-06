@@ -118,7 +118,7 @@ type WorkflowManagerState = {
   searchExamples: (query: string) => Promise<any>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
-  saveExample: () => Promise<any>;
+  saveExample: (packageName: string) => Promise<any>;
   validateAllEdges: () => void;
   fetchWorkflowTools: () => Promise<void>;
   getWorkflowTools: () => Workflow[];
@@ -451,7 +451,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       // Saves the current workflow as an example.
-      saveExample: async () => {
+      saveExample: async (packageName: string) => {
         const workflow = get().getCurrentWorkflow();
         if (!workflow) {
           throw new Error("Workflow not found");
@@ -464,7 +464,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               name: workflow.name,
               description: workflow.description,
               tags: workflow.tags,
-              package_name: workflow.package_name,
+              package_name: packageName,
               path: workflow.path,
               access: "public",
               graph: workflow.graph

@@ -292,25 +292,6 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           />
         </FormControl>
         <FormControl>
-          <FormLabel htmlFor="description">Package Name</FormLabel>
-          <OutlinedInput
-            name="package_name"
-            value={localWorkflow.package_name}
-            onChange={handleChange}
-            multiline
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            minRows={1}
-            style={{
-              width: "100%",
-              backgroundColor: "transparent",
-              color: "white",
-              fontSize: ThemeNodetool.fontSizeNormal
-            }}
-          />
-        </FormControl>
-        <FormControl>
           <FormLabel htmlFor="description">Description</FormLabel>
           <OutlinedInput
             name="description"
