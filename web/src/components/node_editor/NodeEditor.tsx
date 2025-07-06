@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect } from "react";
 
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -51,7 +51,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       clearMissingModels: state.clearMissingModels
     })
   );
-  useNodeEditorShortcuts(active);
+  const {
+    packageNameDialogOpen,
+    packageNameInput,
+    setPackageNameInput,
+    handleSaveExampleConfirm,
+    handleSaveExampleCancel
+  } = useNodeEditorShortcuts(active);
 
   // WorkflowRunner connection management
   const { connect, disconnect, state, current_url } = useWorkflowRunner(
@@ -154,6 +160,38 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </>
         )}
       </Box>
+      
+      {/* Package Name Dialog */}
+      <Dialog
+        open={packageNameDialogOpen}
+        onClose={handleSaveExampleCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Save Example</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Package Name"
+            fullWidth
+            variant="outlined"
+            value={packageNameInput}
+            onChange={(e) => setPackageNameInput(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveExampleConfirm();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSaveExampleCancel}>Cancel</Button>
+          <Button onClick={handleSaveExampleConfirm} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
