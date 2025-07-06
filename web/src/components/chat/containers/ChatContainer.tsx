@@ -25,6 +25,12 @@ const styles = (theme: any) =>
     width: "400px",
     maxHeight: "600px",
     height: "500px",
+    
+    ".new-chat-button": {
+      fontSize: "0.875rem",
+      padding: "4px 8px",
+      minWidth: "auto"
+    },
 
     "&.minimized": {
       width: "120px",

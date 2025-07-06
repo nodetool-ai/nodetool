@@ -7,7 +7,7 @@ interface ChatHeaderProps {
   isMinimized: boolean;
   onMinimize?: () => void;
   onReset?: () => void;
-  messagesCount: number;
+  messagesCount?: number;
   title?: string;
   icon?: React.ReactNode;
   description?: string;

@@ -183,7 +183,7 @@ const HuggingFaceModelSelect = ({
           keys: ["value"]
         }}
       />
-      {isValueMissing && !hfLoading && value?.repo_id && (
+      {isValueMissing && !hfLoading && !hfIsFetching && !hfError && value?.repo_id && (
         <Button
           variant="outlined"
           size="small"

@@ -85,21 +85,15 @@ const recommendedModels: UnifiedModel[] = [
   },
   {
     id: DEFAULT_MODEL,
-    name: "Llama 3.2 3B",
+    name: "Gemma 3 N",
     type: "llama_model",
     repo_id: DEFAULT_MODEL
   },
   {
-    id: "deepseek-r1:7b",
-    name: "DeepSeek R1 7B",
+    id: "gemma3:4b",
+    name: "Gemma 3 4B",
     type: "llama_model",
-    repo_id: "deepseek-r1:7b"
-  },
-  {
-    id: "llama3.2-vision:11b",
-    name: "Llama 3.2 - Vision 11B",
-    type: "llama_model",
-    repo_id: "llama3.2-vision:11b"
+    repo_id: "gemma3:4b"
   },
   {
     id: "nomic-embed-text",
@@ -555,28 +549,15 @@ const Welcome = () => {
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>Llama 3.2 3B</b> - The Llama 3.2 instruction-tuned
-                        text only models are optimized for multilingual dialogue
-                        use cases, including agentic retrieval and summarization
-                        tasks.
+                        <b>Gemma 3 N</b> - Gemma 3n models are designed for
+                        efficient execution on everyday devices such as laptops,
+                        tablets or phones.
                       </Typography>
                     </li>
                     <li>
                       <Typography variant="body1">
-                        <b>DeepSeek R1 7B</b> - DeepSeek-R1 is a family of open
-                        reasoning models with performance approaching that of
-                        leading models, such as O3 and Gemini 2.5 Pro.
-                        <br />
-                        Note:This smaller, distilled version exhibits lower
-                        performance.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Llama 3.2 - Vision</b> - The Llama 3.2-Vision
-                        instruction-tuned models are optimized for visual
-                        recognition, image reasoning, captioning, and answering
-                        general questions about an image.
+                        <b>Gemma 3</b> - A family of lightweight models with
+                        multimodal understanding.
                       </Typography>
                     </li>
                     <li>
