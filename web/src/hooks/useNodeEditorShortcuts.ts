@@ -214,7 +214,7 @@ export const useNodeEditorShortcuts = (active: boolean) => {
   useCombo([ControlOrMeta, "x"], handleCut);
   useCombo([ControlOrMeta, "s"], handleSave);
 
-  useCombo([ControlOrMeta, "Shift", "x"], handleSaveExample);
+  useCombo([ControlOrMeta, "§"], handleSaveExample);
 
   useCombo([ControlOrMeta, "d"], duplicateNodes);
   useCombo([ControlOrMeta, "Shift", "d"], duplicateNodesVertical);

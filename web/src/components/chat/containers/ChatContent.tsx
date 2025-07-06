@@ -7,11 +7,25 @@ import ChatView from "./ChatView";
 
 interface ChatContentProps {
   handleSendMessage: (message: Message) => Promise<void>;
+  graph?: {
+    nodes: any[];
+    edges: any[];
+  };
 }
 
-const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage }) => {
-  const { messages, status, progress, total, error, progressMessage } =
-    useWorkflowChatStore();
+const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage, graph }) => {
+  const { 
+    status, 
+    progress, 
+    error, 
+    statusMessage,
+    getCurrentMessages,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    stopGeneration
+  } = useWorkflowChatStore();
+  
+  const messages = getCurrentMessages();
 
   return (
     <Box
@@ -20,7 +34,7 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage }) => {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        pb: 5
+        pb: 1
       }}
     >
       {error && <Alert severity="error">{error}</Alert>}
@@ -28,9 +42,13 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage }) => {
         status={status}
         messages={messages}
         sendMessage={handleSendMessage}
-        progress={progress}
-        total={total}
-        progressMessage={progressMessage}
+        progress={progress.current}
+        total={progress.total}
+        progressMessage={statusMessage}
+        onStop={stopGeneration}
+        currentPlanningUpdate={currentPlanningUpdate}
+        currentTaskUpdate={currentTaskUpdate}
+        graph={graph}
       />
     </Box>
   );
