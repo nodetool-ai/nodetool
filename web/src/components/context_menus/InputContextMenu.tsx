@@ -40,13 +40,13 @@ const InputContextMenu: React.FC = () => {
     setNodeId,
     setFilterType,
     setConnectableType,
-    setSourceHandle
+    setTargetHandle
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata,
-    setSourceHandle: state.setSourceHandle
+    setTargetHandle: state.setTargetHandle
   }));
   const handleOpenNodeMenu = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
@@ -190,7 +190,9 @@ const InputContextMenu: React.FC = () => {
       event.stopPropagation();
     }
     if (menuPosition) {
-      setSourceHandle(handleId);
+      // When showing connectable nodes from an input handle,
+      // we're looking for nodes with compatible outputs
+      setTargetHandle(handleId);  // This input handle will be the target
       setNodeId(nodeId);
       setFilterType("output");
       setConnectableType(type);

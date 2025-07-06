@@ -273,7 +273,9 @@ const OutputContextMenu: React.FC = () => {
       event.stopPropagation();
     }
     if (menuPosition) {
-      setSourceHandle(sourceHandle);
+      // When showing connectable nodes from an output handle,
+      // we're looking for nodes with compatible inputs
+      setSourceHandle(sourceHandle);  // This output handle will be the source
       setNodeId(nodeId);
       setFilterType("input");
       setConnectableType(sourceType);
