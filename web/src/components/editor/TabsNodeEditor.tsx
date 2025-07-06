@@ -18,9 +18,9 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
-import { NodeStore } from "../../stores/NodeStore";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
-const styles = (theme: any) =>
+const styles = (theme: typeof ThemeNodetool) =>
   css({
     position: "absolute",
     top: 0,
@@ -210,11 +210,11 @@ const styles = (theme: any) =>
       justifyContent: "center",
       width: "30px",
       height: "30px",
-      background: theme.palette.background.default,
-      border: `1px solid ${theme.palette.grey[800]}`,
-      borderBottom: "none",
+      background: theme.palette.grey[700],
+      border: "none",
       color: theme.palette.grey[200],
       cursor: "pointer",
+      marginTop: "1px",
       borderRadius: "5px 5px 0 0",
       padding: 0,
       marginLeft: "2px",
@@ -224,8 +224,8 @@ const styles = (theme: any) =>
       zIndex: 1001,
 
       "&:hover": {
-        color: theme.palette.grey[100],
-        background: theme.palette.grey[800]
+        color: theme.palette.grey[0],
+        background: theme.palette.grey[300]
       },
 
       "& svg": {
