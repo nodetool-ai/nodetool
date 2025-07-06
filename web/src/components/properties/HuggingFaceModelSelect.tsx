@@ -5,6 +5,9 @@ import Select from "../inputs/Select";
 import { useRecommendedModels } from "../../hooks/useRecommendedModels";
 import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
 import { useLoraModels } from "../../hooks/useLoraModels";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { Button, Box } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -23,6 +26,7 @@ const HuggingFaceModelSelect = ({
     modelType,
     enabled: !!modelType && !hfLoading && !hfIsFetching && !hfError
   });
+  const downloadStore = useModelDownloadStore();
 
   const models = useMemo(() => {
     if (!modelType || hfLoading || hfIsFetching || hfError || modelType.startsWith("hf.lora_sd")) {
@@ -157,16 +161,40 @@ const HuggingFaceModelSelect = ({
     modelType
   ]);
 
+  const handleDownload = useCallback(() => {
+    if (value?.repo_id) {
+      downloadStore.startDownload(
+        value.repo_id,
+        modelType,
+        value.path || undefined
+      );
+      downloadStore.openDialog();
+    }
+  }, [value, modelType, downloadStore]);
+
   return (
-    <Select
-      options={options}
-      value={isValueMissing ? "" : selectValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      fuseOptions={{
-        keys: ["value"]
-      }}
-    />
+    <Box>
+      <Select
+        options={options}
+        value={isValueMissing ? "" : selectValue}
+        onChange={handleChange}
+        placeholder={placeholder}
+        fuseOptions={{
+          keys: ["value"]
+        }}
+      />
+      {isValueMissing && value?.repo_id && (
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          sx={{ mt: 1, width: "100%" }}
+        >
+          Download {value.repo_id}
+        </Button>
+      )}
+    </Box>
   );
 };
 
