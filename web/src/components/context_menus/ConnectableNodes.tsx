@@ -51,7 +51,7 @@ const scrollableContentStyles = (theme: any) =>
   css({
     overflowY: "auto",
     flex: 1,
-    backgroundColor: "var(--palette-grey-900)",
+    backgroundColor: "var(--palette-grey-800)",
     "&.connectable-nodes-content": {
       minHeight: 0,
       maxHeight: "calc(70vh - 130px)",
@@ -337,6 +337,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 key={nodeMetadata.node_type}
                 TransitionProps={{ timeout: 0 }}
                 placement="left"
+                sx={{ padding: "0" }}
                 title={
                   <NodeInfo
                     nodeMetadata={nodeMetadata}
