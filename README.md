@@ -1,5 +1,5 @@
-<h1 style="">
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" height="48" style="vertical-align: middle; margin-right: 8px;">NodeTool - Swiss-Army Knife for AI Builders
+<h1>
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" style="height:64px">NodeTool - Swiss-Army Knife for AI Builders
 </h1>
 
 **Drag, drop, build—one canvas for every model.**
