@@ -151,21 +151,12 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const selectedNodeTypes = useMemo(() => value || [], [value]);
 
   // Use NodeMenuStore for search functionality
-  const {
-    searchTerm,
-    setSearchTerm,
-    searchResults,
-    performSearch,
-    isLoading,
-    selectedPath
-  } = useNodeMenuStore((state) => ({
-    searchTerm: state.searchTerm,
-    setSearchTerm: state.setSearchTerm,
-    searchResults: state.searchResults,
-    performSearch: state.performSearch,
-    isLoading: state.isLoading,
-    selectedPath: state.selectedPath
-  }));
+  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
+  const searchResults = useNodeMenuStore((state) => state.searchResults);
+  const performSearch = useNodeMenuStore((state) => state.performSearch);
+  const isLoading = useNodeMenuStore((state) => state.isLoading);
+  const selectedPath = useNodeMenuStore((state) => state.selectedPath);
 
   const availableNodes = useMemo(() => {
     // Show nodes if either:
@@ -196,7 +187,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       const newNodeTypes = selectedNodeTypes.includes(nodeType)
         ? selectedNodeTypes.filter((type) => type !== nodeType)
         : [...selectedNodeTypes, nodeType];
-      onChange(newNodeTypes);
+      if (!isEqual(newNodeTypes, selectedNodeTypes)) {
+        onChange(newNodeTypes);
+      }
     },
     [selectedNodeTypes, onChange]
   );

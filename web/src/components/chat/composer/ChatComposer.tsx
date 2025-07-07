@@ -21,7 +21,11 @@ interface ChatComposerProps {
     | "reconnecting"
     | "disconnecting"
     | "failed";
-  onSendMessage: (content: MessageContent[], prompt: string, agentMode: boolean) => void;
+  onSendMessage: (
+    content: MessageContent[],
+    prompt: string,
+    agentMode: boolean
+  ) => void;
   onStop?: () => void;
   disabled?: boolean;
   agentMode?: boolean;
@@ -38,12 +42,14 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
-  const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressedStore(
-    (state) => ({
-      metaKeyPressed: state.isKeyPressed("Meta"),
-      altKeyPressed: state.isKeyPressed("Alt"),
-      shiftKeyPressed: state.isKeyPressed("Shift")
-    })
+  const metaKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Meta")
+  );
+  const altKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Alt")
+  );
+  const shiftKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Shift")
   );
 
   const { droppedFiles, addFiles, removeFile, clearFiles, getFileContents } =
