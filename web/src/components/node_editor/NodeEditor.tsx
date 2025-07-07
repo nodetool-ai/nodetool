@@ -1,7 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect } from "react";
 
-import { Box, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField
+} from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -27,6 +36,7 @@ import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
 
 declare global {
@@ -160,7 +170,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           </>
         )}
       </Box>
-      
+
       {/* Package Name Dialog */}
       <Dialog
         open={packageNameDialogOpen}
@@ -179,7 +189,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             value={packageNameInput}
             onChange={(e) => setPackageNameInput(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === "Enter") {
                 handleSaveExampleConfirm();
               }
             }}

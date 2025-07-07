@@ -34,6 +34,7 @@ import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";

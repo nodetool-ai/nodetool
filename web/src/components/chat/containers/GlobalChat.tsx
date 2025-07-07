@@ -6,6 +6,7 @@ import Drawer from "@mui/material/Drawer";
 import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";

@@ -6,6 +6,7 @@ import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 

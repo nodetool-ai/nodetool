@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";

@@ -4,6 +4,7 @@ import { Add } from "@mui/icons-material";
 import { Box, TextField } from "@mui/material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 
 interface NodePropertyFormProps {

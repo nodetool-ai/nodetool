@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import dialogStyles from "../../styles/DialogStyles";
 

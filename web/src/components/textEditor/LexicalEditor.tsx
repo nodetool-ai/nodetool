@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { Global, css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useState } from "react";
 import { EditorState, LexicalEditor } from "lexical";

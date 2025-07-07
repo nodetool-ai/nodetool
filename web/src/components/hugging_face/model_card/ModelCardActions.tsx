@@ -8,6 +8,7 @@ import { Check } from "@mui/icons-material";
 import { isProduction } from "../../../stores/ApiClient";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelInfo } from "../../../hooks/useModelInfo";
 import {

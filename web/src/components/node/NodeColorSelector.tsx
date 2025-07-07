@@ -15,6 +15,7 @@ import SearchInput from "../search/SearchInput";
 import { createLinearGradient } from "../../utils/ColorUtils";
 import { DATA_TYPES } from "../../config/data_types";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
   css({

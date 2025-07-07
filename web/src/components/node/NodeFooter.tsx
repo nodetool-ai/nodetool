@@ -4,6 +4,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

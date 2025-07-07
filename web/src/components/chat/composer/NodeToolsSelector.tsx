@@ -18,6 +18,7 @@ import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const toolsSelectorStyles = (theme: any) =>
   css({

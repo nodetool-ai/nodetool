@@ -19,6 +19,7 @@ import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({

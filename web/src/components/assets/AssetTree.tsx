@@ -17,6 +17,7 @@ import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { IconForType } from "../../config/data_types";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({

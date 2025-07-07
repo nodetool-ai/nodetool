@@ -24,6 +24,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({

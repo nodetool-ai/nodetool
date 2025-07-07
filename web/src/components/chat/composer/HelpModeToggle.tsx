@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Tooltip, IconButton, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import HelpIcon from "@mui/icons-material/Help";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 

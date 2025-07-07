@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { css, keyframes } from "@emotion/react";
 import SvgFileIcon from "./SvgFileIcon";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface Props {
   width?: number;

@@ -26,6 +26,7 @@ import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { NodeResizeControl, NodeResizer } from "@xyflow/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface NodeResizeHandleProps {
   minWidth: number;

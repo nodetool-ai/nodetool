@@ -21,6 +21,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";

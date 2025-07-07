@@ -3,6 +3,7 @@ import { Typography, Button } from "@mui/material";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;

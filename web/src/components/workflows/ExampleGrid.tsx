@@ -22,6 +22,7 @@ import {
   SEARCH_DEBOUNCE_MS
 } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToEditorButton from "../panels/BackToEditorButton";

@@ -9,6 +9,7 @@ import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
 import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({

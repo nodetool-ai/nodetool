@@ -5,6 +5,7 @@ import React from "react";
 import { useRouteError } from "react-router-dom";
 import { Typography, Box, Button, ThemeProvider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const errorBoundaryStyles = (theme: any) =>
   css({

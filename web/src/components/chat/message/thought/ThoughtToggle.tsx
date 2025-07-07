@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { pulse } from "../../styles/animations";
 
 interface ThoughtToggleProps {
