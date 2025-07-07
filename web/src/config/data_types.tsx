@@ -5,7 +5,7 @@ import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { memo } from "react";
 import { isEqual } from "lodash";
-import useTheme from "@mui/material/styles/useTheme";
+import useTheme from "@mui/material/styles";
 
 // icons
 import stc from "string-to-color";

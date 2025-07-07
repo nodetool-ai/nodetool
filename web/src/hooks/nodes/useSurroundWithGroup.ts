@@ -3,7 +3,7 @@ import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
-import useTheme from "@mui/material/styles/useTheme";
+import useTheme from "@mui/material/styles";
 
 export const useSurroundWithGroup = () => {
   const theme = useTheme();

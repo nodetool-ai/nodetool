@@ -13,7 +13,7 @@ import {
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import useTheme from "@mui/material/styles/useTheme";
+import useTheme from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 

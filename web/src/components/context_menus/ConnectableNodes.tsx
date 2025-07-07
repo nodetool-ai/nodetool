@@ -20,7 +20,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
 import { useNodes } from "../../contexts/NodeContext";
-import useTheme from "@mui/material/styles/useTheme";
+import useTheme from "@mui/material/styles";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
