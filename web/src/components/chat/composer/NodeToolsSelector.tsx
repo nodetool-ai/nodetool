@@ -17,7 +17,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
-import useTheme from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 
 const toolsSelectorStyles = (theme: any) =>
   css({

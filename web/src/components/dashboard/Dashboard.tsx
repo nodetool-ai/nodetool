@@ -25,7 +25,7 @@ import ChatView from "../chat/containers/ChatView";
 import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
-import useTheme from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 
 const styles = (theme: any) =>
   css({
