@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       gap: "1em"
     },
     h3: {
-      fontFamily: theme.fontFamily,
+      fontFamily: theme.fontFamily1,
       fontSize: "2em",
       color: "white",
       textAlign: "center",

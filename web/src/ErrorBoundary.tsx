@@ -15,7 +15,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     justifyContent: "center",
     height: "95vh",
     textAlign: "center",
-    background: `linear-gradient(to bottom, ${theme.palette?.c_gray1}, ${theme.palette?.c_gray0})`,
+    background: `linear-gradient(to bottom, ${theme.palette?.grey[800]}, ${theme.palette?.grey[900]})`,
 
     ".logo": {
       width: 100,
@@ -35,8 +35,8 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
     ".error-text": {
       color: theme.palette.grey[0],
-      backgroundColor: theme.palette?.c_gray0,
-      border: "1px solid " + theme.palette?.c_gray1,
+      backgroundColor: theme.palette?.grey[900],
+      border: "1px solid " + theme.palette?.grey[800],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       margin: "4em 0 0",
@@ -51,10 +51,10 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".refresh-button": {
-      backgroundColor: theme.palette?.c_hl1,
+      backgroundColor: theme.palette?.primary.main,
       color: theme.palette?.grey[1000],
       "&:hover": {
-        backgroundColor: theme.palette?.c_hl2
+        backgroundColor: theme.palette?.primary.dark
       }
     },
 

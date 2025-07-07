@@ -151,10 +151,11 @@ const Inspector: React.FC = () => {
   });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
+  const inspectorStyles = styles(theme);
 
   if (!selectedNode) {
     return (
-      <div className="inspector" css={styles}>
+      <div className="inspector" css={inspectorStyles}>
         <div className="top">
           <div className="top-content">
             <div className="inspector-header">
@@ -193,7 +194,7 @@ const Inspector: React.FC = () => {
   };
 
   return (
-    <div className="inspector" css={styles}>
+    <div className="inspector" css={inspectorStyles}>
       <div className="top">
         <div className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">
