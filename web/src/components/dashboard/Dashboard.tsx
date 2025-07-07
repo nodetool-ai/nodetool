@@ -28,6 +28,7 @@ import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -438,6 +439,10 @@ const Dashboard: React.FC = () => {
     return truncateString(preview, 100);
   };
 
+  const handleToolsChange = useCallback((tools: string[]) => {
+    setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
+  }, []);
+
   return (
     <Box css={styles(ThemeNodetool)}>
       {/* Start Examples Section */}
@@ -495,7 +500,7 @@ const Dashboard: React.FC = () => {
           progressMessage={statusMessage}
           model={selectedModel}
           selectedTools={selectedTools}
-          onToolsChange={setSelectedTools}
+          onToolsChange={handleToolsChange}
           onModelChange={handleModelChange}
           onStop={stopGeneration}
           agentMode={agentMode}

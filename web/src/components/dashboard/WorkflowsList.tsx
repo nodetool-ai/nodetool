@@ -13,7 +13,6 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
-import { css } from "@emotion/react";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];

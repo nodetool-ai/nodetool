@@ -13,6 +13,7 @@ import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
+import { isEqual } from "lodash";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -149,6 +150,10 @@ const GlobalChat: React.FC = () => {
     [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
   );
 
+  const handleToolsChange = useCallback((tools: string[]) => {
+    setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
+  }, []);
+
   const mainAreaStyles = (theme: any) =>
     css({
       position: "relative",
@@ -252,7 +257,7 @@ const GlobalChat: React.FC = () => {
             progressMessage={statusMessage}
             model={selectedModel}
             selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
+            onToolsChange={handleToolsChange}
             selectedCollections={selectedCollections}
             onCollectionsChange={setSelectedCollections}
             onModelChange={(modelId) => setSelectedModel(modelId)}
