@@ -6,6 +6,7 @@ import BackToEditorButton from "../panels/BackToEditorButton";
 
 interface DashboardHeaderProps {
   showBackToEditor: boolean;
+  children?: React.ReactNode;
 }
 
 const styles = css({
@@ -16,9 +17,15 @@ const styles = css({
 });
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  showBackToEditor
+  showBackToEditor,
+  children
 }) => {
-  return <Box css={styles}>{showBackToEditor && <BackToEditorButton />}</Box>;
+  return (
+    <Box css={styles}>
+      {children}
+      {showBackToEditor && <BackToEditorButton />}
+    </Box>
+  );
 };
 
 export default DashboardHeader;

@@ -30,9 +30,11 @@ import DashboardHeader from "./DashboardHeader";
 import {
   DockviewReact,
   DockviewReadyEvent,
-  IDockviewPanelProps
+  IDockviewPanelProps,
+  DockviewApi
 } from "dockview";
 import "dockview/dist/styles/dockview.css";
+import AddPanelDropdown from "./AddPanelDropdown";
 
 const styles = (theme: any) =>
   css({
@@ -42,8 +44,11 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
     }
-    // The responsive adjustments can also be removed as Dockview handles this.
   });
+
+interface PanelProps {
+  [key: string]: any;
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -55,6 +60,8 @@ const Dashboard: React.FC = () => {
   }));
   const loadExamples = useWorkflowManager((state) => state.loadExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
+  const [availablePanels, setAvailablePanels] = useState<any[]>([]);
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     const savedModel = localStorage.getItem("selectedModel");
@@ -85,14 +92,11 @@ const Dashboard: React.FC = () => {
 
   const messages = getCurrentMessages();
 
-  // Save selectedModel to localStorage
   useEffect(() => {
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 
-  // Handle WebSocket connection lifecycle
   useEffect(() => {
-    // Connect on mount if not already connected
     if (status === "disconnected") {
       connect().catch((error) => {
         console.error("Failed to connect to chat service:", error);
@@ -100,13 +104,10 @@ const Dashboard: React.FC = () => {
     }
 
     return () => {
-      // Disconnect on unmount
       disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, []);
 
-  // Monitor connection state and reconnect when disconnected or failed
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
 
@@ -121,9 +122,7 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    // Check connection state periodically
     if (status === "disconnected" || status === "failed") {
-      // Initial reconnect attempt after 2 seconds
       reconnectTimer = setTimeout(attemptReconnect, 2000);
     }
 
@@ -134,7 +133,6 @@ const Dashboard: React.FC = () => {
     };
   }, [status, connect]);
 
-  // Load workflows
   const loadWorkflows = async () => {
     const { data, error } = await client.GET("/api/workflows/", {
       params: {
@@ -163,67 +161,73 @@ const Dashboard: React.FC = () => {
       queryFn: loadExamples
     });
 
-  // Filter examples to show only those with "start" tag
-  const startExamples =
-    examplesData?.workflows.filter(
-      (workflow) =>
-        workflow.tags?.includes("start") ||
-        workflow.tags?.includes("getting-started")
-    ) || [];
+  const startExamples = useMemo(() => {
+    return (
+      examplesData?.workflows.filter(
+        (workflow) =>
+          workflow.tags?.includes("start") ||
+          workflow.tags?.includes("getting-started")
+      ) || []
+    );
+  }, [examplesData]);
 
-  // Sort workflows
-  const sortedWorkflows =
-    workflowsData?.workflows.sort((a, b) => {
-      if (settings.workflowOrder === "name") {
-        return a.name.localeCompare(b.name);
-      }
-      return b.updated_at.localeCompare(a.updated_at);
-    }) || [];
+  const sortedWorkflows = useMemo(() => {
+    return (
+      workflowsData?.workflows.sort((a, b) => {
+        if (settings.workflowOrder === "name") {
+          return a.name.localeCompare(b.name);
+        }
+        return b.updated_at.localeCompare(a.updated_at);
+      }) || []
+    );
+  }, [workflowsData, settings.workflowOrder]);
 
-  const currentWorkflow = workflowsData?.workflows.find(
-    (workflow) => workflow.id === currentWorkflowId
-  );
-
-  const handleCreateNewWorkflow = async () => {
+  const handleCreateNewWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
     navigate(`/editor/${workflow.id}`);
-  };
+  }, [createNewWorkflow, navigate]);
 
-  const handleWorkflowClick = (workflow: Workflow) => {
-    navigate(`/editor/${workflow.id}`);
-  };
+  const handleWorkflowClick = useCallback(
+    (workflow: Workflow) => {
+      navigate(`/editor/${workflow.id}`);
+    },
+    [navigate]
+  );
 
-  const handleExampleClick = async (example: Workflow) => {
-    if (loadingExampleId) return;
+  const handleExampleClick = useCallback(
+    async (example: Workflow) => {
+      if (loadingExampleId) return;
 
-    setLoadingExampleId(example.id);
-    try {
-      const tags = example.tags || [];
-      if (!tags.includes("example")) {
-        tags.push("example");
+      setLoadingExampleId(example.id);
+      try {
+        const tags = example.tags || [];
+        if (!tags.includes("example")) {
+          tags.push("example");
+        }
+
+        const req = {
+          name: example.name,
+          package_name: example.package_name,
+          description: example.description,
+          tags: tags,
+          access: "private",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const newWorkflow = await createWorkflow(
+          req,
+          example.package_name || undefined,
+          example.name
+        );
+        navigate(`/editor/${newWorkflow.id}`);
+      } catch (error) {
+        console.error("Error copying example:", error);
+        setLoadingExampleId(null);
       }
-
-      const req = {
-        name: example.name,
-        package_name: example.package_name,
-        description: example.description,
-        tags: tags,
-        access: "private",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const newWorkflow = await createWorkflow(
-        req,
-        example.package_name || undefined,
-        example.name
-      );
-      navigate(`/editor/${newWorkflow.id}`);
-    } catch (error) {
-      console.error("Error copying example:", error);
-      setLoadingExampleId(null);
-    }
-  };
+    },
+    [loadingExampleId, createWorkflow, navigate]
+  );
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -238,13 +242,11 @@ const Dashboard: React.FC = () => {
       }
 
       try {
-        // Update the message with the selected model
         const messageWithModel = {
           ...message,
           model: selectedModel
         };
 
-        // Ensure chat is connected
         if (status !== "connected") {
           await connect();
         }
@@ -252,7 +254,6 @@ const Dashboard: React.FC = () => {
         switchThread(threadId);
 
         await sendMessage(messageWithModel);
-        // Navigate to chat view
         navigate("/chat");
       } catch (error) {
         console.error("Failed to send message:", error);
@@ -273,41 +274,50 @@ const Dashboard: React.FC = () => {
     setSelectedModel(modelId);
   }, []);
 
-  const handleOrderChange = (_: any, newOrder: any) => {
-    if (newOrder !== null) {
-      setWorkflowOrder(newOrder);
-    }
-  };
+  const handleOrderChange = useCallback(
+    (_: any, newOrder: any) => {
+      if (newOrder !== null) {
+        setWorkflowOrder(newOrder);
+      }
+    },
+    [setWorkflowOrder]
+  );
 
-  const handleViewAllExamples = () => {
+  const handleViewAllExamples = useCallback(() => {
     navigate("/examples");
-  };
+  }, [navigate]);
 
-  const handleThreadSelect = (threadId: string) => {
-    switchThread(threadId);
-    navigate(`/chat/${threadId}`);
-  };
+  const handleThreadSelect = useCallback(
+    (threadId: string) => {
+      switchThread(threadId);
+      navigate(`/chat/${threadId}`);
+    },
+    [switchThread, navigate]
+  );
 
-  const handleNewThread = () => {
+  const handleNewThread = useCallback(() => {
     const newThreadId = createNewThread();
     navigate(`/chat/${newThreadId}`);
-  };
+  }, [createNewThread, navigate]);
 
-  const getThreadPreview = (threadId: string) => {
-    const thread = threads[threadId];
-    if (!thread || thread.messages.length === 0) {
-      return "No messages yet";
-    }
+  const getThreadPreview = useCallback(
+    (threadId: string) => {
+      const thread = threads[threadId];
+      if (!thread || thread.messages.length === 0) {
+        return "No messages yet";
+      }
 
-    const firstUserMessage = thread.messages.find((m) => m.role === "user");
-    const preview = firstUserMessage?.content
-      ? typeof firstUserMessage.content === "string"
-        ? firstUserMessage.content
-        : "Chat started"
-      : "Chat started";
+      const firstUserMessage = thread.messages.find((m) => m.role === "user");
+      const preview = firstUserMessage?.content
+        ? typeof firstUserMessage.content === "string"
+          ? firstUserMessage.content
+          : "Chat started"
+        : "Chat started";
 
-    return truncateString(preview, 100);
-  };
+      return truncateString(preview, 100);
+    },
+    [threads]
+  );
 
   const handleToolsChange = useCallback((tools: string[]) => {
     setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
@@ -315,91 +325,69 @@ const Dashboard: React.FC = () => {
 
   const panelComponents = useMemo(
     () => ({
-      examples: () => (
+      examples: (props: IDockviewPanelProps<PanelProps>) => (
         <ExamplesList
-          startExamples={startExamples}
-          isLoadingExamples={isLoadingExamples}
-          loadingExampleId={loadingExampleId}
-          handleExampleClick={handleExampleClick}
-          handleViewAllExamples={handleViewAllExamples}
+          startExamples={props.params?.startExamples || []}
+          isLoadingExamples={props.params?.isLoadingExamples ?? true}
+          loadingExampleId={props.params?.loadingExampleId || null}
+          handleExampleClick={props.params?.handleExampleClick || (() => {})}
+          handleViewAllExamples={
+            props.params?.handleViewAllExamples || (() => {})
+          }
         />
       ),
-      workflows: () => (
+      workflows: (props: IDockviewPanelProps<PanelProps>) => (
         <WorkflowsList
-          sortedWorkflows={sortedWorkflows}
-          isLoadingWorkflows={isLoadingWorkflows}
-          settings={settings}
-          handleOrderChange={handleOrderChange}
-          handleCreateNewWorkflow={handleCreateNewWorkflow}
-          handleWorkflowClick={handleWorkflowClick}
+          sortedWorkflows={props.params?.sortedWorkflows || []}
+          isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
+          settings={props.params?.settings || {}}
+          handleOrderChange={props.params?.handleOrderChange || (() => {})}
+          handleCreateNewWorkflow={
+            props.params?.handleCreateNewWorkflow || (() => {})
+          }
+          handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
         />
       ),
-      threads: () => (
-        <RecentChats
-          threads={threads as { [key: string]: Thread }}
-          currentThreadId={currentThreadId}
-          onNewThread={handleNewThread}
-          onSelectThread={handleThreadSelect}
-          onDeleteThread={deleteThread}
-          getThreadPreview={getThreadPreview}
-        />
+      threads: (props: IDockviewPanelProps<PanelProps>) => (
+        <Box sx={{ overflow: "auto", height: "100%" }}>
+          <RecentChats
+            threads={props.params?.threads || {}}
+            currentThreadId={props.params?.currentThreadId || null}
+            onNewThread={props.params?.onNewThread || (() => {})}
+            onSelectThread={props.params?.onSelectThread || (() => {})}
+            onDeleteThread={props.params?.onDeleteThread || (() => {})}
+            getThreadPreview={
+              props.params?.getThreadPreview || (() => "No messages yet")
+            }
+          />
+        </Box>
       ),
-      chat: () => (
+      chat: (props: IDockviewPanelProps<PanelProps>) => (
         <ChatView
-          status={status}
+          status={props.params?.status || "disconnected"}
           messages={[]}
-          sendMessage={handleSendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
-          model={selectedModel}
-          selectedTools={selectedTools}
-          onToolsChange={handleToolsChange}
-          onModelChange={handleModelChange}
-          onStop={stopGeneration}
-          agentMode={agentMode}
-          onAgentModeToggle={setAgentMode}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
+          sendMessage={props.params?.sendMessage || (() => {})}
+          progress={props.params?.progress?.current || 0}
+          total={props.params?.progress?.total || 0}
+          progressMessage={props.params?.progressMessage || ""}
+          model={props.params?.model || DEFAULT_MODEL}
+          selectedTools={props.params?.selectedTools || []}
+          onToolsChange={props.params?.onToolsChange || (() => {})}
+          onModelChange={props.params?.onModelChange || (() => {})}
+          onStop={props.params?.onStop || (() => {})}
+          agentMode={props.params?.agentMode || "off"}
+          onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
+          currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
+          currentTaskUpdate={props.params?.currentTaskUpdate || null}
         />
       )
     }),
-    [
-      startExamples,
-      isLoadingExamples,
-      loadingExampleId,
-      handleExampleClick,
-      handleViewAllExamples,
-      sortedWorkflows,
-      isLoadingWorkflows,
-      settings,
-      handleOrderChange,
-      handleCreateNewWorkflow,
-      handleWorkflowClick,
-      threads,
-      currentThreadId,
-      handleNewThread,
-      handleThreadSelect,
-      deleteThread,
-      getThreadPreview,
-      status,
-      progress,
-      handleSendMessage,
-      statusMessage,
-      selectedModel,
-      selectedTools,
-      handleToolsChange,
-      handleModelChange,
-      stopGeneration,
-      agentMode,
-      setAgentMode,
-      currentPlanningUpdate,
-      currentTaskUpdate
-    ]
+    []
   );
 
-  const onReady = useCallback((event: any) => {
+  const onReady = useCallback((event: DockviewReadyEvent) => {
     const { api } = event;
+    setDockviewApi(api);
 
     const examplesPanel = api.addPanel({
       id: "examples",
@@ -414,33 +402,152 @@ const Dashboard: React.FC = () => {
       position: { direction: "right", referencePanel: examplesPanel }
     });
 
-    const threadsPanel = api.addPanel({
+    api.addPanel({
       id: "threads",
       component: "threads",
       title: "Recent Chats",
-      position: { direction: "below", referencePanel: examplesPanel }
+      position: { direction: "right", referencePanel: workflowsPanel }
     });
 
     api.addPanel({
       id: "chat",
       component: "chat",
       title: "Chat",
-      position: { direction: "right", referencePanel: threadsPanel }
+      position: { direction: "below", referencePanel: examplesPanel }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!dockviewApi) return;
+
+    const allPanelIds = ["examples", "workflows", "threads", "chat"];
+    const openPanelIds = dockviewApi.panels.map((p) => p.id);
+    const closedPanels = allPanelIds
+      .filter((id) => !openPanelIds.includes(id))
+      .map((id) => ({ id, title: id.charAt(0).toUpperCase() + id.slice(1) }));
+    setAvailablePanels(closedPanels);
+
+    const disposable = dockviewApi.onDidRemovePanel(() => {
+      const openPanelIds = dockviewApi.panels.map((p) => p.id);
+      const closedPanels = allPanelIds
+        .filter((id) => !openPanelIds.includes(id))
+        .map((id) => ({ id, title: id.charAt(0).toUpperCase() + id.slice(1) }));
+      setAvailablePanels(closedPanels);
     });
 
-    // Make the examples panel take up the full width initially
-    api.adddGroup(examplesPanel, { direction: "right" });
-    api.adddGroup(workflowsPanel, { direction: "below" });
-  }, []);
+    return () => {
+      disposable.dispose();
+    };
+  }, [dockviewApi, dockviewApi?.panels]);
+
+  const handleAddPanel = (panelId: string) => {
+    if (!dockviewApi) return;
+    dockviewApi.addPanel({
+      id: panelId,
+      component: panelId,
+      title: panelId.charAt(0).toUpperCase() + panelId.slice(1)
+    });
+  };
+
+  useEffect(() => {
+    if (!dockviewApi) return;
+
+    const panelParams: PanelProps = {
+      examples: {
+        startExamples,
+        isLoadingExamples,
+        loadingExampleId,
+        handleExampleClick,
+        handleViewAllExamples
+      },
+      workflows: {
+        sortedWorkflows,
+        isLoadingWorkflows,
+        settings,
+        handleOrderChange,
+        handleCreateNewWorkflow,
+        handleWorkflowClick
+      },
+      threads: {
+        threads: threads as { [key: string]: Thread },
+        currentThreadId,
+        onNewThread: handleNewThread,
+        onSelectThread: handleThreadSelect,
+        onDeleteThread: deleteThread,
+        getThreadPreview
+      },
+      chat: {
+        status,
+        sendMessage: handleSendMessage,
+        progress,
+        statusMessage,
+        model: selectedModel,
+        selectedTools,
+        onToolsChange: handleToolsChange,
+        onModelChange: handleModelChange,
+        onStop: stopGeneration,
+        agentMode,
+        onAgentModeToggle: setAgentMode,
+        currentPlanningUpdate,
+        currentTaskUpdate
+      }
+    };
+
+    Object.entries(panelParams).forEach(([id, params]) => {
+      const panel = dockviewApi.getPanel(id);
+      if (panel) {
+        panel.update({ params });
+      }
+    });
+  }, [
+    dockviewApi,
+    startExamples,
+    isLoadingExamples,
+    loadingExampleId,
+    handleExampleClick,
+    handleViewAllExamples,
+    sortedWorkflows,
+    isLoadingWorkflows,
+    settings,
+    handleOrderChange,
+    handleCreateNewWorkflow,
+    handleWorkflowClick,
+    threads,
+    currentThreadId,
+    handleNewThread,
+    handleThreadSelect,
+    deleteThread,
+    getThreadPreview,
+    status,
+    handleSendMessage,
+    progress,
+    statusMessage,
+    selectedModel,
+    selectedTools,
+    handleToolsChange,
+    handleModelChange,
+    stopGeneration,
+    agentMode,
+    setAgentMode,
+    currentPlanningUpdate,
+    currentTaskUpdate
+  ]);
 
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <DashboardHeader showBackToEditor={!!currentWorkflowId} />
-      <DockviewReact
-        components={panelComponents}
-        onReady={onReady}
-        className="dockview-theme-nodetool" // Assuming a theme, can be adjusted
-      />
+      <DashboardHeader showBackToEditor={!!currentWorkflowId}>
+        <AddPanelDropdown
+          availablePanels={availablePanels}
+          onAddPanel={handleAddPanel}
+        />
+      </DashboardHeader>
+      <div style={{ height: "calc(100vh - 64px)", top: "64px" }}>
+        <DockviewReact
+          components={panelComponents}
+          onReady={onReady}
+          className="dockview-theme-nodetool"
+        />
+      </div>
     </Box>
   );
 };
