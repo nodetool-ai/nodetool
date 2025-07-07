@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -16,166 +16,33 @@ import { Workflow, WorkflowList, Message } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import ChatView from "../chat/containers/ChatView";
-import ThreadList from "../chat/thread/ThreadList";
-import { MessageContent } from "../../stores/ApiTypes";
-import BackToEditorButton from "../panels/BackToEditorButton";
 import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import { isEqual } from "lodash";
 import RecentChats from "./RecentChats";
 import { Thread } from "../../stores/GlobalChatStore";
 import DashboardHeader from "./DashboardHeader";
+import {
+  DockviewReact,
+  DockviewReadyEvent,
+  IDockviewPanelProps
+} from "dockview";
+import "dockview/dist/styles/dockview.css";
 
 const styles = (theme: any) =>
   css({
     "&": {
       width: "100vw",
       height: "100vh",
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gridTemplateRows: "auto 1fr auto",
-      gap: theme.spacing(4),
-      padding: theme.spacing(4),
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
-    },
-
-    ".section": {
-      backgroundColor: theme.palette.grey[800],
-      borderRadius: theme.spacing(1),
-      padding: theme.spacing(4),
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
-    },
-
-    ".section-title": {
-      color: theme.palette.grey[100],
-      marginBottom: theme.spacing(3)
-    },
-
-    ".examples-section": {
-      gridRow: "1",
-      gridColumn: "1 / -1",
-      maxHeight: "400px"
-    },
-
-    ".threads-section": {
-      gridRow: "2",
-      gridColumn: "1"
-    },
-
-    ".workflows-section": {
-      gridRow: "2",
-      gridColumn: "2"
-    },
-
-    ".workflow-controls": {
-      height: "40px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-
-    ".chat-section": {
-      gridRow: "3",
-      gridColumn: "1 / -1",
-      maxHeight: "300px",
-      overflow: "hidden"
-    },
-
-    ".content-scrollable": {
-      flex: 1,
-      overflow: "auto",
-      paddingRight: theme.spacing(1)
-    },
-
-    // Responsive adjustments
-    "@media (max-width: 1400px)": {
-      "&": {
-        gridTemplateColumns: "1fr 1fr",
-        gridTemplateRows: "auto 1fr auto",
-        gap: theme.spacing(3),
-        padding: theme.spacing(3)
-      },
-      ".examples-section": {
-        gridRow: "1",
-        gridColumn: "1 / -1"
-      },
-      ".threads-section": {
-        gridRow: "2",
-        gridColumn: "1"
-      },
-      ".workflows-section": {
-        gridRow: "2",
-        gridColumn: "2"
-      },
-      ".chat-section": {
-        gridRow: "3",
-        gridColumn: "1 / -1"
-      }
-    },
-
-    "@media (max-width: 900px)": {
-      "&": {
-        gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(4, auto)",
-        gap: theme.spacing(2)
-      },
-      ".examples-section": {
-        gridRow: "1",
-        gridColumn: "1"
-      },
-      ".threads-section": {
-        gridRow: "2",
-        gridColumn: "1"
-      },
-      ".workflows-section": {
-        gridRow: "3",
-        gridColumn: "1"
-      },
-      ".chat-section": {
-        gridRow: "4",
-        gridColumn: "1"
-      }
-    },
-
-    "@media (max-width: 768px)": {
-      "&": {
-        padding: theme.spacing(2),
-        gap: theme.spacing(2)
-      },
-      ".section": {
-        padding: theme.spacing(2)
-      },
-      ".content-scrollable": {
-        gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-        gap: theme.spacing(2)
-      }
-    },
-
-    "@media (max-width: 480px)": {
-      "&": {
-        padding: theme.spacing(1),
-        gap: theme.spacing(1)
-      },
-      ".section": {
-        padding: theme.spacing(1)
-      },
-      ".workflow-controls": {
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: theme.spacing(1)
-      }
     }
+    // The responsive adjustments can also be removed as Dockview handles this.
   });
 
 const Dashboard: React.FC = () => {
@@ -446,43 +313,41 @@ const Dashboard: React.FC = () => {
     setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
   }, []);
 
-  return (
-    <Box css={styles(ThemeNodetool)}>
-      <DashboardHeader showBackToEditor={!!currentWorkflowId} />
-      {/* Start Examples Section */}
-      <ExamplesList
-        startExamples={startExamples}
-        isLoadingExamples={isLoadingExamples}
-        loadingExampleId={loadingExampleId}
-        handleExampleClick={handleExampleClick}
-        handleViewAllExamples={handleViewAllExamples}
-      />
-
-      {/* Recent Threads Section */}
-      <RecentChats
-        threads={threads as { [key: string]: Thread }}
-        currentThreadId={currentThreadId}
-        onNewThread={handleNewThread}
-        onSelectThread={handleThreadSelect}
-        onDeleteThread={deleteThread}
-        getThreadPreview={getThreadPreview}
-      />
-
-      {/* Recent Workflows Section */}
-      <WorkflowsList
-        sortedWorkflows={sortedWorkflows}
-        isLoadingWorkflows={isLoadingWorkflows}
-        settings={settings}
-        handleOrderChange={handleOrderChange}
-        handleCreateNewWorkflow={handleCreateNewWorkflow}
-        handleWorkflowClick={handleWorkflowClick}
-      />
-
-      {/* Chat Section */}
-      <Box className="section chat-section">
+  const panelComponents = useMemo(
+    () => ({
+      examples: () => (
+        <ExamplesList
+          startExamples={startExamples}
+          isLoadingExamples={isLoadingExamples}
+          loadingExampleId={loadingExampleId}
+          handleExampleClick={handleExampleClick}
+          handleViewAllExamples={handleViewAllExamples}
+        />
+      ),
+      workflows: () => (
+        <WorkflowsList
+          sortedWorkflows={sortedWorkflows}
+          isLoadingWorkflows={isLoadingWorkflows}
+          settings={settings}
+          handleOrderChange={handleOrderChange}
+          handleCreateNewWorkflow={handleCreateNewWorkflow}
+          handleWorkflowClick={handleWorkflowClick}
+        />
+      ),
+      threads: () => (
+        <RecentChats
+          threads={threads as { [key: string]: Thread }}
+          currentThreadId={currentThreadId}
+          onNewThread={handleNewThread}
+          onSelectThread={handleThreadSelect}
+          onDeleteThread={deleteThread}
+          getThreadPreview={getThreadPreview}
+        />
+      ),
+      chat: () => (
         <ChatView
           status={status}
-          messages={[]} // Empty messages to only show input
+          messages={[]}
           sendMessage={handleSendMessage}
           progress={progress.current}
           total={progress.total}
@@ -497,7 +362,85 @@ const Dashboard: React.FC = () => {
           currentPlanningUpdate={currentPlanningUpdate}
           currentTaskUpdate={currentTaskUpdate}
         />
-      </Box>
+      )
+    }),
+    [
+      startExamples,
+      isLoadingExamples,
+      loadingExampleId,
+      handleExampleClick,
+      handleViewAllExamples,
+      sortedWorkflows,
+      isLoadingWorkflows,
+      settings,
+      handleOrderChange,
+      handleCreateNewWorkflow,
+      handleWorkflowClick,
+      threads,
+      currentThreadId,
+      handleNewThread,
+      handleThreadSelect,
+      deleteThread,
+      getThreadPreview,
+      status,
+      progress,
+      handleSendMessage,
+      statusMessage,
+      selectedModel,
+      selectedTools,
+      handleToolsChange,
+      handleModelChange,
+      stopGeneration,
+      agentMode,
+      setAgentMode,
+      currentPlanningUpdate,
+      currentTaskUpdate
+    ]
+  );
+
+  const onReady = useCallback((event: any) => {
+    const { api } = event;
+
+    const examplesPanel = api.addPanel({
+      id: "examples",
+      component: "examples",
+      title: "Examples"
+    });
+
+    const workflowsPanel = api.addPanel({
+      id: "workflows",
+      component: "workflows",
+      title: "Recent Workflows",
+      position: { direction: "right", referencePanel: examplesPanel }
+    });
+
+    const threadsPanel = api.addPanel({
+      id: "threads",
+      component: "threads",
+      title: "Recent Chats",
+      position: { direction: "below", referencePanel: examplesPanel }
+    });
+
+    api.addPanel({
+      id: "chat",
+      component: "chat",
+      title: "Chat",
+      position: { direction: "right", referencePanel: threadsPanel }
+    });
+
+    // Make the examples panel take up the full width initially
+    api.adddGroup(examplesPanel, { direction: "right" });
+    api.adddGroup(workflowsPanel, { direction: "below" });
+  }, []);
+
+  return (
+    <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
+      <DashboardHeader showBackToEditor={!!currentWorkflowId} />
+      <DockviewReact
+        components={panelComponents}
+        onReady={onReady}
+        className="dockview-theme-nodetool" // Assuming a theme, can be adjusted
+      />
     </Box>
   );
 };
