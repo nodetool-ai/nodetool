@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css, SerializedStyles } from "@emotion/react";
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
@@ -7,7 +6,7 @@ import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 
 const ExternalLinkButton = ({
@@ -146,6 +145,8 @@ const RemoteSettings = () => {
     );
   }, [addNotification, settingValues, updateSettingsMutation, data]);
 
+  const theme = useTheme();
+
   return (
     <>
       {isLoading && (
@@ -158,7 +159,7 @@ const RemoteSettings = () => {
         displayedSettingsByGroup.size > 0 && (
           <div
             className="remote-settings-content"
-            css={getSharedSettingsStyles(ThemeNodetool)}
+            css={getSharedSettingsStyles(theme)}
           >
             <div className="settings-main-content">
               <Typography variant="h1">Settings</Typography>

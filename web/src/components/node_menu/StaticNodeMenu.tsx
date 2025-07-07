@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo, useRef } from "react";
-import { IconButton, Box } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 
 // components
 import NamespaceList from "./NamespaceList";
@@ -11,7 +12,6 @@ import SearchInput from "../search/SearchInput";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 // theme
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 
 const staticMenuStyles = (theme: any) =>
@@ -19,9 +19,8 @@ const staticMenuStyles = (theme: any) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      height: "100%", // Changed to 100% for static layout
-      width: "100%" // Added full width
-      //   overflow: "hidden"
+      height: "100%",
+      width: "100%"
     }
   });
 
@@ -41,7 +40,8 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
     })
   );
 
-  const memoizedStyles = useMemo(() => staticMenuStyles(ThemeNodetool), []);
+  const theme = useTheme();
+  const memoizedStyles = useMemo(() => staticMenuStyles(theme), [theme]);
 
   return (
     <Box

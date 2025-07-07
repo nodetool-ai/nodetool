@@ -5,5 +5,5 @@ export const createStyles = (theme: any) =>
     padding: "2em",
     textAlign: "center",
     color: theme.palette.grey[500],
-    fontSize: "0.9em"
+    fontSize: theme.fontSizeSmall
   });

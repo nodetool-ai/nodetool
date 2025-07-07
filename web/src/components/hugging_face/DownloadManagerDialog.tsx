@@ -11,7 +11,7 @@ import {
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
@@ -22,6 +22,8 @@ const DownloadManagerDialog: React.FC = () => {
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
   const hasActiveDownloads = Object.keys(downloads).length > 0;
+
+  const theme = useTheme();
 
   const infoMessage = hasActiveDownloads ? (
     "You can close this dialog and return later - downloads will continue in the background. Access downloads anytime via the Download icon in the toolbar."
@@ -119,7 +121,7 @@ const DownloadManagerDialog: React.FC = () => {
         >
           <AnnouncementIcon
             fontSize="small"
-            sx={{ color: ThemeNodetool.palette.warning.main }}
+            sx={{ color: theme.palette.warning.main }}
           />
           {infoMessage}
         </Typography>

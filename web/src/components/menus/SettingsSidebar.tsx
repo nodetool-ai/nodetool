@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Typography } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
 
 interface SidebarItem {
   id: string;
@@ -66,8 +66,10 @@ const SettingsSidebar = ({
   sections,
   onSectionClick
 }: SettingsSidebarProps) => {
+  const theme = useTheme();
+
   return (
-    <div className="settings-sidebar" css={sidebarStyles(ThemeNodetool)}>
+    <div className="settings-sidebar" css={sidebarStyles(theme)}>
       {sections.map((section, index) => (
         <div key={`section-${index}`}>
           <div className="settings-sidebar-category">{section.category}</div>

@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { useRouteError } from "react-router-dom";
 import { Typography, Box, Button, ThemeProvider } from "@mui/material";
-import ThemeNodetool from "./components/themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
 
 const errorBoundaryStyles = (theme: any) =>
   css({
@@ -74,6 +74,7 @@ const errorBoundaryStyles = (theme: any) =>
 
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
+  const theme = useTheme();
 
   const errorMessage =
     error instanceof Error
@@ -83,8 +84,8 @@ const ErrorBoundary: React.FC = () => {
     error instanceof Error ? error.stack : "No stack trace available";
 
   return (
-    <ThemeProvider theme={ThemeNodetool}>
-      <Box css={errorBoundaryStyles}>
+    <ThemeProvider theme={theme}>
+      <Box css={errorBoundaryStyles(theme)}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
         <Typography variant="h2" className="error-title">
           NodeTool has encountered an error
