@@ -57,7 +57,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             sx={{
               width: "100%",
               textAlign: "center",
-              fontSize: theme.fontSizeTiny,
+              fontSize: "var(--fontSizeTiny)",
               textTransform: "uppercase",
               padding: ".5em !important",
               marginBottom: "0"
@@ -76,9 +76,9 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               padding: ".2em 0 0",
               height: "1.8em",
               lineHeight: "1.2em",
-              color: theme.palette.grey[1000],
-              backgroundColor: theme.palette.warning.main,
-              fontSize: theme.fontSizeSmaller,
+              color: "var(--palette-grey-1000)",
+              backgroundColor: "var(--palette-warning-main)",
+              fontSize: "var(--fontSizeSmaller)",
               borderRadius: ".1em"
             }}
           >
