@@ -29,6 +29,8 @@ import BackToEditorButton from "../panels/BackToEditorButton";
 import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import { isEqual } from "lodash";
+import RecentChats from "./RecentChats";
+import { Thread } from "../../stores/GlobalChatStore";
 
 const styles = (theme: any) =>
   css({
@@ -459,25 +461,14 @@ const Dashboard: React.FC = () => {
       />
 
       {/* Recent Threads Section */}
-      <Box className="section threads-section">
-        <Typography variant="h2" className="section-title">
-          Recent Chats
-        </Typography>
-        <Box className="content-scrollable">
-          <ThreadList
-            threads={Object.fromEntries(
-              Object.entries(threads)
-                .sort(([, a], [, b]) => b.updatedAt.localeCompare(a.updatedAt))
-                .slice(0, 5)
-            )}
-            currentThreadId={currentThreadId}
-            onNewThread={handleNewThread}
-            onSelectThread={handleThreadSelect}
-            onDeleteThread={deleteThread}
-            getThreadPreview={getThreadPreview}
-          />
-        </Box>
-      </Box>
+      <RecentChats
+        threads={threads as { [key: string]: Thread }}
+        currentThreadId={currentThreadId}
+        onNewThread={handleNewThread}
+        onSelectThread={handleThreadSelect}
+        onDeleteThread={deleteThread}
+        getThreadPreview={getThreadPreview}
+      />
 
       {/* Recent Workflows Section */}
       <WorkflowsList
