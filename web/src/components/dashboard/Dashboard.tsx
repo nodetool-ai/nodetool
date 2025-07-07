@@ -26,6 +26,8 @@ import ChatView from "../chat/containers/ChatView";
 import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
+import ExamplesList from "./ExamplesList";
+import WorkflowsList from "./WorkflowsList";
 
 const styles = (theme: any) =>
   css({
@@ -92,172 +94,6 @@ const styles = (theme: any) =>
       paddingRight: theme.spacing(1)
     },
 
-    ".workflow-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(4),
-      padding: theme.spacing(1),
-      marginBottom: theme.spacing(1),
-      cursor: "pointer",
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.grey[800],
-      transition: "all 0.2s",
-      "&:hover": {
-        backgroundColor: theme.palette.grey[600]
-      }
-    },
-
-    ".workflow-thumbnail": {
-      width: "60px",
-      height: "60px",
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: "transparent",
-      border: `1px solid ${theme.palette.grey[600]}`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      flexShrink: 0
-    },
-
-    ".workflow-info": {
-      flex: 1,
-      minWidth: 0
-    },
-
-    ".workflow-name": {
-      color: theme.palette.grey[0],
-      fontWeight: 500,
-      marginBottom: theme.spacing(0.5),
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-
-    ".workflow-description": {
-      color: theme.palette.grey[200],
-      fontSize: "0.875rem",
-      lineHeight: "1.2em",
-      display: "-webkit-box",
-      WebkitBoxOrient: "vertical",
-      WebkitLineClamp: 2,
-      overflow: "hidden"
-    },
-
-    ".workflow-date": {
-      color: theme.palette.grey[100],
-      fontSize: "0.75rem",
-      marginLeft: "auto",
-      flexShrink: 0
-    },
-
-    ".example-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-      gap: theme.spacing(2)
-    },
-
-    ".example-card": {
-      position: "relative",
-      cursor: "pointer",
-      borderRadius: theme.spacing(1),
-      overflow: "hidden",
-      backgroundColor: "var(--palette-grey-800)",
-      "&:hover": {
-        opacity: 0.9
-      },
-      ".example-description-tooltip": {
-        visibility: "hidden",
-        width: "200px",
-        backgroundColor: theme.palette.grey[1000],
-        color: theme.palette.grey[0],
-        textAlign: "center",
-        borderRadius: "6px",
-        padding: "5px 0",
-        position: "absolute",
-        zIndex: 1,
-        bottom: "125%",
-        left: "50%",
-        marginLeft: "-100px",
-        opacity: 0,
-        transition: "opacity 0.3s",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          top: "100%",
-          left: "50%",
-          marginLeft: "-5px",
-          borderWidth: "5px",
-          borderStyle: "solid",
-          borderColor: `${theme.palette.grey[1000]} transparent transparent transparent`
-        }
-      },
-      "&:hover .example-description-tooltip": {
-        visibility: "visible",
-        opacity: 1
-      }
-    },
-
-    ".example-image": {
-      width: "100%",
-      height: "180px",
-      objectFit: "cover",
-      backgroundColor: theme.palette.grey[600]
-    },
-
-    ".example-name": {
-      padding: ".2em .5em .5em 0",
-      color: theme.palette.grey[0],
-      backgroundColor: theme.palette.grey[800],
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".header-controls": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: theme.spacing(3)
-    },
-
-    ".create-button": {
-      padding: ".3em 1em",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[0],
-      "&:hover": {
-        backgroundColor: theme.palette.grey[500]
-      }
-    },
-
-    ".sort-toggle": {
-      "& .MuiToggleButton-root": {
-        lineHeight: "1.2em",
-        color: theme.palette.grey[200],
-        borderColor: theme.palette.grey[500],
-        "&.Mui-selected": {
-          backgroundColor: theme.palette.grey[500],
-          color: theme.palette.grey[0]
-        }
-      }
-    },
-
-    ".loading-container": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "300px"
-    },
-
-    ".loading-overlay": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      zIndex: 10
-    },
-
     // Responsive adjustments
     "@media (max-width: 1400px)": {
       "&": {
@@ -316,7 +152,7 @@ const styles = (theme: any) =>
       ".section": {
         padding: theme.spacing(2)
       },
-      ".example-grid": {
+      ".content-scrollable": {
         gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
         gap: theme.spacing(2)
       }
@@ -605,65 +441,17 @@ const Dashboard: React.FC = () => {
   return (
     <Box css={styles(ThemeNodetool)}>
       {/* Start Examples Section */}
-      <Box className="section examples-section">
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}
-        >
-          <Typography variant="h2" className="section-title">
-            Examples
-          </Typography>
-          {currentWorkflowId && <BackToEditorButton />}
-        </Box>
-        <Box className="content-scrollable">
-          {isLoadingExamples ? (
-            <Box className="loading-container">
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box className="example-grid">
-              {startExamples.map((example) => (
-                <Box
-                  key={example.id}
-                  className="example-card"
-                  onClick={() => handleExampleClick(example)}
-                >
-                  {loadingExampleId === example.id && (
-                    <Box className="loading-overlay">
-                      <CircularProgress size={30} />
-                    </Box>
-                  )}
-                  <img
-                    className="example-image"
-                    src={`${BASE_URL}/api/assets/packages/${example.package_name}/${example.name}.jpg`}
-                    alt={example.name}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                  <Typography className="example-name">
-                    {example.name}
-                  </Typography>
-                  {example.description && (
-                    <Typography className="example-description-tooltip">
-                      {truncateString(example.description, 150)}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-        <Button
-          onClick={handleViewAllExamples}
-          sx={{ marginTop: 2, alignSelf: "center" }}
-        >
-          View All Examples
-        </Button>
-      </Box>
+      <ExamplesList
+        startExamples={startExamples}
+        isLoadingExamples={isLoadingExamples}
+        loadingExampleId={loadingExampleId}
+        handleExampleClick={handleExampleClick}
+        handleViewAllExamples={handleViewAllExamples}
+        currentWorkflowId={currentWorkflowId || undefined}
+        BackToEditorButton={
+          currentWorkflowId ? <BackToEditorButton /> : undefined
+        }
+      />
 
       {/* Recent Threads Section */}
       <Box className="section threads-section">
@@ -687,72 +475,14 @@ const Dashboard: React.FC = () => {
       </Box>
 
       {/* Recent Workflows Section */}
-      <Box className="section workflows-section">
-        <Box className="header-controls">
-          <Typography variant="h2" className="section-title">
-            Recent Workflows
-          </Typography>
-          <Box
-            className="workflow-controls"
-            sx={{ display: "flex", gap: 2, alignItems: "center" }}
-          >
-            <ToggleButtonGroup
-              className="sort-toggle"
-              value={settings.workflowOrder}
-              onChange={handleOrderChange}
-              exclusive
-              size="small"
-            >
-              <ToggleButton value="name">Name</ToggleButton>
-              <ToggleButton value="updated_at">Date</ToggleButton>
-            </ToggleButtonGroup>
-            <Button
-              className="create-button"
-              startIcon={<AddIcon />}
-              onClick={handleCreateNewWorkflow}
-              size="small"
-            >
-              Create New
-            </Button>
-          </Box>
-        </Box>
-
-        <Box className="content-scrollable">
-          {isLoadingWorkflows ? (
-            <Box className="loading-container">
-              <CircularProgress />
-            </Box>
-          ) : (
-            sortedWorkflows.map((workflow) => (
-              <Box
-                key={workflow.id}
-                className="workflow-item"
-                onClick={() => handleWorkflowClick(workflow)}
-              >
-                <Box
-                  className="workflow-thumbnail"
-                  sx={{
-                    backgroundImage: workflow.thumbnail_url
-                      ? `url(${workflow.thumbnail_url})`
-                      : undefined
-                  }}
-                />
-                <Box className="workflow-info">
-                  <Typography className="workflow-name">
-                    {workflow.name}
-                  </Typography>
-                  <Typography className="workflow-description">
-                    {truncateString(workflow.description, 100)}
-                  </Typography>
-                </Box>
-                <Typography className="workflow-date">
-                  {relativeTime(workflow.updated_at)}
-                </Typography>
-              </Box>
-            ))
-          )}
-        </Box>
-      </Box>
+      <WorkflowsList
+        sortedWorkflows={sortedWorkflows}
+        isLoadingWorkflows={isLoadingWorkflows}
+        settings={settings}
+        handleOrderChange={handleOrderChange}
+        handleCreateNewWorkflow={handleCreateNewWorkflow}
+        handleWorkflowClick={handleWorkflowClick}
+      />
 
       {/* Chat Section */}
       <Box className="section chat-section">
