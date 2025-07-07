@@ -19,10 +19,9 @@ import { findMatchingNodesInWorkflows } from "../../utils/findMatchingNodesInWor
 import { SearchResult as FrontendSearchResult } from "../../types/search";
 import {
   TOOLTIP_ENTER_DELAY,
-  TOOLTIP_LEAVE_DELAY,
   SEARCH_DEBOUNCE_MS
 } from "../../config/constants";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import useTheme from "@mui/material/styles/useTheme";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToEditorButton from "../panels/BackToEditorButton";
@@ -553,6 +552,7 @@ const ExampleGrid = () => {
       handleClearSearch();
     }
   };
+  const theme = useTheme();
 
   return (
     <div className="workflow-grid" css={styles}>
@@ -618,7 +618,7 @@ const ExampleGrid = () => {
             <Box className="no-results">
               <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                 Nothing found for
-                <strong style={{ color: ThemeNodetool.palette.primary.main }}>
+                <strong style={{ color: theme.palette.primary.main }}>
                   {" "}
                   &quot;{searchQuery}&quot;
                 </strong>
