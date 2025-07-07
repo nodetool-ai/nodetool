@@ -13,7 +13,7 @@ import "@fontsource/jetbrains-mono/300.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 
-declare module "@mui/system/createTheme" {
+declare module "@mui/material/styles" {
   interface ThemeOptions {
     fontSizeGiant?: string;
     fontSizeBigger?: string;
