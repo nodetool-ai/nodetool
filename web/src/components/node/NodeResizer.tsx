@@ -9,7 +9,7 @@ interface NodeResizerProps {
   minHeight: number;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     zIndex: -1,

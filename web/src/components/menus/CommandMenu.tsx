@@ -28,7 +28,7 @@ type CommandMenuProps = {
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       maxWidth: "800px",

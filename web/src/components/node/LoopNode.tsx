@@ -26,7 +26,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       boxShadow: "none",

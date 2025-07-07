@@ -68,7 +68,7 @@ interface TextEditorModalProps {
   showFindReplace?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".modal-overlay": {
       position: "fixed",

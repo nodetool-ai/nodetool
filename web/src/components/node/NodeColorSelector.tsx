@@ -48,7 +48,7 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
     }
   });
 
-export const colorSelectDialogStyles = (theme: any) =>
+export const colorSelectDialogStyles = (theme: Theme) =>
   css({
     ".color-button": {
       width: "98%",

@@ -13,7 +13,7 @@ import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: "0",

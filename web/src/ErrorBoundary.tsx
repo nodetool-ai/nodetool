@@ -7,7 +7,7 @@ import { Typography, Box, Button, ThemeProvider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const errorBoundaryStyles = (theme: any) =>
+const errorBoundaryStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

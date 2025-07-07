@@ -11,7 +11,7 @@ interface NodeResizeHandleProps {
   onResize?: (event: any) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     zIndex: 100,

@@ -24,7 +24,7 @@ import JSZip from "jszip";
 import { isEqual } from "lodash";
 import NodeResizeHandle from "./NodeResizeHandle";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css([
     {
       "&": {

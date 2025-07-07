@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { SubTask } from "../../stores/ApiTypes";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".subtask-item": {
       padding: "0.5rem",

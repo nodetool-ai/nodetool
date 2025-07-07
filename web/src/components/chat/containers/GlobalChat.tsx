@@ -150,7 +150,7 @@ const GlobalChat: React.FC = () => {
     [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
   );
 
-  const mainAreaStyles = (theme: any) =>
+  const mainAreaStyles = (theme: Theme) =>
     css({
       position: "relative",
       flex: 1,

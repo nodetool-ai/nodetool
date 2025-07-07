@@ -5,7 +5,7 @@ import { Paper, Typography, List, Divider } from "@mui/material";
 import { Task, SubTask } from "../../stores/ApiTypes";
 import SubTaskView from "./SubTaskView";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".task-container": {
       marginBottom: "1rem",

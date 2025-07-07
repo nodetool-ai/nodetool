@@ -13,7 +13,7 @@ interface AgentModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".agent-toggle": {
       transition: "all 0.2s ease-in-out",

@@ -30,7 +30,7 @@ import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".workflow-grid": {
       height: "100%",

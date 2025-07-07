@@ -21,7 +21,7 @@ import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,

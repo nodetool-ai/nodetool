@@ -43,7 +43,7 @@ interface AssetActionsProps {
   maxItemSize?: number;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

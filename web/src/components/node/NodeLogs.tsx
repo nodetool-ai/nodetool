@@ -17,7 +17,7 @@ type NodeLogsProps = {
   workflowId: string;
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     padding: "0",
     borderRadius: 0,

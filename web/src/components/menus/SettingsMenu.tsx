@@ -36,7 +36,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 
-export const settingsStyles = (theme: any): any =>
+export const settingsStyles = (theme: Theme): any =>
   css({
     ".MuiBackdrop-root": {
       backgroundColor: "rgba(0, 0, 0, 0.7)",

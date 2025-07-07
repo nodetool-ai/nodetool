@@ -23,7 +23,7 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 
-const treeStyles = (theme: any) =>
+const treeStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

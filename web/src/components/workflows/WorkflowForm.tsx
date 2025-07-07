@@ -32,7 +32,7 @@ const AVAILABLE_TAGS = [
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: theme.spacing(2)

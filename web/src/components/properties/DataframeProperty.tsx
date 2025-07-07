@@ -13,7 +13,7 @@ import TableRowsIcon from "@mui/icons-material/TableRows";
 import { tableStyles } from "../../styles/TableStyles";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css([
     {
       display: "flex",

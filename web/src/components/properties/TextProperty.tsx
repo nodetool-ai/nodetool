@@ -9,7 +9,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextAssetDisplay from "./TextAssetDisplay";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".text": {
       outline: "none",

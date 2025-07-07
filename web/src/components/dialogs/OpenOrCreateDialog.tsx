@@ -27,7 +27,7 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
     ".MuiPaper-root": {
@@ -100,7 +100,7 @@ const styles = (theme: any) =>
     }
   });
 
-const listStyles = (theme: any) =>
+const listStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

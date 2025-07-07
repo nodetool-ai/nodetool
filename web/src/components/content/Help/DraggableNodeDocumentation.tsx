@@ -12,7 +12,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useNodes } from "../../../contexts/NodeContext";
 
-const styles = (theme: any) => css`
+const styles = (theme: Theme) => css`
   position: absolute;
   z-index: 1000;
   background-color: ${theme.palette.background.paper};

@@ -73,7 +73,7 @@ const wsprops: WaveSurferProps = {
   playOnLoad: false
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       width: "25px !important",

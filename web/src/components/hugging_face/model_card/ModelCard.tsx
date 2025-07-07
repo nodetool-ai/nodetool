@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&.model-card": {
       position: "relative",

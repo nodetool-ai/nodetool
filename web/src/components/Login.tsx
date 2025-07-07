@@ -6,7 +6,7 @@ import { Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

@@ -24,7 +24,7 @@ interface WorkflowToolbarProps {
   onBulkDelete: () => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".tools": {
       display: "flex",

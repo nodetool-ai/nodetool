@@ -30,7 +30,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const helpStyles = (theme: any) =>
+const helpStyles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: "rgba(40, 40, 40, 0.5)",

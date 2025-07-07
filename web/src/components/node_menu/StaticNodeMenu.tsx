@@ -15,7 +15,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 
-const staticMenuStyles = (theme: any) =>
+const staticMenuStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

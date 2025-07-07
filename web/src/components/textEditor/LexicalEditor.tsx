@@ -11,7 +11,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "::highlight(findMatches)": {
       backgroundColor: "rgba(255, 255, 0, 0.4)"

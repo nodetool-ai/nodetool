@@ -63,7 +63,7 @@ export type CustomText = {
   size?: "-" | "+";
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",

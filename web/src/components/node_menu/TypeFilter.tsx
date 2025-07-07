@@ -98,7 +98,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
     });
   };
 
-  const typeFilterStyles = (theme: any) =>
+  const typeFilterStyles = (theme: Theme) =>
     css({
       "&": {
         display: "flex",

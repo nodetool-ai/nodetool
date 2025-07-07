@@ -9,7 +9,7 @@ interface EditorStatusBarProps {
   readOnly?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",

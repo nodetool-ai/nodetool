@@ -16,7 +16,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     width: "100%",
     borderRadius: "4px",

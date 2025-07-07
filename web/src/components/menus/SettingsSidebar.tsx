@@ -20,7 +20,7 @@ interface SettingsSidebarProps {
   onSectionClick: (sectionId: string) => void;
 }
 
-const sidebarStyles = (theme: any) => css`
+const sidebarStyles = (theme: Theme) => css`
   width: 220px;
   min-width: 220px;
   background-color: rgba(0, 0, 0, 0.2);
