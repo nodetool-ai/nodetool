@@ -31,6 +31,7 @@ import WorkflowsList from "./WorkflowsList";
 import { isEqual } from "lodash";
 import RecentChats from "./RecentChats";
 import { Thread } from "../../stores/GlobalChatStore";
+import DashboardHeader from "./DashboardHeader";
 
 const styles = (theme: any) =>
   css({
@@ -447,6 +448,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box css={styles(ThemeNodetool)}>
+      <DashboardHeader showBackToEditor={!!currentWorkflowId} />
       {/* Start Examples Section */}
       <ExamplesList
         startExamples={startExamples}
@@ -454,10 +456,6 @@ const Dashboard: React.FC = () => {
         loadingExampleId={loadingExampleId}
         handleExampleClick={handleExampleClick}
         handleViewAllExamples={handleViewAllExamples}
-        currentWorkflowId={currentWorkflowId || undefined}
-        BackToEditorButton={
-          currentWorkflowId ? <BackToEditorButton /> : undefined
-        }
       />
 
       {/* Recent Threads Section */}

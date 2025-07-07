@@ -12,8 +12,6 @@ interface ExamplesListProps {
   loadingExampleId: string | null;
   handleExampleClick: (example: Workflow) => void;
   handleViewAllExamples: () => void;
-  currentWorkflowId?: string;
-  BackToEditorButton?: React.ReactNode;
 }
 
 const styles = (theme: any) =>
@@ -118,9 +116,7 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
   isLoadingExamples,
   loadingExampleId,
   handleExampleClick,
-  handleViewAllExamples,
-  currentWorkflowId,
-  BackToEditorButton
+  handleViewAllExamples
 }) => {
   // Try to get theme from MUI, fallback to undefined
   const theme = (window as any).muiTheme || undefined;
@@ -136,7 +132,6 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
         <Typography variant="h2" className="section-title">
           Examples
         </Typography>
-        {currentWorkflowId && BackToEditorButton}
       </Box>
       <Box className="content-scrollable">
         {isLoadingExamples ? (
