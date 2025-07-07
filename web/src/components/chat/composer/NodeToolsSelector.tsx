@@ -17,7 +17,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import useTheme from "@mui/material/styles/useTheme";
 
 const toolsSelectorStyles = (theme: any) =>
   css({
@@ -149,7 +149,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const selectedNodeTypes = useMemo(() => value || [], [value]);
-
+  const theme = useTheme();
   // Use NodeMenuStore for search functionality
   const {
     searchTerm,
@@ -210,7 +210,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
 
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
-  const memoizedStyles = useMemo(() => toolsSelectorStyles(ThemeNodetool), []);
+  const memoizedStyles = useMemo(() => toolsSelectorStyles(theme), [theme]);
 
   return (
     <>

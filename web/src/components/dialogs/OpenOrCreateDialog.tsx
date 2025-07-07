@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import useTheme from "@mui/material/styles/useTheme";
 import { useCallback } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
+
 import {
   Box,
   CircularProgress,
@@ -19,7 +20,6 @@ import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { useNavigate } from "react-router";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { VERSION } from "../../config/constants";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { client } from "../../stores/ApiClient";
@@ -121,11 +121,11 @@ const listStyles = (theme: any) =>
       width: "calc(100% - 20px)",
       cursor: "pointer",
       borderBottom: "1px solid black",
-      backgroundColor: ThemeNodetool.palette.grey[800],
+      backgroundColor: theme.palette.grey[800],
       transition: "background-color 0.2s ease-in-out"
     },
     ".workflow:hover": {
-      backgroundColor: ThemeNodetool.palette.grey[600],
+      backgroundColor: theme.palette.grey[600],
       outline: `0`
     },
     ".name-and-description": {
@@ -179,6 +179,7 @@ const listStyles = (theme: any) =>
   });
 
 const OpenOrCreateDialog = () => {
+  const theme = useTheme();
   const settings = useSettingsStore((state) => state.settings);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -364,7 +365,7 @@ const OpenOrCreateDialog = () => {
         style={{
           color: "#666",
           marginTop: "2em",
-          fontSize: ThemeNodetool.fontSizeSmaller
+          fontSize: theme.fontSizeSmaller
         }}
       >
         NODETOOL {VERSION}
