@@ -323,6 +323,80 @@ const Dashboard: React.FC = () => {
     setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
   }, []);
 
+  const panelParams = useMemo(() => {
+    return {
+      examples: {
+        startExamples,
+        isLoadingExamples,
+        loadingExampleId,
+        handleExampleClick,
+        handleViewAllExamples
+      },
+      workflows: {
+        sortedWorkflows,
+        isLoadingWorkflows,
+        settings,
+        handleOrderChange,
+        handleCreateNewWorkflow,
+        handleWorkflowClick
+      },
+      threads: {
+        threads: threads as { [key: string]: Thread },
+        currentThreadId,
+        onNewThread: handleNewThread,
+        onSelectThread: handleThreadSelect,
+        onDeleteThread: deleteThread,
+        getThreadPreview
+      },
+      chat: {
+        status,
+        sendMessage: handleSendMessage,
+        progress,
+        statusMessage,
+        model: selectedModel,
+        selectedTools,
+        onToolsChange: handleToolsChange,
+        onModelChange: handleModelChange,
+        onStop: stopGeneration,
+        agentMode,
+        onAgentModeToggle: setAgentMode,
+        currentPlanningUpdate,
+        currentTaskUpdate
+      }
+    };
+  }, [
+    startExamples,
+    isLoadingExamples,
+    loadingExampleId,
+    handleExampleClick,
+    handleViewAllExamples,
+    sortedWorkflows,
+    isLoadingWorkflows,
+    settings,
+    handleOrderChange,
+    handleCreateNewWorkflow,
+    handleWorkflowClick,
+    threads,
+    currentThreadId,
+    handleNewThread,
+    handleThreadSelect,
+    deleteThread,
+    getThreadPreview,
+    status,
+    handleSendMessage,
+    progress,
+    statusMessage,
+    selectedModel,
+    selectedTools,
+    handleToolsChange,
+    handleModelChange,
+    stopGeneration,
+    agentMode,
+    setAgentMode,
+    currentPlanningUpdate,
+    currentTaskUpdate
+  ]);
+
   const panelComponents = useMemo(
     () => ({
       examples: (props: IDockviewPanelProps<PanelProps>) => (
@@ -385,153 +459,94 @@ const Dashboard: React.FC = () => {
     []
   );
 
-  const onReady = useCallback((event: DockviewReadyEvent) => {
-    const { api } = event;
-    setDockviewApi(api);
+  const onReady = useCallback(
+    (event: DockviewReadyEvent) => {
+      const { api } = event;
+      setDockviewApi(api);
 
-    const examplesPanel = api.addPanel({
-      id: "examples",
-      component: "examples",
-      title: "Examples"
-    });
+      const chatPanel = api.addPanel({
+        id: "chat",
+        component: "chat",
+        title: "Chat",
+        params: panelParams.chat
+      });
 
-    const workflowsPanel = api.addPanel({
-      id: "workflows",
-      component: "workflows",
-      title: "Recent Workflows",
-      position: { direction: "right", referencePanel: examplesPanel }
-    });
+      const examplesPanel = api.addPanel({
+        id: "examples",
+        component: "examples",
+        title: "Examples",
+        position: { referencePanel: chatPanel, direction: "above" },
+        params: panelParams.examples
+      });
 
-    api.addPanel({
-      id: "threads",
-      component: "threads",
-      title: "Recent Chats",
-      position: { direction: "right", referencePanel: workflowsPanel }
-    });
+      const workflowsPanel = api.addPanel({
+        id: "workflows",
+        component: "workflows",
+        title: "Recent Workflows",
+        position: { direction: "right", referencePanel: examplesPanel },
+        params: panelParams.workflows
+      });
 
-    api.addPanel({
-      id: "chat",
-      component: "chat",
-      title: "Chat",
-      position: { direction: "below", referencePanel: examplesPanel }
-    });
-  }, []);
+      api.addPanel({
+        id: "threads",
+        component: "threads",
+        title: "Recent Chats",
+        position: { direction: "right", referencePanel: workflowsPanel },
+        params: panelParams.threads
+      });
+    },
+    [panelParams]
+  );
 
   useEffect(() => {
     if (!dockviewApi) return;
 
     const allPanelIds = ["examples", "workflows", "threads", "chat"];
-    const openPanelIds = dockviewApi.panels.map((p) => p.id);
-    const closedPanels = allPanelIds
-      .filter((id) => !openPanelIds.includes(id))
-      .map((id) => ({ id, title: id.charAt(0).toUpperCase() + id.slice(1) }));
-    setAvailablePanels(closedPanels);
 
-    const disposable = dockviewApi.onDidRemovePanel(() => {
+    const updateAvailablePanels = () => {
       const openPanelIds = dockviewApi.panels.map((p) => p.id);
       const closedPanels = allPanelIds
         .filter((id) => !openPanelIds.includes(id))
         .map((id) => ({ id, title: id.charAt(0).toUpperCase() + id.slice(1) }));
       setAvailablePanels(closedPanels);
-    });
+    };
+
+    updateAvailablePanels();
+
+    const disposableAdd = dockviewApi.onDidAddPanel(updateAvailablePanels);
+    const disposableRemove = dockviewApi.onDidRemovePanel(
+      updateAvailablePanels
+    );
 
     return () => {
-      disposable.dispose();
+      disposableAdd.dispose();
+      disposableRemove.dispose();
     };
-  }, [dockviewApi, dockviewApi?.panels]);
+  }, [dockviewApi]);
 
-  const handleAddPanel = (panelId: string) => {
-    if (!dockviewApi) return;
-    dockviewApi.addPanel({
-      id: panelId,
-      component: panelId,
-      title: panelId.charAt(0).toUpperCase() + panelId.slice(1)
-    });
-  };
+  const handleAddPanel = useCallback(
+    (panelId: string) => {
+      if (!dockviewApi) return;
+      dockviewApi.addPanel({
+        id: panelId,
+        component: panelId,
+        title: panelId.charAt(0).toUpperCase() + panelId.slice(1),
+        params: panelParams[panelId as keyof typeof panelParams]
+      });
+    },
+    [dockviewApi, panelParams]
+  );
 
   useEffect(() => {
     if (!dockviewApi) return;
 
-    const panelParams: PanelProps = {
-      examples: {
-        startExamples,
-        isLoadingExamples,
-        loadingExampleId,
-        handleExampleClick,
-        handleViewAllExamples
-      },
-      workflows: {
-        sortedWorkflows,
-        isLoadingWorkflows,
-        settings,
-        handleOrderChange,
-        handleCreateNewWorkflow,
-        handleWorkflowClick
-      },
-      threads: {
-        threads: threads as { [key: string]: Thread },
-        currentThreadId,
-        onNewThread: handleNewThread,
-        onSelectThread: handleThreadSelect,
-        onDeleteThread: deleteThread,
-        getThreadPreview
-      },
-      chat: {
-        status,
-        sendMessage: handleSendMessage,
-        progress,
-        statusMessage,
-        model: selectedModel,
-        selectedTools,
-        onToolsChange: handleToolsChange,
-        onModelChange: handleModelChange,
-        onStop: stopGeneration,
-        agentMode,
-        onAgentModeToggle: setAgentMode,
-        currentPlanningUpdate,
-        currentTaskUpdate
-      }
-    };
-
     Object.entries(panelParams).forEach(([id, params]) => {
       const panel = dockviewApi.getPanel(id);
-      if (panel) {
+      if (panel && !isEqual(panel.params, params)) {
         panel.update({ params });
       }
     });
-  }, [
-    dockviewApi,
-    startExamples,
-    isLoadingExamples,
-    loadingExampleId,
-    handleExampleClick,
-    handleViewAllExamples,
-    sortedWorkflows,
-    isLoadingWorkflows,
-    settings,
-    handleOrderChange,
-    handleCreateNewWorkflow,
-    handleWorkflowClick,
-    threads,
-    currentThreadId,
-    handleNewThread,
-    handleThreadSelect,
-    deleteThread,
-    getThreadPreview,
-    status,
-    handleSendMessage,
-    progress,
-    statusMessage,
-    selectedModel,
-    selectedTools,
-    handleToolsChange,
-    handleModelChange,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate
-  ]);
+  }, [dockviewApi, panelParams]);
 
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
