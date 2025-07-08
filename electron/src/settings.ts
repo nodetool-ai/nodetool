@@ -1,7 +1,6 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
-// @ts-expect-error types not available
 import yaml from "js-yaml";
 import { logMessage } from "./logger";
 

@@ -40,7 +40,7 @@ import { logMessage } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { installCondaEnvironment } from "./installer";
-import { emitBootMessage } from "./events";
+import { emitBootMessage, emitShowPackageManager } from "./events";
 import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
@@ -55,16 +55,19 @@ let mainWindow: BrowserWindow | null = null;
 
 /**
  * Checks and sets up the Python Conda environment
+ * @returns Promise<boolean> - true if environment exists, false if installation was needed
  */
-async function checkPythonEnvironment(): Promise<void> {
+async function checkPythonEnvironment(): Promise<boolean> {
   emitBootMessage("Checking for Python environment...");
   const hasCondaEnv = await isCondaEnvironmentInstalled();
 
   if (hasCondaEnv) {
     logMessage(`Python environment found`);
+    return true;
   } else {
     emitBootMessage("Python environment not found");
     await installCondaEnvironment();
+    return false;
   }
 }
 
@@ -90,9 +93,17 @@ async function initialize(): Promise<void> {
     setupAutoUpdater();
 
     // Check if conda environment is installed
-    await checkPythonEnvironment();
-
-    await initializeBackendServer();
+    const hasEnvironment = await checkPythonEnvironment();
+    
+    if (hasEnvironment) {
+      // Environment exists, show package manager during startup
+      // Do NOT start the server automatically - wait for user to continue
+      emitShowPackageManager();
+    } else {
+      // Environment was just installed, proceed normally
+      await initializeBackendServer();
+    }
+    
     await setupWorkflowShortcuts();
 
     // Request notification permissions

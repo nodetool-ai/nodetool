@@ -68,9 +68,20 @@ function emitUpdateProgress(
   }
 }
 
+/**
+ * Emit show package manager event to the renderer process
+ */
+function emitShowPackageManager(): void {
+  const mainWindow: BrowserWindow | null = getMainWindow();
+  if (mainWindow) {
+    mainWindow.webContents.send(IpcChannels.SHOW_PACKAGE_MANAGER);
+  }
+}
+
 export {
   emitBootMessage,
   emitServerStarted,
   emitServerLog,
   emitUpdateProgress,
+  emitShowPackageManager,
 };

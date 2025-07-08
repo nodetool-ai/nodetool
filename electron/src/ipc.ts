@@ -1,10 +1,18 @@
-import { ipcMain, BrowserWindow, clipboard, globalShortcut } from "electron";
-import { getServerState, openLogFile, runApp } from "./server";
+import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from "electron";
+import { getServerState, openLogFile, runApp, initializeBackendServer } from "./server";
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut } from "./shortcuts";
 import { updateTrayMenu } from "./tray";
+import { 
+  fetchAvailablePackages, 
+  listInstalledPackages, 
+  installPackage, 
+  uninstallPackage, 
+  updatePackage,
+  validateRepoId 
+} from "./packageManager";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -81,6 +89,12 @@ export function initializeIpcHandlers(): void {
     openLogFile();
   });
 
+  // Continue to app handler
+  createIpcMainHandler(IpcChannels.START_SERVER, async () => {
+    logMessage("User continued to app from package manager");
+    await initializeBackendServer();
+  });
+
   // App control handlers
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
@@ -155,6 +169,76 @@ export function initializeIpcHandlers(): void {
         globalShortcut.unregister(workflow.settings.shortcut);
       }
       updateTrayMenu();
+    }
+  );
+
+  // Package manager handlers
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_LIST_AVAILABLE,
+    async () => {
+      logMessage("Fetching available packages");
+      return await fetchAvailablePackages();
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_LIST_INSTALLED,
+    async () => {
+      logMessage("Listing installed packages");
+      return await listInstalledPackages();
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_INSTALL,
+    async (_event, request) => {
+      logMessage(`Installing package: ${request.repo_id}`);
+      const validation = validateRepoId(request.repo_id);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: validation.error || "Invalid repository ID"
+        };
+      }
+      return await installPackage(request.repo_id);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_UNINSTALL,
+    async (_event, request) => {
+      logMessage(`Uninstalling package: ${request.repo_id}`);
+      const validation = validateRepoId(request.repo_id);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: validation.error || "Invalid repository ID"
+        };
+      }
+      return await uninstallPackage(request.repo_id);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_UPDATE,
+    async (_event, repoId) => {
+      logMessage(`Updating package: ${repoId}`);
+      const validation = validateRepoId(repoId);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: validation.error || "Invalid repository ID"
+        };
+      }
+      return await updatePackage(repoId);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_OPEN_EXTERNAL,
+    async (_event, url) => {
+      logMessage(`Opening external URL: ${url}`);
+      shell.openExternal(url);
     }
   );
 }

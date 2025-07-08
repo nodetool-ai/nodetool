@@ -1,6 +1,5 @@
 import { encode, decode } from "@msgpack/msgpack";
 import { create } from "zustand";
-// @ts-expect-error types not available
 import WebSocket from "ws";
 import { Notification } from "electron";
 import { Workflow } from "./types";
@@ -105,9 +104,20 @@ export const createWorkflowRunner = () =>
         });
 
         socket.on("message", async (event: WebSocket.Data) => {
-          const data = decode(
-            event instanceof Buffer ? event : new Uint8Array(event)
-          ) as any;
+          let buffer: Uint8Array;
+          if (event instanceof Buffer) {
+            buffer = new Uint8Array(event);
+          } else if (event instanceof ArrayBuffer) {
+            buffer = new Uint8Array(event);
+          } else if (typeof event === 'string') {
+            // Convert string to Uint8Array
+            const encoder = new TextEncoder();
+            buffer = encoder.encode(event);
+          } else {
+            // Handle other types
+            buffer = new Uint8Array(0);
+          }
+          const data = decode(buffer) as any;
           if (data.type !== "chunk") {
             console.log("data", data);
           }

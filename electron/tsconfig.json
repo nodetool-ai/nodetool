@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "strict": true,
     "baseUrl": ".",
     "paths": {
@@ -13,20 +13,28 @@
     "allowJs": true,
     "moduleDetection": "force",
     "outDir": "dist-electron",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "types": ["react", "react-dom", "node"]
   },
   "include": [
     "src",
+    "src/types/*.d.ts",
     "vite.config.ts",
     "eslint.config.mjs",
     "src/preload.ts",
-    "src/preload-workflow.ts"
+    "src/preload-workflow.ts",
   ],
   "exclude": [
     "node_modules",
     "dist",
     "dist-web",
     "dist-electron",
-    "out"
+    "out",
+    "src/__tests__",
+    "src/__mocks__",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 } 
