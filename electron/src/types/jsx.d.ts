@@ -2,10 +2,10 @@
 /// <reference types="react-dom" />
 
 declare namespace JSX {
-  interface IntrinsicElements extends React.JSX.IntrinsicElements {}
-  interface Element extends React.JSX.Element {}
-  interface ElementClass extends React.JSX.ElementClass {}
-  interface ElementAttributesProperty extends React.JSX.ElementAttributesProperty {}
-  interface ElementChildrenAttribute extends React.JSX.ElementChildrenAttribute {}
-  interface LibraryManagedAttributes<C, P> extends React.JSX.LibraryManagedAttributes<C, P> {}
+  type IntrinsicElements = React.JSX.IntrinsicElements;
+  type Element = React.JSX.Element;
+  type ElementClass = React.JSX.ElementClass;
+  type ElementAttributesProperty = React.JSX.ElementAttributesProperty;
+  type ElementChildrenAttribute = React.JSX.ElementChildrenAttribute;
+  type LibraryManagedAttributes<C, P> = React.JSX.LibraryManagedAttributes<C, P>;
 }

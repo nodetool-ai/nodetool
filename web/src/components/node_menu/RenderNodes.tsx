@@ -150,7 +150,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,
-      handleCreateNode
+      handleCreateNode,
+      theme.palette.grey
     ]
   );
 
@@ -228,7 +229,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     renderGroup,
     selectedPath,
     handleDragStart,
-    handleCreateNode
+    handleCreateNode,
+    onToggleSelection,
+    selectedNodeTypes,
+    showCheckboxes
   ]);
 
   return (

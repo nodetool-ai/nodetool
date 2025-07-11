@@ -19,12 +19,10 @@
     "types": ["react", "react-dom", "node"]
   },
   "include": [
-    "src",
-    "src/types/*.d.ts",
+    "src/**/*",
     "vite.config.ts",
     "eslint.config.mjs",
-    "src/preload.ts",
-    "src/preload-workflow.ts",
+    "pages/**/*"
   ],
   "exclude": [
     "node_modules",
