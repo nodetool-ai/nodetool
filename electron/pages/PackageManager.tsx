@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './packages.css';
+import { PackageModel, PackageListResponse, InstalledPackageListResponse, PackageResponse } from '../src/types';
 
 interface Package {
   name: string;
@@ -10,30 +11,6 @@ interface Package {
   nodes?: string[];
   examples?: string[];
   assets?: string[];
-}
-
-interface PackageListResponse {
-  packages: Package[];
-  count: number;
-}
-
-interface PackageResponse {
-  success: boolean;
-  message: string;
-}
-
-declare global {
-  interface Window {
-    electronAPI: {
-      packages: {
-        listAvailable: () => Promise<PackageListResponse>;
-        listInstalled: () => Promise<PackageListResponse>;
-        install: (repoId: string) => Promise<PackageResponse>;
-        uninstall: (repoId: string) => Promise<PackageResponse>;
-      };
-      openExternal: (url: string) => void;
-    };
-  }
 }
 
 const PackageManager: React.FC = () => {
@@ -83,7 +60,7 @@ const PackageManager: React.FC = () => {
     return await window.electronAPI.packages.listAvailable();
   };
 
-  const fetchInstalledPackages = async (): Promise<PackageListResponse> => {
+  const fetchInstalledPackages = async (): Promise<InstalledPackageListResponse> => {
     if (!window.electronAPI) {
       throw new Error('Electron API is not available');
     }

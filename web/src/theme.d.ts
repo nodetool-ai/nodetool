@@ -26,11 +26,33 @@ declare module "@mui/material/styles" {
      * The color schemes configuration.
      */
     colorSchemes?: Partial<Record<string, { palette: PaletteOptions }>>;
+    
+    // Custom font size properties
+    fontSizeGiant?: string;
+    fontSizeBigger?: string;
+    fontSizeBig?: string;
+    fontSizeNormal?: string;
+    fontSizeSmall?: string;
+    fontSizeSmaller?: string;
+    fontSizeTiny?: string;
+    fontSizeTinyer?: string;
+    fontFamily1?: string;
+    fontFamily2?: string;
   }
-  // If you also need to access theme.vars in your components or component overrides
-  // you might need to augment the Theme interface as well, though the docs primarily show its usage
-  // for accessing variables like theme.vars.palette.primary.main.
-  // For now, let's focus on getting ThemeOptions right for createTheme.
+  
+  interface Theme {
+    // Custom font size properties
+    fontSizeGiant: string;
+    fontSizeBigger: string;
+    fontSizeBig: string;
+    fontSizeNormal: string;
+    fontSizeSmall: string;
+    fontSizeSmaller?: string;
+    fontSizeTiny?: string;
+    fontSizeTinyer?: string;
+    fontFamily1: string;
+    fontFamily2: string;
+  }
 
   interface Color {
     0?: string;
