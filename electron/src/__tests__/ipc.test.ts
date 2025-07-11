@@ -1,5 +1,9 @@
 jest.mock('electron', () => {
   return {
+    app: {
+      isPackaged: false,
+      getPath: jest.fn().mockReturnValue('/mock/userData'),
+    },
     ipcMain: {
       handle: jest.fn(),
       on: jest.fn(),

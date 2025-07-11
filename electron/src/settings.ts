@@ -1,7 +1,6 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
-// @ts-expect-error types not available
 import yaml from "js-yaml";
 import { logMessage } from "./logger";
 
@@ -56,21 +55,36 @@ function getAppConfigPath(filename: string): string {
  */
 function readSettings(): Record<string, any> {
   try {
+    logMessage("=== Reading Settings ===");
+    console.log("Reading settings...");
+    
     // Return cached settings if available
     if (settingsCache !== null) {
+      logMessage("Returning cached settings");
+      console.log("Returning cached settings:", settingsCache);
       return settingsCache;
     }
 
     const settingsPath = getAppConfigPath("settings.yaml");
+    logMessage(`Settings path: ${settingsPath}`);
+    console.log(`Settings path: ${settingsPath}`);
 
     if (!fs.existsSync(settingsPath)) {
+      logMessage("Settings file does not exist, returning empty settings");
+      console.log("Settings file does not exist, returning empty settings");
       settingsCache = {};
       return settingsCache;
     }
 
     logMessage("Reading settings from " + settingsPath);
+    console.log("Reading settings from " + settingsPath);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
+    logMessage(`File contents: ${fileContents}`);
+    console.log(`File contents: ${fileContents}`);
+    
     settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
+    logMessage(`Parsed settings: ${JSON.stringify(settingsCache, null, 2)}`);
+    console.log(`Parsed settings:`, settingsCache);
 
     for (const key in settingsCache) {
       logMessage(`${key}: ${settingsCache[key]}`);
@@ -78,6 +92,8 @@ function readSettings(): Record<string, any> {
 
     return settingsCache;
   } catch (error) {
+    logMessage(`Error reading settings: ${error}`, "error");
+    console.error("Error reading settings:", error);
     throw new Error(
       `Failed to read settings: ${
         error instanceof Error ? error.message : String(error)

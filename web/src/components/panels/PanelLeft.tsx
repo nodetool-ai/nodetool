@@ -13,7 +13,6 @@ import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import PackageList from "../packages/PackageList";
 import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -261,27 +260,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Packs</div>
-            <div className="tooltip-key">
-              <kbd>5</kbd>
-            </div>
-          </div>
-        }
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
-          onClick={() => onViewChange("packs")}
-        >
-          <WidgetsIcon />
-        </IconButton>
-      </Tooltip>
-
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
@@ -418,19 +396,6 @@ const PanelContent = memo(function PanelContent({
           <CollectionList />
         </Box>
       )}
-      {activeView === "packs" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto",
-            margin: "0 20px"
-          }}
-        >
-          <h3>Packs</h3>
-          <PackageList />
-        </Box>
-      )}
     </>
   );
 });
@@ -449,7 +414,6 @@ const PanelLeft: React.FC = () => {
   useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["3"], () => handlePanelToggle("assets"), false);
   useCombo(["4"], () => handlePanelToggle("collections"), false);
-  useCombo(["5"], () => handlePanelToggle("packs"), false);
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";

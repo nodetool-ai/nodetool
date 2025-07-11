@@ -2,9 +2,7 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node"];
 export type Edge = components["schemas"]["Edge"];
-export type Asset = components["schemas"]["Asset"] & {
-  size?: number; // File size in bytes - added for size sorting
-};
+export type Asset = components["schemas"]["Asset"];
 export type AssetList = components["schemas"]["AssetList"];
 
 // New types for global search functionality

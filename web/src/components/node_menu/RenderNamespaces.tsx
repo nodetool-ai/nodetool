@@ -117,8 +117,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       selectedPath,
       allSearchMatches,
       searchTerm,
-      hasEffectiveSearchTerm,
-      hasActiveTypeFilter,
       shouldHighlightByFilter,
       minSearchTermLength,
       DEBUG_SEARCH

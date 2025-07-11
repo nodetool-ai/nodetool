@@ -18,6 +18,229 @@
   scrollbar-width: thin;
   scrollbar-color: var(--c_scroll_thumb) transparent;
 }
+
+/* Package Manager Styles */
+.package-manager {
+  padding: 20px;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--c_bg_primary, #1a1a1a);
+  color: var(--c_text_primary, #ffffff);
+}
+
+.package-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--c_border, #333);
+}
+
+.package-manager-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.status-indicator.ready {
+  background: #4caf50;
+}
+
+.status-indicator.starting {
+  background: #ff9800;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.skip-button {
+  background: var(--c_button_primary, #007acc);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.skip-button:hover:not(:disabled) {
+  background: var(--c_button_primary_hover, #005a9e);
+}
+
+.skip-button:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #f44336;
+  color: white;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dismiss-error {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  margin-left: 10px;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+}
+
+.package-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  height: calc(100vh - 200px);
+}
+
+.package-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.package-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  color: var(--c_text_secondary, #ccc);
+}
+
+.package-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.package-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: var(--c_bg_secondary, #2a2a2a);
+  border-radius: 6px;
+  border: 1px solid var(--c_border, #333);
+  transition: border-color 0.2s;
+}
+
+.package-item:hover {
+  border-color: var(--c_border_hover, #555);
+}
+
+.package-item.installed {
+  border-left: 3px solid #4caf50;
+}
+
+.package-item.available {
+  border-left: 3px solid #2196f3;
+}
+
+.package-info {
+  flex: 1;
+}
+
+.package-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.package-version,
+.package-author {
+  font-size: 12px;
+  color: var(--c_text_tertiary, #999);
+  margin: 0 0 5px 0;
+}
+
+.package-description {
+  font-size: 14px;
+  color: var(--c_text_secondary, #ccc);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.install-button,
+.uninstall-button,
+.installed-indicator {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+  min-width: 80px;
+}
+
+.install-button {
+  background: #4caf50;
+  color: white;
+}
+
+.install-button:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.uninstall-button {
+  background: #f44336;
+  color: white;
+}
+
+.uninstall-button:hover:not(:disabled) {
+  background: #da190b;
+}
+
+.installed-indicator {
+  background: #666;
+  color: #ccc;
+  cursor: default;
+}
+
+.install-button:disabled,
+.uninstall-button:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.no-packages {
+  text-align: center;
+  padding: 40px;
+  color: var(--c_text_tertiary, #999);
+  font-style: italic;
+}
 @font-face {
   font-family: "Inter";
   font-style: normal;
@@ -57,6 +280,76 @@ html {
   flex-direction: column;
   background-color: #111;
   font-family: Arial, sans-serif;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Title bar container */
+.title-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: #1a1a1a;
+  display: none; /* Hidden by default */
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+
+/* Show title bar only on Windows */
+body.platform-win32 .title-bar {
+  display: flex;
+}
+
+/* Window controls container */
+.window-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+  height: 100%;
+}
+
+.window-control-button {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  -webkit-app-region: no-drag;
+}
+
+.window-control-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#close-button:hover {
+  background-color: #e81123;
+}
+
+/* Adjust main content to account for title bar */
+body.platform-win32 #boot-message,
+body.platform-win32 #install-location-prompt,
+body.platform-win32 #log-container {
+  margin-top: 32px;
 }
 
 ul li {
@@ -465,19 +758,6 @@ ul li {
   background: transparent;
   color: rgba(94, 158, 255, 1);
 }
-
-.location-button.custom-location:hover::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 50%;
-  width: 4px;
-  height: 70%;
-  background: rgba(94, 158, 255, 0.5);
-  transform: translateY(-50%);
-  border-radius: 2px;
-}
-
 .location-button span:first-child {
   font-weight: 600;
   margin-bottom: 12px;
@@ -502,23 +782,6 @@ ul li {
 .location-button:hover span:last-child {
   color: #fff;
 }
-
-.location-button.default-location::after {
-  content: "→";
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 24px;
-  opacity: 0;
-}
-
-.location-button.default-location:hover::after {
-  opacity: 1;
-  right: 20px;
-  transform: translateY(-50%) translateX(4px);
-}
-
 .package-selection {
   display: flex;
   flex-direction: column;

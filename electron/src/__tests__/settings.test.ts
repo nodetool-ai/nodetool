@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-// @ts-expect-error types not available
 import yaml from 'js-yaml';
 
 let tempDir: string;

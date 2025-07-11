@@ -22,10 +22,20 @@ const appsPath: string = app.isPackaged
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 
 const getCondaEnvPath = (): string => {
+  logMessage("=== Getting Conda Environment Path ===");
+  console.log("Getting conda environment path...");
+  
   const settings = readSettings();
+  logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
+  console.log(`Settings:`, settings);
 
   // Check if legacy path exists and settings doesn't have CONDA_ENV
+  logMessage(`Checking legacy path: ${legacyCondaPath}`);
+  console.log(`Legacy path: ${legacyCondaPath}`);
+  
   if (!settings.CONDA_ENV && fs.existsSync(legacyCondaPath)) {
+    logMessage("Legacy conda environment path found, migrating to settings");
+    console.log("Legacy conda environment path found, migrating to settings");
     // Update settings with legacy path
     updateSetting("CONDA_ENV", legacyCondaPath);
     logMessage("Migrated legacy conda environment path to settings");
@@ -33,6 +43,8 @@ const getCondaEnvPath = (): string => {
   }
 
   const condaPath: string = settings.CONDA_ENV || legacyCondaPath;
+  logMessage(`Final conda path: ${condaPath}`);
+  console.log(`Final conda path: ${condaPath}`);
 
   return condaPath;
 };
@@ -50,10 +62,18 @@ const getUVPath = (): string =>
  * Retrieves the path to the Python executable
  * @returns {string} Path to Python executable
  */
-const getPythonPath = (): string =>
-  process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "python.exe")
-    : path.join(getCondaEnvPath(), "bin", "python");
+const getPythonPath = (): string => {
+  const condaPath = getCondaEnvPath();
+  const pythonPath = process.platform === "win32"
+    ? path.join(condaPath, "python.exe")
+    : path.join(condaPath, "bin", "python");
+  
+  logMessage(`getPythonPath() - condaPath: ${condaPath}`);
+  logMessage(`getPythonPath() - pythonPath: ${pythonPath}`);
+  console.log(`getPythonPath() - condaPath: ${condaPath}, pythonPath: ${pythonPath}`);
+  
+  return pythonPath;
+};
 
 /**
  * Retrieves the path to the conda-unpack executable

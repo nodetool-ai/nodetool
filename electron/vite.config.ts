@@ -1,10 +1,12 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import electron from "vite-plugin-electron";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   base: "./",
   plugins: [
+    react(),
     electron([
       {
         entry: "src/main.ts",
@@ -42,7 +44,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(__dirname, "index.html"),
-        main: resolve(__dirname, "src/index.ts"),
+        packages: resolve(__dirname, "pages/packages.html"),
       },
       output: {
         format: "es",

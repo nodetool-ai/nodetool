@@ -10,6 +10,7 @@ import { createChatOverlayWindow } from "./chatWindow";
 import { fetchWorkflows, isConnected } from "./api";
 import { runWorkflow } from "./workflowExecution";
 import { Workflow } from "./types";
+import { emitShowPackageManager } from "./events";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -215,6 +216,10 @@ async function updateTrayMenu(): Promise<void> {
     {
       label: "Show Chat Overlay",
       click: () => createChatOverlayWindow(),
+    },
+    {
+      label: "Package Manager",
+      click: () => emitShowPackageManager(),
     },
     { type: "separator" },
     {
