@@ -109,16 +109,12 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
     const nodetoolPackages = allPackages
       .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
       .map((pkg: any) => {
-        // Extract repo_id from package name
-        // Assuming format: nodetool-<project> from <owner>
-        const repoId = pkg.name.replace("nodetool-", "");
-        
         return {
           name: pkg.name,
           description: "",  // uv pip list doesn't provide description
           version: pkg.version,
           authors: [],
-          repo_id: repoId,  // This is a simplified mapping
+          repo_id: "nodetool-ai/" + pkg.name,
           nodes: [],
           examples: [],
           assets: []

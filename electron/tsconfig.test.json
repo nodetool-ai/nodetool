@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["react", "react-dom", "node", "jest"]
+  },
+  "include": [
+    "src",
+    "src/types/*.d.ts",
+    "src/__tests__/**/*.ts",
+    "src/__mocks__/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-web",
+    "dist-electron",
+    "out"
+  ]
+}

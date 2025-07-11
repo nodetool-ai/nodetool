@@ -58,16 +58,31 @@ let mainWindow: BrowserWindow | null = null;
  * @returns Promise<boolean> - true if environment exists, false if installation was needed
  */
 async function checkPythonEnvironment(): Promise<boolean> {
+  logMessage("=== Starting Python Environment Check ===");
+  
   emitBootMessage("Checking for Python environment...");
-  const hasCondaEnv = await isCondaEnvironmentInstalled();
+  logMessage("Emitted boot message: Checking for Python environment...");
+  
+  try {
+    logMessage("Calling isCondaEnvironmentInstalled()...");
+    const hasCondaEnv = await isCondaEnvironmentInstalled();
+    logMessage(`isCondaEnvironmentInstalled() returned: ${hasCondaEnv}`);
 
-  if (hasCondaEnv) {
-    logMessage(`Python environment found`);
-    return true;
-  } else {
-    emitBootMessage("Python environment not found");
-    await installCondaEnvironment();
-    return false;
+    if (hasCondaEnv) {
+      logMessage(`Python environment found - proceeding with startup`);
+      return true;
+    } else {
+      logMessage("Python environment not found - starting installation");
+      emitBootMessage("Python environment not found");
+      await installCondaEnvironment();
+      logMessage("Installation completed");
+      return false;
+    }
+  } catch (error) {
+    logMessage(`Error in checkPythonEnvironment: ${error}`, "error");
+    throw error;
+  } finally {
+    logMessage("=== Python Environment Check Complete ===");
   }
 }
 
@@ -77,9 +92,15 @@ async function checkPythonEnvironment(): Promise<boolean> {
  */
 async function initialize(): Promise<void> {
   try {
+    logMessage("=== Starting Application Initialization ===");
+
     // Verify paths and permissions
+    logMessage("Verifying application paths...");
     const validationResult = await verifyApplicationPaths();
+    logMessage(`Path validation result: ${JSON.stringify(validationResult)}`);
+    
     if (validationResult.errors.length > 0) {
+      logMessage("Critical permission errors detected", "error");
       const errorMessage =
         "Critical permission errors detected:\n\n" +
         validationResult.errors.join("\n") +
@@ -90,26 +111,38 @@ async function initialize(): Promise<void> {
       return;
     }
 
+    logMessage("Setting up auto updater...");
     setupAutoUpdater();
 
     // Check if conda environment is installed
+    logMessage("About to check Python environment...");
     const hasEnvironment = await checkPythonEnvironment();
+    logMessage(`Python environment check complete, hasEnvironment: ${hasEnvironment}`);
     
     if (hasEnvironment) {
       // Environment exists, show package manager during startup
       // Do NOT start the server automatically - wait for user to continue
+      logMessage("Environment exists, showing package manager");
       emitShowPackageManager();
+      logMessage("emitShowPackageManager() called");
+      logMessage("Skipping workflow shortcuts setup - server not started yet");
     } else {
       // Environment was just installed, proceed normally
+      logMessage("Environment was just installed, initializing backend server");
       await initializeBackendServer();
+      logMessage("initializeBackendServer() completed");
+      
+      logMessage("Setting up workflow shortcuts...");
+      await setupWorkflowShortcuts();
     }
-    
-    await setupWorkflowShortcuts();
 
     // Request notification permissions
     if (process.platform === "darwin") {
+      logMessage("Setting activation policy for macOS");
       app.setActivationPolicy("accessory");
     }
+    
+    logMessage("=== Application Initialization Complete ===");
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");
     dialog.showErrorBox(
@@ -127,12 +160,10 @@ async function checkMediaPermissions(): Promise<void> {
   if (process.platform === "win32" || process.platform === "darwin") {
     try {
       logMessage("Starting microphone permission check");
-      console.log("Checking microphone permissions...");
 
       const microphoneStatus =
         systemPreferences.getMediaAccessStatus("microphone");
       logMessage(`Current microphone status: ${microphoneStatus}`);
-      console.log(`Detailed microphone status:`, { microphoneStatus });
 
       if (microphoneStatus !== "granted") {
         logMessage(
@@ -145,7 +176,6 @@ async function checkMediaPermissions(): Promise<void> {
             "microphone"
           );
           logMessage(`Microphone permission request result: ${granted}`);
-          console.log(`macOS permission request result:`, { granted });
 
           if (!granted) {
             logMessage("Opening system preferences for microphone access");
@@ -165,7 +195,6 @@ async function checkMediaPermissions(): Promise<void> {
         `Error handling microphone permissions: ${(error as Error).message}`,
         "error"
       );
-      console.error("Detailed permission error:", error);
     }
   } else {
     logMessage(
@@ -186,7 +215,6 @@ app.on("ready", async () => {
     createWorkflowWindow(workflowId);
     return;
   }
-  console.log(process.argv);
   const chatIndex = process.argv.indexOf("--chat");
   if (chatIndex > -1) {
     logMessage(`Running chat from command line`);

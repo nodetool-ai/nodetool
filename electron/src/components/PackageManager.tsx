@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PackageInfo, PackageModel, PackageListResponse, InstalledPackageListResponse } from '../types';
 
 interface PackageManagerProps {
@@ -16,18 +16,20 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     loadPackages();
   }, []);
 
-  const loadPackages = async () => {
+  const loadPackages = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       // Load available packages
       const availableResponse: PackageListResponse = await window.electronAPI.packages.listAvailable();
+      console.log('availableResponse', availableResponse);
       setAvailablePackages(availableResponse.packages || []);
       
       // Load installed packages
       const installedResponse: InstalledPackageListResponse = await window.electronAPI.packages.listInstalled();
       setInstalledPackages(installedResponse.packages || []);
+      console.log('installedPackages', installedResponse.packages);
       
     } catch (err) {
       console.error('Failed to load packages:', err);
@@ -35,9 +37,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleInstall = async (repoId: string) => {
+  const handleInstall = useCallback(async (repoId: string) => {
     setInstalling(prev => new Set(prev).add(repoId));
     try {
       const result = await window.electronAPI.packages.install(repoId);
@@ -56,9 +58,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
         return newSet;
       });
     }
-  };
+  }, []);
 
-  const handleUninstall = async (repoId: string) => {
+  const handleUninstall = useCallback(async (repoId: string) => {
     setInstalling(prev => new Set(prev).add(repoId));
     try {
       const result = await window.electronAPI.packages.uninstall(repoId);
@@ -77,15 +79,15 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
         return newSet;
       });
     }
-  };
+  }, [loadPackages]);
 
-  const isInstalled = (repoId: string) => {
+  const isInstalled = useCallback((repoId: string) => {
     return installedPackages.some(pkg => pkg.repo_id === repoId);
-  };
+  }, [installedPackages]);
 
-  const isProcessing = (repoId: string) => {
+  const isProcessing = useCallback((repoId: string) => {
     return installing.has(repoId);
-  };
+  }, [installing]);
 
   if (loading) {
     return (
@@ -151,30 +153,24 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
         </div>
 
         <div className="package-section">
-          <h2>Available Packages ({availablePackages.length})</h2>
-          {availablePackages.length === 0 ? (
+          <h2>Available Packs ({availablePackages.filter(pkg => !isInstalled(pkg.repo_id)).length})</h2>
+          {availablePackages.filter(pkg => !isInstalled(pkg.repo_id)).length === 0 ? (
             <p className="no-packages">No packages available</p>
           ) : (
             <div className="package-list">
-              {availablePackages.map(pkg => (
+              {availablePackages.filter(pkg => !isInstalled(pkg.repo_id)).map(pkg => (
                 <div key={pkg.repo_id} className="package-item available">
                   <div className="package-info">
                     <h3>{pkg.name}</h3>
                     <p className="package-description">{pkg.description}</p>
                   </div>
-                  {isInstalled(pkg.repo_id) ? (
-                    <button className="installed-indicator" disabled>
-                      Installed
-                    </button>
-                  ) : (
-                    <button
-                      className="install-button"
-                      onClick={() => handleInstall(pkg.repo_id)}
-                      disabled={isProcessing(pkg.repo_id)}
-                    >
-                      {isProcessing(pkg.repo_id) ? 'Installing...' : 'Install'}
-                    </button>
-                  )}
+                  <button
+                    className="install-button"
+                    onClick={() => handleInstall(pkg.repo_id)}
+                    disabled={isProcessing(pkg.repo_id)}
+                  >
+                    {isProcessing(pkg.repo_id) ? 'Installing...' : 'Install'}
+                  </button>
                 </div>
               ))}
             </div>

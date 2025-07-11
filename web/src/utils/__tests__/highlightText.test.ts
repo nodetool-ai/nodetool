@@ -1,7 +1,14 @@
 // Mock ThemeNodetool to avoid heavy imports
 jest.mock("../../components/themes/ThemeNodetool", () => ({
   __esModule: true,
-  default: { palette: { c_hl1: "#ff0000" } }
+  default: { 
+    palette: { 
+      c_hl1: "#ff0000",
+      primary: {
+        main: "#1976d2"
+      }
+    } 
+  }
 }));
 
 import {

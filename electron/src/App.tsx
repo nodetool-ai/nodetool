@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo  } from 'react';
-import { IntervalRef } from './types';
-import TitleBar from './components/TitleBar';
-import BootMessage from './components/BootMessage';
-import InstallLocationPrompt from './components/InstallLocationPrompt';
-import LogContainer from './components/LogContainer';
-import UpdateNotification from './components/UpdateNotification';
-import PackageManager from './components/PackageManager';
-import './index.css';
+import React, { useEffect, useState, useCallback } from "react";
+import TitleBar from "./components/TitleBar";
+import BootMessage from "./components/BootMessage";
+import InstallLocationPrompt from "./components/InstallLocationPrompt";
+import LogContainer from "./components/LogContainer";
+import UpdateNotification from "./components/UpdateNotification";
+import PackageManager from "./components/PackageManager";
+import { useIconAnimation } from "./hooks/useIconAnimation";
+import "./index.css";
 
 interface UpdateProgressData {
   componentName: string;
@@ -25,7 +25,7 @@ interface UpdateInfo {
 
 const App: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
-  const [bootMessage, setBootMessage] = useState<string>('');
+  const [bootMessage, setBootMessage] = useState<string>("");
   const [showBootMessage, setShowBootMessage] = useState(true);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showUpdateSteps, setShowUpdateSteps] = useState(false);
@@ -34,18 +34,16 @@ const App: React.FC = () => {
   const [showPackageManager, setShowPackageManager] = useState(false);
   const [serverReady, setServerReady] = useState(false);
   const [progressData, setProgressData] = useState<UpdateProgressData>({
-    componentName: '',
+    componentName: "",
     progress: 0,
-    action: '',
-    eta: ''
+    action: "",
+    eta: "",
   });
-  const [installLocationData, setInstallLocationData] = useState<InstallLocationData | null>(null);
+  const [installLocationData, setInstallLocationData] =
+    useState<InstallLocationData | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
-  const strokeInterval = useRef<IntervalRef>({ current: null });
-  const fillInterval = useRef<IntervalRef>({ current: null });
-  const colorfulStrokeInterval = useRef<IntervalRef>({ current: null });
-  const colorfulFillInterval = useRef<IntervalRef>({ current: null });
+  const { startAnimations, clearAllAnimations } = useIconAnimation();
 
   const addLog = useCallback((message: string) => {
     setLogs((prev: string[]) => [...prev, message]);
@@ -56,84 +54,97 @@ const App: React.FC = () => {
     window.location.href = `${initialURL}?nocache=${timestamp}`;
   }, []);
 
-  const clearAllAnimations = useCallback(() => {
-    [strokeInterval, fillInterval, colorfulStrokeInterval, colorfulFillInterval].forEach((interval) => {
-      if (interval.current?.current) {
-        clearInterval(interval.current.current);
-        interval.current.current = null;
-      }
-    });
-  }, []);
-
-  const getRandomGrayColor = useCallback(() => {
-    const grayValue = Math.floor(Math.random() * 100);
-    return `#${grayValue.toString(16).padStart(2, '0').repeat(3)}`;
-  }, []);
-
-  const getRandomColor = useCallback(() => {
-    const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-    return `#${randomColor.padStart(6, '0')}`;
-  }, []);
-
-  const updateStroke = useCallback(() => {
-    const icon = document.querySelector<HTMLElement>('.nodetool-icon');
-    if (icon) {
-      icon.style.setProperty('--stroke-color', getRandomGrayColor());
-    }
-  }, [getRandomGrayColor]);
-
-  const updateFill = useCallback(() => {
-    const icon = document.querySelector<HTMLElement>('.nodetool-icon');
-    if (icon) {
-      icon.style.setProperty('--fill-color', getRandomGrayColor());
-    }
-  }, [getRandomGrayColor]);
-
-  const startIconAnimations = useCallback(() => {
-    updateStroke();
-
-    strokeInterval.current.current = setInterval(updateStroke, 5000);
-
-    setTimeout(() => {
-      fillInterval.current.current = setInterval(updateFill, 5000);
-    }, 60000 + 2500);
-
-    setTimeout(() => {
-      colorfulStrokeInterval.current.current = setInterval(() => {
-        const icon = document.querySelector<HTMLElement>('.nodetool-icon');
-        if (icon) {
-          icon.style.setProperty('--stroke-color', getRandomColor());
-        }
-      }, 5000);
-    }, 5 * 60000);
-
-    setTimeout(() => {
-      colorfulFillInterval.current.current = setInterval(() => {
-        const icon = document.querySelector<HTMLElement>('.nodetool-icon');
-        if (icon) {
-          icon.style.setProperty('--fill-color', getRandomColor());
-        }
-      }, 5000);
-    }, 10 * 60000 + 2500);
-  }, [updateStroke, updateFill, getRandomGrayColor]);
+  console.log(showPackageManager, showBootMessage, showInstallPrompt);
 
   const initializeApp = useCallback(async () => {
     try {
-      const { isStarted, bootMsg, logs: serverLogs, initialURL } = await window.api.getServerState();
-      
+      const {
+        isStarted,
+        bootMsg,
+        logs: serverLogs,
+        initialURL,
+      } = await window.api.getServerState();
+
       if (isStarted) {
         loadContentWithNoCaching(initialURL);
       } else {
         setShowBootMessage(true);
         setBootMessage(bootMsg);
-        startIconAnimations();
+        startAnimations();
       }
 
       setLogs(serverLogs);
     } catch (error) {
-      console.error('Failed to initialize app:', error);
+      console.error("Failed to initialize app:", error);
     }
-  }, [loadContentWithNoCaching, startIconAnimations]);
+  }, [loadContentWithNoCaching, startAnimations]);
+
+  // Set up event listeners
+  const handleUpdateProgress = useCallback(
+    (data: UpdateProgressData) => {
+      setProgressData(data);
+      if (data.progress < 100) {
+        setShowUpdateSteps(true);
+      } else {
+        setTimeout(() => setShowUpdateSteps(false), 5000);
+      }
+    },
+    [setProgressData, setShowUpdateSteps]
+  );
+
+  const handleServerStarted = useCallback(() => {
+    if (showPackageManager) {
+      setServerReady(true);
+    } else {
+      initializeApp();
+    }
+  }, [showPackageManager, initializeApp]);
+
+  const handleBootMessage = useCallback(
+    (message: string) => {
+      setBootMessage(message);
+      if (message.includes("Setting up Python")) {
+        setShowLogs(true);
+      }
+    },
+    [setBootMessage, setShowLogs]
+  );
+
+  const handleServerLog = useCallback(
+    (message: string) => {
+      addLog(message);
+    },
+    [addLog]
+  );
+
+  const handleInstallLocationPrompt = useCallback(
+    (data: InstallLocationData) => {
+      setInstallLocationData(data);
+      setShowBootMessage(false);
+      setShowInstallPrompt(true);
+    },
+    [setInstallLocationData, setShowBootMessage, setShowInstallPrompt]
+  );
+
+  const handleShowPackageManager = useCallback(() => {
+    setShowBootMessage(false);
+    setShowInstallPrompt(false);
+    setShowPackageManager(true);
+    startAnimations();
+  }, [
+    setShowBootMessage,
+    setShowInstallPrompt,
+    setShowPackageManager,
+    startAnimations,
+  ]);
+
+  const handleUpdateAvailable = useCallback(
+    (info: UpdateInfo) => {
+      setUpdateInfo(info);
+      setShowUpdateNotification(true);
+    },
+    [setUpdateInfo, setShowUpdateNotification]
+  );
 
   useEffect(() => {
     // Initialize platform class
@@ -141,54 +152,6 @@ const App: React.FC = () => {
 
     // Initialize app
     initializeApp();
-
-    // Set up event listeners
-    const handleUpdateProgress = (data: UpdateProgressData) => {
-      setProgressData(data);
-      if (data.progress < 100) {
-        setShowUpdateSteps(true);
-      } else {
-        setTimeout(() => setShowUpdateSteps(false), 5000);
-      }
-    };
-
-    const handleServerStarted = () => {
-      if (showPackageManager) {
-        setServerReady(true);
-      } else {
-        initializeApp();
-      }
-    };
-
-    const handleBootMessage = (message: string) => {
-      setBootMessage(message);
-      if (message.includes('Setting up Python')) {
-        setShowLogs(true);
-      }
-    };
-
-    const handleServerLog = (message: string) => {
-      addLog(message);
-    };
-
-    const handleInstallLocationPrompt = (data: InstallLocationData) => {
-      setInstallLocationData(data);
-      setShowBootMessage(false);
-      setShowInstallPrompt(true);
-    };
-    
-    const handleShowPackageManager = () => {
-      setShowBootMessage(false);
-      setShowInstallPrompt(false);
-      setShowPackageManager(true);
-      startIconAnimations();
-    };
-
-    const handleUpdateAvailable = (info: UpdateInfo) => {
-      setUpdateInfo(info);
-      setShowUpdateNotification(true);
-    };
-
     // Register event listeners
     window.api.onUpdateProgress(handleUpdateProgress);
     window.api.onServerStarted(handleServerStarted);
@@ -201,14 +164,27 @@ const App: React.FC = () => {
     // Cleanup on unmount
     return () => {
       clearAllAnimations();
+
+      // Note: Event listeners are managed by the preload script
+      // and don't need explicit cleanup in the renderer
     };
-  }, []);
+  }, [
+    clearAllAnimations,
+    initializeApp,
+    handleUpdateProgress,
+    handleServerStarted,
+    handleBootMessage,
+    handleServerLog,
+    handleInstallLocationPrompt,
+    handleShowPackageManager,
+    handleUpdateAvailable,
+  ]);
 
   const handleInstallComplete = useCallback(() => {
     setShowInstallPrompt(false);
     setShowBootMessage(true);
   }, []);
-  
+
   const handleSkipPackageManager = useCallback(() => {
     setShowBootMessage(true);
     setBootMessage("Starting server...");
@@ -220,8 +196,8 @@ const App: React.FC = () => {
   return (
     <div className="app">
       <TitleBar />
-      
-      {showBootMessage && (
+
+      {showBootMessage && !showPackageManager && (
         <BootMessage
           message={bootMessage}
           showUpdateSteps={showUpdateSteps}
@@ -235,11 +211,9 @@ const App: React.FC = () => {
           onComplete={handleInstallComplete}
         />
       )}
-      
+
       {showPackageManager && (
-        <PackageManager
-          onSkip={handleSkipPackageManager}
-        />
+        <PackageManager onSkip={handleSkipPackageManager} />
       )}
 
       <LogContainer

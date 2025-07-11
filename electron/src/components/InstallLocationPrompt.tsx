@@ -1,9 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface InstallLocationPromptProps {
   defaultPath: string;
   onComplete: () => void;
 }
+
+interface PackageOptionProps {
+  name: string;
+  title: string;
+  description: string;
+  isSelected: boolean;
+  onToggle: () => void;
+}
+
+const PackageOption: React.FC<PackageOptionProps> = ({ name, title, description, isSelected, onToggle }) => (
+  <label className="package-option">
+    <div className="checkbox-wrapper">
+      <input
+        type="checkbox"
+        name={name}
+        checked={isSelected}
+        onChange={onToggle}
+      />
+    </div>
+    <div 
+      className="package-content"
+      style={{
+        backgroundColor: isSelected ? 'rgba(74, 158, 255, 0.15)' : '',
+        boxShadow: isSelected ? '0 0 0 2px rgba(74, 158, 255, 0.4)' : ''
+      }}
+    >
+      <div className="package-header">
+        <h4>{title}</h4>
+      </div>
+      <p>{description}</p>
+    </div>
+  </label>
+);
 
 const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPath, onComplete }) => {
   const [currentStep, setCurrentStep] = useState<'location' | 'packages'>('location');
@@ -39,6 +72,11 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
     }
   };
 
+  const isModuleSelected = (moduleName: string): boolean => {
+    const repoId = moduleMapping[moduleName as keyof typeof moduleMapping];
+    return selectedModules.includes(repoId);
+  };
+
   const handleDefaultLocation = () => {
     setSelectedPath(defaultPath);
     setCurrentStep('packages');
@@ -61,37 +99,6 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
     onComplete();
   };
 
-  useEffect(() => {
-    // Add event listeners for package selection highlighting
-    const checkboxes = document.querySelectorAll('.package-option input[type="checkbox"]');
-    const handlers: Array<EventListener> = [];
-    
-    checkboxes.forEach((checkbox) => {
-      const handleChange = (e: Event) => {
-        const target = e.target as HTMLInputElement;
-        const content = target.closest('.package-option')?.querySelector('.package-content') as HTMLElement;
-        
-        if (content) {
-          if (target.checked) {
-            content.style.backgroundColor = 'rgba(74, 158, 255, 0.15)';
-            content.style.boxShadow = '0 0 0 2px rgba(74, 158, 255, 0.4)';
-          } else {
-            content.style.backgroundColor = '';
-            content.style.boxShadow = '';
-          }
-        }
-      };
-
-      handlers.push(handleChange as EventListener);
-      checkbox.addEventListener('change', handleChange as EventListener);
-    });
-
-    return () => {
-      checkboxes.forEach((checkbox, index) => {
-        checkbox.removeEventListener('change', handlers[index]);
-      });
-    };
-  }, [currentStep]);
 
   return (
     <div id="install-location-prompt">
@@ -129,37 +136,21 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
                 <div className="package-group">
                   <h4>🤖 AI & Machine Learning</h4>
                   <div className="package-options">
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="huggingface"
-                          onChange={() => handleModuleToggle('huggingface')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🤗 HuggingFace</h4>
-                        </div>
-                        <p>Text, Image, and Audio models from HuggingFace</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="huggingface"
+                      title="🤗 HuggingFace"
+                      description="Text, Image, and Audio models from HuggingFace"
+                      isSelected={isModuleSelected('huggingface')}
+                      onToggle={() => handleModuleToggle('huggingface')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="ml"
-                          onChange={() => handleModuleToggle('ml')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>📊 Machine Learning</h4>
-                        </div>
-                        <p>Classification, Regression, and statistical models</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="ml"
+                      title="📊 Machine Learning"
+                      description="Classification, Regression, and statistical models"
+                      isSelected={isModuleSelected('ml')}
+                      onToggle={() => handleModuleToggle('ml')}
+                    />
                   </div>
                 </div>
 
@@ -167,69 +158,37 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
                 <div className="package-group">
                   <h4>☁️ AI Services</h4>
                   <div className="package-options">
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="openai"
-                          onChange={() => handleModuleToggle('openai')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🧠 OpenAI</h4>
-                        </div>
-                        <p>Additional services from OpenAI, like TTS and Transcription</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="openai"
+                      title="🧠 OpenAI"
+                      description="Additional services from OpenAI, like TTS and Transcription"
+                      isSelected={isModuleSelected('openai')}
+                      onToggle={() => handleModuleToggle('openai')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="elevenlabs"
-                          onChange={() => handleModuleToggle('elevenlabs')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🎤 ElevenLabs</h4>
-                        </div>
-                        <p>Advanced text-to-speech and voice cloning</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="elevenlabs"
+                      title="🎤 ElevenLabs"
+                      description="Advanced text-to-speech and voice cloning"
+                      isSelected={isModuleSelected('elevenlabs')}
+                      onToggle={() => handleModuleToggle('elevenlabs')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="fal"
-                          onChange={() => handleModuleToggle('fal')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>⚡ FAL AI</h4>
-                        </div>
-                        <p>Run premium Image and Video models on Fal AI</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="fal"
+                      title="⚡ FAL AI"
+                      description="Run premium Image and Video models on Fal AI"
+                      isSelected={isModuleSelected('fal')}
+                      onToggle={() => handleModuleToggle('fal')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="replicate"
-                          onChange={() => handleModuleToggle('replicate')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🔄 Replicate</h4>
-                        </div>
-                        <p>Access hundreds of AI models hosted on Replicate</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="replicate"
+                      title="🔄 Replicate"
+                      description="Access hundreds of AI models hosted on Replicate"
+                      isSelected={isModuleSelected('replicate')}
+                      onToggle={() => handleModuleToggle('replicate')}
+                    />
                   </div>
                 </div>
 
@@ -237,85 +196,45 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
                 <div className="package-group">
                   <h4>🛠️ Utilities</h4>
                   <div className="package-options">
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="file"
-                          onChange={() => handleModuleToggle('file')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>📄 Document Processing</h4>
-                        </div>
-                        <p>Convert, merge, and analyze PDFs, Excel, and more</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="file"
+                      title="📄 Document Processing"
+                      description="Convert, merge, and analyze PDFs, Excel, and more"
+                      isSelected={isModuleSelected('file')}
+                      onToggle={() => handleModuleToggle('file')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="data"
-                          onChange={() => handleModuleToggle('data')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>📈 Data Processing</h4>
-                        </div>
-                        <p>Clean, transform, and analyze data with Pandas and Numpy</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="data"
+                      title="📈 Data Processing"
+                      description="Clean, transform, and analyze data with Pandas and Numpy"
+                      isSelected={isModuleSelected('data')}
+                      onToggle={() => handleModuleToggle('data')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="audio"
-                          onChange={() => handleModuleToggle('audio')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🔊 Audio Processing</h4>
-                        </div>
-                        <p>Apply audio effects and analyze audio</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="audio"
+                      title="🔊 Audio Processing"
+                      description="Apply audio effects and analyze audio"
+                      isSelected={isModuleSelected('audio')}
+                      onToggle={() => handleModuleToggle('audio')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="image"
-                          onChange={() => handleModuleToggle('image')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🖼️ Image Processing</h4>
-                        </div>
-                        <p>Transform and draw images</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="image"
+                      title="🖼️ Image Processing"
+                      description="Transform and draw images"
+                      isSelected={isModuleSelected('image')}
+                      onToggle={() => handleModuleToggle('image')}
+                    />
 
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="network"
-                          onChange={() => handleModuleToggle('network')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🌐 Network</h4>
-                        </div>
-                        <p>HTTP, IMAP and BeautifulSoup</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="network"
+                      title="🌐 Network"
+                      description="HTTP, IMAP and BeautifulSoup"
+                      isSelected={isModuleSelected('network')}
+                      onToggle={() => handleModuleToggle('network')}
+                    />
                   </div>
                 </div>
 
@@ -323,21 +242,13 @@ const InstallLocationPrompt: React.FC<InstallLocationPromptProps> = ({ defaultPa
                 <div className="package-group">
                   <h4>🔌 Integrations</h4>
                   <div className="package-options">
-                    <label className="package-option">
-                      <div className="checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          name="apple"
-                          onChange={() => handleModuleToggle('apple')}
-                        />
-                      </div>
-                      <div className="package-content">
-                        <div className="package-header">
-                          <h4>🍎 Apple</h4>
-                        </div>
-                        <p>Automation for Apple Notes, Calendar, and more</p>
-                      </div>
-                    </label>
+                    <PackageOption
+                      name="apple"
+                      title="🍎 Apple"
+                      description="Automation for Apple Notes, Calendar, and more"
+                      isSelected={isModuleSelected('apple')}
+                      onToggle={() => handleModuleToggle('apple')}
+                    />
                   </div>
                 </div>
               </div>

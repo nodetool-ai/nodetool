@@ -3,7 +3,7 @@ import { getServerState, openLogFile, runApp, initializeBackendServer } from "./
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { IpcRequest } from "./types.d";
-import { registerWorkflowShortcut } from "./shortcuts";
+import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { updateTrayMenu } from "./tray";
 import { 
   fetchAvailablePackages, 
@@ -93,6 +93,8 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.START_SERVER, async () => {
     logMessage("User continued to app from package manager");
     await initializeBackendServer();
+    logMessage("Setting up workflow shortcuts after server start...");
+    await setupWorkflowShortcuts();
   });
 
   // App control handlers

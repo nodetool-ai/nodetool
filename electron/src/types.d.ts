@@ -37,6 +37,7 @@ declare global {
         minimize: () => void;
         maximize: () => void;
       };
+      removeListener: (event: string) => void;
     };
     electronAPI: {
       packages: {

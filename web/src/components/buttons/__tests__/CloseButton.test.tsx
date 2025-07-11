@@ -7,7 +7,9 @@ import CloseButton from '../CloseButton';
 const theme = createTheme({
   palette: {
     c_gray5: '#888888',
-    grey[0]: '#ffffff',
+    grey: {
+      0: '#ffffff',
+    },
   } as any,
 });
 
