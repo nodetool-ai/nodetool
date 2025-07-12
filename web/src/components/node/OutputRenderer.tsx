@@ -19,7 +19,8 @@ import {
   NPArray,
   TaskPlan,
   PlotlyConfig,
-  AssetRef
+  AssetRef,
+  Task
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -40,6 +41,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
+import TaskView from "./TaskView";
 export type OutputRendererProps = {
   value: any;
 };
@@ -372,6 +374,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           }
         }
         return <DictTable data={value} editable={false} data_type="string" />;
+      case "task":
+        return <TaskView task={value as Task} />;
       case "task_plan":
         return <TaskPlanView data={value as TaskPlan} />;
       case "array":
