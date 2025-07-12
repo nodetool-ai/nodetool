@@ -69,7 +69,6 @@ type ChatViewProps = {
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
-  onHelpModeToggle?: (enabled: boolean) => void;
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
@@ -97,7 +96,6 @@ const ChatView = ({
   workflowAssistant = false,
   onAgentModeToggle,
   helpMode = false,
-  onHelpModeToggle,
   currentPlanningUpdate,
   currentTaskUpdate,
   noMessagesPlaceholder,
@@ -168,8 +166,6 @@ const ChatView = ({
         onModelChange={onModelChange}
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
-        helpMode={helpMode}
-        onHelpModeToggle={onHelpModeToggle}
       />
     </div>
   );

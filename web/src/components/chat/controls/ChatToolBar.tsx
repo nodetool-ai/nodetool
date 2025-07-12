@@ -34,8 +34,6 @@ interface ChatToolBarProps {
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
-  helpMode?: boolean;
-  onHelpModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
 }
@@ -47,8 +45,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onModelChange,
   agentMode,
   onAgentModeToggle,
-  helpMode,
-  onHelpModeToggle,
   selectedCollections,
   onCollectionsChange
 }) => {
@@ -81,12 +77,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         <AgentModeToggle
           agentMode={agentMode || false}
           onToggle={onAgentModeToggle}
-        />
-      )}
-      {onHelpModeToggle && (
-        <HelpModeToggle
-          helpMode={helpMode || false}
-          onToggle={onHelpModeToggle}
         />
       )}
     </div>

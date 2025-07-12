@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Box, Alert, IconButton, Typography } from "@mui/material";
-import Drawer from "@mui/material/Drawer";
-import MenuIcon from "@mui/icons-material/Menu";
+import React, { useEffect, useState } from "react";
+import { Box, Alert, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -12,7 +10,7 @@ import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { LanguageModel, Message } from "../../../stores/ApiTypes";
+import { LanguageModel } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 
 const GlobalChat: React.FC = () => {
@@ -53,7 +51,6 @@ const GlobalChat: React.FC = () => {
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
-  const [helpMode, setHelpMode] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -235,8 +232,6 @@ const GlobalChat: React.FC = () => {
             onStop={stopGeneration}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
-            helpMode={helpMode}
-            onHelpModeToggle={setHelpMode}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
           />

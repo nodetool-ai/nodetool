@@ -21,7 +21,7 @@ import { uuidv4 } from "./uuidv4";
 import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
 
 // Include additional runtime statuses used during message streaming
-type ChatStatus = ConnectionState | "loading" | "streaming" | "error";
+type ChatStatus = ConnectionState | "loading" | "streaming" | "error" | "stopping";
 
 interface Thread {
   id: string;
@@ -514,20 +514,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
           
           // Immediately update UI to show stopping state
           set({
-            status: "connected",
+            status: "stopping",
             progress: { current: 0, total: 0 },
             statusMessage: "Stopping generation...",
             currentPlanningUpdate: null,
             currentTaskUpdate: null
           });
-          
-          // Clear the "stopping" message after a short delay
-          setTimeout(() => {
-            const currentState = get();
-            if (currentState.statusMessage === "Stopping generation...") {
-              set({ statusMessage: null });
-            }
-          }, 2000);
           
         } catch (error) {
           log.error("Failed to send stop signal:", error);
@@ -567,6 +559,16 @@ function handleWebSocketMessage(
   get: () => GlobalChatState
 ) {
   console.log(data);
+
+  const currentState = get();
+  
+  // When in stopping state, ignore most message types until we get stop confirmation
+  if (currentState.status === "stopping") {
+    // Only process generation_stopped, error, and job_update messages when stopping
+    if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
+      return;
+    }
+  }
 
   if (data.type === "message") {
     const message = data as Message;
