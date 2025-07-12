@@ -42,6 +42,15 @@ jest.mock("../../../hooks/assets/useAssetSelection", () => ({
   })
 }));
 
+jest.mock("../../../config/data_types", () => ({
+  IconForType: () => <div>Icon</div>
+}));
+
+jest.mock("@mui/material/styles", () => ({
+  ...jest.requireActual("@mui/material/styles"),
+  useTheme: () => mockTheme
+}));
+
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
   default: (selector: any) => {
