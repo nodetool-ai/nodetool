@@ -17,7 +17,7 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
-
+import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CircularProgress, CssBaseline } from "@mui/material";
 import {
   useTheme,
@@ -216,7 +216,7 @@ const AppWrapper = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <CssVarsProvider
-          theme={theme}
+          theme={ThemeNodetool}
           defaultMode="dark"
           modeStorageKey="mui-mode"
         >
