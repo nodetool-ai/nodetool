@@ -17,7 +17,6 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
-import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CircularProgress, CssBaseline } from "@mui/material";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import {

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme, type Theme } from "@mui/material/styles";
+
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import NorthIcon from "@mui/icons-material/North";

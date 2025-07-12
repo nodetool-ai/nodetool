@@ -53,7 +53,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <div className="chat-tool-bar" css={styles(theme)}>
+    <div className="chat-tool-bar" css={styles}>
       {onModelChange && (
         <ModelMenu
           selectedModel={selectedModel}
