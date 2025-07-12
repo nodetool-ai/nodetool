@@ -3,7 +3,6 @@ import { FC, useCallback, useMemo } from "react";
 import { Button, Typography, Tooltip, Select, MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchInput from "../search/SearchInput";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,6 +11,8 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface WorkflowToolbarProps {
   workflows: Workflow[];
@@ -78,6 +79,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   selectedWorkflowsCount,
   onBulkDelete
 }) => {
+  const theme = useTheme();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,7 +105,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   );
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <div className="tools">
         <Tooltip
           title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}

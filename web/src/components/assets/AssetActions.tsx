@@ -436,7 +436,7 @@ const AssetActions = ({
         </div>
       )}
       <Popover
-        css={dialogStyles}
+        css={dialogStyles(theme)}
         style={{ minWidth: "100%", minHeight: "100%" }}
         className="dialog"
         open={Boolean(createFolderAnchor)}

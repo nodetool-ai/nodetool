@@ -235,7 +235,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }
 
   return assetTree.length > 0 ? (
-    <div className="asset-tree" css={styles}>
+    <div className="asset-tree" css={styles(theme)}>
       {renderAssetTree(assetTree)}
     </div>
   ) : (

@@ -8,6 +8,9 @@ import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -65,9 +68,10 @@ const styles = (theme: Theme) =>
   });
 
 const AssetExplorer: React.FC = () => {
+  const theme = useTheme();
   const { folderFiles } = useAssets();
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <Box className="asset-explorer">
         <ContextMenuProvider>
           <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
