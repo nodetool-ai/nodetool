@@ -123,6 +123,8 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     status === "disconnected" ||
     status === "connecting";
 
+  console.log("ChatComposer status:", status);
+
   return (
     <div css={createStyles}>
       <div
