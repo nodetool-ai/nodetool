@@ -89,7 +89,8 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | SubTaskResult
-  | WorkflowCreatedUpdate;
+  | WorkflowCreatedUpdate
+  | GenerationStoppedUpdate;
 
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
@@ -102,6 +103,11 @@ interface WorkflowUpdatedUpdate {
   type: "workflow_updated";
   workflow_id: string;
   graph: any;
+}
+
+interface GenerationStoppedUpdate {
+  type: "generation_stopped";
+  message: string;
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
@@ -351,6 +357,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         try {
           wsManager.send(messageToSend);
+          
+          // Safety timeout - reset status if no response after 60 seconds
+          setTimeout(() => {
+            const currentState = get();
+            if (currentState.status === "loading" || currentState.status === "streaming") {
+              log.warn("Generation timeout - resetting status to connected");
+              set({
+                status: "connected",
+                progress: { current: 0, total: 0 },
+                statusMessage: null,
+                currentPlanningUpdate: null,
+                currentTaskUpdate: null
+              });
+            }
+          }, 60000);
+          
         } catch (error) {
           log.error("Failed to send message:", error);
           set({ error: error instanceof Error ? error.message : "Failed to send message" });
@@ -459,19 +481,62 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       stopGeneration: () => {
-        const { wsManager, currentThreadId } = get();
-        if (wsManager && wsManager.isConnected() && currentThreadId) {
-          log.info("Sending stop signal to workflow");
-          try {
-            wsManager.send({ type: "stop", thread_id: currentThreadId });
-            set({
-              status: "connected",
-              progress: { current: 0, total: 0 },
-              statusMessage: null
-            });
-          } catch (error) {
-            log.error("Failed to send stop signal:", error);
-          }
+        const { wsManager, currentThreadId, status } = get();
+        
+        // Debug logging
+        console.log("stopGeneration called:", { 
+          hasWsManager: !!wsManager, 
+          isConnected: wsManager?.isConnected(), 
+          currentThreadId, 
+          status 
+        });
+        
+        if (!wsManager) {
+          console.log("No WebSocket manager available");
+          return;
+        }
+        
+        if (!wsManager.isConnected()) {
+          console.log("WebSocket is not connected");
+          return;
+        }
+        
+        if (!currentThreadId) {
+          console.log("No current thread ID");
+          return;
+        }
+        
+        log.info("Sending stop signal to workflow");
+        console.log("Sending stop signal with thread_id:", currentThreadId);
+        
+        try {
+          wsManager.send({ type: "stop", thread_id: currentThreadId });
+          
+          // Immediately update UI to show stopping state
+          set({
+            status: "connected",
+            progress: { current: 0, total: 0 },
+            statusMessage: "Stopping generation...",
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null
+          });
+          
+          // Clear the "stopping" message after a short delay
+          setTimeout(() => {
+            const currentState = get();
+            if (currentState.statusMessage === "Stopping generation...") {
+              set({ statusMessage: null });
+            }
+          }, 2000);
+          
+        } catch (error) {
+          log.error("Failed to send stop signal:", error);
+          console.error("Failed to send stop signal:", error);
+          set({
+            error: "Failed to stop generation",
+            status: "error",
+            statusMessage: null
+          });
         }
       }
     }),
@@ -772,6 +837,17 @@ function handleWebSocketMessage(
         return state;
       });
     }
+  } else if (data.type === "generation_stopped") {
+    // Handle generation stopped response
+    const stoppedData = data as GenerationStoppedUpdate;
+    set({
+      status: "connected",
+      progress: { current: 0, total: 0 },
+      statusMessage: null,
+      currentPlanningUpdate: null,
+      currentTaskUpdate: null
+    });
+    log.info("Generation stopped:", stoppedData.message);
   } else if (data.type === "error") {
     // Handle error messages
     const errorData = data as any;
