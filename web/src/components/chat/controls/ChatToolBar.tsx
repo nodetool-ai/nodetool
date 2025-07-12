@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
@@ -49,8 +51,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   selectedCollections,
   onCollectionsChange
 }) => {
+  const theme = useTheme();
   return (
-    <div className="chat-tool-bar" css={styles}>
+    <div className="chat-tool-bar" css={styles(theme)}>
       {onModelChange && (
         <ModelMenu
           selectedModel={selectedModel}
