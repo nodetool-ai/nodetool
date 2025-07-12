@@ -17,7 +17,6 @@ const styles = (theme: Theme) =>
     ".subtask-item": {
       padding: "0.5rem",
       marginBottom: "0.5rem",
-      borderLeft: `2px solid ${theme.palette.divider}`,
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: theme.palette.grey[600]
