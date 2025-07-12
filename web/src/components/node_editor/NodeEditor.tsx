@@ -68,7 +68,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     setPackageNameInput,
     handleSaveExampleConfirm,
     handleSaveExampleCancel
-  } = useNodeEditorShortcuts(active);
+  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   // WorkflowRunner connection management
   const { connect, disconnect, state, current_url } = useWorkflowRunner(
@@ -135,8 +135,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     showDocumentation: state.showDocumentation,
     closeDocumentation: state.closeDocumentation
   }));
-
-  useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   return (
     <>

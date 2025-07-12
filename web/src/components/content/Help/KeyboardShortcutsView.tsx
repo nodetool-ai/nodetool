@@ -18,6 +18,7 @@ import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
 import { useTheme } from "@mui/material/styles";
 import { keyboardLayouts } from "./keyboard_layouts";
+import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
 
 interface KeyboardShortcutsViewProps {
   shortcuts?: Shortcut[];
@@ -234,6 +235,14 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     escape: "ESC"
   } as Record<string, string>;
 
+  const setPaused = useKeyPressedStore((state) => state.setPaused);
+  useEffect(() => {
+    setPaused(true);
+    return () => {
+      setPaused(false);
+    };
+  }, [setPaused]);
+
   const onKeyPress = useCallback(
     (button: string) => {
       isKeyPressedRef.current = true;
@@ -266,14 +275,12 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       event.preventDefault();
-      event.stopPropagation();
       const button = event.key === " " ? "space" : event.key;
       onKeyPress(button);
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       event.preventDefault();
-      event.stopPropagation();
       const button = event.key === " " ? "space" : event.key;
       onKeyReleased(button);
     };
