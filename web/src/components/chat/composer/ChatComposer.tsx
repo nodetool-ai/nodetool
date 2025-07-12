@@ -122,7 +122,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     status === "connecting";
 
   return (
-    <div css={createStyles(theme)}>
+    <div css={createStyles}>
       <div
         className={`compose-message ${isDragging ? "dragging" : ""}`}
         onDragOver={handleDragOver}

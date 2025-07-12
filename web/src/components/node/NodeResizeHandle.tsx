@@ -55,7 +55,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <div className="node-resize-handle" css={styles(theme)}>
+    <div className="node-resize-handle" css={styles}>
       <NodeResizeControl
         minWidth={minWidth}
         minHeight={minHeight}

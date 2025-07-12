@@ -8,7 +8,7 @@ import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import { isEqual } from "lodash";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     "& .property-label": {
       marginBottom: "5px"

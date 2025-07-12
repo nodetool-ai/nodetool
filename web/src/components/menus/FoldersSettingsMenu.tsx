@@ -149,10 +149,7 @@ const FoldersSettings = () => {
         </Typography>
       )}
       {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
-        <div
-          className="remote-settings-content"
-          css={getSharedSettingsStyles(theme)}
-        >
+        <div className="remote-settings-content" css={getSharedSettingsStyles}>
           <div className="settings-main-content">
             <Typography variant="h1">Folder Settings</Typography>
 

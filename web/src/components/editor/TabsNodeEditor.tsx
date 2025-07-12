@@ -365,7 +365,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles(theme)}>
+      <div css={styles}>
         <div className="tabs-container">
           <TabsBar workflows={tabsToRender} />
           {!isMac && isElectron && <WindowControls />}

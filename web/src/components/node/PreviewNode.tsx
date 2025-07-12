@@ -297,7 +297,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   return (
     <Container
-      css={styles}
+      css={styles(theme)}
       style={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",

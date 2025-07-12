@@ -153,7 +153,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
 
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={() => setDialogOpen(false)}

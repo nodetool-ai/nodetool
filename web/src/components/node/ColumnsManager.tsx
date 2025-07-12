@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo } from "react";
 import { Grid, InputLabel } from "@mui/material";
 import log from "loglevel";
@@ -14,8 +15,7 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       gap: ".25em",
       padding: "0",
-      backgroundColor: "transparent",
-      fontFamily: theme.fontFamily
+      backgroundColor: "transparent"
     },
     ".labels": {
       display: "flex",

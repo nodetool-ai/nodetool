@@ -7,6 +7,8 @@ import DraggableNodeDocumentation from "../components/content/Help/DraggableNode
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { usePanelStore } from "../stores/PanelStore";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface MarkdownRendererProps {
   content: string;
@@ -62,6 +64,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   isReadme
 }) => {
+  const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
   const { panel } = usePanelStore();
@@ -109,7 +112,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     <>
       <div
         className="output markdown nodrag noscroll"
-        css={styles}
+        css={styles(theme)}
         ref={containerRef}
         tabIndex={0}
       >

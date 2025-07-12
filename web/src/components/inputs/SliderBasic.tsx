@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Slider, SliderProps, Tooltip } from "@mui/material";
 
 const sliderBasicStyles = (theme: Theme) =>

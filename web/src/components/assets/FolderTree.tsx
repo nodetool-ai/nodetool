@@ -7,6 +7,8 @@ import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { useAssetStore } from "../../stores/AssetStore";
 import log from "loglevel";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface FolderNode {
   id: string;
@@ -67,6 +69,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   onSelect,
   sortBy = "name"
 }) => {
+  const theme = useTheme();
   const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
   const [folderTree, setFolderTree] = useState<Record<string, FolderNode>>({});
   const [expandedItems, setExpandedItems] = useState<string[]>([]);

@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Dialog, DialogContent } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import DownloadManagerDialog from "./DownloadManagerDialog";
-import { Box } from "@mui/material";
 
 const styles = (theme: Theme) =>
   css({

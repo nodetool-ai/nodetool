@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";

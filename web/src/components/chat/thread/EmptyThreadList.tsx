@@ -7,7 +7,7 @@ import { createStyles } from "./EmptyThreadList.styles";
 export const EmptyThreadList: React.FC = () => {
   const theme = useTheme();
   return (
-    <li css={createStyles(theme)}>
+    <li css={createStyles}>
       No conversations yet. Click &ldquo;New Chat&rdquo; to start.
     </li>
   );

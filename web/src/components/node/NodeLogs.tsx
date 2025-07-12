@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect } from "react";
 import {
   Accordion,

@@ -7,7 +7,7 @@ import {
   Formatter,
   ColumnDefinitionAlign,
   StandardValidatorType,
-  RowComponent,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -27,7 +27,7 @@ const DictTable: React.FC<DictTableProps> = ({
   data,
   data_type,
   editable,
-  onDataChange,
+  onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -53,8 +53,8 @@ const DictTable: React.FC<DictTableProps> = ({
                 cell.getRow().toggleSelect();
               },
               editable: false,
-              cssClass: "row-select",
-            },
+              cssClass: "row-select"
+            }
           ]
         : []),
       {
@@ -62,7 +62,7 @@ const DictTable: React.FC<DictTableProps> = ({
         field: "key",
         editable: true,
         headerHozAlign: "left" as ColumnDefinitionAlign,
-        cssClass: "key",
+        cssClass: "key"
       },
       {
         title: "Value",
@@ -86,8 +86,8 @@ const DictTable: React.FC<DictTableProps> = ({
             ? (["required", "numeric"] as StandardValidatorType[])
             : data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
-            : undefined,
-      },
+            : undefined
+      }
     ],
     [data_type, editable, showSelect]
   );
@@ -134,7 +134,7 @@ const DictTable: React.FC<DictTableProps> = ({
       height: "300px",
       data: Object.keys(data).map((key) => ({
         key,
-        value: data[key],
+        value: data[key]
       })),
       columns: columns,
       columnDefaults: {
@@ -144,11 +144,10 @@ const DictTable: React.FC<DictTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" },
-        },
+          elementAttributes: { spellcheck: "false" }
+        }
       },
-      movableRows: true,
-      selectable: true,
+      movableRows: true
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
