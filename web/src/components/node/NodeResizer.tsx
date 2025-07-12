@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
 const NodeResizer: React.FC<NodeResizerProps> = ({ minWidth, minHeight }) => {
   const theme = useTheme();
   return (
-    <div className="node-resizer" css={styles(theme)}>
+    <div className="node-resizer" css={styles}>
       <ReactFlowNodeResizer minWidth={minWidth} minHeight={minHeight} />
     </div>
   );

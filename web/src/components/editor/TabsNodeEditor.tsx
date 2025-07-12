@@ -365,7 +365,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles(theme)}>
+      <div css={styles}>
         <div className="tabs-container">
           <TabsBar workflows={tabsToRender} />
           {!isMac && isElectron && <WindowControls />}
@@ -375,20 +375,20 @@ const TabsNodeEditor = () => {
           css={generateCSS}
           style={{ flex: 1, minHeight: 0, minWidth: 0 }}
         >
-          {activeNodeStore ? (
-            <Box
-              key={currentWorkflowId}
-              sx={{
-                overflow: "hidden",
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                minHeight: 0,
-                minWidth: 0,
-                display: "flex",
-                flexDirection: "column"
-              }}
-            >
+          <Box
+            key={currentWorkflowId}
+            sx={{
+              overflow: "hidden",
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            {activeNodeStore ? (
               <NodeContext.Provider value={activeNodeStore}>
                 <ReactFlowProvider>
                   <ContextMenuProvider>
@@ -428,10 +428,10 @@ const TabsNodeEditor = () => {
                   </ContextMenuProvider>
                 </ReactFlowProvider>
               </NodeContext.Provider>
-            </Box>
-          ) : (
-            <StatusMessage />
-          )}
+            ) : (
+              <StatusMessage />
+            )}
+          </Box>
         </div>
       </div>
     </>

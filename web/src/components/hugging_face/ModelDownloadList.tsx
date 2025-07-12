@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Grid, Box } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";

@@ -18,6 +18,8 @@ import {
   Typography
 } from "@mui/material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 // Types
 export interface TreeViewItem {
@@ -165,17 +167,15 @@ const treeViewStyles = (theme: Theme) => ({
     userSelect: "none"
   },
   ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: (theme: Theme) =>
-      `${"var(--palette-primary-main)"} !important`,
-    color: (theme: Theme) => theme.palette.grey[1000]
+    backgroundColor: `${"var(--palette-primary-main)"} !important`,
+    color: theme.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: (theme: Theme) => `${theme.palette.grey[500]} !important`
+    backgroundColor: `${theme.palette.grey[500]} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
-    backgroundColor: (theme: Theme) =>
-      `${"var(--palette-primary-main)"} !important`
+    backgroundColor: `${"var(--palette-primary-main)"} !important`
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",
@@ -186,10 +186,10 @@ const treeViewStyles = (theme: Theme) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: (theme: Theme) => theme.palette.warning.main
+    color: theme.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
-    color: (theme: Theme) => theme.palette.grey[500]
+    color: theme.palette.grey[500]
   }
 });
 
@@ -379,6 +379,7 @@ const PathDialog = ({
 };
 
 const BasePathProperty = (props: BasePathPropertyProps) => {
+  const theme = useTheme();
   const id = `${props.pathType}-${props.property.name}-${props.propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
   const { data: initialFiles, isLoading: isInitialLoading } = useQuery({
@@ -440,7 +441,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   }, [props.value?.path]);
 
   return (
-    <div css={createPathPropertyStyles} className="path-picker">
+    <div css={createPathPropertyStyles(theme)} className="path-picker">
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

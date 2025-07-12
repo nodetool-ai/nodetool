@@ -3,7 +3,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
-import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
+import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
 import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
@@ -43,11 +43,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
-  const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressedStore(
+  const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressed(
     (state) => ({
-      metaKeyPressed: state.isKeyPressed("Meta"),
-      altKeyPressed: state.isKeyPressed("Alt"),
-      shiftKeyPressed: state.isKeyPressed("Shift")
+      metaKeyPressed: state.isKeyPressed("meta"),
+      altKeyPressed: state.isKeyPressed("alt"),
+      shiftKeyPressed: state.isKeyPressed("shift")
     })
   );
 
@@ -122,7 +122,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     status === "connecting";
 
   return (
-    <div css={createStyles(theme)}>
+    <div css={createStyles}>
       <div
         className={`compose-message ${isDragging ? "dragging" : ""}`}
         onDragOver={handleDragOver}

@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -8,7 +7,7 @@ import PropertyDropzone from "./PropertyDropzone";
 import { isEqual } from "lodash";
 import { memo } from "react";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     "& .property-label": {
       marginBottom: "5px"

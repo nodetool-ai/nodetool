@@ -81,7 +81,7 @@ function Login() {
   };
 
   return (
-    <div css={styles(theme)}>
+    <div css={styles}>
       <div className="flex">
         <Logo
           width="250px"

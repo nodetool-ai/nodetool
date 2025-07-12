@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
-import { TaskPlan, Task, SubTask } from "../../stores/ApiTypes";
+import { Task } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 
 interface TaskPlanViewProps {

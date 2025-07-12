@@ -8,12 +8,12 @@ import {
   Select,
   FormControl
 } from "@mui/material";
-
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import type { Theme } from "@mui/material/styles";
+import { useLocation } from "react-router-dom";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
@@ -23,6 +23,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
+import { getShortcutTooltip } from "../../config/shortcuts";
+import { isMac } from "../../utils/platform";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -307,7 +309,10 @@ const NodeMenuButton = memo(function NodeMenuButton() {
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
   return (
-    <Tooltip title="Toggle Node Menu" enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip
+      title={getShortcutTooltip("open NodeMenu")}
+      enterDelay={TOOLTIP_ENTER_DELAY}
+    >
       <Button
         className={`action-button node-menu-button ${
           isMenuOpen ? "active" : ""
@@ -344,14 +349,7 @@ const SaveWorkflowButton = memo(function SaveWorkflowButton() {
 
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Save workflow</div>
-          <div className="tooltip-key">
-            <kbd>CTRL</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("saveWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button className="action-button" onClick={handleSave} tabIndex={-1}>
@@ -485,14 +483,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Run Workflow</div>
-          <div className="tooltip-key">
-            <kbd>CTRL</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("runWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>
@@ -533,14 +524,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
   }));
   return (
     <Tooltip
-      title={
-        <div className="tooltip-span">
-          <div className="tooltip-title">Stop Workflow</div>
-          <div className="tooltip-key">
-            <kbd>ESC</kbd>
-          </div>
-        </div>
-      }
+      title={getShortcutTooltip("stopWorkflow")}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <Button

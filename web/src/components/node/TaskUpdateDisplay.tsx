@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Typography, Box } from "@mui/material";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import SubTaskView from "./SubTaskView";

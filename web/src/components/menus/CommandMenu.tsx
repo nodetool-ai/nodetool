@@ -1,8 +1,10 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
-import { css, Dialog, Tooltip } from "@mui/material";
+import { Dialog, Tooltip } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
@@ -104,7 +106,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         Auto Layout
       </Command.Item>
       {isDevelopment && (
-        <Command.Item onSelect={() => executeAndClose(() => saveExample())}>
+        <Command.Item onSelect={() => executeAndClose(() => saveExample(""))}>
           Save as Example
         </Command.Item>
       )}

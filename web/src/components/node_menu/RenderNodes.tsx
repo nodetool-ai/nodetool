@@ -228,7 +228,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     renderGroup,
     selectedPath,
     handleDragStart,
-    handleCreateNode
+    handleCreateNode,
+    // added to fix linting error:
+    showCheckboxes,
+    onToggleSelection,
+    selectedNodeTypes
   ]);
 
   return (

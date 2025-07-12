@@ -10,6 +10,7 @@ import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Property } from "../../stores/ApiTypes";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 const PropertyContextMenu: React.FC = () => {
   const theme = useTheme();
@@ -145,7 +146,7 @@ const PropertyContextMenu: React.FC = () => {
         label="Reset To Default Value"
         addButtonClassName="reset"
         IconComponent={<SettingsBackupRestoreIcon />}
-        tooltip="Control + Right Click"
+        tooltip={getShortcutTooltip("reset-default")}
       />
 
       {isDynamicProperty && (

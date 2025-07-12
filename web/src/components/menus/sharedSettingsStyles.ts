@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, SerializedStyles } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
 export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
   return css`

@@ -240,7 +240,7 @@ const Welcome = () => {
   };
 
   return (
-    <div css={welcomeStyles(theme)}>
+    <div css={welcomeStyles}>
       <div className="header">
         <Typography className="panel-title" variant="h2">
           NODETOOL

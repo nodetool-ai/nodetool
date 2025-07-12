@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { IconButton } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -49,11 +51,11 @@ export const errorStyles = (theme: Theme) =>
       color: theme.palette.grey[1000]
     }
   });
-
 export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   id,
   workflow_id
 }) => {
+  const theme = useTheme();
   const error = useErrorStore((state) =>
     workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
   );
@@ -62,8 +64,9 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   if (!error) {
     return null;
   }
+
   return (
-    <div css={errorStyles} className="node-error nodrag nowheel">
+    <div css={errorStyles(theme)} className="node-error nodrag nowheel">
       <IconButton
         className="copy-button"
         size="small"

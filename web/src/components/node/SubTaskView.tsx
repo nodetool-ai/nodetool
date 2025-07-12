@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import {
   Paper,
   Typography,
-  List,
-  ListItem,
   ListItemText,
   Checkbox,
   Box,

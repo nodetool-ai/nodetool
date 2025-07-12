@@ -85,14 +85,66 @@ span.tooltip-small {
 }
 
 .tooltip-title {
-  font-size: 1.2em;
-  color: var(--palette-grey-100);
+  font-size: var(--fontSizeNormal);
+  font-weight: 400 !important;
+  text-transform: uppercase;
+  color: var(--palette-grey-50);
   margin:0;
+  padding:.2em .5em;
 }
-
 .tooltip-key {
-  font-size: 0.8em;
   background-color: transparent;
+  color: var(--palette-grey-50);
+  word-spacing: 1em;
+  font-size: var(--fontSizeBig);
+  font-family: var(--fontFamily2);
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+.tooltip-description {
+  max-width: 13em;
+  font-size: var(--fontSizeSmall);
+  line-height: 1.2em;
+  text-align: center;
   color: var(--palette-grey-200);
   margin:0;
+  padding:.5em;
 }
+
+/* keyboard keys */
+kbd {
+  color: var(--palette-grey-100);
+  background-color: var(--palette-grey-800);
+  padding: 0.2em 0.4em;
+  border: 1px solid var(--palette-grey-500);
+  border-radius: 4px;
+  display: inline-block;
+  font-size: var(--fontSizeNormal);
+  font-family: var(--fontFamily2);
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+}
+/* .tooltip-span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--palette-text-primary);
+}
+.tooltip-title {
+  font-weight: 600;
+}
+.tooltip-key {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.tooltip-key kbd {
+  background: var(--palette-grey-800);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: inherit;
+  color: var(--palette-text-primary);
+} */

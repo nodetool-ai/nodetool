@@ -4,7 +4,8 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { Typography } from "@mui/material";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
@@ -32,6 +33,7 @@ const styles = (theme: Theme) =>
   });
 
 const VideoViewer: React.FC<VideoViewerProps> = ({ asset, url }) => {
+  const theme = useTheme();
   return (
     <div className="video-viewer" css={styles}>
       <video controls={true} src={asset?.get_url || ""}>

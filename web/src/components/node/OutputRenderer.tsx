@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import type { Theme } from "@mui/material/styles";
 import React, {
   useMemo,
   useCallback,
@@ -16,7 +17,6 @@ import {
   DataframeRef,
   Message,
   NPArray,
-  Task,
   TaskPlan,
   PlotlyConfig,
   AssetRef

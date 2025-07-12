@@ -2,6 +2,8 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import FileUploadButton from "../buttons/FileUploadButton";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const styles = (theme: Theme) =>
   css({
@@ -44,6 +46,7 @@ export interface DropzoneProps {
 }
 
 const Dropzone: React.FC<DropzoneProps> = (props) => {
+  const theme = useTheme();
   const [isExternalDrag, setIsExternalDrag] = useState(false);
   const leaveTimeoutId = useRef<NodeJS.Timeout | null>(null);
   const clearLeaveTimeout = () => {
@@ -97,7 +100,7 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
 
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       className={`dropzone${isExternalDrag ? " is-dragging" : ""}`}
       onDragEnter={handleDragOver}
       onDragOver={handleDragOver}

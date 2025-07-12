@@ -294,7 +294,7 @@ const OpenOrCreateDialog = () => {
   );
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       open={true}
       components={{
         Backdrop: () => null

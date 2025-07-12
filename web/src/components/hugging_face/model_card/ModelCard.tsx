@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
 import { ModelComponentProps } from "../ModelUtils";

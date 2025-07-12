@@ -50,6 +50,9 @@ const executeComboCallbacks = (
   pressedKeys: Set<string>,
   event: KeyboardEvent | undefined
 ) => {
+  if (useKeyPressedStore.getState().isPaused) {
+    return;
+  }
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
 
@@ -122,6 +125,8 @@ type KeyPressedState = {
   pressedKeys: Set<string>;
   lastPressedKey: string | null;
   keyPressCount: Record<string, number>;
+  isPaused: boolean;
+  setPaused: (paused: boolean) => void;
   setKeysPressed: (
     keys: { [key: string]: boolean },
     event?: KeyboardEvent
@@ -138,6 +143,8 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
   pressedKeys: new Set(),
   lastPressedKey: null,
   keyPressCount: {},
+  isPaused: false,
+  setPaused: (paused: boolean) => set({ isPaused: paused }),
   setKeysPressed: (keys: { [key: string]: boolean }, event?: KeyboardEvent) =>
     set((state) => {
       const newPressedKeys = new Set(state.pressedKeys);
@@ -349,4 +356,10 @@ registerComboCallback("o", {
   callback: assistantCallback
 });
 
-export { useKeyPressedStore, initKeyListeners, useCombo };
+export {
+  useKeyPressedStore,
+  initKeyListeners,
+  useCombo,
+  registerComboCallback,
+  unregisterComboCallback
+};

@@ -82,7 +82,7 @@ const EditorToolbar = ({
   const theme = useTheme();
 
   return (
-    <div className="editor-toolbar" css={styles(theme)}>
+    <div className="editor-toolbar" css={styles}>
       {!readOnly && (
         <div className="toolbar-group">
           <Tooltip title="Undo" enterDelay={TOOLTIP_ENTER_DELAY}>

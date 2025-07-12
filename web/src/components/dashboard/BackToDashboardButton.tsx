@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, forwardRef } from "react";
-import { Button, css } from "@mui/material";
+import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+import { Button } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useNavigate } from "react-router-dom";
 

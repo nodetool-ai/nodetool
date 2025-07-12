@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import {
   DialogContent,

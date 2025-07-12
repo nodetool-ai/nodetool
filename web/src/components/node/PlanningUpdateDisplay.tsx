@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useMemo, useCallback } from "react";
+import type { Theme } from "@mui/material/styles";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { PlanningUpdate } from "../../stores/ApiTypes";
 import { Button, css } from "@mui/material";

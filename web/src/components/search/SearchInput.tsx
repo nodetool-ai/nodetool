@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";

@@ -15,6 +15,9 @@ import { isEqual } from "lodash";
 import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
 import { useTheme } from "@mui/material/styles";
@@ -152,21 +155,18 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const selectedNodeTypes = useMemo(() => value || [], [value]);
   const theme = useTheme();
   // Use NodeMenuStore for search functionality
-  const {
-    searchTerm,
-    setSearchTerm,
-    searchResults,
-    performSearch,
-    isLoading,
-    selectedPath
-  } = useNodeMenuStore((state) => ({
-    searchTerm: state.searchTerm,
-    setSearchTerm: state.setSearchTerm,
-    searchResults: state.searchResults,
-    performSearch: state.performSearch,
-    isLoading: state.isLoading,
-    selectedPath: state.selectedPath
-  }));
+  const { searchTerm, setSearchTerm, searchResults, isLoading, selectedPath } =
+    useStoreWithEqualityFn(
+      useNodeMenuStore,
+      (state) => ({
+        searchTerm: state.searchTerm,
+        setSearchTerm: state.setSearchTerm,
+        searchResults: state.searchResults,
+        isLoading: state.isLoading,
+        selectedPath: state.selectedPath
+      }),
+      shallow
+    );
 
   const availableNodes = useMemo(() => {
     // Show nodes if either:
@@ -180,7 +180,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     }
 
     // Filter out nodes with default namespace and return sorted results
-    return searchResults.filter((node) => node.namespace !== "default");
+    return searchResults.filter(
+      (node: NodeMetadata) => node.namespace !== "default"
+    );
   }, [searchResults, searchTerm, selectedPath]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {

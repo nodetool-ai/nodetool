@@ -18,13 +18,20 @@ const mockTheme = createTheme({
     text: {
       primary: "#fff"
     },
-    // Add the custom palette properties
-    c_hl1: "#77b4e6",
-    c_white: "#FCFCFC",
-    c_gray1: "#242424",
-    c_gray2: "#444444",
-    c_gray3: "#6D6D6D"
-  } as any // Use 'as any' to bypass TypeScript checking for custom properties
+    grey: {
+      "0": "#ffffff",
+      "100": "#f5f5f5",
+      "200": "#eeeeee",
+      "400": "#bdbdbd",
+      "500": "#9e9e9e",
+      "600": "#757575",
+      "800": "#424242"
+    }
+  },
+  fontSizeNormal: "1rem",
+  fontSizeSmall: "0.875rem",
+  fontSizeSmaller: "0.75rem",
+  fontFamily2: "Roboto, sans-serif"
 });
 
 // Mock the stores and hooks
@@ -33,6 +40,15 @@ jest.mock("../../../hooks/assets/useAssetSelection", () => ({
     selectedAssetIds: [],
     handleSelectAsset: jest.fn()
   })
+}));
+
+jest.mock("../../../config/data_types", () => ({
+  IconForType: () => <div>Icon</div>
+}));
+
+jest.mock("@mui/material/styles", () => ({
+  ...jest.requireActual("@mui/material/styles"),
+  useTheme: () => mockTheme
 }));
 
 jest.mock("../../../stores/ContextMenuStore", () => ({

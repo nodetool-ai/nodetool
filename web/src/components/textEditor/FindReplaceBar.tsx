@@ -192,7 +192,7 @@ const FindReplaceBar = ({
   const isValidSearch = isValidInput(searchTerm);
 
   return (
-    <div className="find-replace-bar" css={styles(theme)}>
+    <div className="find-replace-bar" css={styles}>
       <div className="search-group">
         <TextField
           className="search-input"

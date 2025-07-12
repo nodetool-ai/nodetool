@@ -4,6 +4,7 @@ import React from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
+import type { Theme } from "@mui/material/styles";
 
 interface StorageAnalyticsProps {
   assets: Asset[];

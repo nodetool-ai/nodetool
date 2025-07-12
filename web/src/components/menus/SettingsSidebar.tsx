@@ -70,7 +70,7 @@ const SettingsSidebar = ({
   const theme = useTheme();
 
   return (
-    <div className="settings-sidebar" css={sidebarStyles(theme)}>
+    <div className="settings-sidebar" css={sidebarStyles}>
       {sections.map((section, index) => (
         <div key={`section-${index}`}>
           <div className="settings-sidebar-category">{section.category}</div>

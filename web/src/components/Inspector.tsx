@@ -196,7 +196,7 @@ const Inspector: React.FC = () => {
   return (
     <div className="inspector" css={inspectorStyles}>
       <div className="top">
-        <div className="top-content" css={allNodeStyles(theme)}>
+        <div className="top-content" css={allNodeStyles}>
           <div className="inspector-header">
             <div className="title">{metadata.title}</div>
           </div>

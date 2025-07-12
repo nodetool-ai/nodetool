@@ -10,6 +10,8 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { colorForType, IconForType } from "../../config/data_types";
 import FolderIcon from "@mui/icons-material/Folder";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -195,6 +197,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   containerWidth = 1200,
   isHorizontal = false
 }) => {
+  const theme = useTheme();
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -301,7 +304,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
 
   if (assets.length === 0) {
     return (
-      <Box css={styles} className="asset-list-view">
+      <Box css={styles(theme)} className="asset-list-view">
         <Typography
           variant="body2"
           style={{ textAlign: "center", padding: "2em", color: "#999" }}
@@ -313,7 +316,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   }
 
   return (
-    <Box css={styles} className="asset-list-view">
+    <Box css={styles(theme)} className="asset-list-view">
       <div className="asset-list-container">
         <div className="asset-list-header">
           <div className="asset-header-icon-space"></div>

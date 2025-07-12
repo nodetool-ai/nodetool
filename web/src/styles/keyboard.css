@@ -1,0 +1,88 @@
+.hg-theme-default {
+  background: var(--palette-grey-900);
+}
+
+.keyboard-view {
+  /* background-color: var(--palette-background-default); */
+  background-color: transparent;
+  padding: .5em;
+  border-radius: 0.5em;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+}
+.keyboard-view .hg-button {
+  min-width: 32px;
+  height: 42px;
+  font-size: 0.85rem;
+}
+
+.keyboard-view .hg-row {
+  justify-content: center;
+}
+
+/* BUTTONS */
+.hg-theme-default .hg-button {
+  background: var(--palette-grey-900);
+  color: transparent;
+  box-sizing: border-box;
+  opacity: 1;
+  color: transparent;
+  pointer-events: none;
+  border: 0;
+}
+.hg-theme-default .hg-button span {
+  font-size: var(--fontSizeBig);
+}
+.hg-theme-default .has-shortcut.hg-pressed {
+  color:white !important;
+}
+.hg-theme-default .hg-button.has-shortcut-inactive {
+  background: var(--palette-grey-700);
+  color: var(--palette-grey-500);
+  cursor: default;
+  opacity: .95;
+}
+
+.hg-theme-default .hg-button.has-shortcut {
+  background-color: var(--palette-primary-main);
+  color: var(--palette-grey-900);
+  pointer-events: all;
+  opacity: 1;
+  box-shadow: 1px 1px 2px var(--palette-grey-900);
+}
+.hg-theme-default .hg-button.hg-activeButton {
+  background: var(--palette-grey-600);
+}
+.hg-theme-default .hg-button.hg-activeButton.has-shortcut {
+  color: var(--palette-grey-1000);
+  background: var(--palette-primary-main);
+  /* color: var(--palette-text-primary); */
+  border: 2px solid var(--palette-primary-main);
+  box-shadow: 0 0 3px var(--palette-grey-900);
+}
+.hg-theme-default .hg-button.has-shortcut:hover {
+  color: var(--palette-grey-1000);
+  background-color: var(--palette-primary-light);
+}
+
+/* NEVER SHORTCUT */
+.hg-theme-default .hg-button.never-shortcut {
+  color: var(--palette-grey-600);
+  background: var(--palette-grey-900);
+  pointer-events: none;
+}
+.hg-theme-default .hg-button.never-shortcut.hg-pressed {
+  color: var(--palette-grey-900) !important;  
+}
+/* Modifier key widths */
+.keyboard-view .hg-button[data-skbtn="control"],
+.keyboard-view .hg-button[data-skbtn="alt"],
+.keyboard-view .hg-button[data-skbtn="meta"] {
+  flex: 0 0 96px;
+  max-width: 96px;
+}
+/* Spacebar wider */
+.keyboard-view .hg-button[data-skbtn="space"] {
+  flex: 1 0 320px;
+  max-width: none;
+}
+
