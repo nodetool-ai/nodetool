@@ -18,6 +18,8 @@ import {
   Typography
 } from "@mui/material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 // Types
 export interface TreeViewItem {
@@ -379,6 +381,7 @@ const PathDialog = ({
 };
 
 const BasePathProperty = (props: BasePathPropertyProps) => {
+  const theme = useTheme();
   const id = `${props.pathType}-${props.property.name}-${props.propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
   const { data: initialFiles, isLoading: isInitialLoading } = useQuery({
@@ -440,7 +443,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   }, [props.value?.path]);
 
   return (
-    <div css={createPathPropertyStyles} className="path-picker">
+    <div css={createPathPropertyStyles(theme)} className="path-picker">
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
