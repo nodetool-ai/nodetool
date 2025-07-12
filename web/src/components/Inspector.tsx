@@ -9,8 +9,9 @@ import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
 import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "grid",
@@ -150,10 +151,11 @@ const Inspector: React.FC = () => {
   });
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
+  const inspectorStyles = styles(theme);
 
   if (!selectedNode) {
     return (
-      <div className="inspector" css={styles}>
+      <div className="inspector" css={inspectorStyles}>
         <div className="top">
           <div className="top-content">
             <div className="inspector-header">
@@ -192,7 +194,7 @@ const Inspector: React.FC = () => {
   };
 
   return (
-    <div className="inspector" css={styles}>
+    <div className="inspector" css={inspectorStyles}>
       <div className="top">
         <div className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">

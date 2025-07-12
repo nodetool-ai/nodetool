@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 
-const welcomeStyles = (theme: any) =>
+const welcomeStyles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: "#222",

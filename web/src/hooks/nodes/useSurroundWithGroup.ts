@@ -1,11 +1,13 @@
 import { useCallback, useMemo } from "react";
 import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
-import ThemeNodetool from "../../components/themes/ThemeNodetool";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export const useSurroundWithGroup = () => {
+  const theme = useTheme();
   const { createNode, setNodes } = useNodes((state) => ({
     createNode: state.createNode,
     setNodes: state.setNodes
@@ -63,7 +65,7 @@ export const useSurroundWithGroup = () => {
         groupNode.data.properties = {};
       }
 
-      groupNode.data.properties.group_color = ThemeNodetool.palette.c_bg_group;
+      groupNode.data.properties.group_color = theme.palette.c_bg_group;
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {
@@ -92,7 +94,7 @@ export const useSurroundWithGroup = () => {
 
       resume();
     },
-    [getBounds, createNode, setNodes, pause, resume]
+    [getBounds, createNode, setNodes, pause, resume, theme.palette]
   );
 
   return surroundWithGroup;

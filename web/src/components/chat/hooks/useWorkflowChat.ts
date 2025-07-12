@@ -12,28 +12,41 @@ export const useWorkflowChat = (workflow_id: string, isMinimized: boolean) => {
     workflow: state.workflow
   }));
 
-  const { connect, sendMessage, resetMessages } = useWorkflowChatStore();
+  const { connect, sendMessage, resetMessages, disconnect, createNewThread, currentThreadId } = useWorkflowChatStore();
 
   useEffect(() => {
     if (!isMinimized) {
+      // Create a thread if none exists
+      if (!currentThreadId) {
+        createNewThread();
+      }
       connect(workflow);
     }
-  }, [connect, workflow, isMinimized]);
+    
+    return () => {
+      // Optionally disconnect when minimized
+      if (!isMinimized) {
+        // We don't disconnect to keep the connection alive
+      }
+    };
+  }, [connect, workflow, isMinimized, createNewThread, currentThreadId]);
 
+  const graph = useMemo(() => ({
+    nodes: nodes.map(reactFlowNodeToGraphNode),
+    edges: edges.map(reactFlowEdgeToGraphEdge)
+  }), [nodes, edges]);
+  
   const handleSendMessage = useCallback(
     async (message: Message) => {
       if (workflow_id) {
         message.workflow_id = workflow_id;
-        message.graph = {
-          nodes: nodes.map(reactFlowNodeToGraphNode),
-          edges: edges.map(reactFlowEdgeToGraphEdge)
-        };
+        message.graph = graph;
         await sendMessage(message);
       } else {
         console.error("Workflow ID is not set");
       }
     },
-    [workflow_id, sendMessage, nodes, edges]
+    [workflow_id, sendMessage, graph]
   );
 
   const handleReset = useCallback(() => {
@@ -44,6 +57,7 @@ export const useWorkflowChat = (workflow_id: string, isMinimized: boolean) => {
   return {
     handleSendMessage,
     handleReset,
-    isChat: workflow.run_mode === "chat"
+    isChat: workflow.run_mode === "chat",
+    graph
   };
 };

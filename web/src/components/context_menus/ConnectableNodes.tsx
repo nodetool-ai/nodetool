@@ -17,10 +17,11 @@ import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import ClearIcon from "@mui/icons-material/Clear";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
 import { useNodes } from "../../contexts/NodeContext";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface GroupedNodes {
   [namespace: string]: NodeMetadata[];
@@ -51,7 +52,7 @@ const scrollableContentStyles = (theme: any) =>
   css({
     overflowY: "auto",
     flex: 1,
-    backgroundColor: "var(--palette-grey-900)",
+    backgroundColor: "var(--palette-grey-800)",
     "&.connectable-nodes-content": {
       minHeight: 0,
       maxHeight: "calc(70vh - 130px)",
@@ -131,6 +132,7 @@ const searchNodesHelper = (
 };
 
 const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
+  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
   const {
@@ -261,7 +263,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       slotProps={{
         paper: {
           sx: {
-            backgroundColor: ThemeNodetool.palette.c_editor_bg_color,
+            backgroundColor: theme.palette.c_editor_bg_color,
             backgroundImage: "none"
           }
         }
@@ -323,7 +325,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
               <Typography
                 variant="h4"
                 color="textSecondary"
-                fontSize={ThemeNodetool.fontSizeSmaller}
+                fontSize={theme.fontSizeSmaller}
                 padding={0}
                 margin={0}
               >
@@ -337,6 +339,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 key={nodeMetadata.node_type}
                 TransitionProps={{ timeout: 0 }}
                 placement="left"
+                sx={{ padding: "0" }}
                 title={
                   <NodeInfo
                     nodeMetadata={nodeMetadata}

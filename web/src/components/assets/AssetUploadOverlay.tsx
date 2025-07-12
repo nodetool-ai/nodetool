@@ -7,7 +7,7 @@ import { Box, Typography } from "@mui/material";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import LinearProgressWithLabel from "./LinearProgressWithLabel";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

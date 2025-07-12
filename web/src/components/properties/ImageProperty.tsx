@@ -4,26 +4,28 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import { isEqual } from "lodash";
+import { useNodes } from "../../contexts/NodeContext";
 
 const ImageProperty = (props: PropertyProps) => {
   const id = `image-${props.property.name}-${props.propertyIndex}`;
 
   const { asset, uri } = useAsset({ image: props.value });
-  const showDropzone =
-    props.nodeType === "nodetool.constant.Image" ||
-    props.nodeType === "nodetool.input.ImageInput" ||
-    props.nodeType === "comfy.image.LoadImage";
+
+  const isConnected = useNodes((state) => {
+    return state.edges.some(
+      (edge) =>
+        edge.target == props.nodeId && edge.targetHandle === props.property.name
+    );
+  });
 
   return (
     <div className="image-property">
-      {!showDropzone && (
-        <PropertyLabel
-          name={props.property.name}
-          description={props.property.description}
-          id={id}
-        />
-      )}
-      {showDropzone && (
+      <PropertyLabel
+        name={props.property.name}
+        description={props.property.description}
+        id={id}
+      />
+      {!isConnected && (
         <PropertyDropzone
           asset={asset}
           uri={uri}

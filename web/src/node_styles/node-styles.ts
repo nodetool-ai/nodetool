@@ -21,7 +21,7 @@ import {
  * that takes a theme and returns the combined styles.
  */
 
-export const allNodeStyles = (theme: any) =>
+export const allNodeStyles = (theme: Theme) =>
   css(
     formStyles(theme),
     buttonStyles(theme),

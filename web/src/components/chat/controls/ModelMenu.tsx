@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import useModelStore from "../../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-const menuStyles = (theme: any) =>
+const menuStyles = (theme: Theme) =>
   css({
     "& button": {
       backgroundColor: theme.palette.grey[800],
@@ -152,6 +152,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             color: "var(--palette-grey-0)",
             marginRight: ".5em !important",
             padding: "0.25em 0.75em !important",
+            borderRadius: "0.25em",
             "&:hover": {
               backgroundColor: "var(--palette-grey-500)"
             }

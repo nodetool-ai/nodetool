@@ -7,7 +7,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import useErrorStore from "../../stores/ErrorStore";
 import { isEqual } from "lodash";
 
-export const errorStyles = (theme: any) =>
+export const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
     backgroundColor: theme.palette.error.main,

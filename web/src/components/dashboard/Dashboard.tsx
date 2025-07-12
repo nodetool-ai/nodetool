@@ -16,7 +16,6 @@ import { Workflow, WorkflowList, Message } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { DEFAULT_MODEL } from "../../config/constants";
@@ -26,8 +25,10 @@ import ChatView from "../chat/containers/ChatView";
 import ThreadList from "../chat/thread/ThreadList";
 import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100vw",
@@ -339,6 +340,7 @@ const styles = (theme: any) =>
   });
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
@@ -603,7 +605,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box css={styles(ThemeNodetool)}>
+    <Box css={styles(theme)}>
       {/* Start Examples Section */}
       <Box className="section examples-section">
         <Box

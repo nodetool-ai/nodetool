@@ -1,7 +1,4 @@
-// ---------------------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------------------
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   registerComboCallback,
   unregisterComboCallback
@@ -32,7 +29,10 @@ export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
 ) => {
-  // ALL HOOKS FIRST, NO LOGIC BEFORE THIS LINE
+  const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
+  const [packageNameInput, setPackageNameInput] = useState("");
+
+  /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
   const nodesStore = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes(),
@@ -169,9 +169,15 @@ export const useNodeEditorShortcuts = (
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
-  const handleSaveExample = useCallback(async () => {
+  const handleSaveExample = useCallback(() => {
+    setPackageNameDialogOpen(true);
+  }, []);
+
+  const handleSaveExampleConfirm = useCallback(async () => {
     try {
-      await saveExample();
+      await saveExample(packageNameInput);
+      setPackageNameDialogOpen(false);
+      setPackageNameInput("");
       addNotification({
         content: "Example saved successfully",
         type: "success",
@@ -185,7 +191,12 @@ export const useNodeEditorShortcuts = (
         alert: true
       });
     }
-  }, [saveExample, addNotification]);
+  }, [saveExample, packageNameInput, addNotification]);
+
+  const handleSaveExampleCancel = useCallback(() => {
+    setPackageNameDialogOpen(false);
+    setPackageNameInput("");
+  }, []);
 
   const handleShowKeyboardShortcuts = useCallback(() => {
     if (onShowShortcuts) onShowShortcuts();
@@ -442,4 +453,13 @@ export const useNodeEditorShortcuts = (
     };
     // selectedNodes length affects active flags for align shortcuts
   }, [selectedNodes.length, electronDetails, shortcutMeta]);
+
+  // Return dialog state and handlers for external use
+  return {
+    packageNameDialogOpen,
+    packageNameInput,
+    setPackageNameInput,
+    handleSaveExampleConfirm,
+    handleSaveExampleCancel
+  };
 };

@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-const dialogStyles = (theme: any) =>
+const dialogStyles = (theme: Theme) =>
   css({
     "&": {
       position: "fixed",

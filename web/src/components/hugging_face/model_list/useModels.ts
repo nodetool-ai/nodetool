@@ -1,113 +1,40 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { client, BASE_URL } from "../../../stores/ApiClient";
-import { llama_models as staticOllamaModels } from "../../../config/models";
-import { LlamaModel, UnifiedModel } from "../../../stores/ApiTypes";
+import { useMemo } from "react";
+import { client } from "../../../stores/ApiClient";
+import { UnifiedModel } from "../../../stores/ApiTypes";
 import {
   groupModelsByType,
   sortModelTypes
 } from "../../../utils/modelFormatting";
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { authHeader } from "../../../stores/ApiClient";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import { useHuggingFaceModels } from "../../../hooks/useHuggingFaceModels";
+import { useOllamaModels } from "../../../hooks/useOllamaModels";
+import { useRecommendedModels } from "../../../hooks/useRecommendedModels";
 
 export type ModelSource = "downloaded" | "recommended";
 
 export const useModels = () => {
   const { modelSource, modelSearchTerm, selectedModelType } =
     useModelManagerStore();
-  const queryClient = useQueryClient();
   const { ollamaBasePath } = useModelBasePaths();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
 
   const {
-    data: hfModels,
-    isLoading: hfLoading,
-    isFetching: hfIsFetching,
-    error: hfError
-  } = useQuery({
-    queryKey: ["huggingFaceModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET(
-        "/api/models/huggingface_models",
-        {}
-      );
-      if (error) throw error;
-      return data.map(
-        (model: any): UnifiedModel => ({
-          id: model.repo_id,
-          type: model.the_model_type || model.type,
-          name: model.repo_id,
-          repo_id: model.repo_id,
-          path: model.path,
-          description: "",
-          readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk,
-          downloaded: true
-        })
-      );
-    },
-    refetchOnWindowFocus: false
-  });
+    hfModels,
+    hfLoading,
+    hfIsFetching,
+    hfError
+  } = useHuggingFaceModels();
 
   const {
-    data: ollamaModels,
-    isLoading: ollamaLoading,
-    isFetching: ollamaIsFetching,
-    error: ollamaError
-  } = useQuery({
-    queryKey: ["ollamaModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/ollama_models", {});
-      if (error) throw error;
-      return data.map(
-        (model: LlamaModel): UnifiedModel => ({
-          id: model.name ?? "",
-          repo_id: model.repo_id ?? "",
-          type: "llama_model",
-          name: `${model.details?.family} - ${model.details?.parameter_size}`,
-          description: "",
-          size_on_disk: model.size,
-          downloaded: true
-        })
-      );
-    },
-    refetchOnWindowFocus: false
-  });
-
-  const {
-    data: recommendedModels,
-    isLoading: recommendedLoading,
-    isFetching: recommendedIsFetching,
-    error: recommendedError
-  } = useQuery({
-    queryKey: ["recommendedModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET(
-        "/api/models/recommended_models",
-        {}
-      );
-      if (error) throw error;
-      return data.map(
-        (model: any): UnifiedModel => ({
-          id: model.repo_id,
-          type: model.the_model_type || model.type,
-          name: model.repo_id,
-          repo_id: model.repo_id,
-          path: model.path,
-          description: "",
-          readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk,
-          downloaded: downloadedIds.has(model.repo_id)
-        })
-      );
-    },
-    refetchOnWindowFocus: false
-  });
+    ollamaModels,
+    ollamaLoading,
+    ollamaIsFetching,
+    ollamaError
+  } = useOllamaModels();
 
   const downloadedIds = useMemo(() => {
     const ids = new Set<string>();
@@ -116,10 +43,13 @@ export const useModels = () => {
     return ids;
   }, [hfModels, ollamaModels]);
 
-  const combinedRecommendedModels = useMemo<UnifiedModel[]>(() => {
-    const merged = [...(recommendedModels || []), ...staticOllamaModels];
-    return merged.filter((m) => !downloadedIds.has(m.id));
-  }, [recommendedModels, downloadedIds]);
+  const {
+    recommendedModels,
+    recommendedLoading,
+    recommendedIsFetching,
+    recommendedError,
+    combinedRecommendedModels
+  } = useRecommendedModels({ downloadedIds });
 
   const groupedRecommendedModels = useMemo(
     () => groupModelsByType(combinedRecommendedModels),
@@ -193,61 +123,6 @@ export const useModels = () => {
     modelSource
   ]);
 
-  const deleteHFModel = async (repoId: string) => {
-    setDeletingModels((prev) => new Set(prev).add(repoId));
-    try {
-      const { error } = await client.DELETE("/api/models/huggingface_model", {
-        params: { query: { repo_id: repoId } }
-      });
-      if (error) throw error;
-      addNotification({
-        type: "success",
-        content: `Deleted model ${repoId}`,
-        dismissable: true
-      });
-      queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
-    } finally {
-      setDeletingModels((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(repoId);
-        return newSet;
-      });
-    }
-  };
-
-  const deleteOllamaModel = async (modelName: string) => {
-    setDeletingModels((prev) => new Set(prev).add(modelName));
-    try {
-      const response = await fetch(
-        `${BASE_URL}/api/models/ollama_model?model_name=${encodeURIComponent(
-          modelName
-        )}`,
-        {
-          method: "DELETE",
-          headers: await authHeader()
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`Delete failed: ${await response.text()}`);
-      }
-      addNotification({
-        type: "success",
-        content: `Deleted Ollama model ${modelName}`,
-        dismissable: true
-      });
-      queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
-    } finally {
-      setDeletingModels((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(modelName);
-        return newSet;
-      });
-    }
-  };
-
-  const deleteHFModelMutation = useMutation({
-    mutationFn: deleteHFModel
-  });
 
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) return;
@@ -292,30 +167,20 @@ export const useModels = () => {
     (modelSource === "recommended" && recommendedIsFetching);
 
   return {
-    hfModels,
-    hfLoading,
-    hfIsFetching,
-    hfError,
-    ollamaModels,
-    ollamaLoading,
-    ollamaIsFetching,
-    ollamaError,
-    recommendedModels,
-    recommendedLoading,
-    recommendedIsFetching,
-    recommendedError,
-    groupedRecommendedModels,
-    groupedHFModels,
+    // Used by ModelListIndex
     modelTypes,
     filteredModels,
-    deleteHFModel,
-    deleteOllamaModel,
-    deleteHFModelMutation,
-    handleShowInExplorer,
-    ollamaBasePath,
     isLoading,
     isFetching,
-    deletingModels,
-    combinedRecommendedModels
+    hfError,
+    ollamaError,
+    recommendedError,
+    groupedHFModels,
+    groupedRecommendedModels,
+    // Used by ModelTypeSidebar
+    ollamaModels,
+    // Used by ModelDisplay
+    handleShowInExplorer,
+    ollamaBasePath
   };
 };

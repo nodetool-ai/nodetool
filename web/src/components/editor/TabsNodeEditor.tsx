@@ -18,9 +18,10 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
-import { NodeStore } from "../../stores/NodeStore";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
@@ -210,11 +211,11 @@ const styles = (theme: any) =>
       justifyContent: "center",
       width: "30px",
       height: "30px",
-      background: theme.palette.background.default,
-      border: `1px solid ${theme.palette.grey[800]}`,
-      borderBottom: "none",
+      background: theme.palette.grey[700],
+      border: "none",
       color: theme.palette.grey[200],
       cursor: "pointer",
+      marginTop: "1px",
       borderRadius: "5px 5px 0 0",
       padding: 0,
       marginLeft: "2px",
@@ -224,8 +225,8 @@ const styles = (theme: any) =>
       zIndex: 1001,
 
       "&:hover": {
-        color: theme.palette.grey[100],
-        background: theme.palette.grey[800]
+        color: theme.palette.grey[0],
+        background: theme.palette.grey[300]
       },
 
       "& svg": {
@@ -353,6 +354,8 @@ const TabsNodeEditor = () => {
     return Array.from(tabMap.values());
   }, [openWorkflows, loadingStates]);
 
+  const theme = useTheme();
+
   return (
     <>
       {workflowToEdit && (
@@ -362,7 +365,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles}>
+      <div css={styles(theme)}>
         <div className="tabs-container">
           <TabsBar workflows={tabsToRender} />
           {!isMac && isElectron && <WindowControls />}

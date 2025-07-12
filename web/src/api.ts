@@ -28,6 +28,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assets/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Assets Global
+         * @description **Global Asset Search**
+         *
+         *     Search assets globally across all folders belonging to the current user with folder path information.
+         *
+         *     **Features:**
+         *     - Searches asset names using contains matching (finds matches anywhere in filename)
+         *     - Provides folder breadcrumb information for each result
+         *     - Supports content type filtering (e.g., "image", "text")
+         *     - Includes pagination for large result sets
+         *     - Returns only current user's assets (user isolation)
+         *
+         *     **Examples:**
+         *     - `GET /api/assets/search?query=photo` - Find all assets with "photo" in name
+         *     - `GET /api/assets/search?query=sunset&content_type=image` - Find images with "sunset"
+         *     - `GET /api/assets/search?query=doc&page_size=50` - Find "doc" assets, 50 per page
+         *
+         *     Note: Local search (within current folder) is handled efficiently in the frontend
+         *     by filtering already-loaded folder assets.
+         *
+         *     Args:
+         *         query: Search term (minimum 2 characters, case insensitive)
+         *         content_type: Optional content type filter (e.g., "image", "text", "video")
+         *         page_size: Results per page (default 200, max recommended 1000)
+         *         cursor: Pagination cursor for next page
+         *         user: Current user ID (automatically provided)
+         *
+         *     Returns:
+         *         AssetSearchResult with assets and folder path information (current user's assets only)
+         */
+        get: operations["search_assets_global_api_assets_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assets/packages": {
         parameters: {
             query?: never;
@@ -449,6 +496,36 @@ export interface paths {
          *               or an error message if not found (e.g., {"status": "error", "message": "..."}).
          */
         get: operations["get_ollama_base_path_endpoint_api_models_ollama_base_path_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/huggingface_base_path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Huggingface Base Path Endpoint
+         * @description Retrieves the Hugging Face cache directory path.
+         *
+         *     The path is determined from the HF_HUB_CACHE constant which points to the
+         *     root of the Hugging Face cache directory.
+         *
+         *     Args:
+         *         user (str): The current user, injected by FastAPI dependency.
+         *
+         *     Returns:
+         *         dict: A dictionary containing the path if found (e.g., {"path": "/path/to/hf/cache"}),
+         *               or an error message if not found (e.g., {"status": "error", "message": "..."}).
+         */
+        get: operations["get_huggingface_base_path_endpoint_api_models_huggingface_base_path_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1354,6 +1431,8 @@ export interface components {
             name: string;
             /** Content Type */
             content_type: string;
+            /** Size */
+            size?: number | null;
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;
@@ -1418,6 +1497,17 @@ export interface components {
             /** Data */
             data?: unknown;
         };
+        /** AssetSearchResult */
+        AssetSearchResult: {
+            /** Assets */
+            assets: components["schemas"]["AssetWithPath"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Total Count */
+            total_count: number;
+            /** Is Global Search */
+            is_global_search: boolean;
+        };
         /** AssetUpdateRequest */
         AssetUpdateRequest: {
             /** Name */
@@ -1434,6 +1524,52 @@ export interface components {
             } | null;
             /** Duration */
             duration?: number | null;
+            /** Size */
+            size?: number | null;
+        };
+        /** AssetWithPath */
+        AssetWithPath: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Workflow Id */
+            workflow_id: string | null;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Name */
+            name: string;
+            /** Content Type */
+            content_type: string;
+            /** Size */
+            size: number | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at: string;
+            /** Get Url */
+            get_url: string | null;
+            /** Thumb Url */
+            thumb_url: string | null;
+            /** Duration */
+            duration: number | null;
+            /**
+             * Folder Name
+             * @description Direct parent folder name
+             */
+            folder_name: string;
+            /**
+             * Folder Path
+             * @description Full path breadcrumb
+             */
+            folder_path: string;
+            /**
+             * Folder Id
+             * @description Parent folder ID for navigation
+             */
+            folder_id: string;
         };
         /**
          * AudioRef
@@ -1489,6 +1625,11 @@ export interface components {
             path: string;
             /** Size On Disk */
             size_on_disk: number;
+            /**
+             * Has Model Index
+             * @default false
+             */
+            has_model_index: boolean;
             /** The Model Type */
             the_model_type?: string | null;
             the_model_info?: components["schemas"]["ModelInfo"] | null;
@@ -4482,6 +4623,44 @@ export interface operations {
             };
         };
     };
+    search_assets_global_api_assets_search_get: {
+        parameters: {
+            query: {
+                query: string;
+                content_type?: string | null;
+                page_size?: number | null;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetSearchResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_package_assets_api_assets_packages_get: {
         parameters: {
             query?: never;
@@ -5378,6 +5557,41 @@ export interface operations {
         };
     };
     get_ollama_base_path_endpoint_api_models_ollama_base_path_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_huggingface_base_path_endpoint_api_models_huggingface_base_path_get: {
         parameters: {
             query?: never;
             header?: {

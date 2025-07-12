@@ -57,7 +57,7 @@ interface BasePathPropertyProps extends PropertyProps {
 }
 
 // Styles
-const createPathPropertyStyles = (theme: any) =>
+const createPathPropertyStyles = (theme: Theme) =>
   css([
     {
       display: "flex",
@@ -158,23 +158,23 @@ const createPathPropertyStyles = (theme: any) =>
     }
   ]);
 
-const treeViewStyles = (theme: any) => ({
+const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
     borderRadius: "2px",
     padding: "2px 4px 2px 0",
     userSelect: "none"
   },
   ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: (theme: any) =>
+    backgroundColor: (theme: Theme) =>
       `${"var(--palette-primary-main)"} !important`,
-    color: (theme: any) => theme.palette.grey[1000]
+    color: (theme: Theme) => theme.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: (theme: any) => `${theme.palette.grey[500]} !important`
+    backgroundColor: (theme: Theme) => `${theme.palette.grey[500]} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
-    backgroundColor: (theme: any) =>
+    backgroundColor: (theme: Theme) =>
       `${"var(--palette-primary-main)"} !important`
   },
   ".MuiTreeItem-label": {
@@ -186,10 +186,10 @@ const treeViewStyles = (theme: any) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: (theme: any) => theme.palette.warning.main
+    color: (theme: Theme) => theme.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
-    color: (theme: any) => theme.palette.grey[500]
+    color: (theme: Theme) => theme.palette.grey[500]
   }
 });
 

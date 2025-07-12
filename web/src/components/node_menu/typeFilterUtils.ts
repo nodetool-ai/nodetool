@@ -68,6 +68,10 @@ export const filterTypesByInputType = (
 ): NodeMetadata[] => {
   return metadata.filter((node) => {
     return node.properties.some((prop) => {
+      // Exclude matches that are only connectable because the property is "any"
+      if (prop.type.type === "any") {
+        return false;
+      }
       return isConnectableCached(inputType, prop.type);
     });
   });
@@ -86,6 +90,10 @@ export const filterTypesByOutputType = (
   return outputType
     ? metadata.filter((node) => {
         return node.outputs.some((output) => {
+          // Exclude matches that are only connectable because the output is "any"
+          if (output.type.type === "any") {
+            return false;
+          }
           return isConnectableCached(output.type, outputType);
         });
       })

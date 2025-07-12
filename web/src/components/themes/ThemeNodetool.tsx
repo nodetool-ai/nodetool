@@ -1,7 +1,6 @@
-import { Theme, createTheme } from "@mui/material/styles";
+import { createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
-import { paletteLight } from "./paletteLight";
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -14,34 +13,7 @@ import "@fontsource/jetbrains-mono/300.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 
-declare module "@mui/system/createTheme" {
-  interface ThemeOptions {
-    fontSizeGiant?: string;
-    fontSizeBigger?: string;
-    fontSizeBig?: string;
-    fontSizeNormal?: string;
-    fontSizeSmall?: string;
-    fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
-    fontFamily1?: string;
-    fontFamily2?: string;
-  }
-  interface Theme {
-    fontSizeGiant: string;
-    fontSizeBigger: string;
-    fontSizeBig: string;
-    fontSizeNormal: string;
-    fontSizeSmall: string;
-    fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
-    fontFamily1: string;
-    fontFamily2: string;
-  }
-}
-
-const ThemeNodetool: Theme = createTheme({
+const ThemeNodetool = createTheme({
   defaultColorScheme: "dark",
   colorSchemes: {
     dark: {

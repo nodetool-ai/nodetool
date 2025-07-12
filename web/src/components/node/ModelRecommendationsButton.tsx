@@ -1,6 +1,5 @@
 import React, { useState, useCallback, memo } from "react";
 import { Button, Tooltip } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { UnifiedModel } from "../../stores/ApiTypes";
@@ -17,7 +16,6 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
   const { startDownload } = useModelDownloadStore();
-
   const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
   const handleCloseModelDialog = useCallback(
     () => setOpenModelDialog(false),
@@ -39,21 +37,8 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
         >
           <Button
             variant="outlined"
+            size="small"
             className="model-button"
-            sx={{
-              width: "90%",
-              fontSize: ThemeNodetool.fontSizeSmall,
-              color: ThemeNodetool.palette.grey[200],
-              margin: ".25em 0",
-              padding: ".25em",
-              border: `1px solid ${ThemeNodetool.palette.grey[600]}`,
-              lineHeight: "1.1em",
-              borderRadius: ".5em",
-              "&:hover": {
-                cursor: "pointer",
-                backgroundColor: ThemeNodetool.palette.grey[600]
-              }
-            }}
             onClick={handleOpenModelDialog}
           >
             <IconForType

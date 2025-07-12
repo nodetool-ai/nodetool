@@ -9,7 +9,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import DownloadManagerDialog from "./DownloadManagerDialog";
 import { Box } from "@mui/material";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     margin: "2em 0 0",
     "&.models-manager": {

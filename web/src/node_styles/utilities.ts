@@ -8,7 +8,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Fab, SvgIcon, and other utility component overrides in emotion format
  */
 
-export const utilityStyles = (theme: any) =>
+export const utilityStyles = (theme: Theme) =>
   css({
     /* MuiFab */
     ".MuiFab-root": {
@@ -64,7 +64,7 @@ export const utilityStyles = (theme: any) =>
   });
 
 // Individual style functions for component-specific use
-export const fabStyle = (theme: any) =>
+export const fabStyle = (theme: Theme) =>
   css({
     backgroundColor:
       theme.palette?.primary?.main || "var(--palette-primary-main)",
@@ -83,21 +83,21 @@ export const fabStyle = (theme: any) =>
     }
   });
 
-export const fabSizeSmallStyle = (theme: any) =>
+export const fabSizeSmallStyle = (theme: Theme) =>
   css({
     width: 32,
     height: 32,
     fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller
   });
 
-export const fabSizeMediumStyle = (theme: any) =>
+export const fabSizeMediumStyle = (theme: Theme) =>
   css({
     width: 48,
     height: 48,
     fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal
   });
 
-export const fabSizeLargeStyle = (theme: any) =>
+export const fabSizeLargeStyle = (theme: Theme) =>
   css({
     width: 64,
     height: 64,

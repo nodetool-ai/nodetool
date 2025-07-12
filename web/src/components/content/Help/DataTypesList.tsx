@@ -26,7 +26,7 @@ const DataTypesList = ({
 }: DataTypesListProps) => {
   const types = dataTypes;
 
-  const styles = (theme: any) =>
+  const styles = (theme: Theme) =>
     css({
       "&": {
         padding: "0 .5em 0 0",

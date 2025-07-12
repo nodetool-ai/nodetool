@@ -12,6 +12,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -23,7 +24,7 @@ import JSZip from "jszip";
 import { isEqual } from "lodash";
 import NodeResizeHandle from "./NodeResizeHandle";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css([
     {
       "&": {

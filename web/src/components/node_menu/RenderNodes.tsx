@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo, useRef, useLayoutEffect } from "react";
+import { memo, useCallback, useMemo } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -59,7 +59,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         variant="h6"
         component="div"
         sx={{
-          color: theme.palette.primary.main,
+          color: "var(--palette-primary-main)",
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}
@@ -106,7 +106,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
           <AccordionSummary
             expandIcon={
-              <ExpandMoreIcon sx={{ color: theme.palette.grey[500] }} />
+              <ExpandMoreIcon sx={{ color: "var(--palette-grey-500)" }} />
             }
           >
             <GroupTitle title={group.title} />

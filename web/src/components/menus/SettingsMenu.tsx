@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import {
@@ -15,11 +14,12 @@ import {
   Tab,
   Box
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
@@ -36,7 +36,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 
-export const settingsStyles = (theme: any): any =>
+export const settingsStyles = (theme: Theme): any =>
   css({
     ".MuiBackdrop-root": {
       backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -495,6 +495,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   }
 
+  const theme = useTheme();
+
   return (
     <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -511,7 +513,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         </Button>
       </Tooltip>
       <Menu
-        css={settingsStyles(ThemeNodetool)}
+        css={settingsStyles(theme)}
         className="settings-menu-container"
         open={isMenuOpen}
         onContextMenu={(event) => event.preventDefault()}
@@ -775,10 +777,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       <div
                         className="settings-section"
                         style={{
-                          border:
-                            "1px solid" + ThemeNodetool.palette.warning.main,
-                          borderRight:
-                            "1px solid" + ThemeNodetool.palette.warning.main
+                          border: "1px solid" + theme.palette.warning.main,
+                          borderRight: "1px solid" + theme.palette.warning.main
                         }}
                       >
                         {isProduction && (

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LlamaModel } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
+import { useOllamaModels } from "../../hooks/useOllamaModels";
 
 interface LlamaModelSelectProps {
   onChange: (value: any) => void;
@@ -11,30 +12,22 @@ interface LlamaModelSelectProps {
 }
 
 const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
-  const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
-
-  const {
-    data: models,
-    isError,
-    isLoading,
-    isSuccess
-  } = useQuery({
-    queryKey: ["models", "llama_model"],
-    queryFn: loadLlamaModels
-  });
+  const { ollamaModels, ollamaLoading, ollamaIsFetching, ollamaError } =
+    useOllamaModels();
 
   const options = useMemo(() => {
-    if (!models || isLoading || isError) return [];
+    if (!ollamaModels || ollamaLoading || ollamaIsFetching || ollamaError)
+      return [];
     return [
       { value: "", label: "Select a model" },
-      ...(models as LlamaModel[])
+      ...ollamaModels
         .map((model) => ({
           value: model.repo_id || "",
           label: model.name || ""
         }))
         .sort((a, b) => a.label.localeCompare(b.label))
     ];
-  }, [models, isLoading, isError]);
+  }, [ollamaModels, ollamaLoading, ollamaIsFetching, ollamaError]);
 
   const handleChange = useCallback(
     (selectedValue: string) => {
@@ -48,15 +41,15 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
 
   const isValueMissing = value && !options.some((v) => v.value === value);
 
-  if (isLoading) {
+  if (ollamaLoading) {
     return <div>Loading models...</div>;
   }
 
-  if (isError) {
+  if (ollamaError) {
     return <div>Error loading models</div>;
   }
 
-  if (isSuccess && options.length === 1) {
+  if (ollamaIsFetching && options.length === 1) {
     return (
       <div>No models found. Please start Ollama and download a model.</div>
     );

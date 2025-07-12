@@ -19,11 +19,11 @@ interface NodeInfoProps {
   menuWidth?: number;
 }
 
-const nodeInfoStyles = (theme: any) =>
+const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    backgroundColor: "transparent",
+    backgroundColor: "var(--palette-grey-800)",
     overflowY: "auto",
     gap: ".5em",
     padding: "1em",

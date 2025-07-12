@@ -5,7 +5,8 @@ import { Typography, Tabs, Tab, Box, TextField } from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
@@ -33,7 +34,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const helpStyles = (theme: any) =>
+const helpStyles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: "rgba(40, 40, 40, 0.5)",
@@ -132,8 +133,7 @@ const helpStyles = (theme: any) =>
       alignItems: "center",
       gap: "1rem",
       p: {
-        minWidth: "240px",
-        fontFamily: theme.fontFamily
+        minWidth: "240px"
       },
       button: {
         marginTop: "2px",
@@ -181,6 +181,8 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
   const [expandedNodetool, setExpandedNodetool] = useState(true);
   const [expandedComfy, setExpandedComfy] = useState(false);
 
+  const theme = useTheme();
+
   const nodetoolTypes = DATA_TYPES.filter(
     (type) => !type.value.startsWith("comfy.")
   );
@@ -216,7 +218,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
         `}
         onClick={handleClose}
       />
-      <div className="help-container" css={helpStyles}>
+      <div className="help-container" css={helpStyles(theme)}>
         <div className="help">
           <div className="top">
             <Typography variant="h2">Help</Typography>

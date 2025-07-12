@@ -21,7 +21,7 @@ interface FolderTreeProps {
   sortBy?: "name" | "updated_at";
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

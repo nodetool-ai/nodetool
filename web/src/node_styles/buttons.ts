@@ -8,7 +8,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Button component overrides in emotion format
  */
 
-export const buttonStyles = (theme: any) =>
+export const buttonStyles = (theme: Theme) =>
   css({
     /* MuiButton Root */
     ".MuiButton-root": {
@@ -16,15 +16,15 @@ export const buttonStyles = (theme: any) =>
     },
 
     ".MuiButton-sizeSmall": {
-      margin: "2px !important",
-      padding: "2px 6px !important",
-      height: "15px !important",
+      margin: "0.5em !important",
+      padding: "0.25em 0.5em !important",
+      // height: "1.5em !important",
       fontSize: `${
-        theme.fontSizeSmall || themeVariables.fontSizeSmall
+        theme.fontSizeTiny || themeVariables.fontSizeTiny
       } !important`,
       minWidth: "20px !important",
       backgroundColor:
-        theme.palette?.grey?.[600] || "var(--palette-grey-600) !important"
+        theme.palette?.grey?.[700] || "var(--palette-grey-700) !important"
     },
 
     ".MuiButton-sizeSmall:hover": {
@@ -44,7 +44,7 @@ export const buttonRootStyle = css({
   minWidth: 36
 });
 
-export const smallButtonStyle = (theme: any) =>
+export const smallButtonStyle = (theme: Theme) =>
   css({
     margin: 2,
     padding: "2px 6px",

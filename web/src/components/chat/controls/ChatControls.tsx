@@ -15,13 +15,11 @@ const ChatControls: React.FC<ChatControlsProps> = ({
   onReset,
   isMinimized
 }) => {
-  const messages = useWorkflowChatStore((state) => state.messages);
   return (
     <ChatHeader
       isMinimized={isMinimized}
       onMinimize={onMinimize}
       onReset={onReset}
-      messagesCount={messages.length}
       title="Chat"
       icon={<ChatBubbleOutlineIcon sx={{ fontSize: "1.5em" }} />}
     />

@@ -34,7 +34,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
 import DownloadIcon from "@mui/icons-material/Download";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

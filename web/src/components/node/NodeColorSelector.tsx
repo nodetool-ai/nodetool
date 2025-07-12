@@ -14,7 +14,8 @@ import ColorizeIcon from "@mui/icons-material/Colorize";
 import SearchInput from "../search/SearchInput";
 import { createLinearGradient } from "../../utils/ColorUtils";
 import { DATA_TYPES } from "../../config/data_types";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
   css({
@@ -47,7 +48,7 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
     }
   });
 
-export const colorSelectDialogStyles = (theme: any) =>
+export const colorSelectDialogStyles = (theme: Theme) =>
   css({
     ".color-button": {
       width: "98%",
@@ -60,8 +61,8 @@ export const colorSelectDialogStyles = (theme: any) =>
         opacity: 0.6
       },
       p: {
-        fontSize: ThemeNodetool.fontSizeSmall,
-        fontFamily: ThemeNodetool.fontFamily2,
+        fontSize: theme.fontSizeSmall,
+        fontFamily: theme.fontFamily2,
         wordSpacing: "-3px",
         textAlign: "left",
         fontWeight: "bold"
@@ -105,6 +106,8 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const theme = useTheme();
+
   const dataTypesFiltered = useMemo(() => {
     if (searchTerm === "") return DATA_TYPES;
     return DATA_TYPES.filter((datatype) =>
@@ -125,7 +128,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
   );
 
   return (
-    <div css={colorPickerButtonStyles(ThemeNodetool, alwaysVisible)}>
+    <div css={colorPickerButtonStyles(theme, alwaysVisible)}>
       <IconButton
         size="small"
         className="color-picker-button"
@@ -134,7 +137,7 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
         <ColorizeIcon />
       </IconButton>
       <Dialog
-        css={colorSelectDialogStyles}
+        css={colorSelectDialogStyles(theme)}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
       >

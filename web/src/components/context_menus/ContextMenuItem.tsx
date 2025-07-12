@@ -13,7 +13,7 @@ interface ContextMenuItemProps {
   controlElement?: ReactElement;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       color: theme.palette.grey[0],
