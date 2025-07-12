@@ -20,7 +20,7 @@ import WorkflowAssistantChat from "./WorkflowAssistantChat";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     right: "0",

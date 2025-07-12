@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { Global, css, useTheme } from "@emotion/react";
+import { Global, css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useState } from "react";
 import { EditorState, LexicalEditor } from "lexical";
@@ -9,7 +11,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "::highlight(findMatches)": {
       backgroundColor: "rgba(255, 255, 0, 0.4)"

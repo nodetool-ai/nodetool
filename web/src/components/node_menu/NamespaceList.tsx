@@ -31,7 +31,7 @@ interface NamespaceListProps {
   metadata: NodeMetadata[];
 }
 
-const namespaceStyles = (theme: any) =>
+const namespaceStyles = (theme: Theme) =>
   css({
     "&": {
       margin: "1em 0",

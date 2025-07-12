@@ -6,12 +6,11 @@ import { ModelComponentProps } from "../ModelUtils";
 import { useModelInfo } from "../../../hooks/useModelInfo";
 import ModelCardActions from "./ModelCardActions";
 import ModelCardContent from "./ModelCardContent";
-import ThemeNodetool from "../../themes/ThemeNodetool";
 import { isEqual } from "lodash";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&.model-card": {
       position: "relative",
@@ -133,10 +132,10 @@ const styles = (theme: any) =>
     ".download": {
       boxShadow: "none",
       backgroundColor: theme.palette.grey[800],
-      border: "1px solid" + ThemeNodetool.palette.grey[800],
+      border: "1px solid" + theme.palette.grey[800],
       "&:hover": {
         backgroundColor: theme.palette.grey[900],
-        border: "1px solid" + ThemeNodetool.palette.grey[900]
+        border: "1px solid" + theme.palette.grey[900]
       }
     },
 

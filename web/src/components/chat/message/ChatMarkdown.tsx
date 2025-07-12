@@ -14,7 +14,7 @@ interface ChatMarkdownProps {
   content: string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: "transparent !important",
     ".code-block-header": {

@@ -8,7 +8,7 @@ import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",

@@ -13,9 +13,10 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     width: "100%",
     borderRadius: "4px",
@@ -107,6 +108,8 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   const removeDownload = useModelDownloadStore((state) => state.removeDownload);
   const download = downloads[name];
 
+  const theme = useTheme();
+
   const handleRemove = useCallback(() => {
     removeDownload(name);
   }, [name, removeDownload]);
@@ -189,7 +192,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.success.main}
+            color={theme.palette.success.main}
           >
             Download completed
           </Typography>
@@ -200,20 +203,20 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.error.main}
+            color={theme.palette.warning.main}
           >
             Download cancelled
           </Typography>
         </Tooltip>
       )}
       {download.status === "error" && (
-        <Tooltip title="An error occurred during download. Try downloading again from the model browser.">
+        <Tooltip title={download.message || "Download failed"}>
           <Typography
             className="download-status"
             variant="body2"
-            color={ThemeNodetool.palette.error.main}
+            color={theme.palette.error.main}
           >
-            Download error
+            Download failed
           </Typography>
         </Tooltip>
       )}

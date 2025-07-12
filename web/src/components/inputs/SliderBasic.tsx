@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { Slider, SliderProps, Tooltip } from "@mui/material";
 
-const sliderBasicStyles = (theme: any) =>
+const sliderBasicStyles = (theme: Theme) =>
   css({
     "&": {
       marginTop: "3px",

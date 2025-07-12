@@ -7,7 +7,8 @@ import DeleteButton from "../../buttons/DeleteButton";
 import { Check } from "@mui/icons-material";
 import { isProduction } from "../../../stores/ApiClient";
 import DownloadIcon from "@mui/icons-material/Download";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelInfo } from "../../../hooks/useModelInfo";
 import {
@@ -92,7 +93,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
 }) => {
   const { modelData, isHuggingFace, isOllama } = useModelInfo(model);
   const downloaded = model.downloaded ?? !!model.path;
-
+  const theme = useTheme();
   const showFileExplorerButtonFinal =
     model.type === "llama_model" ? !model.path && !ollamaBasePath : !model.path;
 
@@ -125,7 +126,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                 <CloudDownloadIcon
                   fontSize="small"
                   sx={{
-                    color: ThemeNodetool.palette.grey[500],
+                    color: theme.palette.grey[500],
                     marginRight: ".1em"
                   }}
                 />
@@ -137,7 +138,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
               <Tooltip title="Likes on HF">
                 <FavoriteIcon
                   fontSize="small"
-                  sx={{ ml: 2, color: ThemeNodetool.palette.grey[500] }}
+                  sx={{ ml: 2, color: theme.palette.grey[500] }}
                 />
               </Tooltip>
               {modelData?.likes?.toLocaleString() || "N/A"}

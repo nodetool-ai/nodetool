@@ -8,7 +8,7 @@ import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import ModelListItem from "./model_list/ModelListItem";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".models-grid": {
       overflow: "auto",

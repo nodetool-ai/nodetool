@@ -1,6 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import dialogStyles from "../../styles/DialogStyles";
 
 import React from "react";
 import Dialog from "@mui/material/Dialog";
@@ -8,8 +11,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import dialogStyles from "../../styles/DialogStyles";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -40,6 +41,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     (state) => state.addNotification
   );
 
+  const theme = useTheme();
+
   const handleConfirm = () => {
     onConfirm();
     onClose();
@@ -56,7 +59,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <div>
       <Dialog
         style={{ minWidth: "100%", minHeight: "100%" }}
-        css={dialogStyles}
+        css={dialogStyles(theme)}
         className="dialog"
         open={open}
         onClose={onClose}

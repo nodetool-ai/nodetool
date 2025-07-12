@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 
-export const createStyles = (theme: any) =>
+export const createStyles = (theme: Theme) =>
   css({
     "& ": {
       width: "100%",

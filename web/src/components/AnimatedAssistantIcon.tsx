@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { css, keyframes } from "@emotion/react";
 import SvgFileIcon from "./SvgFileIcon";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface Props {
   width?: number;
@@ -51,6 +53,7 @@ const AnimatedAssistantIcon: React.FC<Props> = ({
   height = 44
 }) => {
   const [styleIndex, setStyleIndex] = useState(0);
+  const theme = useTheme();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -84,7 +87,7 @@ const AnimatedAssistantIcon: React.FC<Props> = ({
             width,
             height,
             opacity: 0.9,
-            color: "var(--palette-primary-main)"
+            color: theme.palette.primary.main
           }}
         />
       </div>

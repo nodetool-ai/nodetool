@@ -401,7 +401,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     inputField = <div>Unsupported property type</div>;
   }
 
-  const textStyles = (theme: any) =>
+  const textStyles = (theme: Theme) =>
     css({
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,

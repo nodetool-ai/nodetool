@@ -18,9 +18,10 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: typeof ThemeNodetool) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
@@ -353,6 +354,8 @@ const TabsNodeEditor = () => {
     return Array.from(tabMap.values());
   }, [openWorkflows, loadingStates]);
 
+  const theme = useTheme();
+
   return (
     <>
       {workflowToEdit && (
@@ -362,7 +365,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles}>
+      <div css={styles(theme)}>
         <div className="tabs-container">
           <TabsBar workflows={tabsToRender} />
           {!isMac && isElectron && <WindowControls />}

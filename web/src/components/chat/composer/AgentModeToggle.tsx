@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Tooltip, IconButton, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -12,7 +13,7 @@ interface AgentModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".agent-toggle": {
       transition: "all 0.2s ease-in-out",

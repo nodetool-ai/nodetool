@@ -10,7 +10,8 @@ import { Asset } from "../../stores/ApiTypes";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { IconButton, Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -48,6 +49,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     toggleExpanded
   } = data;
 
+  const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
   const handleContextMenu = (event: React.MouseEvent) => {
@@ -119,7 +121,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             style={{
               display: "inline-block",
               margin: "0 1em 0 .5em",
-              color: ThemeNodetool.palette.grey[200],
+              color: theme.palette.grey[200],
               flexGrow: 1
             }}
           >

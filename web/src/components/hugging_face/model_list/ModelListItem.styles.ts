@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 
-const modelListItemStyles = (theme: any) =>
+const modelListItemStyles = (theme: Theme) =>
   css({
     "&.model-list-item": {
       padding: "0.5em 1em",

@@ -8,7 +8,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Snackbar component overrides in emotion format
  */
 
-export const feedbackStyles = (theme: any) =>
+export const feedbackStyles = (theme: Theme) =>
   css({
     /* MuiSnackbar */
     ".MuiSnackbar-root": {
@@ -38,7 +38,7 @@ export const snackbarRootStyle = css({
   zIndex: 99999
 });
 
-export const snackbarContentStyle = (theme: any) =>
+export const snackbarContentStyle = (theme: Theme) =>
   css({
     backgroundColor: theme.palette?.grey?.[800] || "var(--palette-grey-800)",
     color: theme.palette?.common?.white || "var(--palette-common-white)",

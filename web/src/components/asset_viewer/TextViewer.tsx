@@ -12,7 +12,7 @@ interface TextViewerProps {
   url?: string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&.text-viewer": {
       width: "calc(90vw - 200px)",

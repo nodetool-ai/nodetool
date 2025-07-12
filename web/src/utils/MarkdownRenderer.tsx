@@ -13,7 +13,7 @@ interface MarkdownRendererProps {
   isReadme?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       cursor: "text",

@@ -22,7 +22,7 @@ interface WorkflowListViewProps {
   showCheckboxes: boolean;
 }
 
-const listStyles = (theme: any) =>
+const listStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

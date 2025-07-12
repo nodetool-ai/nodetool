@@ -19,7 +19,7 @@ interface NodeInfoProps {
   menuWidth?: number;
 }
 
-const nodeInfoStyles = (theme: any) =>
+const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

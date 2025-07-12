@@ -3,6 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
 import { Box, Divider, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
@@ -28,10 +30,9 @@ import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import StorageAnalytics from "./StorageAnalytics";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
@@ -70,7 +71,7 @@ const styles = (theme: any) =>
     ".current-folder": {
       display: "block",
       left: "0",
-      fontSize: ThemeNodetool.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       color: theme.palette.grey[200],
       margin: "2em 0 0 0"
     },
@@ -124,7 +125,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".folder-name": {
-      fontSize: ThemeNodetool.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       color: "var(--palette-grey-100)",
       verticalAlign: "middle",
       "&:hover": {
@@ -218,6 +219,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     },
     [setOpenAsset]
   );
+
+  const theme = useTheme();
 
   const handleGlobalSearchAssetDoubleClick = useCallback(
     (asset: AssetWithPath) => {
@@ -323,7 +326,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   }
 
   return (
-    <Box css={styles} className="asset-grid-container" ref={containerRef}>
+    <Box
+      css={styles(theme)}
+      className="asset-grid-container"
+      ref={containerRef}
+    >
       {error && (
         <Typography
           className="error-message"

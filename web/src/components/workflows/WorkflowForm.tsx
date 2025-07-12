@@ -9,12 +9,11 @@ import {
   Typography,
   Autocomplete,
   TextField,
-  Checkbox,
-  FormControlLabel,
   MenuItem
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -33,7 +32,7 @@ const AVAILABLE_TAGS = [
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: theme.spacing(2)
@@ -170,7 +169,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-
+  const theme = useTheme();
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
   }, [workflow]);
@@ -306,7 +305,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               width: "100%",
               backgroundColor: "transparent",
               color: "white",
-              fontSize: ThemeNodetool.fontSizeNormal
+              fontSize: theme.fontSizeNormal
             }}
           />
         </FormControl>

@@ -31,7 +31,7 @@ import {
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-const menuStyles = (theme: any) =>
+const menuStyles = (theme: Theme) =>
   css({
     ".category-header": {
       padding: "8px 16px",
