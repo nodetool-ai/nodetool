@@ -8,12 +8,12 @@ import {
   Select,
   FormControl
 } from "@mui/material";
-
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import type { Theme } from "@mui/material/styles";
+import { useLocation } from "react-router-dom";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
