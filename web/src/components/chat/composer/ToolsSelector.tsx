@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,

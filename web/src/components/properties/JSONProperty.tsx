@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { PropertyProps } from "../node/PropertyInput";

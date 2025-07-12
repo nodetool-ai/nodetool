@@ -1,3 +1,5 @@
+import type { Theme } from "@mui/material/styles";
+
 // Returns CSS styles for Lexical code highlighting tokens using the provided theme.
 export const codeHighlightTokenStyles = (theme: Theme) => ({
   ".editor-code": {

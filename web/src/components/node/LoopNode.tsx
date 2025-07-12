@@ -200,7 +200,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
-      css={styles}
+      css={styles(theme)}
       style={
         nodeHovered ? { border: `2px solid ${theme.palette.primary.main}` } : {}
       }

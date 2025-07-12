@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-import { useState } from "react";
 import {
   Typography,
   Button,
-  Divider,
   Accordion,
   AccordionSummary,
   AccordionDetails
@@ -31,8 +30,15 @@ const DataTypesList = ({
   const styles = (theme: Theme) =>
     css({
       "&": {
-        padding: "0",
-        backgroundColor: "var(--palette-grey-800)"
+        padding: "0 .5em 0 0",
+        backgroundColor: "transparent"
+      },
+      "& .MuiPaper-root": {
+        background: "transparent"
+      },
+      "& .MuiAccordionSummary-root": {
+        backgroundColor: "var(--palette-grey-800)",
+        padding: "0 .5em"
       },
       ".help-item": {
         padding: ".5em 0",

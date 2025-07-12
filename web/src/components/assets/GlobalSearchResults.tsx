@@ -14,6 +14,8 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
@@ -188,6 +190,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   onNavigateToFolder,
   containerWidth = 1200
 }) => {
+  const theme = useTheme();
   // Optimize selection hook to prevent new arrays on every render
   const resultsSignature = useMemo(
     () => results.map((r) => r.id).join(","),
@@ -273,7 +276,10 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 
   if (results.length === 0) {
     return (
-      <Box css={styles} className="global-search-results global-search-empty">
+      <Box
+        css={styles(theme)}
+        className="global-search-results global-search-empty"
+      >
         <div className="global-search-results-container search-results-container">
           <div className="global-search-results-header search-results-header">
             <Typography className="global-search-results-title search-results-title">
@@ -317,7 +323,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
 
   return (
     <Box
-      css={styles}
+      css={styles(theme)}
       className="global-search-results global-search-with-results"
       data-testid="global-search-results"
     >

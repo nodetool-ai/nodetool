@@ -605,7 +605,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box css={styles(theme)}>
+    <Box css={styles}>
       {/* Start Examples Section */}
       <Box className="section examples-section">
         <Box
