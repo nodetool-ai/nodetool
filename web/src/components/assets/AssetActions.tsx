@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import { useTheme, type Theme } from "@mui/material/styles";
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import NorthIcon from "@mui/icons-material/North";
@@ -210,6 +210,7 @@ const AssetActions = ({
   handleDeselectAssets,
   maxItemSize = 10
 }: AssetActionsProps) => {
+  const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const parentFolder = useAssetGridStore((state) => state.parentFolder);
   const { refetchAssetsAndFolders, navigateToFolderId, isLoading } =
@@ -282,7 +283,7 @@ const AssetActions = ({
     });
   };
   return (
-    <div className="asset-actions" css={styles}>
+    <div className="asset-actions" css={styles(theme)}>
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -433,7 +434,7 @@ const AssetActions = ({
         </div>
       )}
       <Popover
-        css={dialogStyles}
+        css={dialogStyles(theme)}
         style={{ minWidth: "100%", minHeight: "100%" }}
         className="dialog"
         open={Boolean(createFolderAnchor)}
