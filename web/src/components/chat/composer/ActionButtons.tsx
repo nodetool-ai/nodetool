@@ -25,7 +25,6 @@ interface ActionButtonsProps {
 
 const styles = css({
   position: "relative",
-  paddingBottom: "0.6em",
   marginRight: "0.25em"
 });
 

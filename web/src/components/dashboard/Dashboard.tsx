@@ -16,14 +16,11 @@ import { Workflow, WorkflowList, Message } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
+import { relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import ChatView from "../chat/containers/ChatView";
 import ThreadList from "../chat/thread/ThreadList";
-import { MessageContent } from "../../stores/ApiTypes";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -78,13 +75,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center"
-    },
-
-    ".chat-section": {
-      gridRow: "3",
-      gridColumn: "1 / -1",
-      maxHeight: "300px",
-      overflow: "hidden"
     },
 
     ".content-scrollable": {
@@ -279,10 +269,6 @@ const styles = (theme: Theme) =>
         gridRow: "2",
         gridColumn: "2"
       },
-      ".chat-section": {
-        gridRow: "3",
-        gridColumn: "1 / -1"
-      }
     },
 
     "@media (max-width: 900px)": {
@@ -303,10 +289,6 @@ const styles = (theme: Theme) =>
         gridRow: "3",
         gridColumn: "1"
       },
-      ".chat-section": {
-        gridRow: "4",
-        gridColumn: "1"
-      }
     },
 
     "@media (max-width: 768px)": {
@@ -351,11 +333,6 @@ const Dashboard: React.FC = () => {
   const loadExamples = useWorkflowManager((state) => state.loadExamples);
   const createWorkflow = useWorkflowManager((state) => state.create);
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    const savedModel = localStorage.getItem("selectedModel");
-    return savedModel || DEFAULT_MODEL;
-  });
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
   const {
@@ -366,24 +343,12 @@ const Dashboard: React.FC = () => {
     createNewThread,
     switchThread,
     getCurrentMessages,
-    progress,
-    statusMessage,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
     threads,
     currentThreadId,
     deleteThread
   } = useGlobalChatStore();
 
   const messages = getCurrentMessages();
-
-  // Save selectedModel to localStorage
-  useEffect(() => {
-    localStorage.setItem("selectedModel", selectedModel);
-  }, [selectedModel]);
 
   // Handle WebSocket connection lifecycle
   useEffect(() => {
@@ -519,54 +484,6 @@ const Dashboard: React.FC = () => {
       setLoadingExampleId(null);
     }
   };
-
-  const handleSendMessage = useCallback(
-    async (message: Message) => {
-      if (!selectedModel) {
-        console.error("No model selected");
-        return;
-      }
-
-      if (status !== "connected" && status !== "reconnecting") {
-        console.error("Not connected to chat service");
-        return;
-      }
-
-      try {
-        // Update the message with the selected model
-        const messageWithModel = {
-          ...message,
-          model: selectedModel
-        };
-
-        // Ensure chat is connected
-        if (status !== "connected") {
-          await connect();
-        }
-        const threadId = createNewThread();
-        switchThread(threadId);
-
-        await sendMessage(messageWithModel);
-        // Navigate to chat view
-        navigate("/chat");
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
-    },
-    [
-      selectedModel,
-      sendMessage,
-      status,
-      connect,
-      navigate,
-      createNewThread,
-      switchThread
-    ]
-  );
-
-  const handleModelChange = useCallback((modelId: string) => {
-    setSelectedModel(modelId);
-  }, []);
 
   const handleOrderChange = (_: any, newOrder: any) => {
     if (newOrder !== null) {
@@ -754,27 +671,6 @@ const Dashboard: React.FC = () => {
             ))
           )}
         </Box>
-      </Box>
-
-      {/* Chat Section */}
-      <Box className="section chat-section">
-        <ChatView
-          status={status}
-          messages={[]} // Empty messages to only show input
-          sendMessage={handleSendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
-          model={selectedModel}
-          selectedTools={selectedTools}
-          onToolsChange={setSelectedTools}
-          onModelChange={handleModelChange}
-          onStop={stopGeneration}
-          agentMode={agentMode}
-          onAgentModeToggle={setAgentMode}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-        />
       </Box>
     </Box>
   );

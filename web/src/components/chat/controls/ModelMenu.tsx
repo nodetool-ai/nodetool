@@ -18,6 +18,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import { useQuery } from "@tanstack/react-query";
 import useModelStore from "../../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { LanguageModel } from "../../../stores/ApiTypes";
 
 const menuStyles = (theme: Theme) =>
   css({
@@ -59,16 +60,12 @@ const menuStyles = (theme: Theme) =>
   });
 
 interface ModelMenuProps {
-  selectedModel?: string;
-  onModelChange?: (modelId: string) => void;
+  selectedModel?: LanguageModel;
+  onModelChange?: (model: LanguageModel) => void;
 }
 
 interface GroupedModels {
-  [provider: string]: Array<{
-    id: string;
-    name: string;
-    provider: string;
-  }>;
+  [provider: string]: Array<LanguageModel>;
 }
 
 const ModelMenu: React.FC<ModelMenuProps> = ({
@@ -89,7 +86,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
     queryFn: async () => await loadLanguageModels()
   });
 
-  const groupedModels = useMemo(() => {
+  const groupedModels: GroupedModels = useMemo(() => {
     if (!models || isLoading || isError) return {};
     return models.reduce<GroupedModels>((acc, model) => {
       const provider = model.provider || "Other";
@@ -97,6 +94,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         acc[provider] = [];
       }
       acc[provider].push({
+        type: "language_model",
         id: model.id || "",
         name: model.name || "",
         provider
@@ -107,7 +105,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !selectedModel) return null;
-    return models.find((m) => m.id === selectedModel);
+    return models.find((m) => m.provider === selectedModel.provider && m.id === selectedModel.id);
   }, [models, selectedModel]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -119,8 +117,8 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
   }, []);
 
   const handleModelSelect = useCallback(
-    (modelId: string) => {
-      onModelChange?.(modelId);
+    (model: LanguageModel) => {
+      onModelChange?.(model);
       handleClose();
     },
     [onModelChange, handleClose]
@@ -134,9 +132,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         title={
           <div style={{ textAlign: "center" }}>
             <Typography variant="inherit">
-              {currentSelectedModelDetails?.name ||
-                selectedModel ||
-                "Select Model"}
+              {currentSelectedModelDetails?.name || "Select Model"}
             </Typography>
             <Typography variant="caption" display="block">
               Select Model
@@ -168,6 +164,9 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
               marginRight: "0.5em"
             }}
           />
+          <Typography variant="inherit" sx={{ fontSize: "var(--fontSizeNormal)" }}>
+            {currentSelectedModelDetails?.name || "Select Model"}
+          </Typography>
         </IconButton>
       </Tooltip>
       <Menu
@@ -205,18 +204,18 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
             ...groupedModels[provider].map((model) => (
               <MenuItem
                 key={model.id}
-                onClick={() => handleModelSelect(model.id)}
+                onClick={() => handleModelSelect(model)}
                 className={`model-item ${
-                  selectedModel === model.id ? "selected" : ""
+                  selectedModel?.provider === model.provider && selectedModel?.id === model.id ? "selected" : ""
                 }`}
               >
-                {selectedModel === model.id && (
+                {selectedModel?.provider === model.provider && selectedModel?.id === model.id && (
                   <ListItemIcon>
                     <CheckIcon fontSize="small" />
                   </ListItemIcon>
                 )}
                 <ListItemText
-                  inset={selectedModel !== model.id}
+                  inset={selectedModel?.provider !== model.provider || selectedModel?.id !== model.id}
                   primary={<span className="model-name">{model.name}</span>}
                 />
               </MenuItem>

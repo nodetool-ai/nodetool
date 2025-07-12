@@ -2003,6 +2003,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2023,6 +2025,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2043,6 +2047,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2063,6 +2069,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2083,6 +2091,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2103,6 +2113,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2123,6 +2135,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2159,6 +2173,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2179,6 +2195,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2199,6 +2217,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2219,6 +2239,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2239,6 +2261,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2259,6 +2283,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2279,6 +2305,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2299,6 +2327,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2319,6 +2349,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2339,6 +2371,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2359,6 +2393,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2379,6 +2415,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2399,6 +2437,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2419,6 +2459,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2439,6 +2481,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2459,6 +2503,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2479,6 +2525,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2499,6 +2547,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2519,6 +2569,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2539,6 +2591,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2559,6 +2613,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2579,6 +2635,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2599,6 +2657,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2619,6 +2679,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2639,6 +2701,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2659,6 +2723,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2679,6 +2745,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2699,6 +2767,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2719,6 +2789,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2739,6 +2811,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2759,6 +2833,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2779,6 +2855,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2799,6 +2877,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2819,6 +2899,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2839,6 +2921,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2859,6 +2943,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2879,6 +2965,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2910,6 +2998,8 @@ export interface components {
             repo_id: string;
             /** Path */
             path?: string | null;
+            /** Variant */
+            variant?: string | null;
             /** Allow Patterns */
             allow_patterns?: string[] | null;
             /** Ignore Patterns */
@@ -2942,6 +3032,219 @@ export interface components {
             path: string;
             /** Error */
             error?: string | null;
+        };
+        /**
+         * InferenceProvider
+         * @enum {string}
+         */
+        InferenceProvider: "black-forest-labs" | "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "together";
+        /** InferenceProviderAudioClassificationModel */
+        InferenceProviderAudioClassificationModel: {
+            /**
+             * Type
+             * @default inference_provider_audio_classification_model
+             * @constant
+             */
+            type: "inference_provider_audio_classification_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderAutomaticSpeechRecognitionModel */
+        InferenceProviderAutomaticSpeechRecognitionModel: {
+            /**
+             * Type
+             * @default inference_provider_automatic_speech_recognition_model
+             * @constant
+             */
+            type: "inference_provider_automatic_speech_recognition_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderImageClassificationModel */
+        InferenceProviderImageClassificationModel: {
+            /**
+             * Type
+             * @default inference_provider_image_classification_model
+             * @constant
+             */
+            type: "inference_provider_image_classification_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderImageSegmentationModel */
+        InferenceProviderImageSegmentationModel: {
+            /**
+             * Type
+             * @default inference_provider_image_segmentation_model
+             * @constant
+             */
+            type: "inference_provider_image_segmentation_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderImageToImageModel */
+        InferenceProviderImageToImageModel: {
+            /**
+             * Type
+             * @default inference_provider_image_to_image_model
+             * @constant
+             */
+            type: "inference_provider_image_to_image_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderSummarizationModel */
+        InferenceProviderSummarizationModel: {
+            /**
+             * Type
+             * @default inference_provider_summarization_model
+             * @constant
+             */
+            type: "inference_provider_summarization_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextClassificationModel */
+        InferenceProviderTextClassificationModel: {
+            /**
+             * Type
+             * @default inference_provider_text_classification_model
+             * @constant
+             */
+            type: "inference_provider_text_classification_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextGenerationModel */
+        InferenceProviderTextGenerationModel: {
+            /**
+             * Type
+             * @default inference_provider_text_generation_model
+             * @constant
+             */
+            type: "inference_provider_text_generation_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextToAudioModel */
+        InferenceProviderTextToAudioModel: {
+            /**
+             * Type
+             * @default inference_provider_text_to_audio_model
+             * @constant
+             */
+            type: "inference_provider_text_to_audio_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextToImageModel */
+        InferenceProviderTextToImageModel: {
+            /**
+             * Type
+             * @default inference_provider_text_to_image_model
+             * @constant
+             */
+            type: "inference_provider_text_to_image_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextToSpeechModel */
+        InferenceProviderTextToSpeechModel: {
+            /**
+             * Type
+             * @default inference_provider_text_to_speech_model
+             * @constant
+             */
+            type: "inference_provider_text_to_speech_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTextToTextModel */
+        InferenceProviderTextToTextModel: {
+            /**
+             * Type
+             * @default inference_provider_text_to_text_model
+             * @constant
+             */
+            type: "inference_provider_text_to_text_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
+        };
+        /** InferenceProviderTranslationModel */
+        InferenceProviderTranslationModel: {
+            /**
+             * Type
+             * @default inference_provider_translation_model
+             * @constant
+             */
+            type: "inference_provider_translation_model";
+            /** @default hf-inference */
+            provider: components["schemas"]["InferenceProvider"];
+            /**
+             * Model Id
+             * @default
+             */
+            model_id: string;
         };
         /** InstalledPackageListResponse */
         InstalledPackageListResponse: {
@@ -3128,6 +3431,7 @@ export interface components {
             output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
+            provider?: components["schemas"]["Provider"] | null;
             /** Model */
             model?: string | null;
             /** Agent Mode */
@@ -3178,6 +3482,7 @@ export interface components {
             output_files?: components["schemas"]["MessageFile"][] | null;
             /** Created At */
             created_at?: string | null;
+            provider?: components["schemas"]["Provider"] | null;
             /** Model */
             model?: string | null;
             /** Agent Mode */
@@ -3919,7 +4224,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "gemini" | "empty";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "huggingface_groq" | "huggingface_cerebras" | "ollama" | "comfy" | "local" | "gemini" | "empty";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -5785,7 +6090,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
                 };
             };
         };

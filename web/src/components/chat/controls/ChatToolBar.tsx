@@ -10,6 +10,7 @@ import { HelpModeToggle } from "../composer/HelpModeToggle";
 import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
+import { LanguageModel } from "../../../stores/ApiTypes";
 
 const styles = () =>
   css({
@@ -29,8 +30,8 @@ const styles = () =>
 interface ChatToolBarProps {
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
-  selectedModel?: string;
-  onModelChange?: (modelId: string) => void;
+  selectedModel?: LanguageModel;
+  onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;

@@ -1,10 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { Box, Typography } from "@mui/material";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
-import { MessageContent } from "../../../stores/ApiTypes";
+import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 
 const styles = css({
   width: "100%",
@@ -52,8 +50,8 @@ type ChatInputSectionProps = {
   onToolsChange?: (tools: string[]) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
-  selectedModel?: string;
-  onModelChange?: (modelId: string) => void;
+  selectedModel?: LanguageModel;
+  onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;

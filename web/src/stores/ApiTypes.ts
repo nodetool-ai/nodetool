@@ -123,3 +123,5 @@ export type SubTask = components["schemas"]["SubTask"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
 export type SubTaskResult = components["schemas"]["SubTaskResult"];
+export type InferenceProvider = components["schemas"]["InferenceProvider"]; 
+export type Provider = components["schemas"]["Provider"];
