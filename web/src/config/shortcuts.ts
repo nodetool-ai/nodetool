@@ -1,5 +1,8 @@
 import React from "react";
 
+/**
+ * Defines the structure for a keyboard shortcut.
+ */
 export interface Shortcut {
   /** Human-readable title, e.g. "Copy" */
   title: string;
@@ -21,7 +24,12 @@ export interface Shortcut {
   altKeyCombos?: string[][];
 }
 
-/** Simple platform map helper */
+/**
+ * Maps common modifier keys to their macOS equivalents.
+ * e.g. "Control" -> "Meta" (⌘), "Alt" -> "Option" (⌥)
+ * @param key The key to map.
+ * @returns The mapped key for macOS.
+ */
 const mapKeyForMac = (key: string): string => {
   switch (key) {
     case "Alt":
@@ -33,6 +41,13 @@ const mapKeyForMac = (key: string): string => {
   }
 };
 
+/**
+ * Expands a list of shortcuts to include OS-specific key combinations.
+ * For example, on macOS, "Control" is mapped to "Meta" (⌘).
+ * @param shortcuts The array of shortcuts to expand.
+ * @param mac Whether to use macOS-specific key combinations.
+ * @returns A new array of shortcuts with OS-specific key combos.
+ */
 export const expandShortcutsForOS = (
   shortcuts: Shortcut[],
   mac: boolean
@@ -49,7 +64,15 @@ export const expandShortcutsForOS = (
 };
 
 /**
- * Returns a JSX tooltip element containing title and both Win/Mac key combos.
+ * Returns a JSX tooltip for a given shortcut slug.
+ *
+ * The tooltip contains the shortcut's title and key combinations for different operating systems.
+ *
+ * @param slug The slug of the shortcut to get the tooltip for.
+ * @param os The operating system to display the shortcut for. Defaults to the current OS.
+ * @param mode The display mode for the tooltip. 'full' shows title and combo, 'combo' shows only the key combo.
+ * @param showDescription Whether to show the shortcut's description in the tooltip.
+ * @returns A React element for the tooltip, or the original slug if the shortcut is not found.
  * Example structure:
  * <div class="tooltip-span">
  *   <div class="tooltip-title">Run Workflow</div>
@@ -157,6 +180,9 @@ export const getShortcutTooltip = (
 
 // --- NODE EDITOR SHORTCUTS --------------------------------------------------
 
+/**
+ * The master list of all keyboard shortcuts available in the node editor and surrounding UI.
+ */
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   // ---------- NODES -------------------------------------------------------
   {
@@ -488,6 +514,10 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   }))
 ] as Shortcut[];
 
+/**
+ * A mapping of shortcut categories to their human-readable display names.
+ * Used for grouping shortcuts in the UI.
+ */
 export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   workflow: "Workflows",
   panel: "Panels",
