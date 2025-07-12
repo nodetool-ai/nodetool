@@ -35,6 +35,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import type { Theme } from "@mui/material/styles";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
