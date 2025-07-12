@@ -31,10 +31,11 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".error-message": {
       maxWidth: 600,
       padding: "2em 0 1em",
+      color: theme.palette.grey[100],
       marginBottom: theme.spacing?.(2) || "16px"
     },
     ".error-text": {
-      color: theme.palette.grey[0],
+      color: theme.palette.grey[100],
       backgroundColor: theme.palette?.grey[900],
       border: "1px solid " + theme.palette?.grey[800],
       fontFamily: theme.fontFamily2,
@@ -59,7 +60,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".error-stack-trace": {
-      color: theme.palette.grey[0],
+      color: theme.palette.grey[50],
       backgroundColor: theme.palette.grey[900],
       border: "1px solid " + theme.palette.grey[800],
       fontFamily: "monospace",
@@ -88,7 +89,7 @@ const ErrorBoundary: React.FC = () => {
     <ThemeProvider theme={theme}>
       <Box css={errorBoundaryStyles(theme)}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-        <Typography variant="h2" className="error-title">
+        <Typography variant="h4" className="error-title">
           NodeTool has encountered an error
         </Typography>
         <Typography variant="body2" className="error-message">
