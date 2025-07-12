@@ -12,7 +12,7 @@ import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { Message } from "../../../stores/ApiTypes";
+import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 
 const GlobalChat: React.FC = () => {
@@ -39,9 +39,17 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdate
   } = useGlobalChatStore();
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
+  const tryParseModel = (model: string) => {
+    try {
+      return JSON.parse(model);
+    } catch (error) {
+      return DEFAULT_MODEL;
+    }
+  };
+
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const savedModel = localStorage.getItem("selectedModel");
-    return savedModel || DEFAULT_MODEL;
+    return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
@@ -110,45 +118,9 @@ const GlobalChat: React.FC = () => {
 
   // Save selectedModel to localStorage
   useEffect(() => {
-    localStorage.setItem("selectedModel", selectedModel);
+    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
   }, [selectedModel]);
 
-  const handleSendMessage = useCallback(
-    async (message: Message) => {
-      if (!selectedModel) {
-        console.error("No model selected");
-        return;
-      }
-
-      if (status !== "connected" && status !== "reconnecting") {
-        console.error(
-          "Not connected to chat service, attempting to reconnect..."
-        );
-        // Attempt to reconnect before sending
-        try {
-          await connect();
-        } catch (error) {
-          console.error("Failed to reconnect:", error);
-          return;
-        }
-      }
-
-      try {
-        // Update the message with the selected model - prefix with "help:" if help mode is enabled
-        const modelToUse = helpMode ? `help:${selectedModel}` : selectedModel;
-        const messageWithModel = {
-          ...message,
-          model: modelToUse,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined
-        };
-        await sendMessage(messageWithModel);
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
-    },
-    [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
-  );
 
   const mainAreaStyles = (theme: Theme) =>
     css({
@@ -250,7 +222,7 @@ const GlobalChat: React.FC = () => {
           <ChatView
             status={status}
             messages={messages}
-            sendMessage={handleSendMessage}
+            sendMessage={sendMessage}
             progress={progress.current}
             total={progress.total}
             progressMessage={statusMessage}
@@ -259,7 +231,7 @@ const GlobalChat: React.FC = () => {
             onToolsChange={setSelectedTools}
             selectedCollections={selectedCollections}
             onCollectionsChange={setSelectedCollections}
-            onModelChange={(modelId) => setSelectedModel(modelId)}
+            onModelChange={setSelectedModel}
             onStop={stopGeneration}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}

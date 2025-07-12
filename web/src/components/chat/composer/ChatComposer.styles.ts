@@ -14,12 +14,12 @@ export const createStyles = (theme: Theme) =>
       border: "1px solid",
       borderColor: theme.palette.grey[800],
       display: "flex",
-      alignItems: "flex-end",
+      alignItems: "center",
       borderRadius: "16px",
       marginLeft: "1em",
       marginRight: "1em",
       boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-      padding: "6px 6px 0px 12px",
+      padding: "0px 6px 0px 12px",
 
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
@@ -38,8 +38,8 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: ".5em 1em .5em .5em",
-      marginBottom: ".5em",
+      padding: "0px 1em 0px .5em",
+      margin: "1em 0",
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {

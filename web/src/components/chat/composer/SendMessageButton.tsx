@@ -23,8 +23,8 @@ export const SendMessageButton = forwardRef<
       disableRipple={isDisabled}
       disabled={isDisabled}
       sx={{
-        width: 40,
-        height: 40,
+        width: 30,
+        height: 30,
         borderRadius: "50%",
         backgroundColor: "#ffffff",
         transition: "background-color 0.2s, box-shadow 0.2s",

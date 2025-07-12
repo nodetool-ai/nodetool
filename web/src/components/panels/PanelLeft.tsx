@@ -242,19 +242,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("togglePacks")}
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
-          onClick={() => onViewChange("packs")}
-        >
-          <WidgetsIcon />
-        </IconButton>
-      </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
@@ -390,19 +377,6 @@ const PanelContent = memo(function PanelContent({
         >
           <h3>Collections</h3>
           <CollectionList />
-        </Box>
-      )}
-      {activeView === "packs" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto",
-            margin: "0 20px"
-          }}
-        >
-          <h3>Packs</h3>
-          <PackageList />
         </Box>
       )}
     </>

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { Message } from "../../stores/ApiTypes";
+import { LanguageModel, Message } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
 import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
@@ -78,10 +78,18 @@ const WorkflowAssistantChat: React.FC = () => {
     edges: state.edges
   }));
 
+  const tryParseModel = (model: string) => {
+    try {
+      return JSON.parse(model);
+    } catch (error) {
+      return DEFAULT_MODEL;
+    }
+  };
+
   // Local UI state (model & toggles)
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const saved = localStorage.getItem("selectedModel");
-    return saved || DEFAULT_MODEL;
+    return saved ? tryParseModel(saved) : DEFAULT_MODEL;
   });
   const [selectedTools] = useState<string[]>([]); // immutable; no selector UI
   const [selectedCollections] = useState<string[]>([]);
