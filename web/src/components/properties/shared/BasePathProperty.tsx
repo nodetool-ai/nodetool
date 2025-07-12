@@ -167,17 +167,15 @@ const treeViewStyles = (theme: Theme) => ({
     userSelect: "none"
   },
   ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: (theme: Theme) =>
-      `${"var(--palette-primary-main)"} !important`,
-    color: (theme: Theme) => theme.palette.grey[1000]
+    backgroundColor: `${"var(--palette-primary-main)"} !important`,
+    color: theme.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: (theme: Theme) => `${theme.palette.grey[500]} !important`
+    backgroundColor: `${theme.palette.grey[500]} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
-    backgroundColor: (theme: Theme) =>
-      `${"var(--palette-primary-main)"} !important`
+    backgroundColor: `${"var(--palette-primary-main)"} !important`
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",
@@ -188,10 +186,10 @@ const treeViewStyles = (theme: Theme) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: (theme: Theme) => theme.palette.warning.main
+    color: theme.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
-    color: (theme: Theme) => theme.palette.grey[500]
+    color: theme.palette.grey[500]
   }
 });
 
