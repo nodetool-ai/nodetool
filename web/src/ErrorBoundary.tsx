@@ -86,7 +86,7 @@ const ErrorBoundary: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box css={errorBoundaryStyles(theme)}>
+      <Box css={errorBoundaryStyles}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
         <Typography variant="h2" className="error-title">
           NodeTool has encountered an error

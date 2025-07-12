@@ -285,7 +285,7 @@ const AssetActions = ({
     });
   };
   return (
-    <div className="asset-actions" css={styles(theme)}>
+    <div className="asset-actions" css={styles}>
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}

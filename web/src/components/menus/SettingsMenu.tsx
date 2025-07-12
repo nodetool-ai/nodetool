@@ -513,7 +513,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         </Button>
       </Tooltip>
       <Menu
-        css={settingsStyles(theme)}
+        css={settingsStyles}
         className="settings-menu-container"
         open={isMenuOpen}
         onContextMenu={(event) => event.preventDefault()}

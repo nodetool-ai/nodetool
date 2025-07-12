@@ -60,7 +60,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   }, [asset?.get_url]);
 
   return (
-    <div className="output text-viewer" css={styles(theme)}>
+    <div className="output text-viewer" css={styles}>
       {!document && <CircularProgress className="progress" />}
       <div>{document}</div>
     </div>

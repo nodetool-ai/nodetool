@@ -154,7 +154,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   `;
 
   return (
-    <div css={typeFilterStyles(theme)}>
+    <div css={typeFilterStyles}>
       <Global styles={globalMenuItemStyles} />
       <div className="type-filter-container">
         <Tooltip

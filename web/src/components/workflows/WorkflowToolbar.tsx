@@ -105,7 +105,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   );
 
   return (
-    <div css={styles(theme)}>
+    <div css={styles}>
       <div className="tools">
         <Tooltip
           title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}

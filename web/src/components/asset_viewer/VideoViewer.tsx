@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
 const VideoViewer: React.FC<VideoViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   return (
-    <div className="video-viewer" css={styles(theme)}>
+    <div className="video-viewer" css={styles}>
       <video controls={true} src={asset?.get_url || ""}>
         Your browser does not support the video element.
       </video>

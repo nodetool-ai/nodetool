@@ -218,7 +218,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   );
 
   return (
-    <div className="pdf-viewer" css={styles(theme)}>
+    <div className="pdf-viewer" css={styles}>
       <div className="content-wrapper">
         {asset?.content_type && (
           <Typography variant="body2" className="content-type">

@@ -334,7 +334,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
         `}
         onClick={handleClose}
       />
-      <div className="help-container" css={helpStyles(theme)}>
+      <div className="help-container" css={helpStyles}>
         <div className="help">
           <div className="top">
             <Typography variant="h2">Help</Typography>

@@ -71,7 +71,7 @@ const AssetExplorer: React.FC = () => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
   return (
-    <div css={styles(theme)}>
+    <div css={styles}>
       <Box className="asset-explorer">
         <ContextMenuProvider>
           <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>

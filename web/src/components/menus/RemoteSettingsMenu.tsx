@@ -160,7 +160,7 @@ const RemoteSettings = () => {
         displayedSettingsByGroup.size > 0 && (
           <div
             className="remote-settings-content"
-            css={getSharedSettingsStyles(theme)}
+            css={getSharedSettingsStyles}
           >
             <div className="settings-main-content">
               <Typography variant="h1">Settings</Typography>
