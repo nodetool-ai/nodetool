@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
@@ -9,7 +10,7 @@ import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     display: "flex",
     alignItems: "center",

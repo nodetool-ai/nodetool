@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
 import NodeInfo from "../../node_menu/NodeInfo";
-import { css } from "@emotion/react";
 import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: Theme) =>

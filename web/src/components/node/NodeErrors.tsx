@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { IconButton } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";

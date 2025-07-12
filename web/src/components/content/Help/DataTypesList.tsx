@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-import { useState } from "react";
 import {
   Typography,
   Button,
-  Divider,
   Accordion,
   AccordionSummary,
   AccordionDetails

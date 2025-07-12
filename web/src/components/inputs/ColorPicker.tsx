@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
 import styled from "@emotion/styled";
