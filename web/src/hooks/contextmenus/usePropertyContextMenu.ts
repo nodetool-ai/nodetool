@@ -1,6 +1,4 @@
-import { Properties } from "property-information/lib/util/schema";
 import { useCallback, useState } from "react";
-import { Node } from "@xyflow/react";
 
 type MenuType = {
   id: string;
@@ -35,7 +33,7 @@ export function usePropertyContextMenu() {
   );
 
   const onPropertyContextMenu = useCallback(
-    (event: React.MouseEvent, prop: Properties) => {
+    (event: React.MouseEvent) => {
       const clickedElement = event.target as HTMLElement;
 
       if (clickedElement.classList.contains("node-property")) {
