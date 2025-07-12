@@ -59,13 +59,7 @@ const ControlsShortcutsTab: React.FC = () => {
                   {/* Title */}
                   <Typography sx={{ minWidth: 160 }}>{s.title}</Typography>
                   <Box sx={{ minWidth: 200 }}>
-                    {
-                      getShortcutTooltip(
-                        s.slug,
-                        undefined,
-                        "combo"
-                      ) as unknown as string
-                    }
+                    {getShortcutTooltip(s.slug, undefined, "combo")}
                   </Box>
                   {/* Description */}
                   {s.description && (
