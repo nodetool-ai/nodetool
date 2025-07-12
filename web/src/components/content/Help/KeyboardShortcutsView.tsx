@@ -186,6 +186,20 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     return m;
   }, [activeShortcuts, os]);
 
+  const handleButtonMouseEnter = (button: string, e: React.MouseEvent) => {
+    if (isKeyPressedRef.current) return;
+    const key = button.toLowerCase();
+    if (keySlugMap[key]) {
+      setHoverSlugs(keySlugMap[key]);
+      setTooltipAnchorEl(e.target as HTMLElement);
+    }
+  };
+
+  const handleButtonMouseLeave = () => {
+    setHoverSlugs(null);
+    setTooltipAnchorEl(null);
+  };
+
   // After render, attach title attributes to every button
   useEffect(() => {
     if (!containerRef.current) return;
@@ -343,6 +357,8 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
           buttonTheme={buttonTheme}
           onKeyPress={onKeyPress}
           onKeyReleased={onKeyReleased}
+          onButtonMouseEnter={handleButtonMouseEnter}
+          onButtonMouseLeave={handleButtonMouseLeave}
         />
       </div>
       {currentHoverSlugs && ( // Only render Tooltip when there are hoverSlugs

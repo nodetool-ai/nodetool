@@ -170,7 +170,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             <NodeMenu focusSearchInput={true} />
             <Modal
               open={showShortcuts}
-              onClose={() => setShowShortcuts(false)}
+              onClose={(event, reason) => {
+                if (reason === "backdropClick") {
+                  setShowShortcuts(false);
+                }
+              }}
               closeAfterTransition
             >
               <Box
