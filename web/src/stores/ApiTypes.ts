@@ -2,8 +2,8 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node"];
 export type Edge = components["schemas"]["Edge"];
-export type Asset = components["schemas"]["Asset"] & {
-  size?: number; // File size in bytes - added for size sorting
+export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
+  size?: number | null; // File size in bytes - added for size sorting
 };
 export type AssetList = components["schemas"]["AssetList"];
 
