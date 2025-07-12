@@ -6,7 +6,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { css } from "@emotion/react";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       maxHeight: "500px",

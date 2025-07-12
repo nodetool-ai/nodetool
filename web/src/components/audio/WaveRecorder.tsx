@@ -19,7 +19,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     toggleDeviceListVisibility
   } = useWaveRecorder(props);
 
-  const styles = (theme: any) =>
+  const styles = (theme: Theme) =>
     css({
       background: theme.palette.grey[800],
       minHeight: "50px",

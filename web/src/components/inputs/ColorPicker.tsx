@@ -16,7 +16,7 @@ const ColorCircle = styled.div<{ color: string | null }>`
   border: 1px solid rgba(0, 0, 0, 0.75);
 `;
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       background: "transparent",
@@ -63,7 +63,7 @@ const styles = (theme: any) =>
     }
   });
 
-const colorMatrixStyle = (theme: any) =>
+const colorMatrixStyle = (theme: Theme) =>
   css({
     display: "flex",
     flexWrap: "wrap",

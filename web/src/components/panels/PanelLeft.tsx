@@ -27,7 +27,7 @@ import { Fullscreen } from "@mui/icons-material";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     left: "0",

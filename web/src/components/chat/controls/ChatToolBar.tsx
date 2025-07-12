@@ -9,7 +9,7 @@ import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",

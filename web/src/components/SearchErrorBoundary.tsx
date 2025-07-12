@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Typography, Box, Button, ThemeProvider } from "@mui/material";
-import ThemeNodetool from "./themes/ThemeNodetool";
+import { Typography, Box, Button } from "@mui/material";
+import { ThemeContext } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
 const searchErrorBoundaryStyles = (theme: any) =>
   css({
@@ -57,6 +58,10 @@ class SearchErrorBoundary extends React.Component<
   SearchErrorBoundaryProps,
   SearchErrorBoundaryState
 > {
+  static contextType = ThemeContext;
+
+  declare context: Theme;
+
   constructor(props: SearchErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -76,27 +81,28 @@ class SearchErrorBoundary extends React.Component<
   };
 
   render() {
+    const theme = this.context as Theme;
+    const boundaryStyles = searchErrorBoundaryStyles(theme);
+
     if (this.state.hasError) {
       return (
-        <ThemeProvider theme={ThemeNodetool}>
-          <Box css={searchErrorBoundaryStyles}>
-            <Typography variant="h6" className="error-title">
-              {this.props.fallbackTitle || "Search Error"}
-            </Typography>
-            <Typography variant="body2" className="error-message">
-              Something went wrong with the search functionality. Please try
-              again.
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={this.handleRetry}
-              className="retry-button"
-              size="small"
-            >
-              Try Again
-            </Button>
-          </Box>
-        </ThemeProvider>
+        <Box css={boundaryStyles}>
+          <Typography variant="h6" className="error-title">
+            {this.props.fallbackTitle || "Search Error"}
+          </Typography>
+          <Typography variant="body2" className="error-message">
+            Something went wrong with the search functionality. Please try
+            again.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={this.handleRetry}
+            className="retry-button"
+            size="small"
+          >
+            Try Again
+          </Button>
+        </Box>
       );
     }
 

@@ -6,12 +6,13 @@ import Draggable from "react-draggable";
 import { Button } from "@mui/material";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useNodes } from "../../../contexts/NodeContext";
 
-const styles = (theme: any) => css`
+const styles = (theme: Theme) => css`
   position: absolute;
   z-index: 1000;
   background-color: ${theme.palette.background.paper};
@@ -89,6 +90,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const { panel } = usePanelStore();
+  const theme = useTheme();
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -119,7 +121,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
       return (
         <div className="warning">
           {nodeType} <br />
-          <span style={{ color: ThemeNodetool.palette.grey[100] }}>
+          <span style={{ color: theme.palette.grey[100] }}>
             Sorry, this node does not exist.
           </span>
           <Button
@@ -145,11 +147,17 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
         </Button>
       </>
     );
-  }, [nodeMetadata, nodeType, handleAddNode, handleOpenNodeMenu]);
+  }, [
+    nodeMetadata,
+    nodeType,
+    handleAddNode,
+    handleOpenNodeMenu,
+    theme.palette.grey
+  ]);
 
   return (
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
-      <div css={styles} ref={nodeRef}>
+      <div css={styles(theme)} ref={nodeRef}>
         <div className="handle"></div>
         <button className="close-button" onClick={onClose}>
           ×

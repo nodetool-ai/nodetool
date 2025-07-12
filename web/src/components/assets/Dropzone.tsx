@@ -3,7 +3,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import FileUploadButton from "../buttons/FileUploadButton";
 import { css } from "@emotion/react";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     draggingOverlay: {
       display: "none",

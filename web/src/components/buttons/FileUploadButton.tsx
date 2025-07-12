@@ -3,6 +3,7 @@ import { Button, Typography, Tooltip } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 export type FileUploadButtonProps = {
   onFileChange: (files: File[]) => void;

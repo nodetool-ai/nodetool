@@ -21,7 +21,7 @@ import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       marginLeft: "0px"

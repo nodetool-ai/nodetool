@@ -173,7 +173,7 @@ const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
   return createElement("svg", docAttributes, ...children);
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: theme.palette.grey[600],

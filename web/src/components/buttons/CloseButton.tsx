@@ -10,7 +10,7 @@ interface CloseButtonProps<T> {
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       position: "absolute",

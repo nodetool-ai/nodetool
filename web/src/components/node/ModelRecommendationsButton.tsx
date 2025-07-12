@@ -1,6 +1,5 @@
 import React, { useState, useCallback, memo } from "react";
-import { Button, Tooltip, Typography } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { Button, Tooltip } from "@mui/material";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { UnifiedModel } from "../../stores/ApiTypes";
@@ -17,7 +16,6 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
   const { startDownload } = useModelDownloadStore();
-
   const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
   const handleCloseModelDialog = useCallback(
     () => setOpenModelDialog(false),

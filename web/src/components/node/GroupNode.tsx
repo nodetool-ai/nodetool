@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 

@@ -24,11 +24,12 @@ import {
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -115,6 +116,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     useAssetSelection(visualOrderAssets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const viewMode = useAssetGridStore((state) => state.viewMode);
+
+  const theme = useTheme();
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -317,14 +320,14 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     return (
       <div
         className="asset-grid-content"
-        css={styles}
+        css={styles(theme)}
         ref={containerRef}
         onContextMenu={handleContextMenu}
         style={{
           width: "100%",
           height: "100%",
           borderLeft: isHorizontal
-            ? "1px solid" + ThemeNodetool.palette.grey[600]
+            ? "1px solid" + theme.palette.grey[600]
             : "none",
           paddingLeft: isHorizontal ? ".5em" : "0"
         }}
@@ -349,14 +352,14 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   return (
     <div
       className="asset-grid-content"
-      css={styles}
+      css={styles(theme)}
       ref={containerRef}
       onContextMenu={handleContextMenu}
       style={{
         width: "100%",
         height: "100%",
         borderLeft: isHorizontal
-          ? "1px solid" + ThemeNodetool.palette.grey[600]
+          ? "1px solid" + theme.palette.grey[600]
           : "none",
         paddingLeft: isHorizontal ? ".5em" : "0"
       }}

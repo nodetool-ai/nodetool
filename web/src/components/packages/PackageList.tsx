@@ -32,7 +32,7 @@ type PackageListResponse = components["schemas"]["PackageListResponse"];
 type InstalledPackageListResponse =
   components["schemas"]["InstalledPackageListResponse"];
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[800],
     color: theme.palette.grey[0],

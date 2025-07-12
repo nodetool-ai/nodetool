@@ -30,7 +30,7 @@ interface PlaceholderNodeData extends Node<NodeData> {
   };
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       outline: "2px solid" + theme.palette.error.main

@@ -16,9 +16,10 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { IconForType } from "../../config/data_types";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": { paddingBottom: "3em" }
   });
@@ -39,6 +40,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   onTotalAssetsCalculated,
   onLoading
 }) => {
+  const theme = useTheme();
   const [assetTree, setAssetTree] = useState<AssetTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
@@ -189,7 +191,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                   minWidth: "1em",
                   paddingRight: ".5em",
                   "& > *": {
-                    color: ThemeNodetool.palette.grey[100],
+                    color: theme.palette.grey[100],
                     width: "1em",
                     height: "1em"
                   }

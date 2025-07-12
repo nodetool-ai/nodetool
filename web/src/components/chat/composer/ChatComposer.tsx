@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
@@ -21,7 +22,11 @@ interface ChatComposerProps {
     | "reconnecting"
     | "disconnecting"
     | "failed";
-  onSendMessage: (content: MessageContent[], prompt: string, agentMode: boolean) => void;
+  onSendMessage: (
+    content: MessageContent[],
+    prompt: string,
+    agentMode: boolean
+  ) => void;
   onStop?: () => void;
   disabled?: boolean;
   agentMode?: boolean;

@@ -15,7 +15,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { IconForType } from "../../config/data_types";
 import ModelsManager from "../hugging_face/ModelsManager";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".command-icon": {
       color: theme.palette.action.active,

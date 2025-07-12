@@ -8,7 +8,7 @@ import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "& .property-label": {
       marginBottom: "5px"
@@ -23,7 +23,7 @@ const styles = (theme: any) =>
     "& .url-input": {
       width: "100%"
     }
-});
+  });
 
 const AudioProperty = (props: PropertyProps) => {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;

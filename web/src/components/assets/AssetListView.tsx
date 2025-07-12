@@ -18,7 +18,7 @@ interface AssetListViewProps {
   isHorizontal?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100%",

@@ -7,12 +7,12 @@ import {
   Message,
   MessageContent,
   PlanningUpdate,
-  TaskUpdate,
+  TaskUpdate
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",

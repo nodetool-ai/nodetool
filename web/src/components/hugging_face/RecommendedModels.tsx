@@ -11,6 +11,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";

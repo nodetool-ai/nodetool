@@ -16,7 +16,7 @@ interface NodeTitleEditorProps {
   anchorEl: HTMLElement;
   onClose: () => void;
 }
-const dialogStyles = (theme: any) =>
+const dialogStyles = (theme: Theme) =>
   css({
     "& .MuiPaper-root": {},
     ".MuiDialogContent-root": {

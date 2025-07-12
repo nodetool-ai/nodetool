@@ -35,7 +35,7 @@ const containerStyles = css({
   pointerEvents: "none"
 });
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: 0,

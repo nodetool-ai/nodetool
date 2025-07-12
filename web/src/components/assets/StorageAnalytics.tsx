@@ -10,7 +10,7 @@ interface StorageAnalyticsProps {
   currentFolder?: Asset | null;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

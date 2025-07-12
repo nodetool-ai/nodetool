@@ -8,7 +8,7 @@ import { isEqual } from "lodash";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       height: "100%"

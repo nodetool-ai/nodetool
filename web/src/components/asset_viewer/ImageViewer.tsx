@@ -1,17 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler } from "react";
 import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
-// import log from "loglevel";
 
 interface ImageViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100%",
@@ -41,6 +41,9 @@ const styles = (theme: any) =>
  * The viewer supports zooming and panning.
  */
 const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
+  const theme = useTheme();
+  const viewerStyles = styles(theme);
+
   const imageRef = useRef<HTMLImageElement>(null);
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -171,7 +174,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   };
 
   return (
-    <div css={styles} className="image-viewer">
+    <div css={viewerStyles} className="image-viewer">
       <div className="image-info">
         <Typography variant="body2">{`${imageWidth} x ${imageHeight}`}</Typography>
       </div>

@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 
 import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
-import ThemeNodetool from "../components/themes/ThemeNodetool";
 import { memo } from "react";
 import { isEqual } from "lodash";
+import useTheme from "@mui/material/styles/useTheme";
 
 // icons
 import stc from "string-to-color";
@@ -405,6 +405,7 @@ export const IconForType = memo(function IconForType({
   svgProps,
   showTooltip = true
 }: IconForTypeProps) {
+  const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
   const dataType = datatypeByName(name);
   const description = dataType?.description || "";
@@ -424,8 +425,8 @@ export const IconForType = memo(function IconForType({
                 backgroundColor: "transparent",
                 color: "var(--palette-action-active)",
                 display: "block",
-                fontSize: ThemeNodetool.fontSizeNormal,
-                fontFamily: ThemeNodetool.fontFamily1
+                fontSize: theme.fontSizeNormal,
+                fontFamily: theme.fontFamily1
               }}
             >
               {name.toUpperCase()} <br />

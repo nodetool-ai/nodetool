@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 
-export const tableStyles = (theme: any) =>
+export const tableStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

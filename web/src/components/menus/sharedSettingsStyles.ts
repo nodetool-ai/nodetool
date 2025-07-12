@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, SerializedStyles } from "@emotion/react";
 
-export const getSharedSettingsStyles = (theme: any): SerializedStyles => {
+export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
   return css`
     display: flex;
     flex-direction: column;

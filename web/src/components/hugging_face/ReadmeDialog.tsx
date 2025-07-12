@@ -10,7 +10,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface ReadmeDialogProps {
   open: boolean;
@@ -43,6 +44,8 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
     gcTime: 1000 * 60 * 60 * 24,
     enabled: open
   });
+
+  const theme = useTheme();
 
   const formattedReadme = useMemo(() => {
     const lines = readmeData?.split("\n");
@@ -83,7 +86,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
             No README available found at{" "}
             <Link
               className="readme-link"
-              style={{ color: ThemeNodetool.palette.c_link }}
+              style={{ color: theme.palette.c_link }}
               target="_blank"
               href={`https://huggingface.co/${modelId}/raw/main/README.md`}
               rel="noreferrer"

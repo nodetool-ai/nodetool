@@ -9,7 +9,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",

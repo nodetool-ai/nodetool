@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { isEqual } from "lodash";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 

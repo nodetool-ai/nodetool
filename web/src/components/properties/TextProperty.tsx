@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
 
 import PropertyLabel from "../node/PropertyLabel";
@@ -7,7 +9,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import TextAssetDisplay from "./TextAssetDisplay";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".text": {
       outline: "none",

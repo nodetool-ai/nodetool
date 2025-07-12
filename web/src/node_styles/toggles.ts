@@ -8,7 +8,7 @@ import { themeVariables } from "./theme-variables";
  * MUI ToggleButton and ToggleButtonGroup component overrides in emotion format
  */
 
-export const toggleStyles = (theme: any) =>
+export const toggleStyles = (theme: Theme) =>
   css({
     /* MuiToggleButton */
     ".MuiToggleButton-root": {
@@ -59,7 +59,7 @@ export const toggleStyles = (theme: any) =>
   });
 
 // Individual style functions for component-specific use
-export const toggleButtonStyle = (theme: any) =>
+export const toggleButtonStyle = (theme: Theme) =>
   css({
     textTransform: "none" as const,
     fontWeight: 300,

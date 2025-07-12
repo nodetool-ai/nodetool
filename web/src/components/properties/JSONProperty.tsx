@@ -8,7 +8,7 @@ import { isEqual } from "lodash";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".editor": {
       backgroundColor: theme.palette.grey[600],

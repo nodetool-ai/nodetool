@@ -9,7 +9,7 @@ import { WorkflowList } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     width: "fit-content",
     backgroundColor: theme.palette.grey[900],

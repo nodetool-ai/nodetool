@@ -2,13 +2,14 @@
 import { css } from "@emotion/react";
 import { NodeResizer as ReactFlowNodeResizer } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface NodeResizerProps {
   minWidth: number;
   minHeight: number;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     zIndex: -1,

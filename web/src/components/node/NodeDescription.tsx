@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     fontWeight: "400",
     fontSize: theme.fontSizeNormal,

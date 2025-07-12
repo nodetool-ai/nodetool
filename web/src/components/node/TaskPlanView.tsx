@@ -9,7 +9,7 @@ interface TaskPlanViewProps {
   data: Task[] | { type: "task_plan"; title: string; tasks: Task[] };
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".task-list-title": {
       margin: "1rem 1rem",

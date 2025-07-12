@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -22,7 +24,7 @@ interface EditorToolbarProps {
   readOnly?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",

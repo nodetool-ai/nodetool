@@ -9,7 +9,8 @@ import {
 } from "@mui/material";
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ReadmeDialog from "../ReadmeDialog";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 
@@ -37,6 +38,8 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
     const isHuggingFace = model.type?.startsWith("hf.") ?? false;
     const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
 
+    const theme = useTheme();
+
     return (
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography
@@ -52,7 +55,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <Typography
             variant="h3"
             style={{
-              color: ThemeNodetool.palette.primary.main,
+              color: theme.palette.primary.main,
               fontSize: "0.85em",
               overflowWrap: "break-word"
             }}
@@ -62,10 +65,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
         )}
 
         {isOllama && !downloaded && (
-          <Typography
-            variant="h5"
-            style={{ color: ThemeNodetool.palette.grey[400] }}
-          >
+          <Typography variant="h5" style={{ color: theme.palette.grey[400] }}>
             Model not downloaded
           </Typography>
         )}
@@ -74,7 +74,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <>
             <Typography
               variant="h5"
-              style={{ color: ThemeNodetool.palette.warning.main }}
+              style={{ color: theme.palette.warning.main }}
             >
               No matching repository found.
             </Typography>

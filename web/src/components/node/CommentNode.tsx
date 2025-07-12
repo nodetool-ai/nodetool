@@ -7,6 +7,7 @@ import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
@@ -62,7 +63,7 @@ export type CustomText = {
   size?: "-" | "+";
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",

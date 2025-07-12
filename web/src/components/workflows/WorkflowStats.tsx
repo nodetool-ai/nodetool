@@ -14,7 +14,7 @@
 // import useResultsStore from "../../stores/ResultsStore";
 // import useStatusStore from "../../stores/StatusStore";
 
-// const statStyles = (theme: any) =>
+// const statStyles = (theme: Theme) =>
 //   css({
 //     "&": {
 //       backgroundColor: "#222",

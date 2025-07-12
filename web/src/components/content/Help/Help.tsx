@@ -5,10 +5,10 @@ import { Typography, Button, Tabs, Tab, Box, TextField } from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
-import { COMFY_DATA_TYPES } from "../../../config/comfy_data_types";
 
 interface HelpItem {
   text: string;
@@ -30,7 +30,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const helpStyles = (theme: any) =>
+const helpStyles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: "rgba(40, 40, 40, 0.5)",
@@ -177,6 +177,8 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedNodetool, setExpandedNodetool] = useState(true);
   const [expandedComfy, setExpandedComfy] = useState(false);
+
+  const theme = useTheme();
 
   const nodetoolTypes = DATA_TYPES.filter(
     (type) => !type.value.startsWith("comfy.")
@@ -333,7 +335,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
         `}
         onClick={handleClose}
       />
-      <div className="help-container" css={helpStyles}>
+      <div className="help-container" css={helpStyles(theme)}>
         <div className="help">
           <div className="top">
             <Typography variant="h2">Help</Typography>
@@ -366,25 +368,25 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                       wordSpacing: "0.1em"
                     },
                     "& .MuiOutlinedInput-root": {
-                      backgroundColor: ThemeNodetool.palette.grey[800],
+                      backgroundColor: theme.palette.grey[800],
                       borderRadius: "4px",
                       "& input": {
-                        color: ThemeNodetool.palette.grey[0]
+                        color: theme.palette.grey[0]
                       },
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.grey[500]
+                        borderColor: theme.palette.grey[500]
                       },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.grey[400]
+                        borderColor: theme.palette.grey[400]
                       },
                       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: ThemeNodetool.palette.primary.main
+                        borderColor: theme.palette.primary.main
                       }
                     },
                     "& .MuiInputLabel-outlined": {
-                      color: ThemeNodetool.palette.grey[200],
+                      color: theme.palette.grey[200],
                       "&.Mui-focused": {
-                        color: ThemeNodetool.palette.primary.main
+                        color: theme.palette.primary.main
                       }
                     }
                   }}
@@ -456,8 +458,8 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
                                   style={{
                                     border: "0",
                                     marginLeft: ".5em",
-                                    color: ThemeNodetool.palette.grey[100],
-                                    fontSize: ThemeNodetool.fontSizeSmaller
+                                    color: theme.palette.grey[100],
+                                    fontSize: theme.fontSizeSmaller
                                   }}
                                 >
                                   {item.details

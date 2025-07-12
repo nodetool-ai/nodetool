@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
 import { useFocusPan } from "../../hooks/useFocusPan";

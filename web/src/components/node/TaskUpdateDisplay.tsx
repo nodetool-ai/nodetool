@@ -5,7 +5,7 @@ import { Typography, Box } from "@mui/material";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import SubTaskView from "./SubTaskView";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "@keyframes aiColorShift": {
       "0%": { color: "#00FFFF" } /* Aqua */,
@@ -20,7 +20,7 @@ const styles = (theme: any) =>
       padding: "0.75rem",
       borderRadius: "4px",
       backgroundColor: theme.palette.background.paper,
-      border: `1px solid ${theme.palette.divider}`,
+      border: `1px solid ${theme.palette.divider}`
     },
 
     ".task-animated-heading": {
@@ -82,14 +82,18 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
           {getEventDisplayText(taskUpdate.event)}
         </span>
       </Typography>
-      
+
       {taskUpdate.task && (
         <Box>
           <Typography variant="body2" className="task-title">
             {taskUpdate.task.title}
           </Typography>
           {taskUpdate.task.description && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.7rem", mt: 0.25 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: "0.7rem", mt: 0.25 }}
+            >
               {taskUpdate.task.description}
             </Typography>
           )}

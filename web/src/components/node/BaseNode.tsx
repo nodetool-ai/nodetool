@@ -3,6 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
 
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,

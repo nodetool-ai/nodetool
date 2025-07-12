@@ -12,7 +12,8 @@ import {
   ListSubheader,
   ListItemIcon
 } from "@mui/material";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
@@ -29,6 +30,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   selectedOutputType,
   setSelectedOutputType
 }) => {
+  const theme = useTheme();
   const nodeTypes = DATA_TYPES;
   const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
@@ -96,7 +98,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
     });
   };
 
-  const typeFilterStyles = (theme: any) =>
+  const typeFilterStyles = (theme: Theme) =>
     css({
       "&": {
         display: "flex",
@@ -122,7 +124,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: ThemeNodetool.palette.grey[400],
+        color: theme.palette.grey[400],
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
@@ -152,7 +154,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   `;
 
   return (
-    <div css={typeFilterStyles}>
+    <div css={typeFilterStyles(theme)}>
       <Global styles={globalMenuItemStyles} />
       <div className="type-filter-container">
         <Tooltip
@@ -188,10 +190,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setInputHover(false);
               }}
             >
-              <MenuItem
-                style={{ color: ThemeNodetool.palette.primary.main }}
-                value=""
-              >
+              <MenuItem style={{ color: theme.palette.primary.main }} value="">
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
@@ -312,10 +311,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setOutputHover(false);
               }}
             >
-              <MenuItem
-                style={{ color: ThemeNodetool.palette.primary.main }}
-                value=""
-              >
+              <MenuItem style={{ color: theme.palette.primary.main }} value="">
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}

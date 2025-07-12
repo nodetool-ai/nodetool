@@ -7,7 +7,7 @@ import { ColumnDef } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Column from "./Column";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

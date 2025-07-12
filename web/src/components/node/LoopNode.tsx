@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import ThemeNodetool from "../themes/ThemeNodetool";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 import { Tooltip } from "@mui/material";
@@ -15,7 +15,6 @@ import { getMousePosition } from "../../utils/MousePosition";
 // store
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 // constants
 import {
   TOOLTIP_ENTER_DELAY,
@@ -27,7 +26,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       boxShadow: "none",
@@ -107,6 +106,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNode: state.updateNode,
     updateNodeData: state.updateNodeData
   }));
+  const theme = useTheme();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -192,6 +192,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   if (!nodeMetadata) {
     return <div>Missing node: {props.type}</div>;
   }
+
   return (
     <div
       ref={nodeRef}
@@ -201,9 +202,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }}
       css={styles}
       style={
-        nodeHovered
-          ? { border: `2px solid ${ThemeNodetool.palette.primary.main}` }
-          : {}
+        nodeHovered ? { border: `2px solid ${theme.palette.primary.main}` } : {}
       }
     >
       <div className="inputs">

@@ -8,7 +8,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Button component overrides in emotion format
  */
 
-export const buttonStyles = (theme: any) =>
+export const buttonStyles = (theme: Theme) =>
   css({
     /* MuiButton Root */
     ".MuiButton-root": {
@@ -44,7 +44,7 @@ export const buttonRootStyle = css({
   minWidth: 36
 });
 
-export const smallButtonStyle = (theme: any) =>
+export const smallButtonStyle = (theme: Theme) =>
   css({
     margin: 2,
     padding: "2px 6px",

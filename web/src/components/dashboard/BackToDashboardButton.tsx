@@ -4,7 +4,7 @@ import { Button, css } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useNavigate } from "react-router-dom";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[900],
     color: theme.palette.grey[100],

@@ -11,7 +11,7 @@ import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

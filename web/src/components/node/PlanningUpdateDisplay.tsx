@@ -8,7 +8,7 @@ interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "@keyframes aiColorShift": {
       "0%": { color: "#00FFFF" } /* Aqua */,

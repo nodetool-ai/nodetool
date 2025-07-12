@@ -37,7 +37,7 @@ interface ZoomProps {
   ) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       width: "25px !important",
