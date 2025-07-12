@@ -1,37 +1,51 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import React from "react";
+import { render, screen } from "@testing-library/react";
 
 // Mock theme to avoid font imports
-jest.mock('../themes/ThemeNodetool', () => ({
+jest.mock("../themes/ThemeNodetool", () => ({
   __esModule: true,
-  default: { palette: { grey[0]: '#fff' }, fontFamily1: 'monospace' },
+  default: { palette: { grey: { 50: "#fff" } }, fontFamily1: "monospace" }
 }));
 
 // Mock data types to avoid svg imports
-jest.mock('../../config/data_types', () => ({
+jest.mock("../../config/data_types", () => ({
   __esModule: true,
-  DATA_TYPES: [{ color: '#000', textColor: '#fff' }],
+  DATA_TYPES: [{ color: "#000", textColor: "#fff" }]
 }));
 
-import Logo from '../Logo';
+import Logo from "../Logo";
 
-jest.spyOn(global.Math, 'random').mockReturnValue(0);
+jest.spyOn(global.Math, "random").mockReturnValue(0);
 
 afterAll(() => {
   (Math.random as jest.Mock).mockRestore();
 });
 
-describe('Logo', () => {
-  it('renders image when small is true', () => {
+describe("Logo", () => {
+  it("renders image when small is true", () => {
     render(
-      <Logo width="20px" height="20px" fontSize="10px" borderRadius="0" small enableText />
+      <Logo
+        width="20px"
+        height="20px"
+        fontSize="10px"
+        borderRadius="0"
+        small
+        enableText
+      />
     );
-    expect(screen.getByAltText('NodeTool')).toBeInTheDocument();
+    expect(screen.getByAltText("NodeTool")).toBeInTheDocument();
   });
 
-  it('renders text when enableText is true', () => {
+  it("renders text when enableText is true", () => {
     render(
-      <Logo width="20px" height="20px" fontSize="10px" borderRadius="0" small={false} enableText />
+      <Logo
+        width="20px"
+        height="20px"
+        fontSize="10px"
+        borderRadius="0"
+        small={false}
+        enableText
+      />
     );
     const text = screen.getByText(/NODE/);
     expect(text).toBeInTheDocument();
