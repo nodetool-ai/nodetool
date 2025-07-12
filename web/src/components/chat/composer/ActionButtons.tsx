@@ -35,16 +35,34 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   isDisabled,
   hasContent
 }) => {
+  // Show stop button ONLY when generation is actively running
+  const showStopButton = (status === "loading" || status === "streaming") && onStop;
+  
+  // Debug logging to help identify issues
+  if (process.env.NODE_ENV === "development") {
+    console.log("ActionButtons debug:", { 
+      status, 
+      showStopButton, 
+      hasOnStop: !!onStop,
+      isDisabled 
+    });
+  }
+  
   return (
     <div className="chat-action-buttons" css={styles}>
-      {status === "loading" && onStop && (
+      {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span style={{ display: "inline-flex" }}>
-            <StopGenerationButton onClick={onStop} />
+            <StopGenerationButton 
+              onClick={() => {
+                console.log("Stop button clicked");
+                onStop?.();
+              }} 
+            />
           </span>
         </Tooltip>
       )}
-      {!(status === "loading" && onStop) && (
+      {!showStopButton && (
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
           title={

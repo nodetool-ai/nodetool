@@ -75,6 +75,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const handleSend = useCallback(() => {
     if (
       status !== "loading" &&
+      status !== "streaming" &&
       status !== "disconnected" &&
       status !== "connecting" &&
       status !== "error" &&
@@ -117,6 +118,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const isDisabled =
     disabled ||
     status === "loading" ||
+    status === "streaming" ||
     status === "error" ||
     status === "disconnected" ||
     status === "connecting";
