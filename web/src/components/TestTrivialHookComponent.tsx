@@ -2,7 +2,7 @@ import React from "react";
 
 export function useTestHook() {
   const [x, setX] = React.useState(0);
-  React.useEffect(() => {}, []);
+  // Removed unnecessary empty useEffect hook that was causing performance issues
   return x;
 }
 

@@ -345,8 +345,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    // Only add event listener when component is open to prevent memory leaks
+    if (open) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    
+    return () => {
+      // Always remove event listener on cleanup to prevent memory leaks
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open, changeAsset]);
 
   useCombo(["Escape"], handleClose);

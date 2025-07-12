@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { css } from "@emotion/react";
 import Plot from "react-plotly.js";
+import DOMPurify from "dompurify";
 
 import {
   Asset,
@@ -124,13 +125,13 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
     style // Override style with converted object
   };
 
-  // Handle children differently based on type
+  // Handle children differently based on type - XSS protection added
   const children = [
-    // Add text/SVG content if present
+    // Add text/SVG content if present - sanitize HTML to prevent XSS
     value.content &&
       (typeof value.content === "string" &&
       value.content.trim().startsWith("<") ? (
-        <div dangerouslySetInnerHTML={{ __html: value.content }} />
+        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value.content) }} />
       ) : (
         value.content
       )),
@@ -156,11 +157,11 @@ const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
         // Extract the inner SVG content using regex
         const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
         if (match && match[1]) {
-          // Return just the inner content
+          // Return just the inner content - sanitize to prevent XSS
           return (
             <g
               key={element.name}
-              dangerouslySetInnerHTML={{ __html: match[1] }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(match[1]) }}
             />
           );
         }
