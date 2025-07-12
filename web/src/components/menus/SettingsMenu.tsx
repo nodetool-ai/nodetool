@@ -320,7 +320,7 @@ export const settingsStyles = (theme: Theme): any =>
     },
 
     h2: {
-      fontSize: theme.fontSizeHuge,
+      fontSize: theme.fontSizeBigger,
       color: theme.palette.grey[0],
       margin: "0.5em 0 0.25em 0",
       padding: "0",

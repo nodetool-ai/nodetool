@@ -250,7 +250,7 @@ const OpenOrCreateDialog = () => {
   //   new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   // List view
   const renderListView = (workflows: any) => (
-    <Box className="container list" css={listStyles}>
+    <Box className="container list" css={listStyles(theme)}>
       {workflows.map((workflow: Workflow, index: number) => (
         <Box
           key={`${workflow.id}-${index}`}
@@ -294,7 +294,7 @@ const OpenOrCreateDialog = () => {
   );
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       open={true}
       components={{
         Backdrop: () => null

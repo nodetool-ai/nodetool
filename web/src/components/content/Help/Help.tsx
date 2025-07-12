@@ -129,8 +129,7 @@ const helpStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "1rem",
       p: {
-        minWidth: "240px",
-        fontFamily: theme.fontFamily
+        minWidth: "240px"
       },
       button: {
         marginTop: "2px",

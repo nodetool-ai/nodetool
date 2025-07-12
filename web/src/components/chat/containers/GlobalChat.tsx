@@ -201,7 +201,10 @@ const GlobalChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box css={mainAreaStyles} sx={{ height: "100%", maxHeight: "100%" }}>
+      <Box
+        css={mainAreaStyles(theme)}
+        sx={{ height: "100%", maxHeight: "100%" }}
+      >
         <Box
           className="chat-header"
           sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
