@@ -52,7 +52,8 @@ const ThreadList: React.FC<ThreadListProps> = ({
       const now = new Date();
 
       threadEntries.forEach(([threadId, thread]) => {
-        const updatedAt = new Date(thread.updatedAt);
+        const dateStr = (thread as any).updated_at || thread.updatedAt;
+        const updatedAt = new Date(dateStr);
 
         const headerLabel = groupByDate(updatedAt, now);
 

@@ -28,6 +28,7 @@ interface ChatComposerProps {
     agentMode: boolean
   ) => void;
   onStop?: () => void;
+  onNewChat?: () => void;
   disabled?: boolean;
   agentMode?: boolean;
 }
@@ -36,6 +37,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   status,
   onSendMessage,
   onStop,
+  onNewChat,
   disabled = false,
   agentMode = false
 }) => {
@@ -123,8 +125,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     status === "disconnected" ||
     status === "connecting";
 
-  console.log("ChatComposer status:", status);
-
   return (
     <div css={createStyles}>
       <div
@@ -160,6 +160,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
           status={status}
           onSend={handleSend}
           onStop={onStop}
+          onNewChat={onNewChat}
           isDisabled={isDisabled}
           hasContent={prompt.trim() !== ""}
         />

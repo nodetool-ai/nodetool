@@ -46,6 +46,7 @@ type ChatInputSectionProps = {
     agentMode: boolean
   ) => Promise<void> | void;
   onStop?: () => void;
+  onNewChat?: () => void;
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
   selectedCollections?: string[];
@@ -60,6 +61,7 @@ const ChatInputSection = ({
   status,
   onSendMessage,
   onStop,
+  onNewChat,
   selectedTools,
   onToolsChange,
   selectedCollections,
@@ -89,6 +91,7 @@ const ChatInputSection = ({
             status={status}
             onSendMessage={onSendMessage}
             onStop={onStop}
+            onNewChat={onNewChat}
             disabled={
               status === "loading" || status === "streaming" || status === "error" || isDisconnected
             }
