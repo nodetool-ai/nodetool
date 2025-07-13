@@ -30,7 +30,8 @@ const styles = (theme: any) =>
     padding: theme?.spacing?.(4) || 32,
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    overflowY: "auto",
+    height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     ".header-controls": {
       display: "flex",
@@ -140,7 +141,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   // Try to get theme from MUI, fallback to undefined
   const theme = (window as any).muiTheme || undefined;
   return (
-    <div css={styles(theme)}>
+    <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
         <Typography variant="h2" className="section-title">
           Recent Workflows

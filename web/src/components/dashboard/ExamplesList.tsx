@@ -21,7 +21,8 @@ const styles = (theme: any) =>
     padding: theme?.spacing?.(4) || 32,
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    overflowY: "auto",
+    height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     ".section-title": {
       color: theme?.palette?.grey[100] || "#eee",
@@ -121,7 +122,7 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
   // Try to get theme from MUI, fallback to undefined
   const theme = (window as any).muiTheme || undefined;
   return (
-    <Box css={styles(theme)}>
+    <Box className="examples-list" css={styles(theme)}>
       <Box
         sx={{
           display: "flex",

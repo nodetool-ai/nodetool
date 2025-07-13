@@ -3,7 +3,8 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import { css } from "@emotion/react";
 import ThreadList from "../chat/thread/ThreadList";
-import { Thread } from "../../../stores/GlobalChatStore";
+import { Thread } from "../../stores/ApiTypes";
+import { ThreadInfo } from "../chat/types/thread.types";
 
 interface RecentChatsProps {
   threads: { [key: string]: Thread };
@@ -46,20 +47,32 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   // Try to get theme from MUI, fallback to undefined
   const theme = (window as any).muiTheme || undefined;
 
-  const sortedThreads = Object.fromEntries(
+  const sortedAndTransformedThreads = Object.fromEntries(
     Object.entries(threads)
-      .sort(([, a], [, b]) => b.updatedAt.localeCompare(a.updatedAt))
+      .sort(([, a], [, b]) => {
+        const dateA = a.updated_at || "";
+        const dateB = b.updated_at || "";
+        return dateB.localeCompare(dateA);
+      })
       .slice(0, 5)
+      .map(([id, thread]): [string, ThreadInfo] => [
+        id,
+        {
+          ...thread,
+          updatedAt: thread.updated_at || new Date().toISOString(),
+          messages: []
+        }
+      ])
   );
 
   return (
-    <div css={styles(theme)}>
+    <div className="recent-chats" css={styles}>
       <Typography variant="h2" className="section-title">
         Recent Chats
       </Typography>
       <Box className="content-scrollable">
         <ThreadList
-          threads={sortedThreads}
+          threads={sortedAndTransformedThreads}
           currentThreadId={currentThreadId}
           onNewThread={onNewThread}
           onSelectThread={onSelectThread}
