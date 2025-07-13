@@ -66,6 +66,7 @@ type ChatViewProps = {
   onCollectionsChange?: (collections: string[]) => void;
   onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
+  onNewChat?: () => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
@@ -92,6 +93,7 @@ const ChatView = ({
   onCollectionsChange,
   onModelChange,
   onStop,
+  onNewChat,
   agentMode,
   workflowAssistant = false,
   onAgentModeToggle,
@@ -158,6 +160,7 @@ const ChatView = ({
         status={status}
         onSendMessage={handleSendMessage}
         onStop={onStop}
+        onNewChat={onNewChat}
         selectedTools={selectedTools}
         onToolsChange={onToolsChange}
         selectedCollections={selectedCollections}
