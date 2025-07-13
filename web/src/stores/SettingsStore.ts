@@ -20,8 +20,6 @@ export interface Settings {
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
   showWelcomeOnStartup: boolean;
-  layouts: UserLayout[];
-  activeLayoutId: string | null;
 }
 
 interface SettingsStore {
@@ -42,9 +40,6 @@ interface SettingsStore {
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
-  addLayout: (layout: UserLayout) => void;
-  deleteLayout: (layoutId: string) => void;
-  setActiveLayoutId: (layoutId: string | null) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -58,9 +53,7 @@ export const defaultSettings: Settings = {
   timeFormat: "12h",
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
-  showWelcomeOnStartup: true,
-  layouts: [],
-  activeLayoutId: null
+  showWelcomeOnStartup: true
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -161,29 +154,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             showWelcomeOnStartup: value
-          }
-        })),
-      addLayout: (layout: UserLayout) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            layouts: [...(state.settings.layouts || []), layout]
-          }
-        })),
-      deleteLayout: (layoutId: string) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            layouts: (state.settings.layouts || []).filter(
-              (l) => l.id !== layoutId
-            )
-          }
-        })),
-      setActiveLayoutId: (layoutId: string | null) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            activeLayoutId: layoutId
           }
         }))
     }),

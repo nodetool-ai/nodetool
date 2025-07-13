@@ -14,7 +14,7 @@ import {
   DialogActions
 } from "@mui/material";
 import { Save, Layers, Add } from "@mui/icons-material";
-import { useSettingsStore, UserLayout } from "../../stores/SettingsStore";
+import { useLayoutStore, UserLayout } from "../../stores/LayoutStore";
 import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
 
@@ -26,8 +26,13 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
-  const { settings, addLayout, setActiveLayoutId, deleteLayout } =
-    useSettingsStore();
+  const {
+    layouts,
+    activeLayoutId,
+    addLayout,
+    setActiveLayoutId,
+    updateActiveLayout
+  } = useLayoutStore();
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -38,7 +43,7 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     setAnchorEl(null);
   };
 
-  const handleSaveClick = () => {
+  const handleSaveAsNewClick = () => {
     setSaveDialogOpen(true);
     handleClose();
   };
@@ -48,7 +53,7 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     setNewLayoutName("");
   };
 
-  const handleSaveLayout = () => {
+  const handleSaveNewLayout = () => {
     if (dockviewApi && newLayoutName) {
       const layout = dockviewApi.toJSON();
       Object.values(layout.panels).forEach((panel) => {
@@ -66,9 +71,29 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     }
   };
 
+  const handleUpdateLayout = () => {
+    if (dockviewApi) {
+      const layout = dockviewApi.toJSON();
+      Object.values(layout.panels).forEach((panel) => {
+        delete (panel as any).params;
+      });
+      updateActiveLayout(layout);
+    }
+    handleClose();
+  };
+
   const handleLayoutSelect = (layoutId: string | null) => {
     setActiveLayoutId(layoutId);
-    window.location.reload();
+    if (dockviewApi) {
+      if (layoutId === null) {
+        dockviewApi.fromJSON(defaultLayout);
+      } else {
+        const newLayout = layouts.find((l) => l.id === layoutId);
+        if (newLayout) {
+          dockviewApi.fromJSON(newLayout.layout);
+        }
+      }
+    }
     handleClose();
   };
 
@@ -78,29 +103,40 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
         Layouts
       </Button>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-        <MenuItem onClick={() => handleLayoutSelect(null)}>
+        <MenuItem
+          onClick={() => handleLayoutSelect(null)}
+          selected={activeLayoutId === null}
+        >
           <ListItemText>Default Layout</ListItemText>
         </MenuItem>
         <Divider />
-        {(settings.layouts || []).map((layout) => (
+        {(layouts || []).map((layout) => (
           <MenuItem
             key={layout.id}
             onClick={() => handleLayoutSelect(layout.id)}
-            selected={layout.id === settings.activeLayoutId}
+            selected={layout.id === activeLayoutId}
           >
             <ListItemText>{layout.name}</ListItemText>
           </MenuItem>
         ))}
         <Divider />
-        <MenuItem onClick={handleSaveClick}>
+        {activeLayoutId && (
+          <MenuItem onClick={handleUpdateLayout}>
+            <ListItemIcon>
+              <Save fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Save layout</ListItemText>
+          </MenuItem>
+        )}
+        <MenuItem onClick={handleSaveAsNewClick}>
           <ListItemIcon>
             <Add fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Save current layout...</ListItemText>
+          <ListItemText>Save as new layout...</ListItemText>
         </MenuItem>
       </Menu>
       <Dialog open={isSaveDialogOpen} onClose={handleSaveDialogClose}>
-        <DialogTitle>Save Layout</DialogTitle>
+        <DialogTitle>Save New Layout</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -115,7 +151,7 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleSaveDialogClose}>Cancel</Button>
-          <Button onClick={handleSaveLayout}>Save</Button>
+          <Button onClick={handleSaveNewLayout}>Save</Button>
         </DialogActions>
       </Dialog>
     </div>
