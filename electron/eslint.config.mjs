@@ -28,6 +28,7 @@ export default [
       "dist-electron/**/*",
       "dist-web/**/*",
       "jest.config.ts",
+      "src/main.tsx",
     ],
   },
   {
@@ -41,7 +42,7 @@ export default [
           jsx: true,
         },
         tsconfigRootDir: __dirname,
-        project: ["./tsconfig.json"],
+        project: ["./tsconfig.json", "./tsconfig.test.json"],
       },
     },
 
@@ -56,6 +57,22 @@ export default [
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
+    },
+  },
+  {
+    files: ["**/__tests__/**/*.ts", "**/__mocks__/**/*.ts"],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2021,
+      sourceType: "module",
+
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+        tsconfigRootDir: __dirname,
+        project: "./tsconfig.test.json",
+      },
     },
   },
 ];

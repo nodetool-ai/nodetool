@@ -7,7 +7,7 @@ export default {
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
+      tsconfig: 'tsconfig.test.json',
       diagnostics: {
         ignoreCodes: [2339, 2345]
       }

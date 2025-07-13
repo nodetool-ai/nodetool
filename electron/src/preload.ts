@@ -30,10 +30,9 @@ import {
   MenuEventData,
   PythonPackages,
   UpdateProgressData,
+  UpdateInfo,
   Workflow,
 } from "./types.d";
-
-import { UpdateInfo } from "electron-updater";
 
 /**
  * IpcEventHandler: Handles event pattern
@@ -96,6 +95,10 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
   selectCustomInstallLocation: () =>
     ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+  continueToApp: () =>
+    ipcRenderer.invoke(IpcChannels.START_SERVER),
+  startServer: () =>
+    ipcRenderer.invoke(IpcChannels.START_SERVER),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
   onCreateWorkflow: (workflow: Workflow) =>
@@ -118,6 +121,8 @@ contextBridge.exposeInMainWorld("api", {
     createEventHandler(IpcChannels.UPDATE_AVAILABLE)(callback),
   onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
     createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
+  onShowPackageManager: (callback: () => void) =>
+    createEventHandler(IpcChannels.SHOW_PACKAGE_MANAGER)(callback),
   onMenuEvent: (callback: (data: MenuEventData) => void) =>
     createEventHandler(IpcChannels.MENU_EVENT)(callback),
   unregisterMenuEvent: (callback: (data: any) => void) =>
@@ -130,4 +135,20 @@ contextBridge.exposeInMainWorld("api", {
     maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
   platform: process.platform,
+});
+// Package manager API
+contextBridge.exposeInMainWorld("electronAPI", {
+  packages: {
+    listAvailable: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_AVAILABLE),
+    listInstalled: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_INSTALLED),
+    install: (repo_id: string) => 
+      ipcRenderer.invoke(IpcChannels.PACKAGE_INSTALL, { repo_id }),
+    uninstall: (repo_id: string) => 
+      ipcRenderer.invoke(IpcChannels.PACKAGE_UNINSTALL, { repo_id }),
+    update: (repo_id: string) => 
+      ipcRenderer.invoke(IpcChannels.PACKAGE_UPDATE, repo_id),
+  },
+  openExternal: (url: string) => {
+    ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, url);
+  },
 });

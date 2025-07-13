@@ -267,14 +267,19 @@ cd apps
 npm install
 npm run build
 cd ..
+
+# Build the Electron UI
+cd electron
+npm install
+npm run build
+cd ..
 ```
 
 **Start Electron:**
 
 ```bash
 cd electron
-npm install
-npm start
+npm start  # launches the desktop app using the previously built UI
 ```
 
 The Electron app will launch, automatically starting the backend and frontend.
