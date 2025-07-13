@@ -155,11 +155,7 @@ const ChatView = ({
         />
       ) : (
         noMessagesPlaceholder ?? (
-          <div className="no-messages-placeholder">
-            <Typography variant="body1" color="text.secondary">
-              No messages yet. Start a new chat to get started.
-            </Typography>
-          </div>
+          <div className="no-messages-placeholder">{noMessagesPlaceholder}</div>
         )
       )}
 
