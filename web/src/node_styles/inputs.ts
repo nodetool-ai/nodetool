@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Input Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Input, TextField, and InputLabel component overrides in emotion format
  */
 
-export const inputStyles = (theme: any) =>
+export const inputStyles = (theme: Theme) =>
   css({
     /* MuiInputBase */
     ".MuiInputBase-root": {
@@ -98,7 +99,7 @@ export const inputStyles = (theme: any) =>
   });
 
 // Individual style functions for component-specific use
-export const inputBaseStyle = (theme: any) =>
+export const inputBaseStyle = (theme: Theme) =>
   css({
     fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal,
     lineHeight: "1.1em",
@@ -112,7 +113,7 @@ export const inputBaseStyle = (theme: any) =>
     }
   });
 
-export const textFieldStyle = (theme: any) =>
+export const textFieldStyle = (theme: Theme) =>
   css({
     fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
     fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
@@ -143,7 +144,7 @@ export const textFieldStyle = (theme: any) =>
     }
   });
 
-export const inputLabelStyle = (theme: any) =>
+export const inputLabelStyle = (theme: Theme) =>
   css({
     position: "relative" as const,
     marginBottom: -3,

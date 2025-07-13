@@ -19,7 +19,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { truncateString } from "../../utils/truncateString";
-import { DEFAULT_MODEL } from "../../config/constants";
 import { client, BASE_URL } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import ChatView from "../chat/containers/ChatView";
@@ -38,6 +37,7 @@ import {
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 
+const styles = (theme: Theme) =>
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -84,6 +84,7 @@ interface PanelProps {
 }
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
@@ -96,11 +97,6 @@ const Dashboard: React.FC = () => {
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
-    const savedModel = localStorage.getItem("selectedModel");
-    return savedModel || DEFAULT_MODEL;
-  });
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
   const {
@@ -111,13 +107,6 @@ const Dashboard: React.FC = () => {
     createNewThread,
     switchThread,
     getCurrentMessages,
-    progress,
-    statusMessage,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
     threads,
     currentThreadId,
     deleteThread

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
@@ -20,7 +21,7 @@ import WorkflowAssistantChat from "./WorkflowAssistantChat";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     right: "0",

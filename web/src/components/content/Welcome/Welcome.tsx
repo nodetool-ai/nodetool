@@ -33,7 +33,8 @@ import welcomeStyles from "./Welcome.styles";
 import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
@@ -133,6 +134,7 @@ const Welcome = () => {
   }));
   const { settings, updateSettings } = useSettingsStore();
   const { secrets } = useRemoteSettingsStore();
+  const theme = useTheme();
 
   const hasSetupKeys = useMemo(() => {
     return !!(
@@ -141,8 +143,6 @@ const Welcome = () => {
       secrets.ANTHROPIC_API_KEY
     );
   }, [secrets]);
-
-  const theme = ThemeNodetool;
 
   useEffect(() => {
     if (!hasSetupKeys) {

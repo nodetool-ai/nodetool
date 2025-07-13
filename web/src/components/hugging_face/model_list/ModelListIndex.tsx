@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 
@@ -11,7 +12,7 @@ import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

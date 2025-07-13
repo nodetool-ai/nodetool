@@ -23,9 +23,10 @@ import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".asset-delete-confirmation-content": {
       minWidth: "600px",
@@ -65,6 +66,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const { refetchAssetsAndFolders } = useAssets();
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
+  const theme = useTheme();
 
   useEffect(() => {
     if (!dialogOpen) return; // Only process when dialog is actually open
@@ -151,18 +153,18 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
 
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={() => setDialogOpen(false)}
     >
-      <DialogTitle sx={{ color: ThemeNodetool.palette.warning.main }}>
+      <DialogTitle sx={{ color: theme.palette.warning.main }}>
         {getDialogTitle()}
       </DialogTitle>
       <DialogContent className="asset-delete-confirmation-content">
         <Typography
           variant="body1"
-          color={ThemeNodetool.palette.grey[200]}
+          color={theme.palette.grey[200]}
           style={{ marginBottom: "1em" }}
         >
           You can right click selected assets and download them before deleting.

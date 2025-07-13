@@ -1,21 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Paper, Typography, List, Divider } from "@mui/material";
-import { Task, SubTask } from "../../stores/ApiTypes";
+import { Task } from "../../stores/ApiTypes";
 import SubTaskView from "./SubTaskView";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".task-container": {
       marginBottom: "1rem",
       padding: "1rem",
       borderRadius: "4px",
-      backgroundColor: theme.palette.grey[800]
     },
     ".task-title": {
       fontWeight: "bold",
-      color: theme.palette.grey[800]
+      color: theme.palette.grey[200]
     },
     ".task-description": {
       marginTop: "0.5rem",
@@ -42,7 +42,6 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
         )}
         {task.subtasks.length > 0 && (
           <>
-            <Divider sx={{ my: 1 }} />
             <List disablePadding>
               {task.subtasks.map((subtask) => (
                 <SubTaskView key={subtask.output_file} subtask={subtask} />

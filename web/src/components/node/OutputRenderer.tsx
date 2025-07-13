@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import type { Theme } from "@mui/material/styles";
 import React, {
   useMemo,
   useCallback,
@@ -16,10 +17,10 @@ import {
   DataframeRef,
   Message,
   NPArray,
-  Task,
   TaskPlan,
   PlotlyConfig,
-  AssetRef
+  AssetRef,
+  Task
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -40,6 +41,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
 import { SVGElement } from "../../stores/ApiTypes";
+import TaskView from "./TaskView";
 export type OutputRendererProps = {
   value: any;
 };
@@ -173,7 +175,7 @@ const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
   return createElement("svg", docAttributes, ...children);
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: theme.palette.grey[600],
@@ -372,6 +374,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           }
         }
         return <DictTable data={value} editable={false} data_type="string" />;
+      case "task":
+        return <TaskView task={value as Task} />;
       case "task_plan":
         return <TaskPlanView data={value as TaskPlan} />;
       case "array":

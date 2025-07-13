@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
@@ -8,8 +10,9 @@ import { HelpModeToggle } from "../composer/HelpModeToggle";
 import ModelMenu from "./ModelMenu";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
+import { LanguageModel } from "../../../stores/ApiTypes";
 
-const styles = (theme: any) =>
+const styles = () =>
   css({
     display: "flex",
     alignItems: "center",
@@ -27,8 +30,8 @@ const styles = (theme: any) =>
 interface ChatToolBarProps {
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
-  selectedModel?: string;
-  onModelChange?: (modelId: string) => void;
+  selectedModel?: LanguageModel;
+  onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
@@ -49,6 +52,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   selectedCollections,
   onCollectionsChange
 }) => {
+  const theme = useTheme();
   return (
     <div className="chat-tool-bar" css={styles}>
       {onModelChange && (

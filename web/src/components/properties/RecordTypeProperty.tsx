@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
@@ -10,7 +10,7 @@ import { Button, ButtonGroup } from "@mui/material";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",

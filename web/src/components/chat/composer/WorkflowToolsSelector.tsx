@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
@@ -35,7 +36,7 @@ const workflowMatchesToolId = (workflow: Workflow, toolId: string): boolean => {
   return generateToolIdFromWorkflowName(workflow.name) === toolId;
 };
 
-const menuStyles = (theme: any) =>
+const menuStyles = (theme: Theme) =>
   css({
     "& .MuiMenu-paper": {
       maxHeight: "400px",

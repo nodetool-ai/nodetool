@@ -13,6 +13,8 @@ import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { Asset } from "../../stores/ApiTypes";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 100; // initial height of the folder list in px
 const MIN_FOLDER_LIST_HEIGHT = 100; // minimum height of the folder list in px
@@ -22,7 +24,7 @@ const ROW_HEIGHT = 1.5; // height of each row in the folder list in em
 const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
 const LEVEL_PADDING = 1; // padding for each level of the folder tree in em
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&.folder-list-container": {
       position: "relative",
@@ -148,6 +150,7 @@ interface FolderListProps {
 }
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
+  const theme = useTheme();
   const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
   const [folderListHeight, setFolderListHeight] = useState(
@@ -276,7 +279,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   return (
     <div
       className="folder-list-container"
-      css={styles}
+      css={styles(theme)}
       style={{
         height: `${folderListHeight}px`,
         minHeight: isHorizontal ? "100%" : "auto",

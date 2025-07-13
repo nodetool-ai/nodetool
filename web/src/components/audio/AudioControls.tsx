@@ -12,6 +12,7 @@ import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
 import log from "loglevel";
+import type { Theme } from "@mui/material/styles";
 
 interface AudioControlsProps {
   fontSize?: "normal" | "small" | "tiny" | undefined;
@@ -37,7 +38,7 @@ interface ZoomProps {
   ) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       width: "25px !important",

@@ -8,7 +8,10 @@ import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import BackToEditorButton from "../panels/BackToEditorButton";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-const styles = (theme: any) =>
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -65,6 +68,7 @@ const styles = (theme: any) =>
   });
 
 const AssetExplorer: React.FC = () => {
+  const theme = useTheme();
   const { folderFiles } = useAssets();
   return (
     <div css={styles}>

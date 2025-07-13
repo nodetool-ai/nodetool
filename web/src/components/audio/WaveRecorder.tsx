@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+
 import { Button, CircularProgress, Typography } from "@mui/material";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
@@ -19,7 +21,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     toggleDeviceListVisibility
   } = useWaveRecorder(props);
 
-  const styles = (theme: any) =>
+  const styles = (theme: Theme) =>
     css({
       background: theme.palette.grey[800],
       minHeight: "50px",

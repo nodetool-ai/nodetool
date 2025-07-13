@@ -9,8 +9,10 @@ import { useDebouncedCallback } from "use-debounce";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100%",
@@ -145,6 +147,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   debounceTime = 500,
   width = 150
 }) => {
+  const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const isControlOrMetaPressed = useKeyPressedStore(
@@ -345,7 +348,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       className={`asset-search-input-container with-global-search ${
         isGlobalSearchMode ? "global-mode" : "local-mode"
       }`}
-      css={styles}
+      css={styles(theme)}
       style={{ width: `${width}px` }}
     >
       <Tooltip

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
 import { Typography } from "@mui/material";
@@ -73,7 +73,7 @@ const wsprops: WaveSurferProps = {
   playOnLoad: false
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       width: "25px !important",

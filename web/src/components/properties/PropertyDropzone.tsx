@@ -1,17 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Box, Button, TextField, Tooltip } from "@mui/material";
+import { Button, TextField, Tooltip } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
 import { isEqual } from "lodash";
-import PDFViewer from "../asset_viewer/PDFViewer";
-import { basename } from "path";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -44,7 +42,7 @@ const PropertyDropzone = ({
   const [openViewer, setOpenViewer] = useState(false);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
-  const styles = (theme: any) =>
+  const styles = (theme: Theme) =>
     css({
       ".drop-container": {
         position: "relative",

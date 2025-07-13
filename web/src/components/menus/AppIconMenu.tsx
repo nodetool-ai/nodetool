@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { VERSION } from "../../config/constants";
 import { Divider } from "@mui/material";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     li: {
       fontFamily: theme.fontFamily1,

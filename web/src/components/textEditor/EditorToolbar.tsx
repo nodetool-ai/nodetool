@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -22,7 +24,7 @@ interface EditorToolbarProps {
   readOnly?: boolean;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
@@ -80,7 +82,7 @@ const EditorToolbar = ({
   const theme = useTheme();
 
   return (
-    <div className="editor-toolbar" css={styles(theme)}>
+    <div className="editor-toolbar" css={styles}>
       {!readOnly && (
         <div className="toolbar-group">
           <Tooltip title="Undo" enterDelay={TOOLTIP_ENTER_DELAY}>

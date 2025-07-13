@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useEffect, useState, useCallback } from "react";
 import { DATA_TYPES } from "../config/data_types";
-import ThemeNodetool from "./themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
 
 const randomDatatype = () => {
   return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)];
@@ -101,11 +101,13 @@ const Logo = ({
     setOpacity(1);
   }, []);
 
+  const theme = useTheme();
+
   return (
     <div
       className="nodetool-logo"
       css={logoStyles(
-        ThemeNodetool,
+        theme,
         hoverColor,
         textColor,
         opacity,

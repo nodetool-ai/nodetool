@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Form Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Form, Switch, Checkbox, and Radio component overrides in emotion format
  */
 
-export const formStyles = (theme: any) =>
+export const formStyles = (theme: Theme) =>
   css({
     /* MuiFormControl */
     ".MuiFormControl-root": {
@@ -89,7 +90,7 @@ export const formStyles = (theme: any) =>
   });
 
 // Individual style functions for component-specific use
-export const formControlStyle = (theme: any) =>
+export const formControlStyle = (theme: Theme) =>
   css({
     margin: 0,
     display: "block",
@@ -97,7 +98,7 @@ export const formControlStyle = (theme: any) =>
     fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall
   });
 
-export const switchStyle = (theme: any) =>
+export const switchStyle = (theme: Theme) =>
   css({
     margin: 0,
     padding: 0,
@@ -134,7 +135,7 @@ export const switchStyle = (theme: any) =>
     }
   });
 
-export const checkboxStyle = (theme: any) =>
+export const checkboxStyle = (theme: Theme) =>
   css({
     padding: "0px 4px",
     color: theme.palette?.text?.secondary || "var(--palette-text-secondary)",
@@ -144,7 +145,7 @@ export const checkboxStyle = (theme: any) =>
     }
   });
 
-export const radioStyle = (theme: any) =>
+export const radioStyle = (theme: Theme) =>
   css({
     color: theme.palette?.text?.secondary || "var(--palette-text-secondary)",
 

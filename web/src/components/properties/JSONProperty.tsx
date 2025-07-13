@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { PropertyProps } from "../node/PropertyInput";
@@ -8,7 +9,7 @@ import { isEqual } from "lodash";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".editor": {
       backgroundColor: theme.palette.grey[600],

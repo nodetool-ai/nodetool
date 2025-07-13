@@ -6,13 +6,15 @@ import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 
 import { Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface AudioViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
@@ -79,8 +81,13 @@ const handleRightClick: MouseEventHandler<HTMLImageElement> = (event) => {
  * AudioViewer component, used to display an audio player for a given asset.
  */
 const AudioViewer: React.FC<AudioViewerProps> = ({ asset, url }) => {
+  const theme = useTheme();
   return (
-    <div className="audio-viewer" css={styles} onContextMenu={handleRightClick}>
+    <div
+      className="audio-viewer"
+      css={styles(theme)}
+      onContextMenu={handleRightClick}
+    >
       <Typography variant="body2">{asset?.content_type}</Typography>
       <AudioPlayer
         alwaysShowControls={true}

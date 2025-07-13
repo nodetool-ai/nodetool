@@ -8,11 +8,13 @@ import {
   MessageContent,
   PlanningUpdate,
   TaskUpdate,
+  LanguageModel
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
+import { Provider } from "../../../stores/ApiTypes";
 
-const styles = (theme: any) =>
+const styles = () =>
   css({
     "&": {
       position: "relative",
@@ -51,7 +53,7 @@ type ChatViewProps = {
   progress: number;
   total: number;
   messages: Array<Message>;
-  model?: string;
+  model?: LanguageModel;
   graph?: {
     nodes: Node[];
     edges: Edge[];
@@ -62,7 +64,7 @@ type ChatViewProps = {
   onToolsChange?: (tools: string[]) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
-  onModelChange?: (modelId: string) => void;
+  onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
@@ -112,7 +114,8 @@ const ChatView = ({
           type: "message",
           name: "",
           role: "user",
-          model: model,
+          provider: model?.provider,
+          model: model?.id,
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:

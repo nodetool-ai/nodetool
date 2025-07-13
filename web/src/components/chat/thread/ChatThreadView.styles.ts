@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-export const createStyles = (theme: any) => ({
+export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
     width: "100%",
     flexGrow: 1,

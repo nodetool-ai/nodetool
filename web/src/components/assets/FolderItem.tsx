@@ -8,8 +8,10 @@ import { ButtonGroup, Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -42,7 +44,7 @@ const styles = (theme: any) =>
     },
     ".parent-icon": {
       position: "absolute",
-      color: theme.palette.c_folder,
+      color: "var(--c_folder)",
       width: "30%",
       height: "30%",
       bottom: "10%",
@@ -108,6 +110,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   showDeleteButton = true,
   onSelect
 }) => {
+  const theme = useTheme();
   const {
     isDragHovered,
     handleDrag,
@@ -121,7 +124,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
 
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}

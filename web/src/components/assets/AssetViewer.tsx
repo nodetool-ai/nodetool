@@ -25,6 +25,8 @@ import { Asset } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const containerStyles = css({
   width: "100%",
@@ -35,7 +37,7 @@ const containerStyles = css({
   pointerEvents: "none"
 });
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: 0,
@@ -205,6 +207,7 @@ type AssetViewerProps = {
 };
 
 const AssetViewer: React.FC<AssetViewerProps> = (props) => {
+  const theme = useTheme();
   const {
     asset,
     sortedAssets,
@@ -546,7 +549,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   return (
     <div ref={containerRef} css={containerStyles}>
       <Dialog
-        css={styles}
+        css={styles(theme)}
         maxWidth={false}
         fullWidth
         open={asset !== undefined || url !== undefined}

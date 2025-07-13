@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     fontWeight: "400",
     fontSize: theme.fontSizeNormal,

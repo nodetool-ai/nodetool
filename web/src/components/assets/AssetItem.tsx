@@ -16,8 +16,10 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -245,6 +247,7 @@ export type AssetItemProps = {
 };
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
+  const theme = useTheme();
   const {
     asset,
     draggable = true,
@@ -323,7 +326,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const result = (
     <div
-      css={styles}
+      css={styles(theme)}
       className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
         isDragHovered ? "drag-hover" : ""
       } ${isParent ? "parent" : ""}`}

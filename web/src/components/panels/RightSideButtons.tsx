@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React, { memo, useState } from "react";
 import { Box, Button, Popover, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
@@ -15,7 +15,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { IconForType } from "../../config/data_types";
 import ModelsManager from "../hugging_face/ModelsManager";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".command-icon": {
       color: theme.palette.action.active,

@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Typography, Divider, Tooltip, IconButton } from "@mui/material";
+import { Typography, Divider, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -19,7 +20,7 @@ interface NodeInfoProps {
   menuWidth?: number;
 }
 
-const nodeInfoStyles = (theme: any) =>
+const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

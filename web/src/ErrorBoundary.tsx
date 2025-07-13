@@ -4,9 +4,11 @@ import { css } from "@emotion/react";
 import React from "react";
 import { useRouteError } from "react-router-dom";
 import { Typography, Box, Button, ThemeProvider } from "@mui/material";
-import ThemeNodetool from "./components/themes/ThemeNodetool";
+import { CopyToClipboardButton } from "./components/common/CopyToClipboardButton";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const errorBoundaryStyles = (theme: any) =>
+const errorBoundaryStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
@@ -14,7 +16,7 @@ const errorBoundaryStyles = (theme: any) =>
     justifyContent: "center",
     height: "95vh",
     textAlign: "center",
-    background: `linear-gradient(to bottom, ${theme.palette?.c_gray1}, ${theme.palette?.c_gray0})`,
+    background: `linear-gradient(to bottom, ${theme.palette?.grey[800]}, ${theme.palette?.grey[900]})`,
 
     ".logo": {
       width: 100,
@@ -24,22 +26,26 @@ const errorBoundaryStyles = (theme: any) =>
 
     ".error-title": {
       color: theme.palette?.error.main,
-      marginBottom: theme.spacing?.(2) || "16px"
+      marginBottom: theme.spacing?.(2) || "16px",
+      userSelect: "all"
     },
 
     ".error-message": {
       maxWidth: 600,
       padding: "2em 0 1em",
-      marginBottom: theme.spacing?.(2) || "16px"
+      color: theme.palette.grey[100],
+      marginBottom: theme.spacing?.(2) || "16px",
+      userSelect: "all"
     },
     ".error-text": {
-      color: theme.palette.grey[0],
-      backgroundColor: theme.palette?.c_gray0,
-      border: "1px solid " + theme.palette?.c_gray1,
+      color: theme.palette.grey[100],
+      backgroundColor: theme.palette?.grey[900],
+      border: "1px solid " + theme.palette?.grey[800],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       margin: "4em 0 0",
-      padding: "2em 3em"
+      padding: "2em 3em",
+      userSelect: "all"
     },
 
     ".issue-tracker-link": {
@@ -50,15 +56,15 @@ const errorBoundaryStyles = (theme: any) =>
     },
 
     ".refresh-button": {
-      backgroundColor: theme.palette?.c_hl1,
+      backgroundColor: theme.palette?.primary.main,
       color: theme.palette?.grey[1000],
       "&:hover": {
-        backgroundColor: theme.palette?.c_hl2
+        backgroundColor: theme.palette?.primary.dark
       }
     },
 
     ".error-stack-trace": {
-      color: theme.palette.grey[0],
+      color: theme.palette.grey[50],
       backgroundColor: theme.palette.grey[900],
       border: "1px solid " + theme.palette.grey[800],
       fontFamily: "monospace",
@@ -68,12 +74,14 @@ const errorBoundaryStyles = (theme: any) =>
       whiteSpace: "pre-wrap",
       wordBreak: "break-all",
       maxHeight: "200px",
-      overflowY: "auto"
+      overflowY: "auto",
+      userSelect: "all"
     }
   });
 
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
+  const theme = useTheme();
 
   const errorMessage =
     error instanceof Error
@@ -83,10 +91,10 @@ const ErrorBoundary: React.FC = () => {
     error instanceof Error ? error.stack : "No stack trace available";
 
   return (
-    <ThemeProvider theme={ThemeNodetool}>
+    <ThemeProvider theme={theme}>
       <Box css={errorBoundaryStyles}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-        <Typography variant="h2" className="error-title">
+        <Typography variant="h4" className="error-title">
           NodeTool has encountered an error
         </Typography>
         <Typography variant="body2" className="error-message">
@@ -112,9 +120,16 @@ const ErrorBoundary: React.FC = () => {
         <Typography variant="body2" className="error-text">
           {errorMessage}
         </Typography>
-        <Typography variant="body2" className="error-stack-trace">
-          {stackTrace}
-        </Typography>
+        <Box position="relative" width="100%" maxWidth={600}>
+          <CopyToClipboardButton
+            textToCopy={stackTrace || ""}
+            tooltipPlacement="top"
+            sx={{ position: "absolute", top: 4, right: 4 }}
+          />
+          <Typography variant="body2" className="error-stack-trace">
+            {stackTrace}
+          </Typography>
+        </Box>
       </Box>
     </ThemeProvider>
   );

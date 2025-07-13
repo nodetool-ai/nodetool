@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
@@ -31,7 +33,7 @@ import {
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-const menuStyles = (theme: any) =>
+const menuStyles = (theme: Theme) =>
   css({
     ".category-header": {
       padding: "8px 16px",

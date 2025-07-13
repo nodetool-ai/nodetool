@@ -6,13 +6,14 @@ import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
 import { CircularProgress } from "@mui/material";
 import log from "loglevel";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 interface TextViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&.text-viewer": {
       width: "calc(90vw - 200px)",
@@ -43,6 +44,7 @@ const styles = (theme: any) =>
  * TextViewer component, used to display a text for a given asset.
  */
 const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
+  const theme = useTheme();
   const [document, setDocument] = useState<string | null>(null);
 
   useEffect(() => {

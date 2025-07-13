@@ -6,12 +6,13 @@ import Drawer from "@mui/material/Drawer";
 import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { Message } from "../../../stores/ApiTypes";
+import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { isEqual } from "lodash";
 
@@ -39,9 +40,17 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdate
   } = useGlobalChatStore();
 
-  const [selectedModel, setSelectedModel] = useState<string>(() => {
+  const tryParseModel = (model: string) => {
+    try {
+      return JSON.parse(model);
+    } catch (error) {
+      return DEFAULT_MODEL;
+    }
+  };
+
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const savedModel = localStorage.getItem("selectedModel");
-    return savedModel || DEFAULT_MODEL;
+    return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
@@ -110,51 +119,10 @@ const GlobalChat: React.FC = () => {
 
   // Save selectedModel to localStorage
   useEffect(() => {
-    localStorage.setItem("selectedModel", selectedModel);
+    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
   }, [selectedModel]);
 
-  const handleSendMessage = useCallback(
-    async (message: Message) => {
-      if (!selectedModel) {
-        console.error("No model selected");
-        return;
-      }
-
-      if (status !== "connected" && status !== "reconnecting") {
-        console.error(
-          "Not connected to chat service, attempting to reconnect..."
-        );
-        // Attempt to reconnect before sending
-        try {
-          await connect();
-        } catch (error) {
-          console.error("Failed to reconnect:", error);
-          return;
-        }
-      }
-
-      try {
-        // Update the message with the selected model - prefix with "help:" if help mode is enabled
-        const modelToUse = helpMode ? `help:${selectedModel}` : selectedModel;
-        const messageWithModel = {
-          ...message,
-          model: modelToUse,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined
-        };
-        await sendMessage(messageWithModel);
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
-    },
-    [selectedModel, sendMessage, status, helpMode, selectedCollections, connect]
-  );
-
-  const handleToolsChange = useCallback((tools: string[]) => {
-    setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
-  }, []);
-
-  const mainAreaStyles = (theme: any) =>
+  const mainAreaStyles = (theme: Theme) =>
     css({
       position: "relative",
       flex: 1,
@@ -205,7 +173,10 @@ const GlobalChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box css={mainAreaStyles} sx={{ height: "100%", maxHeight: "100%" }}>
+      <Box
+        css={mainAreaStyles(theme)}
+        sx={{ height: "100%", maxHeight: "100%" }}
+      >
         <Box
           className="chat-header"
           sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
@@ -251,7 +222,7 @@ const GlobalChat: React.FC = () => {
           <ChatView
             status={status}
             messages={messages}
-            sendMessage={handleSendMessage}
+            sendMessage={sendMessage}
             progress={progress.current}
             total={progress.total}
             progressMessage={statusMessage}
@@ -260,7 +231,7 @@ const GlobalChat: React.FC = () => {
             onToolsChange={handleToolsChange}
             selectedCollections={selectedCollections}
             onCollectionsChange={setSelectedCollections}
-            onModelChange={(modelId) => setSelectedModel(modelId)}
+            onModelChange={setSelectedModel}
             onStop={stopGeneration}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}

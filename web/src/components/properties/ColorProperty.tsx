@@ -6,6 +6,7 @@ import ColorPicker from "../inputs/ColorPicker";
 import { isEqual } from "lodash";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const ColorProperty: React.FC<PropertyProps> = ({
   property,

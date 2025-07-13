@@ -4,13 +4,14 @@ import React from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
+import type { Theme } from "@mui/material/styles";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
   currentFolder?: Asset | null;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

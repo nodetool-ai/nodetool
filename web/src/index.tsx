@@ -17,10 +17,12 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
-
 import { CircularProgress, CssBaseline } from "@mui/material";
-import { Experimental_CssVarsProvider as CssVarsProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
+import {
+  useTheme,
+  Experimental_CssVarsProvider as CssVarsProvider
+} from "@mui/material/styles";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -190,7 +192,7 @@ const root = ReactDOM.createRoot(
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const { state } = useAuth();
-
+  const theme = useTheme();
   useEffect(() => {
     // Existing effect for loading metadata
     loadMetadata()

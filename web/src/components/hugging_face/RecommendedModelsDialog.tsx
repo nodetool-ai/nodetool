@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
   Dialog,
@@ -14,7 +14,7 @@ import { UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RecommendedModels from "./RecommendedModels";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       height: "calc(100% - 200px)",

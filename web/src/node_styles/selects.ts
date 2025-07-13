@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Select Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Select and MenuItem component overrides in emotion format
  */
 
-export const selectStyles = (theme: any) =>
+export const selectStyles = (theme: Theme) =>
   css({
     /* MuiSelect */
     ".MuiSelect-root": {
@@ -98,7 +99,7 @@ export const selectRootStyle = css({
   width: "100%"
 });
 
-export const selectInputStyle = (theme: any) =>
+export const selectInputStyle = (theme: Theme) =>
   css({
     width: "100%",
     padding: "0 0 0 0.4em",
@@ -108,12 +109,12 @@ export const selectInputStyle = (theme: any) =>
     margin: 0
   });
 
-export const selectIconStyle = (theme: any) =>
+export const selectIconStyle = (theme: Theme) =>
   css({
     color: theme.palette?.grey?.[400] || "var(--palette-grey-400)"
   });
 
-export const menuItemStyle = (theme: any) =>
+export const menuItemStyle = (theme: Theme) =>
   css({
     fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
     backgroundColor: theme.palette?.grey?.[600] || "var(--palette-grey-600)",

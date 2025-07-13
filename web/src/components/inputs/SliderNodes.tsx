@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import Slider from "@mui/material/Slider";
 import React from "react";
 
-const sliderStyles = (theme: any) =>
+const sliderStyles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

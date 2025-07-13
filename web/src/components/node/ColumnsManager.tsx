@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo } from "react";
 import { Grid, InputLabel } from "@mui/material";
 import log from "loglevel";
@@ -7,15 +8,14 @@ import { ColumnDef } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Column from "./Column";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
       flexDirection: "row",
       gap: ".25em",
       padding: "0",
-      backgroundColor: "transparent",
-      fontFamily: theme.fontFamily
+      backgroundColor: "transparent"
     },
     ".labels": {
       display: "flex",

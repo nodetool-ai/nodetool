@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Typography Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Typography component overrides in emotion format
  */
 
-export const typographyStyles = (theme: any) =>
+export const typographyStyles = (theme: Theme) =>
   css({
     /* MuiTypography Caption */
     ".MuiTypography-caption": {
@@ -108,7 +109,7 @@ export const typographyStyles = (theme: any) =>
   });
 
 // Individual style functions for component-specific use
-export const captionStyle = (theme: any) =>
+export const captionStyle = (theme: Theme) =>
   css({
     display: "block",
     fontSize: "0.55em",
@@ -116,7 +117,7 @@ export const captionStyle = (theme: any) =>
     marginTop: "-0.5em"
   });
 
-export const h1Style = (theme: any) =>
+export const h1Style = (theme: Theme) =>
   css({
     fontSize: "2em",
     fontWeight: "400",
@@ -126,7 +127,7 @@ export const h1Style = (theme: any) =>
     wordSpacing: "-3px"
   });
 
-export const h2Style = (theme: any) =>
+export const h2Style = (theme: Theme) =>
   css({
     fontSize: "1.75em",
     fontWeight: "400",
@@ -136,7 +137,7 @@ export const h2Style = (theme: any) =>
     wordSpacing: "-0.2em"
   });
 
-export const bodyStyle = (theme: any) =>
+export const bodyStyle = (theme: Theme) =>
   css({
     fontSize: "1em",
     fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,

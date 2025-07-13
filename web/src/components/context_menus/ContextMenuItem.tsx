@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode } from "react";
 import { Tooltip, MenuItem, Button, IconButton } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -13,7 +14,7 @@ interface ContextMenuItemProps {
   controlElement?: ReactElement;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       color: theme.palette.grey[0],

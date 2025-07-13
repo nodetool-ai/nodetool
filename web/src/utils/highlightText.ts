@@ -1,5 +1,4 @@
 import { NodeMetadata } from "../stores/ApiTypes";
-import ThemeNodetool from "../components/themes/ThemeNodetool";
 
 export const escapeHtml = (text: string): string => {
   const div = document.createElement("div");
@@ -20,22 +19,6 @@ export const hexToRgb = (hex: string) => {
 export interface HighlightResult {
   html: string;
   highlightedWords: string[];
-}
-
-// Cache for highlighted results
-const highlightCache = new Map<string, HighlightResult>();
-
-interface FuseMatch {
-  indices: Array<[number, number]>;
-  key: string;
-  value: string;
-}
-
-interface Match {
-  indices: [number, number];
-  text: string;
-  length: number;
-  source: string;
 }
 
 export const highlightText = (
@@ -124,7 +107,11 @@ export const highlightText = (
   const parts: string[] = [];
   let lastEnd = 0;
   let hasColoredMatch = false;
-  const rgbColor = hexToRgb(ThemeNodetool.palette.primary.main || "#fff");
+  const rgbColor = hexToRgb(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--palette-primary-main"
+    ) || "#fff"
+  );
 
   for (const match of orderedMatches) {
     // Add text before match
@@ -144,9 +131,7 @@ export const highlightText = (
       `<span class="highlight" style="border-bottom: ${borderWidth} solid rgba(${
         rgbColor || "255, 0, 0"
       }, ${opacity}%);${
-        shouldColor
-          ? `color: ${ThemeNodetool.palette.primary.main || "#fff"};`
-          : ""
+        shouldColor ? `color: var(--palette-primary-main);` : ""
       }transition: all 0.2s ease;">${escapeHtml(match.text)}</span>`
     );
 

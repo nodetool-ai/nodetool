@@ -15,9 +15,13 @@ import { isEqual } from "lodash";
 import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
-import ThemeNodetool from "../../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const toolsSelectorStyles = (theme: any) =>
   css({
@@ -149,14 +153,20 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const selectedNodeTypes = useMemo(() => value || [], [value]);
-
+  const theme = useTheme();
   // Use NodeMenuStore for search functionality
-  const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
-  const searchResults = useNodeMenuStore((state) => state.searchResults);
-  const performSearch = useNodeMenuStore((state) => state.performSearch);
-  const isLoading = useNodeMenuStore((state) => state.isLoading);
-  const selectedPath = useNodeMenuStore((state) => state.selectedPath);
+  const { searchTerm, setSearchTerm, searchResults, isLoading, selectedPath } =
+    useStoreWithEqualityFn(
+      useNodeMenuStore,
+      (state) => ({
+        searchTerm: state.searchTerm,
+        setSearchTerm: state.setSearchTerm,
+        searchResults: state.searchResults,
+        isLoading: state.isLoading,
+        selectedPath: state.selectedPath
+      }),
+      shallow
+    );
 
   const availableNodes = useMemo(() => {
     // Show nodes if either:
@@ -170,7 +180,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     }
 
     // Filter out nodes with default namespace and return sorted results
-    return searchResults.filter((node) => node.namespace !== "default");
+    return searchResults.filter(
+      (node: NodeMetadata) => node.namespace !== "default"
+    );
   }, [searchResults, searchTerm, selectedPath]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -203,7 +215,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
 
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
-  const memoizedStyles = useMemo(() => toolsSelectorStyles(ThemeNodetool), []);
+  const memoizedStyles = useMemo(() => toolsSelectorStyles(theme), [theme]);
 
   return (
     <>

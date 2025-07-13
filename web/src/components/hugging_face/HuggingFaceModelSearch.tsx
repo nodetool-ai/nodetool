@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import {
   TextField,
@@ -28,7 +29,7 @@ const searchModels = async (query: string) => {
   return data;
 };
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: theme.palette.grey[800],

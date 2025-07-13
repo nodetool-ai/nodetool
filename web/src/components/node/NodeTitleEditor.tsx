@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import {
   DialogContent,
@@ -16,7 +16,7 @@ interface NodeTitleEditorProps {
   anchorEl: HTMLElement;
   onClose: () => void;
 }
-const dialogStyles = (theme: any) =>
+const dialogStyles = (theme: Theme) =>
   css({
     "& .MuiPaper-root": {},
     ".MuiDialogContent-root": {

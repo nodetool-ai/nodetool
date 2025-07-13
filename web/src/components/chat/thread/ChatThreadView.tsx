@@ -8,6 +8,7 @@ import React, {
   useMemo
 } from "react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { Message, PlanningUpdate, TaskUpdate } from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
@@ -100,18 +101,12 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
           </li>
         )}
         {currentPlanningUpdate && (
-          <li
-            key="planning-update"
-            className="chat-message-list-item"
-          >
+          <li key="planning-update" className="chat-message-list-item">
             <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
           </li>
         )}
         {currentTaskUpdate && (
-          <li
-            key="task-update"
-            className="chat-message-list-item"
-          >
+          <li key="task-update" className="chat-message-list-item">
             <TaskUpdateDisplay taskUpdate={currentTaskUpdate} />
           </li>
         )}

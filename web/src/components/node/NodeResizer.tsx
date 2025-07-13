@@ -2,13 +2,14 @@
 import { css } from "@emotion/react";
 import { NodeResizer as ReactFlowNodeResizer } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 interface NodeResizerProps {
   minWidth: number;
   minHeight: number;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     zIndex: -1,
@@ -36,7 +37,7 @@ const styles = (theme: any) =>
 const NodeResizer: React.FC<NodeResizerProps> = ({ minWidth, minHeight }) => {
   const theme = useTheme();
   return (
-    <div className="node-resizer" css={styles(theme)}>
+    <div className="node-resizer" css={styles}>
       <ReactFlowNodeResizer minWidth={minWidth} minHeight={minHeight} />
     </div>
   );

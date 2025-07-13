@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-export const tableStyles = (theme: any) =>
+export const tableStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

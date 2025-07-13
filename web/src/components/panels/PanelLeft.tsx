@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -24,10 +25,11 @@ import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import { Fullscreen } from "@mui/icons-material";
+import { getShortcutTooltip } from "../../config/shortcuts";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     left: "0",
@@ -158,14 +160,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   return (
     <div className="vertical-toolbar">
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Chat</div>
-            <div className="tooltip-key">
-              <kbd>1</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("toggleChat")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -200,14 +195,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Assets</div>
-            <div className="tooltip-key">
-              <kbd>3</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("toggleAssets")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -234,14 +222,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </Button>
       </Tooltip>
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Collections</div>
-            <div className="tooltip-key">
-              <kbd>4</kbd>
-            </div>
-          </div>
-        }
+        title={getShortcutTooltip("toggleCollections")}
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
@@ -259,26 +240,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
               color: "white"
             }}
           />
-        </IconButton>
-      </Tooltip>
-      <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Packs</div>
-            <div className="tooltip-key">
-              <kbd>5</kbd>
-            </div>
-          </div>
-        }
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          className={`toolbar-button ${activeView === "packs" ? "active" : ""}`}
-          onClick={() => onViewChange("packs")}
-        >
-          <WidgetsIcon />
         </IconButton>
       </Tooltip>
 
@@ -416,19 +377,6 @@ const PanelContent = memo(function PanelContent({
         >
           <h3>Collections</h3>
           <CollectionList />
-        </Box>
-      )}
-      {activeView === "packs" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto",
-            margin: "0 20px"
-          }}
-        >
-          <h3>Packs</h3>
-          <PackageList />
         </Box>
       )}
     </>

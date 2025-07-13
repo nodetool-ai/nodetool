@@ -18,9 +18,10 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
 import { getIsElectronDetails } from "../../utils/browser";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: typeof ThemeNodetool) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
@@ -353,6 +354,8 @@ const TabsNodeEditor = () => {
     return Array.from(tabMap.values());
   }, [openWorkflows, loadingStates]);
 
+  const theme = useTheme();
+
   return (
     <>
       {workflowToEdit && (
@@ -372,20 +375,20 @@ const TabsNodeEditor = () => {
           css={generateCSS}
           style={{ flex: 1, minHeight: 0, minWidth: 0 }}
         >
-          {activeNodeStore ? (
-            <Box
-              key={currentWorkflowId}
-              sx={{
-                overflow: "hidden",
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                minHeight: 0,
-                minWidth: 0,
-                display: "flex",
-                flexDirection: "column"
-              }}
-            >
+          <Box
+            key={currentWorkflowId}
+            sx={{
+              overflow: "hidden",
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            {activeNodeStore ? (
               <NodeContext.Provider value={activeNodeStore}>
                 <ReactFlowProvider>
                   <ContextMenuProvider>
@@ -425,10 +428,10 @@ const TabsNodeEditor = () => {
                   </ContextMenuProvider>
                 </ReactFlowProvider>
               </NodeContext.Provider>
-            </Box>
-          ) : (
-            <StatusMessage />
-          )}
+            ) : (
+              <StatusMessage />
+            )}
+          </Box>
         </div>
       </div>
     </>

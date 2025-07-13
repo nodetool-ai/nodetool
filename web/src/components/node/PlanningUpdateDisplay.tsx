@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useMemo, useCallback } from "react";
+import type { Theme } from "@mui/material/styles";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { PlanningUpdate } from "../../stores/ApiTypes";
 import { Button, css } from "@mui/material";
@@ -8,7 +9,7 @@ interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "@keyframes aiColorShift": {
       "0%": { color: "#00FFFF" } /* Aqua */,

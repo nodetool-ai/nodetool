@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
 import React from "react";
 import Button from "@mui/material/Button";
@@ -10,7 +11,7 @@ interface CloseButtonProps<T> {
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     button: {
       position: "absolute",

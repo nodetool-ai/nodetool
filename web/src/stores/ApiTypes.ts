@@ -2,8 +2,8 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node"];
 export type Edge = components["schemas"]["Edge"];
-export type Asset = components["schemas"]["Asset"] & {
-  size?: number; // File size in bytes - added for size sorting
+export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
+  size?: number | null; // File size in bytes - added for size sorting
 };
 export type AssetList = components["schemas"]["AssetList"];
 
@@ -123,3 +123,5 @@ export type SubTask = components["schemas"]["SubTask"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
 export type SubTaskResult = components["schemas"]["SubTaskResult"];
+export type InferenceProvider = components["schemas"]["InferenceProvider"]; 
+export type Provider = components["schemas"]["Provider"];

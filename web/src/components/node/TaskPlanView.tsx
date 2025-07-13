@@ -1,15 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
-import { TaskPlan, Task, SubTask } from "../../stores/ApiTypes";
+import { Task } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 
 interface TaskPlanViewProps {
   data: Task[] | { type: "task_plan"; title: string; tasks: Task[] };
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".task-list-title": {
       margin: "1rem 1rem",

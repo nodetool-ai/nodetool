@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { memo, useMemo, useRef } from "react";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -16,13 +18,12 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import Draggable from "react-draggable";
 // theme
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 
-const treeStyles = (theme: any) =>
+const treeStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
@@ -172,7 +173,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   );
 
   const namespaceTree = useNamespaceTree();
-  const memoizedStyles = useMemo(() => treeStyles(ThemeNodetool), []);
+  const theme = useTheme();
+  const memoizedStyles = useMemo(() => treeStyles(theme), [theme]);
 
   useCombo(["Escape"], closeNodeMenu);
 

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Navigation Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Tabs and Tab component overrides in emotion format
  */
 
-export const navigationStyles = (theme: any) =>
+export const navigationStyles = (theme: Theme) =>
   css({
     /* MuiTabs */
     ".MuiTabs-root": {
@@ -52,14 +53,14 @@ export const tabsRootStyle = css({
   minHeight: "auto"
 });
 
-export const tabsIndicatorStyle = (theme: any) =>
+export const tabsIndicatorStyle = (theme: Theme) =>
   css({
     backgroundColor:
       theme.palette?.primary?.main || "var(--palette-primary-main)",
     height: 1
   });
 
-export const tabStyle = (theme: any) =>
+export const tabStyle = (theme: Theme) =>
   css({
     textTransform: "none" as const,
     fontWeight: 300,

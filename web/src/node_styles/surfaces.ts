@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { themeVariables } from "./theme-variables";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Surface Component Styles
@@ -8,7 +9,7 @@ import { themeVariables } from "./theme-variables";
  * MUI Backdrop, Popover, and Dialog component overrides in emotion format
  */
 
-export const surfacesStyles = (theme: any) =>
+export const surfacesStyles = (theme: Theme) =>
   css({
     /* MuiBackdrop */
     ".MuiBackdrop-root": {
@@ -67,7 +68,7 @@ export const popoverRootStyle = css({
   zIndex: 99999
 });
 
-export const popoverPaperStyle = (theme: any) =>
+export const popoverPaperStyle = (theme: Theme) =>
   css({
     backgroundColor: theme.palette?.grey?.[700] || "var(--palette-grey-700)",
     border: `1px solid ${
@@ -80,14 +81,14 @@ export const dialogRootStyle = css({
   zIndex: 10000
 });
 
-export const dialogPaperStyle = (theme: any) =>
+export const dialogPaperStyle = (theme: Theme) =>
   css({
     backgroundColor: theme.palette?.grey?.[800] || "var(--palette-grey-800)",
     color: theme.palette?.common?.white || "var(--palette-common-white)",
     fontFamily: theme.fontFamily1 || themeVariables.fontFamily1
   });
 
-export const dialogTitleStyle = (theme: any) =>
+export const dialogTitleStyle = (theme: Theme) =>
   css({
     fontFamily: theme.fontFamily2 || themeVariables.fontFamily2,
     fontSize: theme.fontSizeBig || themeVariables.fontSizeBig,

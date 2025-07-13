@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
   Dialog,
@@ -17,7 +18,7 @@ import ModelCard from "./model_card/ModelCard";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".model-content": {
       display: "flex",

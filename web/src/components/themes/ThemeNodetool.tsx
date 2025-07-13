@@ -1,4 +1,4 @@
-import { Theme, createTheme } from "@mui/material/styles";
+import { createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 
@@ -40,7 +40,7 @@ declare module "@mui/system/createTheme" {
   }
 }
 
-const ThemeNodetool: Theme = createTheme({
+const ThemeNodetool = createTheme({
   defaultColorScheme: "dark",
   colorSchemes: {
     dark: {

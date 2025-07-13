@@ -4,11 +4,12 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       height: "100%"
@@ -42,7 +43,6 @@ const styles = (theme: any) =>
       opacity: 0.8
     },
     "li span.message": {
-      fontFamily: theme.fontFamily,
       fontSize: "0.8em",
       display: "block",
       overflow: "hidden auto",

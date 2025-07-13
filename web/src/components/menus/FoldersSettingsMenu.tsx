@@ -7,7 +7,8 @@ import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 
 const ExternalLinkButton = ({
@@ -138,6 +139,8 @@ const FoldersSettings = () => {
     );
   }, [addNotification, settingValues, updateSettingsMutation, data]);
 
+  const theme = useTheme();
+
   return (
     <>
       {isLoading && (
@@ -146,10 +149,7 @@ const FoldersSettings = () => {
         </Typography>
       )}
       {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
-        <div
-          className="remote-settings-content"
-          css={getSharedSettingsStyles(ThemeNodetool)}
-        >
+        <div className="remote-settings-content" css={getSharedSettingsStyles}>
           <div className="settings-main-content">
             <Typography variant="h1">Folder Settings</Typography>
 

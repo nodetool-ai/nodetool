@@ -1,18 +1,27 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect } from "react";
-
-import { Box, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
+import { memo, useEffect, useState } from "react";
+import {
+  Box,
+  CircularProgress,
+  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField
+} from "@mui/material";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
-// import "../../styles/collapsed.css";
 import "../../styles/properties.css";
 import "../../styles/interactions.css";
 import "../../styles/special_nodes.css";
 import "../../styles/handle_edge_tooltip.css";
+// import "../../styles/collapsed.css";
 
 //hooks
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -21,13 +30,14 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import WorkflowChat from "../chat/containers/WorkflowChat";
-// import ModelDownloadDialog from "../hugging_face/ModelDownloadDialog";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/ApiClient";
 import { useTheme } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
+import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
+import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 
 declare global {
   interface Window {
@@ -51,13 +61,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       clearMissingModels: state.clearMissingModels
     })
   );
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const {
     packageNameDialogOpen,
     packageNameInput,
     setPackageNameInput,
     handleSaveExampleConfirm,
     handleSaveExampleCancel
-  } = useNodeEditorShortcuts(active);
+  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   // WorkflowRunner connection management
   const { connect, disconnect, state, current_url } = useWorkflowRunner(
@@ -157,10 +168,39 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           <>
             <WorkflowChat workflow_id="default" />
             <NodeMenu focusSearchInput={true} />
+            <Modal
+              open={showShortcuts}
+              onClose={(event, reason) => {
+                if (reason === "backdropClick") {
+                  setShowShortcuts(false);
+                }
+              }}
+              closeAfterTransition
+            >
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "250px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "80vw",
+                  maxWidth: "1400px",
+                  padding: 4,
+                  backgroundColor: theme.palette.grey[800],
+                  boxShadow: 24,
+                  borderRadius: 2,
+                  border: 0,
+                  outline: 0,
+                  overflow: "hidden"
+                }}
+              >
+                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+              </Box>
+            </Modal>
           </>
         )}
       </Box>
-      
+
       {/* Package Name Dialog */}
       <Dialog
         open={packageNameDialogOpen}
@@ -179,7 +219,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
             value={packageNameInput}
             onChange={(e) => setPackageNameInput(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === "Enter") {
                 handleSaveExampleConfirm();
               }
             }}

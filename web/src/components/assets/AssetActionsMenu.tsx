@@ -6,13 +6,14 @@ import { Box } from "@mui/material";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       margin: "0",
@@ -28,7 +29,7 @@ const styles = (theme: any) =>
       minWidth: "200px",
       overflowY: "auto",
       overflowX: "hidden",
-      fontSize: ThemeNodetool.fontSizeSmall,
+      fontSize: theme.fontSizeSmall,
       padding: "0.1em 0.2em",
       color: theme.palette.grey[200]
     }
@@ -56,8 +57,13 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
     [setAssetSearchTerm]
   );
 
+  const theme = useTheme();
+
   return (
-    <Box className="asset-menu asset-menu-with-global-search" css={styles}>
+    <Box
+      className="asset-menu asset-menu-with-global-search"
+      css={styles(theme)}
+    >
       <SearchErrorBoundary fallbackTitle="Search Input Error">
         <AssetSearchInput
           onLocalSearchChange={onLocalSearchChange}

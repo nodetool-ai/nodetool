@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React, { useState, useMemo } from "react";
 import {
   Box,
@@ -32,7 +33,7 @@ type PackageListResponse = components["schemas"]["PackageListResponse"];
 type InstalledPackageListResponse =
   components["schemas"]["InstalledPackageListResponse"];
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[800],
     color: theme.palette.grey[0],

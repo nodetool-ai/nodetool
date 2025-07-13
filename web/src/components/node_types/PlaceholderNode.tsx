@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import { memo, useEffect, useState, useMemo, useCallback } from "react";
+import type { Theme } from "@mui/material/styles";
+import { memo, useState, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip, Button, CircularProgress } from "@mui/material";
@@ -30,7 +30,7 @@ interface PlaceholderNodeData extends Node<NodeData> {
   };
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       outline: "2px solid" + theme.palette.error.main

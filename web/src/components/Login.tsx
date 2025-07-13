@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { css, useTheme } from "@emotion/react";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
@@ -20,7 +22,7 @@ const styles = (theme: any) =>
       gap: "1em"
     },
     h3: {
-      fontFamily: theme.fontFamily,
+      fontFamily: theme.fontFamily1,
       fontSize: "2em",
       color: "white",
       textAlign: "center",
@@ -79,7 +81,7 @@ function Login() {
   };
 
   return (
-    <div css={styles(theme)}>
+    <div css={styles}>
       <div className="flex">
         <Logo
           width="250px"

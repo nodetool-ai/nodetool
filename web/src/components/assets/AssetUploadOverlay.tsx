@@ -1,13 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import ReactDOM from "react-dom";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 import { Box, Typography } from "@mui/material";
 //server state
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import LinearProgressWithLabel from "./LinearProgressWithLabel";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",
@@ -40,6 +42,7 @@ const styles = (theme: any) =>
   });
 
 const AssetUploadOverlay = () => {
+  const theme = useTheme();
   const { files, isUploading, overallProgress, completed } = useAssetUpload();
 
   if (!isUploading) {
@@ -47,7 +50,7 @@ const AssetUploadOverlay = () => {
   }
 
   return ReactDOM.createPortal(
-    <div css={styles} className="uploading-overlay">
+    <div css={styles(theme)} className="uploading-overlay">
       <div className="uploading-message">
         <Box>
           <Typography variant="h2">Uploading assets</Typography>

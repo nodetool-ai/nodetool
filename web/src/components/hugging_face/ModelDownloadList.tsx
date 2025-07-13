@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Grid, Box } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -8,7 +9,7 @@ import { UnifiedModel } from "../../stores/ApiTypes";
 import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import ModelListItem from "./model_list/ModelListItem";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     ".models-grid": {
       overflow: "auto",

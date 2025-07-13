@@ -36,10 +36,12 @@ import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
+import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 
 export type PropertyProps = {
   property: Property;
@@ -138,6 +140,20 @@ function handleAdvancedDataTypes(
       return handleUnionType(property);
     case "list":
       return handleListType(property);
+    case "inference_provider_automatic_speech_recognition_model":
+    case "inference_provider_audio_classification_model":
+    case "inference_provider_image_classification_model":
+    case "inference_provider_text_classification_model":
+    case "inference_provider_summarization_model":
+    case "inference_provider_text_to_image_model":
+    case "inference_provider_translation_model":
+    case "inference_provider_text_to_text_model":
+    case "inference_provider_text_to_speech_model":
+    case "inference_provider_text_to_audio_model":
+    case "inference_provider_text_generation_model":
+    case "inference_provider_image_to_image_model":
+    case "inference_provider_image_segmentation_model":
+      return InferenceProviderModelSelect;
     default:
       return handleModelTypes(type);
   }
@@ -401,7 +417,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     inputField = <div>Unsupported property type</div>;
   }
 
-  const textStyles = (theme: any) =>
+  const textStyles = (theme: Theme) =>
     css({
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,

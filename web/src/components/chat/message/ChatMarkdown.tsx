@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,7 +15,7 @@ interface ChatMarkdownProps {
   content: string;
 }
 
-const styles = (theme: any) =>
+const styles = () =>
   css({
     backgroundColor: "transparent !important",
     ".code-block-header": {

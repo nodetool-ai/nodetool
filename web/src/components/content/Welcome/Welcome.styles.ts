@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
-const welcomeStyles = (theme: any) =>
+const welcomeStyles = (theme: Theme) =>
   css({
     "&": {
       backgroundColor: "#222",
@@ -23,7 +24,6 @@ const welcomeStyles = (theme: any) =>
       marginBottom: "1em"
     },
     ".summary": {
-      fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
       color: "var(--palette-primary-main)",
       backgroundColor: theme.palette.grey[800]
@@ -31,7 +31,6 @@ const welcomeStyles = (theme: any) =>
     ".content": {
       padding: "1em",
       color: theme.palette.grey[0],
-      fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBig
     },
 
@@ -43,8 +42,7 @@ const welcomeStyles = (theme: any) =>
       listStyleType: "square",
       marginLeft: "0",
       marginBottom: 0,
-      fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1
+      fontSize: theme.fontSizeNormal
     },
     ".search": {
       margin: "1em 0 -1em 0",
@@ -70,7 +68,6 @@ const welcomeStyles = (theme: any) =>
       margin: ".5em 0"
     },
     ".MuiTypography-root": {
-      fontFamily: theme.fontFamily,
       lineHeight: "1.5em"
     },
     ".MuiListItemText-primary": {
@@ -170,12 +167,12 @@ const welcomeStyles = (theme: any) =>
       margin: "0 .2em"
     },
     ".setup-tab h4, .setup-tab h5": {
-      fontFamily: theme.fontFamily,
+      fontFamily: theme.fontFamily2,
       marginBottom: "1em"
     },
     ".setup-tab .MuiListItemText-primary": {
       fontWeight: "bold",
-      color: theme.palette.c_hl3
+      color: theme.palette.primary.main
     },
     ".setup-tab .MuiListItemText-secondary": {
       color: theme.palette.grey[0]

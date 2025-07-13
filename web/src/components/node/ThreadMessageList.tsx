@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useRef } from "react";
-
+import { css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { Message } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import { css } from "@emotion/react";
 import { isEqual } from "lodash";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       maxHeight: "500px",
@@ -50,7 +50,7 @@ const styles = (theme: any) =>
       color: "var(--palette-primary-main)"
     },
     ".messages li a:hover": {
-      color: `${theme.c_gray4} !important`
+      color: theme.palette.grey[400]
     }
   });
 
