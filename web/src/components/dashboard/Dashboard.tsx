@@ -152,8 +152,6 @@ const Dashboard: React.FC = () => {
     messageCache
   } = useGlobalChatStore();
 
-  const messages = getCurrentMessagesSync();
-
   useEffect(() => {
     localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
   }, [selectedModel]);
@@ -546,10 +544,18 @@ const Dashboard: React.FC = () => {
 
       api.clear();
 
+      const chatPanel = api.addPanel({
+        id: "chat",
+        component: "chat",
+        title: "Chat",
+        params: panelParams.chat
+      });
+
       const examplesPanel = api.addPanel({
         id: "examples",
         component: "examples",
         title: "Examples",
+        position: { direction: "above", referencePanel: chatPanel },
         params: panelParams.examples
       });
 
@@ -569,13 +575,6 @@ const Dashboard: React.FC = () => {
         params: panelParams.threads
       });
 
-      const chatPanel = api.addPanel({
-        id: "chat",
-        component: "chat",
-        title: "Chat",
-        position: { direction: "below", referencePanel: examplesPanel },
-        params: panelParams.chat
-      });
       chatPanel.api.setSize({ height: 200 });
     },
 
