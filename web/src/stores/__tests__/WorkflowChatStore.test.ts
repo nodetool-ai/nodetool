@@ -84,11 +84,8 @@ describe('WorkflowChatStore', () => {
 
     await store.getState().sendMessage(message);
 
-    expect(wsManager.send).toHaveBeenCalledWith(expect.objectContaining({
-      ...message,
-      thread_id: expect.any(String),
-      agent_mode: false
-    }));
+    expect(wsManager.send).toHaveBeenCalledWith(message);
+    expect(store.getState().messages).toEqual([message]);
     expect(store.getState().status).toBe('loading');
   });
 
@@ -115,38 +112,17 @@ describe('WorkflowChatStore', () => {
   });
 
   it('resetMessages clears messages array', () => {
-    const threadId = 'test-thread';
-    store.setState({ 
-      currentThreadId: threadId,
-      threads: {
-        [threadId]: {
-          id: threadId,
-          title: 'Test Thread',
-          messages: [{ type: 'message', role: 'assistant', content: 'x' }],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      }
-    } as any);
+    store.setState({ messages: [{ type: 'message', role: 'assistant', content: 'x' }] as any });
     store.getState().resetMessages();
-    expect(store.getState().threads[threadId].messages).toEqual([]);
+    expect(store.getState().messages).toEqual([]);
   });
 
   it('handles string output_update messages', async () => {
-    const threadId = store.getState().createNewThread();
     const connectPromise = store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
     const wsManager = (store.getState() as any).wsManager as any;
     const socket = wsManager.getWebSocket() as MockWebSocket;
     socket.onopen?.();
     await connectPromise;
-
-    // First, add an assistant message to append to
-    wsManager.emit('message', {
-      type: 'message',
-      role: 'assistant',
-      content: '',
-      thread_id: threadId
-    });
 
     const sendUpdate = async (value: string) => {
       const update: OutputUpdate = {
@@ -163,26 +139,21 @@ describe('WorkflowChatStore', () => {
     };
 
     await sendUpdate('Hello');
-    const messages = store.getState().threads[threadId].messages;
-    expect(messages[0].content).toBe('Hello');
+    expect(store.getState().messages[0].content).toBe('Hello');
 
     await sendUpdate(' world');
-    const updatedMessages = store.getState().threads[threadId].messages;
-    expect(updatedMessages[0].content).toBe('Hello world');
+    expect(store.getState().messages[0].content).toBe('Hello world');
 
     await sendUpdate('<nodetool_end_of_stream>');
-    const finalMessages = store.getState().threads[threadId].messages;
-    expect(finalMessages[0].content).toBe('Hello world');
+    expect(store.getState().messages[0].content).toBe('Hello world');
   });
 
   it('handles image output_update messages', async () => {
-    const threadId = store.getState().createNewThread();
     const connectPromise = store.getState().connect({ id: 'wf1' } as WorkflowAttributes);
     const wsManager = (store.getState() as any).wsManager as any;
     const socket = wsManager.getWebSocket() as MockWebSocket;
     socket.onopen?.();
     await connectPromise;
-    
     const img = new Uint8Array([1, 2, 3]);
     const update: OutputUpdate = {
       type: 'output_update',
@@ -195,9 +166,7 @@ describe('WorkflowChatStore', () => {
     await socket.onmessage?.({
       data: { arrayBuffer: () => Promise.resolve(buf) },
     } as any);
-    
-    const messages = store.getState().threads[threadId].messages;
-    const message = messages[0];
+    const message = store.getState().messages[0];
     expect(Array.isArray(message.content)).toBe(true);
     const content = (message.content as any[])[0];
     expect(content.type).toBe('image_url');
