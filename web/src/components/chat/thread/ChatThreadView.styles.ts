@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
     width: "100%",
-    flexGrow: 1,
+    // flexGrow: 1,
     position: "relative",
     display: "flex",
     flexDirection: "column",
