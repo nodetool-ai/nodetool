@@ -77,10 +77,11 @@ const styles = (theme: Theme) =>
     },
     // DRAG HANDLE
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      backgroundColor: theme.palette.grey[900]
+      backgroundColor: theme.palette.grey[900],
+      transitionDelay: "0s !important"
     },
     "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
-      backgroundColor: theme.palette.grey[600]
+      backgroundColor: "var(--palette-grey-600) !important"
     },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {
@@ -418,7 +419,7 @@ const Dashboard: React.FC = () => {
         handleCreateNewWorkflow,
         handleWorkflowClick
       },
-      threads: {
+      "recent-chats": {
         threads: threads as { [key: string]: Thread },
         currentThreadId,
         onNewThread: handleNewThread,
@@ -500,7 +501,7 @@ const Dashboard: React.FC = () => {
           handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
         />
       ),
-      threads: (props: IDockviewPanelProps<PanelProps>) => (
+      "recent-chats": (props: IDockviewPanelProps<PanelProps>) => (
         <Box sx={{ overflow: "auto", height: "100%" }}>
           <RecentChats
             threads={props.params?.threads || {}}
@@ -568,14 +569,14 @@ const Dashboard: React.FC = () => {
       });
 
       api.addPanel({
-        id: "threads",
-        component: "threads",
+        id: "recent-chats",
+        component: "recent-chats",
         title: "Recent Chats",
         position: { direction: "right", referencePanel: workflowsPanel },
-        params: panelParams.threads
+        params: panelParams["recent-chats"]
       });
 
-      chatPanel.api.setSize({ height: 200 });
+      chatPanel.api.setSize({ height: 100 });
     },
 
     [panelParams]
@@ -584,7 +585,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!dockviewApi) return;
 
-    const allPanelIds = ["examples", "workflows", "threads", "chat"];
+    const allPanelIds = ["examples", "workflows", "recent-chats", "chat"];
 
     const updateAvailablePanels = () => {
       const openPanelIds = dockviewApi.panels.map((p) => p.id);

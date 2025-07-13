@@ -153,7 +153,8 @@ const ThemeNodetool = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          minWidth: 36
+          minWidth: 24,
+          lineHeight: "1.2em"
         }
       }
     },
