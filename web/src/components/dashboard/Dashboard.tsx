@@ -1,13 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Button,
-  ToggleButton,
-  ToggleButtonGroup
+  Box
+  // Typography,
+  // CircularProgress,
+  // Button,
+  // ToggleButton,
+  // ToggleButtonGroup
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
@@ -36,13 +38,44 @@ import {
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100vw",
       height: "100vh",
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
+    },
+    ".dv-tabs-and-actions-container": {
+      backgroundColor: "transparent",
+      position: "absolute",
+      width: "calc(100% - 4px)",
+      top: 7,
+      left: 2,
+      right: 10,
+      zIndex: 100,
+      opacity: 0,
+      transition: "opacity 0.2s ease-in-out"
+      // width: "fit-content"
+    },
+    ".dv-tabs-and-actions-container:hover": {
+      opacity: 1,
+      backgroundColor: theme.palette.background.default
+    },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
+      {
+        width: "6px",
+        backgroundColor: theme.palette.grey[50],
+        transform: "translate(-3px, 0px)"
+      },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover":
+      {
+        backgroundColor: theme.palette.grey[100]
+      },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
+      height: "6px",
+      transform: "translate(0px, 3px)",
+      backgroundColor: theme.palette.grey[50]
     }
   });
 
@@ -549,7 +582,11 @@ const Dashboard: React.FC = () => {
   }, [dockviewApi, panelParams]);
 
   return (
-    <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
+    <Box
+      className="dashboard"
+      css={styles}
+      sx={{ height: "100vh", width: "100vw", position: "relative" }}
+    >
       <DashboardHeader showBackToEditor={!!currentWorkflowId}>
         <AddPanelDropdown
           availablePanels={availablePanels}
