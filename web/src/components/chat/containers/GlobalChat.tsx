@@ -228,7 +228,7 @@ const GlobalChat: React.FC = () => {
             progressMessage={statusMessage}
             model={selectedModel}
             selectedTools={selectedTools}
-            onToolsChange={handleToolsChange}
+            // onToolsChange={handleToolsChange}
             selectedCollections={selectedCollections}
             onCollectionsChange={setSelectedCollections}
             onModelChange={setSelectedModel}

@@ -14,7 +14,12 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Workflow, WorkflowList, Message } from "../../stores/ApiTypes";
+import {
+  Workflow,
+  WorkflowList,
+  Message,
+  LanguageModel
+} from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -36,8 +41,8 @@ import {
 } from "dockview";
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
+import { DEFAULT_MODEL } from "../../config/constants";
 
-const styles = (theme: Theme) =>
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -96,6 +101,9 @@ const Dashboard: React.FC = () => {
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>("");
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [agentMode, setAgentMode] = useState(false);
 
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
@@ -109,13 +117,18 @@ const Dashboard: React.FC = () => {
     getCurrentMessages,
     threads,
     currentThreadId,
-    deleteThread
+    deleteThread,
+    progress,
+    statusMessage,
+    stopGeneration,
+    currentPlanningUpdate,
+    currentTaskUpdate
   } = useGlobalChatStore();
 
   const messages = getCurrentMessages();
 
   useEffect(() => {
-    localStorage.setItem("selectedModel", selectedModel);
+    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
   }, [selectedModel]);
 
   useEffect(() => {
@@ -126,9 +139,11 @@ const Dashboard: React.FC = () => {
     }
 
     return () => {
-      disconnect();
+      if (status !== "disconnected") {
+        disconnect();
+      }
     };
-  }, []);
+  }, [connect, disconnect, status]);
 
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
@@ -266,7 +281,7 @@ const Dashboard: React.FC = () => {
       try {
         const messageWithModel = {
           ...message,
-          model: selectedModel
+          model: selectedModel.id
         };
 
         if (status !== "connected") {
@@ -292,8 +307,8 @@ const Dashboard: React.FC = () => {
     ]
   );
 
-  const handleModelChange = useCallback((modelId: string) => {
-    setSelectedModel(modelId);
+  const handleModelChange = useCallback((model: LanguageModel) => {
+    setSelectedModel(model);
   }, []);
 
   const handleOrderChange = useCallback(
@@ -465,13 +480,13 @@ const Dashboard: React.FC = () => {
           sendMessage={props.params?.sendMessage || (() => {})}
           progress={props.params?.progress?.current || 0}
           total={props.params?.progress?.total || 0}
-          progressMessage={props.params?.progressMessage || ""}
+          progressMessage={props.params?.statusMessage || ""}
           model={props.params?.model || DEFAULT_MODEL}
           selectedTools={props.params?.selectedTools || []}
           onToolsChange={props.params?.onToolsChange || (() => {})}
           onModelChange={props.params?.onModelChange || (() => {})}
           onStop={props.params?.onStop || (() => {})}
-          agentMode={props.params?.agentMode || "off"}
+          agentMode={props.params?.agentMode || false}
           onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
           currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
           currentTaskUpdate={props.params?.currentTaskUpdate || null}
