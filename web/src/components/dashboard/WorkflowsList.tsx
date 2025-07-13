@@ -7,7 +7,8 @@ import {
   CircularProgress,
   Button,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Tooltip
 } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
@@ -27,7 +28,7 @@ const styles = (theme: any) =>
   css({
     backgroundColor: theme?.palette?.grey[800] || "#222",
     borderRadius: theme?.spacing?.(1) || 8,
-    padding: theme?.spacing?.(4) || 32,
+    padding: "1em",
     display: "flex",
     flexDirection: "column",
     overflowY: "auto",
@@ -37,10 +38,10 @@ const styles = (theme: any) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: theme?.spacing?.(3) || 24
+      marginBottom: "1em"
     },
     ".section-title": {
-      color: theme?.palette?.grey[100] || "#eee",
+      color: theme?.palette?.grey[100],
       marginBottom: 0
     },
     ".workflow-controls": {
@@ -50,26 +51,27 @@ const styles = (theme: any) =>
       alignItems: "center"
     },
     ".sort-toggle .MuiToggleButton-root": {
-      lineHeight: "1.2em",
-      color: theme?.palette?.grey[200] || "#ccc",
-      borderColor: theme?.palette?.grey[500] || "#888",
+      lineHeight: "1em",
+      height: "1.75em",
+      color: theme?.palette?.grey[200],
+      borderColor: theme?.palette?.grey[500],
       "&.Mui-selected": {
-        backgroundColor: theme?.palette?.grey[500] || "#888",
-        color: theme?.palette?.grey[0] || "#fff"
+        backgroundColor: theme?.palette?.grey[500],
+        color: theme?.palette?.grey[0]
       }
     },
     ".create-button": {
       padding: ".3em 1em",
-      backgroundColor: theme?.palette?.grey[600] || "#444",
-      color: theme?.palette?.grey[0] || "#fff",
+      backgroundColor: theme?.palette?.grey[600],
+      color: theme?.palette?.grey[0],
       ":hover": {
-        backgroundColor: theme?.palette?.grey[500] || "#888"
+        backgroundColor: theme?.palette?.grey[500]
       }
     },
     ".content-scrollable": {
       flex: 1,
       overflow: "auto",
-      paddingRight: theme?.spacing?.(1) || 8
+      paddingRight: theme?.spacing?.(1)
     },
     ".loading-container": {
       display: "flex",
@@ -143,7 +145,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
-        <Typography variant="h2" className="section-title">
+        <Typography variant="h3" className="section-title">
           Recent Workflows
         </Typography>
         <Box
@@ -160,14 +162,14 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <ToggleButton value="name">Name</ToggleButton>
             <ToggleButton value="updated_at">Date</ToggleButton>
           </ToggleButtonGroup>
-          <Button
-            className="create-button"
-            startIcon={<AddIcon />}
-            onClick={handleCreateNewWorkflow}
-            size="small"
-          >
-            Create New
-          </Button>
+          <Tooltip title="Create New Workflow">
+            <Button
+              className="create-button"
+              startIcon={<AddIcon />}
+              onClick={handleCreateNewWorkflow}
+              size="small"
+            ></Button>
+          </Tooltip>
         </Box>
       </Box>
       <Box className="content-scrollable">

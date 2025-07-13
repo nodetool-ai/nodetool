@@ -39,7 +39,7 @@ export const defaultLayout: SerializedDockview = {
                   size: 473
                 }
               ],
-              size: 1010
+              size: 1085
             },
             {
               type: "leaf",
@@ -48,7 +48,7 @@ export const defaultLayout: SerializedDockview = {
                 activeView: "chat",
                 id: "1"
               },
-              size: 195
+              size: 120
             }
           ],
           size: 1417
@@ -61,11 +61,6 @@ export const defaultLayout: SerializedDockview = {
     orientation: Orientation.HORIZONTAL
   },
   panels: {
-    chat: {
-      id: "chat",
-      contentComponent: "chat",
-      title: "Chat"
-    },
     examples: {
       id: "examples",
       contentComponent: "examples",
@@ -80,6 +75,11 @@ export const defaultLayout: SerializedDockview = {
       id: "recent-chats",
       contentComponent: "recent-chats",
       title: "Recent Chats"
+    },
+    chat: {
+      id: "chat",
+      contentComponent: "chat",
+      title: "Chat"
     }
   },
   activeGroup: "1"

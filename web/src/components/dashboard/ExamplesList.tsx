@@ -18,7 +18,7 @@ const styles = (theme: any) =>
   css({
     backgroundColor: theme?.palette?.grey[800] || "#222",
     borderRadius: theme?.spacing?.(1) || 8,
-    padding: theme?.spacing?.(4) || 32,
+    padding: "1em",
     display: "flex",
     flexDirection: "column",
     overflowY: "auto",
@@ -130,7 +130,7 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
           alignItems: "center"
         }}
       >
-        <Typography variant="h2" className="section-title">
+        <Typography variant="h3" className="section-title">
           Examples
         </Typography>
       </Box>

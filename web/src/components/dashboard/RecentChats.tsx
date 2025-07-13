@@ -17,7 +17,6 @@ interface RecentChatsProps {
 
 const styles = (theme: any) =>
   css({
-    // Styles from Dashboard.tsx's .section and .content-scrollable
     backgroundColor: theme?.palette?.grey[800] || "#222",
     borderRadius: theme?.spacing?.(1) || 8,
     padding: theme?.spacing?.(4) || 32,
@@ -69,7 +68,7 @@ const RecentChats: React.FC<RecentChatsProps> = ({
 
   return (
     <div className="recent-chats" css={styles}>
-      <Typography variant="h2" className="section-title">
+      <Typography variant="h3" className="section-title">
         Recent Chats
       </Typography>
       <Box className="content-scrollable">

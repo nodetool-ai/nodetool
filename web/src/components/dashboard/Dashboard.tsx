@@ -52,7 +52,8 @@ const styles = (theme: Theme) =>
     ".dv-tabs-and-actions-container": {
       backgroundColor: "transparent",
       position: "absolute",
-      top: 7,
+      height: "1.5rem",
+      top: 3,
       left: 2,
       right: 10,
       zIndex: 1,
@@ -62,11 +63,17 @@ const styles = (theme: Theme) =>
     "& .dv-tab": {
       textTransform: "uppercase",
       backgroundColor: "transparent",
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeTiny,
+      padding: "0 .5em",
+      height: "1.5rem"
     },
     ".dv-tabs-and-actions-container:hover": {
       opacity: 1,
       backgroundColor: theme.palette.grey[700]
+    },
+    // CONTENT
+    "& .dv-react-part": {
+      paddingTop: ".2rem"
     },
     // DRAG HANDLE
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
@@ -87,6 +94,9 @@ const styles = (theme: Theme) =>
     },
     // ------------------------------------------
     // CHAT
+    "& .chat-view": {
+      height: "fit-content"
+    },
     "& .chat-input-section": {
       marginTop: 0
     }
