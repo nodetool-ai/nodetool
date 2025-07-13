@@ -108,8 +108,8 @@ describe("GlobalChatStore", () => {
     // }
   });
 
-  it("createNewThread creates thread and sets currentThreadId", () => {
-    const id = store.getState().createNewThread();
+  it("createNewThread creates thread and sets currentThreadId", async () => {
+    const id = await store.getState().createNewThread();
     expect(id).toBe("id-0");
     const state = store.getState();
     expect(state.currentThreadId).toBe(id);
@@ -148,7 +148,7 @@ describe("GlobalChatStore", () => {
       const threadId = store.getState().currentThreadId as string;
       expect(threadId).toBeTruthy();
       expect(store.getState().threads[threadId]).toBeDefined();
-      expect(store.getState().threads[threadId].messages[0]).toEqual({
+      expect(store.getState().messageCache[threadId][0]).toEqual({
         ...msg,
         workflow_id: undefined,
         thread_id: threadId,
@@ -176,9 +176,9 @@ describe("GlobalChatStore", () => {
     expect(store.getState().currentThreadId).toBe("id-0");
   });
 
-  it("deleteThread removes thread and creates new if none left", () => {
-    const first = store.getState().createNewThread();
-    store.getState().deleteThread(first);
+  it("deleteThread removes thread and creates new if none left", async () => {
+    const first = await store.getState().createNewThread();
+    await store.getState().deleteThread(first);
     const state = store.getState();
     expect(state.currentThreadId).toBe("id-1");
     expect(Object.keys(state.threads)).toEqual(["id-1"]);
@@ -279,7 +279,7 @@ describe("GlobalChatStore", () => {
       // Add a small delay to allow WebSocket to stabilize with mock-socket
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      store.getState().createNewThread();
+      await store.getState().createNewThread();
     }, 60000);
 
     afterEach(() => {
@@ -303,7 +303,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages).toHaveLength(1);
       expect(messages[0]).toEqual(message);
       expect(store.getState().status).toBe("connected");
@@ -331,7 +331,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages).toHaveLength(1);
       expect(messages[0].content).toBe("Hello world!");
     });
@@ -347,7 +347,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages).toHaveLength(1);
       expect(messages[0].role).toBe("assistant");
       expect(messages[0].content).toBe("New message");
@@ -476,7 +476,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages[0].content).toBe("Current output: additional text");
     });
 
@@ -503,7 +503,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages[0].content).toBe("Test"); // Should remain unchanged
     });
 
@@ -522,7 +522,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      const messages = store.getState().threads[threadId].messages;
+      const messages = store.getState().messageCache[threadId];
       expect(messages).toHaveLength(1);
       expect(messages[0].role).toBe("assistant");
       expect(Array.isArray(messages[0].content)).toBe(true);
@@ -530,34 +530,34 @@ describe("GlobalChatStore", () => {
   });
 
   describe("Thread Management", () => {
-    it("switchThread switches to existing thread", () => {
-      const thread1 = store.getState().createNewThread();
-      const thread2 = store.getState().createNewThread();
+    it("switchThread switches to existing thread", async () => {
+      const thread1 = await store.getState().createNewThread();
+      const thread2 = await store.getState().createNewThread();
 
       store.getState().switchThread(thread1);
       expect(store.getState().currentThreadId).toBe(thread1);
     });
 
-    it("deleteThread switches to most recent remaining thread", () => {
-      const thread1 = store.getState().createNewThread();
-      const thread2 = store.getState().createNewThread();
+    it("deleteThread switches to most recent remaining thread", async () => {
+      const thread1 = await store.getState().createNewThread();
+      const thread2 = await store.getState().createNewThread();
 
-      store.getState().deleteThread(thread2);
+      await store.getState().deleteThread(thread2);
       expect(store.getState().currentThreadId).toBe(thread1);
       expect(store.getState().threads[thread2]).toBeUndefined();
     });
 
-    it("deleteThread handles deleting non-current thread", () => {
-      const thread1 = store.getState().createNewThread();
-      const thread2 = store.getState().createNewThread();
+    it("deleteThread handles deleting non-current thread", async () => {
+      const thread1 = await store.getState().createNewThread();
+      const thread2 = await store.getState().createNewThread();
 
-      store.getState().deleteThread(thread1);
+      await store.getState().deleteThread(thread1);
       expect(store.getState().currentThreadId).toBe(thread2);
       expect(store.getState().threads[thread1]).toBeUndefined();
     });
 
-    it("getCurrentMessages returns messages for current thread", () => {
-      const threadId = store.getState().createNewThread();
+    it("getCurrentMessages returns messages for current thread", async () => {
+      const threadId = await store.getState().createNewThread();
       const message: Message = {
         role: "user",
         type: "message",
@@ -565,17 +565,12 @@ describe("GlobalChatStore", () => {
       } as Message;
 
       store.setState({
-        threads: {
-          [threadId]: {
-            id: threadId,
-            messages: [message],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+        messageCache: {
+          [threadId]: [message]
         }
       });
 
-      const messages = store.getState().getCurrentMessages();
+      const messages = await store.getState().getCurrentMessages();
       expect(messages).toEqual([message]);
     });
 
@@ -585,8 +580,8 @@ describe("GlobalChatStore", () => {
     });
 
     it("updateThreadTitle updates thread title and timestamp", async () => {
-      const threadId = store.getState().createNewThread();
-      const originalTimestamp = store.getState().threads[threadId].updatedAt;
+      const threadId = await store.getState().createNewThread();
+      const originalTimestamp = store.getState().threads[threadId].updated_at;
 
       // Wait a bit to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -594,7 +589,7 @@ describe("GlobalChatStore", () => {
       store.getState().updateThreadTitle(threadId, "New Title");
       const thread = store.getState().threads[threadId];
       expect(thread.title).toBe("New Title");
-      expect(thread.updatedAt).not.toBe(originalTimestamp);
+      expect(thread.updated_at).not.toBe(originalTimestamp);
     });
 
     it("updateThreadTitle handles non-existent thread", () => {
@@ -603,8 +598,8 @@ describe("GlobalChatStore", () => {
       expect(store.getState()).toEqual(initialState);
     });
 
-    it("resetMessages clears messages for current thread", () => {
-      const threadId = store.getState().createNewThread();
+    it("resetMessages clears messages for current thread", async () => {
+      const threadId = await store.getState().createNewThread();
       const message: Message = {
         role: "user",
         type: "message",
@@ -612,18 +607,13 @@ describe("GlobalChatStore", () => {
       } as Message;
 
       store.setState({
-        threads: {
-          [threadId]: {
-            id: threadId,
-            messages: [message],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+        messageCache: {
+          [threadId]: [message]
         }
       });
 
       store.getState().resetMessages();
-      expect(store.getState().threads[threadId].messages).toEqual([]);
+      expect(store.getState().messageCache[threadId]).toEqual([]);
     });
   });
 
@@ -723,7 +713,7 @@ describe("GlobalChatStore", () => {
 
     it("sendMessage adds workflowId and threadId to message", async () => {
       store.setState({ workflowId: "test-workflow" });
-      const threadId = store.getState().createNewThread();
+      const threadId = await store.getState().createNewThread();
       const message: Message = {
         role: "user",
         type: "message",
@@ -762,7 +752,7 @@ describe("GlobalChatStore", () => {
       });
 
       await store.getState().connect();
-      store.getState().createNewThread();
+      await store.getState().createNewThread();
     });
 
     afterEach(() => {
@@ -1022,7 +1012,7 @@ describe("GlobalChatStore", () => {
       // It tests functionality that's also covered by the output_update tests
       await store.getState().connect();
       const socket = (store.getState() as any).socket;
-      store.getState().createNewThread();
+      await store.getState().createNewThread();
 
       const mockData = new Uint8Array([1, 2, 3, 4]);
 
@@ -1040,7 +1030,7 @@ describe("GlobalChatStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const threadId = store.getState().currentThreadId!;
-      let messages = store.getState().threads[threadId].messages;
+      let messages = store.getState().messageCache[threadId];
       expect(messages[0].content).toEqual([
         {
           type: "image_url",
@@ -1064,7 +1054,7 @@ describe("GlobalChatStore", () => {
       simulateServerMessage(mockServer, audioUpdate);
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      messages = store.getState().threads[threadId].messages;
+      messages = store.getState().messageCache[threadId];
       expect(messages[0].content).toEqual([
         {
           type: "audio",
@@ -1088,7 +1078,7 @@ describe("GlobalChatStore", () => {
       simulateServerMessage(mockServer, videoUpdate);
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      messages = store.getState().threads[threadId].messages;
+      messages = store.getState().messageCache[threadId];
       expect(messages[0].content).toEqual([
         {
           type: "video",

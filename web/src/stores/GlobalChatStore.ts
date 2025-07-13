@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import {
   Message,
   MessageContent,
@@ -12,9 +14,16 @@ import {
   TaskUpdate,
   PlanningUpdate,
   Prediction,
-  SubTaskResult
+  SubTaskResult,
+  MessageList,
+  Thread,
+  ThreadCreateRequest,
+  ThreadUpdateRequest,
+  ThreadSummarizeRequest,
+  ThreadList
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
+import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { uuidv4 } from "./uuidv4";
@@ -22,14 +31,6 @@ import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketMan
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus = ConnectionState | "loading" | "streaming" | "error" | "stopping";
-
-interface Thread {
-  id: string;
-  messages: Message[];
-  createdAt: string;
-  updatedAt: string;
-  title?: string;
-}
 
 interface GlobalChatState {
   // Connection state
@@ -46,6 +47,13 @@ interface GlobalChatState {
   // Thread management
   threads: Record<string, Thread>;
   currentThreadId: string | null;
+  isLoadingThreads: boolean;
+  threadsLoaded: boolean;
+  
+  // Message caching
+  messageCache: Record<string, Message[]>; // threadId -> messages
+  messageCursors: Record<string, string | null>; // threadId -> next cursor
+  isLoadingMessages: boolean;
 
   // Agent mode
   agentMode: boolean;
@@ -69,12 +77,20 @@ interface GlobalChatState {
   resetMessages: () => void;
 
   // Thread actions
-  createNewThread: () => string;
+  fetchThreads: () => Promise<void>;
+  createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
-  deleteThread: (threadId: string) => void;
-  getCurrentMessages: () => Message[];
-  updateThreadTitle: (threadId: string, title: string) => void;
+  deleteThread: (threadId: string) => Promise<void>;
+  getCurrentMessages: () => Promise<Message[]>;
+  getCurrentMessagesSync: () => Message[];
+  loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
+  updateThreadTitle: (threadId: string, title: string) => Promise<void>;
+  summarizeThread: (threadId: string, provider: string, model: string) => Promise<void>;
   stopGeneration: () => void;
+  
+  // Message cache management
+  addMessageToCache: (threadId: string, message: Message) => void;
+  clearMessageCache: (threadId: string) => void;
 }
 
 export type MsgpackData =
@@ -146,6 +162,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
+      isLoadingThreads: false,
+      threadsLoaded: false,
+      
+      // Message cache
+      messageCache: {},
+      messageCursors: {},
+      isLoadingMessages: false,
 
       // Agent mode
       agentMode: false,
@@ -170,6 +193,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Clean up existing connection
         if (state.wsManager) {
           state.wsManager.destroy();
+        }
+
+        // Load threads if not already loaded
+        if (!state.threadsLoaded) {
+          await get().fetchThreads();
         }
 
         // Get authentication URL
@@ -309,7 +337,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure we have a thread
         let threadId = currentThreadId;
         if (!threadId) {
-          threadId = get().createNewThread();
+          threadId = await get().createNewThread();
         }
 
         // Prepare message
@@ -320,40 +348,36 @@ const useGlobalChatStore = create<GlobalChatState>()(
           agent_mode: agentMode
         };
 
-        // Add message to thread
+        // Check if this is the first user message BEFORE adding to cache
         const thread = get().threads[threadId];
-        if (thread) {
-          // Auto-generate title from first user message if not set
-          let title = thread.title;
-          if (
-            !title &&
-            thread.messages.length === 0 &&
-            message.role === "user"
-          ) {
-            const content =
-              typeof message.content === "string"
-                ? message.content
-                : Array.isArray(message.content) &&
-                  message.content[0]?.type === "text"
-                ? (message.content[0] as any).text
-                : "New conversation";
-            title =
-              content.substring(0, 50) + (content.length > 50 ? "..." : "");
-          }
+        const existingMessages = get().messageCache[threadId] || [];
+        const userMessageCount = existingMessages.filter(msg => msg.role === "user").length;
+        const isFirstUserMessage = message.role === "user" && userMessageCount === 0;
+        
+        console.log("Summarization check:", {
+          threadId,
+          messageRole: message.role,
+          userMessageCount,
+          isFirstUserMessage,
+          hasProvider: !!message.provider,
+          hasModel: !!message.model,
+          hasThread: !!thread,
+          provider: message.provider,
+          model: message.model
+        });
 
-          set((state) => ({
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                messages: [...thread.messages, messageToSend],
-                updatedAt: new Date().toISOString(),
-                ...(title && !thread.title ? { title } : {})
-              }
-            },
-            status: "loading" // Waiting for response
-          }));
+        // Add message to cache optimistically
+        get().addMessageToCache(threadId, messageToSend);
+
+        if (isFirstUserMessage && message.provider && message.model && thread) {
+          console.log("Triggering thread summarization for thread:", threadId);
+          // Call summarize in parallel - don't wait for it
+          get().summarizeThread(threadId, message.provider, message.model).catch((error) => {
+            log.error("Failed to summarize thread:", error);
+          });
         }
+
+        set({ status: "loading" }); // Waiting for response
 
         try {
           wsManager.send(messageToSend);
@@ -383,100 +407,297 @@ const useGlobalChatStore = create<GlobalChatState>()(
       resetMessages: () => {
         const threadId = get().currentThreadId;
         if (threadId) {
+          get().clearMessageCache(threadId);
+        }
+      },
+
+      fetchThreads: async () => {
+        set({ isLoadingThreads: true });
+        try {
+          const { data, error } = await client.GET("/api/threads/");
+          if (error) {
+            throw new Error(error.detail?.[0]?.msg || "Failed to fetch threads");
+          }
+          
+          // Convert array to Record keyed by thread ID
+          const threadsRecord: Record<string, Thread> = {};
+          data.threads.forEach(thread => {
+            threadsRecord[thread.id] = thread;
+          });
+          
+          set({ threads: threadsRecord, threadsLoaded: true });
+        } catch (error) {
+          log.error("Failed to fetch threads:", error);
+          set({ threadsLoaded: true }); // Ensure threadsLoaded is true even on error
+        } finally {
+          set({ isLoadingThreads: false });
+        }
+      },
+
+      createNewThread: async (title?: string) => {
+        const request: ThreadCreateRequest = {
+          title: title || "New Conversation"
+        };
+        
+        try {
+          const { data, error } = await client.POST("/api/threads/", {
+            body: request
+          });
+          if (error) {
+            throw new Error(error.detail?.[0]?.msg || "Failed to create thread");
+          }
+          
+          // Add to local state
           set((state) => ({
             threads: {
               ...state.threads,
-              [threadId]: {
-                ...state.threads[threadId],
-                messages: [],
-                updatedAt: new Date().toISOString()
-              }
+              [data.id]: data
+            },
+            currentThreadId: data.id
+          }));
+          
+          // Initialize empty message cache for new thread
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [data.id]: []
             }
           }));
+          
+          return data.id;
+        } catch (error) {
+          log.error("Failed to create new thread:", error);
+          throw error;
         }
-      },
-
-      createNewThread: () => {
-        const threadId = uuidv4();
-        const now = new Date().toISOString();
-        set((state) => ({
-          threads: {
-            ...state.threads,
-            [threadId]: {
-              id: threadId,
-              messages: [],
-              createdAt: now,
-              updatedAt: now
-            }
-          },
-          currentThreadId: threadId
-        }));
-        return threadId;
       },
 
       switchThread: (threadId: string) => {
-        const thread = get().threads[threadId];
-        if (thread) {
-          set({ currentThreadId: threadId });
+        set({ currentThreadId: threadId });
+        get().loadMessages(threadId);
+      },
+
+      deleteThread: async (threadId: string) => {
+        try {
+          const { error } = await client.DELETE("/api/threads/{thread_id}", {
+            params: { path: { thread_id: threadId } }
+          });
+          if (error) {
+            throw new Error(error.detail?.[0]?.msg || "Failed to delete thread");
+          }
+          
+          // Update local state
+          set((state) => {
+            const { [threadId]: deleted, ...remainingThreads } = state.threads;
+            
+            // Clear message cache for deleted thread
+            const { [threadId]: deletedCache, ...remainingCache } = state.messageCache;
+            const { [threadId]: deletedCursor, ...remainingCursors } = state.messageCursors;
+            
+            const newState: Partial<GlobalChatState> = {
+              threads: remainingThreads,
+              messageCache: remainingCache,
+              messageCursors: remainingCursors
+            };
+
+            // If deleting current thread, switch to another or create new
+            if (state.currentThreadId === threadId) {
+              const threadIds = Object.keys(remainingThreads);
+              if (threadIds.length > 0) {
+                const newCurrentThreadId = threadIds[threadIds.length - 1];
+                newState.currentThreadId = newCurrentThreadId;
+                // Auto-load messages for the new current thread
+                setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
+              } else {
+                // No threads left, clear current thread (new one will be created as needed)
+                newState.currentThreadId = null;
+              }
+            }
+
+            return newState as GlobalChatState;
+          });
+        } catch (error) {
+          log.error("Failed to delete thread:", error);
+          throw error;
         }
       },
 
-      deleteThread: (threadId: string) => {
-        set((state) => {
-          const { [threadId]: deleted, ...remainingThreads } = state.threads;
-          const newState: Partial<GlobalChatState> = {
-            threads: remainingThreads
-          };
+      getCurrentMessages: async () => {
+        const { currentThreadId } = get();
+        if (!currentThreadId) {
+          return [];
+        }
+        
+        return await get().loadMessages(currentThreadId);
+      },
 
-          // If deleting current thread, switch to another or create new
-          if (state.currentThreadId === threadId) {
-            const threadIds = Object.keys(remainingThreads);
-            if (threadIds.length > 0) {
-              newState.currentThreadId = threadIds[threadIds.length - 1];
-            } else {
-              // No threads left, create a new one
-              const newThreadId = uuidv4();
-              const now = new Date().toISOString();
-              newState.threads = {
-                [newThreadId]: {
-                  id: newThreadId,
-                  messages: [],
-                  createdAt: now,
-                  updatedAt: now
-                }
-              };
-              newState.currentThreadId = newThreadId;
+      // Get current messages synchronously from cache
+      getCurrentMessagesSync: () => {
+        const { currentThreadId, messageCache } = get();
+        if (!currentThreadId) {
+          return [];
+        }
+        return messageCache[currentThreadId] || [];
+      },
+
+      loadMessages: async (threadId: string, cursor?: string) => {
+        const { messageCache, messageCursors, isLoadingMessages } = get();
+        
+        // If already loading, return cached messages
+        if (isLoadingMessages) {
+          return messageCache[threadId] || [];
+        }
+
+        // If no cursor provided and we have cached messages, return them
+        if (!cursor && messageCache[threadId]) {
+          return messageCache[threadId];
+        }
+
+        set({ isLoadingMessages: true, error: null });
+
+        try {
+          const { data, error } = await client.GET("/api/messages/", {
+            params: { 
+              query: { 
+                thread_id: threadId,
+                cursor: cursor || undefined,
+                limit: 100
+              } 
             }
+          });
+          console.log("loadMessages", data);
+
+          if (error) {
+            throw new Error(error.detail?.[0]?.msg || "Failed to load messages");
           }
 
-          return newState as GlobalChatState;
+          const messages = data.messages || [];
+          const nextCursor = data.next;
+
+          set((state) => {
+            const existingMessages = state.messageCache[threadId] || [];
+            const updatedMessages = cursor ? [...existingMessages, ...messages] : messages;
+            
+            return {
+              messageCache: {
+                ...state.messageCache,
+                [threadId]: updatedMessages
+              },
+              messageCursors: {
+                ...state.messageCursors,
+                [threadId]: nextCursor
+              },
+              isLoadingMessages: false
+            };
+          });
+
+          return cursor ? [...(messageCache[threadId] || []), ...messages] : messages;
+          
+        } catch (error) {
+          log.error("Failed to load messages:", error);
+          set({ 
+            error: error instanceof Error ? error.message : "Failed to load messages",
+            isLoadingMessages: false 
+          });
+          return messageCache[threadId] || [];
+        }
+      },
+
+      updateThreadTitle: async (threadId: string, title: string) => {
+        const request: ThreadUpdateRequest = { title };
+        try {
+          const { data, error } = await client.PUT("/api/threads/{thread_id}", {
+            params: { path: { thread_id: threadId } },
+            body: request
+          });
+          if (error) {
+            throw new Error(error.detail?.[0]?.msg || "Failed to update thread title");
+          }
+          
+          set((state) => {
+            const thread = state.threads[threadId];
+            if (thread) {
+              return {
+                threads: {
+                  ...state.threads,
+                  [threadId]: {
+                    ...thread,
+                    title: data.title,
+                    updated_at: data.updated_at
+                  }
+                }
+              };
+            }
+            return state;
+          });
+        } catch (error) {
+          log.error("Failed to update thread title:", error);
+          throw error;
+        }
+      },
+
+      summarizeThread: async (threadId: string, provider: string, model: string) => {
+        console.log("summarizeThread called:", { threadId, provider, model });
+        const request: ThreadSummarizeRequest = { provider, model };
+        try {
+          const { data, error } = await client.POST("/api/threads/{thread_id}/summarize", {
+            params: { path: { thread_id: threadId } },
+            body: request
+          });
+          
+          if (error) {
+            console.error("Summarize API error:", error);
+            throw new Error(error.detail?.[0]?.msg || "Failed to summarize thread");
+          }
+          
+          console.log("Thread summarized, new title:", data.title);
+          
+          // Update the thread in local state if title was changed
+          set((state) => {
+            const thread = state.threads[threadId];
+            if (thread && data.title !== thread.title) {
+              return {
+                threads: {
+                  ...state.threads,
+                  [threadId]: {
+                    ...thread,
+                    title: data.title,
+                    updated_at: data.updated_at
+                  }
+                }
+              };
+            }
+            return state;
+          });
+          
+          log.info(`Thread ${threadId} summarized successfully`);
+        } catch (error) {
+          log.error("Failed to summarize thread:", error);
+          console.error("Failed to summarize thread:", error);
+          // Don't throw error - summarization is not critical
+        }
+      },
+
+      addMessageToCache: (threadId: string, message: Message) => {
+        set((state) => {
+          const existingMessages = state.messageCache[threadId] || [];
+          return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...existingMessages, message]
+            }
+          };
         });
       },
 
-      getCurrentMessages: () => {
-        const { currentThreadId, threads } = get();
-        if (currentThreadId && threads[currentThreadId]) {
-          return threads[currentThreadId].messages;
-        }
-        return [];
-      },
-
-      updateThreadTitle: (threadId: string, title: string) => {
+      clearMessageCache: (threadId: string) => {
         set((state) => {
-          const thread = state.threads[threadId];
-          if (thread) {
-            return {
-              threads: {
-                ...state.threads,
-                [threadId]: {
-                  ...thread,
-                  title,
-                  updatedAt: new Date().toISOString()
-                }
-              }
-            };
-          }
-          return state;
+          const { [threadId]: deleted, ...remainingCache } = state.messageCache;
+          const { [threadId]: deletedCursor, ...remainingCursors } = state.messageCursors;
+          
+          return {
+            messageCache: remainingCache,
+            messageCursors: remainingCursors
+          };
         });
       },
 
@@ -534,10 +755,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }),
     {
       name: "global-chat-storage",
-      // Only persist threads and currentThreadId
+      // Only persist threads and currentThreadId - not message cache
       partialize: (state): any => ({
         threads: state.threads || {},
-        currentThreadId: state.currentThreadId || null
       }),
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
@@ -545,6 +765,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Ensure threads is always an object
           if (!state.threads) {
             state.threads = {};
+          }
+          // Initialize message cache as empty
+          state.messageCache = {};
+          state.messageCursors = {};
+          state.isLoadingMessages = false;
+          state.isLoadingThreads = false;
+          
+          // Load threads from API if not loaded yet
+          if (!state.threadsLoaded) {
+            // Use setTimeout to avoid calling during hydration
+            setTimeout(() => {
+              const store = useGlobalChatStore.getState();
+              store.fetchThreads().catch((error) => {
+                log.error("Failed to load threads during initialization:", error);
+              });
+            }, 0);
           }
         }
       }
@@ -558,8 +794,6 @@ function handleWebSocketMessage(
   set: (state: Partial<GlobalChatState> | ((state: GlobalChatState) => Partial<GlobalChatState>)) => void,
   get: () => GlobalChatState
 ) {
-  console.log(data);
-
   const currentState = get();
   
   // When in stopping state, ignore most message types until we get stop confirmation
@@ -574,16 +808,20 @@ function handleWebSocketMessage(
     const message = data as Message;
     const threadId = get().currentThreadId;
     if (threadId) {
+      const messages = get().messageCache[threadId] || [];
       set((state) => {
         const thread = state.threads[threadId];
         if (thread) {
           return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...thread.messages, message],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             },
             status: "connected",
@@ -623,7 +861,7 @@ function handleWebSocketMessage(
     if (threadId) {
       const thread = get().threads[threadId];
       if (thread) {
-        const messages = thread.messages;
+        const messages = get().messageCache[threadId] || [];
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === "assistant") {
           // Append to the last assistant message
@@ -634,12 +872,15 @@ function handleWebSocketMessage(
           set((state) => ({
             status: "streaming",
             statusMessage: null,
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages.slice(0, -1), updatedMessage]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...messages.slice(0, -1), updatedMessage],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             }
           }));
@@ -654,12 +895,15 @@ function handleWebSocketMessage(
           set((state) => ({
             status: "streaming",
             statusMessage: null,
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...messages, message],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             }
           }));
@@ -676,7 +920,7 @@ function handleWebSocketMessage(
       const thread = get().threads[threadId];
       if (thread) {
         if (update.output_type === "string") {
-          const messages = thread.messages;
+          const messages = get().messageCache[threadId] || [];
           const lastMessage = messages[messages.length - 1];
           if (lastMessage && lastMessage.role === "assistant") {
             // Check if this is the end of stream marker
@@ -691,12 +935,15 @@ function handleWebSocketMessage(
             set((state) => ({
               status: "streaming",
               statusMessage: undefined,
+              messageCache: {
+                ...state.messageCache,
+                [threadId]: [...messages.slice(0, -1), updatedMessage]
+              },
               threads: {
                 ...state.threads,
                 [threadId]: {
                   ...thread,
-                  messages: [...messages.slice(0, -1), updatedMessage],
-                  updatedAt: new Date().toISOString()
+                  updated_at: new Date().toISOString()
                 }
               }
             }));
@@ -710,12 +957,15 @@ function handleWebSocketMessage(
             };
             set((state) => ({
               status: "streaming",
+              messageCache: {
+                ...state.messageCache,
+                [threadId]: [...messages, message]
+              },
               threads: {
                 ...state.threads,
                 [threadId]: {
                   ...thread,
-                  messages: [...messages, message],
-                  updatedAt: new Date().toISOString()
+                  updated_at: new Date().toISOString()
                 }
               }
             }));
@@ -735,14 +985,18 @@ function handleWebSocketMessage(
             workflow_id: get().workflowId,
             name: "assistant"
           } as Message;
+          const messages = get().messageCache[threadId] || [];
           set((state) => ({
             statusMessage: null,
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...thread.messages, message],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             }
           }));
@@ -784,16 +1038,20 @@ function handleWebSocketMessage(
         workflow_id: get().workflowId,
         graph: update.graph 
       };
+      const messages = get().messageCache[threadId] || [];
       set((state) => {
         const thread = state.threads[threadId];
         if (thread) {
           return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...thread.messages, message],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             },
             status: "connected",
@@ -820,16 +1078,20 @@ function handleWebSocketMessage(
         graph: update.graph 
       };
       
+      const messages = get().messageCache[threadId] || [];
       set((state) => {
         const thread = state.threads[threadId];
         if (thread) {
           return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
             threads: {
               ...state.threads,
               [threadId]: {
                 ...thread,
-                messages: [...thread.messages, message],
-                updatedAt: new Date().toISOString()
+                updated_at: new Date().toISOString()
               }
             },
             status: "connected",
@@ -892,5 +1154,59 @@ if (typeof window !== "undefined") {
     }
   });
 }
+
+// Custom hook for TanStack Query thread loading
+export const useThreadsQuery = () => {
+  const query = useQuery({
+    queryKey: ["threads"],
+    queryFn: async () => {
+      const { data, error } = await client.GET("/api/threads/", {
+        params: {
+          query: {
+            limit: 100
+          }
+        }
+      });
+      console.log("Threads fetched:", data);
+      if (error) {
+        throw new Error(error.detail?.[0]?.msg || "Failed to fetch threads");
+      }
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+
+  // Handle success and error states using useEffect
+  React.useEffect(() => {
+    if (query.isSuccess && query.data) {
+      // Update the store with fetched threads
+      console.log("Threads fetched:", query.data);
+      const threadsRecord: Record<string, Thread> = {};
+      query.data.threads.forEach(thread => {
+        threadsRecord[thread.id] = thread;
+      });
+      
+      useGlobalChatStore.setState({
+        threads: threadsRecord,
+        threadsLoaded: true,
+        isLoadingThreads: false
+      });
+    }
+  }, [query.isSuccess, query.data]);
+
+  React.useEffect(() => {
+    if (query.isError) {
+      // Update store with error state
+      useGlobalChatStore.setState({
+        threadsLoaded: true,
+        isLoadingThreads: false
+      });
+      log.error("Failed to fetch threads:", query.error);
+    }
+  }, [query.isError, query.error]);
+
+  return query;
+};
 
 export default useGlobalChatStore;

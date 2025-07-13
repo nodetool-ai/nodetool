@@ -46,7 +46,9 @@ export const createStyles = (theme: Theme) =>
       fontSize: theme.fontSizeBig,
       borderLeft: `2px solid transparent`,
       cursor: "pointer",
-      transition: "all 0.2s",
+      transition: "all 0.2s, opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out",
+      maxHeight: "80px",
+      overflow: "hidden",
 
       "&:hover": {
         backgroundColor: theme.palette.grey[600],
@@ -56,6 +58,16 @@ export const createStyles = (theme: Theme) =>
       "&.selected": {
         backgroundColor: theme.palette.grey[600],
         borderLeft: `2px solid ${"var(--palette-primary-main)"}`
+      },
+
+      "&.deleting": {
+        opacity: 0,
+        transform: "translateX(-100%)",
+        maxHeight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        marginTop: 0,
+        marginBottom: 0
       },
       ".date": {
         fontSize: theme.fontSizeTiny,
