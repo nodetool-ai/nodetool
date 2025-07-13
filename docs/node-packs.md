@@ -7,11 +7,11 @@ Node Packs extend NodeTool with additional nodes and integrations. Packs are dis
 
 ### Finding packs
 
-Open **Settings** and choose **Packs** to browse what is available. Each entry lists the new nodes it adds and any extra requirements.
+When starting the Nodetool app you can select packs to install or uninstall.
 
 ### Installing or removing packs
 
-- Click **Install** to add a pack. The download happens in the background and new nodes appear in the Node Menu when it finishes.
+- Click **Install** to add a pack. The pack will be installed as a pip package.
 - Use **Uninstall** to remove a pack you no longer need.
 - Packs can also be updated from the same screen when new versions are released.
 
