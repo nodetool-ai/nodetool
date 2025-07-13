@@ -1,6 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 
-// Create a simple mock theme for testing  
+// Create a simple mock theme for testing
 const mockTheme = createTheme({
   palette: {
     mode: "dark",
@@ -23,14 +23,12 @@ const mockTheme = createTheme({
     c_gray4: "#959595",
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9"
-  } as any // Use 'as any' to bypass TypeScript checking for custom properties
-} as any);
-
-// Add custom font properties to the mock theme
-(mockTheme as any).fontSizeNormal = "16px";
-(mockTheme as any).fontSizeSmall = "0.875em";
-(mockTheme as any).fontSizeSmaller = "0.75em";
-(mockTheme as any).fontFamily1 = "'Inter', Arial, sans-serif";
-(mockTheme as any).fontFamily2 = "'JetBrains Mono', 'Inter', Arial, sans-serif";
+  } as any, // Use 'as any' to bypass TypeScript checking for custom properties
+  fontSizeNormal: "16px",
+  fontSizeSmall: "0.875em",
+  fontSizeSmaller: "0.75em",
+  fontFamily1: "'Inter', Arial, sans-serif",
+  fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif"
+});
 
 export default mockTheme;

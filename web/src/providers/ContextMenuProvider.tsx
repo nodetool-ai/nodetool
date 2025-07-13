@@ -123,7 +123,7 @@ export function ContextMenuProvider({
         }, 500);
       }
     },
-    [clickOutsideHandler, active]
+    [clickOutsideHandler]
   );
   return (
     <ContextMenuContext.Provider

@@ -85,7 +85,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
           </Button>
         </>
       );
-    }, [missingAPIKeys, setMenuOpen, theme.fontSizeTiny, theme.fontSizeSmaller, theme.palette.grey, theme.palette.warning.main]);
+    }, [missingAPIKeys, setMenuOpen]);
 
     return content;
   }
