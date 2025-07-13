@@ -10,12 +10,15 @@ interface DashboardHeaderProps {
 }
 
 const styles = css({
-  height: "2rem",
-  width: "100%",
+  position: "absolute",
+  height: "40px",
+  top: 0,
+  right: 0,
+  zIndex: 10,
   display: "flex",
+  alignItems: "flex-start",
   justifyContent: "flex-end",
-  alignItems: "center",
-  padding: "0 1rem"
+  gap: "0.5rem"
 });
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -23,7 +26,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   children
 }) => {
   return (
-    <Box css={styles}>
+    <Box className="dashboard-header" css={styles}>
       {children}
       {showBackToEditor && <BackToEditorButton />}
     </Box>

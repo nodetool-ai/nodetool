@@ -51,11 +51,14 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
     },
+    // DOCKVIEW
+    "& .dockview-container": {
+      paddingTop: "2rem"
+    },
     // TABS AND ACTIONS
     ".dv-tabs-and-actions-container": {
       backgroundColor: "transparent",
       position: "absolute",
-      width: "calc(100% - 4px)",
       top: 7,
       left: 2,
       right: 10,
@@ -63,13 +66,18 @@ const styles = (theme: Theme) =>
       opacity: 0,
       transition: "opacity 0.2s ease-in-out"
     },
+    "& .dv-tab": {
+      textTransform: "uppercase",
+      backgroundColor: "transparent",
+      fontSize: theme.fontSizeSmaller
+    },
     ".dv-tabs-and-actions-container:hover": {
       opacity: 1,
       backgroundColor: theme.palette.grey[700]
     },
     // DRAG HANDLE
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      backgroundColor: theme.palette.grey[700]
+      backgroundColor: theme.palette.grey[900]
     },
     "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
       backgroundColor: theme.palette.grey[600]
@@ -82,8 +90,12 @@ const styles = (theme: Theme) =>
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
       height: "6px",
       transform: "translate(0px, 3px)"
-    }
+    },
     // ------------------------------------------
+    // CHAT
+    "& .chat-input-section": {
+      marginTop: 0
+    }
   });
 
 interface PanelProps {
@@ -611,13 +623,11 @@ const Dashboard: React.FC = () => {
           onAddPanel={handleAddPanel}
         />
       </DashboardHeader>
-      <div style={{ height: "calc(100vh - 64px)", top: "64px" }}>
-        <DockviewReact
-          components={panelComponents}
-          onReady={onReady}
-          className="dockview-theme-nodetool"
-        />
-      </div>
+      <DockviewReact
+        components={panelComponents}
+        onReady={onReady}
+        className="dockview-container"
+      />
     </Box>
   );
 };

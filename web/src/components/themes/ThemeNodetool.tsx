@@ -61,8 +61,8 @@ const ThemeNodetool = createTheme({
   fontSizeNormal: "15px",
   fontSizeSmall: "0.875rem",
   fontSizeSmaller: "0.75rem",
-  fontSizeTiny: "0.65rem",
-  fontSizeTinyer: "0.55rem",
+  fontSizeTiny: "0.675rem",
+  fontSizeTinyer: "0.625rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   typography: {
