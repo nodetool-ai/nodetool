@@ -16,14 +16,18 @@ This page explains how the pieces of NodeTool fit together. The codebase is spli
 %%{init: {'theme':'default'}}%%
 
 graph TD
-    A([Nodetool Editor ReactJS]) -->|HTTP/WebSocket| B([API Server])
-    A <-->|WebSocket| C([WebSocket Runner])
-    B <-->|Internal Communication| C
-    C <-->|WebSocket| D([Worker with ML Models])
-    D <-->|HTTP Callbacks| B
-    E[Other Apps/Websites] -->|HTTP| B
-    E <-->|WebSocket| C
-    D -->|Optional API Calls| F[External AI APIs]
+    subgraph "Local Execution Boundary"
+        A([Nodetool Editor ReactJS]) -->|HTTP/WebSocket| B([API Server])
+        A <-->|WebSocket| C([WebSocket Runner])
+        B <-->|Internal Communication| C
+        C <-->|WebSocket| D([Worker with ML Models])
+        D <-->|HTTP Callbacks| B
+        E[Other Apps/Websites] -->|HTTP| B
+        E <-->|WebSocket| C
+    end
+    subgraph "Optional Cloud GPU Node (User-Controlled)"
+        D -->|Optional API Calls| F[External AI APIs]
+    end
     classDef frontend fill:#ffcccc,stroke:#333;
     classDef server fill:#cce5ff,stroke:#333;
     classDef runner fill:#ccffe5,stroke:#333;
