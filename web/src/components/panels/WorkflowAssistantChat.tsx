@@ -14,7 +14,6 @@ import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge"
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
 import SvgFileIcon from "../SvgFileIcon";
-import AnimatedAssistantIcon from "../AnimatedAssistantIcon";
 
 const containerStyles = css({
   flex: 1,
@@ -60,23 +59,27 @@ const WorkflowAssistantChat: React.FC = () => {
     statusMessage,
     error,
     stopGeneration,
-    getCurrentMessages,
+    getCurrentMessagesSync,
     createNewThread,
     currentThreadId,
     threads,
     switchThread,
-    deleteThread
+    deleteThread,
+    messageCache,
+    isLoadingMessages
   } = useGlobalChatStore();
 
   // Subscribe to workflow graph updates from chat messages
   useWorkflowGraphUpdater();
 
-  const messages = getCurrentMessages();
   const total = progress.total;
   const { nodes, edges } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges
   }));
+
+  // Get messages from store
+  const messages = getCurrentMessagesSync();
 
   const tryParseModel = (model: string) => {
     try {
@@ -99,9 +102,13 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
-    createNewThread();
-    setIsThreadListOpen(false);
-  }, [createNewThread]);
+    createNewThread().then((newThreadId) => {
+      switchThread(newThreadId);
+      setIsThreadListOpen(false);
+    }).catch((error) => {
+      console.error("Failed to create new thread:", error);
+    });
+  }, [createNewThread, switchThread]);
 
   const handleSelectThread = useCallback(
     (id: string) => {
@@ -113,7 +120,9 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const handleDeleteThread = useCallback(
     (id: string) => {
-      deleteThread(id);
+      deleteThread(id).catch((error) => {
+        console.error("Failed to delete thread:", error);
+      });
     },
     [deleteThread]
   );
@@ -122,12 +131,23 @@ const WorkflowAssistantChat: React.FC = () => {
     (threadId: string) => {
       if (!threads) return "Loading...";
       const thread = threads[threadId];
-      if (!thread || thread.messages.length === 0) {
+      if (!thread) {
         return "Empty conversation";
       }
 
-      const firstUserMessage = thread.messages.find(
-        (msg) => msg.role === "user"
+      // Use thread title if available
+      if (thread.title) {
+        return thread.title;
+      }
+
+      // Check if we have cached messages for this thread
+      const threadMessages = messageCache[threadId];
+      if (!threadMessages || threadMessages.length === 0) {
+        return "New conversation";
+      }
+
+      const firstUserMessage = threadMessages.find(
+        (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
         const content =
@@ -142,7 +162,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
       return "New conversation";
     },
-    [threads]
+    [threads, messageCache]
   );
 
   // Connect once on mount and clean up on unmount
@@ -155,15 +175,39 @@ const WorkflowAssistantChat: React.FC = () => {
   // Ensure a thread exists after connection
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
-      createNewThread();
+      createNewThread().then((newThreadId) => {
+        switchThread(newThreadId);
+      }).catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
     }
-  }, [currentThreadId, status, createNewThread]);
+  }, [currentThreadId, status, createNewThread, switchThread]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
       await sendMessage(message);
     },
     [sendMessage]
+  );
+
+  // Map status to ChatView compatible status
+  const getChatViewStatus = () => {
+    if (status === "stopping") return "loading";
+    return status;
+  };
+
+  // Create ThreadInfo compatible data for ThreadList
+  const threadsWithMessages = Object.fromEntries(
+    Object.entries(threads).map(([id, thread]) => [
+      id,
+      {
+        id: thread.id,
+        title: thread.title,
+        createdAt: thread.created_at,
+        updatedAt: thread.updated_at,
+        messages: messageCache[id] || []
+      }
+    ])
   );
 
   // Placeholder content shown when the assistant chat has no messages yet.
@@ -223,7 +267,7 @@ const WorkflowAssistantChat: React.FC = () => {
       >
         <DialogContent style={{ padding: 0, height: "70vh" }}>
           <ThreadList
-            threads={threads}
+            threads={threadsWithMessages}
             currentThreadId={currentThreadId}
             onNewThread={handleNewChat}
             onSelectThread={handleSelectThread}
@@ -251,7 +295,7 @@ const WorkflowAssistantChat: React.FC = () => {
         </div>
       )}
       <ChatView
-        status={status}
+        status={getChatViewStatus()}
         progress={progress.current}
         total={total}
         messages={messages}
@@ -264,6 +308,7 @@ const WorkflowAssistantChat: React.FC = () => {
         helpMode={true}
         workflowAssistant={true}
         onStop={stopGeneration}
+        onNewChat={handleNewChat}
         noMessagesPlaceholder={<AssistantWelcome />}
         graph={{
           nodes: nodes.map(reactFlowNodeToGraphNode),

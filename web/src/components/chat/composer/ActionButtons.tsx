@@ -4,6 +4,7 @@ import React from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
+import { NewChatComposerButton } from "./NewChatComposerButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
@@ -19,19 +20,23 @@ interface ActionButtonsProps {
     | "failed";
   onSend: () => void;
   onStop?: () => void;
+  onNewChat?: () => void;
   isDisabled: boolean;
   hasContent: boolean;
 }
 
 const styles = css({
   position: "relative",
-  marginRight: "0.25em"
+  marginRight: "0.25em",
+  display: "flex",
+  alignItems: "center"
 });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
   status,
   onSend,
   onStop,
+  onNewChat,
   isDisabled,
   hasContent
 }) => {
@@ -39,16 +44,18 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const showStopButton =
     (status === "loading" || status === "streaming") && onStop;
 
-  // Debug logging to help identify issues
-  console.log("ActionButtons debug:", {
-    status,
-    showStopButton,
-    hasOnStop: !!onStop,
-    isDisabled
-  });
-
   return (
     <div className="chat-action-buttons" css={styles}>
+      {onNewChat && (
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
+          <span style={{ display: "inline-flex" }}>
+            <NewChatComposerButton
+              disabled={isDisabled}
+              onClick={onNewChat}
+            />
+          </span>
+        </Tooltip>
+      )}
       {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span style={{ display: "inline-flex" }}>

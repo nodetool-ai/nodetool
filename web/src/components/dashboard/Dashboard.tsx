@@ -345,7 +345,8 @@ const Dashboard: React.FC = () => {
     getCurrentMessages,
     threads,
     currentThreadId,
-    deleteThread
+    deleteThread,
+    messageCache
   } = useGlobalChatStore();
 
   const messages = getCurrentMessages();
@@ -500,18 +501,34 @@ const Dashboard: React.FC = () => {
     navigate(`/chat/${threadId}`);
   };
 
-  const handleNewThread = () => {
-    const newThreadId = createNewThread();
-    navigate(`/chat/${newThreadId}`);
+  const handleNewThread = async () => {
+    try {
+      const newThreadId = await createNewThread();
+      switchThread(newThreadId);
+      navigate(`/chat/${newThreadId}`);
+    } catch (error) {
+      console.error("Failed to create new thread:", error);
+    }
   };
 
   const getThreadPreview = (threadId: string) => {
     const thread = threads[threadId];
-    if (!thread || thread.messages.length === 0) {
+    if (!thread) {
       return "No messages yet";
     }
 
-    const firstUserMessage = thread.messages.find((m) => m.role === "user");
+    // Use thread title if available
+    if (thread.title) {
+      return truncateString(thread.title, 100);
+    }
+
+    // Check if we have cached messages for this thread
+    const threadMessages = messageCache[threadId];
+    if (!threadMessages || threadMessages.length === 0) {
+      return "New conversation";
+    }
+
+    const firstUserMessage = threadMessages.find((m) => m.role === "user");
     const preview = firstUserMessage?.content
       ? typeof firstUserMessage.content === "string"
         ? firstUserMessage.content
@@ -593,8 +610,17 @@ const Dashboard: React.FC = () => {
           <ThreadList
             threads={Object.fromEntries(
               Object.entries(threads)
-                .sort(([, a], [, b]) => b.updatedAt.localeCompare(a.updatedAt))
+                .sort(([, a], [, b]) => b.updated_at.localeCompare(a.updated_at))
                 .slice(0, 5)
+                .map(([id, thread]) => [
+                  id,
+                  {
+                    id: thread.id,
+                    title: thread.title,
+                    updatedAt: thread.updated_at,
+                    messages: messageCache[id] || []
+                  }
+                ])
             )}
             currentThreadId={currentThreadId}
             onNewThread={handleNewThread}
