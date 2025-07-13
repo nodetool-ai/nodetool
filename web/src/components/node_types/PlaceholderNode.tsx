@@ -230,7 +230,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         showMenu={false}
         selected={props.selected}
       />
-      <Tooltip title="Try to find a replacement node or write us a fax.">
+      <Tooltip title="Try to find a replacement node or missing package.">
         <Typography variant="h4" className="missing-node-text">
           Missing Node
         </Typography>
