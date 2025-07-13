@@ -1,8 +1,11 @@
 <h1>
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" style="height:64px">NodeTool - Swiss-Army Knife for AI Builders
+  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" style="height:64px">Privacy‑First AI Toolbox – Build Locally, Scale When You Want
 </h1>
 
-**Drag, drop, build—one canvas for every model.**
+Drag‑and‑drop AI workflows that run on your machine. Process text, images, audio, and more – 100% open-source and zero data sharing by default.
+
+[**Download NodeTool Studio**](https://nodetool.ai)
+[See how it works](#how-nodetool-keeps-your-data-safe)
 
 🔓 **100% Open Source • Privacy-First • Self-Hosted**
 
@@ -12,55 +15,22 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
+## Why Privacy‑First Matters
+
+| Local-first by default | Open source & auditable | Controlled cloud bursting |
+|-----------------------|------------------------|--------------------------|
+| All model inference runs on your machine. No data leaves unless you decide. | NodeTool is 100% open source under AGPL – audit every line of code. | Need more power? Use the GPU cloud node – and only for the data you select. |
+
+## 🛠️ The Complete AI Toolbox for Builders
+
 NodeTool is the Swiss-Army Knife for AI builders. Unlike code-first stacks, NodeTool gives you every AI tool in one visual workspace. Connect your models, streamline your workflow, and turn ideas into reality.
 
-## 🔧 Why NodeTool?
-
-**🔗 Snap:** Drag any AI model into your canvas. Connect with one click.  
-**☁️ Scale:** Keep data local, burst to cloud GPUs when you need power.  
-**🚀 Ship:** Build working demos in minutes. Turn ideas into reality.
-
-### 🔒 Privacy-First • Hybrid Execution
-
-Unlike cloud-only tools, NodeTool protects your privacy while giving you the power to scale. **Trust through transparency**—every line of code is open source.
-
-**Local-First:**
-- Process sensitive data locally
-- Run LLMs on your hardware  
-- Zero data transmission by default
-
-**Cloud-Ready:**
-- Burst to GPU cloud in seconds
-- Connect OpenAI, Anthropic, Fal, Replicate, Gemini
-- Control exactly what data gets shared
-
----
-
-![NodeTool](screenshot.png)
-
----
-
-## ⚙️ Quickstart Installation
-
-### 1️⃣ Get Running in Minutes
-
-- **Windows / Mac / Linux:** [Download the installer here](https://nodetool.ai)
-- Launch the installer and run NodeTool.
-
-**Note:** Requires an Nvidia GPU or Apple Silicon (M1+) and at least 20GB of free disk space for model downloads.
-
-### 2️⃣ Create Your First AI Workflow
-
-- Open NodeTool.
-- Choose a **prebuilt template** or start with a blank canvas.
-- Drag and drop AI nodes and connect them visually.
-- Click **Run** and watch your local AI workflow execute!
-
----
-
-## ✨ Every Node You Need
-
-NodeTool gives you every AI tool in one visual workspace:
+* 🔗 Drag‑and‑drop multimodal workflows
+* 🧠 LLMs, image, audio, and video nodes
+* 🗃️ Asset and vector store integration
+* 🤖 Agent orchestration
+* ⚡ GPU cloud bursting (only when needed)
+* 💡 Built-in templates and node packs
 
 ### **🔗 Snap Nodes Together**
 Drag any model into your canvas—LLMs, diffusion, agents, or custom code. Connect with one click and watch your AI workflow come alive.
@@ -88,6 +58,56 @@ Import, organize, and manage all your media assets in one place. No more hunting
 - **API Access:** Integrate with external applications and services
 - **Custom Python Extensions:** Extend functionality with custom Python scripts
 - **Cross-Platform:** Build and run on Mac, Windows, and Linux
+
+---
+
+## How NodeTool Keeps Your Data Safe
+
+All critical execution (LLMs, embeddings, asset processing) happens inside the local worker process unless a cloud node is explicitly connected.
+
+```mermaid
+%%{init: {'theme': 'dark'}}%%
+graph TD
+  subgraph "Local Execution Boundary"
+    A([Nodetool Editor<br>ReactJS]) -->|HTTP/WebSocket| B([API Server])
+    A <-->|WebSocket| C([WebSocket Runner])
+    B <-->|Internal Communication| C
+    C <-->|WebSocket| D([Worker with ML Models<br>CPU+GPU])
+    D <-->|HTTP Callbacks| B
+    E[Other Apps/Websites] -->|HTTP| B
+    E <-->|WebSocket| C
+  end
+  subgraph "Optional Cloud GPU Node (User-Controlled)"
+    D -->|Optional API Calls| F[OpenAI, Replicate, Others]
+  end
+```
+
+✅ AGPL‑3.0 License – zero lock-in • ✅ CodeQL security scans enabled • ✅ Fully self-hostable with no telemetry
+
+---
+
+![NodeTool](screenshot.png)
+
+---
+
+## ⚙️ Quickstart Installation
+
+### 1️⃣ Get Running in Minutes
+
+- **Windows / Mac / Linux:** [Download the installer here](https://nodetool.ai)
+- Launch the installer and run NodeTool.
+
+**Note:** Requires an Nvidia GPU or Apple Silicon (M1+) and at least 20GB of free disk space for model downloads.
+
+### 2️⃣ Create Your First AI Workflow
+
+- Open NodeTool.
+- Choose a **prebuilt template** or start with a blank canvas.
+- Drag and drop AI nodes and connect them visually.
+- Click **Run** and watch your local AI workflow execute!
+
+---
+
 
 ## 🤖 NodeTool Agent System
 
