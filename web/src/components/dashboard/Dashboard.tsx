@@ -1,11 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useEffect, useMemo } from "react";
 import { Box } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { Workflow, LanguageModel, Thread } from "../../stores/ApiTypes";
+import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { isEqual } from "lodash";
@@ -88,8 +86,6 @@ interface PanelProps {
 }
 
 const Dashboard: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const { currentWorkflowId } = useWorkflowManager((state) => ({
