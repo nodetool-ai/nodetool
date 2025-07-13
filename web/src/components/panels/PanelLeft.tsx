@@ -267,13 +267,18 @@ const PanelContent = memo(function PanelContent({
     currentThreadId,
     createNewThread,
     switchThread,
-    deleteThread
+    deleteThread,
+    messageCache
   } = useGlobalChatStore();
 
   const handleNewChat = () => {
-    createNewThread();
-    navigate("/chat");
-    usePanelStore.getState().setVisibility(false);
+    createNewThread().then((newThreadId) => {
+      switchThread(newThreadId);
+      navigate(`/chat/${newThreadId}`);
+      usePanelStore.getState().setVisibility(false);
+    }).catch((error) => {
+      console.error("Failed to create new thread:", error);
+    });
   };
 
   const handleSelectThread = (id: string) => {
@@ -283,17 +288,30 @@ const PanelContent = memo(function PanelContent({
   };
 
   const handleDeleteThread = (id: string) => {
-    deleteThread(id);
+    deleteThread(id).catch((error) => {
+      console.error("Failed to delete thread:", error);
+    });
   };
 
   const getThreadPreview = (threadId: string) => {
     if (!threads) return "Loading...";
     const thread = threads[threadId];
-    if (!thread || thread.messages.length === 0) {
+    if (!thread) {
       return "Empty conversation";
     }
 
-    const firstUserMessage = thread.messages.find((msg) => msg.role === "user");
+    // Use thread title if available
+    if (thread.title) {
+      return thread.title;
+    }
+
+    // Check if we have cached messages for this thread
+    const threadMessages = messageCache[threadId];
+    if (!threadMessages || threadMessages.length === 0) {
+      return "New conversation";
+    }
+
+    const firstUserMessage = threadMessages.find((msg: any) => msg.role === "user");
     if (firstUserMessage) {
       const content =
         typeof firstUserMessage.content === "string"
@@ -308,6 +326,20 @@ const PanelContent = memo(function PanelContent({
     return "New conversation";
   };
 
+  // Create ThreadInfo compatible data for ThreadList
+  const threadsWithMessages = Object.fromEntries(
+    Object.entries(threads).map(([id, thread]) => [
+      id,
+      {
+        id: thread.id,
+        title: thread.title,
+        createdAt: thread.created_at,
+        updatedAt: thread.updated_at,
+        messages: messageCache[id] || []
+      }
+    ])
+  );
+
   return (
     <>
       {activeView === "chat" && (
@@ -320,7 +352,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           <ThreadList
-            threads={threads}
+            threads={threadsWithMessages}
             currentThreadId={currentThreadId}
             onNewThread={handleNewChat}
             onSelectThread={handleSelectThread}

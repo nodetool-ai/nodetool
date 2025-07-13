@@ -23,7 +23,7 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
       </Typography>
       {showDate && (
         <Typography className="date">
-          {relativeTime(thread.updatedAt)}
+          {relativeTime((thread as any).updated_at || thread.updatedAt)}
         </Typography>
       )}
       <DeleteButton

@@ -22,10 +22,17 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage, graph }) =
     getCurrentMessages,
     currentPlanningUpdate,
     currentTaskUpdate,
-    stopGeneration
+    stopGeneration,
+    createNewThread,
+    switchThread
   } = useWorkflowChatStore();
   
   const messages = getCurrentMessages();
+
+  const handleNewChat = () => {
+    const newThreadId = createNewThread();
+    switchThread(newThreadId);
+  };
 
   return (
     <Box
@@ -46,6 +53,7 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage, graph }) =
         total={progress.total}
         progressMessage={statusMessage}
         onStop={stopGeneration}
+        onNewChat={handleNewChat}
         currentPlanningUpdate={currentPlanningUpdate}
         currentTaskUpdate={currentTaskUpdate}
         graph={graph}
