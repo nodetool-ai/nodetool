@@ -45,6 +45,7 @@ For a deeper look at how these pieces interact, read the
 - **[Supported Models](models.md)** – Comprehensive guide to all AI models and providers
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
+- **[Base Nodes Reference](base-nodes.md)** – Complete reference for all available base nodes
 
 ### Advanced Topics
 - **[Desktop App](desktop-app.md)** – System tray, shortcuts, and native features
