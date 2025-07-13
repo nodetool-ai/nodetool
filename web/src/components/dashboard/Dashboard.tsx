@@ -21,9 +21,18 @@ import {
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
+import { defaultLayout } from "../../config/defaultLayouts";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
+import { Button } from "@mui/material";
+
+const PANEL_CONFIG = {
+  examples: { title: "Examples" },
+  workflows: { title: "Recent Workflows" },
+  "recent-chats": { title: "Recent Chats" },
+  chat: { title: "Chat" }
+};
 
 const styles = (theme: Theme) =>
   css({
@@ -301,56 +310,25 @@ const Dashboard: React.FC = () => {
     (event: DockviewReadyEvent) => {
       const { api } = event;
       setDockviewApi(api);
-
-      api.clear();
-
-      const chatPanel = api.addPanel({
-        id: "chat",
-        component: "chat",
-        title: "Chat",
-        params: panelParams.chat
-      });
-
-      const examplesPanel = api.addPanel({
-        id: "examples",
-        component: "examples",
-        title: "Examples",
-        position: { direction: "above", referencePanel: chatPanel },
-        params: panelParams.examples
-      });
-
-      const workflowsPanel = api.addPanel({
-        id: "workflows",
-        component: "workflows",
-        title: "Recent Workflows",
-        position: { direction: "right", referencePanel: examplesPanel },
-        params: panelParams.workflows
-      });
-
-      api.addPanel({
-        id: "recent-chats",
-        component: "recent-chats",
-        title: "Recent Chats",
-        position: { direction: "right", referencePanel: workflowsPanel },
-        params: panelParams["recent-chats"]
-      });
-
-      chatPanel.api.setSize({ height: 100 });
+      api.fromJSON(defaultLayout);
     },
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [panelParams]
   );
 
   useEffect(() => {
     if (!dockviewApi) return;
 
-    const allPanelIds = ["examples", "workflows", "recent-chats", "chat"];
+    const allPanelIds = Object.keys(PANEL_CONFIG);
 
     const updateAvailablePanels = () => {
       const openPanelIds = dockviewApi.panels.map((p) => p.id);
       const closedPanels = allPanelIds
         .filter((id) => !openPanelIds.includes(id))
-        .map((id) => ({ id, title: id.charAt(0).toUpperCase() + id.slice(1) }));
+        .map((id) => ({
+          id,
+          title: PANEL_CONFIG[id as keyof typeof PANEL_CONFIG].title
+        }));
       setAvailablePanels(closedPanels);
     };
 
@@ -367,19 +345,6 @@ const Dashboard: React.FC = () => {
     };
   }, [dockviewApi]);
 
-  const handleAddPanel = useCallback(
-    (panelId: string) => {
-      if (!dockviewApi) return;
-      dockviewApi.addPanel({
-        id: panelId,
-        component: panelId,
-        title: panelId.charAt(0).toUpperCase() + panelId.slice(1),
-        params: panelParams[panelId as keyof typeof panelParams]
-      });
-    },
-    [dockviewApi, panelParams]
-  );
-
   useEffect(() => {
     if (!dockviewApi) return;
 
@@ -390,6 +355,19 @@ const Dashboard: React.FC = () => {
       }
     });
   }, [dockviewApi, panelParams]);
+
+  const handleAddPanel = useCallback(
+    (panelId: string) => {
+      if (!dockviewApi) return;
+      dockviewApi.addPanel({
+        id: panelId,
+        component: panelId,
+        title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
+        params: panelParams[panelId as keyof typeof panelParams]
+      });
+    },
+    [dockviewApi, panelParams]
+  );
 
   return (
     <Box
