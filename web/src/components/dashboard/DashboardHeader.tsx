@@ -10,10 +10,12 @@ interface DashboardHeaderProps {
 }
 
 const styles = css({
-  position: "absolute",
-  top: "1rem",
-  right: "2rem",
-  zIndex: 10
+  height: "2rem",
+  width: "100%",
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  padding: "0 1rem"
 });
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({

@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       top: 7,
       left: 2,
       right: 10,
-      zIndex: 100,
+      zIndex: 1,
       opacity: 0,
       transition: "opacity 0.2s ease-in-out"
     },
