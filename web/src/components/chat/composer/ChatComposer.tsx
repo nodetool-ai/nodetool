@@ -28,6 +28,7 @@ interface ChatComposerProps {
     agentMode: boolean
   ) => void;
   onStop?: () => void;
+  onNewChat?: () => void;
   disabled?: boolean;
   agentMode?: boolean;
 }
@@ -36,6 +37,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   status,
   onSendMessage,
   onStop,
+  onNewChat,
   disabled = false,
   agentMode = false
 }) => {
@@ -75,6 +77,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const handleSend = useCallback(() => {
     if (
       status !== "loading" &&
+      status !== "streaming" &&
       status !== "disconnected" &&
       status !== "connecting" &&
       status !== "error" &&
@@ -117,6 +120,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const isDisabled =
     disabled ||
     status === "loading" ||
+    status === "streaming" ||
     status === "error" ||
     status === "disconnected" ||
     status === "connecting";
@@ -156,6 +160,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
           status={status}
           onSend={handleSend}
           onStop={onStop}
+          onNewChat={onNewChat}
           isDisabled={isDisabled}
           hasContent={prompt.trim() !== ""}
         />

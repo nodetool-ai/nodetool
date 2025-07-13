@@ -1,23 +1,24 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Box, Alert, IconButton, Typography } from "@mui/material";
-import Drawer from "@mui/material/Drawer";
-import MenuIcon from "@mui/icons-material/Menu";
+import React, { useEffect, useState, useRef } from "react";
+import { Box, Alert, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../panels/BackToDashboardButton";
-import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import useGlobalChatStore, {
+  useThreadsQuery
+} from "../../../stores/GlobalChatStore";
 import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { isEqual } from "lodash";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
+  const navigate = useNavigate();
   const {
     connect,
     disconnect,
@@ -28,7 +29,7 @@ const GlobalChat: React.FC = () => {
     statusMessage,
     error,
     currentThreadId,
-    getCurrentMessages,
+    getCurrentMessagesSync,
     createNewThread,
     threads,
     switchThread,
@@ -37,8 +38,14 @@ const GlobalChat: React.FC = () => {
     agentMode,
     setAgentMode,
     currentPlanningUpdate,
-    currentTaskUpdate
+    currentTaskUpdate,
+    isLoadingMessages,
+    threadsLoaded
   } = useGlobalChatStore();
+
+  // Use the consolidated TanStack Query hook from the store
+  const { isLoading: isLoadingThreads, error: threadsError } =
+    useThreadsQuery();
 
   const tryParseModel = (model: string) => {
     try {
@@ -54,23 +61,16 @@ const GlobalChat: React.FC = () => {
   });
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
-  const [helpMode, setHelpMode] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const messages = getCurrentMessages();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Handle connection lifecycle and thread switching
+  // Get messages from store
+  const messages = getCurrentMessagesSync();
+
+  // Connect once on mount and clean up on unmount
   useEffect(() => {
-    // Switch to thread from URL if provided
-    if (thread_id && thread_id !== currentThreadId) {
-      switchThread(thread_id);
-    } else if (!currentThreadId && !thread_id) {
-      // Create new thread if none exists
-      createNewThread();
-    }
-
-    // Connect on mount if not already connected
     if (status === "disconnected") {
       connect().catch((error) => {
         console.error("Failed to connect to global chat:", error);
@@ -78,11 +78,71 @@ const GlobalChat: React.FC = () => {
     }
 
     return () => {
-      // Disconnect on unmount
+      // Only disconnect on actual unmount, not on thread changes
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [thread_id]); // Depend on thread_id to handle URL changes
+  }, []); // Empty dependency array - only run on mount/unmount
+
+  // Handle thread switching when URL changes
+  useEffect(() => {
+    const handleThreadLogic = async () => {
+      // Cancel any previous async operation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this operation
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      try {
+        // Wait for threads to be loaded before attempting to switch
+        if (!threadsLoaded || isLoadingThreads) {
+          return;
+        }
+
+        // Check if operation was cancelled
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        if (thread_id && thread_id !== currentThreadId) {
+          switchThread(thread_id);
+        } else if (!currentThreadId && !thread_id) {
+          // Create new thread if none exists
+          const newThreadId = await createNewThread();
+
+          // Check if operation was cancelled before switching
+          if (!abortController.signal.aborted) {
+            switchThread(newThreadId);
+          }
+        }
+      } catch (error) {
+        // Only log errors if the operation wasn't cancelled
+        if (!abortController.signal.aborted) {
+          console.error("Failed to handle thread logic:", error);
+        }
+      }
+    };
+
+    handleThreadLogic();
+
+    // Cleanup function to cancel any pending async operations
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [
+    thread_id,
+    currentThreadId,
+    switchThread,
+    createNewThread,
+    threadsLoaded,
+    isLoadingThreads
+  ]);
 
   // Monitor connection state and reconnect when disconnected or failed
   useEffect(() => {
@@ -122,6 +182,22 @@ const GlobalChat: React.FC = () => {
     localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
   }, [selectedModel]);
 
+  // Map status to ChatView compatible status
+  const getChatViewStatus = () => {
+    if (status === "stopping") return "loading";
+    return status;
+  };
+
+  const handleNewChat = async () => {
+    try {
+      const newThreadId = await createNewThread();
+      switchThread(newThreadId);
+      navigate(`/chat/${newThreadId}`);
+    } catch (error) {
+      console.error("Failed to create new thread:", error);
+    }
+  };
+
   const mainAreaStyles = (theme: Theme) =>
     css({
       position: "relative",
@@ -142,8 +218,8 @@ const GlobalChat: React.FC = () => {
       }
     });
 
-  // Show loading state if store hasn't initialized
-  if (!threads) {
+  // Show loading state if threads are still loading
+  if (isLoadingThreads) {
     return (
       <Box
         sx={{
@@ -154,6 +230,24 @@ const GlobalChat: React.FC = () => {
         }}
       >
         <Typography>Loading chat...</Typography>
+      </Box>
+    );
+  }
+
+  // Show error state if threads failed to load
+  if (threadsError) {
+    return (
+      <Box
+        sx={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        <Alert severity="error">
+          Failed to load threads: {threadsError.message}
+        </Alert>
       </Box>
     );
   }
@@ -220,7 +314,7 @@ const GlobalChat: React.FC = () => {
 
         <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
           <ChatView
-            status={status}
+            status={getChatViewStatus()}
             messages={messages}
             sendMessage={sendMessage}
             progress={progress.current}
@@ -233,10 +327,9 @@ const GlobalChat: React.FC = () => {
             onCollectionsChange={setSelectedCollections}
             onModelChange={setSelectedModel}
             onStop={stopGeneration}
+            onNewChat={handleNewChat}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
-            helpMode={helpMode}
-            onHelpModeToggle={setHelpMode}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
           />

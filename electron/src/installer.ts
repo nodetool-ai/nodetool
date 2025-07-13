@@ -1,8 +1,6 @@
 import { promises as fs, constants, createReadStream } from "fs";
 import StreamZip from "node-stream-zip";
-// @ts-expect-error types not available
 import tar from "tar-fs";
-// @ts-expect-error types not available
 import gunzip from "gunzip-maybe";
 import { dialog } from "electron";
 import {

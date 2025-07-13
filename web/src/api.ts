@@ -287,23 +287,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/messages/help": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Help */
-        post: operations["help_api_messages_help_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/messages/{message_id}": {
         parameters: {
             query?: never;
@@ -315,6 +298,78 @@ export interface paths {
         get: operations["get_api_messages__message_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/threads/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Index
+         * @description List all threads for the current user with pagination.
+         */
+        get: operations["index_api_threads__get"];
+        put?: never;
+        /**
+         * Create
+         * @description Create a new thread for the current user.
+         */
+        post: operations["create_api_threads__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/threads/{thread_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get
+         * @description Get a specific thread by ID.
+         */
+        get: operations["get_api_threads__thread_id__get"];
+        /**
+         * Update
+         * @description Update a thread's title.
+         */
+        put: operations["update_api_threads__thread_id__put"];
+        post?: never;
+        /**
+         * Delete
+         * @description Delete a thread and all its associated messages.
+         */
+        delete: operations["delete_api_threads__thread_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/threads/{thread_id}/summarize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Summarize Thread
+         * @description Summarize thread content and update the thread title.
+         */
+        post: operations["summarize_thread_api_threads__thread_id__summarize_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2977,13 +3032,6 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** HelpRequest */
-        HelpRequest: {
-            /** Messages */
-            messages: components["schemas"]["Message-Input"][];
-            /** Model */
-            model: string;
-        };
         /** HuggingFaceModel */
         HuggingFaceModel: {
             /**
@@ -3037,7 +3085,7 @@ export interface components {
          * InferenceProvider
          * @enum {string}
          */
-        InferenceProvider: "black-forest-labs" | "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "together";
+        InferenceProvider: "" | "black-forest-labs" | "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "together";
         /** InferenceProviderAudioClassificationModel */
         InferenceProviderAudioClassificationModel: {
             /**
@@ -4645,6 +4693,61 @@ export interface components {
             /** Data */
             data?: unknown;
         };
+        /**
+         * Thread
+         * @description API response model for a thread.
+         */
+        Thread: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ThreadCreateRequest
+         * @description Request model for creating a new thread.
+         */
+        ThreadCreateRequest: {
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * ThreadList
+         * @description Paginated list of threads.
+         */
+        ThreadList: {
+            /** Next */
+            next?: string | null;
+            /** Threads */
+            threads: components["schemas"]["Thread"][];
+        };
+        /** ThreadSummarizeRequest */
+        ThreadSummarizeRequest: {
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+        };
+        /**
+         * ThreadUpdateRequest
+         * @description Request model for updating a thread.
+         */
+        ThreadUpdateRequest: {
+            /** Title */
+            title: string;
+        };
         /** ToolCall */
         ToolCall: {
             /**
@@ -5488,39 +5591,6 @@ export interface operations {
             };
         };
     };
-    help_api_messages_help_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HelpRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_api_messages__message_id__get: {
         parameters: {
             query?: never;
@@ -5543,6 +5613,228 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Message-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    index_api_threads__get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                reverse?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_api_threads__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_api_threads__thread_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                thread_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_threads__thread_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                thread_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_api_threads__thread_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                thread_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summarize_thread_api_threads__thread_id__summarize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                thread_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadSummarizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
                 };
             };
             /** @description Validation Error */

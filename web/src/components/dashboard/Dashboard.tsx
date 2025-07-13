@@ -18,7 +18,8 @@ import {
   Workflow,
   WorkflowList,
   Message,
-  LanguageModel
+  LanguageModel,
+  Thread
 } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -31,7 +32,6 @@ import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import { isEqual } from "lodash";
 import RecentChats from "./RecentChats";
-import { Thread } from "../../stores/GlobalChatStore";
 import DashboardHeader from "./DashboardHeader";
 import {
   DockviewReact,
@@ -140,7 +140,7 @@ const Dashboard: React.FC = () => {
     sendMessage,
     createNewThread,
     switchThread,
-    getCurrentMessages,
+    getCurrentMessagesSync,
     threads,
     currentThreadId,
     deleteThread,
@@ -148,10 +148,11 @@ const Dashboard: React.FC = () => {
     statusMessage,
     stopGeneration,
     currentPlanningUpdate,
-    currentTaskUpdate
+    currentTaskUpdate,
+    messageCache
   } = useGlobalChatStore();
 
-  const messages = getCurrentMessages();
+  const messages = getCurrentMessagesSync();
 
   useEffect(() => {
     localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
@@ -313,7 +314,7 @@ const Dashboard: React.FC = () => {
         if (status !== "connected") {
           await connect();
         }
-        const threadId = createNewThread();
+        const threadId = await createNewThread();
         switchThread(threadId);
 
         await sendMessage(messageWithModel);
@@ -358,19 +359,35 @@ const Dashboard: React.FC = () => {
     [switchThread, navigate]
   );
 
-  const handleNewThread = useCallback(() => {
-    const newThreadId = createNewThread();
-    navigate(`/chat/${newThreadId}`);
-  }, [createNewThread, navigate]);
+  const handleNewThread = useCallback(async () => {
+    try {
+      const newThreadId = await createNewThread();
+      switchThread(newThreadId);
+      navigate(`/chat/${newThreadId}`);
+    } catch (error) {
+      console.error("Failed to create new thread:", error);
+    }
+  }, [createNewThread, switchThread, navigate]);
 
   const getThreadPreview = useCallback(
     (threadId: string) => {
       const thread = threads[threadId];
-      if (!thread || thread.messages.length === 0) {
+      if (!thread) {
         return "No messages yet";
       }
 
-      const firstUserMessage = thread.messages.find((m) => m.role === "user");
+      // Use thread title if available
+      if (thread.title) {
+        return truncateString(thread.title, 100);
+      }
+
+      // Check if we have cached messages for this thread
+      const threadMessages = messageCache[threadId];
+      if (!threadMessages || threadMessages.length === 0) {
+        return "New conversation";
+      }
+
+      const firstUserMessage = threadMessages.find((m) => m.role === "user");
       const preview = firstUserMessage?.content
         ? typeof firstUserMessage.content === "string"
           ? firstUserMessage.content
@@ -379,7 +396,7 @@ const Dashboard: React.FC = () => {
 
       return truncateString(preview, 100);
     },
-    [threads]
+    [threads, messageCache]
   );
 
   const handleToolsChange = useCallback((tools: string[]) => {

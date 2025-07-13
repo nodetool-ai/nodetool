@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { InferenceProviderModel, Property } from "../../stores/ApiTypes";
+import { Property } from "../../stores/ApiTypes";
 import { InferenceProvider } from "../../stores/ApiTypes";
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -35,8 +35,8 @@ const InferenceProviderModelSelect = ({
   value
 }: {
   property: Property;
-  onChange: (inferenceProviderModel: InferenceProviderModel) => void;
-  value: InferenceProviderModel;
+  onChange: (inferenceProviderModel: any) => void;
+  value: any;
 }) => {
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const providerOptions = [

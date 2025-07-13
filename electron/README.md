@@ -10,5 +10,23 @@ Key folders:
 - `assets/` – icons and other static resources used by Electron
 - `resources/` – templates and additional files bundled into the app
 
-Run `npm start` to launch the desktop app in development mode. Use `npm run build`
-to produce a distributable package.
+This app is built with React and Vite. In development you can launch the UI with
+hot reload using:
+
+```bash
+npm run dev
+```
+
+To compile the Electron renderer and main process, run:
+
+```bash
+npm run build
+```
+
+Then start the desktop app with:
+
+```bash
+npm start
+```
+
+Use the build output in `dist-electron/` to create distributable packages.

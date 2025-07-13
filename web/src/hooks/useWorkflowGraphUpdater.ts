@@ -65,7 +65,11 @@ export const useWorkflowGraphUpdater = () => {
         // These updates will trigger React re-renders properly
         nodeStore.getState().setNodes(reactFlowNodes);
         nodeStore.getState().setEdges(reactFlowEdges);
-        
+
+        setTimeout(() => {
+          nodeStore.getState().autoLayout();
+        }, 100);
+
         // Mark the workflow as clean since this is an update from the server
         nodeStore.getState().setWorkflowDirty(false);
         

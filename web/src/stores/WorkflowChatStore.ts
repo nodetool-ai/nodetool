@@ -13,7 +13,8 @@ import {
   ToolCallUpdate,
   WorkflowAttributes,
   Chunk,
-  SubTaskResult
+  SubTaskResult,
+  Thread
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
@@ -26,7 +27,8 @@ import { uuidv4 } from "./uuidv4";
 // Include additional runtime statuses used during message streaming
 type ChatStatus = ConnectionState | "loading" | "streaming" | "error";
 
-interface Thread {
+// WorkflowChatStore uses a local thread structure with messages stored inline
+interface WorkflowThread {
   id: string;
   messages: Message[];
   createdAt: string;
@@ -45,7 +47,7 @@ type WorkflowChatState = {
   error: string | null;
   
   // Thread management
-  threads: Record<string, Thread>;
+  threads: Record<string, WorkflowThread>;
   currentThreadId: string | null;
   
   // Agent mode
@@ -149,7 +151,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()(
   error: null,
   
   // Thread state
-  threads: {} as Record<string, Thread>,
+  threads: {} as Record<string, WorkflowThread>,
   currentThreadId: null as string | null,
   
   // Agent mode - NOT SUPPORTED IN WORKFLOW CHAT
@@ -508,7 +510,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()(
         if (state) {
           // Ensure threads is always an object
           if (!state.threads) {
-            state.threads = {};
+            state.threads = {} as Record<string, WorkflowThread>;
           }
         }
       }
