@@ -3,34 +3,15 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useEffect, useMemo } from "react";
-import {
-  Box
-  // Typography,
-  // CircularProgress,
-  // Button,
-  // ToggleButton,
-  // ToggleButtonGroup
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Workflow,
-  WorkflowList,
-  Message,
-  LanguageModel,
-  Thread
-} from "../../stores/ApiTypes";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { Workflow, LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { truncateString } from "../../utils/truncateString";
-import { client, BASE_URL } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { isEqual } from "lodash";
 import ChatView from "../chat/containers/ChatView";
 import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
-import { isEqual } from "lodash";
 import RecentChats from "./RecentChats";
 import DashboardHeader from "./DashboardHeader";
 import {
@@ -42,6 +23,9 @@ import {
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { useWorkflowActions } from "../../hooks/useWorkflowActions";
+import { useChatService } from "../../hooks/useChatService";
 
 const styles = (theme: Theme) =>
   css({
@@ -105,18 +89,15 @@ interface PanelProps {
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();
-
   const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
-  const loadExamples = useWorkflowManager((state) => state.loadExamples);
-  const createWorkflow = useWorkflowManager((state) => state.create);
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+
   const tryParseModel = (model: string) => {
     try {
       return JSON.parse(model);
@@ -124,214 +105,48 @@ const Dashboard: React.FC = () => {
       return DEFAULT_MODEL;
     }
   };
+
   const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const savedModel = localStorage.getItem("selectedModel");
     return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
   });
-
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [agentMode, setAgentMode] = useState(false);
 
-  const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
+  useEffect(() => {
+    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
+  }, [selectedModel]);
 
   const {
-    connect,
-    disconnect,
+    isLoadingWorkflows,
+    sortedWorkflows,
+    isLoadingExamples,
+    startExamples
+  } = useDashboardData();
+
+  const {
+    loadingExampleId,
+    handleCreateNewWorkflow,
+    handleWorkflowClick,
+    handleExampleClick,
+    handleViewAllExamples
+  } = useWorkflowActions();
+
+  const {
     status,
     sendMessage,
-    createNewThread,
-    switchThread,
-    getCurrentMessagesSync,
+    onNewThread,
+    onSelectThread,
+    getThreadPreview,
     threads,
-    currentThreadId,
     deleteThread,
     progress,
     statusMessage,
     stopGeneration,
     currentPlanningUpdate,
     currentTaskUpdate,
-    messageCache
-  } = useGlobalChatStore();
-
-  useEffect(() => {
-    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
-  }, [selectedModel]);
-
-  useEffect(() => {
-    if (status === "disconnected") {
-      connect().catch((error) => {
-        console.error("Failed to connect to chat service:", error);
-      });
-    }
-
-    return () => {
-      if (status !== "disconnected") {
-        disconnect();
-      }
-    };
-  }, [connect, disconnect, status]);
-
-  useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    const attemptReconnect = () => {
-      if (status === "disconnected" || status === "failed") {
-        console.log(
-          "Dashboard: Connection lost, attempting automatic reconnect..."
-        );
-        connect().catch((error) => {
-          console.error("Dashboard: Automatic reconnect failed:", error);
-        });
-      }
-    };
-
-    if (status === "disconnected" || status === "failed") {
-      reconnectTimer = setTimeout(attemptReconnect, 2000);
-    }
-
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [status, connect]);
-
-  const loadWorkflows = async () => {
-    const { data, error } = await client.GET("/api/workflows/", {
-      params: {
-        query: {
-          cursor: "",
-          limit: 20,
-          columns: "name,id,updated_at,description,thumbnail_url"
-        }
-      }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load workflows");
-    }
-    return data;
-  };
-
-  const { data: workflowsData, isLoading: isLoadingWorkflows } =
-    useQuery<WorkflowList>({
-      queryKey: ["workflows"],
-      queryFn: loadWorkflows
-    });
-
-  const { data: examplesData, isLoading: isLoadingExamples } =
-    useQuery<WorkflowList>({
-      queryKey: ["examples"],
-      queryFn: loadExamples
-    });
-
-  const startExamples = useMemo(() => {
-    return (
-      examplesData?.workflows.filter(
-        (workflow) =>
-          workflow.tags?.includes("start") ||
-          workflow.tags?.includes("getting-started")
-      ) || []
-    );
-  }, [examplesData]);
-
-  const sortedWorkflows = useMemo(() => {
-    return (
-      workflowsData?.workflows.sort((a, b) => {
-        if (settings.workflowOrder === "name") {
-          return a.name.localeCompare(b.name);
-        }
-        return b.updated_at.localeCompare(a.updated_at);
-      }) || []
-    );
-  }, [workflowsData, settings.workflowOrder]);
-
-  const handleCreateNewWorkflow = useCallback(async () => {
-    const workflow = await createNewWorkflow();
-    navigate(`/editor/${workflow.id}`);
-  }, [createNewWorkflow, navigate]);
-
-  const handleWorkflowClick = useCallback(
-    (workflow: Workflow) => {
-      navigate(`/editor/${workflow.id}`);
-    },
-    [navigate]
-  );
-
-  const handleExampleClick = useCallback(
-    async (example: Workflow) => {
-      if (loadingExampleId) return;
-
-      setLoadingExampleId(example.id);
-      try {
-        const tags = example.tags || [];
-        if (!tags.includes("example")) {
-          tags.push("example");
-        }
-
-        const req = {
-          name: example.name,
-          package_name: example.package_name,
-          description: example.description,
-          tags: tags,
-          access: "private",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        const newWorkflow = await createWorkflow(
-          req,
-          example.package_name || undefined,
-          example.name
-        );
-        navigate(`/editor/${newWorkflow.id}`);
-      } catch (error) {
-        console.error("Error copying example:", error);
-        setLoadingExampleId(null);
-      }
-    },
-    [loadingExampleId, createWorkflow, navigate]
-  );
-
-  const handleSendMessage = useCallback(
-    async (message: Message) => {
-      if (!selectedModel) {
-        console.error("No model selected");
-        return;
-      }
-
-      if (status !== "connected" && status !== "reconnecting") {
-        console.error("Not connected to chat service");
-        return;
-      }
-
-      try {
-        const messageWithModel = {
-          ...message,
-          model: selectedModel.id
-        };
-
-        if (status !== "connected") {
-          await connect();
-        }
-        const threadId = await createNewThread();
-        switchThread(threadId);
-
-        await sendMessage(messageWithModel);
-        navigate("/chat");
-      } catch (error) {
-        console.error("Failed to send message:", error);
-      }
-    },
-    [
-      selectedModel,
-      sendMessage,
-      status,
-      connect,
-      navigate,
-      createNewThread,
-      switchThread
-    ]
-  );
+    currentThreadId
+  } = useChatService(selectedModel);
 
   const handleModelChange = useCallback((model: LanguageModel) => {
     setSelectedModel(model);
@@ -344,58 +159,6 @@ const Dashboard: React.FC = () => {
       }
     },
     [setWorkflowOrder]
-  );
-
-  const handleViewAllExamples = useCallback(() => {
-    navigate("/examples");
-  }, [navigate]);
-
-  const handleThreadSelect = useCallback(
-    (threadId: string) => {
-      switchThread(threadId);
-      navigate(`/chat/${threadId}`);
-    },
-    [switchThread, navigate]
-  );
-
-  const handleNewThread = useCallback(async () => {
-    try {
-      const newThreadId = await createNewThread();
-      switchThread(newThreadId);
-      navigate(`/chat/${newThreadId}`);
-    } catch (error) {
-      console.error("Failed to create new thread:", error);
-    }
-  }, [createNewThread, switchThread, navigate]);
-
-  const getThreadPreview = useCallback(
-    (threadId: string) => {
-      const thread = threads[threadId];
-      if (!thread) {
-        return "No messages yet";
-      }
-
-      // Use thread title if available
-      if (thread.title) {
-        return truncateString(thread.title, 100);
-      }
-
-      // Check if we have cached messages for this thread
-      const threadMessages = messageCache[threadId];
-      if (!threadMessages || threadMessages.length === 0) {
-        return "New conversation";
-      }
-
-      const firstUserMessage = threadMessages.find((m) => m.role === "user");
-      const preview = firstUserMessage?.content
-        ? typeof firstUserMessage.content === "string"
-          ? firstUserMessage.content
-          : "Chat started"
-        : "Chat started";
-
-      return truncateString(preview, 100);
-    },
-    [threads, messageCache]
   );
 
   const handleToolsChange = useCallback((tools: string[]) => {
@@ -422,14 +185,14 @@ const Dashboard: React.FC = () => {
       "recent-chats": {
         threads: threads as { [key: string]: Thread },
         currentThreadId,
-        onNewThread: handleNewThread,
-        onSelectThread: handleThreadSelect,
+        onNewThread: onNewThread,
+        onSelectThread: onSelectThread,
         onDeleteThread: deleteThread,
         getThreadPreview
       },
       chat: {
         status,
-        sendMessage: handleSendMessage,
+        sendMessage,
         progress,
         statusMessage,
         model: selectedModel,
@@ -457,12 +220,12 @@ const Dashboard: React.FC = () => {
     handleWorkflowClick,
     threads,
     currentThreadId,
-    handleNewThread,
-    handleThreadSelect,
+    onNewThread,
+    onSelectThread,
     deleteThread,
     getThreadPreview,
     status,
-    handleSendMessage,
+    sendMessage,
     progress,
     statusMessage,
     selectedModel,
