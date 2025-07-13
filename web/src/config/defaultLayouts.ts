@@ -1,4 +1,6 @@
-export const defaultLayout = {
+import { SerializedDockview, Orientation } from "dockview";
+
+export const defaultLayout: SerializedDockview = {
   grid: {
     root: {
       type: "branch",
@@ -56,7 +58,7 @@ export const defaultLayout = {
     },
     width: 1417,
     height: 1205,
-    orientation: "HORIZONTAL"
+    orientation: Orientation.HORIZONTAL
   },
   panels: {
     chat: {

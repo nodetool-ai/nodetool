@@ -22,6 +22,7 @@ import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { defaultLayout } from "../../config/defaultLayouts";
+import LayoutMenu from "./LayoutMenu";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
@@ -310,11 +311,39 @@ const Dashboard: React.FC = () => {
     (event: DockviewReadyEvent) => {
       const { api } = event;
       setDockviewApi(api);
-      api.fromJSON(defaultLayout);
+
+      const savedLayoutId = useSettingsStore.getState().settings.activeLayoutId;
+      const userLayouts = useSettingsStore.getState().settings.layouts || [];
+      const activeLayout = userLayouts.find((l) => l.id === savedLayoutId);
+
+      if (activeLayout) {
+        api.fromJSON(activeLayout.layout);
+      } else {
+        api.fromJSON(defaultLayout);
+      }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [panelParams]
+
+    []
   );
+
+  useEffect(() => {
+    if (!dockviewApi) return;
+
+    const disposable = dockviewApi.onDidLayoutChange(() => {
+      const settings = useSettingsStore.getState().settings;
+      if (settings.activeLayoutId) {
+        const layout = dockviewApi.toJSON();
+        const updatedLayouts = (settings.layouts || []).map((l) =>
+          l.id === settings.activeLayoutId ? { ...l, layout } : l
+        );
+        useSettingsStore.getState().updateSettings({ layouts: updatedLayouts });
+      }
+    });
+
+    return () => {
+      disposable.dispose();
+    };
+  }, [dockviewApi]);
 
   useEffect(() => {
     if (!dockviewApi) return;
@@ -376,6 +405,7 @@ const Dashboard: React.FC = () => {
       sx={{ height: "100vh", width: "100vw", position: "relative" }}
     >
       <DashboardHeader showBackToEditor={!!currentWorkflowId}>
+        <LayoutMenu dockviewApi={dockviewApi} />
         <AddPanelDropdown
           availablePanels={availablePanels}
           onAddPanel={handleAddPanel}
