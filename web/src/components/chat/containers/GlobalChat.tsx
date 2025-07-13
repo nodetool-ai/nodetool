@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Box, Alert, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -63,6 +63,7 @@ const GlobalChat: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -85,24 +86,54 @@ const GlobalChat: React.FC = () => {
   // Handle thread switching when URL changes
   useEffect(() => {
     const handleThreadLogic = async () => {
-      // Wait for threads to be loaded before attempting to switch
-      if (!threadsLoaded || isLoadingThreads) {
-        return;
+      // Cancel any previous async operation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
-      if (thread_id && thread_id !== currentThreadId) {
-        switchThread(thread_id);
-      } else if (!currentThreadId && !thread_id) {
-        // Create new thread if none exists
-        createNewThread().then((newThreadId) => {
-          switchThread(newThreadId);
-        }).catch((error) => {
-          console.error("Failed to create new thread:", error);
-        });
+      // Create new abort controller for this operation
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      try {
+        // Wait for threads to be loaded before attempting to switch
+        if (!threadsLoaded || isLoadingThreads) {
+          return;
+        }
+
+        // Check if operation was cancelled
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        if (thread_id && thread_id !== currentThreadId) {
+          switchThread(thread_id);
+        } else if (!currentThreadId && !thread_id) {
+          // Create new thread if none exists
+          const newThreadId = await createNewThread();
+          
+          // Check if operation was cancelled before switching
+          if (!abortController.signal.aborted) {
+            switchThread(newThreadId);
+          }
+        }
+      } catch (error) {
+        // Only log errors if the operation wasn't cancelled
+        if (!abortController.signal.aborted) {
+          console.error("Failed to handle thread logic:", error);
+        }
       }
     };
 
     handleThreadLogic();
+
+    // Cleanup function to cancel any pending async operations
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [thread_id, currentThreadId, switchThread, createNewThread, threadsLoaded, isLoadingThreads]);
 
   // Monitor connection state and reconnect when disconnected or failed
