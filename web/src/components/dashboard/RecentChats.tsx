@@ -22,6 +22,8 @@ const styles = (theme: any) =>
     borderRadius: theme?.spacing?.(1) || 8,
     padding: theme?.spacing?.(4) || 32,
     display: "flex",
+    height: "100%",
+    overflowY: "auto",
     flexDirection: "column",
     overflow: "hidden",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
