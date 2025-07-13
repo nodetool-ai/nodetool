@@ -1,15 +1,13 @@
-<h1>
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" style="height:64px">Privacy‑First AI Workflows
-</h1>
+# Privacy‑First AI Workflows
 
-<h2>Multimodal AI Toolbox – Build Locally, Scale When Needed</h2>
+## Your Multimodal AI Toolbox
 
-Drag‑and‑drop AI workflows that run on your machine. Process text, images, audio, and more – 100% open-source and zero data sharing by default.
+### Build Local, Deploy Anywhere
 
-[**Download NodeTool Studio**](https://nodetool.ai)
-[See how it works](#how-nodetool-keeps-your-data-safe)
+🎨 Drag‑and‑drop Workflow Builder.  
+🚀 Thousands of AI models through Huggingface Hub.
 
-🔓 **100% Open Source • Privacy-First • Self-Hosted**
+🔓 **100% Open Source • Privacy‑First • Self‑Hosted**
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -19,9 +17,9 @@ Drag‑and‑drop AI workflows that run on your machine. Process text, images, a
 
 ## Why Privacy‑First Matters
 
-| Local-first by default | Open source & auditable | Controlled cloud bursting |
+| Local-first by default | Open source & auditable | 🤗 Huggingface Integration |
 |-----------------------|------------------------|--------------------------|
-| All model inference runs on your machine. No data leaves unless you decide. | NodeTool is 100% open source under AGPL – audit every line of code. | Need more power? Use API providers or remote GPU workers |
+| All model inference runs on your machine. No data leaves unless you decide. | NodeTool is 100% open source under AGPL – audit every line of code. | Need more power? Use the GPU cloud node – and only for the data you select. |
 
 ## 🛠️ The Complete AI Toolbox for Builders
 
@@ -63,6 +61,20 @@ Import, organize, and manage all your media assets in one place. No more hunting
 
 ---
 
+## 🔒 Privacy-First • 🤗 Huggingface Integration
+
+Keep your data on-device until you need Huggingface Inference API. Unlike cloud-only tools, NodeTool protects your privacy while giving you access to the world's largest AI model collection. **Trust through transparency—every line of code is open source.**
+
+### Local-First
+- Process sensitive data locally
+- Run LLMs on your hardware
+- Zero data transmission by default
+
+### Cloud-Ready
+- Burst to GPU cloud in seconds
+- Connect OpenAI, Anthropic, Fal, Replicate, Gemini
+- Control exactly what data gets shared
+
 ## How NodeTool Keeps Your Data Safe
 
 All critical execution happens inside the local process unless a cloud node is explicitly connected:
@@ -74,8 +86,7 @@ All critical execution happens inside the local process unless a cloud node is e
 * Powerful AI Workflow builder
 * Bring your own API Keys if needed (Huggingface, Anthropic, OpenAI, Gemini, Fal.ai, Replicate)
 
-
-✅ AGPL‑3.0 License – zero lock-in • ✅ Privac-first Desktop App • ✅ Fully self-hostable with no telemetry
+✅ AGPL‑3.0 License – zero lock-in • ✅ Privacy-first Desktop App • ✅ Fully self-hostable with no telemetry
 
 ---
 
@@ -100,7 +111,6 @@ All critical execution happens inside the local process unless a cloud node is e
 - Click **Run** and watch your local AI workflow execute!
 
 ---
-
 
 ## 🤖 NodeTool Agent System
 
