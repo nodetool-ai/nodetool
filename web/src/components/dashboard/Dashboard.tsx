@@ -51,6 +51,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
     },
+    // TABS AND ACTIONS
     ".dv-tabs-and-actions-container": {
       backgroundColor: "transparent",
       position: "absolute",
@@ -61,27 +62,28 @@ const styles = (theme: Theme) =>
       zIndex: 100,
       opacity: 0,
       transition: "opacity 0.2s ease-in-out"
-      // width: "fit-content"
     },
     ".dv-tabs-and-actions-container:hover": {
       opacity: 1,
-      backgroundColor: theme.palette.background.default
+      backgroundColor: theme.palette.grey[700]
+    },
+    // DRAG HANDLE
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
+      backgroundColor: theme.palette.grey[700]
+    },
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
+      backgroundColor: theme.palette.grey[600]
     },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {
         width: "6px",
-        backgroundColor: theme.palette.grey[50],
         transform: "translate(-3px, 0px)"
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover":
-      {
-        backgroundColor: theme.palette.grey[100]
       },
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
       height: "6px",
-      transform: "translate(0px, 3px)",
-      backgroundColor: theme.palette.grey[50]
+      transform: "translate(0px, 3px)"
     }
+    // ------------------------------------------
   });
 
 interface PanelProps {
@@ -90,6 +92,7 @@ interface PanelProps {
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();
+
   const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
@@ -101,7 +104,18 @@ const Dashboard: React.FC = () => {
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
-  const [selectedModel, setSelectedModel] = useState<LanguageModel>("");
+  const tryParseModel = (model: string) => {
+    try {
+      return JSON.parse(model);
+    } catch (error) {
+      return DEFAULT_MODEL;
+    }
+  };
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
+  });
+
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [agentMode, setAgentMode] = useState(false);
 
