@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
@@ -13,9 +13,19 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
   getPreview,
   showDate = true
 }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    // Wait for animation to complete before actually deleting
+    setTimeout(() => {
+      onDelete();
+    }, 300); // Match the CSS animation duration
+  };
+
   return (
     <li
-      className={`thread-item ${isSelected ? "selected" : ""}`}
+      className={`thread-item ${isSelected ? "selected" : ""} ${isDeleting ? "deleting" : ""}`}
       onClick={onSelect}
     >
       <Typography className="thread-title">
@@ -29,7 +39,7 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
       <DeleteButton
         onClick={(e) => {
           e.stopPropagation();
-          onDelete();
+          handleDelete();
         }}
       />
       {/* <IconButton
