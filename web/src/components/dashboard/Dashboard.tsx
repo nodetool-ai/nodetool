@@ -544,18 +544,12 @@ const Dashboard: React.FC = () => {
       const { api } = event;
       setDockviewApi(api);
 
-      const chatPanel = api.addPanel({
-        id: "chat",
-        component: "chat",
-        title: "Chat",
-        params: panelParams.chat
-      });
+      api.clear();
 
       const examplesPanel = api.addPanel({
         id: "examples",
         component: "examples",
         title: "Examples",
-        position: { referencePanel: chatPanel, direction: "above" },
         params: panelParams.examples
       });
 
@@ -574,7 +568,17 @@ const Dashboard: React.FC = () => {
         position: { direction: "right", referencePanel: workflowsPanel },
         params: panelParams.threads
       });
+
+      const chatPanel = api.addPanel({
+        id: "chat",
+        component: "chat",
+        title: "Chat",
+        position: { direction: "below", referencePanel: examplesPanel },
+        params: panelParams.chat
+      });
+      chatPanel.api.setSize({ height: 200 });
     },
+
     [panelParams]
   );
 
