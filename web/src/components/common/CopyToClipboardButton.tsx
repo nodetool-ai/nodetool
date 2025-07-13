@@ -4,7 +4,6 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Tooltip } from "@mui/material";
-import { act } from "react";
 
 const CHECKMARK_TIMEOUT = 2000;
 
@@ -44,17 +43,15 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
     const sanitized = textToCopy.replace(/\u00A0/g, " ");
     writeClipboard(sanitized, true)
       .then(() => {
-        act(() => {
-          setIsCopied(true);
-          if (onCopySuccess) {
-            onCopySuccess();
-          }
-          console.log("Text copied to clipboard!");
+        setIsCopied(true);
+        if (onCopySuccess) {
+          onCopySuccess();
+        }
+        console.log("Text copied to clipboard!");
 
-          timeoutRef.current = setTimeout(() => {
-            setIsCopied(false);
-          }, CHECKMARK_TIMEOUT);
-        });
+        timeoutRef.current = setTimeout(() => {
+          setIsCopied(false);
+        }, CHECKMARK_TIMEOUT);
       })
       .catch((err: Error) => {
         if (onCopyError) {
@@ -75,7 +72,9 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         {...props}
       >
         {isCopied ? (
-          <CheckIcon sx={{ fontSize: "0.875rem" }} />
+          <CheckIcon
+            sx={{ fontSize: "0.875rem", color: "var(--palette-success-main)" }}
+          />
         ) : (
           <ContentCopyIcon sx={{ fontSize: "0.875rem" }} />
         )}
