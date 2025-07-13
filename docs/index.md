@@ -12,7 +12,7 @@ NodeTool was created to give anyone the power of modern AI while keeping full co
 ### What you can do
 
 - **Visual workflow editor** – link nodes to process text, images, audio or video.
-- **Local and cloud models** – use models from Hugging Face or online services.
+- **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face (including Groq and Cerebras), or run locally with Ollama.
 - **Advanced agents** – build multi-step agents that can plan, reason and browse the web.
 - **Vector search & RAG** – index your documents and ask questions about them.
 - **System tray access** – launch workflows and manage your clipboard from anywhere.
@@ -42,6 +42,7 @@ For a deeper look at how these pieces interact, read the
 - **[Workflow Editor](workflow-editor.md)** – Build workflows with drag-and-drop nodes
 - **[User Interface](user-interface.md)** – Complete guide to the NodeTool UI
 - **[Global Chat](global-chat.md)** – AI chat interface with agents and tools
+- **[Supported Models](models.md)** – Comprehensive guide to all AI models and providers
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
 

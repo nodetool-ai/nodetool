@@ -111,9 +111,15 @@ Full-screen asset preview:
 ## Models Manager
 
 ### Model Library
-Browse available AI models:
+Browse available AI models from multiple providers:
 - **Recommended Models**: Curated selection for common tasks
-- **All Models**: Complete catalog from various providers
+- **OpenAI Models**: GPT-4o, GPT-4.1, and specialized variants
+- **Anthropic Models**: Claude 3.5 Haiku, Sonnet, and Claude 4 series
+- **Google Models**: Gemini 2.0 and 2.5 series with multimodal capabilities
+- **Hugging Face Models**: Extensive open-source model catalog
+- **Hugging Face Groq**: High-performance models optimized for speed
+- **Hugging Face Cerebras**: Models optimized for specialized hardware
+- **Local Models**: Ollama and locally-hosted models
 - **Search**: Find models by name, provider, or capability
 - **Filters**: Filter by model type, size, or requirements
 
@@ -127,8 +133,9 @@ Manage model downloads:
 ### Model Configuration
 Configure model settings:
 - **Parameters**: Adjust model behavior and performance
-- **API Keys**: Manage credentials for cloud providers
+- **API Keys**: Manage credentials for cloud providers (OpenAI, Anthropic, Google, Hugging Face)
 - **Local Models**: Configure locally installed models
+- **Provider Settings**: Configure inference backends and endpoints
 - **Usage Statistics**: Monitor model performance and costs
 
 ## Panel System

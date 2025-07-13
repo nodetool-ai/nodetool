@@ -48,18 +48,98 @@ The Global Chat interface consists of:
 ## AI Models and Providers
 
 ### Model Selection
-Global Chat supports multiple AI providers:
-- **OpenAI**: GPT-4, GPT-3.5, with vision and function calling
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus and Haiku
-- **Google**: Gemini Pro, Gemini Flash, with multimodal capabilities
-- **Local Models**: Ollama, Hugging Face models running locally
-- **Custom Models**: Connect your own model endpoints
+Global Chat supports multiple AI providers and a comprehensive range of models:
+
+#### Anthropic Models
+- **Claude 3.5 Haiku**: Fast, efficient model for everyday tasks
+- **Claude 3.5 Sonnet**: Balanced model for complex reasoning
+- **Claude 3.7 Sonnet**: Advanced reasoning capabilities
+- **Claude Sonnet 4**: Next-generation reasoning model
+- **Claude Opus 4**: Premium model for the most complex tasks
+
+#### Google Gemini Models
+- **Gemini 2.5 Pro Experimental**: Cutting-edge experimental model
+- **Gemini 2.5 Flash**: Fast, efficient multimodal model
+- **Gemini 2.0 Flash**: Optimized for speed and efficiency
+- **Gemini 2.0 Flash Lite**: Lightweight version for basic tasks
+- **Gemini 2.0 Flash Exp Image Generation**: Specialized for image generation
+
+#### OpenAI Models
+- **GPT-4o**: Advanced multimodal model with vision capabilities
+- **GPT-4o Audio**: Enhanced with audio processing capabilities
+- **GPT-4o Mini**: Efficient version of GPT-4o
+- **GPT-4o Mini Audio**: Compact model with audio support
+- **ChatGPT-4o**: Conversational variant of GPT-4o
+- **GPT-4.1**: Latest reasoning model
+- **GPT-4.1 Mini**: Efficient version of GPT-4.1
+- **O4 Mini**: Specialized reasoning model
+- **Codex Mini**: Code-focused model for programming tasks
+
+#### Hugging Face Models
+NodeTool now supports Hugging Face Inference Providers, giving you access to cutting-edge open-source models:
+
+- **SmolLM3 3B**: Compact, efficient language model
+- **DeepSeek V3 0324**: Advanced reasoning and code generation
+- **DeepSeek TNG R1T2 Chimera**: Hybrid reasoning model
+- **DeepSeek R1**: Latest DeepSeek reasoning model
+- **DeepSeek R1 Distill Qwen 1.5B**: Distilled version for efficiency
+- **Hunyuan A13B Instruct**: Tencent's instruction-tuned model
+- **DeepSWE Preview**: Specialized for software engineering tasks
+- **Gemma 2 2B IT**: Google's efficient instruction-tuned model
+- **Meta Llama 3.1 8B Instruct**: Meta's powerful instruction model
+- **Phi 4**: Microsoft's latest compact model
+- **Qwen 2.5 7B Instruct 1M**: Extended context length model
+- **Qwen 2.5 Coder 32B Instruct**: Code-specialized model
+- **Qwen 2.5 VL 7B Instruct**: Vision-language model
+
+#### Hugging Face Groq Models
+High-performance models optimized for speed through Groq's inference infrastructure:
+
+- **Meta Llama 3 70B Instruct**: Large-scale instruction model
+- **Llama 3.3 70B Instruct**: Enhanced version with improved capabilities
+- **Llama Guard 4 12B**: Safety and content moderation model
+- **Llama 4 Scout 17B 16E Instruct**: Preview of next-generation Llama
+- **Llama 4 Maverick 17B 128E Instruct**: Extended context Llama 4 variant
+
+#### Hugging Face Cerebras Models
+Models optimized for Cerebras' specialized hardware:
+
+- **Cerebras GPT 2.5 12B Instruct**: Cerebras' proprietary model
+- **Llama 3.3 70B Instruct**: Optimized for Cerebras hardware
+- **Llama 4 Scout 17B 16E Instruct**: Next-gen Llama on Cerebras
+
+#### Local Models
+- **Ollama**: Run models locally with Ollama
+- **Hugging Face Transformers**: Local inference of Hugging Face models
+- **Custom Endpoints**: Connect to your own model servers
+
+### Provider Benefits
+
+#### Cloud Providers
+- **Anthropic**: Industry-leading reasoning and safety
+- **Google**: Advanced multimodal capabilities
+- **OpenAI**: Cutting-edge language and vision models
+
+#### Hugging Face Ecosystem
+- **Open Source**: Access to the latest open-source models
+- **Cost Effective**: Often more economical than proprietary models
+- **Specialized Models**: Domain-specific models for coding, vision, etc.
+- **Rapid Innovation**: Access to newest research developments
+- **Multiple Inference Backends**: Choose optimal hardware (standard, Groq, Cerebras)
+
+#### Local Deployment
+- **Privacy**: Complete data control and privacy
+- **No API Costs**: One-time setup with no ongoing fees
+- **Offline Capability**: Work without internet connection
+- **Customization**: Fine-tune models for specific use cases
 
 ### Model Configuration
 - **API Keys**: Manage credentials for cloud providers
 - **Model Parameters**: Adjust temperature, max tokens, and other settings
 - **Provider Settings**: Configure rate limits and usage preferences
 - **Model Switching**: Change models mid-conversation
+- **Fallback Options**: Automatic fallback to alternative models
+- **Usage Monitoring**: Track costs and performance across providers
 
 ## Tools and Capabilities
 
