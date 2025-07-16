@@ -120,7 +120,7 @@ export const llama_models: UnifiedModel[] = [
   },
   {
     id: "codegemma:latest",
-    name: "Coddegemma",
+    name: "Codegemma",
     description:
       "CodeGemma is a collection of powerful, lightweight models that can perform a variety of coding tasks like fill-in-the-middle code completion, code generation, natural language understanding, mathematical reasoning, and instruction following.",
     type: "llama_model"
@@ -159,7 +159,7 @@ export const llama_models: UnifiedModel[] = [
   },
   {
     id: "nemotron-mini:latest",
-    name: "Memotron Mini",
+    name: "Nemotron Mini",
     description:
       "A commercial-friendly small language model by NVIDIA optimized for roleplay, RAG QA, and function calling.",
     type: "llama_model"
@@ -186,27 +186,78 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "gemma3:latest",
+    name: "Gemma3 - Latest",
+    description: "Google Gemma 3 is a lightweight, multimodal model built on Gemini technology. Features a 128K context window with support for over 140 languages and can process both text and images.",
+    type: "llama_model"
+  },
+  {
     id: "gemma3:1b",
     name: "Gemma3 - 1B",
-    description: "The current, most capable model that runs on a single GPU.",
+    description: "Compact 1B parameter Gemma 3 model with 32K context window. Text-only model designed for resource-limited devices while maintaining strong performance in reasoning and language tasks.",
     type: "llama_model"
   },
   {
     id: "gemma3:4b",
     name: "Gemma3 - 4B",
-    description: "The current, most capable model that runs on a single GPU.",
+    description: "Multimodal 4B parameter Gemma 3 model with 128K context window. Can process both text and images, excelling in tasks like question answering, summarization, and visual reasoning.",
     type: "llama_model"
   },
   {
     id: "gemma3:12b",
     name: "Gemma3 - 12B",
-    description: "The current, most capable model that runs on a single GPU.",
+    description: "Advanced 12B parameter multimodal Gemma 3 model with 128K context window. Processes text and images with superior performance in complex reasoning, coding, and multilingual tasks.",
     type: "llama_model"
   },
   {
     id: "gemma3:27b",
     name: "Gemma3 - 27B",
-    description: "The current, most capable model that runs on a single GPU.",
+    description: "Flagship 27B parameter multimodal Gemma 3 model with 128K context window. The most capable model in the series, offering top-tier performance in text and image processing tasks.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:1b-it-qat",
+    name: "Gemma3 - 1B QAT",
+    description: "Quantization-aware trained 1B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:4b-it-qat",
+    name: "Gemma3 - 4B QAT",
+    description: "Quantization-aware trained 4B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:12b-it-qat",
+    name: "Gemma3 - 12B QAT",
+    description: "Quantization-aware trained 12B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3:27b-it-qat",
+    name: "Gemma3 - 27B QAT",
+    description: "Quantization-aware trained 27B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3n:latest",
+    name: "Gemma 3n",
+    description:
+      "Gemma 3n models are designed for efficient execution on everyday devices such as laptops, tablets or phones. These models were trained with data in over 140 spoken languages and use selective parameter activation technology to reduce resource requirements.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3n:e2b",
+    name: "Gemma 3n - E2B",
+    description:
+      "Gemma 3n models are designed for efficient execution on everyday devices such as laptops, tablets or phones. This variant operates at an effective size of 2B parameters using selective parameter activation technology.",
+    type: "llama_model"
+  },
+  {
+    id: "gemma3n:e4b",
+    name: "Gemma 3n - E4B",
+    description:
+      "Gemma 3n models are designed for efficient execution on everyday devices such as laptops, tablets or phones. This variant operates at an effective size of 4B parameters using selective parameter activation technology.",
     type: "llama_model"
   },
   {
@@ -256,6 +307,90 @@ export const llama_models: UnifiedModel[] = [
     name: "Qwen3 - 32B",
     description:
       "Qwen3 is the latest generation of large language models in Qwen series, offering a comprehensive suite of dense and mixture-of-experts (MoE) models.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5vl:latest",
+    name: "Qwen2.5-VL - Latest",
+    description:
+      "Flagship vision-language model of Qwen and a significant leap from Qwen2-VL. Capable of visual understanding, agentic behavior, visual localization with bounding boxes, and generating structured outputs from documents.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5vl:3b",
+    name: "Qwen2.5-VL - 3B",
+    description:
+      "Compact 3B parameter vision-language model designed for edge AI. Processes text and images with 125K context window, capable of visual understanding and document analysis while maintaining efficiency.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5vl:7b",
+    name: "Qwen2.5-VL - 7B",
+    description:
+      "Powerful 7B parameter vision-language model that outperforms GPT-4o-mini in many tasks. Excels at visual understanding, document analysis, and can act as a visual agent for computer and phone use.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5vl:32b",
+    name: "Qwen2.5-VL - 32B",
+    description:
+      "Advanced 32B parameter vision-language model with superior performance in complex visual reasoning, document understanding, and agentic capabilities. Supports visual localization and structured output generation.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5vl:72b",
+    name: "Qwen2.5-VL - 72B",
+    description:
+      "Flagship 72B parameter vision-language model achieving competitive performance with SOTA models. Excels in college-level problems, math, document understanding, and visual agent tasks without task-specific fine-tuning.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:latest",
+    name: "Qwen2.5-Coder - Latest",
+    description:
+      "Latest series of code-specific Qwen models with significant improvements in code generation, code reasoning, and code fixing. Supports 40+ programming languages with state-of-the-art performance for open-source models.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:0.5b",
+    name: "Qwen2.5-Coder - 0.5B",
+    description:
+      "Ultra-compact 0.5B parameter coding model designed for resource-constrained environments. Maintains strong code generation capabilities while requiring minimal memory and computational resources.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:1.5b",
+    name: "Qwen2.5-Coder - 1.5B",
+    description:
+      "Efficient 1.5B parameter coding model offering excellent balance between performance and resource usage. Capable of code generation, reasoning, and fixing across multiple programming languages.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:3b",
+    name: "Qwen2.5-Coder - 3B",
+    description:
+      "Compact 3B parameter coding model with enhanced capabilities in code generation and reasoning. Ideal for local development environments while maintaining strong multi-language programming support.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:7b",
+    name: "Qwen2.5-Coder - 7B",
+    description:
+      "Powerful 7B parameter coding model with impressive code reasoning performance. Excels at code generation, debugging, and multi-language programming tasks with efficient resource utilization.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:14b",
+    name: "Qwen2.5-Coder - 14B",
+    description:
+      "Advanced 14B parameter coding model offering superior performance in complex programming tasks. Excellent for code generation, reasoning, and repair across 40+ programming languages.",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5-coder:32b",
+    name: "Qwen2.5-Coder - 32B",
+    description:
+      "Flagship 32B parameter coding model with competitive performance against GPT-4o. Achieves state-of-the-art results in code generation, repair, and reasoning with exceptional multi-language support including Haskell and Racket.",
     type: "llama_model"
   }
 ];
