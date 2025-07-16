@@ -906,11 +906,28 @@ function handleWebSocketMessage(
 
   if (data.type === "message") {
     const message = data as Message;
-    const threadId = get().currentThreadId;
+    const currentThreadId = get().currentThreadId;
+    const messageThreadId = message.thread_id;
+
+    console.log("Received message:", {
+      messageThreadId,
+      currentThreadId,
+      messageContent: message.content
+    });
+
+    // Use message thread_id if available, fallback to currentThreadId
+    const threadId = messageThreadId || currentThreadId;
+
     if (threadId) {
       const messages = get().messageCache[threadId] || [];
       set((state) => {
         const thread = state.threads[threadId];
+        console.log("Processing message for thread:", {
+          threadId,
+          threadExists: !!thread,
+          threadsCount: Object.keys(state.threads).length
+        });
+
         if (thread) {
           return {
             messageCache: {
@@ -928,8 +945,23 @@ function handleWebSocketMessage(
             progress: { current: 0, total: 0 },
             statusMessage: null
           };
+        } else {
+          // Thread doesn't exist in store, but we received a message for it
+          // This might happen if we navigated from dashboard before threads were fully loaded
+          console.warn(
+            "Received message for unknown thread, adding to cache anyway:",
+            threadId
+          );
+          return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, message]
+            },
+            status: "connected",
+            progress: { current: 0, total: 0 },
+            statusMessage: null
+          };
         }
-        return state;
       });
     }
   } else if (data.type === "job_update") {
@@ -961,8 +993,16 @@ function handleWebSocketMessage(
     }
   } else if (data.type === "chunk") {
     const chunk = data as Chunk;
-    const threadId = get().currentThreadId;
-    if (threadId) {
+    const currentThreadId = get().currentThreadId;
+    console.log("Received chunk:", {
+      currentThreadId,
+      chunkContent: chunk.content,
+      done: chunk.done
+    });
+
+    // For chunks, we must have a current thread to know where to append
+    if (currentThreadId) {
+      const threadId = currentThreadId;
       const thread = get().threads[threadId];
       if (thread) {
         const messages = get().messageCache[threadId] || [];

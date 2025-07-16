@@ -228,6 +228,7 @@ const Dashboard: React.FC = () => {
         onToolsChange: handleToolsChange,
         onModelChange: handleModelChange,
         onStop: stopGeneration,
+        onNewChat: onNewThread,
         agentMode,
         onAgentModeToggle: setAgentMode,
         currentPlanningUpdate,
@@ -319,6 +320,7 @@ const Dashboard: React.FC = () => {
           onToolsChange={props.params?.onToolsChange || (() => {})}
           onModelChange={props.params?.onModelChange || (() => {})}
           onStop={props.params?.onStop || (() => {})}
+          onNewChat={props.params?.onNewChat || (() => {})}
           agentMode={props.params?.agentMode || false}
           onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
           currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
