@@ -22,28 +22,49 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-content": {
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: "1em",
+        flexDirection: "column",
+        gap: "0.5em",
         width: "100%",
         padding: "0em 0.5em"
+      },
+
+      "& .model-top-row": {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "1em",
+        width: "100%",
+        minHeight: "2.5em"
       },
 
       "& .model-info-container": {
         flex: 1,
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         gap: "1em",
         lineHeight: "2.5em",
         minWidth: 0 // Prevents flex item from overflowing
       },
 
       "& .model-header": {
-        flex: 1,
-        maxWidth: "500px",
+        flex: "1 1 auto",
+        maxWidth: "400px",
         lineHeight: "1.2em",
         cursor: "default"
+      },
+
+      "& .model-description-container": {
+        width: "100%",
+        marginTop: "0.25em"
+      },
+
+      "& .model-description": {
+        display: "block",
+        color: theme.palette.grey[300],
+        fontSize: "var(--fontSizeSmaller)",
+        lineHeight: "1.4em",
+        wordBreak: "break-word"
       },
 
       "& .model-name-link": {
@@ -71,14 +92,13 @@ const modelListItemStyles = (theme: Theme) =>
         marginTop: "0.25em"
       },
       "& .model-details": {
-        flex: 1,
-        maxWidth: "300px",
+        flex: "0 0 auto",
         gap: "0.2em",
-        width: "250px",
+        maxWidth: "200px",
         display: "flex",
-        alignItems: "start",
+        alignItems: "center",
         flexWrap: "wrap",
-        flexDirection: "column"
+        flexDirection: "row"
       },
 
       "& .model-size": {
@@ -107,10 +127,11 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .actions-container": {
         display: "flex",
-        justifyContent: "space-between",
-        gap: 0,
+        justifyContent: "flex-end",
+        gap: "1em",
         alignItems: "center",
-        flexShrink: 0
+        flexShrink: 0,
+        minWidth: "200px"
       },
 
       "& .model-stats": {
@@ -118,16 +139,17 @@ const modelListItemStyles = (theme: Theme) =>
         color: theme.palette.grey[100],
         display: "flex",
         flexDirection: "row",
-        alignItems: "start",
-        minWidth: "100px",
-        gap: "0"
+        alignItems: "center",
+        minWidth: "140px",
+        gap: "0.5em",
+        flexShrink: 0
       },
 
       "& .model-stats-item": {
         display: "flex",
         alignItems: "center",
-        gap: "0.5em",
-        margin: "1em",
+        gap: "0.25em",
+        margin: "0 0.5em 0 0",
         fontSize: "var(--fontSizeSmaller)"
       },
 
