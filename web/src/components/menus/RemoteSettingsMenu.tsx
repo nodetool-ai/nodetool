@@ -2,13 +2,14 @@
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography, Tooltip } from "@mui/material";
+import { Button, TextField, Typography } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import ExternalLink from "../common/ExternalLink";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -39,49 +40,18 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
 };
 
 const SETTING_TOOLTIPS: Record<string, string> = {
-  OPENAI_API_KEY: "Opens a new tab to the OpenAI API key page.",
-  ANTHROPIC_API_KEY: "Opens a new tab to the Anthropic console.",
-  GEMINI_API_KEY:
-    "Opens a new tab to the Google AI Studio to get your API key.",
-  HF_TOKEN: "Opens a new tab to the Hugging Face tokens page.",
-  REPLICATE_API_TOKEN: "Opens a new tab to the Replicate API tokens page.",
-  AIME_API_KEY: "Opens a new tab to the Aime info page.",
-  GOOGLE_APP_PASSWORD:
-    "Opens a new tab to the Google account app passwords page.",
-  ELEVENLABS_API_KEY: "Opens a new tab to the ElevenLabs subscription page.",
-  FAL_API_KEY: "Opens a new tab to the Fal.ai dashboard.",
-  SERPAPI_API_KEY: "Opens a new tab to the SerpAPI key management page.",
-  DATA_FOR_SEO_LOGIN: "Opens a new tab to the DataForSEO dashboard."
+  OPENAI_API_KEY: "Go to OpenAI API key page",
+  ANTHROPIC_API_KEY: "Go to Anthropic console",
+  GEMINI_API_KEY: "Go to Google AI Studio to get your API key",
+  HF_TOKEN: "Go to Hugging Face tokens page",
+  REPLICATE_API_TOKEN: "Go to Replicate API tokens page",
+  AIME_API_KEY: "Go to Aime info page",
+  GOOGLE_APP_PASSWORD: "Go to Google account app passwords page",
+  ELEVENLABS_API_KEY: "Go to ElevenLabs subscription page",
+  FAL_API_KEY: "Go to Fal.ai dashboard",
+  SERPAPI_API_KEY: "Go to SerpAPI key management page",
+  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
 };
-
-const ExternalLinkButton = ({
-  href,
-  children
-}: {
-  href: string;
-  children: React.ReactNode;
-}) => (
-  <Button
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    sx={{
-      padding: "0 .5em !important",
-      textDecoration: "none",
-      fontSize: "var(--fontSizeSmaller) !important",
-      color: "var(--palette-grey-800) !important",
-      backgroundColor: "var(--palette-primary-main) !important",
-
-      "&:hover": {
-        color: "primary.light",
-        textDecoration: "underline",
-        filter: "brightness(1.15)"
-      }
-    }}
-  >
-    &rarr; {children}
-  </Button>
-);
 
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
@@ -251,16 +221,15 @@ const RemoteSettings = () => {
                         )}
                         {SETTING_LINKS[setting.env_var] && (
                           <div style={{ marginTop: "0.5em" }}>
-                            <Tooltip
-                              title={SETTING_TOOLTIPS[setting.env_var] || ""}
+                            <ExternalLink
+                              href={SETTING_LINKS[setting.env_var]}
+                              tooltipText={
+                                SETTING_TOOLTIPS[setting.env_var] || ""
+                              }
                             >
-                              <ExternalLinkButton
-                                href={SETTING_LINKS[setting.env_var]}
-                              >
-                                {SETTING_BUTTON_TITLES[setting.env_var] ||
-                                  "GET YOUR API KEY"}
-                              </ExternalLinkButton>
-                            </Tooltip>
+                              {SETTING_BUTTON_TITLES[setting.env_var] ||
+                                "GET YOUR API KEY"}
+                            </ExternalLink>
                           </div>
                         )}
                       </div>
