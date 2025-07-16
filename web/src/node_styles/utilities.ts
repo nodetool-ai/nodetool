@@ -51,8 +51,7 @@ export const utilityStyles = (theme: Theme) =>
 
     /* MuiSvgIcon */
     ".MuiSvgIcon-root": {
-      fontSize: "1.2rem",
-      color: "inherit"
+      fontSize: "1.2rem"
     },
 
     ".MuiSvgIcon-fontSizeSmall": {
