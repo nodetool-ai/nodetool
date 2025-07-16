@@ -53,13 +53,15 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
 
     h1 {
       font-size: ${theme.fontSizeGiant};
-      margin: 1.5em 0 0.5em 0;
-      padding: 0;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: ${theme.palette.grey[0]};
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 0.2em;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    .settings-section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
 
     h2 {
@@ -113,16 +115,24 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       display: flex;
       flexdirection: column;
       gap: 0.8em;
+      margin-bottom: 2rem;
+
+      h2 {
+        font-size: ${theme.fontSizeBigger};
+        margin: 1.5em 0 0.5em 0;
+        padding: 0;
+        font-weight: 500;
+        color: ${"var(--palette-primary-main)"};
+        position: relative;
+        display: inline-block;
+      }
     }
 
     .settings-item {
       display: flex;
-      flexdirection: column;
+      flex-direction: column;
       gap: 0.8em;
-
-      &.large {
-        gap: 1em;
-      }
+      margin-bottom: 1.5rem;
 
       .MuiTextField-root {
         width: 100%;
