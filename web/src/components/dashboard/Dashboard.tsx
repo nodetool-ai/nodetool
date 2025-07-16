@@ -28,6 +28,7 @@ import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
 import { Button } from "@mui/material";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 
 const PANEL_CONFIG = {
   examples: { title: "Examples" },
@@ -114,6 +115,16 @@ const Dashboard: React.FC = () => {
   }));
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+
+  // Ensure WebSocket connection is established when Dashboard mounts
+  useEffect(() => {
+    const { status, connect } = useGlobalChatStore.getState();
+    if (status === "disconnected" || status === "failed") {
+      connect().catch((error) => {
+        console.error("Dashboard: Failed to establish chat connection:", error);
+      });
+    }
+  }, []);
 
   const tryParseModel = (model: string) => {
     try {

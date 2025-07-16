@@ -15,43 +15,9 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
     switchThread,
     threads,
     messageCache,
+    currentThreadId,
     ...rest
   } = useGlobalChatStore();
-
-  useEffect(() => {
-    connect().catch((error) => {
-      console.error("Failed to connect to chat service:", error);
-    });
-
-    return () => {
-      disconnect();
-    };
-  }, [connect, disconnect]);
-
-  useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    const attemptReconnect = () => {
-      if (status === "disconnected" || status === "failed") {
-        console.log(
-          "Dashboard: Connection lost, attempting automatic reconnect..."
-        );
-        connect().catch((error) => {
-          console.error("Dashboard: Automatic reconnect failed:", error);
-        });
-      }
-    };
-
-    if (status === "disconnected" || status === "failed") {
-      reconnectTimer = setTimeout(attemptReconnect, 2000);
-    }
-
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [status, connect]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -74,11 +40,20 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         if (status !== "connected") {
           await connect();
         }
-        const threadId = await createNewThread();
-        switchThread(threadId);
+
+        // Use existing thread if available, otherwise create new one
+        let threadId = currentThreadId;
+        if (!threadId) {
+          threadId = await createNewThread();
+          switchThread(threadId);
+        }
 
         await sendMessage(messageWithModel);
-        navigate("/chat");
+
+        // Navigate after a short delay to allow message processing
+        setTimeout(() => {
+          navigate("/chat");
+        }, 100);
       } catch (error) {
         console.error("Failed to send message:", error);
       }
@@ -90,7 +65,8 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
       connect,
       navigate,
       createNewThread,
-      switchThread
+      switchThread,
+      currentThreadId
     ]
   );
 
@@ -149,6 +125,7 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
     onSelectThread: handleThreadSelect,
     getThreadPreview,
     threads,
+    currentThreadId,
     ...rest
   };
 };

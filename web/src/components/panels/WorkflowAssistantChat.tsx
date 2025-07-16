@@ -102,12 +102,14 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
-    createNewThread().then((newThreadId) => {
-      switchThread(newThreadId);
-      setIsThreadListOpen(false);
-    }).catch((error) => {
-      console.error("Failed to create new thread:", error);
-    });
+    createNewThread()
+      .then((newThreadId) => {
+        switchThread(newThreadId);
+        setIsThreadListOpen(false);
+      })
+      .catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
   }, [createNewThread, switchThread]);
 
   const handleSelectThread = useCallback(
@@ -165,21 +167,16 @@ const WorkflowAssistantChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Connect once on mount and clean up on unmount
-  useEffect(() => {
-    connect().catch((err) => console.error("Failed to connect:", err));
-    return () => disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Ensure a thread exists after connection
+  // Ensure a thread exists when component mounts and connection is ready
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
-      createNewThread().then((newThreadId) => {
-        switchThread(newThreadId);
-      }).catch((error) => {
-        console.error("Failed to create new thread:", error);
-      });
+      createNewThread()
+        .then((newThreadId) => {
+          switchThread(newThreadId);
+        })
+        .catch((error) => {
+          console.error("Failed to create new thread:", error);
+        });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
 

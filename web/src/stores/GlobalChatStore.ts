@@ -204,6 +204,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         const state = get();
 
+        if (
+          state.status === "connected" ||
+          state.status === "connecting" ||
+          state.status === "reconnecting"
+        ) {
+          log.info(
+            `Skipping connect call, already connecting or connected. Status: ${state.status}`
+          );
+          return;
+        }
+
         // Clean up existing connection
         if (state.wsManager) {
           state.wsManager.destroy();
@@ -846,6 +857,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
   )
 );
 
+export default useGlobalChatStore;
+
 // WebSocket message handler
 function handleWebSocketMessage(
   data: MsgpackData,
@@ -1277,5 +1290,3 @@ export const useThreadsQuery = () => {
 
   return query;
 };
-
-export default useGlobalChatStore;
