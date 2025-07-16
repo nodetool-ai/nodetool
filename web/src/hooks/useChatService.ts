@@ -19,18 +19,14 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
   } = useGlobalChatStore();
 
   useEffect(() => {
-    if (status === "disconnected") {
-      connect().catch((error) => {
-        console.error("Failed to connect to chat service:", error);
-      });
-    }
+    connect().catch((error) => {
+      console.error("Failed to connect to chat service:", error);
+    });
 
     return () => {
-      if (status !== "disconnected") {
-        disconnect();
-      }
+      disconnect();
     };
-  }, [connect, disconnect, status]);
+  }, [connect, disconnect]);
 
   useEffect(() => {
     let reconnectTimer: NodeJS.Timeout | null = null;
