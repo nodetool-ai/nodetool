@@ -181,7 +181,7 @@ const ThemeNodetool = createTheme({
     },
     MuiPopover: {
       styleOverrides: {
-        root: { zIndex: 99999 }
+        root: { zIndex: 99990 }
       }
     },
     MuiModal: {
