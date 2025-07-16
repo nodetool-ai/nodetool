@@ -1,10 +1,13 @@
-<h1>
-  <img src="https://github.com/user-attachments/assets/dc2d5495-adc1-4a2a-a1b6-343f85083bc4" alt="NodeTool Logo" style="height:64px">NodeTool - Swiss-Army Knife for AI Builders
-</h1>
+# Privacy‑First AI Workflows
 
-**Drag, drop, build—one canvas for every model.**
+## Your Multimodal AI Toolbox
 
-🔓 **100% Open Source • Privacy-First • Self-Hosted**
+### Build Local, Deploy Anywhere
+
+🎨 Drag‑and‑drop Workflow Builder.  
+🚀 Thousands of AI models through Huggingface Hub.
+
+🔓 **100% Open Source • Privacy‑First • Self‑Hosted**
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -12,27 +15,78 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
+## Why Privacy‑First Matters
+
+| Local-first by default | Open source & auditable | 🤗 Huggingface Integration |
+|-----------------------|------------------------|--------------------------|
+| All model inference runs on your machine. No data leaves unless you decide. | NodeTool is 100% open source under AGPL – audit every line of code. | Need more power? Use the GPU cloud node – and only for the data you select. |
+
+## 🛠️ The Complete AI Toolbox for Builders
+
 NodeTool is the Swiss-Army Knife for AI builders. Unlike code-first stacks, NodeTool gives you every AI tool in one visual workspace. Connect your models, streamline your workflow, and turn ideas into reality.
 
-## 🔧 Why NodeTool?
+* 🔗 Drag‑and‑drop multimodal workflows
+* 🧠 LLMs, image, audio, and video nodes
+* 🗃️ Asset and vector store integration
+* 🤖 Agent orchestration
+* ⚡ AI cloud scaling
+* 💡 Built-in templates and node packs
 
-**🔗 Snap:** Drag any AI model into your canvas. Connect with one click.  
-**☁️ Scale:** Keep data local, burst to cloud GPUs when you need power.  
-**🚀 Ship:** Build working demos in minutes. Turn ideas into reality.
+### **🔗 Snap Nodes Together**
+Drag any model into your canvas—LLMs, diffusion, agents, or custom code. Connect with one click and watch your AI workflow come alive.
 
-### 🔒 Privacy-First • Hybrid Execution
+### **☁️ Scale to Cloud Providers**
+Keep data local until you need power. Scale to Huggingface, Anthropic, OpenAI, Gemini, Fal.ai or Replicate.
 
-Unlike cloud-only tools, NodeTool protects your privacy while giving you the power to scale. **Trust through transparency**—every line of code is open source.
+### **💬 Chat Interface**
+Access and trigger AI workflows through a unified chat interface.
 
-**Local-First:**
+### **🤖 AI Agent Orchestration**
+Build intelligent agents that coordinate multiple AI models. Chain reasoning, planning, and execution across complex multi-step workflows.
+
+### **📁 Vector Storage & RAG**
+Built-in ChromaDB means your AI remembers everything. Create smart assistants that know your documents.
+
+### **🎯 Built-in Asset Manager**
+Import, organize, and manage all your media assets in one place. No more hunting through folders.
+
+**Additional Features:**
+- **Multimodal Capabilities:** Process text, images, audio, and video within a single workflow
+- **System Tray Integration:** Access workflows quickly via the system tray with global shortcuts
+- **Ready-to-Use Templates:** Start quickly with pre-built workflow templates
+- **Mini-App Builder:** Convert workflows into standalone desktop applications
+- **API Access:** Integrate with external applications and services
+- **Custom Python Extensions:** Extend functionality with custom Python scripts
+- **Cross-Platform:** Build and run on Mac, Windows, and Linux
+
+---
+
+## 🔒 Privacy-First • 🤗 Huggingface Integration
+
+Keep your data on-device until you need Huggingface Inference API. Unlike cloud-only tools, NodeTool protects your privacy while giving you access to the world's largest AI model collection. **Trust through transparency—every line of code is open source.**
+
+### Local-First
 - Process sensitive data locally
-- Run LLMs on your hardware  
+- Run LLMs on your hardware
 - Zero data transmission by default
 
-**Cloud-Ready:**
+### Cloud-Ready
 - Burst to GPU cloud in seconds
 - Connect OpenAI, Anthropic, Fal, Replicate, Gemini
 - Control exactly what data gets shared
+
+## How NodeTool Keeps Your Data Safe
+
+All critical execution happens inside the local process unless a cloud node is explicitly connected:
+
+* Local LLMs via Ollama
+* Local Huggingface models with CUDA and MPS acceleration
+* Chroma Vector database for RAG
+* User-friendly Chat Interface
+* Powerful AI Workflow builder
+* Bring your own API Keys if needed (Huggingface, Anthropic, OpenAI, Gemini, Fal.ai, Replicate)
+
+✅ AGPL‑3.0 License – zero lock-in • ✅ Privacy-first Desktop App • ✅ Fully self-hostable with no telemetry
 
 ---
 
@@ -57,37 +111,6 @@ Unlike cloud-only tools, NodeTool protects your privacy while giving you the pow
 - Click **Run** and watch your local AI workflow execute!
 
 ---
-
-## ✨ Every Node You Need
-
-NodeTool gives you every AI tool in one visual workspace:
-
-### **🔗 Snap Nodes Together**
-Drag any model into your canvas—LLMs, diffusion, agents, or custom code. Connect with one click and watch your AI workflow come alive.
-
-### **☁️ Scale to GPU Cloud**
-Keep data local until you need power. Burst to cloud GPUs in seconds without rebuilding your workflow.
-
-### **💬 Chat Interface**
-Access and trigger AI workflows through a unified chat interface.
-
-### **🤖 AI Agent Orchestration**
-Build intelligent agents that coordinate multiple AI models. Chain reasoning, planning, and execution across complex multi-step workflows.
-
-### **📁 Vector Storage & RAG**
-Built-in ChromaDB means your AI remembers everything. Create smart assistants that know your documents.
-
-### **🎯 Built-in Asset Manager**
-Import, organize, and manage all your media assets in one place. No more hunting through folders.
-
-**Additional Features:**
-- **Multimodal Capabilities:** Process text, images, audio, and video within a single workflow
-- **System Tray Integration:** Access workflows quickly via the system tray with global shortcuts
-- **Ready-to-Use Templates:** Start quickly with pre-built workflow templates
-- **Mini-App Builder:** Convert workflows into standalone desktop applications
-- **API Access:** Integrate with external applications and services
-- **Custom Python Extensions:** Extend functionality with custom Python scripts
-- **Cross-Platform:** Build and run on Mac, Windows, and Linux
 
 ## 🤖 NodeTool Agent System
 
@@ -188,53 +211,54 @@ conda install -c conda-forge ffmpeg cairo x264 x265 aom libopus libvorbis lame p
 
 These are the essential packages to run NodeTool.
 
+Make sure to activate the conda environment.
+
 ```bash
 # Install nodetool-core and nodetool-base
 # On macOS / Linux / Windows:
-pip install git+https://github.com/nodetool-ai/nodetool-core
-pip install git+https://github.com/nodetool-ai/nodetool-base
+uv pip install git+https://github.com/nodetool-ai/nodetool-core
+uv pip install git+https://github.com/nodetool-ai/nodetool-base
 ```
 
 ### 3. Install Optional Node Packs (As Needed)
 
 NodeTool's functionality is extended via packs. Install only the ones you need.
 
+NOTE:
+- Activate the conda environment first
+- Always use uv as we define extra index for pytorch
+
 ```bash
 # List available packs (optional)
 nodetool package list -a
 
 # Example: Install packs for specific integrations
-pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu121 # For HuggingFace models (PyTorch/CUDA)
-# ... install other packs like replicate, fal, elevenlabs, etc.
-# ... add other relevant packs here
+uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface
+uv pip install git+https://github.com/nodetool-ai/nodetool-fal
+uv pip install git+https://github.com/nodetool-ai/nodetool-replicate
+uv pip install git+https://github.com/nodetool-ai/nodetool-elevenlabs
 ```
 
 _Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
 
-### 4. Configure Environment Variables
-
-Create a `.env` file inside the `web` directory (you can copy `web/.env.example` as a starting point). Set the following variables to match your deployment:
-
-```bash
-VITE_API_URL=http://localhost:8000            # URL of the NodeTool API server
-VITE_SUPABASE_URL=https://your-supabase.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-These variables are loaded by Vite at build time and allow you to point the UI at a different backend or Supabase project without changing the source code.
-
-### 5. Run NodeTool Backend & Web UI
+### 4. Run NodeTool Backend & Web UI
 
 Ensure the `nodetool` Conda environment is active.
 
 **Option A: Run Backend with Web UI (for Development)**
 
-This command starts the backend server and serves the web UI directly with hot reloading enabled.
+This command starts the backend server:
 
 ```bash
 # On macOS / Linux / Windows:
-nodetool serve
+nodetool serve --reload
 ```
+
+Run frontend in web folder:
+```bash
+npm start
+```
+
 
 Access the UI in your browser at `http://localhost:3000`.
 

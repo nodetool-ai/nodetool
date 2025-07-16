@@ -9,35 +9,49 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import ExternalLink from "../common/ExternalLink";
 
-const ExternalLinkButton = ({
-  href,
-  children
-}: {
-  href: string;
-  children: React.ReactNode;
-}) => (
-  <Button
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    sx={{
-      padding: ".1em 1em !important",
-      textDecoration: "none",
-      fontSize: "var(--fontSizeSmall) !important",
-      color: "var(--palette-grey-1000) !important",
-      backgroundColor: "var(--palette-primary-main) !important",
+const SETTING_LINKS: Record<string, string> = {
+  OPENAI_API_KEY: "https://platform.openai.com/api-keys",
+  ANTHROPIC_API_KEY: "https://console.anthropic.com/",
+  GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
+  HF_TOKEN: "https://huggingface.co/settings/tokens",
+  REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
+  AIME_API_KEY: "https://www.aime.info",
+  GOOGLE_APP_PASSWORD: "https://myaccount.google.com/apppasswords",
+  ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
+  FAL_API_KEY: "https://fal.ai/dashboard/keys",
+  SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
+  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard"
+};
 
-      "&:hover": {
-        color: "primary.light",
-        textDecoration: "underline",
-        filter: "brightness(1.15)"
-      }
-    }}
-  >
-    &rarr; {children}
-  </Button>
-);
+const SETTING_BUTTON_TITLES: Record<string, string> = {
+  OPENAI_API_KEY: "Get OpenAI API Key",
+  ANTHROPIC_API_KEY: "Get Anthropic API Key",
+  GEMINI_API_KEY: "Get Gemini API Key",
+  HF_TOKEN: "Get Hugging Face Token",
+  REPLICATE_API_TOKEN: "Get Replicate API Token",
+  AIME_API_KEY: "Learn more",
+  GOOGLE_APP_PASSWORD: "Get Google App Password",
+  ELEVENLABS_API_KEY: "Get ElevenLabs API Key",
+  FAL_API_KEY: "Get Fal API Key",
+  SERPAPI_API_KEY: "Get SerpAPI API Key",
+  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials"
+};
+
+const SETTING_TOOLTIPS: Record<string, string> = {
+  OPENAI_API_KEY: "Go to OpenAI API key page",
+  ANTHROPIC_API_KEY: "Go to Anthropic console",
+  GEMINI_API_KEY: "Go to Google AI Studio to get your API key",
+  HF_TOKEN: "Go to Hugging Face tokens page",
+  REPLICATE_API_TOKEN: "Go to Replicate API tokens page",
+  AIME_API_KEY: "Go to Aime info page",
+  GOOGLE_APP_PASSWORD: "Go to Google account app passwords page",
+  ELEVENLABS_API_KEY: "Go to ElevenLabs subscription page",
+  FAL_API_KEY: "Go to Fal.ai dashboard",
+  SERPAPI_API_KEY: "Go to SerpAPI key management page",
+  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
+};
 
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
@@ -204,6 +218,19 @@ const RemoteSettings = () => {
                           <Typography className="description">
                             {setting.description}
                           </Typography>
+                        )}
+                        {SETTING_LINKS[setting.env_var] && (
+                          <div style={{ marginTop: "0.5em" }}>
+                            <ExternalLink
+                              href={SETTING_LINKS[setting.env_var]}
+                              tooltipText={
+                                SETTING_TOOLTIPS[setting.env_var] || ""
+                              }
+                            >
+                              {SETTING_BUTTON_TITLES[setting.env_var] ||
+                                "GET YOUR API KEY"}
+                            </ExternalLink>
+                          </div>
                         )}
                       </div>
                     ))}
