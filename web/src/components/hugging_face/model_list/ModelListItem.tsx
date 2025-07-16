@@ -124,83 +124,93 @@ const ModelListItem: React.FC<
       }`}
     >
       <div className="model-content">
-        <div className="model-info-container">
-          <div className="model-header">
-            <Link
-              href={`https://huggingface.co/${model.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="model-name-link"
-            >
-              <Typography component="span" className="model-name">
-                {model.repo_id}
-              </Typography>
-              {model.path && (
-                <Typography component="span" className="model-path">
-                  {model.path}
+        <div className="model-top-row">
+          <div className="model-info-container">
+            <div className="model-header">
+              <Link
+                href={`https://huggingface.co/${model.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="model-name-link"
+              >
+                <Typography component="span" className="model-name">
+                  {model.repo_id}
                 </Typography>
+                {model.path && (
+                  <Typography component="span" className="model-path">
+                    {model.path}
+                  </Typography>
+                )}
+              </Link>
+            </div>
+
+            <div className="model-details">
+              {modelData?.cardData?.pipeline_tag && (
+                <Tooltip
+                  title="View trending models with this tag on HuggingFace"
+                  enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                  enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+                >
+                  <Link
+                    href={`https://huggingface.co/models?pipeline_tag=${modelData.cardData.pipeline_tag}&sort=trending`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pipeline-tag-link"
+                  >
+                    <Chip
+                      label={modelData.cardData.pipeline_tag}
+                      size="small"
+                      className="pipeline-tag"
+                      component="span"
+                    />
+                  </Link>
+                </Tooltip>
               )}
-            </Link>
+            </div>
           </div>
 
-          <div className="model-details">
-            {modelData?.cardData?.pipeline_tag && (
-              <Tooltip
-                title="View trending models with this tag on HuggingFace"
-                enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
-              >
-                <Link
-                  href={`https://huggingface.co/models?pipeline_tag=${modelData.cardData.pipeline_tag}&sort=trending`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="pipeline-tag-link"
-                >
-                  <Chip
-                    label={modelData.cardData.pipeline_tag}
-                    size="small"
-                    className="pipeline-tag"
-                    component="span"
-                  />
-                </Link>
-              </Tooltip>
-            )}
+          {isHuggingFace && showModelStats && (
+            <div className="model-stats">
+              <div className="model-stats-item">
+                <Tooltip title="Downloads on HF last month">
+                  <CloudDownloadIcon fontSize="small" />
+                </Tooltip>
+                <Typography component="span" variant="body2">
+                  {modelData?.downloads?.toLocaleString() || "N/A"}
+                </Typography>
+              </div>
+              <div className="model-stats-item">
+                <Tooltip title="Likes on HF">
+                  <FavoriteIcon fontSize="small" />
+                </Tooltip>
+                <Typography component="span" variant="body2">
+                  {modelData?.likes?.toLocaleString() || "N/A"}
+                </Typography>
+              </div>
+            </div>
+          )}
+          <div className="actions-container" style={{ gap: "1em" }}>
+            <Typography component="span" className="model-size">
+              {formattedSize}
+            </Typography>
+            <ModelListItemActions
+              model={model}
+              onDownload={onDownload}
+              handleModelDelete={handleModelDelete}
+              handleShowInExplorer={handleShowInExplorer}
+              ollamaBasePath={ollamaBasePath}
+              showFileExplorerButton={showFileExplorerButton}
+            />
           </div>
         </div>
 
-        {isHuggingFace && showModelStats && (
-          <div className="model-stats">
-            <div className="model-stats-item">
-              <Tooltip title="Downloads on HF last month">
-                <CloudDownloadIcon fontSize="small" />
-              </Tooltip>
-              <Typography component="span" variant="body2">
-                {modelData?.downloads?.toLocaleString() || "N/A"}
-              </Typography>
-            </div>
-            <div className="model-stats-item">
-              <Tooltip title="Likes on HF">
-                <FavoriteIcon fontSize="small" />
-              </Tooltip>
-              <Typography component="span" variant="body2">
-                {modelData?.likes?.toLocaleString() || "N/A"}
-              </Typography>
-            </div>
+        {model.description && (
+          <div className="model-description-container">
+            <Typography component="span" className="model-description">
+              {model.description}
+            </Typography>
           </div>
         )}
-        <div className="actions-container" style={{ gap: "1em" }}>
-          <Typography component="span" className="model-size">
-            {formattedSize}
-          </Typography>
-          <ModelListItemActions
-            model={model}
-            onDownload={onDownload}
-            handleModelDelete={handleModelDelete}
-            handleShowInExplorer={handleShowInExplorer}
-            ollamaBasePath={ollamaBasePath}
-            showFileExplorerButton={showFileExplorerButton}
-          />
-        </div>
       </div>
     </Box>
   );
