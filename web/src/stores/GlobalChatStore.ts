@@ -515,8 +515,33 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       switchThread: (threadId: string) => {
-        set({ currentThreadId: threadId });
-        get().loadMessages(threadId);
+        const { threads } = get();
+
+        // If thread doesn't exist in store, fetch threads first
+        if (!threads[threadId]) {
+          console.warn(
+            `Thread ${threadId} not found in store, fetching threads...`
+          );
+          get()
+            .fetchThreads()
+            .then(() => {
+              const { threads: updatedThreads } = get();
+              if (updatedThreads[threadId]) {
+                set({ currentThreadId: threadId });
+                get().loadMessages(threadId);
+              } else {
+                console.error(
+                  `Thread ${threadId} not found even after fetching`
+                );
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch threads when switching:", error);
+            });
+        } else {
+          set({ currentThreadId: threadId });
+          get().loadMessages(threadId);
+        }
       },
 
       deleteThread: async (threadId: string) => {

@@ -46,6 +46,16 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         if (!threadId) {
           threadId = await createNewThread();
           switchThread(threadId);
+        } else {
+          // Verify thread exists in store before sending message
+          const { threads } = useGlobalChatStore.getState();
+          if (!threads[threadId]) {
+            console.warn(
+              `Current thread ${threadId} not found in store, creating new thread`
+            );
+            threadId = await createNewThread();
+            switchThread(threadId);
+          }
         }
 
         await sendMessage(messageWithModel);
