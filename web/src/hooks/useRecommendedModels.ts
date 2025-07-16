@@ -41,7 +41,13 @@ export const useRecommendedModels = (options: UseRecommendedModelsOptions = {}) 
   });
 
   const combinedRecommendedModels = useMemo<UnifiedModel[]>(() => {
-    const merged = [...(recommendedModels || []), ...staticOllamaModels];
+    const staticModels = staticOllamaModels.map((m) => {
+      return {
+        ...m,
+        repo_id: m.id,
+      }
+    });
+    const merged = [...(recommendedModels || []), ...staticModels];
     return merged.filter((m) => !downloadedIds.has(m.id));
   }, [recommendedModels, downloadedIds]);
 

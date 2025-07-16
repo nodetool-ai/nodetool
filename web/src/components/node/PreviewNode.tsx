@@ -190,10 +190,27 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   //   return null;
   // }
 
+  const getOutputFromResult = (result: any) => {
+    if (!result) return null;
+    
+    if (Array.isArray(result)) {
+      const outputs = result.map((item: any) => item.output);
+      // If all outputs are strings, concatenate them
+      if (outputs.every((output: any) => typeof output === 'string')) {
+        return outputs.join('\n');
+      }
+      // For non-string outputs, return the array of outputs
+      return outputs;
+    }
+    
+    return result.output;
+  };
+
   const handleAddToAssets = async () => {
-    if (result?.output) {
+    const output = getOutputFromResult(result);
+    if (output) {
       try {
-        const assetFiles = createAssetFile(result.output, props.id);
+        const assetFiles = createAssetFile(output, props.id);
         for (const { file } of assetFiles) {
           await createAsset(file);
         }
@@ -215,9 +232,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   };
 
   const handleDownload = async () => {
-    if (result?.output) {
+    const output = getOutputFromResult(result);
+    if (output) {
       try {
-        const assetFiles = createAssetFile(result.output, props.id);
+        const assetFiles = createAssetFile(output, props.id);
 
         // Check for Electron's API (could be window.electron or window.api)
         const electronApi = (window as any).electron || (window as any).api;
