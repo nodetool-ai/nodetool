@@ -24,7 +24,7 @@ const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    backgroundColor: "var(--palette-grey-800)",
+    backgroundColor: theme.palette.background.default,
     overflowY: "auto",
     gap: ".5em",
     padding: "1em",
