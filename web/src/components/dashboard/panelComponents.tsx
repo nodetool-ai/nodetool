@@ -47,7 +47,7 @@ export const createPanelComponents = () => ({
   chat: (props: IDockviewPanelProps<PanelProps>) => (
     <ChatView
       status={props.params?.status || "disconnected"}
-      messages={[]}
+      messages={[]} // empty array to hide the chat view
       sendMessage={props.params?.sendMessage || (() => {})}
       progress={props.params?.progress?.current || 0}
       total={props.params?.progress?.total || 0}
