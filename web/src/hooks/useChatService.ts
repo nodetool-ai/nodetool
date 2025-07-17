@@ -26,8 +26,9 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         return;
       }
 
-      if (status !== "connected" && status !== "reconnecting") {
-        console.error("Not connected to chat service");
+      // Only return early if we're in a failed state
+      if (status === "failed") {
+        console.error("Chat service connection failed");
         return;
       }
 
