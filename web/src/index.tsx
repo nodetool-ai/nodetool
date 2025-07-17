@@ -18,7 +18,9 @@ import ErrorBoundary from "./ErrorBoundary";
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
 import { CircularProgress } from "@mui/material";
-import ThemeWrapper from "./components/ThemeWrapper";
+import { ThemeProvider } from "@mui/material/styles";
+import ThemeNodetool from "./components/themes/ThemeNodetool";
+import { CssBaseline } from "@mui/material";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -221,7 +223,8 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <ThemeWrapper>
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
               <KeyboardProvider active={true}>
@@ -261,7 +264,7 @@ const AppWrapper = () => {
               </KeyboardProvider>
             </WorkflowManagerProvider>
           </MenuProvider>{" "}
-        </ThemeWrapper>
+        </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );
