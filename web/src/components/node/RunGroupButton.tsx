@@ -47,6 +47,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
             <span
               style={{
                 fontSize: "var(--fontSizeTiny)",
+                color: "var(--palette-text-secondary)",
                 margin: "0 .5em",
                 position: "absolute",
                 bottom: "35px",
