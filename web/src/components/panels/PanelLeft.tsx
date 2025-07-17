@@ -204,20 +204,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
-          <IconForType
-            iconName="asset"
-            showTooltip={false}
-            containerStyle={{
-              borderRadius: "0 0 3px 0",
-              marginLeft: "0.1em",
-              marginTop: "0"
-            }}
-            bgStyle={{
-              backgroundColor: "transparent",
-              width: "20px",
-              height: "20px"
-            }}
-          />
+          <IconForType iconName="asset" showTooltip={false} />
         </Button>
       </Tooltip>
       <Tooltip
@@ -468,6 +455,9 @@ const PanelLeft: React.FC = () => {
           style: {
             // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
+            backgroundColor: isVisible
+              ? "var(--palette-background-default)"
+              : "transparent",
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
           }
         }}
