@@ -169,7 +169,7 @@ export const paletteLight: PaletteOptions = {
   },
   background: {
     default: "#fff",
-    paper: "#ddd"
+    paper: "#f9f9f9"
   },
   text: {
     primary: "#000",

@@ -91,8 +91,6 @@ export const typographyStyles = (theme: Theme) =>
     },
 
     ".MuiTypography-body1": {
-      fontSize: "1em",
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
       fontWeight: "300",
       wordSpacing: "0",
       lineHeight: "1.1",
