@@ -199,13 +199,13 @@ const VerticalToolbar = memo(function VerticalToolbar({
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType iconName="asset" showTooltip={false} />
-        </Button>
+        </IconButton>
       </Tooltip>
       <Tooltip
         title={getShortcutTooltip("toggleCollections")}
