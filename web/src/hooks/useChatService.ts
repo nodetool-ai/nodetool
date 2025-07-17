@@ -48,7 +48,6 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
           switchThread(threadId);
         } else {
           // Verify thread exists in store before sending message
-          const { threads } = useGlobalChatStore.getState();
           if (!threads[threadId]) {
             console.warn(
               `Current thread ${threadId} not found in store, creating new thread`
@@ -76,7 +75,8 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
       navigate,
       createNewThread,
       switchThread,
-      currentThreadId
+      currentThreadId,
+      threads
     ]
   );
 
