@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
-interface PanelInfo {
+export interface PanelInfo {
   id: string;
   title: string;
 }

@@ -14,12 +14,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { isEqual } from "lodash";
 import DashboardHeader from "./DashboardHeader";
-import {
-  DockviewReact,
-  DockviewReadyEvent,
-  IDockviewPanelProps,
-  DockviewApi
-} from "dockview";
+import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
 import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
@@ -29,10 +24,10 @@ import { useLayoutStore } from "../../stores/LayoutStore";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
-import { Button } from "@mui/material";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { PANEL_CONFIG, PanelProps } from "./panelConfig";
+import { PANEL_CONFIG } from "./panelConfig";
 import { createPanelComponents } from "./panelComponents";
+import { PanelInfo } from "./AddPanelDropdown";
 
 const styles = (theme: Theme) =>
   css({
@@ -107,7 +102,9 @@ const Dashboard: React.FC = () => {
     currentWorkflowId: state.currentWorkflowId
   }));
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
-  const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+  // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+  const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
+
   const isMountedRef = useRef(true);
 
   // Ensure WebSocket connection is established when Dashboard mounts
