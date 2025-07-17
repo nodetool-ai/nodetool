@@ -19,47 +19,30 @@ const ColorCircle = styled.div<{ color: string | null }>`
 const styles = (theme: Theme) =>
   css({
     "&": {
-      background: "transparent",
       position: "relative",
-      zIndex: 100,
-      width: "16px",
-      height: "16px",
-      left: 0,
-      bottom: 0,
-      padding: 0,
-      margin: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
+      width: "24px",
+      height: "24px"
     },
     ".color-picker-button": {
-      width: "100%",
-      height: "100%",
-      minWidth: "unset !important",
-      minHeight: "unset !important",
-      borderRadius: "100%",
-      pointerEvents: "all",
-      margin: 0,
-      padding: 0,
-      overflow: "hidden",
+      width: "24px",
+      height: "24px",
+      minWidth: "24px",
+      margin: "0",
+      padding: "0",
+      borderRadius: "50%",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      opacity: 1,
-      transition: "all 0.2s ease",
+      backgroundColor: "transparent",
       "&:hover": {
-        opacity: 1,
-        background: "transparent"
-      },
-      "& .color-circle": {
-        width: "100%",
-        height: "100%",
-        position: "relative"
+        backgroundColor: "transparent"
       }
     },
     ".custom-selection": {
-      marginTop: "1em",
-      padding: ".5em 0"
+      padding: "1em"
+    },
+    ".custom-selection-title": {
+      paddingBottom: "1em"
     }
   });
 
@@ -68,7 +51,7 @@ const colorMatrixStyle = (theme: Theme) =>
     display: "flex",
     flexWrap: "wrap",
     gap: "0.5em",
-    padding: "1em 1em 0 1em",
+    padding: "1em",
     marginBottom: 4,
     width: "100%",
     maxWidth: "300px"
@@ -130,7 +113,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <Button className="color-picker-button action" onClick={handleClick}>
           {label}
-          <ColorCircle className="color-circle" color={color || "#ffffffaa"} />
+          <ColorCircle color={color || "#ffffffaa"} />
         </Button>
       </Tooltip>
       <Popover
@@ -158,13 +141,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           ))}
         </div>
         {showCustom && (
-          <div className="custom-selection" style={{ padding: "1em 0" }}>
-            <div style={{ padding: "0 1em" }}>CUSTOM</div>
+          <div className="custom-selection">
+            <div className="custom-selection-title">CUSTOM</div>
             <MuiColorInput
-              style={{
-                padding: "0 1em",
-                margin: "1em 0 0"
-              }}
               format="hex"
               value={color || ""}
               onChange={(newColor) => {
