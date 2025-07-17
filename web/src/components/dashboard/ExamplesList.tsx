@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { BASE_URL } from "../../stores/ApiClient";
@@ -14,10 +15,10 @@ interface ExamplesListProps {
   handleViewAllExamples: () => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme?.palette?.grey[800] || "#222",
-    borderRadius: theme?.spacing?.(1) || 8,
+    backgroundColor: theme.palette.grey[800],
+    borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",
     flexDirection: "column",
@@ -25,23 +26,23 @@ const styles = (theme: any) =>
     height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     ".section-title": {
-      color: theme?.palette?.grey[100] || "#eee",
-      marginBottom: theme?.spacing?.(3) || 24
+      color: theme.palette.grey[100],
+      marginBottom: theme.spacing(3)
     },
     ".content-scrollable": {
       flex: 1,
       overflow: "auto",
-      paddingRight: theme?.spacing?.(1) || 8
+      paddingRight: theme.spacing(1)
     },
     ".example-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-      gap: theme?.spacing?.(2) || 16
+      gap: theme.spacing(2)
     },
     ".example-card": {
       position: "relative",
       cursor: "pointer",
-      borderRadius: theme?.spacing?.(1) || 8,
+      borderRadius: theme.spacing(1),
       overflow: "hidden",
       backgroundColor: "var(--palette-grey-800)",
       ":hover": {
@@ -50,8 +51,8 @@ const styles = (theme: any) =>
       ".example-description-tooltip": {
         visibility: "hidden",
         width: "200px",
-        backgroundColor: theme?.palette?.grey[1000] || "#111",
-        color: theme?.palette?.grey[0] || "#fff",
+        backgroundColor: theme.palette.grey[1000],
+        color: theme.palette.grey[0],
         textAlign: "center",
         borderRadius: "6px",
         padding: "5px 0",
@@ -70,9 +71,7 @@ const styles = (theme: any) =>
           marginLeft: "-5px",
           borderWidth: "5px",
           borderStyle: "solid",
-          borderColor: `${
-            theme?.palette?.grey[1000] || "#111"
-          } transparent transparent transparent`
+          borderColor: theme.palette.grey[1000]
         }
       },
       ":hover .example-description-tooltip": {
@@ -84,12 +83,12 @@ const styles = (theme: any) =>
       width: "100%",
       height: "180px",
       objectFit: "cover",
-      backgroundColor: theme?.palette?.grey[600] || "#444"
+      backgroundColor: theme.palette.grey[600]
     },
     ".example-name": {
       padding: ".2em .5em .5em 0",
-      color: theme?.palette?.grey[0] || "#fff",
-      backgroundColor: theme?.palette?.grey[800] || "#222",
+      color: theme.palette.grey[0],
+      backgroundColor: theme.palette.grey[800],
       fontSize: "var(--fontSizeSmall)"
     },
     ".loading-container": {

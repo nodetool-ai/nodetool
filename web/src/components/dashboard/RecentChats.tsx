@@ -17,9 +17,9 @@ interface RecentChatsProps {
 
 const styles = (theme: any) =>
   css({
-    backgroundColor: theme?.palette?.grey[800] || "#222",
-    borderRadius: theme?.spacing?.(1) || 8,
-    padding: theme?.spacing?.(4) || 32,
+    backgroundColor: theme.palette.grey[800],
+    borderRadius: theme.spacing(1),
+    padding: theme.spacing(4),
     display: "flex",
     height: "100%",
     overflowY: "auto",
@@ -27,13 +27,13 @@ const styles = (theme: any) =>
     overflow: "hidden",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     ".section-title": {
-      color: theme?.palette?.grey[100] || "#eee",
-      marginBottom: theme?.spacing?.(3) || 24
+      color: theme.palette.grey[100],
+      marginBottom: theme.spacing(3)
     },
     ".content-scrollable": {
       flex: 1,
       overflow: "auto",
-      paddingRight: theme?.spacing?.(1) || 8
+      paddingRight: theme.spacing(1)
     }
   });
 
