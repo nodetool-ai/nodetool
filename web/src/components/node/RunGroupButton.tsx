@@ -45,11 +45,18 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         {state === "connecting" || state === "connected" ? (
           <>
             <span
+              style={{
+                fontSize: "var(--fontSizeTiny)",
+                margin: "0 .5em",
+                position: "absolute",
+                bottom: "35px",
+                right: "-5px"
+              }}
               className={`run-status ${
                 state === "connecting" ? "connecting-status" : ""
               }`}
             >
-              {state === "connecting" ? "Connecting" : "Connected"}
+              {state === "connecting" ? "Connecting..." : ""}
             </span>
             <PlayArrow />
           </>
