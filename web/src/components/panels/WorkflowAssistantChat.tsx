@@ -167,7 +167,14 @@ const WorkflowAssistantChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Ensure a thread exists when component mounts and connection is ready
+  // Connect once on mount and clean up on unmount
+  useEffect(() => {
+    connect().catch((err) => console.error("Failed to connect:", err));
+    return () => disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ensure a thread exists after connection
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
       createNewThread()
@@ -253,7 +260,7 @@ const WorkflowAssistantChat: React.FC = () => {
             <ListIcon />
           </IconButton>
         </Tooltip>
-        <NewChatButton onNewThread={createNewThread} />
+        <NewChatButton onNewThread={() => createNewThread()} />
       </div>
       {/* Thread List Modal */}
       <Dialog
