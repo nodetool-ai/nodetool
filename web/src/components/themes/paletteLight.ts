@@ -23,6 +23,7 @@ declare module "@mui/material/styles" {
     c_debug?: string;
     c_job?: string;
     c_node?: string;
+    c_folder?: string;
     c_progress?: string;
     c_link?: string;
     c_link_visited?: string;
@@ -61,6 +62,7 @@ declare module "@mui/material/styles" {
     c_debug?: string;
     c_job?: string;
     c_node?: string;
+    c_folder?: string;
     c_progress?: string;
     c_link?: string;
     c_link_visited?: string;
@@ -130,21 +132,22 @@ export const paletteLight: PaletteOptions = {
   c_debug: "#FF3355",
   c_job: "#223399",
   c_node: "#029486",
+  c_folder: "#d6ae67",
   c_progress: "#556611",
   c_link: "#e4ffde",
   c_link_visited: "#d1e2cd",
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#efefef",
-  c_node_bg_group: "#3d3d3d",
-  c_node_header_bg: "#202020",
+  c_node_bg: "#fff",
+  c_node_bg_group: "#fffeff",
+  c_node_header_bg: "#dfdfdf",
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
-  c_bg_group: "#9bcfdb17",
-  c_editor_bg_color: "#cecece",
-  c_editor_grid_color: "#bbb",
-  c_editor_axis_color: "#bbb",
+  c_bg_group: "#dfdfdf",
+  c_editor_bg_color: "#fff",
+  c_editor_grid_color: "#ccc",
+  c_editor_axis_color: "#eee",
 
   primary: {
     main: "#00cc11",
@@ -165,8 +168,8 @@ export const paletteLight: PaletteOptions = {
     contrastText: "#fff"
   },
   background: {
-    default: "#eee",
-    paper: "#ccc"
+    default: "#fff",
+    paper: "#ddd"
   },
   text: {
     primary: "#000",
@@ -180,9 +183,9 @@ export const paletteLight: PaletteOptions = {
     disabled: "#777"
   },
   Paper: {
-    default: "#ccc",
+    default: "#eee",
     paper: "#ddd",
-    overlay: "#eee"
+    overlay: "#dedede"
   },
   divider: "#999"
 };

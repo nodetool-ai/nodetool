@@ -210,8 +210,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             containerStyle={{
               borderRadius: "0 0 3px 0",
               marginLeft: "0.1em",
-              marginTop: "0",
-              color: "white"
+              marginTop: "0"
             }}
             bgStyle={{
               backgroundColor: "transparent",
@@ -233,13 +232,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             activeView === "collections" && panelVisible ? "active" : ""
           }
         >
-          <IconForType
-            iconName="database"
-            showTooltip={false}
-            containerStyle={{
-              color: "white"
-            }}
-          />
+          <IconForType iconName="database" showTooltip={false} />
         </IconButton>
       </Tooltip>
 
@@ -272,13 +265,15 @@ const PanelContent = memo(function PanelContent({
   } = useGlobalChatStore();
 
   const handleNewChat = () => {
-    createNewThread().then((newThreadId) => {
-      switchThread(newThreadId);
-      navigate(`/chat/${newThreadId}`);
-      usePanelStore.getState().setVisibility(false);
-    }).catch((error) => {
-      console.error("Failed to create new thread:", error);
-    });
+    createNewThread()
+      .then((newThreadId) => {
+        switchThread(newThreadId);
+        navigate(`/chat/${newThreadId}`);
+        usePanelStore.getState().setVisibility(false);
+      })
+      .catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
   };
 
   const handleSelectThread = (id: string) => {
@@ -311,7 +306,9 @@ const PanelContent = memo(function PanelContent({
       return "New conversation";
     }
 
-    const firstUserMessage = threadMessages.find((msg: any) => msg.role === "user");
+    const firstUserMessage = threadMessages.find(
+      (msg: any) => msg.role === "user"
+    );
     if (firstUserMessage) {
       const content =
         typeof firstUserMessage.content === "string"
