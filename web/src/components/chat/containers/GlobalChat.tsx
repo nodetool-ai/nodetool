@@ -146,11 +146,9 @@ const GlobalChat: React.FC = () => {
     };
   }, [
     thread_id,
-    currentThreadId,
-    switchThread,
-    createNewThread,
-    threadsLoaded,
-    isLoadingThreads
+    currentThreadId
+    // Removed: threadsLoaded, isLoadingThreads to prevent re-runs during streaming
+    // These are checked inside the effect instead
   ]);
 
   // Close the drawer automatically when switching to desktop view
