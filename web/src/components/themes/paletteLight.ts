@@ -184,5 +184,5 @@ export const paletteLight: PaletteOptions = {
     paper: "#ddd",
     overlay: "#eee"
   },
-  divider: "#555"
+  divider: "#999"
 };

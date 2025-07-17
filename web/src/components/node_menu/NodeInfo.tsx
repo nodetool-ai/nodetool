@@ -150,7 +150,7 @@ const nodeInfoStyles = (theme: Theme) =>
       cursor: "default"
     },
     ".inputs-outputs .item:nth-of-type(odd)": {
-      backgroundColor: "#1e1e1e"
+      backgroundColor: theme.palette.grey[700]
     },
     ".inputs-outputs .item .type": {
       color: theme.palette.grey[0],
