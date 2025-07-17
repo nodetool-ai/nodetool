@@ -1,703 +1,379 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Button,
-  ToggleButton,
-  ToggleButtonGroup
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Workflow, WorkflowList, Message } from "../../stores/ApiTypes";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useSettingsStore } from "../../stores/SettingsStore";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { relativeTime } from "../../utils/formatDateAndTime";
-import { truncateString } from "../../utils/truncateString";
-import { client, BASE_URL } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
-import ThreadList from "../chat/thread/ThreadList";
-import BackToEditorButton from "../panels/BackToEditorButton";
-import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef
+} from "react";
+import { Box } from "@mui/material";
+import { LanguageModel, Thread } from "../../stores/ApiTypes";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { isEqual } from "lodash";
+import DashboardHeader from "./DashboardHeader";
+import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
+import "dockview/dist/styles/dockview.css";
+import AddPanelDropdown from "./AddPanelDropdown";
+import { DEFAULT_MODEL } from "../../config/constants";
+import { defaultLayout } from "../../config/defaultLayouts";
+import LayoutMenu from "./LayoutMenu";
+import { useLayoutStore } from "../../stores/LayoutStore";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { useWorkflowActions } from "../../hooks/useWorkflowActions";
+import { useChatService } from "../../hooks/useChatService";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { PANEL_CONFIG } from "./panelConfig";
+import { createPanelComponents } from "./panelComponents";
+import { PanelInfo } from "./AddPanelDropdown";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100vw",
       height: "100vh",
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gridTemplateRows: "auto 1fr auto",
-      gap: theme.spacing(4),
-      padding: theme.spacing(4),
       backgroundColor: theme.palette.background.default,
       overflow: "hidden"
     },
-
-    ".section": {
-      backgroundColor: theme.palette.grey[800],
-      borderRadius: theme.spacing(1),
-      padding: theme.spacing(4),
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+    // DOCKVIEW
+    "& .dockview-container": {
+      paddingTop: "2rem"
     },
-
-    ".section-title": {
-      color: theme.palette.grey[100],
-      marginBottom: theme.spacing(3)
-    },
-
-    ".examples-section": {
-      gridRow: "1",
-      gridColumn: "1 / -1",
-      maxHeight: "400px"
-    },
-
-    ".threads-section": {
-      gridRow: "2",
-      gridColumn: "1"
-    },
-
-    ".workflows-section": {
-      gridRow: "2",
-      gridColumn: "2"
-    },
-
-    ".workflow-controls": {
-      height: "40px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-
-    ".content-scrollable": {
-      flex: 1,
-      overflow: "auto",
-      paddingRight: theme.spacing(1)
-    },
-
-    ".workflow-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(4),
-      padding: theme.spacing(1),
-      marginBottom: theme.spacing(1),
-      cursor: "pointer",
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.grey[800],
-      transition: "all 0.2s",
-      "&:hover": {
-        backgroundColor: theme.palette.grey[600]
-      }
-    },
-
-    ".workflow-thumbnail": {
-      width: "60px",
-      height: "60px",
-      borderRadius: theme.shape.borderRadius,
+    // TABS AND ACTIONS
+    ".dv-tabs-and-actions-container": {
       backgroundColor: "transparent",
-      border: `1px solid ${theme.palette.grey[600]}`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      flexShrink: 0
-    },
-
-    ".workflow-info": {
-      flex: 1,
-      minWidth: 0
-    },
-
-    ".workflow-name": {
-      color: theme.palette.grey[0],
-      fontWeight: 500,
-      marginBottom: theme.spacing(0.5),
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-
-    ".workflow-description": {
-      color: theme.palette.grey[200],
-      fontSize: "0.875rem",
-      lineHeight: "1.2em",
-      display: "-webkit-box",
-      WebkitBoxOrient: "vertical",
-      WebkitLineClamp: 2,
-      overflow: "hidden"
-    },
-
-    ".workflow-date": {
-      color: theme.palette.grey[100],
-      fontSize: "0.75rem",
-      marginLeft: "auto",
-      flexShrink: 0
-    },
-
-    ".example-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-      gap: theme.spacing(2)
-    },
-
-    ".example-card": {
-      position: "relative",
-      cursor: "pointer",
-      borderRadius: theme.spacing(1),
-      overflow: "hidden",
-      backgroundColor: "var(--palette-grey-800)",
-      "&:hover": {
-        opacity: 0.9
-      },
-      ".example-description-tooltip": {
-        visibility: "hidden",
-        width: "200px",
-        backgroundColor: theme.palette.grey[1000],
-        color: theme.palette.grey[0],
-        textAlign: "center",
-        borderRadius: "6px",
-        padding: "5px 0",
-        position: "absolute",
-        zIndex: 1,
-        bottom: "125%",
-        left: "50%",
-        marginLeft: "-100px",
-        opacity: 0,
-        transition: "opacity 0.3s",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          top: "100%",
-          left: "50%",
-          marginLeft: "-5px",
-          borderWidth: "5px",
-          borderStyle: "solid",
-          borderColor: `${theme.palette.grey[1000]} transparent transparent transparent`
-        }
-      },
-      "&:hover .example-description-tooltip": {
-        visibility: "visible",
-        opacity: 1
-      }
-    },
-
-    ".example-image": {
-      width: "100%",
-      height: "180px",
-      objectFit: "cover",
-      backgroundColor: theme.palette.grey[600]
-    },
-
-    ".example-name": {
-      padding: ".2em .5em .5em 0",
-      color: theme.palette.grey[0],
-      backgroundColor: theme.palette.grey[800],
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".header-controls": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: theme.spacing(3)
-    },
-
-    ".create-button": {
-      padding: ".3em 1em",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[0],
-      "&:hover": {
-        backgroundColor: theme.palette.grey[500]
-      }
-    },
-
-    ".sort-toggle": {
-      "& .MuiToggleButton-root": {
-        lineHeight: "1.2em",
-        color: theme.palette.grey[200],
-        borderColor: theme.palette.grey[500],
-        "&.Mui-selected": {
-          backgroundColor: theme.palette.grey[500],
-          color: theme.palette.grey[0]
-        }
-      }
-    },
-
-    ".loading-container": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "300px"
-    },
-
-    ".loading-overlay": {
       position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      zIndex: 10
+      height: "1.5rem",
+      top: 3,
+      left: 2,
+      right: 10,
+      zIndex: 1,
+      opacity: 0,
+      transition: "opacity 0.2s ease-in-out"
     },
-
-    // Responsive adjustments
-    "@media (max-width: 1400px)": {
-      "&": {
-        gridTemplateColumns: "1fr 1fr",
-        gridTemplateRows: "auto 1fr auto",
-        gap: theme.spacing(3),
-        padding: theme.spacing(3)
-      },
-      ".examples-section": {
-        gridRow: "1",
-        gridColumn: "1 / -1"
-      },
-      ".threads-section": {
-        gridRow: "2",
-        gridColumn: "1"
-      },
-      ".workflows-section": {
-        gridRow: "2",
-        gridColumn: "2"
-      },
+    "& .dv-tab": {
+      textTransform: "uppercase",
+      backgroundColor: "transparent",
+      fontSize: theme.fontSizeTiny,
+      padding: "0 .5em",
+      height: "1.5rem"
     },
-
-    "@media (max-width: 900px)": {
-      "&": {
-        gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(4, auto)",
-        gap: theme.spacing(2)
-      },
-      ".examples-section": {
-        gridRow: "1",
-        gridColumn: "1"
-      },
-      ".threads-section": {
-        gridRow: "2",
-        gridColumn: "1"
-      },
-      ".workflows-section": {
-        gridRow: "3",
-        gridColumn: "1"
-      },
+    ".dv-tabs-and-actions-container:hover": {
+      opacity: 1,
+      backgroundColor: theme.palette.grey[700]
     },
-
-    "@media (max-width: 768px)": {
-      "&": {
-        padding: theme.spacing(2),
-        gap: theme.spacing(2)
-      },
-      ".section": {
-        padding: theme.spacing(2)
-      },
-      ".example-grid": {
-        gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-        gap: theme.spacing(2)
-      }
+    // CONTENT
+    "& .dv-react-part": {
+      paddingTop: ".2rem"
     },
-
-    "@media (max-width: 480px)": {
-      "&": {
-        padding: theme.spacing(1),
-        gap: theme.spacing(1)
+    // DRAG HANDLE
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
+      backgroundColor: theme.palette.grey[900],
+      transitionDelay: "0s !important"
+    },
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
+      backgroundColor: "var(--palette-grey-600) !important"
+    },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
+      {
+        width: "6px",
+        transform: "translate(-3px, 0px)"
       },
-      ".section": {
-        padding: theme.spacing(1)
-      },
-      ".workflow-controls": {
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: theme.spacing(1)
-      }
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
+      height: "6px",
+      transform: "translate(0px, 3px)"
+    },
+    // ------------------------------------------
+    // CHAT
+    "& .chat-view": {
+      height: "fit-content"
+    },
+    "& .chat-input-section": {
+      marginTop: 0
     }
   });
 
 const Dashboard: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
-  const loadExamples = useWorkflowManager((state) => state.loadExamples);
-  const createWorkflow = useWorkflowManager((state) => state.create);
+  const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
+  // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+  const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
 
-  const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
-  const {
-    connect,
-    disconnect,
-    status,
-    sendMessage,
-    createNewThread,
-    switchThread,
-    getCurrentMessages,
-    threads,
-    currentThreadId,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
-
-  const messages = getCurrentMessages();
-
-  // Handle WebSocket connection lifecycle
+  // Ensure WebSocket connection is established when Dashboard mounts
   useEffect(() => {
-    // Connect on mount if not already connected
-    if (status === "disconnected") {
+    const { status, connect } = useGlobalChatStore.getState();
+    if (status === "disconnected" || status === "failed") {
       connect().catch((error) => {
-        console.error("Failed to connect to chat service:", error);
+        console.error("Dashboard: Failed to establish chat connection:", error);
       });
     }
+  }, []);
 
-    return () => {
-      // Disconnect on unmount
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
-
-  // Monitor connection state and reconnect when disconnected or failed
-  useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    const attemptReconnect = () => {
-      if (status === "disconnected" || status === "failed") {
-        console.log(
-          "Dashboard: Connection lost, attempting automatic reconnect..."
-        );
-        connect().catch((error) => {
-          console.error("Dashboard: Automatic reconnect failed:", error);
-        });
-      }
-    };
-
-    // Check connection state periodically
-    if (status === "disconnected" || status === "failed") {
-      // Initial reconnect attempt after 2 seconds
-      reconnectTimer = setTimeout(attemptReconnect, 2000);
+  const tryParseModel = (model: string) => {
+    try {
+      return JSON.parse(model);
+    } catch (error) {
+      return DEFAULT_MODEL;
     }
-
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [status, connect]);
-
-  // Load workflows
-  const loadWorkflows = async () => {
-    const { data, error } = await client.GET("/api/workflows/", {
-      params: {
-        query: {
-          cursor: "",
-          limit: 20,
-          columns: "name,id,updated_at,description,thumbnail_url"
-        }
-      }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load workflows");
-    }
-    return data;
   };
 
-  const { data: workflowsData, isLoading: isLoadingWorkflows } =
-    useQuery<WorkflowList>({
-      queryKey: ["workflows"],
-      queryFn: loadWorkflows
-    });
+  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
+  });
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [agentMode, setAgentMode] = useState(false);
 
-  const { data: examplesData, isLoading: isLoadingExamples } =
-    useQuery<WorkflowList>({
-      queryKey: ["examples"],
-      queryFn: loadExamples
-    });
+  useEffect(() => {
+    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
+  }, [selectedModel]);
 
-  // Filter examples to show only those with "start" tag
-  const startExamples =
-    examplesData?.workflows.filter(
-      (workflow) =>
-        workflow.tags?.includes("start") ||
-        workflow.tags?.includes("getting-started")
-    ) || [];
+  const {
+    isLoadingWorkflows,
+    sortedWorkflows,
+    isLoadingExamples,
+    startExamples
+  } = useDashboardData();
 
-  // Sort workflows
-  const sortedWorkflows =
-    workflowsData?.workflows.sort((a, b) => {
-      if (settings.workflowOrder === "name") {
-        return a.name.localeCompare(b.name);
+  const {
+    loadingExampleId,
+    handleCreateNewWorkflow,
+    handleWorkflowClick,
+    handleExampleClick,
+    handleViewAllExamples
+  } = useWorkflowActions();
+
+  const {
+    status,
+    sendMessage,
+    onNewThread,
+    onSelectThread,
+    getThreadPreview,
+    threads,
+    deleteThread,
+    progress,
+    statusMessage,
+    stopGeneration,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentThreadId
+  } = useChatService(selectedModel);
+
+  const handleModelChange = useCallback((model: LanguageModel) => {
+    setSelectedModel(model);
+  }, []);
+
+  const handleOrderChange = useCallback(
+    (_: any, newOrder: any) => {
+      if (newOrder !== null) {
+        setWorkflowOrder(newOrder);
       }
-      return b.updated_at.localeCompare(a.updated_at);
-    }) || [];
-
-  const currentWorkflow = workflowsData?.workflows.find(
-    (workflow) => workflow.id === currentWorkflowId
+    },
+    [setWorkflowOrder]
   );
 
-  const handleCreateNewWorkflow = async () => {
-    const workflow = await createNewWorkflow();
-    navigate(`/editor/${workflow.id}`);
-  };
+  const handleToolsChange = useCallback((tools: string[]) => {
+    setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
+  }, []);
 
-  const handleWorkflowClick = (workflow: Workflow) => {
-    navigate(`/editor/${workflow.id}`);
-  };
-
-  const handleExampleClick = async (example: Workflow) => {
-    if (loadingExampleId) return;
-
-    setLoadingExampleId(example.id);
-    try {
-      const tags = example.tags || [];
-      if (!tags.includes("example")) {
-        tags.push("example");
+  const panelParams = useMemo(() => {
+    return {
+      examples: {
+        startExamples,
+        isLoadingExamples,
+        loadingExampleId,
+        handleExampleClick,
+        handleViewAllExamples
+      },
+      workflows: {
+        sortedWorkflows,
+        isLoadingWorkflows,
+        settings,
+        handleOrderChange,
+        handleCreateNewWorkflow,
+        handleWorkflowClick
+      },
+      "recent-chats": {
+        threads: threads as { [key: string]: Thread },
+        currentThreadId,
+        onNewThread: onNewThread,
+        onSelectThread: onSelectThread,
+        onDeleteThread: deleteThread,
+        getThreadPreview
+      },
+      chat: {
+        status,
+        sendMessage,
+        progress,
+        statusMessage,
+        model: selectedModel,
+        selectedTools,
+        onToolsChange: handleToolsChange,
+        onModelChange: handleModelChange,
+        onStop: stopGeneration,
+        onNewChat: onNewThread,
+        agentMode,
+        onAgentModeToggle: setAgentMode,
+        currentPlanningUpdate,
+        currentTaskUpdate
       }
+    };
+  }, [
+    startExamples,
+    isLoadingExamples,
+    loadingExampleId,
+    handleExampleClick,
+    handleViewAllExamples,
+    sortedWorkflows,
+    isLoadingWorkflows,
+    settings,
+    handleOrderChange,
+    handleCreateNewWorkflow,
+    handleWorkflowClick,
+    threads,
+    currentThreadId,
+    onNewThread,
+    onSelectThread,
+    deleteThread,
+    getThreadPreview,
+    status,
+    sendMessage,
+    progress,
+    statusMessage,
+    selectedModel,
+    selectedTools,
+    handleToolsChange,
+    handleModelChange,
+    stopGeneration,
+    agentMode,
+    setAgentMode,
+    currentPlanningUpdate,
+    currentTaskUpdate
+  ]);
 
-      const req = {
-        name: example.name,
-        package_name: example.package_name,
-        description: example.description,
-        tags: tags,
-        access: "private",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+  const panelComponents = useMemo(() => createPanelComponents(), []);
 
-      const newWorkflow = await createWorkflow(
-        req,
-        example.package_name || undefined,
-        example.name
-      );
-      navigate(`/editor/${newWorkflow.id}`);
-    } catch (error) {
-      console.error("Error copying example:", error);
-      setLoadingExampleId(null);
-    }
-  };
+  const onReady = useCallback(
+    (event: DockviewReadyEvent) => {
+      const { api } = event;
+      setDockviewApi(api);
 
-  const handleOrderChange = (_: any, newOrder: any) => {
-    if (newOrder !== null) {
-      setWorkflowOrder(newOrder);
-    }
-  };
+      const { activeLayoutId, layouts } = useLayoutStore.getState();
+      const activeLayout = (layouts || []).find((l) => l.id === activeLayoutId);
 
-  const handleViewAllExamples = () => {
-    navigate("/examples");
-  };
+      if (activeLayout) {
+        api.fromJSON(activeLayout.layout);
+      } else {
+        api.fromJSON(defaultLayout);
+      }
+    },
 
-  const handleThreadSelect = (threadId: string) => {
-    switchThread(threadId);
-    navigate(`/chat/${threadId}`);
-  };
+    []
+  );
 
-  const handleNewThread = async () => {
+  // Remove automatic debounced saving - layouts should be saved explicitly
+  // Keep this function for explicit saves when needed
+  const saveLayout = useCallback(() => {
+    if (!isMountedRef.current || !dockviewApi) return;
+
     try {
-      const newThreadId = await createNewThread();
-      switchThread(newThreadId);
-      navigate(`/chat/${newThreadId}`);
+      const { activeLayoutId, updateActiveLayout } = useLayoutStore.getState();
+      if (activeLayoutId) {
+        const layout = dockviewApi.toJSON();
+        updateActiveLayout(layout);
+      }
     } catch (error) {
-      console.error("Failed to create new thread:", error);
+      console.error("Failed to save layout:", error);
     }
-  };
+  }, [dockviewApi]);
 
-  const getThreadPreview = (threadId: string) => {
-    const thread = threads[threadId];
-    if (!thread) {
-      return "No messages yet";
-    }
+  // Track mount status for memory leak prevention
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    // Use thread title if available
-    if (thread.title) {
-      return truncateString(thread.title, 100);
-    }
+  useEffect(() => {
+    if (!dockviewApi) return;
 
-    // Check if we have cached messages for this thread
-    const threadMessages = messageCache[threadId];
-    if (!threadMessages || threadMessages.length === 0) {
-      return "New conversation";
-    }
+    const allPanelIds = Object.keys(PANEL_CONFIG);
 
-    const firstUserMessage = threadMessages.find((m) => m.role === "user");
-    const preview = firstUserMessage?.content
-      ? typeof firstUserMessage.content === "string"
-        ? firstUserMessage.content
-        : "Chat started"
-      : "Chat started";
+    const updateAvailablePanels = () => {
+      const openPanelIds = dockviewApi.panels.map((p) => p.id);
+      const closedPanels = allPanelIds
+        .filter((id) => !openPanelIds.includes(id))
+        .map((id) => ({
+          id,
+          title: PANEL_CONFIG[id as keyof typeof PANEL_CONFIG].title
+        }));
+      setAvailablePanels(closedPanels);
+    };
 
-    return truncateString(preview, 100);
-  };
+    updateAvailablePanels();
+
+    const disposableAdd = dockviewApi.onDidAddPanel(updateAvailablePanels);
+    const disposableRemove = dockviewApi.onDidRemovePanel(
+      updateAvailablePanels
+    );
+
+    return () => {
+      disposableAdd.dispose();
+      disposableRemove.dispose();
+    };
+  }, [dockviewApi]);
+
+  useEffect(() => {
+    if (!dockviewApi) return;
+
+    Object.entries(panelParams).forEach(([id, params]) => {
+      const panel = dockviewApi.getPanel(id);
+      if (panel && !isEqual(panel.params, params)) {
+        panel.update({ params });
+      }
+    });
+  }, [dockviewApi, panelParams]);
+
+  const handleAddPanel = useCallback(
+    (panelId: string) => {
+      if (!dockviewApi) return;
+      dockviewApi.addPanel({
+        id: panelId,
+        component: panelId,
+        title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
+        params: panelParams[panelId as keyof typeof panelParams]
+      });
+    },
+    [dockviewApi, panelParams]
+  );
 
   return (
-    <Box css={styles}>
-      {/* Start Examples Section */}
-      <Box className="section examples-section">
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}
-        >
-          <Typography variant="h2" className="section-title">
-            Examples
-          </Typography>
-          {currentWorkflowId && <BackToEditorButton />}
-        </Box>
-        <Box className="content-scrollable">
-          {isLoadingExamples ? (
-            <Box className="loading-container">
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Box className="example-grid">
-              {startExamples.map((example) => (
-                <Box
-                  key={example.id}
-                  className="example-card"
-                  onClick={() => handleExampleClick(example)}
-                >
-                  {loadingExampleId === example.id && (
-                    <Box className="loading-overlay">
-                      <CircularProgress size={30} />
-                    </Box>
-                  )}
-                  <img
-                    className="example-image"
-                    src={`${BASE_URL}/api/assets/packages/${example.package_name}/${example.name}.jpg`}
-                    alt={example.name}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                  <Typography className="example-name">
-                    {example.name}
-                  </Typography>
-                  {example.description && (
-                    <Typography className="example-description-tooltip">
-                      {truncateString(example.description, 150)}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </Box>
-        <Button
-          onClick={handleViewAllExamples}
-          sx={{ marginTop: 2, alignSelf: "center" }}
-        >
-          View All Examples
-        </Button>
-      </Box>
-
-      {/* Recent Threads Section */}
-      <Box className="section threads-section">
-        <Typography variant="h2" className="section-title">
-          Recent Chats
-        </Typography>
-        <Box className="content-scrollable">
-          <ThreadList
-            threads={Object.fromEntries(
-              Object.entries(threads)
-                .sort(([, a], [, b]) => b.updated_at.localeCompare(a.updated_at))
-                .slice(0, 5)
-                .map(([id, thread]) => [
-                  id,
-                  {
-                    id: thread.id,
-                    title: thread.title,
-                    updatedAt: thread.updated_at,
-                    messages: messageCache[id] || []
-                  }
-                ])
-            )}
-            currentThreadId={currentThreadId}
-            onNewThread={handleNewThread}
-            onSelectThread={handleThreadSelect}
-            onDeleteThread={deleteThread}
-            getThreadPreview={getThreadPreview}
-          />
-        </Box>
-      </Box>
-
-      {/* Recent Workflows Section */}
-      <Box className="section workflows-section">
-        <Box className="header-controls">
-          <Typography variant="h2" className="section-title">
-            Recent Workflows
-          </Typography>
-          <Box
-            className="workflow-controls"
-            sx={{ display: "flex", gap: 2, alignItems: "center" }}
-          >
-            <ToggleButtonGroup
-              className="sort-toggle"
-              value={settings.workflowOrder}
-              onChange={handleOrderChange}
-              exclusive
-              size="small"
-            >
-              <ToggleButton value="name">Name</ToggleButton>
-              <ToggleButton value="updated_at">Date</ToggleButton>
-            </ToggleButtonGroup>
-            <Button
-              className="create-button"
-              startIcon={<AddIcon />}
-              onClick={handleCreateNewWorkflow}
-              size="small"
-            >
-              Create New
-            </Button>
-          </Box>
-        </Box>
-
-        <Box className="content-scrollable">
-          {isLoadingWorkflows ? (
-            <Box className="loading-container">
-              <CircularProgress />
-            </Box>
-          ) : (
-            sortedWorkflows.map((workflow) => (
-              <Box
-                key={workflow.id}
-                className="workflow-item"
-                onClick={() => handleWorkflowClick(workflow)}
-              >
-                <Box
-                  className="workflow-thumbnail"
-                  sx={{
-                    backgroundImage: workflow.thumbnail_url
-                      ? `url(${workflow.thumbnail_url})`
-                      : undefined
-                  }}
-                />
-                <Box className="workflow-info">
-                  <Typography className="workflow-name">
-                    {workflow.name}
-                  </Typography>
-                  <Typography className="workflow-description">
-                    {truncateString(workflow.description, 100)}
-                  </Typography>
-                </Box>
-                <Typography className="workflow-date">
-                  {relativeTime(workflow.updated_at)}
-                </Typography>
-              </Box>
-            ))
-          )}
-        </Box>
-      </Box>
+    <Box
+      className="dashboard"
+      css={styles}
+      sx={{ height: "100vh", width: "100vw", position: "relative" }}
+    >
+      <DashboardHeader showBackToEditor={!!currentWorkflowId}>
+        <LayoutMenu dockviewApi={dockviewApi} />
+        <AddPanelDropdown
+          availablePanels={availablePanels}
+          onAddPanel={handleAddPanel}
+        />
+      </DashboardHeader>
+      <DockviewReact
+        components={panelComponents}
+        onReady={onReady}
+        className="dockview-container"
+      />
     </Box>
   );
 };
