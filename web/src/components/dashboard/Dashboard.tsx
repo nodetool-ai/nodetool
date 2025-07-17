@@ -1,7 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef
+} from "react";
 import { Box } from "@mui/material";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -102,6 +108,7 @@ const Dashboard: React.FC = () => {
   }));
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   const [availablePanels, setAvailablePanels] = useState<any[]>([]);
+  const isMountedRef = useRef(true);
 
   // Ensure WebSocket connection is established when Dashboard mounts
   useEffect(() => {
@@ -275,18 +282,29 @@ const Dashboard: React.FC = () => {
     []
   );
 
-  useEffect(() => {
-    if (!dockviewApi) return;
+  // Remove automatic debounced saving - layouts should be saved explicitly
+  // Keep this function for explicit saves when needed
+  const saveLayout = useCallback(() => {
+    if (!isMountedRef.current || !dockviewApi) return;
 
-    return () => {
-      // Save on unmount
+    try {
       const { activeLayoutId, updateActiveLayout } = useLayoutStore.getState();
       if (activeLayoutId) {
         const layout = dockviewApi.toJSON();
         updateActiveLayout(layout);
       }
-    };
+    } catch (error) {
+      console.error("Failed to save layout:", error);
+    }
   }, [dockviewApi]);
+
+  // Track mount status for memory leak prevention
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!dockviewApi) return;
