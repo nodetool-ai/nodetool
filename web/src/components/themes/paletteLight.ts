@@ -147,9 +147,9 @@ export const paletteLight: PaletteOptions = {
   c_editor_axis_color: "#ddd",
 
   primary: {
-    main: "#11ff22",
-    light: "#55ff88",
-    dark: "#11cc22",
+    main: "#00cc11",
+    light: "#33dd44",
+    dark: "#009911",
     contrastText: "#000"
   },
   // primary: {

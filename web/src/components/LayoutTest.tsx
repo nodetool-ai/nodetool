@@ -1,45 +1,61 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import { Tabs, Tab, Box, Switch } from '@mui/material';
-import ThemeNodetool from './themes/ThemeNodetool';
-import ThemeNodes from './themes/ThemeNodes';
-import { muiComponentsByCategory } from './layout_test/componentsList';
-import * as Demo from './layout_test';
+import React, { useState, useEffect } from "react";
+import { useColorScheme } from "@mui/material/styles";
+import { Tabs, Tab, Box, Switch } from "@mui/material";
+import { muiComponentsByCategory } from "./layout_test/componentsList";
+import * as Demo from "./layout_test";
 
-const categories = Object.keys(muiComponentsByCategory) as Array<keyof typeof muiComponentsByCategory>;
+const categories = Object.keys(muiComponentsByCategory) as Array<
+  keyof typeof muiComponentsByCategory
+>;
 
 const LayoutTest: React.FC = () => {
-  const [theme, setTheme] = useState(ThemeNodetool);
   const [tab, setTab] = useState(0);
+  const { mode, setMode } = useColorScheme();
 
-  const toggleTheme = () => {
-    setTheme((t) => (t === ThemeNodetool ? ThemeNodes : ThemeNodetool));
+  useEffect(() => {
+    console.log("Current color scheme mode:", mode);
+    const root = document.documentElement;
+    console.log(
+      "color-scheme CSS property:",
+      getComputedStyle(root).getPropertyValue("color-scheme")
+    );
+    console.log(
+      "--palette-primary-main CSS variable:",
+      getComputedStyle(root).getPropertyValue("--palette-primary-main").trim()
+    );
+  }, [mode]);
+
+  const toggleColorMode = () => {
+    setMode(mode === "light" ? "dark" : "light");
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ p: 2 }}>
-        <Switch checked={theme === ThemeNodes} onChange={toggleTheme} />
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-          {categories.map((cat, idx) => (
-            <Tab key={cat} label={cat} value={idx} />
-          ))}
-        </Tabs>
+    <Box sx={{ p: 2 }}>
+      <Switch checked={mode === "dark"} onChange={toggleColorMode} />
+      <Tabs value={tab} onChange={(_, v) => setTab(v)}>
         {categories.map((cat, idx) => (
-          <Box
-            key={cat}
-            hidden={tab !== idx}
-            sx={{ display: tab === idx ? 'flex' : 'none', flexWrap: 'wrap', gap: 2, mt: 2 }}
-          >
-            {muiComponentsByCategory[cat].map((name) => {
-              const Comp = (Demo as any)[name];
-              return Comp ? <Comp key={name} /> : null;
-            })}
-          </Box>
+          <Tab key={cat} label={cat} value={idx} />
         ))}
-      </Box>
-    </ThemeProvider>
+      </Tabs>
+      {categories.map((cat, idx) => (
+        <Box
+          key={cat}
+          hidden={tab !== idx}
+          sx={{
+            display: tab === idx ? "flex" : "none",
+            flexWrap: "wrap",
+            gap: 2,
+            mt: 2
+          }}
+        >
+          {muiComponentsByCategory[cat].map((name) => {
+            const Comp = (Demo as any)[name];
+            return Comp ? <Comp key={name} /> : null;
+          })}
+        </Box>
+      ))}
+    </Box>
   );
 };
 
