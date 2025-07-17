@@ -7,10 +7,6 @@ import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { isEqual } from "lodash";
-import ChatView from "../chat/containers/ChatView";
-import ExamplesList from "./ExamplesList";
-import WorkflowsList from "./WorkflowsList";
-import RecentChats from "./RecentChats";
 import DashboardHeader from "./DashboardHeader";
 import {
   DockviewReact,
@@ -29,13 +25,8 @@ import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
 import { Button } from "@mui/material";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-
-const PANEL_CONFIG = {
-  examples: { title: "Examples" },
-  workflows: { title: "Recent Workflows" },
-  "recent-chats": { title: "Recent Chats" },
-  chat: { title: "Chat" }
-};
+import { PANEL_CONFIG, PanelProps } from "./panelConfig";
+import { createPanelComponents } from "./panelComponents";
 
 const styles = (theme: Theme) =>
   css({
@@ -102,10 +93,6 @@ const styles = (theme: Theme) =>
       marginTop: 0
     }
   });
-
-interface PanelProps {
-  [key: string]: any;
-}
 
 const Dashboard: React.FC = () => {
   const settings = useSettingsStore((state) => state.settings);
@@ -268,68 +255,7 @@ const Dashboard: React.FC = () => {
     currentTaskUpdate
   ]);
 
-  const panelComponents = useMemo(
-    () => ({
-      examples: (props: IDockviewPanelProps<PanelProps>) => (
-        <ExamplesList
-          startExamples={props.params?.startExamples || []}
-          isLoadingExamples={props.params?.isLoadingExamples ?? true}
-          loadingExampleId={props.params?.loadingExampleId || null}
-          handleExampleClick={props.params?.handleExampleClick || (() => {})}
-          handleViewAllExamples={
-            props.params?.handleViewAllExamples || (() => {})
-          }
-        />
-      ),
-      workflows: (props: IDockviewPanelProps<PanelProps>) => (
-        <WorkflowsList
-          sortedWorkflows={props.params?.sortedWorkflows || []}
-          isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
-          settings={props.params?.settings || {}}
-          handleOrderChange={props.params?.handleOrderChange || (() => {})}
-          handleCreateNewWorkflow={
-            props.params?.handleCreateNewWorkflow || (() => {})
-          }
-          handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
-        />
-      ),
-      "recent-chats": (props: IDockviewPanelProps<PanelProps>) => (
-        <Box sx={{ overflow: "auto", height: "100%" }}>
-          <RecentChats
-            threads={props.params?.threads || {}}
-            currentThreadId={props.params?.currentThreadId || null}
-            onNewThread={props.params?.onNewThread || (() => {})}
-            onSelectThread={props.params?.onSelectThread || (() => {})}
-            onDeleteThread={props.params?.onDeleteThread || (() => {})}
-            getThreadPreview={
-              props.params?.getThreadPreview || (() => "No messages yet")
-            }
-          />
-        </Box>
-      ),
-      chat: (props: IDockviewPanelProps<PanelProps>) => (
-        <ChatView
-          status={props.params?.status || "disconnected"}
-          messages={[]}
-          sendMessage={props.params?.sendMessage || (() => {})}
-          progress={props.params?.progress?.current || 0}
-          total={props.params?.progress?.total || 0}
-          progressMessage={props.params?.statusMessage || ""}
-          model={props.params?.model || DEFAULT_MODEL}
-          selectedTools={props.params?.selectedTools || []}
-          onToolsChange={props.params?.onToolsChange || (() => {})}
-          onModelChange={props.params?.onModelChange || (() => {})}
-          onStop={props.params?.onStop || (() => {})}
-          onNewChat={props.params?.onNewChat || (() => {})}
-          agentMode={props.params?.agentMode || false}
-          onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
-          currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
-          currentTaskUpdate={props.params?.currentTaskUpdate || null}
-        />
-      )
-    }),
-    []
-  );
+  const panelComponents = useMemo(() => createPanelComponents(), []);
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
