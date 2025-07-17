@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
+import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
   Typography,
@@ -24,7 +25,7 @@ interface WorkflowsListProps {
   handleWorkflowClick: (workflow: Workflow) => void;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[800],
     borderRadius: theme.spacing(1),
@@ -140,8 +141,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   handleCreateNewWorkflow,
   handleWorkflowClick
 }) => {
-  // Try to get theme from MUI, fallback to undefined
-  const theme = (window as any).muiTheme || undefined;
+  const theme = useTheme();
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">

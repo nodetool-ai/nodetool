@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
@@ -118,8 +119,7 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
   handleExampleClick,
   handleViewAllExamples
 }) => {
-  // Try to get theme from MUI, fallback to undefined
-  const theme = (window as any).muiTheme || undefined;
+  const theme = useTheme();
   return (
     <Box className="examples-list" css={styles(theme)}>
       <Box
