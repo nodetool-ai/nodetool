@@ -49,10 +49,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       {onNewChat && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
           <span style={{ display: "inline-flex" }}>
-            <NewChatComposerButton
-              disabled={isDisabled}
-              onClick={onNewChat}
-            />
+            <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />
           </span>
         </Tooltip>
       )}

@@ -7,6 +7,8 @@ import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 const styles = css({
   width: "100%",
   minHeight: "120px",
+  maxHeight: "200px",
+  overflowY: "auto",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -69,7 +71,7 @@ const ChatInputSection = ({
   selectedModel,
   onModelChange,
   agentMode,
-  onAgentModeToggle,
+  onAgentModeToggle
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
 
@@ -93,7 +95,10 @@ const ChatInputSection = ({
             onStop={onStop}
             onNewChat={onNewChat}
             disabled={
-              status === "loading" || status === "streaming" || status === "error" || isDisconnected
+              status === "loading" ||
+              status === "streaming" ||
+              status === "error" ||
+              isDisconnected
             }
             agentMode={agentMode}
           />

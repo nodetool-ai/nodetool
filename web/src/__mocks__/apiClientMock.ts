@@ -1,20 +1,17 @@
 // Mock API Client for Jest
 export const BASE_URL = "http://localhost:8000";
 
-export default class ApiClient {
-  static async get() {
-    return { data: [] };
-  }
+// Provide a minimal client stub with jest.fn methods used in the codebase
+export const client = {
+  GET: jest.fn(),
+  POST: jest.fn(),
+  PUT: jest.fn(),
+  DELETE: jest.fn()
+};
 
-  static async post() {
-    return { data: {} };
-  }
+// Additional constants expected by imports
+export const CHAT_URL = "ws://test/chat";
+export const isLocalhost = true;
 
-  static async put() {
-    return { data: {} };
-  }
-
-  static async delete() {
-    return { data: {} };
-  }
-}
+// Default export to maintain compatibility with any default imports
+export default { client, CHAT_URL, isLocalhost };

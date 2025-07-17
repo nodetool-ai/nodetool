@@ -199,7 +199,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       const newNodeTypes = selectedNodeTypes.includes(nodeType)
         ? selectedNodeTypes.filter((type) => type !== nodeType)
         : [...selectedNodeTypes, nodeType];
-      onChange(newNodeTypes);
+      if (!isEqual(newNodeTypes, selectedNodeTypes)) {
+        onChange(newNodeTypes);
+      }
     },
     [selectedNodeTypes, onChange]
   );

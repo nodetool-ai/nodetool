@@ -9,20 +9,34 @@ import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
 import BackToEditorButton from "../../panels/BackToEditorButton";
 import BackToDashboardButton from "../../panels/BackToDashboardButton";
-import useGlobalChatStore, { useThreadsQuery } from "../../../stores/GlobalChatStore";
+import useGlobalChatStore, {
+  useThreadsQuery
+} from "../../../stores/GlobalChatStore";
 import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
+import { isEqual } from "lodash";
+
+// Memoized header component to prevent re-renders during streaming
+const ChatHeader = React.memo(() => (
+  <Box
+    className="chat-header"
+    sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
+  >
+    <BackToDashboardButton />
+    <BackToEditorButton />
+  </Box>
+));
+
+ChatHeader.displayName = "ChatHeader";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
   const {
     connect,
-    disconnect,
     status,
     sendMessage,
     progress,
-    resetMessages,
     statusMessage,
     error,
     currentThreadId,
@@ -41,10 +55,11 @@ const GlobalChat: React.FC = () => {
   } = useGlobalChatStore();
 
   // Use the consolidated TanStack Query hook from the store
-  const {
-    isLoading: isLoadingThreads,
-    error: threadsError
-  } = useThreadsQuery();
+  const { isLoading: isLoadingThreads, error: threadsError } =
+    useThreadsQuery();
+
+  // Get messages from store
+  const messages = getCurrentMessagesSync();
 
   const tryParseModel = (model: string) => {
     try {
@@ -65,23 +80,18 @@ const GlobalChat: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Get messages from store
-  const messages = getCurrentMessagesSync();
-
-  // Connect once on mount and clean up on unmount
+  // Ensure WebSocket connection when GlobalChat mounts
   useEffect(() => {
-    if (status === "disconnected") {
+    const { status, connect } = useGlobalChatStore.getState();
+    if (status === "disconnected" || status === "failed") {
       connect().catch((error) => {
-        console.error("Failed to connect to global chat:", error);
+        console.error(
+          "GlobalChat: Failed to establish chat connection:",
+          error
+        );
       });
     }
-
-    return () => {
-      // Only disconnect on actual unmount, not on thread changes
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, []);
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -111,7 +121,7 @@ const GlobalChat: React.FC = () => {
         } else if (!currentThreadId && !thread_id) {
           // Create new thread if none exists
           const newThreadId = await createNewThread();
-          
+
           // Check if operation was cancelled before switching
           if (!abortController.signal.aborted) {
             switchThread(newThreadId);
@@ -134,33 +144,12 @@ const GlobalChat: React.FC = () => {
         abortControllerRef.current = null;
       }
     };
-  }, [thread_id, currentThreadId, switchThread, createNewThread, threadsLoaded, isLoadingThreads]);
-
-  // Monitor connection state and reconnect when disconnected or failed
-  useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    const attemptReconnect = () => {
-      if (status === "disconnected" || status === "failed") {
-        console.log("Connection lost, attempting automatic reconnect...");
-        connect().catch((error) => {
-          console.error("Automatic reconnect failed:", error);
-        });
-      }
-    };
-
-    // Check connection state periodically
-    if (status === "disconnected" || status === "failed") {
-      // Initial reconnect attempt after 2 seconds
-      reconnectTimer = setTimeout(attemptReconnect, 2000);
-    }
-
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [status, connect]);
+  }, [
+    thread_id,
+    currentThreadId
+    // Removed: threadsLoaded, isLoadingThreads to prevent re-runs during streaming
+    // These are checked inside the effect instead
+  ]);
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
@@ -263,13 +252,7 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        <Box
-          className="chat-header"
-          sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
-        >
-          <BackToDashboardButton />
-          <BackToEditorButton />
-        </Box>
+        <ChatHeader />
 
         {(error ||
           status === "reconnecting" ||
@@ -314,7 +297,7 @@ const GlobalChat: React.FC = () => {
             progressMessage={statusMessage}
             model={selectedModel}
             selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
+            // onToolsChange={handleToolsChange}
             selectedCollections={selectedCollections}
             onCollectionsChange={setSelectedCollections}
             onModelChange={setSelectedModel}

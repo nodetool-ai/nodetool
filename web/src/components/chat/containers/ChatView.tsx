@@ -13,6 +13,7 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 import { Provider } from "../../../stores/ApiTypes";
+import { Typography } from "@mui/material";
 
 const styles = () =>
   css({
@@ -153,7 +154,9 @@ const ChatView = ({
           currentTaskUpdate={currentTaskUpdate}
         />
       ) : (
-        noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+        noMessagesPlaceholder ?? (
+          <div className="no-messages-placeholder">{noMessagesPlaceholder}</div>
+        )
       )}
 
       <ChatInputSection

@@ -102,12 +102,14 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
-    createNewThread().then((newThreadId) => {
-      switchThread(newThreadId);
-      setIsThreadListOpen(false);
-    }).catch((error) => {
-      console.error("Failed to create new thread:", error);
-    });
+    createNewThread()
+      .then((newThreadId) => {
+        switchThread(newThreadId);
+        setIsThreadListOpen(false);
+      })
+      .catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
   }, [createNewThread, switchThread]);
 
   const handleSelectThread = useCallback(
@@ -175,11 +177,13 @@ const WorkflowAssistantChat: React.FC = () => {
   // Ensure a thread exists after connection
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
-      createNewThread().then((newThreadId) => {
-        switchThread(newThreadId);
-      }).catch((error) => {
-        console.error("Failed to create new thread:", error);
-      });
+      createNewThread()
+        .then((newThreadId) => {
+          switchThread(newThreadId);
+        })
+        .catch((error) => {
+          console.error("Failed to create new thread:", error);
+        });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
 
@@ -256,7 +260,7 @@ const WorkflowAssistantChat: React.FC = () => {
             <ListIcon />
           </IconButton>
         </Tooltip>
-        <NewChatButton onNewThread={createNewThread} />
+        <NewChatButton onNewThread={() => createNewThread()} />
       </div>
       {/* Thread List Modal */}
       <Dialog
