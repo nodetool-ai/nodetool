@@ -39,6 +39,8 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
+    c_selection_rect?: string;
+
     background?: { default?: string; paper?: string };
     Paper?: {
       default?: string;
@@ -78,6 +80,8 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
+    c_selection_rect?: string;
+
     background: { default: string; paper: string };
     Paper: {
       default: string;
@@ -148,6 +152,7 @@ export const paletteLight: PaletteOptions = {
   c_editor_bg_color: "#fff",
   c_editor_grid_color: "#ccc",
   c_editor_axis_color: "#eee",
+  c_selection_rect: "#bababa33",
 
   primary: {
     main: "#00cc11",
