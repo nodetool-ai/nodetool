@@ -71,6 +71,7 @@ const styles = (theme: Theme) =>
       },
       "& .MuiAutocomplete-popper": {
         backgroundColor: theme.palette.grey[800],
+        zIndex: theme.zIndex.autocomplete,
         "& .MuiPaper-root": {
           backgroundColor: theme.palette.grey[800],
           color: theme.palette.grey[0]
@@ -340,7 +341,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             slotProps={{
               popper: {
                 style: {
-                  zIndex: 99999
+                  zIndex: theme.zIndex.autocomplete
                 }
               }
             }}

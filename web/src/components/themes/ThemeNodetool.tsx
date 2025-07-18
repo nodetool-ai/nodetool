@@ -14,7 +14,7 @@ import "@fontsource/jetbrains-mono/300.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 
-declare module "@mui/system/createTheme" {
+declare module "@mui/material/styles" {
   interface ThemeOptions {
     fontSizeGiant?: string;
     fontSizeBigger?: string;
@@ -27,17 +27,58 @@ declare module "@mui/system/createTheme" {
     fontFamily1?: string;
     fontFamily2?: string;
   }
-  interface Theme {
+  // interface Theme {
+  //   fontSizeGiant: string;
+  //   fontSizeBigger: string;
+  //   fontSizeBig: string;
+  //   fontSizeNormal: string;
+  //   fontSizeSmall: string;
+  //   fontSizeSmaller: string;
+  //   fontSizeTiny: string;
+  //   fontSizeTinyer: string;
+  //   fontFamily1: string;
+  //   fontFamily2: string;
+  // }
+  interface CssVarsThemeOptions {
+    fontSizeGiant?: string;
+    fontSizeBigger?: string;
+    fontSizeBig?: string;
+    fontSizeNormal?: string;
+    fontSizeSmall?: string;
+    fontSizeSmaller?: string;
+    fontSizeTiny?: string;
+    fontSizeTinyer?: string;
+    fontFamily1?: string;
+    fontFamily2?: string;
+  }
+  interface CssVarsTheme {
     fontSizeGiant: string;
     fontSizeBigger: string;
     fontSizeBig: string;
     fontSizeNormal: string;
     fontSizeSmall: string;
-    fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
+    fontSizeSmaller: string;
+    fontSizeTiny: string;
+    fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
+  }
+  interface ZIndex {
+    mobileStepper: number;
+    fab: number;
+    speedDial: number;
+    appBar: number;
+    drawer: number;
+    modal: number;
+    snackbar: number;
+    tooltip: number;
+    behind: number;
+    base: number;
+    commandMenu: number;
+    popover: number;
+    autocomplete: number;
+    popover2: number;
+    highest: number;
   }
 }
 
@@ -71,6 +112,26 @@ const ThemeNodetool = createTheme({
   spacing: 4,
   shape: {
     borderRadius: 4
+  },
+  zIndex: {
+    // MUI
+    mobileStepper: 1000,
+    fab: 1050,
+    speedDial: 1050,
+    appBar: 1100,
+    drawer: 1200,
+    modal: 1300,
+    snackbar: 1400,
+    tooltip: 1500,
+
+    // Nodetool
+    behind: -1,
+    base: 0,
+    commandMenu: 9999,
+    popover: 10001,
+    popover2: 99990,
+    autocomplete: 10002,
+    highest: 100000
   },
   components: {
     MuiTypography: {
@@ -180,12 +241,12 @@ const ThemeNodetool = createTheme({
     },
     MuiPopover: {
       styleOverrides: {
-        root: { zIndex: 99990 }
+        root: ({ theme }) => ({ zIndex: theme.zIndex.popover2 })
       }
     },
     MuiModal: {
       styleOverrides: {
-        root: { zIndex: 10000 }
+        root: ({ theme }) => ({ zIndex: theme.zIndex.modal })
       }
     },
     MuiToolbar: {
