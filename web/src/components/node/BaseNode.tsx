@@ -312,7 +312,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
-        border: theme.palette.mode === "light" ? "1px solid #ccc" : "none",
+        border:
+          theme.palette.mode === "light"
+            ? selected
+              ? "1px solid #000"
+              : "1px solid #ccc"
+            : "none",
         backgroundColor:
           hasParent && !isLoading ? parentColor : theme.palette.c_node_bg
       }}

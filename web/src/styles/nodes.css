@@ -228,9 +228,10 @@
 }
 
 /* Node selection */
-.react-flow__node.selected {
-  box-shadow: 0 0 0 2px #fffa,
-    0.15em 0.15em 1.2em 0px rgba(0, 0, 0, 0.6);
+ .react-flow__node.selected {
+  outline-color: var(--palette-text-primary) !important;
+  box-shadow: 0 0 0 2px var(--palette-text-primary),
+    0.1em 0.1em 0.8em 0px rgba(0, 0, 0, 0.6);
 }
 
 /* Compact nodes */
