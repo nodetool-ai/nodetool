@@ -11,7 +11,7 @@ import {
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
@@ -51,14 +51,14 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: "rgba(0, 0, 0, 0.9)" // Darker backdrop
+            backgroundColor: alpha(theme.palette.background.paper, 0.7)
           }
-        }
-      }}
-      PaperProps={{
-        sx: {
-          backgroundColor: "rgba(0, 0, 0, 0.85)",
-          color: "white"
+        },
+        paper: {
+          sx: {
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary
+          }
         }
       }}
     >

@@ -101,7 +101,7 @@ export const paletteLight: PaletteOptions = {
     contrastText: "#000"
   },
   info: {
-    main: "#E0E028",
+    main: "#B0B620",
     contrastText: "#000"
   },
   success: {
