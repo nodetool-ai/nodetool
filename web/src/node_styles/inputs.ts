@@ -13,7 +13,7 @@ export const inputStyles = (theme: Theme) =>
   css({
     /* MuiInputBase */
     ".MuiInputBase-root": {
-      fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       lineHeight: "1.1em",
       margin: 0,
       padding: 0,
@@ -32,7 +32,7 @@ export const inputStyles = (theme: Theme) =>
     ".MuiInputBase-inputMultiline": {
       margin: 0,
       padding: "2px 8px 0px 4px",
-      backgroundColor: theme.palette?.grey?.[600] || "var(--palette-grey-600)",
+      backgroundColor: theme.palette.grey[600],
       resize: "vertical" as const
     },
 
@@ -43,8 +43,8 @@ export const inputStyles = (theme: Theme) =>
 
     /* MuiTextField */
     ".MuiTextField-root": {
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-      fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
       lineHeight: "1.0em",
       backgroundColor: "transparent",
       minHeight: 15,
@@ -57,13 +57,13 @@ export const inputStyles = (theme: Theme) =>
       },
 
       ".MuiInputBase-inputMultiline": {
-        fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-        fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller,
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeSmaller,
         lineHeight: "1.1em",
         cursor: "auto",
 
         "&.edit-value": {
-          fontFamily: theme.fontFamily1 || themeVariables.fontFamily1
+          fontFamily: theme.fontFamily1
         }
       },
 
@@ -80,14 +80,14 @@ export const inputStyles = (theme: Theme) =>
       transform: "translate(0px, 0px) scale(1.0)",
       textTransform: "capitalize" as const,
       transformOrigin: "top left",
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-      fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
       lineHeight: "1em",
       minHeight: "1.2em",
       margin: 0,
 
       "&.Mui-focused": {
-        color: theme.palette?.grey?.[0] || "var(--palette-grey-0)"
+        color: theme.palette.grey[0]
       }
     },
 
@@ -101,7 +101,7 @@ export const inputStyles = (theme: Theme) =>
 // Individual style functions for component-specific use
 export const inputBaseStyle = (theme: Theme) =>
   css({
-    fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal,
+    fontSize: theme.fontSizeNormal,
     lineHeight: "1.1em",
     margin: 0,
     padding: 0,
@@ -115,8 +115,8 @@ export const inputBaseStyle = (theme: Theme) =>
 
 export const textFieldStyle = (theme: Theme) =>
   css({
-    fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-    fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+    fontFamily: theme.fontFamily1,
+    fontSize: theme.fontSizeSmall,
     lineHeight: "1.0em",
     backgroundColor: "transparent",
     minHeight: 15,
@@ -129,13 +129,13 @@ export const textFieldStyle = (theme: Theme) =>
     },
 
     ".MuiInputBase-inputMultiline": {
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-      fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: "1.1em",
       cursor: "auto",
 
       "&.edit-value": {
-        fontFamily: theme.fontFamily1 || themeVariables.fontFamily1
+        fontFamily: theme.fontFamily1
       }
     },
 
@@ -152,13 +152,13 @@ export const inputLabelStyle = (theme: Theme) =>
     transform: "translate(0px, 0px) scale(1.0)",
     textTransform: "capitalize" as const,
     transformOrigin: "top left",
-    fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-    fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+    fontFamily: theme.fontFamily1,
+    fontSize: theme.fontSizeSmall,
     lineHeight: "1em",
     minHeight: "1.2em",
     margin: 0,
 
     "&.Mui-focused": {
-      color: theme.palette?.grey?.[0] || "var(--palette-grey-0)"
+      color: theme.palette.grey[0]
     }
   });

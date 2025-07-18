@@ -13,40 +13,37 @@ export const utilityStyles = (theme: Theme) =>
   css({
     /* MuiFab */
     ".MuiFab-root": {
-      backgroundColor:
-        theme.palette?.primary?.main || "var(--palette-primary-main)",
-      color: theme.palette?.common?.white || "var(--palette-common-white)",
+      backgroundColor: theme.palette?.primary?.main,
+      color: theme.palette?.common?.white,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
 
       "&:hover": {
-        backgroundColor:
-          theme.palette?.primary?.dark || "var(--palette-primary-dark)",
+        backgroundColor: theme.palette?.primary?.dark,
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
       },
 
       "&.Mui-disabled": {
-        backgroundColor:
-          theme.palette?.grey?.[600] || "var(--palette-grey-600)",
-        color: theme.palette?.grey?.[400] || "var(--palette-grey-400)"
+        backgroundColor: theme.palette.grey[600],
+        color: theme.palette.grey[400]
       }
     },
 
     ".MuiFab-sizeSmall": {
       width: 32,
       height: 32,
-      fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller
+      fontSize: theme.fontSizeSmaller
     },
 
     ".MuiFab-sizeMedium": {
       width: 48,
       height: 48,
-      fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal
+      fontSize: theme.fontSizeNormal
     },
 
     ".MuiFab-sizeLarge": {
       width: 64,
       height: 64,
-      fontSize: theme.fontSizeBig || themeVariables.fontSizeBig
+      fontSize: theme.fontSizeBig
     },
 
     /* MuiSvgIcon */
@@ -66,20 +63,18 @@ export const utilityStyles = (theme: Theme) =>
 // Individual style functions for component-specific use
 export const fabStyle = (theme: Theme) =>
   css({
-    backgroundColor:
-      theme.palette?.primary?.main || "var(--palette-primary-main)",
-    color: theme.palette?.common?.white || "var(--palette-common-white)",
+    backgroundColor: theme.palette?.primary?.main,
+    color: theme.palette?.common?.white,
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
 
     "&:hover": {
-      backgroundColor:
-        theme.palette?.primary?.dark || "var(--palette-primary-dark)",
+      backgroundColor: theme.palette?.primary?.dark,
       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
     },
 
     "&.Mui-disabled": {
-      backgroundColor: theme.palette?.grey?.[600] || "var(--palette-grey-600)",
-      color: theme.palette?.grey?.[400] || "var(--palette-grey-400)"
+      backgroundColor: theme.palette.grey[600],
+      color: theme.palette.grey[400]
     }
   });
 
@@ -87,21 +82,21 @@ export const fabSizeSmallStyle = (theme: Theme) =>
   css({
     width: 32,
     height: 32,
-    fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller
+    fontSize: theme.fontSizeSmaller
   });
 
 export const fabSizeMediumStyle = (theme: Theme) =>
   css({
     width: 48,
     height: 48,
-    fontSize: theme.fontSizeNormal || themeVariables.fontSizeNormal
+    fontSize: theme.fontSizeNormal
   });
 
 export const fabSizeLargeStyle = (theme: Theme) =>
   css({
     width: 64,
     height: 64,
-    fontSize: theme.fontSizeBig || themeVariables.fontSizeBig
+    fontSize: theme.fontSizeBig
   });
 
 export const svgIconStyle = css({

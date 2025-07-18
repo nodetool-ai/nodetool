@@ -17,8 +17,7 @@ export const navigationStyles = (theme: Theme) =>
     },
 
     ".MuiTabs-indicator": {
-      backgroundColor:
-        theme.palette?.primary?.main || "var(--palette-primary-main)",
+      backgroundColor: theme.palette?.primary?.main,
       height: 1
     },
 
@@ -26,24 +25,24 @@ export const navigationStyles = (theme: Theme) =>
     ".MuiTab-root": {
       textTransform: "none" as const,
       fontWeight: 300,
-      fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller,
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily1,
       minHeight: "auto",
       padding: "6px 8px",
-      color: theme.palette?.grey?.[400] || "var(--palette-grey-400)",
+      color: theme.palette.grey[400],
 
       "&:hover": {
-        color: theme.palette?.grey?.[200] || "var(--palette-grey-200)",
+        color: theme.palette.grey[200],
         opacity: 1
       },
 
       "&.Mui-selected": {
-        color: theme.palette?.primary?.main || "var(--palette-primary-main)",
+        color: theme.palette?.primary?.main,
         fontWeight: 400
       },
 
       "&.Mui-focusVisible": {
-        backgroundColor: theme.palette?.grey?.[700] || "var(--palette-grey-700)"
+        backgroundColor: theme.palette.grey[700]
       }
     }
   });
@@ -55,8 +54,7 @@ export const tabsRootStyle = css({
 
 export const tabsIndicatorStyle = (theme: Theme) =>
   css({
-    backgroundColor:
-      theme.palette?.primary?.main || "var(--palette-primary-main)",
+    backgroundColor: theme.palette?.primary?.main,
     height: 1
   });
 
@@ -64,23 +62,23 @@ export const tabStyle = (theme: Theme) =>
   css({
     textTransform: "none" as const,
     fontWeight: 300,
-    fontSize: theme.fontSizeSmaller || themeVariables.fontSizeSmaller,
-    fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
+    fontSize: theme.fontSizeSmaller,
+    fontFamily: theme.fontFamily1,
     minHeight: "auto",
     padding: "6px 8px",
-    color: theme.palette?.grey?.[400] || "var(--palette-grey-400)",
+    color: theme.palette.grey[400],
 
     "&:hover": {
-      color: theme.palette?.grey?.[200] || "var(--palette-grey-200)",
+      color: theme.palette.grey[200],
       opacity: 1
     },
 
     "&.Mui-selected": {
-      color: theme.palette?.primary?.main || "var(--palette-primary-main)",
+      color: theme.palette?.primary?.main,
       fontWeight: 400
     },
 
     "&.Mui-focusVisible": {
-      backgroundColor: theme.palette?.grey?.[700] || "var(--palette-grey-700)"
+      backgroundColor: theme.palette.grey[700]
     }
   });

@@ -16,9 +16,7 @@ export const formStyles = (theme: Theme) =>
       margin: "0 !important",
       display: "block !important",
       width: "100% !important",
-      fontSize: `${
-        theme.fontSizeSmall || themeVariables.fontSizeSmall
-      } !important`
+      fontSize: `${theme.fontSizeSmall} !important`
     },
 
     /* MuiFormControlLabel */
@@ -50,42 +48,35 @@ export const formStyles = (theme: Theme) =>
     ".MuiSwitch-switchBase": {
       margin: "0 !important",
       padding: "0 !important",
-      color: theme.palette?.grey?.[400] || "var(--palette-grey-400) !important"
+      color: theme.palette.grey[400]
     },
 
     ".MuiSwitch-switchBase.Mui-checked": {
-      color: theme.palette?.grey?.[100] || "var(--palette-grey-100) !important",
+      color: theme.palette.grey[100],
       transform: "translateX(12px) !important"
     },
 
     ".MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-      backgroundColor:
-        theme.palette?.grey?.[100] || "var(--palette-grey-100) !important"
+      backgroundColor: theme.palette.grey[100]
     },
 
     /* MuiCheckbox */
     ".MuiCheckbox-root": {
       padding: "0px 4px !important",
-      color:
-        theme.palette?.text?.secondary ||
-        "var(--palette-text-secondary) !important"
+      color: theme.palette?.text?.secondary
     },
 
     ".MuiCheckbox-root.Mui-checked": {
-      color:
-        theme.palette?.primary?.main || "var(--palette-primary-main) !important"
+      color: theme.palette?.primary?.main
     },
 
     /* MuiRadio */
     ".MuiRadio-root": {
-      color:
-        theme.palette?.text?.secondary ||
-        "var(--palette-text-secondary) !important"
+      color: theme.palette?.text?.secondary
     },
 
     ".MuiRadio-root.Mui-checked": {
-      color:
-        theme.palette?.primary?.main || "var(--palette-primary-main) !important"
+      color: theme.palette?.primary?.main
     }
   });
 
@@ -95,7 +86,7 @@ export const formControlStyle = (theme: Theme) =>
     margin: 0,
     display: "block",
     width: "100%",
-    fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall
+    fontSize: theme.fontSizeSmall
   });
 
 export const switchStyle = (theme: Theme) =>
@@ -121,15 +112,14 @@ export const switchStyle = (theme: Theme) =>
     ".MuiSwitch-switchBase": {
       margin: 0,
       padding: 0,
-      color: theme.palette?.grey?.[400] || "var(--palette-grey-400)",
+      color: theme.palette.grey[400],
 
       "&.Mui-checked": {
-        color: theme.palette?.grey?.[100] || "var(--palette-grey-100)",
+        color: theme.palette.grey[100],
         transform: "translateX(12px)",
 
         "+ .MuiSwitch-track": {
-          backgroundColor:
-            theme.palette?.grey?.[100] || "var(--palette-grey-100)"
+          backgroundColor: theme.palette.grey[100]
         }
       }
     }
@@ -138,18 +128,18 @@ export const switchStyle = (theme: Theme) =>
 export const checkboxStyle = (theme: Theme) =>
   css({
     padding: "0px 4px",
-    color: theme.palette?.text?.secondary || "var(--palette-text-secondary)",
+    color: theme.palette?.text?.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette?.primary?.main || "var(--palette-primary-main)"
+      color: theme.palette?.primary?.main
     }
   });
 
 export const radioStyle = (theme: Theme) =>
   css({
-    color: theme.palette?.text?.secondary || "var(--palette-text-secondary)",
+    color: theme.palette?.text?.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette?.primary?.main || "var(--palette-primary-main)"
+      color: theme.palette?.primary?.main
     }
   });
