@@ -156,9 +156,9 @@ export const paletteLight: PaletteOptions = {
   c_selection_rect: "rgba(0, 150, 20, 0.08)",
 
   primary: {
-    main: "#00cc11",
-    light: "#33dd44",
-    dark: "#009911",
+    main: "#009911",
+    light: "#33cc44",
+    dark: "#006611",
     contrastText: "#000"
   },
   // primary: {
@@ -183,7 +183,7 @@ export const paletteLight: PaletteOptions = {
     disabled: "#777"
   },
   action: {
-    active: "#111",
+    active: "#000",
     hover: "#333",
     selected: "#555",
     disabled: "#777"

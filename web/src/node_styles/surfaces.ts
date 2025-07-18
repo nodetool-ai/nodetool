@@ -34,7 +34,7 @@ export const surfacesStyles = (theme: Theme) =>
     },
 
     ".MuiDialog-paper": {
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.palette.background.paper,
       color: theme.palette.common.white
     },
 
