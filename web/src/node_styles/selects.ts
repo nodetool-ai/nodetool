@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { themeVariables } from "./theme-variables";
 import type { Theme } from "@mui/material/styles";
 
 /**
@@ -19,7 +18,6 @@ export const selectStyles = (theme: Theme) =>
     ".MuiSelect-select": {
       width: "100% !important",
       padding: "0 0 0 0.4em !important",
-      fontFamily: `${theme.fontFamily1} !important`,
       fontSize: `${theme.fontSizeSmaller} !important`,
       backgroundColor: theme.palette.grey[600],
       margin: "0 !important"
@@ -82,7 +80,6 @@ export const selectInputStyle = (theme: Theme) =>
   css({
     width: "100%",
     padding: "0 0 0 0.4em",
-    fontFamily: theme.fontFamily1,
     fontSize: theme.fontSizeSmaller,
     backgroundColor: theme.palette.grey[600],
     margin: 0
@@ -95,7 +92,6 @@ export const selectIconStyle = (theme: Theme) =>
 
 export const menuItemStyle = (theme: Theme) =>
   css({
-    fontFamily: theme.fontFamily1,
     backgroundColor: theme.palette.grey[600],
     marginBottom: 0,
     paddingTop: 4,

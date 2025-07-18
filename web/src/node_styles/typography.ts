@@ -15,7 +15,6 @@ export const typographyStyles = (theme: Theme) =>
     ".MuiTypography-caption": {
       display: "block !important",
       fontSize: "0.55em !important",
-      fontFamily: theme.fontFamily1,
       marginTop: "-0.5em !important"
     },
 
@@ -87,8 +86,7 @@ export const typographyStyles = (theme: Theme) =>
     ".MuiTypography-body2": {
       fontSize: "1em",
       fontWeight: "300",
-      lineHeight: "1.1",
-      fontFamily: theme.fontFamily1
+      lineHeight: "1.1"
     }
   });
 
@@ -97,7 +95,6 @@ export const captionStyle = (theme: Theme) =>
   css({
     display: "block",
     fontSize: "0.55em",
-    fontFamily: theme.fontFamily1,
     marginTop: "-0.5em"
   });
 
@@ -124,7 +121,6 @@ export const h2Style = (theme: Theme) =>
 export const bodyStyle = (theme: Theme) =>
   css({
     fontSize: "1em",
-    fontFamily: theme.fontFamily1,
     fontWeight: "300",
     wordSpacing: "0",
     lineHeight: "1.1",

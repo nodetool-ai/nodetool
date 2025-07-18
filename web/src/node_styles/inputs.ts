@@ -43,7 +43,6 @@ export const inputStyles = (theme: Theme) =>
 
     /* MuiTextField */
     ".MuiTextField-root": {
-      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.0em",
       backgroundColor: "transparent",
@@ -57,14 +56,9 @@ export const inputStyles = (theme: Theme) =>
       },
 
       ".MuiInputBase-inputMultiline": {
-        fontFamily: theme.fontFamily1,
         fontSize: theme.fontSizeTinyer,
         lineHeight: "1.1em",
-        cursor: "auto",
-
-        "&.edit-value": {
-          fontFamily: theme.fontFamily1
-        }
+        cursor: "auto"
       },
 
       ".MuiOutlinedInput-notchedOutline legend": {
@@ -80,7 +74,6 @@ export const inputStyles = (theme: Theme) =>
       transform: "translate(0px, 0px) scale(1.0)",
       textTransform: "capitalize" as const,
       transformOrigin: "top left",
-      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       lineHeight: "1em",
       minHeight: "1.2em",
@@ -115,7 +108,6 @@ export const inputBaseStyle = (theme: Theme) =>
 
 export const textFieldStyle = (theme: Theme) =>
   css({
-    fontFamily: theme.fontFamily1,
     fontSize: theme.fontSizeSmall,
     lineHeight: "1.0em",
     backgroundColor: "transparent",
@@ -129,14 +121,9 @@ export const textFieldStyle = (theme: Theme) =>
     },
 
     ".MuiInputBase-inputMultiline": {
-      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
       lineHeight: "1.1em",
-      cursor: "auto",
-
-      "&.edit-value": {
-        fontFamily: theme.fontFamily1
-      }
+      cursor: "auto"
     },
 
     ".MuiOutlinedInput-notchedOutline legend": {
@@ -152,7 +139,6 @@ export const inputLabelStyle = (theme: Theme) =>
     transform: "translate(0px, 0px) scale(1.0)",
     textTransform: "capitalize" as const,
     transformOrigin: "top left",
-    fontFamily: theme.fontFamily1,
     fontSize: theme.fontSizeSmall,
     lineHeight: "1em",
     minHeight: "1.2em",

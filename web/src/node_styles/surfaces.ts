@@ -35,8 +35,7 @@ export const surfacesStyles = (theme: Theme) =>
 
     ".MuiDialog-paper": {
       backgroundColor: theme.palette.grey[800],
-      color: theme.palette.common.white,
-      fontFamily: theme.fontFamily1
+      color: theme.palette.common.white
     },
 
     ".MuiDialogTitle-root": {
@@ -80,8 +79,7 @@ export const dialogRootStyle = css({
 export const dialogPaperStyle = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[800],
-    color: theme.palette.common.white,
-    fontFamily: theme.fontFamily1
+    color: theme.palette.common.white
   });
 
 export const dialogTitleStyle = (theme: Theme) =>

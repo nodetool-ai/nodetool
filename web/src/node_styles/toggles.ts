@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { themeVariables } from "./theme-variables";
 import type { Theme } from "@mui/material/styles";
 
 /**
@@ -16,7 +15,6 @@ export const toggleStyles = (theme: Theme) =>
       textTransform: "none" as const,
       fontWeight: 300,
       fontSize: theme.fontSizeSmall,
-      fontFamily: theme.fontFamily1,
       color: theme.palette.grey[300],
       backgroundColor: theme.palette.grey[700],
       border: "1px solid ${theme.palette.grey[600]}",
@@ -57,7 +55,6 @@ export const toggleButtonStyle = (theme: Theme) =>
     textTransform: "none" as const,
     fontWeight: 300,
     fontSize: theme.fontSizeSmall,
-    fontFamily: theme.fontFamily1,
     color: theme.palette.grey[300],
     backgroundColor: theme.palette.grey[700],
     border: "1px solid ${theme.palette.grey[600]}",

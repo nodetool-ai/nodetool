@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { themeVariables } from "./theme-variables";
 import type { Theme } from "@mui/material/styles";
 
 /**
@@ -26,7 +25,6 @@ export const navigationStyles = (theme: Theme) =>
       textTransform: "none" as const,
       fontWeight: 300,
       fontSize: theme.fontSizeSmaller,
-      fontFamily: theme.fontFamily1,
       minHeight: "auto",
       padding: "6px 8px",
       color: theme.palette.grey[400],
@@ -63,7 +61,6 @@ export const tabStyle = (theme: Theme) =>
     textTransform: "none" as const,
     fontWeight: 300,
     fontSize: theme.fontSizeSmaller,
-    fontFamily: theme.fontFamily1,
     minHeight: "auto",
     padding: "6px 8px",
     color: theme.palette.grey[400],
