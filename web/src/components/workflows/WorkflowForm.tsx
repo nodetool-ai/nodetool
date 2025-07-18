@@ -337,6 +337,13 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             options={AVAILABLE_TAGS}
             value={localWorkflow.tags || []}
             onChange={handleTagChange}
+            slotProps={{
+              popper: {
+                style: {
+                  zIndex: 99999
+                }
+              }
+            }}
             renderInput={(params) => (
               <TextField {...params} placeholder="Select tags..." />
             )}
