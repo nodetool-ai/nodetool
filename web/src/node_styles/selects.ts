@@ -63,16 +63,12 @@ export const selectStyles = (theme: Theme) =>
     },
 
     ".MuiMenuItem-root.Mui-hover": {
-      color:
-        theme.palette?.primary?.light ||
-        "var(--palette-primary-light) !important",
+      color: theme.palette.primary.light,
       backgroundColor: theme.palette.grey[500]
     },
 
     ".MuiMenuItem-root.Mui-selected": {
-      color:
-        theme.palette?.primary?.main ||
-        "var(--palette-primary-main) !important",
+      color: theme.palette.primary.main,
       backgroundColor: theme.palette.grey[600]
     }
   });
@@ -131,12 +127,12 @@ export const menuItemStyle = (theme: Theme) =>
     },
 
     "&.Mui-hover": {
-      color: theme.palette?.primary?.light,
+      color: theme.palette.primary.light,
       backgroundColor: theme.palette.grey[500]
     },
 
     "&.Mui-selected": {
-      color: theme.palette?.primary?.main,
+      color: theme.palette.primary.main,
       backgroundColor: theme.palette.grey[600]
     }
   });

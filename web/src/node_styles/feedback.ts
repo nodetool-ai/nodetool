@@ -18,7 +18,7 @@ export const feedbackStyles = (theme: Theme) =>
 
     ".MuiSnackbarContent-root": {
       backgroundColor: theme.palette.grey[800],
-      color: theme.palette?.common?.white,
+      color: theme.palette.common.white,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       fontWeight: 300,
@@ -42,7 +42,7 @@ export const snackbarRootStyle = css({
 export const snackbarContentStyle = (theme: Theme) =>
   css({
     backgroundColor: theme.palette.grey[800],
-    color: theme.palette?.common?.white,
+    color: theme.palette.common.white,
     fontFamily: theme.fontFamily1,
     fontSize: theme.fontSizeSmall,
     fontWeight: 300,

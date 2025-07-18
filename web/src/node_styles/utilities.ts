@@ -13,12 +13,12 @@ export const utilityStyles = (theme: Theme) =>
   css({
     /* MuiFab */
     ".MuiFab-root": {
-      backgroundColor: theme.palette?.primary?.main,
-      color: theme.palette?.common?.white,
+      backgroundColor: theme.palette.primary.main,
+      color: theme.palette.common.white,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
 
       "&:hover": {
-        backgroundColor: theme.palette?.primary?.dark,
+        backgroundColor: theme.palette.primary.dark,
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
       },
 
@@ -63,12 +63,12 @@ export const utilityStyles = (theme: Theme) =>
 // Individual style functions for component-specific use
 export const fabStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette?.primary?.main,
-    color: theme.palette?.common?.white,
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.common.white,
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
 
     "&:hover": {
-      backgroundColor: theme.palette?.primary?.dark,
+      backgroundColor: theme.palette.primary.dark,
       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
     },
 

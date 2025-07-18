@@ -30,12 +30,12 @@ export const toggleStyles = (theme: Theme) =>
       },
 
       "&.Mui-selected": {
-        backgroundColor: theme.palette?.primary?.main,
-        color: theme.palette?.common?.white,
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.common.white,
         fontWeight: 400,
 
         "&:hover": {
-          backgroundColor: theme.palette?.primary?.dark
+          backgroundColor: theme.palette.primary.dark
         }
       },
 
@@ -71,12 +71,12 @@ export const toggleButtonStyle = (theme: Theme) =>
     },
 
     "&.Mui-selected": {
-      backgroundColor: theme.palette?.primary?.main,
-      color: theme.palette?.common?.white,
+      backgroundColor: theme.palette.primary.main,
+      color: theme.palette.common.white,
       fontWeight: 400,
 
       "&:hover": {
-        backgroundColor: theme.palette?.primary?.dark
+        backgroundColor: theme.palette.primary.dark
       }
     },
 

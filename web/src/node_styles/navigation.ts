@@ -17,7 +17,7 @@ export const navigationStyles = (theme: Theme) =>
     },
 
     ".MuiTabs-indicator": {
-      backgroundColor: theme.palette?.primary?.main,
+      backgroundColor: theme.palette.primary.main,
       height: 1
     },
 
@@ -37,7 +37,7 @@ export const navigationStyles = (theme: Theme) =>
       },
 
       "&.Mui-selected": {
-        color: theme.palette?.primary?.main,
+        color: theme.palette.primary.main,
         fontWeight: 400
       },
 
@@ -54,7 +54,7 @@ export const tabsRootStyle = css({
 
 export const tabsIndicatorStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette?.primary?.main,
+    backgroundColor: theme.palette.primary.main,
     height: 1
   });
 
@@ -74,7 +74,7 @@ export const tabStyle = (theme: Theme) =>
     },
 
     "&.Mui-selected": {
-      color: theme.palette?.primary?.main,
+      color: theme.palette.primary.main,
       fontWeight: 400
     },
 

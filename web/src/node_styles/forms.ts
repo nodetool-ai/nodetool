@@ -63,20 +63,20 @@ export const formStyles = (theme: Theme) =>
     /* MuiCheckbox */
     ".MuiCheckbox-root": {
       padding: "0px 4px !important",
-      color: theme.palette?.text?.secondary
+      color: theme.palette.text.secondary
     },
 
     ".MuiCheckbox-root.Mui-checked": {
-      color: theme.palette?.primary?.main
+      color: theme.palette.primary.main
     },
 
     /* MuiRadio */
     ".MuiRadio-root": {
-      color: theme.palette?.text?.secondary
+      color: theme.palette.text.secondary
     },
 
     ".MuiRadio-root.Mui-checked": {
-      color: theme.palette?.primary?.main
+      color: theme.palette.primary.main
     }
   });
 
@@ -128,18 +128,18 @@ export const switchStyle = (theme: Theme) =>
 export const checkboxStyle = (theme: Theme) =>
   css({
     padding: "0px 4px",
-    color: theme.palette?.text?.secondary,
+    color: theme.palette.text.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette?.primary?.main
+      color: theme.palette.primary.main
     }
   });
 
 export const radioStyle = (theme: Theme) =>
   css({
-    color: theme.palette?.text?.secondary,
+    color: theme.palette.text.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette?.primary?.main
+      color: theme.palette.primary.main
     }
   });
