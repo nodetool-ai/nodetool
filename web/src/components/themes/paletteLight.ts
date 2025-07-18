@@ -149,10 +149,9 @@ export const paletteLight: PaletteOptions = {
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
   c_bg_group: "#dfdfdf",
-  c_editor_bg_color: "#fff",
+  c_editor_bg_color: "#efefef",
   c_editor_grid_color: "#ccc",
   c_editor_axis_color: "#eee",
-  // c_selection_rect: "#bababa55",
   c_selection_rect: "rgba(0, 150, 20, 0.08)",
 
   primary: {
@@ -161,12 +160,6 @@ export const paletteLight: PaletteOptions = {
     dark: "#006611",
     contrastText: "#000"
   },
-  // primary: {
-  //   main: "#77b4e6",
-  //   light: "#9bc5f0",
-  //   dark: "#4a7bc4",
-  //   contrastText: "#000"
-  // },
   secondary: {
     main: "#d23f9e",
     light: "#e993c5",
