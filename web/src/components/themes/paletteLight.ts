@@ -152,7 +152,8 @@ export const paletteLight: PaletteOptions = {
   c_editor_bg_color: "#fff",
   c_editor_grid_color: "#ccc",
   c_editor_axis_color: "#eee",
-  c_selection_rect: "#bababa33",
+  // c_selection_rect: "#bababa55",
+  c_selection_rect: "rgba(0, 150, 20, 0.08)",
 
   primary: {
     main: "#00cc11",
