@@ -862,7 +862,7 @@
 
 .select-container .select-header-text {
   color: var(--palette-grey-100);
-  font-size: var(--font-size-tiny);
+  font-size: var(--fontSizeTiny);
   user-select: none;
 }
 

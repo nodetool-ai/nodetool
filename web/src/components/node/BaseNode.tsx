@@ -183,16 +183,15 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
-const getHeaderFooterColors = (metadata: NodeMetadata, theme: any) => {
+const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
   const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
-  if (!firstOutputColor) return { headerColor: "", footerColor: "" };
+  if (!firstOutputColor) return { headerColor: "" };
 
   const baseColor = colorForType(firstOutputColor);
   const bg = theme.palette.c_node_bg;
 
   return {
-    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90),
-    footerColor: darkenHexColor(simulateOpacity(baseColor, 0.3, bg), 40)
+    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90)
   };
 };
 
@@ -285,8 +284,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
-  const { headerColor, footerColor } = useMemo(
-    () => getHeaderFooterColors(metadata, theme),
+  const { headerColor } = useMemo(
+    () => getHeaderColors(metadata, theme),
     [metadata, theme]
   );
 
@@ -365,7 +364,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodeFooter
           nodeNamespace={meta.nodeNamespace}
           metadata={metadata}
-          backgroundColor={footerColor}
           nodeType={type}
         />
       )}
