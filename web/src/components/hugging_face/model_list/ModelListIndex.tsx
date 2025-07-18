@@ -32,8 +32,7 @@ const styles = (theme: Theme) =>
       minWidth: "200px",
       maxWidth: "350px",
       paddingRight: "2em",
-      overflowY: "auto",
-      backgroundColor: theme.palette.grey[800]
+      overflowY: "auto"
     },
     ".model-list-header": {
       display: "flex",
@@ -44,7 +43,6 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      backgroundColor: theme.palette.grey[800],
       width: "100%"
     },
     ".model-list-header button": {

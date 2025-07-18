@@ -157,12 +157,11 @@ ul.multi-outputs li {
   position: relative;
   padding: 0 0.75em 0.75em 0;
   color: var(--palette-grey-200);
-  text-transform: uppercase;
+  text-transform: capitalize;
   text-align: right;
 }
 
 ul.multi-outputs li p {
-  font-family: var(--font_family2) !important;
   font-size: var(--fontSizeSmaller);
 }
 

@@ -17,7 +17,13 @@ const WorkflowFormModal = ({
   workflow
 }: WorkflowFormModalProps) => {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      className="workflow-form-modal"
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogContent sx={{ bgcolor: "background.paper" }}>
         <WorkflowForm onClose={onClose} workflow={workflow} />
       </DialogContent>

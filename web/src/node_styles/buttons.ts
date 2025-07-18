@@ -20,17 +20,19 @@ export const buttonStyles = (theme: Theme) =>
       margin: "0.5em !important",
       padding: "0.25em 0.5em !important",
       // height: "1.5em !important",
-      fontSize: `${
-        theme.fontSizeTiny || themeVariables.fontSizeTiny
-      } !important`,
+      fontSize: `${theme.fontSizeTiny} !important`,
       minWidth: "20px !important",
       backgroundColor:
-        theme.palette?.grey?.[700] || "var(--palette-grey-700) !important"
+        theme.palette.mode === "light"
+          ? theme.palette.grey[900]
+          : theme.palette.grey[800]
     },
 
     ".MuiButton-sizeSmall:hover": {
       backgroundColor:
-        theme.palette?.grey?.[500] || "var(--palette-grey-500) !important"
+        theme.palette.mode === "light"
+          ? theme.palette.grey[800]
+          : theme.palette.grey[700]
     },
 
     /* Button Variants */
@@ -50,12 +52,12 @@ export const smallButtonStyle = (theme: Theme) =>
     margin: 2,
     padding: "2px 6px",
     height: 15,
-    fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+    fontSize: theme.fontSizeSmall,
     minWidth: 20,
-    backgroundColor: theme.palette?.grey?.[600] || "var(--palette-grey-600)",
+    backgroundColor: theme.palette.grey[600],
 
     "&:hover": {
-      backgroundColor: theme.palette?.grey?.[500] || "var(--palette-grey-500)"
+      backgroundColor: theme.palette.grey[500]
     }
   });
 

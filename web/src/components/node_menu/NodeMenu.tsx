@@ -39,11 +39,11 @@ const treeStyles = (theme: Theme) =>
       border: `1px solid ${theme.palette.grey[500]}`,
       borderRadius: "12px",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.palette.background.default
     },
     ".draggable-header": {
       borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.palette.background.default,
       width: "100%",
       minHeight: "40px",
       cursor: "grab",

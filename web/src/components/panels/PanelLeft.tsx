@@ -199,27 +199,13 @@ const VerticalToolbar = memo(function VerticalToolbar({
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Button
+        <IconButton
           tabIndex={-1}
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
-          <IconForType
-            iconName="asset"
-            showTooltip={false}
-            containerStyle={{
-              borderRadius: "0 0 3px 0",
-              marginLeft: "0.1em",
-              marginTop: "0",
-              color: "white"
-            }}
-            bgStyle={{
-              backgroundColor: "transparent",
-              width: "20px",
-              height: "20px"
-            }}
-          />
-        </Button>
+          <IconForType iconName="asset" showTooltip={false} />
+        </IconButton>
       </Tooltip>
       <Tooltip
         title={getShortcutTooltip("toggleCollections")}
@@ -233,13 +219,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
             activeView === "collections" && panelVisible ? "active" : ""
           }
         >
-          <IconForType
-            iconName="database"
-            showTooltip={false}
-            containerStyle={{
-              color: "white"
-            }}
-          />
+          <IconForType iconName="database" showTooltip={false} />
         </IconButton>
       </Tooltip>
 
@@ -272,13 +252,15 @@ const PanelContent = memo(function PanelContent({
   } = useGlobalChatStore();
 
   const handleNewChat = () => {
-    createNewThread().then((newThreadId) => {
-      switchThread(newThreadId);
-      navigate(`/chat/${newThreadId}`);
-      usePanelStore.getState().setVisibility(false);
-    }).catch((error) => {
-      console.error("Failed to create new thread:", error);
-    });
+    createNewThread()
+      .then((newThreadId) => {
+        switchThread(newThreadId);
+        navigate(`/chat/${newThreadId}`);
+        usePanelStore.getState().setVisibility(false);
+      })
+      .catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
   };
 
   const handleSelectThread = (id: string) => {
@@ -311,7 +293,9 @@ const PanelContent = memo(function PanelContent({
       return "New conversation";
     }
 
-    const firstUserMessage = threadMessages.find((msg: any) => msg.role === "user");
+    const firstUserMessage = threadMessages.find(
+      (msg: any) => msg.role === "user"
+    );
     if (firstUserMessage) {
       const content =
         typeof firstUserMessage.content === "string"
@@ -471,6 +455,9 @@ const PanelLeft: React.FC = () => {
           style: {
             // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
+            backgroundColor: isVisible
+              ? "var(--palette-background-default)"
+              : "transparent",
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
           }
         }}

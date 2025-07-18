@@ -114,15 +114,17 @@ span.tooltip-small {
 /* keyboard keys */
 kbd {
   color: var(--palette-grey-100);
-  background-color: var(--palette-grey-800);
-  padding: 0.2em 0.4em;
+  background-color: var(--palette-grey-700);
+  padding: 0.2em 0.25em;
+  margin: .1em 0.25em .1em 0;
   border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
   display: inline-block;
   font-size: var(--fontSizeNormal);
   font-family: var(--fontFamily2);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   line-height: 1.1;
+  box-shadow: 1px 1px 0 0px var(--palette-grey-300);
 }
 /* .tooltip-span {
   display: flex;

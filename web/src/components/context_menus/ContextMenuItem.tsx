@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 300,
       letterSpacing: "0.3px",
-      color: "rgba(255, 255, 255, 0.9)",
+      color: "var(--palette-text-primary)",
       textAlign: "left",
       justifyContent: "start",
       position: "relative",
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
     "button.action.disabled": {
       cursor: "default",
       opacity: 0.5,
-      color: "rgba(255, 255, 255, 0.5)"
+      color: "var(--palette-text-secondary)"
     },
     ".checkbox": {
       marginLeft: 0

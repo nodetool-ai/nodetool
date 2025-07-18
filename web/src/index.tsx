@@ -17,12 +17,10 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
-import { CircularProgress, CssBaseline } from "@mui/material";
+import { CircularProgress } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
-import {
-  useTheme,
-  Experimental_CssVarsProvider as CssVarsProvider
-} from "@mui/material/styles";
+import { CssBaseline } from "@mui/material";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -59,6 +57,8 @@ import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
+// Dev-only component for UI testing
+import LayoutTest from "./components/LayoutTest";
 import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
 
@@ -174,6 +174,14 @@ function getRoutes() {
     }
   ];
 
+  // Add the LayoutTest page only in local development
+  if (isLocalhost) {
+    routes.push({
+      path: "/layouttest",
+      element: <LayoutTest />
+    });
+  }
+
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
   });
@@ -192,7 +200,7 @@ const root = ReactDOM.createRoot(
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const { state } = useAuth();
-  const theme = useTheme();
+
   useEffect(() => {
     // Existing effect for loading metadata
     loadMetadata()
@@ -215,11 +223,7 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <CssVarsProvider
-          theme={ThemeNodetool}
-          defaultMode="dark"
-          modeStorageKey="mui-mode"
-        >
+        <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
@@ -260,7 +264,7 @@ const AppWrapper = () => {
               </KeyboardProvider>
             </WorkflowManagerProvider>
           </MenuProvider>{" "}
-        </CssVarsProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );

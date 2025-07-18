@@ -18,8 +18,6 @@ import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-
-
 interface LanguageModelSelectProps {
   onChange: (value: any) => void;
   value: string;
@@ -100,9 +98,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         title={
           <div style={{ textAlign: "center" }}>
             <Typography variant="inherit">
-              {currentSelectedModelDetails?.name ||
-                value ||
-                "Select a model"}
+              {currentSelectedModelDetails?.name || value || "Select a model"}
             </Typography>
             <Typography variant="caption" display="block">
               Select Model
@@ -115,7 +111,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
           ref={buttonRef}
           className={`select-model-button ${value ? "active" : ""}`}
           sx={{
-            fontSize: "var(--font-size-tiny)",
+            fontSize: "var(--fontSizeTiny)",
             border: "1px solid transparent",
             borderRadius: "0.25em",
             color: "var(--palette-grey-0)",
@@ -167,9 +163,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
               <MenuItem
                 key={model.id}
                 onClick={() => handleModelSelect(model.id)}
-                className={`model-item ${
-                  value === model.id ? "selected" : ""
-                }`}
+                className={`model-item ${value === model.id ? "selected" : ""}`}
               >
                 {value === model.id && (
                   <ListItemIcon>
