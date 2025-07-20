@@ -38,6 +38,7 @@ export interface InputProps {
   hideLabel?: boolean;
   tabIndex?: number;
   zoomAffectsDragging?: boolean;
+  showSlider?: boolean;
 }
 
 export interface NumberInputState {
@@ -56,6 +57,9 @@ export interface NumberInputState {
 
 const NumberInput: React.FC<InputProps> = (props) => {
   const theme = useTheme();
+  const sliderVisible =
+    props.showSlider ??
+    (typeof props.min === "number" && typeof props.max === "number");
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
     localValue: props.value?.toString() ?? "",
@@ -135,12 +139,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }
 
         if (isNaN(finalValue)) {
-          finalValue = props.min ?? 0;
+          finalValue = props.min ?? props.max ?? 0;
         }
-        finalValue = Math.max(
-          props.min ?? 0,
-          Math.min(props.max ?? 4096, finalValue)
-        );
+        if (typeof props.min === "number") {
+          finalValue = Math.max(props.min, finalValue);
+        }
+        if (typeof props.max === "number") {
+          finalValue = Math.min(props.max, finalValue);
+        }
         setInputIsFocused(false);
         setState((prevState) => ({
           ...prevState,
@@ -315,13 +321,15 @@ const NumberInput: React.FC<InputProps> = (props) => {
           />
         )}
       </div>
-      <RangeIndicator
-        value={props.value}
-        min={props.min || 0}
-        max={props.max || 4096}
-        isDragging={state.isDragging}
-        isEditable={inputIsFocused}
-      />
+      {sliderVisible && (
+        <RangeIndicator
+          value={props.value}
+          min={props.min as number}
+          max={props.max as number}
+          isDragging={state.isDragging}
+          isEditable={inputIsFocused}
+        />
+      )}
       <SpeedDisplay
         speedFactor={speedFactorState}
         mousePosition={mousePosition}
@@ -337,6 +345,7 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.min === nextProps.min &&
     prevProps.max === nextProps.max &&
     prevProps.inputType === nextProps.inputType &&
-    prevProps.hideLabel === nextProps.hideLabel
+    prevProps.hideLabel === nextProps.hideLabel &&
+    prevProps.showSlider === nextProps.showSlider
   );
 });

@@ -85,8 +85,8 @@ export const useDragHandling = (
       //---------------------------------------------------------------------
 
       const baseStep = calculateStep(
-        props.min ?? 0,
-        props.max ?? 4096,
+        props.min,
+        props.max,
         props.inputType || "float"
       );
 
@@ -108,8 +108,16 @@ export const useDragHandling = (
         const visualPercentage = deltaX / visualScreenWidth;
 
         // Step 2: Convert to raw value change
-        const range = (props.max ?? 4096) - (props.min ?? 0);
-        const rawValueChange = visualPercentage * range;
+        let rawValueChange: number;
+        if (
+          typeof props.min === "number" &&
+          typeof props.max === "number"
+        ) {
+          const range = props.max - props.min;
+          rawValueChange = visualPercentage * range;
+        } else {
+          rawValueChange = deltaX * baseStep;
+        }
 
         // Step 3: Apply modifiers (speedFactor for vertical slowdown + shift)
         const effectiveSpeedFactor =
@@ -129,8 +137,8 @@ export const useDragHandling = (
 
       newValue = applyValueConstraints(
         newValue,
-        props.min ?? 0,
-        props.max ?? 4096,
+        props.min,
+        props.max,
         props.inputType || "float",
         newDecimalPlaces,
         isWithinDeadZone ? baseStep : undefined
