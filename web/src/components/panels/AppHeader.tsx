@@ -23,11 +23,11 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: "var(--palette-grey-900)",
+      backgroundColor: theme.palette.grey[900],
       paddingLeft: "8px"
     },
     ".toolbar": {
-      backgroundColor: "var(--palette-background-default)",
+      backgroundColor: theme.palette.grey[900],
       overflow: "visible",
       display: "flex",
       justifyContent: "space-between",
