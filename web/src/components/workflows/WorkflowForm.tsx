@@ -71,6 +71,7 @@ const styles = (theme: Theme) =>
       },
       "& .MuiAutocomplete-popper": {
         backgroundColor: theme.palette.grey[800],
+        zIndex: theme.zIndex.autocomplete,
         "& .MuiPaper-root": {
           backgroundColor: theme.palette.grey[800],
           color: theme.palette.grey[0]
@@ -337,6 +338,13 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             options={AVAILABLE_TAGS}
             value={localWorkflow.tags || []}
             onChange={handleTagChange}
+            slotProps={{
+              popper: {
+                style: {
+                  zIndex: theme.zIndex.autocomplete
+                }
+              }
+            }}
             renderInput={(params) => (
               <TextField {...params} placeholder="Select tags..." />
             )}

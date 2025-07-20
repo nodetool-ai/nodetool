@@ -70,7 +70,7 @@ const listStyles = (theme: Theme) =>
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: "lighter",
+      fontWeight: "300",
       margin: "0",
       lineHeight: "1.2em",
       color: theme.palette.grey[0],

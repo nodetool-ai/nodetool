@@ -280,7 +280,10 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             <Button
               onClick={() => cancelDownload(name)}
               variant="contained"
-              color="secondary"
+              style={{
+                color: theme.palette.primary.contrastText,
+                backgroundColor: theme.palette.info.main
+              }}
               size="small"
               className="cancel-button"
             >

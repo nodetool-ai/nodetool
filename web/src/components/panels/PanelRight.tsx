@@ -28,12 +28,12 @@ const styles = (theme: Theme) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.palette.background.default
     },
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
       borderLeft: "none",
-      backgroundColor: "var(--palette-grey-800)",
+      backgroundColor: theme.palette.background.default,
       position: "absolute",
       overflow: "hidden",
       width: "100%",
@@ -217,7 +217,7 @@ const PanelRight: React.FC = () => {
             height: isVisible ? "calc(100vh - 72px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
             backgroundColor: isVisible
-              ? "var(--palette-grey-800)"
+              ? "var(--palette-background-default)"
               : "transparent",
             boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "none"
           }

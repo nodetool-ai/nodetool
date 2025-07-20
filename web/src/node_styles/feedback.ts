@@ -13,14 +13,13 @@ export const feedbackStyles = (theme: Theme) =>
   css({
     /* MuiSnackbar */
     ".MuiSnackbar-root": {
-      zIndex: 99999
+      zIndex: theme.zIndex.snackbar
     },
 
     ".MuiSnackbarContent-root": {
-      backgroundColor: theme.palette?.grey?.[800] || "var(--palette-grey-800)",
-      color: theme.palette?.common?.white || "var(--palette-common-white)",
-      fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-      fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+      backgroundColor: theme.palette.grey[800],
+      color: theme.palette.common.white,
+      fontSize: theme.fontSizeSmall,
       fontWeight: 300,
 
       ".MuiSnackbarContent-message": {
@@ -41,10 +40,9 @@ export const snackbarRootStyle = css({
 
 export const snackbarContentStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette?.grey?.[800] || "var(--palette-grey-800)",
-    color: theme.palette?.common?.white || "var(--palette-common-white)",
-    fontFamily: theme.fontFamily1 || themeVariables.fontFamily1,
-    fontSize: theme.fontSizeSmall || themeVariables.fontSizeSmall,
+    backgroundColor: theme.palette.grey[800],
+    color: theme.palette.common.white,
+    fontSize: theme.fontSizeSmall,
     fontWeight: 300,
 
     ".MuiSnackbarContent-message": {
