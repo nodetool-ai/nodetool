@@ -66,7 +66,7 @@ graph LR
   B --> E{One‑Click Deploy}
   C --> E
   D --> E
-  E --> F(API / Desktop App / Web Service)
+  E --> F(API / Web Service)
 ```
 
 ---
