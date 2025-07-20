@@ -13,6 +13,8 @@ Effortlessly build **multimodal** AI workflows—text, vision, audio & video.
 
 Run locally, on‑prem, self‑host on GPU clouds, or connect to OpenAI®, Anthropic, HuggingFace, Gemini and other providers. 
 
+![Screenshot](screenshot.png)
+
 **Build once, run anywhere.**
 
 ---
