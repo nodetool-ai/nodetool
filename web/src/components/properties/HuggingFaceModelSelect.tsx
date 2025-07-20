@@ -8,6 +8,7 @@ import { useLoraModels } from "../../hooks/useLoraModels";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { Button, Box } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
+import { isProduction } from "../../stores/ApiClient";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -183,7 +184,7 @@ const HuggingFaceModelSelect = ({
           keys: ["value"]
         }}
       />
-      {isValueMissing && !hfLoading && !hfIsFetching && !hfError && value?.repo_id && (
+      {!isProduction && isValueMissing && !hfLoading && !hfIsFetching && !hfError && value?.repo_id && (
         <Button
           variant="outlined"
           size="small"
