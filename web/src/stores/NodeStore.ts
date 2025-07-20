@@ -52,6 +52,23 @@ import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 
+/**
+ * Generates a UUID v4 string
+ * Falls back to a simple implementation if crypto.randomUUID is not available
+ */
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback implementation for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export type NodeUIProperties = {
   selected?: boolean;
   selectable?: boolean;
@@ -398,13 +415,13 @@ export const createNodeStore = (
             set({ connectionAttempted: value }),
           setHoveredNodes: (ids: string[]): void => set({ hoveredNodes: ids }),
           generateNodeId: (): string => {
-            return crypto.randomUUID();
+            return generateUUID();
           },
           generateNodeIds: (count: number): string[] => {
-            return Array.from({ length: count }, () => crypto.randomUUID());
+            return Array.from({ length: count }, () => generateUUID());
           },
           generateEdgeId: (): string => {
-            return crypto.randomUUID();
+            return generateUUID();
           },
           getInputEdges: (nodeId: string): Edge[] =>
             get().edges.filter((e) => e.target === nodeId),
