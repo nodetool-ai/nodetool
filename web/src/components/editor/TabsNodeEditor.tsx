@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[700],
       alignItems: "center",
       position: "relative",
       padding: "0",
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
 
       "&.active": {
         color: theme.vars.palette.grey[0],
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: theme.vars.palette.grey[900],
         "&::before": {
           opacity: 0.8,
           transform: "scaleX(1)"

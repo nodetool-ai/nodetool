@@ -108,9 +108,7 @@
   font-weight: 300;
   line-height: 1.3em;
   color: var(--palette-grey-0);
-  background-color: var(--palette-grey-800);
-  color: var(--palette-grey-0);
-  background-color: var(--palette-grey-800);
+  background-color: var(--palette-grey-900);
   border: 0;
   border-radius: 4px;
   outline: none;
@@ -355,9 +353,7 @@
   /* appearance: none; */
   position: relative;
   color: var(--palette-grey-100);
-  background-color: var(--palette-grey-800);
-  color: var(--palette-grey-100);
-  background-color: var(--palette-grey-800);
+  background-color: var(--palette-grey-900);
   border-radius: 0.25em;
   border: none;
   padding: 0 1em 0 0;
@@ -382,9 +378,7 @@
   height: 18px;
   margin: 0px;
   padding: 0px;
-  background-color: var(--palette-grey-600);
-  color: var(--palette-grey-0);
-  background-color: var(--palette-grey-600);
+  background-color: var(--palette-grey-900);
   color: var(--palette-grey-0);
   border-radius: 0.1em;
   font-size: var(--fontSizeNormal);
@@ -535,8 +529,7 @@
   align-items: center;
   margin: 2px 0 8px 0;
   padding: 0px 3px;
-  background-color: var(--palette-grey-800);
-  background-color: var(--palette-grey-800);
+  background-color: var(--palette-grey-900);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -848,7 +841,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: var(--palette-grey-800);
+  background-color: var(--palette-grey-900);
 }
 
 .select-container .select-header:hover {
