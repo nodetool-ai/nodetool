@@ -112,7 +112,10 @@ const HuggingFaceModelSearch: React.FC = () => {
           <Typography>Searching...</Typography>
         ) : (
           data?.map((model: any) => (
-            <Grid item xs={12} sm={6} md={4} key={model.id}>
+            <Grid
+              sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" } }}
+              key={model.id}
+            >
               <Card
                 className="model-card"
                 onClick={() => setSelectedModel(model.id)}

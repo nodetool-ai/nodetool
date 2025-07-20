@@ -128,10 +128,9 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
           {repos.map((repo, index) => {
             return (
               <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
+                sx={{
+                  gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
+                }}
                 key={index}
                 className="model-item"
               >
@@ -158,10 +157,9 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
             const modelId = `${repoPath.repo_id}/${repoPath.path}`;
             return (
               <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
+                sx={{
+                  gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" }
+                }}
                 key={index}
                 className="model-item"
               >
