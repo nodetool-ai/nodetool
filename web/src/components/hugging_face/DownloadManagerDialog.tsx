@@ -51,7 +51,7 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: alpha(theme.vars.palette.background.paper, 0.7)
+            backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.7)`
           }
         },
         paper: {

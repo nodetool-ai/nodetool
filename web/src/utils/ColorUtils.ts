@@ -77,6 +77,12 @@ export function simulateOpacity(
   alpha: number,
   backgroundColor: string = "#fff"
 ): string {
+  // If either color is provided as a CSS variable token, we cannot blend
+  // it numerically. Just return the foreground color unchanged – the browser
+  // will resolve the variable at paint-time.
+  if (hexColor.startsWith("var(")) return hexColor;
+  if (backgroundColor.startsWith("var(")) return hexColor;
+
   const foregroundColor = chroma(hexColor);
   const bgColor = chroma(backgroundColor);
 
