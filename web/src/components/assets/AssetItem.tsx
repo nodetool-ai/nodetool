@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
     "&:hover .asset .image": {
       opacity: 1
@@ -73,13 +73,13 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       opacity: 0.6,
       fontSize: "2.5em"
     },
     p: {
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       lineHeight: "0.95em",
       margin: "2px 0 4px 2px"
     },
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       pointerEvents: "none",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       backgroundColor: "#11111188",
       margin: "0",
       padding: "0.2em 0.5em",
@@ -169,14 +169,14 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     "&.image img": {
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       width: "100%",
       height: "auto",
       fontSize: theme.fontSizeSmaller
     },
     // ITEM
     "&.selected:after": {
-      border: `4px solid ${theme.palette.grey[900]}`,
+      border: `4px solid ${theme.vars.palette.grey[900]}`,
       outline: `8px solid ${"var(--palette-primary-main)"}`,
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
@@ -194,7 +194,7 @@ const styles = (theme: Theme) =>
       zIndex: 100
     },
     "&:hover:after": {
-      border: `2px solid ${theme.palette.grey[600]}`,
+      border: `2px solid ${theme.vars.palette.grey[600]}`,
       backgroundColor: "#437cb522"
     },
     // FOLDER UP BUTTON
@@ -219,8 +219,8 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       lineHeight: "1.1em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.error.main,
-      borderBottom: "1px solid" + theme.palette.error.main,
+      color: theme.vars.palette.error.main,
+      borderBottom: "1px solid" + theme.vars.palette.error.main,
       width: "100%",
       height: "100%"
     }

@@ -2,20 +2,12 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-
-// components
 import Logo from "../Logo";
-// mui
 import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
-
-// hooks and stores
-import { useLocation, useNavigate } from "react-router-dom";
-
-// constants
+import { useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import ChatIcon from "@mui/icons-material/Chat";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
 
 const styles = (theme: Theme) =>
@@ -23,11 +15,11 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100%",
       overflow: "visible",
-      backgroundColor: theme.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[900],
       paddingLeft: "8px"
     },
     ".toolbar": {
-      backgroundColor: theme.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[900],
       overflow: "visible",
       display: "flex",
       justifyContent: "space-between",
@@ -45,7 +37,7 @@ const styles = (theme: Theme) =>
       width: "32px",
       height: "32px",
       padding: "6px",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
       "&:hover": {

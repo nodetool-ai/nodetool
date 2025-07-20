@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: "2em 1em 1em",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
@@ -80,12 +80,12 @@ const styles = (theme: Theme) =>
       borderBottom: "2px solid ",
       cursor: "pointer",
       "&:hover": {
-        backgroundColor: theme.palette.grey[800]
+        backgroundColor: theme.vars.palette.grey[800]
       }
     },
     ".asset-content-type-title": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       textTransform: "uppercase",
       marginLeft: "0.5em",
       flex: 1
@@ -94,11 +94,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: "0.2em 1em",
-      borderBottom: `1px solid ${theme.palette.grey[800]}`,
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "pointer",
       transition: "background-color 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.grey[800]
+        backgroundColor: theme.vars.palette.grey[800]
       },
       "&.selected": {
         backgroundColor: "var(--palette-primary-main)" + "22",
@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
         opacity: 0.7
       },
       "& svg": {
-        color: theme.palette.grey[200] + " !important",
+        color: theme.vars.palette.grey[200] + " !important",
         fontSize: "1.2rem"
       }
     },
@@ -130,8 +130,8 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.palette.grey[800],
-      border: `1px solid ${theme.palette.grey[600]}`,
+      backgroundColor: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -145,7 +145,7 @@ const styles = (theme: Theme) =>
         left: 0,
         right: 0,
         bottom: 0,
-        border: `1px solid ${theme.palette.grey[500]}22`,
+        border: `1px solid ${theme.vars.palette.grey[500]}22`,
         borderRadius: "3px",
         pointerEvents: "none"
       }
@@ -155,7 +155,7 @@ const styles = (theme: Theme) =>
       minWidth: "150px",
       fontSize: theme.fontSizeNormal,
       userSelect: "none",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -168,25 +168,25 @@ const styles = (theme: Theme) =>
       flex: "0 0 80px",
       textAlign: "right",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
     ".asset-item-type": {
       flex: "0 0 100px",
       textAlign: "center",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
     ".asset-item-date": {
       flex: "0 0 120px",
       textAlign: "right",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
     ".asset-item-duration": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       marginLeft: "1em"
     }
   });

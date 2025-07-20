@@ -32,17 +32,17 @@ const searchModels = async (query: string) => {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       padding: theme.spacing(2),
       marginBottom: "1em"
     },
     ".download-button": {
       margin: ".1em 0 1em 0",
       lineHeight: "1.2em",
-      color: theme.palette.grey[900]
+      color: theme.vars.palette.grey[900]
     },
     ".download-info": {
-      color: theme.palette.warning.main
+      color: theme.vars.palette.warning.main
     },
     ".search-results": {
       marginTop: theme.spacing(2)
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       "&:hover": {
-        backgroundColor: theme.palette.action.hover
+        backgroundColor: theme.vars.palette.action.hover
       }
     },
     ".card-content": {

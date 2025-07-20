@@ -111,7 +111,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexDirection: "row",
         gap: ".5em",
         width: "500px",
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.vars.palette.background.default,
         padding: "0",
         marginLeft: ".5em"
       },
@@ -124,7 +124,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         position: "absolute",
         zIndex: 100,
         fontSize: theme.fontSizeNormal,
-        color: theme.palette.grey[400],
+        color: theme.vars.palette.grey[400],
         padding: ".6em 0 0 .5em"
       },
       ".type-filter-select": {
@@ -190,7 +190,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setInputHover(false);
               }}
             >
-              <MenuItem style={{ color: theme.palette.primary.main }} value="">
+              <MenuItem
+                style={{ color: theme.vars.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}
@@ -311,7 +314,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                 setOutputHover(false);
               }}
             >
-              <MenuItem style={{ color: theme.palette.primary.main }} value="">
+              <MenuItem
+                style={{ color: theme.vars.palette.primary.main }}
+                value=""
+              >
                 RESET FILTER
               </MenuItem>
               {/* Nodetool section header */}

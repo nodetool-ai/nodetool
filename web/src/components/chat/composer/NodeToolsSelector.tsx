@@ -36,17 +36,17 @@ const toolsSelectorStyles = (theme: any) =>
       maxHeight: "min(60vh, 400px)",
       minHeight: "250px",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.grey[500]}`,
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: "12px",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       minWidth: "600px",
       maxWidth: "800px",
       outline: "none"
     },
     ".modal-header": {
       borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       width: "100%",
       minHeight: "40px",
       userSelect: "none",
@@ -58,21 +58,21 @@ const toolsSelectorStyles = (theme: any) =>
         margin: "0",
         fontSize: theme.fontSizeNormal,
         fontWeight: 500,
-        color: theme.palette.grey[100]
+        color: theme.vars.palette.grey[100]
       }
     },
     ".modal-header:hover": {
       opacity: 0.95
     },
     ".close-button": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       width: "28px",
       height: "28px",
       padding: "2px",
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: "rgba(0, 0, 0, 0.04)",
-        color: theme.palette.grey[100]
+        color: theme.vars.palette.grey[100]
       }
     },
     ".tools-content": {
@@ -106,11 +106,11 @@ const toolsSelectorStyles = (theme: any) =>
       alignItems: "center",
       gap: "0.5em",
       padding: "0.5em 1em",
-      borderBottom: `1px solid ${theme.palette.grey[500]}`,
-      backgroundColor: theme.palette.grey[600],
+      borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
+      backgroundColor: theme.vars.palette.grey[600],
       ".selected-count": {
         backgroundColor: "var(--palette-primary-main)",
-        color: theme.palette.grey[1000],
+        color: theme.vars.palette.grey[1000],
         fontSize: "0.75rem",
         height: "20px",
         "& .MuiChip-label": {
@@ -132,7 +132,7 @@ const toolsSelectorStyles = (theme: any) =>
     },
     ".no-nodes-message": {
       padding: theme.spacing(4),
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       textAlign: "center",
       flex: 1,
       display: "flex",
@@ -248,10 +248,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.grey[0],
+            color: theme.vars.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.grey[500]
+              backgroundColor: theme.vars.palette.grey[500]
             },
             "&.active": {
               borderColor: "var(--palette-primary-main)",

@@ -93,7 +93,7 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
               right: 8,
               top: 8,
               ml: 4,
-              color: (theme) => theme.palette.grey[500]
+              color: (theme) => theme.vars.palette.grey[500]
             }}
           >
             <CloseIcon />

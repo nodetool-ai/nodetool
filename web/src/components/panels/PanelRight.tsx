@@ -28,12 +28,12 @@ const styles = (theme: Theme) =>
     ".panel-container": {
       flexShrink: 0,
       position: "absolute",
-      backgroundColor: theme.palette.background.default
+      backgroundColor: theme.vars.palette.background.default
     },
     ".panel-right": {
       boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
       borderLeft: "none",
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: theme.vars.palette.background.default,
       position: "absolute",
       overflow: "hidden",
       width: "100%",

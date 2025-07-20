@@ -34,13 +34,13 @@ interface DeleteButtonProps<T> {
 const styles = (theme: Theme) =>
   css({
     "button:hover svg": {
-      color: theme.palette.c_delete
+      color: theme.vars.palette.c_delete
     },
     button: {
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     "&:hover": {
-      color: theme.palette.c_delete,
+      color: theme.vars.palette.c_delete,
       backgroundColor: "transparent"
     }
   });

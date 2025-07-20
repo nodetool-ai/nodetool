@@ -51,13 +51,13 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: alpha(theme.palette.background.paper, 0.7)
+            backgroundColor: alpha(theme.vars.palette.background.paper, 0.7)
           }
         },
         paper: {
           sx: {
-            backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary
+            backgroundColor: theme.vars.palette.background.paper,
+            color: theme.vars.palette.text.primary
           }
         }
       }}
@@ -122,7 +122,7 @@ const DownloadManagerDialog: React.FC = () => {
         >
           <AnnouncementIcon
             fontSize="small"
-            sx={{ color: theme.palette.warning.main }}
+            sx={{ color: theme.vars.palette.warning.main }}
           />
           {infoMessage}
         </Typography>

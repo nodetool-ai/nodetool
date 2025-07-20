@@ -48,35 +48,35 @@ export const formStyles = (theme: Theme) =>
     ".MuiSwitch-switchBase": {
       margin: "0 !important",
       padding: "0 !important",
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
 
     ".MuiSwitch-switchBase.Mui-checked": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       transform: "translateX(12px) !important"
     },
 
     ".MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-      backgroundColor: theme.palette.grey[100]
+      backgroundColor: theme.vars.palette.grey[100]
     },
 
     /* MuiCheckbox */
     ".MuiCheckbox-root": {
       padding: "0px 4px !important",
-      color: theme.palette.text.secondary
+      color: theme.vars.palette.text.secondary
     },
 
     ".MuiCheckbox-root.Mui-checked": {
-      color: theme.palette.primary.main
+      color: theme.vars.palette.primary.main
     },
 
     /* MuiRadio */
     ".MuiRadio-root": {
-      color: theme.palette.text.secondary
+      color: theme.vars.palette.text.secondary
     },
 
     ".MuiRadio-root.Mui-checked": {
-      color: theme.palette.primary.main
+      color: theme.vars.palette.primary.main
     }
   });
 
@@ -112,14 +112,14 @@ export const switchStyle = (theme: Theme) =>
     ".MuiSwitch-switchBase": {
       margin: 0,
       padding: 0,
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
 
       "&.Mui-checked": {
-        color: theme.palette.grey[100],
+        color: theme.vars.palette.grey[100],
         transform: "translateX(12px)",
 
         "+ .MuiSwitch-track": {
-          backgroundColor: theme.palette.grey[100]
+          backgroundColor: theme.vars.palette.grey[100]
         }
       }
     }
@@ -128,18 +128,18 @@ export const switchStyle = (theme: Theme) =>
 export const checkboxStyle = (theme: Theme) =>
   css({
     padding: "0px 4px",
-    color: theme.palette.text.secondary,
+    color: theme.vars.palette.text.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette.primary.main
+      color: theme.vars.palette.primary.main
     }
   });
 
 export const radioStyle = (theme: Theme) =>
   css({
-    color: theme.palette.text.secondary,
+    color: theme.vars.palette.text.secondary,
 
     "&.Mui-checked": {
-      color: theme.palette.primary.main
+      color: theme.vars.palette.primary.main
     }
   });

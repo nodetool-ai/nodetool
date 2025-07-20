@@ -17,7 +17,7 @@ interface ContextMenuItemProps {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       transition: "all 0.2s ease-in-out"
     },
     "&:hover": {
@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       listStyleType: "none"
     },
     "li.MuiListSubheader-root": {
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeNormal,
       fontWeight: 500,
       letterSpacing: "0.3px",
@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1
     },
     "&:hover button.action.delete svg": {
-      color: theme.palette.c_delete
+      color: theme.vars.palette.c_delete
     }
   });
 

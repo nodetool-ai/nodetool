@@ -82,15 +82,15 @@ const scrollableContentStyles = (theme: any) =>
         backgroundColor: "transparent !important"
       },
       ".icon-bg svg": {
-        color: theme.palette.grey[400]
+        color: theme.vars.palette.grey[400]
       }
     },
     ".node:hover": {
-      backgroundColor: theme.palette.grey[600]
+      backgroundColor: theme.vars.palette.grey[600]
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       borderRadius: "3px",
       boxShadow: "inset 1px 1px 2px #00000044"
     },
@@ -110,11 +110,11 @@ const fixedHeaderStyles = (theme: any) =>
   css({
     position: "sticky",
     top: 0,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.vars.palette.background.paper,
     zIndex: theme.zIndex.modal + 1,
     "&.connectable-nodes-header": {
       padding: ".5em 0",
-      backgroundColor: theme.palette.background.paper
+      backgroundColor: theme.vars.palette.background.paper
     }
   });
 
@@ -263,7 +263,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       slotProps={{
         paper: {
           sx: {
-            backgroundColor: theme.palette.c_editor_bg_color,
+            backgroundColor: theme.vars.palette.c_editor_bg_color,
             backgroundImage: "none"
           }
         }

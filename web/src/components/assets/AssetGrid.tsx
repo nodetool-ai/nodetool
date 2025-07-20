@@ -61,8 +61,8 @@ const styles = (theme: Theme) =>
       gap: "0.25em",
       zIndex: 5000,
       padding: "0.5em",
-      borderTop: `2px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.grey[800]
+      borderTop: `2px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".controls .zoom": {
       maxWidth: "200px",
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       display: "block",
       left: "0",
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       margin: "2em 0 0 0"
     },
     ".folder-slash": {
@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
     },
     ".selected-asset-info": {
       fontSize: "12px !important",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       minHeight: "25px",
       padding: "0",
       margin: "0 0 0 0.5em"
@@ -129,7 +129,7 @@ const styles = (theme: Theme) =>
       color: "var(--palette-grey-100)",
       verticalAlign: "middle",
       "&:hover": {
-        color: theme.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     },
     ".folder-item.selected ": {

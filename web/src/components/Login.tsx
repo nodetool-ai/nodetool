@@ -47,23 +47,23 @@ const styles = (theme: Theme) =>
     ".list-button": {
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
-      background: theme.palette.grey[900],
-      color: theme.palette.grey[200],
+      background: theme.vars.palette.grey[900],
+      color: theme.vars.palette.grey[200],
       textTransform: "none",
       padding: "0 .5em"
     },
     ".list-button:hover": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".gsi-material-button": {
       width: "240px",
       fontSize: "1em",
       border: "none",
-      background: theme.palette.grey[0],
+      background: theme.vars.palette.grey[0],
       padding: "1.5em 1em"
     },
     ".gsi-material-button:hover": {
-      background: theme.palette.grey[100]
+      background: theme.vars.palette.grey[100]
     }
   });
 

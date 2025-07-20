@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       top: "4px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".dashboard-button": {
       position: "absolute",
@@ -49,18 +49,18 @@ const styles = (theme: Theme) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.grey[800]}ee`,
+      backgroundColor: `${theme.vars.palette.grey[800]}ee`,
       color: "var(--palette-primary-main)",
-      border: `2px solid ${theme.palette.grey[500]}`,
+      border: `2px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
-        color: theme.palette.grey[0]
+        color: theme.vars.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"
@@ -92,18 +92,18 @@ const styles = (theme: Theme) =>
       top: "-8px",
       width: "48px",
       height: "40px",
-      backgroundColor: `${theme.palette.grey[800]}ee`,
+      backgroundColor: `${theme.vars.palette.grey[800]}ee`,
       color: "var(--palette-primary-main)",
-      border: `2px solid ${theme.palette.grey[500]}`,
+      border: `2px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: "12px",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         borderColor: "var(--palette-primary-main)",
         transform: "translateY(-2px) scale(1.05)",
         boxShadow: `0 8px 24px ${"var(--palette-primary-main)"}60, 0 0 40px ${"var(--palette-primary-main)"}30`,
-        color: theme.palette.grey[0]
+        color: theme.vars.palette.grey[0]
       },
       "&:active": {
         transform: "translateY(0) scale(0.98)"
@@ -155,12 +155,12 @@ const styles = (theme: Theme) =>
       "& .MuiSelect-select": {
         fontSize: "0.75rem",
         padding: "0px 8px",
-        color: theme.palette.grey[100],
+        color: theme.vars.palette.grey[100],
         lineHeight: "24px",
         height: "24px"
       },
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.grey[500]
+        borderColor: theme.vars.palette.grey[500]
       }
     },
     ".status-message-container": {
@@ -173,11 +173,11 @@ const styles = (theme: Theme) =>
       height: "32px",
       minWidth: "32px",
       padding: "4px",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       position: "relative",
       borderRadius: "4px",
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       },
       "& svg": {
         fontSize: "20px",
@@ -192,7 +192,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${"var(--palette-primary-main)"}66`
     },
     ".action-button.disabled": {
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       "&:hover": {
         boxShadow: "none"
       }
@@ -203,7 +203,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".run-stop-button": {
-      backgroundColor: `${theme.palette.grey[600]}cc`,
+      backgroundColor: `${theme.vars.palette.grey[600]}cc`,
       color: "var(--palette-primary-main)",
       minWidth: "40px",
       height: "26px",
@@ -230,8 +230,8 @@ const styles = (theme: Theme) =>
       top: "25px",
       fontSize: theme.fontSizeSmaller,
       padding: "0.2em 0.8em",
-      color: theme.palette.grey[100],
-      boxShadow: `0 2px 8px ${theme.palette.grey[800]}40`
+      color: theme.vars.palette.grey[100],
+      boxShadow: `0 2px 8px ${theme.vars.palette.grey[800]}40`
     },
     "@keyframes pulse": {
       "0%": { opacity: 0.4 },

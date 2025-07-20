@@ -26,8 +26,8 @@ const styles = (theme: Theme) =>
     },
     button: {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[100],
-      backgroundColor: theme.palette.grey[600],
+      color: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[600],
       border: 0,
       display: "flex",
       alignItems: "center",
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       borderRadius: "0"
     },
     "button:hover": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     "button svg": {
       fontSize: theme.fontSizeBig

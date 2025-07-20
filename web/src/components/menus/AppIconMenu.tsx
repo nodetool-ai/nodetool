@@ -15,7 +15,7 @@ const styles = (theme: Theme) =>
     },
     version: {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     }
   });
 

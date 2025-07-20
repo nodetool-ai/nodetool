@@ -176,7 +176,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }));
   const [color, setColor] = useState(
     props.data.properties.comment_color ||
-      theme.palette.c_bg_comment ||
+      theme.vars.palette.c_bg_comment ||
       "#ffffff"
   );
   const containerRef = useRef<HTMLDivElement>(null);

@@ -1,67 +1,43 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { themeVariables } from "./theme-variables";
 import type { Theme } from "@mui/material/styles";
 
 /**
  * Button Component Styles
- *
- * MUI Button component overrides in emotion format
+ * Using CSS variables from Material-UI theme system
  */
 
-export const buttonStyles = (theme: Theme) =>
-  css({
-    /* MuiButton Root */
-    ".MuiButton-root": {
-      minWidth: "36px !important"
-    },
+export const buttonStyles = css`
+  .MuiButton-root {
+    min-width: 36px !important;
+  }
 
-    ".MuiButton-sizeSmall": {
-      margin: "0.5em !important",
-      padding: "0.25em 0.5em !important",
-      // height: "1.5em !important",
-      fontSize: `${theme.fontSizeTiny} !important`,
-      minWidth: "20px !important",
-      backgroundColor:
-        theme.palette.mode === "light"
-          ? theme.palette.grey[900]
-          : theme.palette.grey[800]
-    },
+  .MuiButton-sizeSmall {
+    margin: 0.5em !important;
+    padding: 0.25em 0.5em !important;
+    min-width: 20px !important;
+    background-color: var(--palette-grey-900);
+  }
 
-    ".MuiButton-sizeSmall:hover": {
-      backgroundColor:
-        theme.palette.mode === "light"
-          ? theme.palette.grey[800]
-          : theme.palette.grey[700]
-    },
+  .MuiButton-sizeSmall:hover {
+    background-color: var(--palette-grey-800);
+  }
 
-    /* Button Variants */
-    ".MuiButton-medium": {
-      padding: "0.2em 0.4em !important",
-      lineHeight: "1.1em !important"
-    }
-  });
+  .MuiButton-medium {
+    padding: 0.2em 0.4em !important;
+    line-height: 1.1em !important;
+  }
+`;
 
-// Individual style functions for component-specific use
-export const buttonRootStyle = css({
-  minWidth: 36
-});
+export const smallButtonStyle = (theme: Theme) => css`
+  margin: 2px;
+  padding: 2px 6px;
+  height: 15px;
+  font-size: ${theme.fontSizeSmall};
+  min-width: 20px;
+  background-color: var(--palette-grey-600);
 
-export const smallButtonStyle = (theme: Theme) =>
-  css({
-    margin: 2,
-    padding: "2px 6px",
-    height: 15,
-    fontSize: theme.fontSizeSmall,
-    minWidth: 20,
-    backgroundColor: theme.palette.grey[600],
-
-    "&:hover": {
-      backgroundColor: theme.palette.grey[500]
-    }
-  });
-
-export const mediumButtonStyle = css({
-  padding: "0.2em 0.4em",
-  lineHeight: "1.1em"
-});
+  &:hover {
+    background-color: var(--palette-grey-500);
+  }
+`;

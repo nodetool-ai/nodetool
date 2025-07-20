@@ -40,19 +40,19 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: "1em",
       transition: "all .6s",
-      background: theme.palette.grey[800]
+      background: theme.vars.palette.grey[800]
     },
     ".title": {
       position: "absolute",
       left: "2em",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontSize: "1.1em",
       margin: "0",
       textAlign: "center"
     },
     ".recent-hl": {
       marginLeft: ".75em",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily1
     },
@@ -122,11 +122,11 @@ const listStyles = (theme: Theme) =>
       width: "calc(100% - 20px)",
       cursor: "pointer",
       borderBottom: "1px solid black",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       transition: "background-color 0.2s ease-in-out"
     },
     ".workflow:hover": {
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       outline: `0`
     },
     ".name-and-description": {
@@ -138,11 +138,11 @@ const listStyles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".description": {
       margin: "0.1em 0 .1em",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontSize: theme.fontSizeSmaller,
       paddingTop: "0.5em"
     },
@@ -163,11 +163,11 @@ const listStyles = (theme: Theme) =>
       wordSpacing: "-2px",
       textAlign: "right",
       right: "0",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       minWidth: "150px"
     },
     ".date.relative": {
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     ".image-wrapper": {
       flexShrink: 0,
@@ -175,7 +175,7 @@ const listStyles = (theme: Theme) =>
       height: "40px",
       overflow: "hidden",
       position: "relative",
-      backgroundColor: theme.palette.grey[500]
+      backgroundColor: theme.vars.palette.grey[500]
     }
   });
 

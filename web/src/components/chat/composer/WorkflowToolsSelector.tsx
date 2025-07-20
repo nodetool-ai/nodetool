@@ -49,30 +49,30 @@ const menuStyles = (theme: Theme) =>
     },
     ".workflow-tool-item": {
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       },
       "&.selected": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".workflow-name": {
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontSize: "0.875rem"
     },
     ".workflow-description": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontSize: "0.75rem",
       marginTop: "2px"
     },
     ".no-tools-message": {
       padding: theme.spacing(2),
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       textAlign: "center"
     },
     ".selected-count": {
       marginLeft: theme.spacing(1),
       backgroundColor: "var(--palette-primary-main)",
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       "& .MuiChip-label": {
         padding: "0 4px"
       }
@@ -159,10 +159,10 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.grey[0],
+            color: theme.vars.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.grey[500]
+              backgroundColor: theme.vars.palette.grey[500]
             },
             "&.active": {
               borderColor: "var(--palette-primary-main)",

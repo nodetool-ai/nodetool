@@ -28,16 +28,16 @@ const styles = (theme: Theme) =>
       transition: "background-color 0.2s ease"
     },
     "&:hover p": {
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     ".folder-icon": {
       width: "25px",
       height: "100%",
       left: "0",
-      color: theme.palette.grey[500]
+      color: theme.vars.palette.grey[500]
     },
     ".folder-icon:hover": {
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
     "&.selected .folder-icon": {
       color: "var(--palette-secondary-main)"
@@ -59,19 +59,19 @@ const styles = (theme: Theme) =>
       maxWidth: "100%",
       maxHeight: "2.5em",
       overflow: "hidden",
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     "&.selected .name": {
       color: "var(--palette-primary-main)"
     },
     "&:hover": {
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     "&:hover .delete-button": {
       opacity: 0
     },
     "&.drag-hover": {
-      backgroundColor: theme.palette.grey[500]
+      backgroundColor: theme.vars.palette.grey[500]
     },
     ".delete-button": {
       position: "absolute",
@@ -83,11 +83,11 @@ const styles = (theme: Theme) =>
       right: "0",
       top: "0",
       border: "none",
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     },
     ".delete-button:hover": {
       border: "none",
-      color: theme.palette.c_delete
+      color: theme.vars.palette.c_delete
     }
   });
 

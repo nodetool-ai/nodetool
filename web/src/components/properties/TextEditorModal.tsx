@@ -84,8 +84,8 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start"
     },
     ".modal-content": {
-      backgroundColor: theme.palette.grey[800],
-      color: theme.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeBigger,
       width: "100%",
       height: "100%",
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       padding: ".5em 1em",
       minHeight: "2em",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       h4: {
         cursor: "default",
         fontWeight: "600",
@@ -125,7 +125,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       fontSize: theme.fontSizeSmaller,
       p: {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         margin: "0 0 0.5em 0",
         "&:last-child": {
           margin: 0
@@ -138,7 +138,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       padding: "1em 2em 1em 1em",
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: theme.vars.palette.background.default,
       height: "100%",
       overflow: "hidden",
       ".editor": {
@@ -147,8 +147,8 @@ const styles = (theme: Theme) =>
         fontFamily: theme.fontFamily1,
         fontSize: theme.fontSizeSmall,
         lineHeight: "1.2",
-        color: theme.palette.grey[0],
-        // backgroundColor: theme.palette.grey[600],
+        color: theme.vars.palette.grey[0],
+        // backgroundColor: theme.vars.palette.grey[600],
         outline: "none",
         overflow: "auto !important",
         height: "100vh",
@@ -197,7 +197,7 @@ const styles = (theme: Theme) =>
       zIndex: 10,
       padding: "8px !important",
       backgroundColor: "transparent",
-      color: `${theme.palette.grey[0]} !important`,
+      color: `${theme.vars.palette.grey[0]} !important`,
       borderRadius: "4px !important",
       fontSize: theme.fontSizeSmaller,
       fontWeight: "500",
@@ -205,14 +205,14 @@ const styles = (theme: Theme) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: `${theme.palette.grey[600]} `
+        backgroundColor: `${theme.vars.palette.grey[600]} `
       }
     },
     ".button": {
       padding: "10px 14px",
       cursor: "pointer",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[0],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[0],
       textTransform: "uppercase",
       border: "none",
       borderRadius: "4px",
@@ -225,7 +225,7 @@ const styles = (theme: Theme) =>
       minWidth: "44px",
       minHeight: "44px",
       "&:hover": {
-        backgroundColor: theme.palette.grey[500]
+        backgroundColor: theme.vars.palette.grey[500]
       }
     },
     ".button-close": {
@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".resize-handle": {
@@ -245,12 +245,12 @@ const styles = (theme: Theme) =>
       width: "100%",
       cursor: "row-resize",
       // borderRadius: "4px",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       "&:hover": {
-        // backgroundColor: theme.palette.grey[800]
+        // backgroundColor: theme.vars.palette.grey[800]
       },
       "&:hover .resize-handle-thumb": {
-        backgroundColor: theme.palette.grey[100]
+        backgroundColor: theme.vars.palette.grey[100]
       }
     },
     ".resize-handle-thumb": {
@@ -260,7 +260,7 @@ const styles = (theme: Theme) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      backgroundColor: theme.palette.grey[400],
+      backgroundColor: theme.vars.palette.grey[400],
       borderRadius: "4px"
     }
   });
@@ -539,8 +539,8 @@ const TextEditorModal = ({
                   className="description"
                   style={{
                     color: readOnly
-                      ? theme.palette.warning.main
-                      : theme.palette.grey[0]
+                      ? theme.vars.palette.warning.main
+                      : theme.vars.palette.grey[0]
                   }}
                 >
                   <Markdown>{propertyDescription}</Markdown>

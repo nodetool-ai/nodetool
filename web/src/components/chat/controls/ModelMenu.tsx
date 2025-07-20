@@ -23,8 +23,8 @@ import { LanguageModel } from "../../../stores/ApiTypes";
 const menuStyles = (theme: Theme) =>
   css({
     "& button": {
-      backgroundColor: theme.palette.grey[800],
-      border: `1px solid ${theme.palette.grey[500]}`,
+      backgroundColor: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
       minWidth: "280px",
       maxHeight: "400px"
     },
@@ -32,25 +32,25 @@ const menuStyles = (theme: Theme) =>
       marginTop: "1em",
       padding: "0.5em 1em",
       userSelect: "none",
-      backgroundColor: theme.palette.grey[800],
-      color: theme.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
       fontSize: "var(--fontSizeNormal)",
       fontVariant: "small-caps",
       textTransform: "uppercase"
     },
     ".model-item": {
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       },
       "&.selected": {
-        backgroundColor: theme.palette.primary.dark
+        backgroundColor: theme.vars.palette.primary.dark
       },
       "& > div": {
         paddingLeft: 0
       }
     },
     ".model-name": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".loading-container": {
       display: "flex",
@@ -105,7 +105,9 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !selectedModel) return null;
-    return models.find((m) => m.provider === selectedModel.provider && m.id === selectedModel.id);
+    return models.find(
+      (m) => m.provider === selectedModel.provider && m.id === selectedModel.id
+    );
   }, [models, selectedModel]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -164,7 +166,10 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
               marginRight: "0.5em"
             }}
           />
-          <Typography variant="inherit" sx={{ fontSize: "var(--fontSizeNormal)" }}>
+          <Typography
+            variant="inherit"
+            sx={{ fontSize: "var(--fontSizeNormal)" }}
+          >
             {currentSelectedModelDetails?.name || "Select Model"}
           </Typography>
         </IconButton>
@@ -206,16 +211,23 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
                 key={model.id}
                 onClick={() => handleModelSelect(model)}
                 className={`model-item ${
-                  selectedModel?.provider === model.provider && selectedModel?.id === model.id ? "selected" : ""
+                  selectedModel?.provider === model.provider &&
+                  selectedModel?.id === model.id
+                    ? "selected"
+                    : ""
                 }`}
               >
-                {selectedModel?.provider === model.provider && selectedModel?.id === model.id && (
-                  <ListItemIcon>
-                    <CheckIcon fontSize="small" />
-                  </ListItemIcon>
-                )}
+                {selectedModel?.provider === model.provider &&
+                  selectedModel?.id === model.id && (
+                    <ListItemIcon>
+                      <CheckIcon fontSize="small" />
+                    </ListItemIcon>
+                  )}
                 <ListItemText
-                  inset={selectedModel?.provider !== model.provider || selectedModel?.id !== model.id}
+                  inset={
+                    selectedModel?.provider !== model.provider ||
+                    selectedModel?.id !== model.id
+                  }
                   primary={<span className="model-name">{model.name}</span>}
                 />
               </MenuItem>

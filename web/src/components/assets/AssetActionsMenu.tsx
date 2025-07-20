@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       overflowX: "hidden",
       fontSize: theme.fontSizeSmall,
       padding: "0.1em 0.2em",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     }
   });
 

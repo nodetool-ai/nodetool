@@ -23,8 +23,8 @@ export const surfacesStyles = (theme: Theme) =>
     },
 
     ".MuiPopover-paper": {
-      backgroundColor: theme.palette.grey[700],
-      border: `1px solid ${theme.palette.grey[600]}`,
+      backgroundColor: theme.vars.palette.grey[700],
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
       boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
     },
 
@@ -34,8 +34,8 @@ export const surfacesStyles = (theme: Theme) =>
     },
 
     ".MuiDialog-paper": {
-      backgroundColor: theme.palette.background.paper,
-      color: theme.palette.common.white
+      backgroundColor: theme.vars.palette.background.paper,
+      color: theme.vars.palette.common.white
     },
 
     ".MuiDialogTitle-root": {
@@ -67,8 +67,8 @@ export const popoverRootStyle = css({
 
 export const popoverPaperStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette.grey[700],
-    border: "1px solid ${theme.palette.grey[600]",
+    backgroundColor: theme.vars.palette.grey[700],
+    border: "1px solid ${theme.vars.palette.grey[600]",
     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
   });
 
@@ -78,8 +78,8 @@ export const dialogRootStyle = css({
 
 export const dialogPaperStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette.grey[800],
-    color: theme.palette.common.white
+    backgroundColor: theme.vars.palette.grey[800],
+    color: theme.vars.palette.common.white
   });
 
 export const dialogTitleStyle = (theme: Theme) =>

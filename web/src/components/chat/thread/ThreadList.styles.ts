@@ -17,11 +17,11 @@ export const createStyles = (theme: Theme) =>
       padding: "0.5em 1em",
       borderRadius: "8px",
       backgroundColor: "var(--palette-grey-800)",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       textTransform: "none",
       justifyContent: "center",
       transition: "background 0.2s",
-      "&:hover": { backgroundColor: theme.palette.grey[600] }
+      "&:hover": { backgroundColor: theme.vars.palette.grey[600] }
     },
 
     ".thread-list": {
@@ -35,7 +35,7 @@ export const createStyles = (theme: Theme) =>
     ".thread-date-group": {
       padding: "0.5em 1em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
@@ -46,17 +46,18 @@ export const createStyles = (theme: Theme) =>
       fontSize: theme.fontSizeBig,
       borderLeft: `2px solid transparent`,
       cursor: "pointer",
-      transition: "all 0.2s, opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out",
+      transition:
+        "all 0.2s, opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out",
       maxHeight: "80px",
       overflow: "hidden",
 
       "&:hover": {
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         ".delete-button": { opacity: 1 }
       },
 
       "&.selected": {
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         borderLeft: `2px solid ${"var(--palette-primary-main)"}`
       },
 
@@ -73,7 +74,7 @@ export const createStyles = (theme: Theme) =>
         fontSize: theme.fontSizeTiny,
         marginTop: "-0.25em",
         textTransform: "uppercase",
-        color: theme.palette.grey[200]
+        color: theme.vars.palette.grey[200]
       },
       p: {
         fontWeight: "300"
@@ -83,7 +84,7 @@ export const createStyles = (theme: Theme) =>
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "normal",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       marginBottom: "0.25em",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -93,7 +94,7 @@ export const createStyles = (theme: Theme) =>
 
     ".date": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
 
     ".delete-button": {
@@ -104,12 +105,12 @@ export const createStyles = (theme: Theme) =>
       opacity: 0,
       padding: "4px",
       minWidth: "unset",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       transition: "opacity 0.2s",
 
       "&:hover": {
-        color: theme.palette.error.main,
-        backgroundColor: theme.palette.grey[500]
+        color: theme.vars.palette.error.main,
+        backgroundColor: theme.vars.palette.grey[500]
       },
 
       svg: { fontSize: "1.2em" }

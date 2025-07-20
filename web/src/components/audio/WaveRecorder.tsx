@@ -23,7 +23,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
   const styles = (theme: Theme) =>
     css({
-      background: theme.palette.grey[800],
+      background: theme.vars.palette.grey[800],
       minHeight: "50px",
       marginTop: "0.5em",
       "& button": {
@@ -44,7 +44,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         position: "relative",
         maxWidth: "200px",
         fontSize: theme.fontSizeTiny,
-        color: theme.palette.grey[200]
+        color: theme.vars.palette.grey[200]
       },
       "& .toggle-on": {
         width: "10px",
@@ -57,13 +57,13 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         opacity: "0.6"
       },
       "& button.recording": {
-        backgroundColor: theme.palette.error.main,
+        backgroundColor: theme.vars.palette.error.main,
         marginLeft: "0.5em",
-        color: theme.palette.grey[900],
+        color: theme.vars.palette.grey[900],
         minWidth: "33px"
       },
       "& .error": {
-        color: theme.palette.error.main,
+        color: theme.vars.palette.error.main,
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
       }

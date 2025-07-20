@@ -39,8 +39,8 @@ const styles = (theme: Theme) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.grey[600]}`,
-    backgroundColor: theme.palette.c_bg_loop,
+    border: `1px solid ${theme.vars.palette.grey[600]}`,
+    backgroundColor: theme.vars.palette.c_bg_loop,
     h6: {
       display: "block",
       position: "absolute",
@@ -70,12 +70,12 @@ const styles = (theme: Theme) =>
       padding: ".2em .75em",
       textAlign: "center",
       display: "block",
-      backgroundColor: theme.palette.c_input,
-      color: theme.palette.grey[0],
+      backgroundColor: theme.vars.palette.c_input,
+      color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeSmall
     },
     ".output-label": {
-      backgroundColor: theme.palette.c_output,
+      backgroundColor: theme.vars.palette.c_output,
       position: "absolute",
       top: "4.2em",
       left: "unset",
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     }
@@ -202,7 +202,9 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }}
       css={styles(theme)}
       style={
-        nodeHovered ? { border: `2px solid ${theme.palette.primary.main}` } : {}
+        nodeHovered
+          ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+          : {}
       }
     >
       <div className="inputs">

@@ -7,7 +7,7 @@ const modelListItemStyles = (theme: Theme) =>
       padding: "0.5em 1em",
       marginBottom: "0",
       boxSizing: "border-box",
-      borderBottom: "1px solid " + theme.palette.grey[600],
+      borderBottom: "1px solid " + theme.vars.palette.grey[600],
       wordBreak: "break-word",
       transition: "background-color 0.125s ease-in, border 0.125s ease-in",
       "&.compact": {
@@ -16,7 +16,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "&:hover": {
         opacity: 0.9,
-        backgroundColor: theme.palette.background.paper
+        backgroundColor: theme.vars.palette.background.paper
       },
 
       "& .model-content": {
@@ -60,7 +60,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-description": {
         display: "block",
-        color: theme.palette.grey[300],
+        color: theme.vars.palette.grey[300],
         fontSize: "var(--fontSizeSmaller)",
         lineHeight: "1.4em",
         wordBreak: "break-word"
@@ -85,7 +85,7 @@ const modelListItemStyles = (theme: Theme) =>
       },
       "& .model-path": {
         display: "block",
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         fontSize: "var(--fontSizeSmaller)",
         marginTop: "0.25em"
       },
@@ -100,14 +100,14 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "& .model-size": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         fontSize: "var(--fontSizeSmall)",
         textAlign: "right",
         minWidth: "7em"
       },
 
       "& .model-info": {
-        color: theme.palette.text.secondary,
+        color: theme.vars.palette.text.secondary,
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
@@ -134,7 +134,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-stats": {
         fontSize: "var(--fontSizeSmaller)",
-        color: theme.palette.grey[100],
+        color: theme.vars.palette.grey[100],
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -175,14 +175,14 @@ const modelListItemStyles = (theme: Theme) =>
       "& .downloaded-icon": {
         marginBottom: "-0.25em",
         marginRight: "0.5em",
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         "&:hover": {
           backgroundColor: "transparent",
-          color: theme.palette.success.main
+          color: theme.vars.palette.success.main
         }
       },
       "& .show-in-explorer-button": {
-        color: theme.palette.c_folder,
+        color: theme.vars.palette.c_folder,
         "&:hover": {
           backgroundColor: "transparent",
           color: "var(--c_file)"
@@ -191,10 +191,10 @@ const modelListItemStyles = (theme: Theme) =>
       //
       ".model-item": {
         padding: 0,
-        borderBottom: `1px solid ${theme.palette.grey[900]}`,
+        borderBottom: `1px solid ${theme.vars.palette.grey[900]}`,
         marginBottom: theme.spacing(1),
         "&:hover": {
-          backgroundColor: theme.palette.grey[600]
+          backgroundColor: theme.vars.palette.grey[600]
         }
       },
       ".model-text": {
@@ -210,7 +210,7 @@ const modelListItemStyles = (theme: Theme) =>
         paddingTop: theme.spacing(1)
       },
       button: {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         margin: "0",
         padding: "0 .5em"
       },
@@ -234,13 +234,13 @@ const modelListItemStyles = (theme: Theme) =>
         gap: "1em"
       },
       ".model-category.empty": {
-        color: theme.palette.grey[500],
+        color: theme.vars.palette.grey[500],
         marginBottom: "2em"
       },
       ".model-type-button.empty": {
-        color: theme.palette.grey[400],
+        color: theme.vars.palette.grey[400],
         "& span": {
-          color: theme.palette.grey[400]
+          color: theme.vars.palette.grey[400]
         }
       },
       ".model-type-button.Mui-selected.empty span": {

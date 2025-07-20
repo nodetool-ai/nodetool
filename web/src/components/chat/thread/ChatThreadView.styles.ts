@@ -71,15 +71,15 @@ export const createStyles = (theme: Theme) => ({
       // fontSize: theme.fontSizeNormal,
       // lineHeight: "1.5em"
       // fontWeight: "300"
-      // color: theme.palette.grey[0]
+      // color: theme.vars.palette.grey[0]
     },
 
     "li.user": {
       width: "60%",
       margin: "4em 0 2em auto",
       padding: "0.2em",
-      color: theme.palette.grey[100],
-      backgroundColor: theme.palette.grey[600],
+      color: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[600],
       opacity: 0.9,
       borderRadius: "20px"
     },
@@ -89,7 +89,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     "li.assistant": {
-      // color: theme.palette.grey[0]
+      // color: theme.vars.palette.grey[0]
     },
 
     "li pre": {
@@ -101,7 +101,7 @@ export const createStyles = (theme: Theme) => ({
 
     "li pre code": {
       // fontFamily: theme.fontFamily2,
-      // color: theme.palette.grey[0]
+      // color: theme.vars.palette.grey[0]
     },
 
     ".code-block-container": {
@@ -134,13 +134,13 @@ export const createStyles = (theme: Theme) => ({
       width: "10px",
       height: "10px",
       borderRadius: "50%",
-      backgroundColor: theme.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[100],
       margin: "0 5px"
     },
 
     ".node-status": {
       textAlign: "center",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
     },

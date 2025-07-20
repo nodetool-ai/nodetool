@@ -11,16 +11,16 @@ const styles = (theme: Theme) =>
     ".task-container": {
       marginBottom: "1rem",
       padding: "1rem",
-      borderRadius: "4px",
+      borderRadius: "4px"
     },
     ".task-title": {
       fontWeight: "bold",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     ".task-description": {
       marginTop: "0.5rem",
       marginBottom: "1rem",
-      color: theme.palette.grey[800]
+      color: theme.vars.palette.grey[800]
     }
   });
 

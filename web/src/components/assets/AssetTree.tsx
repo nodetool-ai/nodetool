@@ -191,7 +191,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                   minWidth: "1em",
                   paddingRight: ".5em",
                   "& > *": {
-                    color: theme.palette.grey[100],
+                    color: theme.vars.palette.grey[100],
                     width: "1em",
                     height: "1em"
                   }

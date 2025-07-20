@@ -37,8 +37,8 @@ const menuStyles = (theme: Theme) =>
   css({
     ".category-header": {
       padding: "8px 16px",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[200],
       fontSize: "0.75rem",
       fontWeight: 600,
       textTransform: "uppercase",
@@ -47,17 +47,17 @@ const menuStyles = (theme: Theme) =>
 
     ".tool-item": {
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       },
       "&.selected": {
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
         paddingLeft: "13px"
       }
     },
 
     ".tool-name": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
 
     ".tool-name.selected": {
@@ -65,12 +65,12 @@ const menuStyles = (theme: Theme) =>
     },
 
     ".tool-description": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontSize: "0.75rem"
     },
 
     ".tool-icon": {
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
 
     ".tool-icon.selected": {
@@ -285,10 +285,10 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
             )
           }
           sx={(theme) => ({
-            color: theme.palette.grey[0],
+            color: theme.vars.palette.grey[0],
             "&:hover": {
-              backgroundColor: theme.palette.grey[500],
-              borderColor: theme.palette.grey[400]
+              backgroundColor: theme.vars.palette.grey[500],
+              borderColor: theme.vars.palette.grey[400]
             },
             "&.active": {
               borderColor: "var(--palette-primary-main)",

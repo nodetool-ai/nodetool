@@ -12,7 +12,7 @@ import { isEqual } from "lodash";
 export const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
-    backgroundColor: theme.palette.error.main,
+    backgroundColor: theme.vars.palette.error.main,
     borderRadius: "1px",
     padding: "10px",
     transition: "background-color 0.2s",
@@ -23,7 +23,7 @@ export const errorStyles = (theme: Theme) =>
       maxHeight: "6em",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       cursor: "auto",
       userSelect: "text",
       lineHeight: "1.1em",
@@ -31,7 +31,7 @@ export const errorStyles = (theme: Theme) =>
       overflowX: "hidden",
       overflowY: "auto",
       "&::selection": {
-        backgroundColor: theme.palette.grey[0]
+        backgroundColor: theme.vars.palette.grey[0]
       }
     },
     ".copy-button": {
@@ -48,7 +48,7 @@ export const errorStyles = (theme: Theme) =>
         opacity: 1
       },
       transition: "opacity 0.2s ease",
-      color: theme.palette.grey[1000]
+      color: theme.vars.palette.grey[1000]
     }
   });
 export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({

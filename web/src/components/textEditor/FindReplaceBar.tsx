@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
     alignItems: "center",
     padding: "0.2em 0.5em 0.5em 1em",
     justifyContent: "start",
-    backgroundColor: theme.palette.grey[800],
+    backgroundColor: theme.vars.palette.grey[800],
     gap: "0.5em",
     ".search-group": {
       display: "flex",
@@ -49,8 +49,8 @@ const styles = (theme: Theme) =>
     },
     ".search-input": {
       "& .MuiInputBase-root": {
-        backgroundColor: theme.palette.grey[600],
-        color: theme.palette.grey[0],
+        backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.grey[0],
         fontSize: theme.fontSizeSmaller,
         border: "none",
         height: "2em",
@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
         }
       },
       "& .MuiInputBase-input::placeholder": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
@@ -70,15 +70,15 @@ const styles = (theme: Theme) =>
           opacity: 0.9
         },
         "&.Mui-focused": {
-          color: theme.palette.grey[0],
-          backgroundColor: theme.palette.grey[500]
+          color: theme.vars.palette.grey[0],
+          backgroundColor: theme.vars.palette.grey[500]
         }
       }
     },
     ".replace-input": {
       "& .MuiInputBase-root": {
-        backgroundColor: theme.palette.grey[600],
-        color: theme.palette.grey[0],
+        backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.grey[0],
         fontSize: theme.fontSizeSmaller,
         height: "2em",
         "& input": {
@@ -86,36 +86,36 @@ const styles = (theme: Theme) =>
         }
       },
       "& .MuiInputBase-input::placeholder": {
-        color: theme.palette.grey[400],
+        color: theme.vars.palette.grey[400],
         opacity: 1
       },
       "& .MuiOutlinedInput-root": {
         "& fieldset": {
-          borderColor: theme.palette.grey[500]
+          borderColor: theme.vars.palette.grey[500]
         },
         "&:hover fieldset": {
-          borderColor: theme.palette.grey[400]
+          borderColor: theme.vars.palette.grey[400]
         },
         "&.Mui-focused fieldset": {
-          borderColor: theme.palette.grey[0]
+          borderColor: theme.vars.palette.grey[0]
         }
       }
     },
     ".match-info": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       minWidth: "4em",
       textAlign: "center"
     },
     ".toolbar-button": {
       padding: "4px",
       marginRight: "0",
-      color: `${theme.palette.grey[200]} !important`,
+      color: `${theme.vars.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
       "&:hover": {
-        backgroundColor: `${theme.palette.grey[600]} !important`,
-        color: `${theme.palette.grey[0]} !important`
+        backgroundColor: `${theme.vars.palette.grey[600]} !important`,
+        color: `${theme.vars.palette.grey[0]} !important`
       }
     }
   });

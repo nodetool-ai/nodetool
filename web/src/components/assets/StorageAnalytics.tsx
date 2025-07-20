@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller
     },
     ".folder-info": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontWeight: 500
     },
     ".storage-stats": {
@@ -47,12 +47,12 @@ const styles = (theme: Theme) =>
       alignItems: "center"
     },
     ".stat-label": {
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeTiny,
       textTransform: "uppercase"
     },
     ".stat-value": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     }
   });
 

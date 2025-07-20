@@ -103,10 +103,10 @@ const styles = (theme: Theme) =>
       height: "1em",
       borderRadius: "0",
       backgroundColor: "transparent",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       "&:hover": {
-        backgroundColor: theme.palette.grey[600],
-        color: theme.palette.c_delete
+        backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.c_delete
       },
       "& svg": {
         width: ".7em",
@@ -117,12 +117,12 @@ const styles = (theme: Theme) =>
       padding: ".1em",
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       "& svg": {
         fontSize: theme.fontSizeBig
       },
       "&:hover": {
-        color: theme.palette.c_delete,
+        color: theme.vars.palette.c_delete,
         backgroundColor: "transparent"
       }
     }

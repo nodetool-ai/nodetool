@@ -15,9 +15,9 @@ const styles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "space-between",
     padding: "0.5em 1em 0 1em",
-    backgroundColor: theme.palette.grey[800],
+    backgroundColor: theme.vars.palette.grey[800],
     fontSize: theme.fontSizeSmaller,
-    color: theme.palette.grey[200],
+    color: theme.vars.palette.grey[200],
     fontFamily: theme.fontFamily2,
     height: "1.75em",
     ".stats": {
@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
           fontWeight: "400"
         },
         ".value": {
-          color: theme.palette.grey[100],
+          color: theme.vars.palette.grey[100],
           fontWeight: "600"
         }
       }
@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: "0.5em",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeTiny
     }
   });

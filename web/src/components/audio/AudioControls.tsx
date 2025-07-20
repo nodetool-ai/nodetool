@@ -46,8 +46,8 @@ const styles = (theme: Theme) =>
       marginLeft: "0",
       padding: ".1em",
       transition: "border",
-      color: theme.palette.grey[100],
-      backgroundColor: theme.palette.grey[900]
+      color: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[900]
     },
     "button:hover": {
       backgroundColor: "transparent"

@@ -16,7 +16,7 @@ export const navigationStyles = (theme: Theme) =>
     },
 
     ".MuiTabs-indicator": {
-      backgroundColor: theme.palette.primary.main,
+      backgroundColor: theme.vars.palette.primary.main,
       height: 1
     },
 
@@ -27,20 +27,20 @@ export const navigationStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       minHeight: "auto",
       padding: "6px 8px",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
 
       "&:hover": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         opacity: 1
       },
 
       "&.Mui-selected": {
-        color: theme.palette.primary.main,
+        color: theme.vars.palette.primary.main,
         fontWeight: 400
       },
 
       "&.Mui-focusVisible": {
-        backgroundColor: theme.palette.grey[700]
+        backgroundColor: theme.vars.palette.grey[700]
       }
     }
   });
@@ -52,7 +52,7 @@ export const tabsRootStyle = css({
 
 export const tabsIndicatorStyle = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: theme.vars.palette.primary.main,
     height: 1
   });
 
@@ -63,19 +63,19 @@ export const tabStyle = (theme: Theme) =>
     fontSize: theme.fontSizeSmaller,
     minHeight: "auto",
     padding: "6px 8px",
-    color: theme.palette.grey[400],
+    color: theme.vars.palette.grey[400],
 
     "&:hover": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       opacity: 1
     },
 
     "&.Mui-selected": {
-      color: theme.palette.primary.main,
+      color: theme.vars.palette.primary.main,
       fontWeight: 400
     },
 
     "&.Mui-focusVisible": {
-      backgroundColor: theme.palette.grey[700]
+      backgroundColor: theme.vars.palette.grey[700]
     }
   });

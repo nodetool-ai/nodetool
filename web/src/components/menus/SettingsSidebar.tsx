@@ -34,7 +34,7 @@ const sidebarStyles = (theme: Theme) => css`
     padding: 0.5em 1em;
     cursor: pointer;
     font-size: ${theme.fontSizeNormal};
-    color: ${theme.palette.grey[0]};
+    color: ${theme.vars.palette.grey[0]};
     opacity: 0.7;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;

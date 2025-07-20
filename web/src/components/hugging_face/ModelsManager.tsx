@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       width: "80%",
       maxWidth: "1200px",
-      backgroundColor: theme.palette.background.paper,
+      backgroundColor: theme.vars.palette.background.paper,
       boxShadow: theme.shadows[24],
       borderRadius: theme.shape.borderRadius,
       outline: "none"
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: theme.spacing(1),
       top: theme.spacing(1),
-      color: theme.palette.grey[500]
+      color: theme.vars.palette.grey[500]
     }
   });
 

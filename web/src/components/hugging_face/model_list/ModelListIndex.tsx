@@ -53,12 +53,12 @@ const styles = (theme: Theme) =>
       padding: "0.25em 1em",
       backgroundColor: "transparent",
       "&:hover": {
-        color: theme.palette.grey[100],
-        backgroundColor: theme.palette.grey[600]
+        color: theme.vars.palette.grey[100],
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".model-type-button.Mui-selected": {
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       transition: "background-color 0.2s ease-in"
     },
     ".model-type-button span": {

@@ -27,7 +27,7 @@ interface WorkflowsListProps {
 
 const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette.grey[800],
+    backgroundColor: theme.vars.palette.grey[800],
     borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",
@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       marginBottom: "1em"
     },
     ".section-title": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       marginBottom: 0
     },
     ".workflow-controls": {
@@ -54,19 +54,19 @@ const styles = (theme: Theme) =>
     ".sort-toggle .MuiToggleButton-root": {
       lineHeight: "1em",
       height: "1.75em",
-      color: theme.palette.grey[200],
-      borderColor: theme.palette.grey[500],
+      color: theme.vars.palette.grey[200],
+      borderColor: theme.vars.palette.grey[500],
       "&.Mui-selected": {
-        backgroundColor: theme.palette.grey[500],
-        color: theme.palette.grey[0]
+        backgroundColor: theme.vars.palette.grey[500],
+        color: theme.vars.palette.grey[0]
       }
     },
     ".create-button": {
       padding: ".3em 1em",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[0],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[0],
       ":hover": {
-        backgroundColor: theme.palette.grey[500]
+        backgroundColor: theme.vars.palette.grey[500]
       }
     },
     ".content-scrollable": {
@@ -88,10 +88,10 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(1),
       cursor: "pointer",
       borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       transition: "all 0.2s",
       ":hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".workflow-thumbnail": {
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       height: "60px",
       borderRadius: theme.shape.borderRadius,
       backgroundColor: "transparent",
-      border: `1px solid ${theme.palette.grey[600]}`,
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       flexShrink: 0
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     ".workflow-name": {
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontWeight: 500,
       marginBottom: theme.spacing(0.5),
       overflow: "hidden",
@@ -117,7 +117,7 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".workflow-description": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontSize: "0.875rem",
       lineHeight: "1.2em",
       display: "-webkit-box",
@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".workflow-date": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       fontSize: "0.75rem",
       marginLeft: "auto",
       flexShrink: 0

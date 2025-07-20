@@ -14,7 +14,7 @@ export const tableStyles = (theme: Theme) =>
       maxHeight: "800px",
       position: "relative",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.grey[900]}`
+      border: `1px solid ${theme.vars.palette.grey[900]}`
     },
 
     // Tabulator base
@@ -26,8 +26,8 @@ export const tableStyles = (theme: Theme) =>
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
-      backgroundColor: theme.palette.grey[800],
-      borderTop: `1px solid ${theme.palette.grey[900]}`
+      backgroundColor: theme.vars.palette.grey[800],
+      borderTop: `1px solid ${theme.vars.palette.grey[900]}`
     },
 
     // Column resize handle
@@ -46,13 +46,13 @@ export const tableStyles = (theme: Theme) =>
       minHeight: "15px",
       minWidth: "20px",
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.grey[900]
+      backgroundColor: theme.vars.palette.grey[900]
     },
     ".tabulator-row-even": {
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".tabulator-row:hover": {
-      backgroundColor: theme.palette.grey[600]
+      backgroundColor: theme.vars.palette.grey[600]
     },
 
     // Header
@@ -61,13 +61,13 @@ export const tableStyles = (theme: Theme) =>
       minHeight: "20px",
       maxHeight: "30px",
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       fontWeight: "normal",
-      borderBottom: `1px solid ${theme.palette.grey[900]}`
+      borderBottom: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col": {
       minHeight: "2em",
-      borderRight: `1px solid ${theme.palette.grey[900]}`
+      borderRight: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col-title": {
       lineHeight: "1.1em"
@@ -88,12 +88,12 @@ export const tableStyles = (theme: Theme) =>
 
     // cell
     ".tabulator-row .tabulator-cell": {
-      borderColor: theme.palette.grey[900]
+      borderColor: theme.vars.palette.grey[900]
     },
     // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
       paddingLeft: "2px !important",
-      borderRight: `1px solid ${theme.palette.grey[900]}`
+      borderRight: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
       padding: "5px 0px 0px 2px"
@@ -148,7 +148,7 @@ export const tableStyles = (theme: Theme) =>
           color: "var(--palette-primary-main)"
         },
         "& svg": {
-          color: theme.palette.grey[1000],
+          color: theme.vars.palette.grey[1000],
           width: "100%",
           height: "100%"
         }
@@ -160,8 +160,8 @@ export const tableStyles = (theme: Theme) =>
 
     // Cell editing
     ".tabulator .tabulator-cell.tabulator-editing input": {
-      backgroundColor: theme.palette.grey[0],
-      color: theme.palette.grey[1000],
+      backgroundColor: theme.vars.palette.grey[0],
+      color: theme.vars.palette.grey[1000],
       fontSize: theme.fontSizeSmall,
       "&::selection": {
         backgroundColor: "var(--palette-primary-main)"

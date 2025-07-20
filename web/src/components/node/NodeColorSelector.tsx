@@ -30,10 +30,10 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
       width: ".85em",
       height: ".85em",
       zIndex: 10000,
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       borderRadius: ".1em 0  0 0",
       "& svg": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         width: ".6em",
         height: ".6em",
         scale: ".9",
@@ -76,13 +76,13 @@ export const colorSelectDialogStyles = (theme: Theme) =>
       borderRadius: 0
     },
     ".MuiDialogTitle-root": {
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[200],
       padding: "0.5em .75em"
     },
     ".MuiDialogContent-root": {
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[200],
       padding: "0.5em .5em 2em .5em"
     },
     ".search": {
@@ -90,7 +90,7 @@ export const colorSelectDialogStyles = (theme: Theme) =>
       padding: "0 .5em",
       marginBottom: "1em",
       backgroundColor: "transparent",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     }
   });
 

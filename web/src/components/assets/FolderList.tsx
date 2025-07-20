@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       height: ROW_HEIGHT + "em",
       background: "transparent",
       boxShadow: "none",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       "&.Mui-expanded": {
         backgroundColor: "transparent"
       }
@@ -101,13 +101,13 @@ const styles = (theme: Theme) =>
       left: "4px",
       right: "0",
       zIndex: 1000,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       filter: "none",
       transform: "rotate(-90deg)",
       transition: "transform 0.25s ease"
     },
     ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       transform: "rotate(0deg)"
     },
     //
@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
         width: "2em",
         height: "4px",
         borderRadius: "2px",
-        backgroundColor: theme.palette.grey[900]
+        backgroundColor: theme.vars.palette.grey[900]
       }
     },
     ".resize-handle:hover::after, .resize-handle.resizing::after": {

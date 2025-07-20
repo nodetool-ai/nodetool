@@ -37,31 +37,31 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       "&:not(:last-child)": {
-        borderRight: `1px solid ${theme.palette.grey[600]}`,
+        borderRight: `1px solid ${theme.vars.palette.grey[600]}`,
         paddingRight: "0.5em",
         marginRight: "0.25em"
       }
     },
     ".toolbar-button": {
       padding: "2px",
-      color: `${theme.palette.grey[200]} !important`,
+      color: `${theme.vars.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",
       borderRadius: "4px !important",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: `${theme.palette.grey[800]} !important`,
-        color: `${theme.palette.grey[0]} !important`
+        backgroundColor: `${theme.vars.palette.grey[800]} !important`,
+        color: `${theme.vars.palette.grey[0]} !important`
       },
       "&.active": {
-        backgroundColor: `${theme.palette.grey[600]} !important`,
-        color: `${theme.palette.grey[0]} !important`
+        backgroundColor: `${theme.vars.palette.grey[600]} !important`,
+        color: `${theme.vars.palette.grey[0]} !important`
       },
       "&.disabled": {
-        color: `${theme.palette.grey[500]} !important`,
+        color: `${theme.vars.palette.grey[500]} !important`,
         cursor: "not-allowed",
         "&:hover": {
           backgroundColor: "transparent !important",
-          color: `${theme.palette.grey[500]} !important`
+          color: `${theme.vars.palette.grey[500]} !important`
         }
       }
     }

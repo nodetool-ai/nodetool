@@ -121,10 +121,10 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.palette.grey[0],
+            color: theme.vars.palette.grey[0],
             padding: "0.25em 0.75em",
             "&:hover": {
-              backgroundColor: theme.palette.grey[500]
+              backgroundColor: theme.vars.palette.grey[500]
             },
             "&.active": {
               borderColor: "var(--palette-primary-main)",

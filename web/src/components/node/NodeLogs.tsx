@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
     h6: {
       margin: 0,
       padding: ".2em .4em",
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     "MuiPaper-root": {
       boxShadow: "none",
@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
       minHeight: "unset"
     },
     ".MuiButtonBase-root": {
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       height: "1.5em",
       minHeight: "unset",
       border: 0,
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       padding: "0.5em",
       overflow: "auto",
       userSelect: "text",
-      backgroundColor: theme.palette.grey[1000]
+      backgroundColor: theme.vars.palette.grey[1000]
     }
   });
 

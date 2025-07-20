@@ -58,8 +58,8 @@ const PropertyDropzone = ({
         top: "0",
         right: "0",
         zIndex: 2,
-        color: theme.palette.grey[100],
-        backgroundColor: theme.palette.grey[600],
+        color: theme.vars.palette.grey[100],
+        backgroundColor: theme.vars.palette.grey[600],
         fontSize: theme.fontSizeTinyer,
         lineHeight: "1.1em",
         width: "15px",
@@ -76,7 +76,7 @@ const PropertyDropzone = ({
         zIndex: 1,
         bottom: "0em",
         borderRadius: "0",
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         margin: "0 0 .5em 0",
         padding: ".2em .5em .1em .5em"
       },
@@ -98,8 +98,8 @@ const PropertyDropzone = ({
         textAlign: "left",
         transition: "all 0.2s ease",
         "&.drag-over": {
-          backgroundColor: theme.palette.grey[600],
-          outline: `2px dashed ${theme.palette.grey[100]}`,
+          backgroundColor: theme.vars.palette.grey[600],
+          outline: `2px dashed ${theme.vars.palette.grey[100]}`,
           outlineOffset: "-2px"
         }
       },

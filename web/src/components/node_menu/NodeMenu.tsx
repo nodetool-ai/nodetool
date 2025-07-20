@@ -36,14 +36,14 @@ const treeStyles = (theme: Theme) =>
       position: "absolute",
       overflow: "hidden",
       zIndex: 20000,
-      border: `1px solid ${theme.palette.grey[500]}`,
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: "12px",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.palette.background.default
+      backgroundColor: theme.vars.palette.background.default
     },
     ".draggable-header": {
       borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: theme.vars.palette.background.default,
       width: "100%",
       minHeight: "40px",
       cursor: "grab",
@@ -55,7 +55,7 @@ const treeStyles = (theme: Theme) =>
         padding: "0 0 0 1.25em",
         fontSize: theme.fontSizeNormal,
         fontWeight: 500,
-        color: theme.palette.grey[100]
+        color: theme.vars.palette.grey[100]
       }
     },
     ".draggable-header:hover": {
@@ -89,14 +89,14 @@ const treeStyles = (theme: Theme) =>
       top: "8px",
       right: "8px",
       zIndex: 150,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       width: "28px",
       height: "28px",
       padding: "2px",
       transition: "all 0.2s ease",
       "&:hover": {
         backgroundColor: "rgba(0, 0, 0, 0.04)",
-        color: theme.palette.grey[100]
+        color: theme.vars.palette.grey[100]
       }
     },
     "& .MuiPaper-root.MuiAccordion-root": {

@@ -30,9 +30,9 @@ const styles = (theme: Theme) =>
         fontSize: theme.fontSizeSmall,
         fontFamily: theme.fontFamily2,
         wordSpacing: "-0.1em",
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         border: 0,
-        color: theme.palette.grey[100] + " !important",
+        color: theme.vars.palette.grey[100] + " !important",
         display: "flex",
         alignItems: "center",
         margin: 0,
@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
         borderRadius: "0"
       },
       "button.add-column:hover": {
-        color: theme.palette.grey[0] + " !important"
+        color: theme.vars.palette.grey[0] + " !important"
       },
       "button.add-column svg": {
         fontSize: theme.fontSizeSmall,

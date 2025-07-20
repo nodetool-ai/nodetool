@@ -47,7 +47,7 @@ const ColorProperty: React.FC<PropertyProps> = ({
 
         <span
           css={{
-            color: theme.palette.grey[400],
+            color: theme.vars.palette.grey[400],
             fontSize: theme.fontSizeNormal
           }}
         >
