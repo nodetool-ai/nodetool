@@ -9,6 +9,7 @@ async function createViteConfig() {
 
   return defineConfig({
     server: {
+      allowedHosts: [".nodetool.ai"],
       port: 3000
     },
     plugins: [
