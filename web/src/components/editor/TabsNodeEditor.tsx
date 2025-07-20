@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.palette.grey[700],
+      backgroundColor: theme.vars.palette.grey[700],
       alignItems: "center",
       position: "relative",
       padding: "0",
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       minWidth: "80px",
       flex: "0 0 auto",
       cursor: "pointer",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       background: "transparent",
       borderRadius: "2px 2px 0 0",
       fontSize: "13px",
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
 
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.03)",
-        color: theme.palette.grey[0],
+        color: theme.vars.palette.grey[0],
         "&::before": {
           opacity: 0.3,
           transform: "scaleX(0.3)"
@@ -110,8 +110,8 @@ const styles = (theme: Theme) =>
       },
 
       "&.active": {
-        color: theme.palette.grey[0],
-        backgroundColor: theme.palette.grey[900],
+        color: theme.vars.palette.grey[0],
+        backgroundColor: theme.vars.palette.grey[900],
         "&::before": {
           opacity: 0.8,
           transform: "scaleX(1)"
@@ -179,10 +179,10 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       width: "24px",
       height: "30px",
-      background: theme.palette.background.default,
+      background: theme.vars.palette.background.default,
       border: "none",
       cursor: "pointer",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       transition: "all 0.1s ease-in-out",
       padding: 0,
       flexShrink: 0,
@@ -193,15 +193,15 @@ const styles = (theme: Theme) =>
       },
 
       "&:hover": {
-        color: theme.palette.grey[0],
-        background: theme.palette.grey[800]
+        color: theme.vars.palette.grey[0],
+        background: theme.vars.palette.grey[800]
       },
 
       "&:disabled": {
         opacity: 0.3,
         "&:hover": {
-          color: theme.palette.grey[200],
-          background: theme.palette.background.default
+          color: theme.vars.palette.grey[200],
+          background: theme.vars.palette.background.default
         }
       }
     },
@@ -211,9 +211,9 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       width: "30px",
       height: "30px",
-      background: theme.palette.grey[700],
+      background: theme.vars.palette.grey[700],
       border: "none",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       cursor: "pointer",
       marginTop: "1px",
       borderRadius: "5px 5px 0 0",
@@ -225,8 +225,8 @@ const styles = (theme: Theme) =>
       zIndex: 1001,
 
       "&:hover": {
-        color: theme.palette.grey[0],
-        background: theme.palette.grey[300]
+        color: theme.vars.palette.grey[0],
+        background: theme.vars.palette.grey[300]
       },
 
       "& svg": {
@@ -244,7 +244,7 @@ const styles = (theme: Theme) =>
       height: "100%",
       border: "none",
       background: "transparent",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontSize: "14px",
       display: "flex",
       alignItems: "center",
@@ -262,8 +262,8 @@ const styles = (theme: Theme) =>
     "& .actions-container": {
       flexShrink: 0,
       width: "100%",
-      backgroundColor: theme.palette.grey[900],
-      borderBottom: `1px solid ${theme.palette.grey[800]}`
+      backgroundColor: theme.vars.palette.grey[900],
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
     }
   });
 

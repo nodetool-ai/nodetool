@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "4em",
       display: "block",
-      background: `linear-gradient(to top, ${theme.palette.grey[600]}, transparent)`,
+      background: `linear-gradient(to top, ${theme.vars.palette.grey[600]}, transparent)`,
       position: "absolute",
       bottom: "3em",
       left: 0
@@ -158,13 +158,13 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       open={dialogOpen}
       onClose={() => setDialogOpen(false)}
     >
-      <DialogTitle sx={{ color: theme.palette.warning.main }}>
+      <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
         {getDialogTitle()}
       </DialogTitle>
       <DialogContent className="asset-delete-confirmation-content">
         <Typography
           variant="body1"
-          color={theme.palette.grey[200]}
+          color={theme.vars.palette.grey[200]}
           style={{ marginBottom: "1em" }}
         >
           You can right click selected assets and download them before deleting.

@@ -38,15 +38,15 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.grey[600]}`,
-    backgroundColor: theme.palette.c_bg_group,
+    border: `1px solid ${theme.vars.palette.grey[600]}`,
+    backgroundColor: theme.vars.palette.c_bg_group,
     h6: {
       display: "block",
       position: "absolute",
       marginTop: "10px",
       left: "10px",
       top: "0px",
-      color: theme.palette.grey[1000]
+      color: theme.vars.palette.grey[1000]
     },
     ".info": {
       position: "absolute",
@@ -57,7 +57,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       textAlign: "center",
       padding: ".5em",
       backgroundColor: "transparent",
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
     },
@@ -87,7 +87,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
         wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none",
-        color: theme.palette.grey[0],
+        color: theme.vars.palette.grey[0],
         padding: ".5em 0.5em",
         border: 0,
         fontSize: "1.5em",
@@ -123,7 +123,10 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.grey[0], GROUP_COLOR_OPACITY),
+      backgroundColor: hexToRgba(
+        theme.vars.palette.grey[0],
+        GROUP_COLOR_OPACITY
+      ),
       color: "var(--palette-grey-1000)",
       padding: "0.75em 1em",
       borderRadius: "4px",
@@ -131,7 +134,7 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       whiteSpace: "nowrap",
       zIndex: 100,
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-      border: `1px solid ${theme.palette.grey[500]}`,
+      border: `1px solid ${theme.vars.palette.grey[500]}`,
       opacity: 0,
       visibility: "hidden",
       transition: "opacity 0.2s 2s ease, visibility 0.2s 2s ease"
@@ -207,7 +210,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const [color, setColor] = useState(
-    props.data.properties.group_color || theme.palette.c_bg_group
+    props.data.properties.group_color || theme.vars.palette.c_bg_group
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -316,13 +319,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }`}
       style={{
         ...(nodeHovered
-          ? { border: `2px solid ${theme.palette.primary.main}` }
+          ? { border: `2px solid ${theme.vars.palette.primary.main}` }
           : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(
-          color || theme.palette.c_bg_group,
+          color || theme.vars.palette.c_bg_group,
           GROUP_COLOR_OPACITY
         )
       }}

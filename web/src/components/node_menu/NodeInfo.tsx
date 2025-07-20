@@ -24,7 +24,7 @@ const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    backgroundColor: theme.palette.background.default,
+    backgroundColor: theme.vars.palette.background.default,
     overflowY: "auto",
     gap: ".5em",
     padding: "1em",
@@ -53,12 +53,12 @@ const nodeInfoStyles = (theme: Theme) =>
       textTransform: "uppercase",
       padding: "0",
       margin: ".5em 0 0",
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     ".replicate-status": {
       fontWeight: "400",
       width: "fit-content",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25em 0.5em",
@@ -74,7 +74,7 @@ const nodeInfoStyles = (theme: Theme) =>
     ".node-description": {
       fontWeight: "400",
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
       marginBottom: "0.5em",
@@ -90,8 +90,8 @@ const nodeInfoStyles = (theme: Theme) =>
     ".node-tags span": {
       fontWeight: "600",
       fontSize: theme.fontSizeTiny,
-      color: theme.palette.grey[1000],
-      backgroundColor: theme.palette.grey[400],
+      color: theme.vars.palette.grey[1000],
+      backgroundColor: theme.vars.palette.grey[400],
       borderRadius: "0.5em",
       padding: "0.2em 0.5em",
       textTransform: "uppercase",
@@ -106,7 +106,7 @@ const nodeInfoStyles = (theme: Theme) =>
     ".node-usecases div": {
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       lineHeight: "1.3em",
       ul: {
         margin: "0.5em 0",
@@ -121,7 +121,7 @@ const nodeInfoStyles = (theme: Theme) =>
           content: '"•"',
           position: "absolute",
           left: "0.5em",
-          color: theme.palette.grey[100]
+          color: theme.vars.palette.grey[100]
         }
       }
     },
@@ -150,19 +150,19 @@ const nodeInfoStyles = (theme: Theme) =>
       cursor: "default"
     },
     ".inputs-outputs .item:nth-of-type(odd)": {
-      backgroundColor: theme.palette.grey[700]
+      backgroundColor: theme.vars.palette.grey[700]
     },
     ".inputs-outputs .item .type": {
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       textAlign: "right",
-      borderRight: `4px solid ${theme.palette.grey[400]}`,
+      borderRight: `4px solid ${theme.vars.palette.grey[400]}`,
       paddingRight: ".5em"
     },
     ".inputs-outputs .item .property": {
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     ".inputs-outputs .item .property.description": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".preview-image": {
       width: "100%",

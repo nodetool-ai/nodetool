@@ -17,11 +17,11 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "0.5em",
       right: "0.5em",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     "button:hover": {
       backgroundColor: "transparent",
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     }
   });
 

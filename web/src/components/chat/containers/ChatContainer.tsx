@@ -10,8 +10,8 @@ const styles = (theme: Theme) =>
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    border: `1px solid ${theme.palette.grey[500]}40`,
-    backgroundColor: `${theme.palette.grey[800]}80`,
+    border: `1px solid ${theme.vars.palette.grey[500]}40`,
+    backgroundColor: `${theme.vars.palette.grey[800]}80`,
     borderRadius: 20,
     overflow: "hidden",
     margin: 0,
@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     "&.minimized": {
       width: "120px",
       height: "60px",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
 
     "&.closed": {

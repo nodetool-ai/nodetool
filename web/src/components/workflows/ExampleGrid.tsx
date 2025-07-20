@@ -113,15 +113,15 @@ const styles = (theme: Theme) =>
       left: "-4px",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.2",
-      backgroundColor: theme.palette.grey[800],
-      color: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[200],
       padding: "0.2em 0.4em",
       margin: "0",
       zIndex: 110
     },
     ".workflow .description": {
       fontSize: "0.875rem",
-      color: theme.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
       lineHeight: "1.2",
       display: "-webkit-box",
       WebkitBoxOrient: "vertical",
@@ -140,7 +140,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       zIndex: 100,
       width: "calc(100% + 10px)",
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: theme.vars.palette.background.default,
       boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
       padding: "0 5px 1em 5px",
       left: "-5px",
@@ -164,7 +164,7 @@ const styles = (theme: Theme) =>
       overflow: "visible",
       position: "relative",
       background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
-        theme.palette.grey[800]
+        theme.vars.palette.grey[800]
       }22)`
     },
     ".image-wrapper:hover": {
@@ -218,13 +218,13 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "1px",
       fontWeight: "bold",
-      color: theme.palette.text.primary,
-      border: `1px solid ${theme.palette.grey[600]}`,
+      color: theme.vars.palette.text.primary,
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
       "&:hover": {
         border: `1px solid ${"var(--palette-primary-main)"}`,
         // transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
-        color: theme.palette.common.white,
+        color: theme.vars.palette.common.white,
         animation: "glowPulse 1.5s infinite"
       },
       fontSize: "0.8rem",
@@ -240,12 +240,12 @@ const styles = (theme: Theme) =>
         ${"var(--palette-primary-main)"}dd
       )`,
       boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       animation: "glowPulse 1.5s infinite",
       "&:hover": {
         transform: "none",
         boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-        color: theme.palette.grey[1000]
+        color: theme.vars.palette.grey[1000]
       }
     },
     "@keyframes glowPulse": {
@@ -288,7 +288,7 @@ const styles = (theme: Theme) =>
       padding: "0 20px",
       marginBottom: "10px",
       fontSize: "0.8rem",
-      color: theme.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
       maxHeight: "100px",
       overflowY: "auto"
     },
@@ -310,18 +310,18 @@ const styles = (theme: Theme) =>
       padding: ".2em .4em",
       marginRight: ".5em",
       borderRadius: ".3em",
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       wordBreak: "break-word",
-      backgroundColor: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[200],
       opacity: 0.96
     },
     ".matched-item-name": {
       fontSize: "14px",
-      color: theme.palette.grey[900]
+      color: theme.vars.palette.grey[900]
     },
     ".matched-item-namespace": {
       display: "block",
-      color: theme.palette.grey[800],
+      color: theme.vars.palette.grey[800],
       fontSize: "11px",
       fontWeight: 600
     },
@@ -619,7 +619,7 @@ const ExampleGrid = () => {
             <Box className="no-results">
               <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                 Nothing found for
-                <strong style={{ color: theme.palette.primary.main }}>
+                <strong style={{ color: theme.vars.palette.primary.main }}>
                   {" "}
                   &quot;{searchQuery}&quot;
                 </strong>

@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     },
     ".download-message": {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.info.main
+      color: theme.vars.palette.info.main
     },
     ".progress-bar-container": {
       height: "6px",
@@ -192,7 +192,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={theme.palette.success.main}
+            color={theme.vars.palette.success.main}
           >
             Download completed
           </Typography>
@@ -203,7 +203,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={theme.palette.warning.main}
+            color={theme.vars.palette.warning.main}
           >
             Download cancelled
           </Typography>
@@ -214,7 +214,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           <Typography
             className="download-status"
             variant="body2"
-            color={theme.palette.error.main}
+            color={theme.vars.palette.error.main}
           >
             Download failed
           </Typography>
@@ -281,8 +281,8 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
               onClick={() => cancelDownload(name)}
               variant="contained"
               style={{
-                color: theme.palette.primary.contrastText,
-                backgroundColor: theme.palette.info.main
+                color: theme.vars.palette.primary.contrastText,
+                backgroundColor: theme.vars.palette.info.main
               }}
               size="small"
               className="cancel-button"

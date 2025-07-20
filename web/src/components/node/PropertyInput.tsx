@@ -422,7 +422,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       lineHeight: "1.2",
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     });
 
   return (

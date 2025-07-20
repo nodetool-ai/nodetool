@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
     ".image-info p": {
       fontSize: theme.fontSizeSmall,
       textAlign: "right",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       textShadow: "0 0 4px rgba(0,0,0,0.9)"
     }
   });

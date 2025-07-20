@@ -70,7 +70,7 @@ const helpStyles = (theme: Theme) =>
       alignItems: "center",
       marginBottom: "0.5em",
       padding: "0em 1em",
-      borderBottom: `1px solid ${theme.palette.grey[600]}`
+      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
     },
     ".content": {
       height: "calc(100% - 40px)",
@@ -86,14 +86,14 @@ const helpStyles = (theme: Theme) =>
         borderRadius: "1.5px"
       },
       "& .MuiTab-root": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         transition: "color 0.2s ease",
         paddingBottom: "0em",
         "&.Mui-selected": {
-          color: theme.palette.grey[0]
+          color: theme.vars.palette.grey[0]
         },
         "&:hover": {
-          color: theme.palette.grey[0]
+          color: theme.vars.palette.grey[0]
         }
       },
       button: {
@@ -116,14 +116,14 @@ const helpStyles = (theme: Theme) =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.palette.grey[800]
+        background: theme.vars.palette.grey[800]
       },
       "&::-webkit-scrollbar-thumb": {
-        background: theme.palette.grey[500],
+        background: theme.vars.palette.grey[500],
         borderRadius: "4px"
       },
       "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.palette.grey[400]
+        background: theme.vars.palette.grey[400]
       }
     },
     ".help-item": {
@@ -137,8 +137,8 @@ const helpStyles = (theme: Theme) =>
       },
       button: {
         marginTop: "2px",
-        color: theme.palette.grey[200],
-        border: `1px solid ${theme.palette.grey[600]}`,
+        color: theme.vars.palette.grey[200],
+        border: `1px solid ${theme.vars.palette.grey[600]}`,
         padding: "1px 6px",
         textAlign: "left",
         lineHeight: "1.3em",
@@ -153,7 +153,7 @@ const helpStyles = (theme: Theme) =>
     ".explanation": {
       marginBottom: "1em",
       fontSize: "var(--fontSizeNormal)",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     }
   });
 

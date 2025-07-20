@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     ".react-flow__resize-control.line": {
       opacity: 0,
       borderWidth: "1px",
-      borderColor: theme.palette.grey[600],
+      borderColor: theme.vars.palette.grey[600],
       transition: "all 0.15s ease-in-out"
     },
     ".react-flow__resize-control.line:hover": {

@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       flexShrink: 0,
       marginRight: "1.2em",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       opacity: 0.8
     },
     "li span.message": {
@@ -54,31 +54,31 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.01em"
     },
     "li.info span.message": {
-      color: theme.palette.info.main
+      color: theme.vars.palette.info.main
     },
     "li.debug span.message": {
-      color: theme.palette.c_debug
+      color: theme.vars.palette.c_debug
     },
     "li.error span.message": {
-      color: theme.palette.error.main
+      color: theme.vars.palette.error.main
     },
     "li.warn span.message": {
-      color: theme.palette.warning.main
+      color: theme.vars.palette.warning.main
     },
     "li.warning span.message": {
-      color: theme.palette.warning.main
+      color: theme.vars.palette.warning.main
     },
     "li.progress span.message": {
-      color: theme.palette.c_progress
+      color: theme.vars.palette.c_progress
     },
     "li.node span.message": {
-      color: theme.palette.c_node
+      color: theme.vars.palette.c_node
     },
     "li.job span.message": {
-      color: theme.palette.c_job
+      color: theme.vars.palette.c_job
     },
     "li.success span.message": {
-      color: theme.palette.success.main
+      color: theme.vars.palette.success.main
     },
     ".MuiListItemText-primary": {
       fontSize: "1em"

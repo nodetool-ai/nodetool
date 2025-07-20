@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       height: "calc(100% - 200px)",
-      backgroundColor: theme.palette.Paper.overlay,
+      backgroundColor: theme.vars.palette.Paper.overlay,
       backgroundImage: "none"
     },
     ".MuiDialogContent-root": {
@@ -81,7 +81,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
               position: "absolute",
               right: 8,
               top: 8,
-              color: (theme) => theme.palette.grey[500]
+              color: (theme) => theme.vars.palette.grey[500]
             }}
           >
             <CloseIcon />

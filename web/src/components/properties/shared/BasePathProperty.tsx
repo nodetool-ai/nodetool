@@ -69,13 +69,13 @@ const createPathPropertyStyles = (theme: Theme) =>
       ".file-browser": {
         maxHeight: "300px",
         overflowY: "auto",
-        border: `1px solid ${theme.palette.grey[600]}`,
+        border: `1px solid ${theme.vars.palette.grey[600]}`,
         borderRadius: "2px",
         padding: "8px",
         marginTop: "0.5em",
 
         ".error-item > .MuiTreeItem-content": {
-          backgroundColor: `${theme.palette.warning.main} !important`
+          backgroundColor: `${theme.vars.palette.warning.main} !important`
         }
       },
 
@@ -88,21 +88,21 @@ const createPathPropertyStyles = (theme: Theme) =>
       },
 
       ".path-picker__browse-button": {
-        backgroundColor: theme.palette.grey[600],
-        border: `1px solid ${theme.palette.grey[500]}`,
+        backgroundColor: theme.vars.palette.grey[600],
+        border: `1px solid ${theme.vars.palette.grey[500]}`,
         borderRadius: "2px",
-        color: theme.palette.common.white,
+        color: theme.vars.palette.common.white,
         cursor: "pointer",
         padding: "2px 4px",
         height: "100%",
         transition: "all 0.2s ease",
         "&:hover": {
-          backgroundColor: theme.palette.grey[500]
+          backgroundColor: theme.vars.palette.grey[500]
         }
       },
 
       ".path-picker__preview": {
-        color: theme.palette.grey[400],
+        color: theme.vars.palette.grey[400],
         display: "flex",
         alignItems: "center",
         flex: 1,
@@ -115,7 +115,7 @@ const createPathPropertyStyles = (theme: Theme) =>
         backgroundColor: "transparent",
         border: "none",
         borderRadius: "50%",
-        color: theme.palette.grey[400],
+        color: theme.vars.palette.grey[400],
         cursor: "pointer",
         padding: "4px 8px",
         minWidth: "24px",
@@ -137,13 +137,13 @@ const createPathPropertyStyles = (theme: Theme) =>
       },
 
       ".MuiDialog-paper": {
-        backgroundColor: theme.palette.grey[800],
+        backgroundColor: theme.vars.palette.grey[800],
         borderRadius: "8px",
         boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
       },
 
       ".MuiDialogTitle-root": {
-        borderBottom: `1px solid ${theme.palette.grey[500]}`,
+        borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
         padding: "16px 24px"
       },
 
@@ -153,7 +153,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       },
 
       ".MuiDialogActions-root": {
-        borderTop: `1px solid ${theme.palette.grey[500]}`,
+        borderTop: `1px solid ${theme.vars.palette.grey[500]}`,
         padding: "16px 24px",
         margin: 0
       }
@@ -168,10 +168,10 @@ const treeViewStyles = (theme: Theme) => ({
   },
   ".MuiTreeItem-content.Mui-selected": {
     backgroundColor: `${"var(--palette-primary-main)"} !important`,
-    color: theme.palette.grey[1000]
+    color: theme.vars.palette.grey[1000]
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: `${theme.palette.grey[500]} !important`
+    backgroundColor: `${theme.vars.palette.grey[500]} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     opacity: 0.8,
@@ -186,10 +186,10 @@ const treeViewStyles = (theme: Theme) => ({
       fontWeight: 700
     },
   "[id$='/error'] .MuiTreeItem-content": {
-    color: theme.palette.warning.main
+    color: theme.vars.palette.warning.main
   },
   ".loading-item .MuiTreeItem-label": {
-    color: theme.palette.grey[500]
+    color: theme.vars.palette.grey[500]
   }
 });
 
@@ -347,7 +347,7 @@ const PathDialog = ({
       }}
       PaperProps={{
         sx: {
-          backgroundColor: (theme) => theme.palette.grey[900],
+          backgroundColor: (theme) => theme.vars.palette.grey[900],
           borderRadius: "8px",
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
         }

@@ -476,10 +476,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           gap={100}
           offset={4}
           size={8}
-          color={theme.palette.c_editor_grid_color}
+          color={theme.vars.palette.c_editor_grid_color}
           lineWidth={1}
           style={{
-            backgroundColor: theme.palette.c_editor_bg_color
+            backgroundColor: theme.vars.palette.c_editor_bg_color
           }}
           variant={BackgroundVariant.Cross}
         />

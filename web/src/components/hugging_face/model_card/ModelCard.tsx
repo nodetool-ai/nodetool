@@ -36,22 +36,22 @@ const styles = (theme: Theme) =>
       background: "linear-gradient(55deg, #333, #393939 65%, #393939 75%, #333)"
     },
     "&.missing": {
-      background: theme.palette.grey[800]
+      background: theme.vars.palette.grey[800]
     },
     "&.missing:hover": {
-      background: theme.palette.grey[800]
+      background: theme.vars.palette.grey[800]
     },
     ".model-download-button": {
       color: "var(--palette-primary-main)",
       margin: "1em 0.1em 0 1em",
       padding: ".25em .5em",
-      border: "1px solid" + theme.palette.grey[500],
+      border: "1px solid" + theme.vars.palette.grey[500],
       "&:hover": {
         borderColor: "var(--palette-primary-main)"
       }
     },
     ".downloaded-indicator": {
-      color: theme.palette.success.main
+      color: theme.vars.palette.success.main
     },
     ".model-downloaded-icon": {
       position: "absolute",
@@ -69,11 +69,11 @@ const styles = (theme: Theme) =>
     },
     ".repo-name .owner": {
       fontSize: ".8em",
-      color: theme.palette.info.main,
+      color: theme.vars.palette.info.main,
       padding: "0 "
     },
     "&.missing .repo-name": {
-      color: theme.palette.warning.main
+      color: theme.vars.palette.warning.main
     },
     ".tags-container": {
       position: "relative"
@@ -83,8 +83,8 @@ const styles = (theme: Theme) =>
       lineHeight: "1.1em",
       width: "fit-content",
       wordBreak: "break-word",
-      color: theme.palette.grey[900],
-      backgroundColor: theme.palette.grey[200],
+      color: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[200],
       marginTop: ".5em",
       padding: "0.1em 0.4em",
       borderRadius: 5,
@@ -106,18 +106,18 @@ const styles = (theme: Theme) =>
     },
     ".tag": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.grey[100],
-      backgroundColor: theme.palette.grey[800],
+      color: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[800],
       padding: "0 0.1em",
       borderRadius: 8,
-      border: "1px solid" + theme.palette.grey[500],
+      border: "1px solid" + theme.vars.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
       margin: "0 0 .5em 0",
       padding: 0,
       fontFamily: theme.fontFamily2,
-      color: theme.palette.grey[500],
+      color: theme.vars.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     },
     ".text-model-type": {
@@ -128,15 +128,15 @@ const styles = (theme: Theme) =>
     ".text-model-size": {
       float: "right",
       padding: 0,
-      color: theme.palette.warning.main
+      color: theme.vars.palette.warning.main
     },
     ".download": {
       boxShadow: "none",
-      backgroundColor: theme.palette.grey[800],
-      border: "1px solid" + theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
+      border: "1px solid" + theme.vars.palette.grey[800],
       "&:hover": {
-        backgroundColor: theme.palette.grey[900],
-        border: "1px solid" + theme.palette.grey[900]
+        backgroundColor: theme.vars.palette.grey[900],
+        border: "1px solid" + theme.vars.palette.grey[900]
       }
     },
 
@@ -144,28 +144,28 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: ".25em",
       right: ".25em",
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     ".delete-button:hover": {
-      color: theme.palette.c_delete
+      color: theme.vars.palette.c_delete
     },
     ".button-link": {
       boxShadow: "none",
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[200],
       textDecoration: "none",
       lineHeight: "1.1em",
       "&:hover": {
-        color: theme.palette.grey[0]
+        color: theme.vars.palette.grey[0]
       }
     },
     ".readme-toggle-button": {
       position: "absolute",
       bottom: "2.5em",
       right: "0em",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       "&:hover": {
-        color: theme.palette.grey[0]
+        color: theme.vars.palette.grey[0]
       }
     },
     "& .model-external-link-icon": {

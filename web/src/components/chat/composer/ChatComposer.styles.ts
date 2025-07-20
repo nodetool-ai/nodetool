@@ -10,9 +10,9 @@ export const createStyles = (theme: Theme) =>
     ".compose-message": {
       height: "auto",
       width: "100%",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       border: "1px solid",
-      borderColor: theme.palette.grey[800],
+      borderColor: theme.vars.palette.grey[800],
       display: "flex",
       alignItems: "center",
       borderRadius: "16px",
@@ -23,7 +23,7 @@ export const createStyles = (theme: Theme) =>
 
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
-        backgroundColor: `${theme.palette.grey[600]}80`
+        backgroundColor: `${theme.vars.palette.grey[600]}80`
       }
     },
 
@@ -31,7 +31,7 @@ export const createStyles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       resize: "none",
       overflowY: "auto",
       flex: 1,
@@ -43,7 +43,7 @@ export const createStyles = (theme: Theme) =>
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
-        color: theme.palette.grey[500]
+        color: theme.vars.palette.grey[500]
       }
     },
 

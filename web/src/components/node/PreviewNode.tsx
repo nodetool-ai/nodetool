@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         padding: 0,
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -89,9 +89,9 @@ const styles = (theme: Theme) =>
         transition: "opacity 0.2s"
       },
       ".actions button": {
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         borderRadius: ".1em",
-        backgroundColor: theme.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[600],
 
         width: "17px",
         height: "17px",
@@ -117,7 +117,7 @@ const styles = (theme: Theme) =>
         fontWeight: "300",
         transform: "translate(-50%, -50%)",
         zIndex: 0,
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         transition: "opacity 0.2s 1s ease-out"
       },
       "&:hover .hint": {
@@ -134,7 +134,7 @@ const styles = (theme: Theme) =>
         textTransform: "uppercase",
         fontSize: "var(--fontSizeTiny)",
         fontFamily: "var(--fontFamily2)",
-        color: theme.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         marginTop: "0.25em"
       }
     },
@@ -316,13 +316,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   return (
     <Container
       css={styles(theme)}
-      style={{
+      sx={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
-        border: theme.palette.mode === "light" ? "1px solid #ccc" : "none",
-        backgroundColor: hasParent
-          ? theme.palette.c_node_bg_group
-          : theme.palette.c_node_bg
+        border: "1px solid #ccc",
+        bgcolor: hasParent
+          ? theme.vars.palette.c_node_bg_group
+          : theme.vars.palette.c_node_bg,
+        ...theme.applyStyles("dark", {
+          border: "none"
+        })
       }}
       className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""

@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       padding: "2em 1em 4em 1em",
       margin: "2em 1em 1em 8em",
       maxWidth: "1000px",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       scrollbarWidth: "initial"
     },
     p: {

@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
         borderColor: "var(--palette-primary-main)"
       },
       "& svg": {
-        color: theme.palette.grey[400]
+        color: theme.vars.palette.grey[400]
       },
       "&:hover svg": {
         fill: "var(--palette-primary-main)"

@@ -86,7 +86,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
             No README available found at{" "}
             <Link
               className="readme-link"
-              style={{ color: theme.palette.c_link }}
+              style={{ color: theme.vars.palette.c_link }}
               target="_blank"
               href={`https://huggingface.co/${modelId}/raw/main/README.md`}
               rel="noreferrer"

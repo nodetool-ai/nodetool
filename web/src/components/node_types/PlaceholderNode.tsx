@@ -33,11 +33,11 @@ interface PlaceholderNodeData extends Node<NodeData> {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      outline: "2px solid" + theme.palette.error.main
+      outline: "2px solid" + theme.vars.palette.error.main
     },
     ".node-header ": {
       minWidth: "50px",
-      backgroundColor: theme.palette.error.main
+      backgroundColor: theme.vars.palette.error.main
     },
     ".node-property": {
       width: "100%",
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
     ".missing-node-text": {
       fontWeight: "bold",
       textAlign: "center",
-      color: theme.palette.error.main,
+      color: theme.vars.palette.error.main,
       padding: 0,
       margin: ".5em 0 0"
     },

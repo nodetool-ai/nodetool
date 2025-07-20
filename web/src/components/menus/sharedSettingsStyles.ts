@@ -28,7 +28,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       padding: 0.6em 2.5em;
       font-family: ${theme.fontFamily2};
       word-spacing: -0.2em;
-      color: ${theme.palette.primary.contrastText};
+      color: ${theme.vars.palette.primary.contrastText};
       background-color: ${"var(--palette-primary-main)"};
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
@@ -93,12 +93,12 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     }
 
     a {
-      color: ${theme.palette.primary.main};
+      color: ${theme.vars.palette.primary.main};
       text-decoration: none;
       transition: color 0.2s ease;
 
       &:hover {
-        color: ${theme.palette.primary.light};
+        color: ${theme.vars.palette.primary.light};
         text-decoration: underline;
       }
     }
@@ -110,7 +110,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
       padding: 1.2em;
       margin: 1.5em 0 1.5em 0;
       boxshadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-      border: 1px solid ${theme.palette.grey[600]};
+      border: 1px solid ${theme.vars.palette.grey[600]};
       width: 100%;
       display: flex;
       flexdirection: column;

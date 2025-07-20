@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       minHeight: "2em"
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     ".messages": {
       overflowY: "auto"
@@ -99,14 +99,14 @@ const styles = (theme: Theme) =>
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
 
         "&.active": {
-          backgroundColor: `${theme.palette.action.selected}88`
+          backgroundColor: `${theme.vars.palette.action.selected}88`
         },
         "&.active svg": {
-          color: theme.palette.primary.main
+          color: theme.vars.palette.primary.main
         },
         "&:hover": {
-          backgroundColor: `${theme.palette.action.hover}88`,
-          boxShadow: `0 0 15px ${theme.palette.action.hover}40`,
+          backgroundColor: `${theme.vars.palette.action.hover}88`,
+          boxShadow: `0 0 15px ${theme.vars.palette.action.hover}40`,
           "&::after": {
             content: '""',
             position: "absolute",
@@ -114,7 +114,7 @@ const styles = (theme: Theme) =>
             top: 0,
             right: 0,
             bottom: 0,
-            background: `linear-gradient(135deg, ${theme.palette.primary.main}20, transparent)`,
+            background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}20, transparent)`,
             borderRadius: "2px"
           }
         }
@@ -126,8 +126,8 @@ const styles = (theme: Theme) =>
         wordWrap: "break-word",
         textTransform: "none",
         maxWidth: "160px",
-        borderColor: theme.palette.grey[200],
-        color: theme.palette.grey[200],
+        borderColor: theme.vars.palette.grey[200],
+        color: theme.vars.palette.grey[200],
         margin: "0.5em",
         padding: "0.5em 1em",
         "&:hover": {

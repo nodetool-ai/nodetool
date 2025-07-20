@@ -13,7 +13,7 @@ const styles = (theme: Theme) =>
   css({
     ".text": {
       outline: "none",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       border: "none",
       borderRadius: "0",
       fontFamily: theme.fontFamily1,
@@ -34,13 +34,13 @@ const styles = (theme: Theme) =>
       fontSize: "1em",
       padding: 0,
       border: "none",
-      color: theme.palette.grey[100],
-      backgroundColor: theme.palette.grey[600],
+      color: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.grey[600],
       fontWeight: "bold"
     },
     ".button-expand:hover": {
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.palette.grey[600]
+      backgroundColor: theme.vars.palette.grey[600]
     }
   });
 

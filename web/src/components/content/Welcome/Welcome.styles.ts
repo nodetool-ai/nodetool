@@ -13,24 +13,24 @@ const welcomeStyles = (theme: Theme) =>
       top: "0",
       left: "0",
       overflowY: "hidden",
-      border: `8px solid ${theme.palette.grey[900]}`,
+      border: `8px solid ${theme.vars.palette.grey[900]}`,
       display: "flex",
       flexDirection: "column"
     },
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       marginBottom: "1em"
     },
     ".summary": {
       fontSize: theme.fontSizeBigger,
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".content": {
       padding: "1em",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeBig
     },
 
@@ -51,8 +51,8 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".MuiAccordion-root": {
       background: "transparent",
-      color: theme.palette.grey[0],
-      borderBottom: `1px solid ${theme.palette.grey[500]}`,
+      color: theme.vars.palette.grey[0],
+      borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
       marginBottom: "1em",
       "&:before": {
         display: "none"
@@ -83,29 +83,29 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".highlight": {
       backgroundColor: "var(--palette-primary-main)",
-      color: theme.palette.grey[1000]
+      color: theme.vars.palette.grey[1000]
     },
     ".tab-content": {
       marginTop: "1em"
     },
     ".link": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       display: "inline-block",
       padding: "4px 8px",
       textDecoration: "none",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       borderRadius: "4px",
       transition: "all 0.2s"
     },
     ".link:hover": {
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       backgroundColor: "var(--palette-primary-main)"
     },
 
     ".link-body": {
       fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       marginTop: ".25em",
       marginBottom: "2em",
       display: "block"
@@ -155,11 +155,11 @@ const welcomeStyles = (theme: Theme) =>
       transition: "all 0.2s"
     },
     ".overview button:hover:not(.Mui-selected)": {
-      color: theme.palette.grey[100]
+      color: theme.vars.palette.grey[100]
     },
     ".fake-button": {
       color: "#fff",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
@@ -172,13 +172,13 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".setup-tab .MuiListItemText-primary": {
       fontWeight: "bold",
-      color: theme.palette.primary.main
+      color: theme.vars.palette.primary.main
     },
     ".setup-tab .MuiListItemText-secondary": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".remote-settings-container": {
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       padding: "1.5em",
       borderRadius: "8px"
     },
@@ -191,7 +191,7 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".start-button": {
       backgroundColor: "var(--palette-primary-main)",
-      color: theme.palette.grey[1000],
+      color: theme.vars.palette.grey[1000],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
       outline: `1px solid ${"var(--palette-primary-main)"}`,
@@ -202,10 +202,10 @@ const welcomeStyles = (theme: Theme) =>
       borderRadius: ".2em",
       transition: "all 0.4s",
       "&:hover": {
-        outline: `2px solid ${theme.palette.grey[900]}`,
-        boxShadow: `inset 0 0 .2em 0 ${theme.palette.grey[900]}`,
+        outline: `2px solid ${theme.vars.palette.grey[900]}`,
+        boxShadow: `inset 0 0 .2em 0 ${theme.vars.palette.grey[900]}`,
         opacity: 0.9,
-        color: theme.palette.grey[1000]
+        color: theme.vars.palette.grey[1000]
       }
     },
     // ".MuiTabs-root": {

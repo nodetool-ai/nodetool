@@ -10,7 +10,7 @@ const sliderBasicStyles = (theme: Theme) =>
       padding: "0"
     },
     ".MuiSlider-rail": {
-      backgroundColor: theme.palette.grey[500],
+      backgroundColor: theme.vars.palette.grey[500],
       borderRadius: "0px",
       height: "5px"
     },
@@ -21,7 +21,7 @@ const sliderBasicStyles = (theme: Theme) =>
       borderRadius: "0px"
     },
     ".MuiSlider-thumb": {
-      backgroundColor: theme.palette.grey[200],
+      backgroundColor: theme.vars.palette.grey[200],
       boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
       borderRadius: "0",
       width: "8px",
