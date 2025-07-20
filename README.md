@@ -1,4 +1,12 @@
-# NodeTool — Privacy‑First Open‑Source AI Studio
+![Logo](logo.png)
+
+![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
+![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
+[![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
+![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
+![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
+
+# Privacy‑First Open‑Source AI Studio
 ### Your Machine. Your Models. Your Control.
 
 Effortlessly build **multimodal** AI workflows—text, vision, audio & video.  
@@ -6,12 +14,6 @@ Effortlessly build **multimodal** AI workflows—text, vision, audio & video.
 Run locally, on‑prem, self‑host on GPU clouds, or connect to OpenAI®, Anthropic, HuggingFace, Gemini and other providers. 
 
 **Build once, run anywhere.**
-
-![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
-![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
-[![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
-![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
-![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
 ---
 
