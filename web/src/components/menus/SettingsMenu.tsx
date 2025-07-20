@@ -14,7 +14,7 @@ import {
   Tab,
   Box
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -39,11 +39,11 @@ import SettingsSidebar from "./SettingsSidebar";
 export const settingsStyles = (theme: Theme): any =>
   css({
     ".MuiBackdrop-root": {
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
       backdropFilter: "blur(5px)"
     },
     ".MuiPaper-root": {
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: "var(--palette-background-default)",
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: ".5em",
@@ -128,16 +128,16 @@ export const settingsStyles = (theme: Theme): any =>
     ".settings-sidebar": {
       width: "220px",
       minWidth: "220px",
-      background: "rgba(0, 0, 0, 0.2)",
+      background: "transparent",
       padding: "1.5em 0",
       height: "calc(75vh - 48px)",
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.grey[600]}`
     },
     ".settings-sidebar-item": {
-      padding: "0.75em 1.5em",
+      padding: "0.5em 1.5em",
       cursor: "pointer",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[0],
       opacity: "0.7",
       transition: "all 0.2s ease",
@@ -167,7 +167,7 @@ export const settingsStyles = (theme: Theme): any =>
       zIndex: 100,
       padding: "0 1em",
       display: "block",
-      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      backgroundColor: "transparent",
       borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
     },
     ".settings-content": {
@@ -190,7 +190,7 @@ export const settingsStyles = (theme: Theme): any =>
       }
     },
     ".settings-section": {
-      backgroundColor: "rgba(30, 30, 30, 0.4)",
+      backgroundColor: "transparent",
       backdropFilter: "blur(5px)",
       borderRadius: "8px",
       padding: "1.2em",
@@ -239,7 +239,7 @@ export const settingsStyles = (theme: Theme): any =>
         },
         "& .MuiInputBase-root": {
           maxWidth: "34em",
-          backgroundColor: theme.vars.palette.grey[800],
+          backgroundColor: "theme.vars.palette.grey[800]",
           borderRadius: ".3em",
           margin: "0",
           padding: ".3em 1em",
@@ -294,11 +294,11 @@ export const settingsStyles = (theme: Theme): any =>
       fontSize: theme.fontSizeNormal,
       padding: "0.4em 0.6em",
       marginTop: "0",
-      backgroundColor: "rgba(30, 30, 30, 0.6)",
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "8px",
       transition: "background-color 0.2s ease",
       "&:hover": {
-        backgroundColor: "rgba(40, 40, 40, 0.8)"
+        backgroundColor: theme.vars.palette.background.default
       }
     },
     ".MuiSwitch-root": {

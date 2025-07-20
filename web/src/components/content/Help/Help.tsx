@@ -37,7 +37,7 @@ interface TabPanelProps {
 const helpStyles = (theme: Theme) =>
   css({
     "&": {
-      backgroundColor: "rgba(40, 40, 40, 0.5)",
+      backgroundColor: theme.vars.palette.background.default,
       backdropFilter: "blur(10px)",
       padding: "0em 1em",
       borderRadius: "1em",
@@ -212,7 +212,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: rgba(0, 0, 0, 0.7);
+          background-color: theme.vars.palette.background.default;
           backdrop-filter: blur(5px);
           z-index: 999;
         `}
