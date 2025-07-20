@@ -39,7 +39,7 @@
   color: var(--palette-grey-0);
   margin: 0;
   border-radius: 2px 2px 0 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  /* text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); */
   /* box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%); */
 }
 
@@ -93,7 +93,6 @@
   flex-direction: column;
   padding: 1em;
   gap: 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .react-flow__node .title-container textarea {
@@ -229,9 +228,10 @@
 }
 
 /* Node selection */
-.react-flow__node.selected {
-  box-shadow: 0 0 0 2px #fffa,
-    0.15em 0.15em 1.2em 0px rgba(0, 0, 0, 0.6);
+ .react-flow__node.selected {
+  outline-color: var(--palette-text-primary) !important;
+  box-shadow: 0 0 0 2px var(--palette-text-primary),
+    0.1em 0.1em 0.8em 0px rgba(0, 0, 0, 0.6);
 }
 
 /* Compact nodes */

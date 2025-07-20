@@ -27,6 +27,7 @@ const styles = (theme: Theme) =>
       paddingLeft: "8px"
     },
     ".toolbar": {
+      backgroundColor: "var(--palette-background-default)",
       overflow: "visible",
       display: "flex",
       justifyContent: "space-between",

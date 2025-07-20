@@ -9,7 +9,7 @@
 .react-flow .react-flow__nodesselection-rect,
 .react-flow__nodesselection-rect:focus-visible,
 .react-flow .react-flow__nodesselection-rect:focus {
-  background: #cdcdcd24 !important;
+  background: var(--palette-c_selection_rect) !important;
   border: 0;
 }
 
@@ -17,13 +17,15 @@
   outline: 1px solid #d9d9d9f0 !important;
   outline-offset: 0px;
   border-radius: 2px;
+  outline-width: 15px !important;
+  outline-color: var(--palette-c_selection_rect) !important;
 }
 
 /* Drag selection */
 .react-flow__selection {
   outline: none;
   border: 1px solid var(--palette-grey-100) !important;
-  background-color: #33333355;
+  background-color: var(--palette-c_selection_rect) !important;
   border-radius: 0.25em;
 }
 

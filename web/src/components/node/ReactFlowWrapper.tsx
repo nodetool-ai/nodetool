@@ -55,6 +55,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
+import { useColorScheme } from "@mui/material/styles";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -89,6 +90,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
   active
 }) => {
+  const { mode } = useColorScheme();
   const theme = useTheme();
   const {
     nodes,
@@ -373,6 +375,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     return null;
   }
 
+  const reactFlowClasses = [
+    mode,
+    zoom <= ZOOMED_OUT ? "zoomed-out" : "",
+    connecting ? "is-connecting" : ""
+  ]
+    .join(" ")
+    .trim();
+
   return (
     <div
       style={{
@@ -389,6 +399,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       }}
     >
       <ReactFlow
+        className={reactFlowClasses}
         style={{
           width: "100%",
           height: "100%",
@@ -396,11 +407,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         }}
         onlyRenderVisibleElements={false}
         ref={ref}
-        className={
-          zoom <= ZOOMED_OUT
-            ? "zoomed-out"
-            : " " + (connecting ? "is-connecting" : "")
-        }
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         zoomOnDoubleClick={false}

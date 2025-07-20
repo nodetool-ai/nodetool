@@ -111,7 +111,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexDirection: "row",
         gap: ".5em",
         width: "500px",
-        backgroundColor: theme.palette.grey[800],
+        backgroundColor: theme.palette.background.default,
         padding: "0",
         marginLeft: ".5em"
       },

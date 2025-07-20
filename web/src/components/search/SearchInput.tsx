@@ -37,13 +37,13 @@ const styles = (theme: Theme) =>
       MozAppearance: "none",
       appearance: "none",
       color: "#ffffff",
-      backgroundColor: "#1a1a1a",
+      backgroundColor: "var(--palette-grey-700)",
       border: "1px solid #404040",
       borderRadius: "5px",
       transition: "all 0.2s"
     },
     "input[type='text']:focus": {
-      backgroundColor: "#2a2a2a",
+      backgroundColor: "var(--palette-grey-800)",
       borderColor: "var(--palette-primary-main)",
       outline: "none"
     },

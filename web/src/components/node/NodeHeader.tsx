@@ -53,10 +53,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       }`}
       onClick={handleHeaderClick}
       style={{
-        backgroundColor: backgroundColor,
+        backgroundColor: backgroundColor
       }}
     >
-      <span className="node-title">{metadataTitle}</span>
+      <span className="node-title" style={{ color: "#fff" }}>
+        {metadataTitle}
+      </span>
       {showMenu && (
         <div className="menu-button-container" tabIndex={-1}>
           <button

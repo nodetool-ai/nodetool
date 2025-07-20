@@ -6,7 +6,6 @@ const modelListItemStyles = (theme: Theme) =>
     "&.model-list-item": {
       padding: "0.5em 1em",
       marginBottom: "0",
-      backgroundColor: theme.palette.grey[800],
       boxSizing: "border-box",
       borderBottom: "1px solid " + theme.palette.grey[600],
       wordBreak: "break-word",
@@ -17,7 +16,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "&:hover": {
         opacity: 0.9,
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.palette.background.paper
       },
 
       "& .model-content": {
@@ -78,8 +77,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-name": {
         flexGrow: 1,
-        // textTransform: "uppercase",
-        fontSize: "var(--fontSizeNormal)",
+        fontSize: "var(--fontSizeBig)",
         fontWeight: "400",
         textDecoration: "none",
         overflow: "hidden",
@@ -235,7 +233,6 @@ const modelListItemStyles = (theme: Theme) =>
         fontSize: "var(--fontSizeSmaller)",
         gap: "1em"
       },
-      ".model-category": {},
       ".model-category.empty": {
         color: theme.palette.grey[500],
         marginBottom: "2em"

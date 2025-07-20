@@ -38,14 +38,12 @@ PrettyNamespace.displayName = "PrettyNamespace";
 export interface NodeFooterProps {
   nodeNamespace: string;
   metadata: NodeMetadata;
-  backgroundColor?: string;
   nodeType: string;
 }
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
   metadata,
-  backgroundColor,
   nodeType
 }) => {
   const theme = useTheme();
@@ -69,7 +67,14 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   );
 
   return (
-    <div className="node-footer" style={{ backgroundColor }}>
+    <div
+      className="node-footer"
+      style={{
+        borderTop: `1px solid ${theme.palette.divider}`,
+        // backgroundColor: theme.palette.background.default
+        backgroundColor: "transparent"
+      }}
+    >
       <Tooltip
         title={
           <span>

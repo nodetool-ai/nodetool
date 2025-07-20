@@ -192,17 +192,17 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const getOutputFromResult = (result: any) => {
     if (!result) return null;
-    
+
     if (Array.isArray(result)) {
       const outputs = result.map((item: any) => item.output);
       // If all outputs are strings, concatenate them
-      if (outputs.every((output: any) => typeof output === 'string')) {
-        return outputs.join('\n');
+      if (outputs.every((output: any) => typeof output === "string")) {
+        return outputs.join("\n");
       }
       // For non-string outputs, return the array of outputs
       return outputs;
     }
-    
+
     return result.output;
   };
 
@@ -319,6 +319,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       style={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
+        border: theme.palette.mode === "light" ? "1px solid #ccc" : "none",
         backgroundColor: hasParent
           ? theme.palette.c_node_bg_group
           : theme.palette.c_node_bg

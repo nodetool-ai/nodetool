@@ -39,6 +39,8 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
+    c_selection_rect?: string;
+
     background?: { default?: string; paper?: string };
     Paper?: {
       default?: string;
@@ -78,6 +80,8 @@ declare module "@mui/material/styles" {
     c_editor_bg_color?: string;
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
+    c_selection_rect?: string;
+
     background: { default: string; paper: string };
     Paper: {
       default: string;
@@ -148,6 +152,7 @@ export const paletteDark: PaletteOptions = {
   c_editor_bg_color: "#111",
   c_editor_grid_color: "#313131",
   c_editor_axis_color: "#292929",
+  c_selection_rect: "#cdcdcd33",
 
   primary: {
     main: "#77b4e6",
@@ -172,7 +177,7 @@ export const paletteDark: PaletteOptions = {
   },
   action: {
     active: "#fff",
-    hover: "#ddd",
+    hover: "#444",
     selected: "#aaa",
     disabled: "#666"
   },
