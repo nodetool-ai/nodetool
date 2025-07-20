@@ -13,7 +13,9 @@ import {
   applyValueConstraints
 } from "../components/inputs/NumberInput.utils";
 
-const UNBOUNDED_DRAG_SCALE = 0.1;
+// Multiplier for drag speed when inputs are unbounded.
+// Slightly higher value keeps the feel responsive without huge jumps.
+const UNBOUNDED_DRAG_SCALE = 0.25;
 
 export const useValueCalculation = () => {
   const calculateStepCb = useCallback(calculateStep, []);

@@ -139,7 +139,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }
 
         if (isNaN(finalValue)) {
-          finalValue = props.value ?? props.min ?? props.max ?? 0;
+          finalValue =
+            props.value ?? state.originalValue ?? props.min ?? props.max ?? 0;
         }
         if (typeof props.min === "number") {
           finalValue = Math.max(props.min, finalValue);
@@ -164,7 +165,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
       }
     },
-    [props, state.localValue]
+    [props, state.localValue, state.originalValue]
   );
 
   const handleMouseDown = useCallback(

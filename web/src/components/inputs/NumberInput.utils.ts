@@ -5,6 +5,9 @@ import {
   SHIFT_SLOWDOWN_DIVIDER
 } from "./NumberInput";
 
+// Throttle repeated warnings for invalid bounds.
+let warnedInvalidBounds = false;
+
 export const calculateStep = (
   min: number | undefined,
   max: number | undefined,
@@ -82,7 +85,10 @@ export const applyValueConstraints = (
   let constrainedValue = value;
 
   if (typeof min === "number" && typeof max === "number" && min > max) {
-    console.warn(`Invalid bounds: min (${min}) > max (${max})`);
+    if (!warnedInvalidBounds) {
+      console.warn(`Invalid bounds: min (${min}) > max (${max})`);
+      warnedInvalidBounds = true;
+    }
     const temp = min;
     min = max;
     max = temp;
