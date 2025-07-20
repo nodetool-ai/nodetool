@@ -3,7 +3,7 @@ import type { Theme } from "@mui/material/styles";
 // Returns CSS styles for Lexical code highlighting tokens using the provided theme.
 export const codeHighlightTokenStyles = (theme: Theme) => ({
   ".editor-code": {
-    backgroundColor: theme.palette.grey[900],
+    backgroundColor: theme.vars.palette.grey[900],
     fontFamily: "JetBrains Mono, Consolas, 'Courier New', monospace",
     display: "block",
     padding: "8px 12px",

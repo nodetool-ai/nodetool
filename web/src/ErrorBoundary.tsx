@@ -33,12 +33,12 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".error-message": {
       maxWidth: 600,
       padding: "2em 0 1em",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       marginBottom: theme.spacing?.(2) || "16px",
       userSelect: "all"
     },
     ".error-text": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       backgroundColor: theme.palette?.grey[900],
       border: "1px solid " + theme.palette?.grey[800],
       fontFamily: theme.fontFamily2,
@@ -64,8 +64,8 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".error-stack-trace": {
-      color: theme.palette.grey[50],
-      backgroundColor: theme.palette.grey[900],
+      color: theme.vars.palette.grey[50],
+      backgroundColor: theme.vars.palette.grey[900],
       border: "1px solid " + theme.palette.grey[800],
       fontFamily: "monospace",
       fontSize: theme.fontSizeSmaller,

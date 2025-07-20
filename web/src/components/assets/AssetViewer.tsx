@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     ".MuiPaper-root": {
       overflow: "hidden",
       height: "100%",
-      backgroundColor: theme.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[900],
       width: "100%",
       maxWidth: "100%",
       maxHeight: "100%",
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       width: "1.75em",
       height: "1.75em",
       backgroundColor: "#999999aa",
-      color: theme.palette.grey[900],
+      color: theme.vars.palette.grey[900],
       borderRadius: "0.2em",
       padding: "0.3em"
     },
@@ -103,7 +103,7 @@ const styles = (theme: Theme) =>
       fontSize: "1.5em"
     },
     ".actions .button:hover": {
-      backgroundColor: theme.palette.grey[500]
+      backgroundColor: theme.vars.palette.grey[500]
     },
     // -------------------
     ".asset-navigation": {
@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "120px",
       padding: "0 0 .5em 0",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       bottom: 0,
       zIndex: 200
     },
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
       height: "2em",
       zIndex: 20000,
       cursor: "pointer",
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       backgroundColor: "#44444499",
       border: "2px solid #aaaaaa33"
     },
@@ -182,7 +182,7 @@ const styles = (theme: Theme) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.grey[0]}`
+      border: `1px solid ${theme.vars.palette.grey[0]}`
     },
     ".prev-next-items .item": {
       backgroundColor: "#44444466",

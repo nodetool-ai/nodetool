@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       justifyContent: "center",
-      backgroundColor: theme.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[800],
       margin: "2em 0",
       padding: "1em"
     },

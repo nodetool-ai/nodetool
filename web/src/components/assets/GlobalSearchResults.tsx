@@ -41,18 +41,18 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
       padding: "1.5em 1em 1em",
-      backgroundColor: theme.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".search-results-title": {
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       fontWeight: 500
     },
     ".search-results-count": {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     ".search-results-content": {
       flex: 1,
@@ -63,14 +63,14 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: "0.75em 1em",
-      borderBottom: `1px solid ${theme.palette.grey[800]}`,
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "grab",
       transition: "background-color 0.2s",
       "&:hover": {
-        backgroundColor: theme.palette.grey[800]
+        backgroundColor: theme.vars.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: `${theme.palette.primary.main}22`,
+        backgroundColor: `${theme.vars.palette.primary.main}22`,
         borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
       "&:active": {
@@ -98,8 +98,8 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.palette.grey[800],
-      border: `1px solid ${theme.palette.grey[600]}`,
+      backgroundColor: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -113,7 +113,7 @@ const styles = (theme: Theme) =>
         left: 0,
         right: 0,
         bottom: 0,
-        border: `1px solid ${theme.palette.grey[500]}22`,
+        border: `1px solid ${theme.vars.palette.grey[500]}22`,
         borderRadius: "4px",
         pointerEvents: "none"
       }
@@ -127,7 +127,7 @@ const styles = (theme: Theme) =>
     },
     ".result-item-name": {
       fontSize: theme.fontSizeNormal,
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       fontWeight: 500,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -139,7 +139,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.75em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       userSelect: "none"
     },
     ".result-item-location": {
@@ -152,7 +152,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.palette.grey[200],
+      color: theme.vars.palette.grey[200],
       userSelect: "none"
     },
     ".folder-navigate-btn": {
@@ -167,7 +167,7 @@ const styles = (theme: Theme) =>
     },
     ".result-duration": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     },
     ".empty-results": {
       display: "flex",
@@ -175,7 +175,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       height: "200px",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeNormal
     },
     "@keyframes spin": {

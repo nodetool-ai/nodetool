@@ -56,8 +56,8 @@ const DownloadManagerDialog: React.FC = () => {
         },
         paper: {
           sx: {
-            backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary
+            backgroundColor: theme.vars.palette.background.paper,
+            color: theme.vars.palette.text.primary
           }
         }
       }}
@@ -122,7 +122,7 @@ const DownloadManagerDialog: React.FC = () => {
         >
           <AnnouncementIcon
             fontSize="small"
-            sx={{ color: theme.palette.warning.main }}
+            sx={{ color: theme.vars.palette.warning.main }}
           />
           {infoMessage}
         </Typography>

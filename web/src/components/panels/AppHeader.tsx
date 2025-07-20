@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       width: "32px",
       height: "32px",
       padding: "6px",
-      color: theme.palette.grey[0],
+      color: theme.vars.palette.grey[0],
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
       "&:hover": {

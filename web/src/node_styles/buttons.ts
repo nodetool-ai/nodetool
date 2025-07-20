@@ -24,15 +24,15 @@ export const buttonStyles = (theme: Theme) =>
       minWidth: "20px !important",
       backgroundColor:
         theme.palette.mode === "light"
-          ? theme.palette.grey[900]
-          : theme.palette.grey[800]
+          ? theme.vars.palette.grey[900]
+          : theme.vars.palette.grey[800]
     },
 
     ".MuiButton-sizeSmall:hover": {
       backgroundColor:
         theme.palette.mode === "light"
-          ? theme.palette.grey[800]
-          : theme.palette.grey[700]
+          ? theme.vars.palette.grey[800]
+          : theme.vars.palette.grey[700]
     },
 
     /* Button Variants */
@@ -54,10 +54,10 @@ export const smallButtonStyle = (theme: Theme) =>
     height: 15,
     fontSize: theme.fontSizeSmall,
     minWidth: 20,
-    backgroundColor: theme.palette.grey[600],
+    backgroundColor: theme.vars.palette.grey[600],
 
     "&:hover": {
-      backgroundColor: theme.palette.grey[500]
+      backgroundColor: theme.vars.palette.grey[500]
     }
   });
 

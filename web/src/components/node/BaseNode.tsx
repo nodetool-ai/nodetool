@@ -319,7 +319,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               : "1px solid #ccc"
             : "none",
         backgroundColor:
-          hasParent && !isLoading ? parentColor : theme.palette.c_node_bg
+          hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}

@@ -15,32 +15,32 @@ export const toggleStyles = (theme: Theme) =>
       textTransform: "none" as const,
       fontWeight: 300,
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.grey[300],
-      backgroundColor: theme.palette.grey[700],
-      border: "1px solid ${theme.palette.grey[600]}",
+      color: theme.vars.palette.grey[300],
+      backgroundColor: theme.vars.palette.grey[700],
+      border: "1px solid ${theme.vars.palette.grey[600]}",
       borderRadius: 4,
       padding: "4px 8px",
       minWidth: "auto",
 
       "&:hover": {
-        backgroundColor: theme.palette.grey[600],
-        color: theme.palette.grey[100]
+        backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.grey[100]
       },
 
       "&.Mui-selected": {
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.common.white,
+        backgroundColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.common.white,
         fontWeight: 400,
 
         "&:hover": {
-          backgroundColor: theme.palette.primary.dark
+          backgroundColor: theme.vars.palette.primary.dark
         }
       },
 
       "&.Mui-disabled": {
-        color: theme.palette.grey[500],
-        backgroundColor: theme.palette.grey[800],
-        border: "1px solid ${theme.palette.grey[700]}"
+        color: theme.vars.palette.grey[500],
+        backgroundColor: theme.vars.palette.grey[800],
+        border: "1px solid ${theme.vars.palette.grey[700]}"
       }
     },
 
@@ -55,32 +55,32 @@ export const toggleButtonStyle = (theme: Theme) =>
     textTransform: "none" as const,
     fontWeight: 300,
     fontSize: theme.fontSizeSmall,
-    color: theme.palette.grey[300],
-    backgroundColor: theme.palette.grey[700],
-    border: "1px solid ${theme.palette.grey[600]}",
+    color: theme.vars.palette.grey[300],
+    backgroundColor: theme.vars.palette.grey[700],
+    border: "1px solid ${theme.vars.palette.grey[600]}",
     borderRadius: 4,
     padding: "4px 8px",
     minWidth: "auto",
 
     "&:hover": {
-      backgroundColor: theme.palette.grey[600],
-      color: theme.palette.grey[100]
+      backgroundColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[100]
     },
 
     "&.Mui-selected": {
-      backgroundColor: theme.palette.primary.main,
-      color: theme.palette.common.white,
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.common.white,
       fontWeight: 400,
 
       "&:hover": {
-        backgroundColor: theme.palette.primary.dark
+        backgroundColor: theme.vars.palette.primary.dark
       }
     },
 
     "&.Mui-disabled": {
-      color: theme.palette.grey[500],
-      backgroundColor: theme.palette.grey[800],
-      border: `1px solid ${theme.palette.grey[700]}`
+      color: theme.vars.palette.grey[500],
+      backgroundColor: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[700]}`
     }
   });
 

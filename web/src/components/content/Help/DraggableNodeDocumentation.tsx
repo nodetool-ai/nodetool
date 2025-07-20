@@ -15,8 +15,8 @@ import { useNodes } from "../../../contexts/NodeContext";
 const styles = (theme: Theme) => css`
   position: absolute;
   z-index: 1000;
-  background-color: ${theme.palette.background.paper};
-  border: 1px solid ${theme.palette.divider};
+  background-color: ${theme.vars.palette.background.paper};
+  border: 1px solid ${theme.vars.palette.divider};
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 0px;
@@ -27,24 +27,24 @@ const styles = (theme: Theme) => css`
     cursor: move;
     min-height: 2rem;
     margin-bottom: 0.5rem;
-    background-color: ${theme.palette.background.default};
-    border-bottom: 1px solid ${theme.palette.divider};
+    background-color: ${theme.vars.palette.background.default};
+    border-bottom: 1px solid ${theme.vars.palette.divider};
   }
 
   h1 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: ${theme.palette.primary.main};
+    color: ${theme.vars.palette.primary.main};
   }
 
   .loading {
     font-size: 1rem;
-    color: ${theme.palette.text.secondary};
+    color: ${theme.vars.palette.text.secondary};
   }
 
   .warning {
     font-size: 1rem;
-    color: ${theme.palette.warning.main};
+    color: ${theme.vars.palette.warning.main};
   }
   .content {
     padding: 10px;
@@ -58,7 +58,7 @@ const styles = (theme: Theme) => css`
     border: none;
     font-size: 1.2rem;
     cursor: pointer;
-    color: ${theme.palette.text.secondary};
+    color: ${theme.vars.palette.text.secondary};
   }
 
   .open-node-menu-button {
@@ -121,7 +121,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
       return (
         <div className="warning">
           {nodeType} <br />
-          <span style={{ color: theme.palette.grey[100] }}>
+          <span style={{ color: theme.vars.palette.grey[100] }}>
             Sorry, this node does not exist.
           </span>
           <Button

@@ -17,7 +17,7 @@ const ExternalLink = React.forwardRef<HTMLAnchorElement, ExternalLinkProps>(
     const theme = useTheme();
 
     const linkStyles = css({
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       textDecoration: "none",
       display: "inline-flex",
       alignItems: "center",
@@ -50,7 +50,7 @@ const ExternalLink = React.forwardRef<HTMLAnchorElement, ExternalLinkProps>(
           sx={{
             marginLeft: theme.spacing(0.5),
             fontSize: theme.fontSizeSmall,
-            color: theme.palette.c_link,
+            color: theme.vars.palette.c_link,
             opacity: 0.8
           }}
         />

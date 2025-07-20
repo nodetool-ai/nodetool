@@ -121,7 +121,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             style={{
               display: "inline-block",
               margin: "0 1em 0 .5em",
-              color: theme.palette.grey[200],
+              color: theme.vars.palette.grey[200],
               flexGrow: 1
             }}
           >

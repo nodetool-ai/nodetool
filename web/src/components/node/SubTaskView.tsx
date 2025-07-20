@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.5rem",
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".subtask-content": {
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       alignItems: "center"
     },
     ".subtask-completed": {
-      color: theme.palette.grey[800]
+      color: theme.vars.palette.grey[800]
     },
     ".subtask-tool svg": {
       fontSize: "0.5rem"
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
     },
     ".dependency-marker": {
       display: "flex",
-      color: theme.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
       marginLeft: "-.5em",
       paddingLeft: "0",
       fontSize: "0.8em",

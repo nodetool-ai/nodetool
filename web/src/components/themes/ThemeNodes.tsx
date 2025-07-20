@@ -90,9 +90,9 @@
 //           height: "15px",
 //           fontSize: theme.fontSizeSmall,
 //           minWidth: "20px",
-//           backgroundColor: theme.palette.grey[600],
+//           backgroundColor: theme.vars.palette.grey[600],
 //           "&:hover": {
-//             backgroundColor: theme.palette.grey[500]
+//             backgroundColor: theme.vars.palette.grey[500]
 //           }
 //         })
 //       },
@@ -210,7 +210,7 @@
 //         inputMultiline: ({ theme }) => ({
 //           margin: "0",
 //           padding: "2px 8px 0px 4px !important",
-//           backgroundColor: theme.palette.grey[600],
+//           backgroundColor: theme.vars.palette.grey[600],
 //           resize: "vertical"
 //         }),
 //         input: ({ theme }) => ({
@@ -275,7 +275,7 @@
 //           minHeight: "1.2em",
 //           margin: " 0",
 //           "&.Mui-focused": {
-//             color: theme.palette.grey[0]
+//             color: theme.vars.palette.grey[0]
 //           }
 //         })
 //       }
@@ -328,13 +328,13 @@
 //         switchBase: ({ theme }) => ({
 //           margin: "0",
 //           padding: "0 !important",
-//           color: theme.palette.grey[400],
+//           color: theme.vars.palette.grey[400],
 //           "&.Mui-checked": {
-//             color: theme.palette.grey[100],
+//             color: theme.vars.palette.grey[100],
 //             transform: "translateX(12px) !important"
 //           },
 //           "&.Mui-checked + .MuiSwitch-track": {
-//             backgroundColor: theme.palette.grey[100]
+//             backgroundColor: theme.vars.palette.grey[100]
 //           }
 //         })
 //       }
@@ -343,36 +343,36 @@
 //       styleOverrides: {
 //         root: ({ theme }) => ({
 //           fontFamily: theme.fontFamily1,
-//           backgroundColor: theme.palette.grey[600],
+//           backgroundColor: theme.vars.palette.grey[600],
 //           marginBottom: "0px",
 //           paddingTop: "4px",
 //           paddingBottom: "4px",
 //           fontWeight: 300,
 //           "&:nth-of-type(even)": {
-//             backgroundColor: theme.palette.grey[700],
+//             backgroundColor: theme.vars.palette.grey[700],
 //             "&:hover": {
-//               backgroundColor: theme.palette.grey[500]
+//               backgroundColor: theme.vars.palette.grey[500]
 //             },
 //             "&:selected": {
-//               backgroundColor: theme.palette.grey[600]
+//               backgroundColor: theme.vars.palette.grey[600]
 //             }
 //           },
 //           "&:nth-of-type(odd)": {
-//             backgroundColor: theme.palette.grey[600],
+//             backgroundColor: theme.vars.palette.grey[600],
 //             "&:hover": {
-//               backgroundColor: theme.palette.grey[500]
+//               backgroundColor: theme.vars.palette.grey[500]
 //             },
 //             "&:selected": {
-//               backgroundColor: theme.palette.grey[600]
+//               backgroundColor: theme.vars.palette.grey[600]
 //             }
 //           },
 //           "&.Mui-hover": {
 //             color: "var(--palette-primary-light)",
-//             backgroundColor: theme.palette.grey[500]
+//             backgroundColor: theme.vars.palette.grey[500]
 //           },
 //           "&.Mui-selected": {
 //             color: "var(--palette-primary-main)",
-//             backgroundColor: theme.palette.grey[600]
+//             backgroundColor: theme.vars.palette.grey[600]
 //           }
 //         })
 //       }
@@ -381,9 +381,9 @@
 //       styleOverrides: {
 //         root: ({ theme }) => ({
 //           padding: "0px 4px",
-//           color: theme.palette.text?.secondary,
+//           color: theme.vars.palette.text?.secondary,
 //           "&.Mui-checked": {
-//             color: theme.palette.primary?.main
+//             color: theme.vars.palette.primary?.main
 //           }
 //         })
 //       }
@@ -396,11 +396,11 @@
 //           padding: "0 0 0 .4em",
 //           fontFamily: theme.fontFamily1,
 //           fontSize: theme.fontSizeSmaller,
-//           backgroundColor: theme.palette.grey[600],
+//           backgroundColor: theme.vars.palette.grey[600],
 //           margin: "0"
 //         }),
 //         icon: ({ theme }) => ({
-//           color: theme.palette.grey[400]
+//           color: theme.vars.palette.grey[400]
 //         })
 //         // filled: {},
 //         // outlined: {}
@@ -409,9 +409,9 @@
 //     MuiRadio: {
 //       styleOverrides: {
 //         root: ({ theme }) => ({
-//           color: theme.palette.text?.secondary,
+//           color: theme.vars.palette.text?.secondary,
 //           "&.Mui-checked": {
-//             color: theme.palette.primary?.main
+//             color: theme.vars.palette.primary?.main
 //           }
 //         })
 //       }
@@ -438,9 +438,9 @@
 //           padding: "5px",
 //           margin: "5px",
 //           fontSize: theme.fontSizeSmaller,
-//           border: `1px dashed ${theme.palette.grey[600]}`,
-//           backgroundColor: theme.palette.grey[600],
-//           color: theme.palette.text.primary,
+//           border: `1px dashed ${theme.vars.palette.grey[600]}`,
+//           backgroundColor: theme.vars.palette.grey[600],
+//           color: theme.vars.palette.text.primary,
 //           cursor: "default",
 //           userSelect: "text"
 //         })
@@ -454,12 +454,12 @@
 //             lineHeight: "1.2em !important"
 //           },
 //           "&.MuiToggleButton-sizeSmall.Mui-selected": {
-//             color: theme.palette.grey[0],
-//             backgroundColor: theme.palette.grey[800]
+//             color: theme.vars.palette.grey[0],
+//             backgroundColor: theme.vars.palette.grey[800]
 //           },
 //           "&.MuiToggleButton-sizeSmall": {
 //             fontSize: "12px",
-//             color: theme.palette.grey[400],
+//             color: theme.vars.palette.grey[400],
 //             padding: "0 4px",
 //             margin: 0,
 //             border: 0

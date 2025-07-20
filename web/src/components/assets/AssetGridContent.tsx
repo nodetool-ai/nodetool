@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
     ".divider": {
       width: "100%",
       height: "2px",
-      backgroundColor: theme.palette.divider
+      backgroundColor: theme.vars.palette.divider
     }
   });
 

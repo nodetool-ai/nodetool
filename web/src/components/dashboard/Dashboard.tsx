@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100vw",
       height: "100vh",
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: theme.vars.palette.background.default,
       overflow: "hidden"
     },
     // DOCKVIEW
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
     },
     ".dv-tabs-and-actions-container:hover": {
       opacity: 1,
-      backgroundColor: theme.palette.grey[700]
+      backgroundColor: theme.vars.palette.grey[700]
     },
     // CONTENT
     "& .dv-react-part": {
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     },
     // DRAG HANDLE
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      backgroundColor: theme.palette.grey[900],
+      backgroundColor: theme.vars.palette.grey[900],
       transitionDelay: "0s !important"
     },
     "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {

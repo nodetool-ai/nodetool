@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
       margin: "-.5em 1em -1em 2em",
       padding: 0,
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.grey[200]
+      color: theme.vars.palette.grey[200]
     }
   });
 

@@ -156,7 +156,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       <Box
         css={allNodeStyles(theme)}
         className="node-editor"
-        style={{ backgroundColor: theme.palette.c_editor_bg_color }}
+        style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
       >
         {isUploading && (
           <div className="loading-overlay">
@@ -186,7 +186,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                   width: "80vw",
                   maxWidth: "1400px",
                   padding: 4,
-                  backgroundColor: theme.palette.grey[800],
+                  backgroundColor: theme.vars.palette.grey[800],
                   boxShadow: 24,
                   borderRadius: 2,
                   border: 0,

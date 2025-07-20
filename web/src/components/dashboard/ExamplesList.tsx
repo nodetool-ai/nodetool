@@ -18,7 +18,7 @@ interface ExamplesListProps {
 
 const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme.palette.grey[800],
+    backgroundColor: theme.vars.palette.grey[800],
     borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
     height: "100%",
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
     ".section-title": {
-      color: theme.palette.grey[100],
+      color: theme.vars.palette.grey[100],
       marginBottom: theme.spacing(3)
     },
     ".content-scrollable": {
@@ -52,8 +52,8 @@ const styles = (theme: Theme) =>
       ".example-description-tooltip": {
         visibility: "hidden",
         width: "200px",
-        backgroundColor: theme.palette.grey[1000],
-        color: theme.palette.grey[0],
+        backgroundColor: theme.vars.palette.grey[1000],
+        color: theme.vars.palette.grey[0],
         textAlign: "center",
         borderRadius: "6px",
         padding: "5px 0",
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
           marginLeft: "-5px",
           borderWidth: "5px",
           borderStyle: "solid",
-          borderColor: theme.palette.grey[1000]
+          borderColor: theme.vars.palette.grey[1000]
         }
       },
       ":hover .example-description-tooltip": {
@@ -84,12 +84,12 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "180px",
       objectFit: "cover",
-      backgroundColor: theme.palette.grey[600]
+      backgroundColor: theme.vars.palette.grey[600]
     },
     ".example-name": {
       padding: ".2em .5em .5em 0",
-      color: theme.palette.grey[0],
-      backgroundColor: theme.palette.grey[800],
+      color: theme.vars.palette.grey[0],
+      backgroundColor: theme.vars.palette.grey[800],
       fontSize: "var(--fontSizeSmall)"
     },
     ".loading-container": {

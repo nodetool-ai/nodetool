@@ -55,7 +55,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <Typography
             variant="h3"
             style={{
-              color: theme.palette.primary.main,
+              color: theme.vars.palette.primary.main,
               fontSize: "0.85em",
               overflowWrap: "break-word"
             }}
@@ -65,7 +65,10 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
         )}
 
         {isOllama && !downloaded && (
-          <Typography variant="h5" style={{ color: theme.palette.grey[400] }}>
+          <Typography
+            variant="h5"
+            style={{ color: theme.vars.palette.grey[400] }}
+          >
             Model not downloaded
           </Typography>
         )}
@@ -74,7 +77,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <>
             <Typography
               variant="h5"
-              style={{ color: theme.palette.warning.main }}
+              style={{ color: theme.vars.palette.warning.main }}
             >
               No matching repository found.
             </Typography>

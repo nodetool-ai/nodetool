@@ -14,12 +14,12 @@ const styles = (theme: Theme) =>
 
     .loading {
       font-size: 1.2rem;
-      color: ${theme.palette.grey[400]};
+      color: ${theme.vars.palette.grey[400]};
     }
 
     .error {
       font-size: 1.2rem;
-      color: ${theme.palette.error.main};
+      color: ${theme.vars.palette.error.main};
     }
   `;
 

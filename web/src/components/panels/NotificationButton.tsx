@@ -106,9 +106,9 @@ const NotificationButton: React.FC = React.memo(() => {
         sx={{
           "& .MuiPopover-paper": {
             backdropFilter: "blur(8px)",
-            backgroundColor: `${theme.palette.grey[900]}E6`,
+            backgroundColor: `${theme.vars.palette.grey[900]}E6`,
             boxShadow: "0 16px 64px rgba(0, 0, 0, 0.4)",
-            border: `1px solid ${theme.palette.grey[800]}`
+            border: `1px solid ${theme.vars.palette.grey[800]}`
           }
         }}
       >
@@ -123,7 +123,7 @@ const NotificationButton: React.FC = React.memo(() => {
               width: "6px"
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: theme.palette.grey[600],
+              backgroundColor: theme.vars.palette.grey[600],
               borderRadius: "3px"
             }
           }}
@@ -147,7 +147,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   borderRadius: 1.5,
                   maxHeight: "100px",
                   overflow: "auto",
-                  backgroundColor: `${theme.palette.grey[800]}CC`,
+                  backgroundColor: `${theme.vars.palette.grey[800]}CC`,
                   borderLeft: `3px solid ${
                     notification.type === "error"
                       ? "#f44336"
@@ -157,12 +157,12 @@ const NotificationButton: React.FC = React.memo(() => {
                       ? "#4caf50"
                       : notification.type === "info"
                       ? "#2196f3"
-                      : theme.palette.grey[600]
+                      : theme.vars.palette.grey[600]
                   }`,
                   transition: "all 0.2s ease",
                   position: "relative",
                   "&:hover": {
-                    backgroundColor: theme.palette.grey[800]
+                    backgroundColor: theme.vars.palette.grey[800]
                   }
                 }}
               >

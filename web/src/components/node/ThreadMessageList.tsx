@@ -28,29 +28,29 @@ const styles = (theme: Theme) =>
       fontWeight: "400"
     },
     ".messages li.user": {
-      color: theme.palette.grey[200],
-      borderBottom: `1px solid ${theme.palette.grey[600]}`,
+      color: theme.vars.palette.grey[200],
+      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`,
       padding: "0.1em 0.2em 0",
       margin: "2em 0 1em 0"
     },
     ".messages li.assistant": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.grey[1000],
+      backgroundColor: theme.vars.palette.grey[1000],
       padding: "1em"
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     },
     ".messages li a": {
       color: "var(--palette-primary-main)"
     },
     ".messages li a:hover": {
-      color: theme.palette.grey[400]
+      color: theme.vars.palette.grey[400]
     }
   });
 

@@ -32,7 +32,7 @@ export const inputStyles = (theme: Theme) =>
     ".MuiInputBase-inputMultiline": {
       margin: 0,
       padding: "2px 8px 0px 4px",
-      backgroundColor: theme.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600],
       resize: "vertical" as const
     },
 
@@ -80,7 +80,7 @@ export const inputStyles = (theme: Theme) =>
       margin: 0,
 
       "&.Mui-focused": {
-        color: theme.palette.grey[0]
+        color: theme.vars.palette.grey[0]
       }
     },
 
@@ -145,6 +145,6 @@ export const inputLabelStyle = (theme: Theme) =>
     margin: 0,
 
     "&.Mui-focused": {
-      color: theme.palette.grey[0]
+      color: theme.vars.palette.grey[0]
     }
   });

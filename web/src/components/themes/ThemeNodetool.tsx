@@ -205,7 +205,7 @@ const ThemeNodetool = createTheme({
         body2: ({ theme }) => ({
           fontSize: "1em",
           lineHeight: 1.2,
-          color: theme.palette.grey[0],
+          color: theme.vars.palette.grey[0],
           fontFamily: theme.fontFamily1
         })
       }
@@ -225,9 +225,9 @@ const ThemeNodetool = createTheme({
           fontWeight: "lighter",
           lineHeight: "1em",
           padding: theme.spacing(0, 0, 2, 0),
-          color: theme.palette.grey[0],
+          color: theme.vars.palette.grey[0],
           "&.Mui-focused": {
-            color: theme.palette.primary.main
+            color: theme.vars.palette.primary.main
           }
         })
       }
@@ -252,7 +252,7 @@ const ThemeNodetool = createTheme({
     MuiToolbar: {
       styleOverrides: {
         dense: ({ theme }) => ({
-          backgroundColor: theme.palette.grey[800],
+          backgroundColor: theme.vars.palette.grey[800],
           height: "100%",
           display: "flex",
           justifyContent: "space-between"

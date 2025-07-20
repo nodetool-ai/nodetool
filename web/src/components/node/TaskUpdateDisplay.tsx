@@ -20,8 +20,8 @@ const styles = (theme: Theme) =>
       marginBottom: "0.5rem",
       padding: "0.75rem",
       borderRadius: "4px",
-      backgroundColor: theme.palette.background.paper,
-      border: `1px solid ${theme.palette.divider}`
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".task-animated-heading": {
@@ -34,12 +34,12 @@ const styles = (theme: Theme) =>
     ".task-title": {
       fontWeight: 600,
       marginBottom: "0.25rem",
-      color: theme.palette.text.primary
+      color: theme.vars.palette.text.primary
     },
 
     ".task-event": {
       fontSize: "0.7rem",
-      color: theme.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
       textTransform: "capitalize",
       marginLeft: "0.5rem"
     }

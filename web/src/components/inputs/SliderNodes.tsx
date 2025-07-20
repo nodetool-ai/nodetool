@@ -27,7 +27,7 @@ const sliderStyles = (theme: Theme) =>
     ".MuiSlider-track": {
       height: "14px",
       backgroundColor: "transparent",
-      borderBottom: `2px solid ${theme.palette.grey[500]}`,
+      borderBottom: `2px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: "1px 0px 0px 1px",
       opacity: 1,
       top: "-7px",

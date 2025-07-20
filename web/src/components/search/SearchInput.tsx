@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       right: "0.7em",
       border: 0,
       backgroundColor: "transparent",
-      color: theme.palette.grey[400],
+      color: theme.vars.palette.grey[400],
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
         backgroundColor: "transparent"
       },
       "&.disabled": {
-        color: theme.palette.grey[500]
+        color: theme.vars.palette.grey[500]
       }
     }
   });

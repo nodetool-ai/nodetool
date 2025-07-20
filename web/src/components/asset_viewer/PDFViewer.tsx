@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
           display: "none",
           position: "absolute",
           right: "100px",
-          color: theme.palette.grey[1000],
+          color: theme.vars.palette.grey[1000],
           top: 0,
           bottom: 0,
           zIndex: 3
@@ -96,12 +96,12 @@ const styles = (theme: Theme) =>
     },
     ".content-type": {
       marginBottom: "1em",
-      color: theme.palette.text.secondary
+      color: theme.vars.palette.text.secondary
     },
     ".page-controls": {
       position: "sticky",
       bottom: "1em",
-      background: theme.palette.grey[600],
+      background: theme.vars.palette.grey[600],
       padding: "0.8em 1em",
       borderRadius: "4px 4px 0 0",
       zIndex: 1,
@@ -115,7 +115,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: "230px",
       bottom: "75px",
-      background: theme.palette.background.paper,
+      background: theme.vars.palette.background.paper,
       padding: "0.2em",
       borderRadius: "4px",
       zIndex: 1,
@@ -135,21 +135,21 @@ const styles = (theme: Theme) =>
         height: "100%",
         width: ".2em",
         "& .MuiSlider-track": {
-          backgroundColor: theme.palette.grey[500]
+          backgroundColor: theme.vars.palette.grey[500]
         },
         "& .MuiSlider-rail": {
-          backgroundColor: theme.palette.grey[800]
+          backgroundColor: theme.vars.palette.grey[800]
         },
         "& .MuiSlider-thumb": {
-          backgroundColor: theme.palette.grey[400],
+          backgroundColor: theme.vars.palette.grey[400],
           width: "16px",
           height: "16px",
           "&:hover, &.Mui-focusVisible": {
-            boxShadow: `0px 0px 0px 8px ${theme.palette.grey[600]}40`
+            boxShadow: `0px 0px 0px 8px ${theme.vars.palette.grey[600]}40`
           }
         },
         "& .MuiSlider-mark": {
-          backgroundColor: theme.palette.grey[600],
+          backgroundColor: theme.vars.palette.grey[600],
           borderRadius: "0",
           width: "4px",
           height: "4px"

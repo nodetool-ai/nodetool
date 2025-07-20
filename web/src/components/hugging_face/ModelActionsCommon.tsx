@@ -80,7 +80,7 @@ export const OllamaLink: React.FC<{
           style={{
             width: "1.25em",
             height: "auto",
-            filter: theme.palette.mode === "light" ? "none" : "invert(1)"
+            filter: theme.vars.palette.mode === "light" ? "none" : "invert(1)"
           }}
         />
       </Button>

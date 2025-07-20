@@ -20,7 +20,7 @@ export const ThoughtToggle: React.FC<ThoughtToggleProps> = ({
   const theme = useTheme();
   const buttonStyles = css`
     text-transform: none;
-    color: ${theme.palette.text.primary};
+    color: ${theme.vars.palette.text.primary};
     opacity: 0.7;
     &:hover {
       opacity: 1;
@@ -34,7 +34,7 @@ export const ThoughtToggle: React.FC<ThoughtToggleProps> = ({
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${theme.palette.primary.main};
+    background-color: ${theme.vars.palette.primary.main};
     animation: ${pulse} 1.5s ease-in-out infinite;
   `;
 

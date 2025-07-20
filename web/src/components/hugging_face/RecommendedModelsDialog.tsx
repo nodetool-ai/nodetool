@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       height: "calc(100% - 200px)",
-      backgroundColor: theme.palette.Paper.overlay,
+      backgroundColor: theme.vars.palette.Paper.overlay,
       backgroundImage: "none"
     },
     ".MuiDialogContent-root": {

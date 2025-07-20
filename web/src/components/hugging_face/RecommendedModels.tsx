@@ -142,14 +142,14 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       )}
       <Typography
         variant="body1"
-        sx={{ marginTop: "1em", color: theme.palette.grey[100] }}
+        sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}
       >
         <AnnouncementIcon
           fontSize="small"
           sx={{
             verticalAlign: "middle",
             marginRight: "0.5em",
-            color: theme.palette.warning.main
+            color: theme.vars.palette.warning.main
           }}
         />
         Models will be downloaded to your local cache folder in the standard

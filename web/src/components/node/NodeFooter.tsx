@@ -22,7 +22,9 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
           style={{
             fontWeight: index === parts.length - 1 ? "500" : "300",
             color:
-              index === parts.length - 1 ? theme.palette.grey[400] : "inherit"
+              index === parts.length - 1
+                ? theme.vars.palette.grey[400]
+                : "inherit"
           }}
         >
           {part.replace("huggingface", "HF").replace("nodetool", "NT")}
@@ -70,8 +72,8 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     <div
       className="node-footer"
       style={{
-        borderTop: `1px solid ${theme.palette.divider}`,
-        // backgroundColor: theme.palette.background.default
+        borderTop: `1px solid ${theme.vars.palette.divider}`,
+        // backgroundColor: theme.vars.palette.background.default
         backgroundColor: "transparent"
       }}
     >
