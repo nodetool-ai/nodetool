@@ -34,8 +34,28 @@ import video from "../icons/video.svg?react";
 import database from "../icons/database.svg?react";
 import task from "../icons/task.svg?react";
 
-import { solarizedColors, monokaiColors } from "./data_type_colors";
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
+
+/**
+ * SpectraNode palette — core "500" tone for each conceptual category
+ * Most node types are mapped to these category buckets.
+ */
+const SpectraNode = {
+  scalar: "#00B7FF", // numbers
+  boolean: "#00C87D", // bool / flag
+  vector: "#19D1C3", // vectors / spatial math (unused for now)
+  matrix: "#5468FF", // matrices / tensors
+  spatial: "#A4E100", // geometry (unused for now)
+  texture: "#E557E5", // images / textures / video
+  textual: "#FF9B34", // strings / text
+  collection: "#F3C500", // list / dict / dataframe / enum
+  reference: "#004CFF", // file‑like, objects, models, folders, assets
+  event: "#FF3D5A", // events / tasks
+  audio: "#0094FF", // audio / sound
+  execution: "#6E7B8C" // execution / misc
+} as const;
+
+type SpectraKey = keyof typeof SpectraNode;
 
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -68,11 +88,6 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
 
 export { iconMap };
 
-// export function useDynamicSvgImport(iconName: string) {
-//   const SvgIcon = iconMap[iconName] || Any;
-//   return { SvgIcon };
-// }
-
 export interface DataType {
   value: string;
   label: string;
@@ -80,19 +95,34 @@ export interface DataType {
   name: string;
   slug: string;
   description: string;
+  /**
+   * Core 500 tone for this type as HEX.
+   * (Light / dark variants are derived in CSS).
+   */
   color: string;
+  /**
+   * Fallback text colour. Re‑evaluated later for WCAG contrast.
+   */
   textColor: "#fff" | "dark" | "var(--palette-action-active)";
   icon?: string;
 }
 
-// Update color values in DATA_TYPES
+/**
+ * Helper that assigns a palette colour to a node by conceptual bucket.
+ */
+function colour(k: SpectraKey) {
+  return SpectraNode[k];
+}
+
+/**
+ * NODETOOL built‑in data types with SpectraNode colours applied.
+ */
 const NODETOOL_DATA_TYPES: DataType[] = [
-  // Strictly matches TypeScript's `any` datatype only
   {
     value: "any",
     label: "Any",
     description: "Nodes using the TypeScript 'any' datatype",
-    color: solarizedColors.base01,
+    color: colour("execution"),
     textColor: "dark",
     name: "",
     slug: "",
@@ -103,7 +133,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "notype",
     label: "No Type",
     description: "No output type",
-    color: monokaiColors.white,
+    color: "#A7B1BF", // neutral grey
     textColor: "dark",
     name: "",
     slug: "",
@@ -114,8 +144,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "asset",
     label: "Asset",
     description: "Media files or documents",
-    color: monokaiColors.yellow,
-    textColor: "dark",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
@@ -125,7 +155,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "audio",
     label: "Audio",
     description: "Audio data",
-    color: solarizedColors.violet,
+    color: colour("audio"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -136,8 +166,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "video",
     label: "Video",
     description: "Video data",
-    color: monokaiColors.green,
-    textColor: "dark",
+    color: colour("texture"),
+    textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
@@ -147,7 +177,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "bool",
     label: "Boolean",
     description: "True or false values",
-    color: solarizedColors.base03,
+    color: colour("boolean"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -158,7 +188,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "dataframe",
     label: "Dataframe",
     description: "Structured data in a tabular format",
-    color: solarizedColors.cyan,
+    color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -168,8 +198,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "dict",
     label: "Dictionary",
-    description: "Key-Value pairs collection",
-    color: monokaiColors.orange,
+    description: "Key‑Value pairs collection",
+    color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -180,7 +210,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "enum",
     label: "Enumeration",
     description: "A set of named constants",
-    color: solarizedColors.magenta,
+    color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -191,8 +221,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "file",
     label: "File",
     description: "Uploaded files",
-    color: monokaiColors.yellow,
-    textColor: "dark",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
@@ -202,7 +232,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "float",
     label: "Float",
     description: "Real numbers with fractional parts",
-    color: solarizedColors.base01,
+    color: colour("scalar"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -213,7 +243,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "folder",
     label: "Folder",
     description: "Refers to a folder from the asset library",
-    color: solarizedColors.base00,
+    color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -224,7 +254,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "image",
     label: "Image",
     description: "Image data",
-    color: solarizedColors.blue,
+    color: colour("texture"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -235,7 +265,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "int",
     label: "Integer",
     description: "Whole numbers",
-    color: solarizedColors.base02,
+    color: colour("scalar"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -246,7 +276,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "list",
     label: "List",
     description: "An ordered collection of items",
-    color: monokaiColors.purple,
+    color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -257,7 +287,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "str",
     label: "String",
     description: "A sequence of characters",
-    color: solarizedColors.green,
+    color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -267,8 +297,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "tensor",
     label: "Tensor",
-    description: "Multi-dimensional arrays",
-    color: monokaiColors.pink,
+    description: "Multi‑dimensional arrays",
+    color: colour("matrix"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -279,7 +309,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "text",
     label: "Text",
     description: "Used for longer blocks of textual data",
-    color: solarizedColors.green,
+    color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -290,7 +320,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "union",
     label: "Union",
     description: "Represents a value that could be one of several types",
-    color: solarizedColors.violet,
+    color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -301,7 +331,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "language_model",
     label: "Language Model",
     description: "Language model",
-    color: monokaiColors.blue,
+    color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -312,7 +342,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "message",
     label: "Message",
     description: "A Chat Message",
-    color: solarizedColors.blue,
+    color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -323,8 +353,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "taesd",
     label: "TAESD",
     description: "Tiny Autoencoder",
-    color: monokaiColors.yellow,
-    textColor: "dark",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
@@ -334,19 +364,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "database",
     label: "Database",
     description: "Database",
-    color: solarizedColors.base2,
+    color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
     icon: "Database"
   },
-
   {
     value: "task",
     label: "Task",
-    description: "used for agent tasks",
-    color: solarizedColors.base2,
+    description: "Used for agent tasks",
+    color: colour("event"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -467,8 +496,10 @@ export function labelForType(type: string): string {
   return foundType?.label || "";
 }
 
+// Alphabetical ordering for ease of lookup
 DATA_TYPES.sort((a, b) => a.value.localeCompare(b.value));
 
+/** Utilities ------------------------------------------------------------- */
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
@@ -509,6 +540,7 @@ function getNames(value: string): {
   return { namespace, name, slug };
 }
 
+// Inject namespace/name/slug fields
 DATA_TYPES = DATA_TYPES.map((node): DataType => {
   const { namespace, name, slug } = getNames(node.value);
 
@@ -520,7 +552,7 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
   };
 });
 
-// add colors if not set and determine light or dark text color
+// Auto‑derive text colour + register CSS variables
 DATA_TYPES = DATA_TYPES.map((type: any) => {
   const color = type.color || stc(type.value);
   const { namespace, name, slug } = getNames(type.value);

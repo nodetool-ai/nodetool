@@ -143,15 +143,15 @@ export const paletteLight: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#fff",
+  c_node_bg: "#f9f9f9",
   c_node_bg_group: "#fffeff",
   c_node_header_bg: "#dfdfdf",
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
   c_bg_group: "#dfdfdf",
-  c_editor_bg_color: "#efefef",
+  c_editor_bg_color: "#e3e3e3",
   c_editor_grid_color: "#ccc",
-  c_editor_axis_color: "#eee",
+  c_editor_axis_color: "#bbb",
   c_selection_rect: "rgba(0, 150, 20, 0.08)",
 
   primary: {
