@@ -272,6 +272,7 @@
 .model-button {
   width: 90%;
   border: 0 !important;
+  margin-top: 1em;
 }
 
 .model-button:hover {
