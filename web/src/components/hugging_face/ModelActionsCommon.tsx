@@ -1,5 +1,5 @@
 import React from "react";
-import { Tooltip, Button } from "@mui/material";
+import { Tooltip, Button, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import FolderIcon from "@mui/icons-material/Folder";
 import {
@@ -74,10 +74,11 @@ export const OllamaLink: React.FC<{
         target="_blank"
         rel="noopener noreferrer"
       >
-        <img
+        <Box
+          component="img"
           src="/ollama.png"
           alt="Ollama"
-          style={{
+          sx={{
             width: "1.25em",
             height: "auto",
             filter: "none",

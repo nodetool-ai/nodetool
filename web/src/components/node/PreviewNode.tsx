@@ -316,16 +316,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   return (
     <Container
       css={styles(theme)}
-      style={{
+      sx={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
         border: "1px solid #ccc",
+        bgcolor: hasParent
+          ? theme.vars.palette.c_node_bg_group
+          : theme.vars.palette.c_node_bg,
         ...theme.applyStyles("dark", {
           border: "none"
-        }),
-        backgroundColor: hasParent
-          ? theme.vars.palette.c_node_bg_group
-          : theme.vars.palette.c_node_bg
+        })
       }}
       className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""
