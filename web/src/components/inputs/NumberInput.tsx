@@ -57,9 +57,9 @@ export interface NumberInputState {
 
 const NumberInput: React.FC<InputProps> = (props) => {
   const theme = useTheme();
-  const sliderVisible =
-    props.showSlider ??
-    (typeof props.min === "number" && typeof props.max === "number");
+  const hasBounds =
+    typeof props.min === "number" && typeof props.max === "number";
+  const sliderVisible = (props.showSlider ?? hasBounds) && hasBounds;
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
     localValue: props.value?.toString() ?? "",
@@ -139,7 +139,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }
 
         if (isNaN(finalValue)) {
-          finalValue = props.min ?? props.max ?? 0;
+          finalValue = props.value ?? props.min ?? props.max ?? 0;
         }
         if (typeof props.min === "number") {
           finalValue = Math.max(props.min, finalValue);
@@ -321,15 +321,17 @@ const NumberInput: React.FC<InputProps> = (props) => {
           />
         )}
       </div>
-      {sliderVisible && (
-        <RangeIndicator
-          value={props.value}
-          min={props.min as number}
-          max={props.max as number}
-          isDragging={state.isDragging}
-          isEditable={inputIsFocused}
-        />
-      )}
+      {sliderVisible &&
+        typeof props.min === "number" &&
+        typeof props.max === "number" && (
+          <RangeIndicator
+            value={props.value}
+            min={props.min}
+            max={props.max}
+            isDragging={state.isDragging}
+            isEditable={inputIsFocused}
+          />
+        )}
       <SpeedDisplay
         speedFactor={speedFactorState}
         mousePosition={mousePosition}

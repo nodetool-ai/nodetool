@@ -81,6 +81,13 @@ export const applyValueConstraints = (
 ): number => {
   let constrainedValue = value;
 
+  if (typeof min === "number" && typeof max === "number" && min > max) {
+    console.warn(`Invalid bounds: min (${min}) > max (${max})`);
+    const temp = min;
+    min = max;
+    max = temp;
+  }
+
   // Snap to step if baseStep is provided and greater than zero
   if (baseStep && baseStep > 0) {
     const reference = min ?? 0; // align step snapping relative to the minimum value

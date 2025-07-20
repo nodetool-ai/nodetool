@@ -13,6 +13,8 @@ import {
   applyValueConstraints
 } from "../components/inputs/NumberInput.utils";
 
+const UNBOUNDED_DRAG_SCALE = 0.1;
+
 export const useValueCalculation = () => {
   const calculateStepCb = useCallback(calculateStep, []);
   const calculateDecimalPlacesCb = useCallback(calculateDecimalPlaces, []);
@@ -116,7 +118,7 @@ export const useDragHandling = (
           const range = props.max - props.min;
           rawValueChange = visualPercentage * range;
         } else {
-          rawValueChange = deltaX * baseStep;
+          rawValueChange = deltaX * baseStep * UNBOUNDED_DRAG_SCALE;
         }
 
         // Step 3: Apply modifiers (speedFactor for vertical slowdown + shift)
