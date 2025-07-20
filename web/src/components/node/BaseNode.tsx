@@ -191,7 +191,7 @@ const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
   const bg = theme.vars.palette.c_node_bg;
 
   return {
-    headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90)
+    headerColor: darkenHexColor(baseColor, 200)
   };
 };
 
