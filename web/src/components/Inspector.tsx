@@ -106,8 +106,8 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: "0.5em",
       width: "100%",
-      borderBottom: "1px solid " + theme.palette.grey[400],
-      borderTop: "1px solid " + theme.palette.grey[400],
+      borderBottom: "1px solid " + theme.vars.palette.grey[400],
+      borderTop: "1px solid " + theme.vars.palette.grey[400],
       padding: "0.5em 0",
       marginBottom: "1em"
     },

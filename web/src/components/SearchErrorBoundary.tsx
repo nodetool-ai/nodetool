@@ -13,14 +13,14 @@ const searchErrorBoundaryStyles = (theme: any) =>
     justifyContent: "center",
     height: "200px",
     textAlign: "center",
-    background: theme.palette?.c_gray0,
-    border: `1px solid ${theme.palette?.c_gray1}`,
+    background: theme.vars.palette.c_gray0,
+    border: `1px solid ${theme.vars.palette.c_gray1}`,
     borderRadius: "8px",
     margin: "1rem",
     padding: "2rem",
 
     ".error-title": {
-      color: theme.palette?.error.main,
+      color: theme.vars.palette.error.main,
       marginBottom: theme.spacing?.(1) || "8px",
       fontSize: theme.fontSizeNormal
     },
@@ -28,17 +28,17 @@ const searchErrorBoundaryStyles = (theme: any) =>
     ".error-message": {
       maxWidth: 400,
       marginBottom: theme.spacing?.(2) || "16px",
-      color: theme.palette?.c_gray4,
+      color: theme.vars.palette.c_gray4,
       fontSize: theme.fontSizeSmaller
     },
 
     ".retry-button": {
-      backgroundColor: theme.palette?.c_hl1,
-      color: theme.palette?.grey[1000],
+      backgroundColor: theme.vars.palette.c_hl1,
+      color: theme.vars.palette.grey[1000],
       textTransform: "none",
       fontSize: theme.fontSizeSmaller,
       "&:hover": {
-        backgroundColor: theme.palette?.c_hl2
+        backgroundColor: theme.vars.palette.c_hl2
       }
     }
   });

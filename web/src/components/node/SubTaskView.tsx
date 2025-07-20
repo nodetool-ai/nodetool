@@ -91,9 +91,9 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
                 sx={
                   subtask.completed
                     ? {
-                        color: (theme) => theme.palette.success.main,
+                        color: (theme) => theme.vars.palette.success.main,
                         "&.Mui-disabled": {
-                          color: (theme) => theme.palette.success.main
+                          color: (theme) => theme.vars.palette.success.main
                         }
                       }
                     : {}

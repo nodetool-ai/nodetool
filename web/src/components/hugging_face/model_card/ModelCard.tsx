@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       color: "var(--palette-primary-main)",
       margin: "1em 0.1em 0 1em",
       padding: ".25em .5em",
-      border: "1px solid" + theme.palette.grey[500],
+      border: "1px solid" + theme.vars.palette.grey[500],
       "&:hover": {
         borderColor: "var(--palette-primary-main)"
       }
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       padding: "0 0.1em",
       borderRadius: 8,
-      border: "1px solid" + theme.palette.grey[500],
+      border: "1px solid" + theme.vars.palette.grey[500],
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
@@ -133,10 +133,10 @@ const styles = (theme: Theme) =>
     ".download": {
       boxShadow: "none",
       backgroundColor: theme.vars.palette.grey[800],
-      border: "1px solid" + theme.palette.grey[800],
+      border: "1px solid" + theme.vars.palette.grey[800],
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[900],
-        border: "1px solid" + theme.palette.grey[900]
+        border: "1px solid" + theme.vars.palette.grey[900]
       }
     },
 

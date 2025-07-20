@@ -65,7 +65,7 @@ export const useSurroundWithGroup = () => {
         groupNode.data.properties = {};
       }
 
-      groupNode.data.properties.group_color = theme.palette.c_bg_group;
+      groupNode.data.properties.group_color = theme.vars.palette.c_bg_group;
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 200);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 200);
       groupNode.style = {
@@ -94,7 +94,7 @@ export const useSurroundWithGroup = () => {
 
       resume();
     },
-    [getBounds, createNode, setNodes, pause, resume, theme.palette]
+    [getBounds, createNode, setNodes, pause, resume, theme.vars.palette]
   );
 
   return surroundWithGroup;

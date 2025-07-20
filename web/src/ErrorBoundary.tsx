@@ -16,7 +16,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     justifyContent: "center",
     height: "95vh",
     textAlign: "center",
-    background: `linear-gradient(to bottom, ${theme.palette?.grey[800]}, ${theme.palette?.grey[900]})`,
+    background: `linear-gradient(to bottom, ${theme.vars.palette.grey[800]}, ${theme.vars.palette.grey[900]})`,
 
     ".logo": {
       width: 100,
@@ -25,7 +25,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".error-title": {
-      color: theme.palette?.error.main,
+      color: theme.vars.palette.error.main,
       marginBottom: theme.spacing?.(2) || "16px",
       userSelect: "all"
     },
@@ -39,8 +39,8 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
     ".error-text": {
       color: theme.vars.palette.grey[100],
-      backgroundColor: theme.palette?.grey[900],
-      border: "1px solid " + theme.palette?.grey[800],
+      backgroundColor: theme.vars.palette.grey[900],
+      border: "1px solid " + theme.vars.palette.grey[800],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       margin: "4em 0 0",
@@ -49,24 +49,24 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".issue-tracker-link": {
-      color: theme.palette?.c_link,
+      color: theme.vars.palette.c_link,
       "&:hover": {
-        color: theme.palette?.c_link_visited
+        color: theme.vars.palette.c_link_visited
       }
     },
 
     ".refresh-button": {
-      backgroundColor: theme.palette?.primary.main,
-      color: theme.palette?.grey[1000],
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.grey[1000],
       "&:hover": {
-        backgroundColor: theme.palette?.primary.dark
+        backgroundColor: theme.vars.palette.primary.dark
       }
     },
 
     ".error-stack-trace": {
       color: theme.vars.palette.grey[50],
       backgroundColor: theme.vars.palette.grey[900],
-      border: "1px solid " + theme.palette.grey[800],
+      border: "1px solid " + theme.vars.palette.grey[800],
       fontFamily: "monospace",
       fontSize: theme.fontSizeSmaller,
       margin: "1em 0 0",

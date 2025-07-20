@@ -33,7 +33,7 @@ interface PlaceholderNodeData extends Node<NodeData> {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      outline: "2px solid" + theme.palette.error.main
+      outline: "2px solid" + theme.vars.palette.error.main
     },
     ".node-header ": {
       minWidth: "50px",

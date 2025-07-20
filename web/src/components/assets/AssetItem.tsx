@@ -220,7 +220,7 @@ const styles = (theme: Theme) =>
       lineHeight: "1.1em",
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.error.main,
-      borderBottom: "1px solid" + theme.palette.error.main,
+      borderBottom: "1px solid" + theme.vars.palette.error.main,
       width: "100%",
       height: "100%"
     }

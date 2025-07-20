@@ -7,7 +7,7 @@ const modelListItemStyles = (theme: Theme) =>
       padding: "0.5em 1em",
       marginBottom: "0",
       boxSizing: "border-box",
-      borderBottom: "1px solid " + theme.palette.grey[600],
+      borderBottom: "1px solid " + theme.vars.palette.grey[600],
       wordBreak: "break-word",
       transition: "background-color 0.125s ease-in, border 0.125s ease-in",
       "&.compact": {

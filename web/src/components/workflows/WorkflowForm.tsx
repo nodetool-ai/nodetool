@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
     },
     ".save-button": {
       backgroundColor: theme.vars.palette.grey[800],
-      border: "1px solid" + theme.palette.grey[500],
+      border: "1px solid" + theme.vars.palette.grey[500],
       color: "var(--palette-primary-main)",
       width: "120px",
       height: "40px",
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
         fontSize: theme.fontSizeNormal
       },
       "&:hover": {
-        border: "1px solid" + theme.palette.grey[0]
+        border: "1px solid" + theme.vars.palette.grey[0]
       }
     },
     ".cancel-button": {

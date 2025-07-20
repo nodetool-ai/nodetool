@@ -152,7 +152,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     nodeType,
     handleAddNode,
     handleOpenNodeMenu,
-    theme.palette.grey
+    theme.vars.palette.grey
   ]);
 
   return (

@@ -164,7 +164,7 @@ const styles = (theme: Theme) =>
       overflow: "visible",
       position: "relative",
       background: `linear-gradient(0deg, ${"var(--palette-primary-main)"}20, ${
-        theme.palette.grey[800]
+        theme.vars.palette.grey[800]
       }22)`
     },
     ".image-wrapper:hover": {

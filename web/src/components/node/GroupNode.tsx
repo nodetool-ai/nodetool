@@ -123,7 +123,10 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
       top: "-80px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(theme.palette.grey[0], GROUP_COLOR_OPACITY),
+      backgroundColor: hexToRgba(
+        theme.vars.palette.grey[0],
+        GROUP_COLOR_OPACITY
+      ),
       color: "var(--palette-grey-1000)",
       padding: "0.75em 1em",
       borderRadius: "4px",
@@ -207,7 +210,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const [color, setColor] = useState(
-    props.data.properties.group_color || theme.palette.c_bg_group
+    props.data.properties.group_color || theme.vars.palette.c_bg_group
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -322,7 +325,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
         backgroundColor: hexToRgba(
-          color || theme.palette.c_bg_group,
+          color || theme.vars.palette.c_bg_group,
           GROUP_COLOR_OPACITY
         )
       }}

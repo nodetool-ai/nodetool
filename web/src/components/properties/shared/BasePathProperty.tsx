@@ -347,7 +347,7 @@ const PathDialog = ({
       }}
       PaperProps={{
         sx: {
-          backgroundColor: (theme) => theme.palette.grey[900],
+          backgroundColor: (theme) => theme.vars.palette.grey[900],
           borderRadius: "8px",
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.24)"
         }

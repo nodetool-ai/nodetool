@@ -777,8 +777,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       <div
                         className="settings-section"
                         style={{
-                          border: "1px solid" + theme.palette.warning.main,
-                          borderRight: "1px solid" + theme.palette.warning.main
+                          border: "1px solid" + theme.vars.palette.warning.main,
+                          borderRight:
+                            "1px solid" + theme.vars.palette.warning.main
                         }}
                       >
                         {isProduction && (

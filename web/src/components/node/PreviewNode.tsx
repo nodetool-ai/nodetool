@@ -319,7 +319,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       style={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
-        border: theme.vars.palette.mode === "light" ? "1px solid #ccc" : "none",
+        border: "1px solid #ccc",
+        ...theme.applyStyles("dark", {
+          border: "none"
+        }),
         backgroundColor: hasParent
           ? theme.vars.palette.c_node_bg_group
           : theme.vars.palette.c_node_bg

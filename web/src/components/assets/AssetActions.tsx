@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
     },
     ".sort-assets .MuiSelect-select": {
       color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.palette.grey[200],
+      border: "1px solid " + theme.vars.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "clip",
@@ -176,7 +176,7 @@ const styles = (theme: Theme) =>
     },
     ".size-filter .MuiSelect-select": {
       color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.palette.grey[200],
+      border: "1px solid " + theme.vars.palette.grey[200],
       borderRadius: ".25em",
       padding: "0 .25em",
       textOverflow: "ellipsis",

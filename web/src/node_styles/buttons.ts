@@ -22,17 +22,17 @@ export const buttonStyles = (theme: Theme) =>
       // height: "1.5em !important",
       fontSize: `${theme.fontSizeTiny} !important`,
       minWidth: "20px !important",
-      backgroundColor:
-        theme.palette.mode === "light"
-          ? theme.vars.palette.grey[900]
-          : theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[900],
+      ...theme.applyStyles("dark", {
+        backgroundColor: theme.vars.palette.grey[800]
+      })
     },
 
     ".MuiButton-sizeSmall:hover": {
-      backgroundColor:
-        theme.palette.mode === "light"
-          ? theme.vars.palette.grey[800]
-          : theme.vars.palette.grey[700]
+      backgroundColor: theme.vars.palette.grey[800],
+      ...theme.applyStyles("dark", {
+        backgroundColor: theme.vars.palette.grey[700]
+      })
     },
 
     /* Button Variants */

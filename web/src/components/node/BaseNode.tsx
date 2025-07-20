@@ -188,7 +188,7 @@ const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
   if (!firstOutputColor) return { headerColor: "" };
 
   const baseColor = colorForType(firstOutputColor);
-  const bg = theme.palette.c_node_bg;
+  const bg = theme.vars.palette.c_node_bg;
 
   return {
     headerColor: darkenHexColor(simulateOpacity(baseColor, 0.6, bg), 90)
@@ -312,12 +312,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       style={{
         display: "flex",
         minHeight: `${styleProps.minHeight}px`,
-        border:
-          theme.palette.mode === "light"
-            ? selected
-              ? "1px solid #000"
-              : "1px solid #ccc"
-            : "none",
+        border: selected ? "1px solid #000" : "1px solid #ccc",
+        ...theme.applyStyles("dark", {
+          border: "none"
+        }),
         backgroundColor:
           hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg
       }}
