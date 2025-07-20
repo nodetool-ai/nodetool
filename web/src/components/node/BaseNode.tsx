@@ -309,9 +309,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <Container
       css={isLoading ? styles : undefined}
       className={styleProps.className}
-      style={{
+      sx={{
         display: "flex",
-        minHeight: `${styleProps.minHeight}px`,
+        minHeight: styleProps.minHeight,
         border: selected ? "1px solid #000" : "1px solid #ccc",
         ...theme.applyStyles("dark", {
           border: "none"
