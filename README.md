@@ -1,13 +1,11 @@
-# Privacy‑First AI Workflows
+# NodeTool — Privacy‑First Open‑Source AI Studio
+### Your Machine. Your Models. Your Control.
 
-## Your Multimodal AI Toolbox
+Effortlessly build **multimodal** AI workflows—text, vision, audio & video.  
 
-### Build Local, Deploy Anywhere
+Run locally, on‑prem, self‑host on GPU clouds, or connect to OpenAI®, Anthropic, HuggingFace, Gemini and other providers. 
 
-🎨 Drag‑and‑drop Workflow Builder.  
-🚀 Thousands of AI models through Huggingface Hub.
-
-🔓 **100% Open Source • Privacy‑First • Self‑Hosted**
+**Build once, run anywhere.**
 
 ![Conda](https://github.com/nodetool-ai/nodetool/actions/workflows/conda.yaml/badge.svg)
 ![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
@@ -15,100 +13,61 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-## Why Privacy‑First Matters
+---
 
-| Local-first by default | Open source & auditable | 🤗 Huggingface Integration |
-|-----------------------|------------------------|--------------------------|
-| All model inference runs on your machine. No data leaves unless you decide. | NodeTool is 100% open source under AGPL – audit every line of code. | Need more power? Use the GPU cloud node – and only for the data you select. |
+## Core Principles
 
-## 🛠️ The Complete AI Toolbox for Builders
-
-NodeTool is the Swiss-Army Knife for AI builders. Unlike code-first stacks, NodeTool gives you every AI tool in one visual workspace. Connect your models, streamline your workflow, and turn ideas into reality.
-
-* 🔗 Drag‑and‑drop multimodal workflows
-* 🧠 LLMs, image, audio, and video nodes
-* 🗃️ Asset and vector store integration
-* 🤖 Agent orchestration
-* ⚡ AI cloud scaling
-* 💡 Built-in templates and node packs
-
-### **🔗 Snap Nodes Together**
-Drag any model into your canvas—LLMs, diffusion, agents, or custom code. Connect with one click and watch your AI workflow come alive.
-
-### **☁️ Scale to Cloud Providers**
-Keep data local until you need power. Scale to Huggingface, Anthropic, OpenAI, Gemini, Fal.ai or Replicate.
-
-### **💬 Chat Interface**
-Access and trigger AI workflows through a unified chat interface.
-
-### **🤖 AI Agent Orchestration**
-Build intelligent agents that coordinate multiple AI models. Chain reasoning, planning, and execution across complex multi-step workflows.
-
-### **📁 Vector Storage & RAG**
-Built-in ChromaDB means your AI remembers everything. Create smart assistants that know your documents.
-
-### **🎯 Built-in Asset Manager**
-Import, organize, and manage all your media assets in one place. No more hunting through folders.
-
-**Additional Features:**
-- **Multimodal Capabilities:** Process text, images, audio, and video within a single workflow
-- **System Tray Integration:** Access workflows quickly via the system tray with global shortcuts
-- **Ready-to-Use Templates:** Start quickly with pre-built workflow templates
-- **Mini-App Builder:** Convert workflows into standalone desktop applications
-- **API Access:** Integrate with external applications and services
-- **Custom Python Extensions:** Extend functionality with custom Python scripts
-- **Cross-Platform:** Build and run on Mac, Windows, and Linux
+| Local‑First | Multi‑Cloud | Provider‑Agnostic | True Ownership |
+| :-- | :-- | :-- | :-- |
+| Run on your own hardware for privacy and instant iteration. | Deploy on‑prem or burst to GPU clouds with one click. | Swap between Ollama, Hugging Face, OpenAI, Anthropic & 10+ providers. | 100% AGPL codebase — no vendor lock‑in, no telemetry. |
 
 ---
 
-## 🔒 Privacy-First • 🤗 Huggingface Integration
+## Who It's For
 
-Keep your data on-device until you need Huggingface Inference API. Unlike cloud-only tools, NodeTool protects your privacy while giving you access to the world's largest AI model collection. **Trust through transparency—every line of code is open source.**
-
-### Local-First
-- Process sensitive data locally
-- Run LLMs on your hardware
-- Zero data transmission by default
-
-### Cloud-Ready
-- Burst to GPU cloud in seconds
-- Connect OpenAI, Anthropic, Fal, Replicate, Gemini
-- Control exactly what data gets shared
-
-## How NodeTool Keeps Your Data Safe
-
-All critical execution happens inside the local process unless a cloud node is explicitly connected:
-
-* Local LLMs via Ollama
-* Local Huggingface models with CUDA and MPS acceleration
-* Chroma Vector database for RAG
-* User-friendly Chat Interface
-* Powerful AI Workflow builder
-* Bring your own API Keys if needed (Huggingface, Anthropic, OpenAI, Gemini, Fal.ai, Replicate)
-
-✅ AGPL‑3.0 License – zero lock-in • ✅ Privacy-first Desktop App • ✅ Fully self-hostable with no telemetry
+| Indie Hackers & Researchers | Engineering Teams | Regulated Enterprises |
+| --- | --- | --- |
+| "Turn your laptop into a personal AI lab—no API keys, no credit cards, total privacy." | "Deploy internal AI services today, scale smoothly as demand grows." | "Secure by default—move to cloud only after compliance clearance." |
 
 ---
 
-![NodeTool](screenshot.png)
+## Why NodeTool
+
+* **Comprehensive Multimodal** — mix text, image, audio & video in a single canvas.  
+* **Drag‑and‑Drop Workflows** — snap nodes together visually, no boilerplate.  
+* **Agent Orchestration** — chain reasoning, planning & tools across tasks.  
+* **Built‑In RAG & Vector Store** — ChromaDB ready out of the box.  
+* **Templates & Packs** — start fast; extend with Python when you need.  
+* **One Workflow, Any Provider** — local CUDA/MPS, RunPod, AWS, GCP, Azure, Hugging Face, OpenAI, Anthropic and more.
 
 ---
 
-## ⚙️ Quickstart Installation
+## Quick Start (Desktop Studio)
 
-### 1️⃣ Get Running in Minutes
+| OS | Download | Requirements |
+| --- | --- | --- |
+| Windows | [Installer](https://nodetool.ai) | Nvidia GPU, 20 GB free |
+| macOS (Apple Silicon) | [Installer](https://nodetool.ai) | M1+ |
+| Linux | [AppImage](https://nodetool.ai) | Nvidia GPU |
 
-- **Windows / Mac / Linux:** [Download the installer here](https://nodetool.ai)
-- Launch the installer and run NodeTool.
+1. Install & launch NodeTool.  
+2. Open a **template** or blank canvas.  
+3. Drag nodes → connect → **Run**. Local inference executes instantly; burst to cloud when you need muscle.
 
-**Note:** Requires an Nvidia GPU or Apple Silicon (M1+) and at least 20GB of free disk space for model downloads.
+---
 
-### 2️⃣ Create Your First AI Workflow
+## From Workflow to Production
 
-- Open NodeTool.
-- Choose a **prebuilt template** or start with a blank canvas.
-- Drag and drop AI nodes and connect them visually.
-- Click **Run** and watch your local AI workflow execute!
+```mermaid
+graph LR
+  A[Local Canvas] --> B(Ollama / CUDA / MPS)
+  A --> C(Cloud GPU<br>RunPod • AWS • GCP • Azure)
+  A --> D(OpenAI / Anthropic / Replicate)
+  B --> E{One‑Click Deploy}
+  C --> E
+  D --> E
+  E --> F(API / Desktop App / Web Service)
+```
 
 ---
 
@@ -226,7 +185,7 @@ NodeTool's functionality is extended via packs. Install only the ones you need.
 
 NOTE:
 - Activate the conda environment first
-- Always use uv as we define extra index for pytorch
+- Use uv for faster installs.
 
 ```bash
 # List available packs (optional)
@@ -239,7 +198,10 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-replicate
 uv pip install git+https://github.com/nodetool-ai/nodetool-elevenlabs
 ```
 
-_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `--extra-index-url` when necessary.
+_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `-index-url` when necessary:
+
+* https://download.pytorch.org/whl/cu118
+* https://download.pytorch.org/whl/cu128
 
 ### 4. Run NodeTool Backend & Web UI
 
@@ -322,7 +284,7 @@ Please follow our contribution guidelines and code of conduct.
 
 ## 📄 License
 
-AGPL
+AGPL‑3.0 — True Ownership, Zero Compromise.
 
 ## 📬 Get in Touch
 
@@ -357,3 +319,5 @@ Refer to the [NodeTool Registry repository](https://github.com/nodetool-ai/nodet
 ## 📚 Documentation
 
 The documentation site is built with Jekyll on GitHub Pages. Markdown files live in the `docs/` directory and changes on `main` are deployed automatically. Start with the [Getting Started](docs/getting-started.md) guide and browse our new [Tips and Tricks](docs/tips-and-tricks.md) section for handy workflow shortcuts.
+
+NodeTool — innovate locally, scale globally, always with your privacy first. ❤️
