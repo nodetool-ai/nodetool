@@ -5,26 +5,33 @@ import {
   SHIFT_SLOWDOWN_DIVIDER
 } from "./NumberInput";
 
+// Throttle repeated warnings for invalid bounds.
+let warnedInvalidBounds = false;
+
 export const calculateStep = (
-  min: number,
-  max: number,
+  min: number | undefined,
+  max: number | undefined,
   inputType: "int" | "float"
 ): number => {
-  const range = max - min;
   let baseStep: number;
+  if (typeof min === "number" && typeof max === "number") {
+    const range = max - min;
 
-  if (inputType === "float") {
-    if (range <= 1) baseStep = 0.01;
-    else if (range <= 20) baseStep = 0.5;
-    else if (range > 20 && range <= 100) baseStep = 0.5;
-    else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
+    if (inputType === "float") {
+      if (range <= 1) baseStep = 0.01;
+      else if (range <= 20) baseStep = 0.5;
+      else if (range > 20 && range <= 100) baseStep = 0.5;
+      else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
+    } else {
+      if (range <= 20) baseStep = 0.1;
+      else if (range <= 1000) baseStep = 1;
+      else if (range > 1000 && range <= 5000) baseStep = 16;
+      else if (range > 5000 && range <= 10000) baseStep = 32;
+      else if (range > 10000) baseStep = 64;
+      else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
+    }
   } else {
-    if (range <= 20) baseStep = 0.1;
-    else if (range <= 1000) baseStep = 1;
-    else if (range > 1000 && range <= 5000) baseStep = 16;
-    else if (range > 5000 && range <= 10000) baseStep = 32;
-    else if (range > 10000) baseStep = 64;
-    else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
+    baseStep = inputType === "float" ? 0.1 : 1;
   }
   return baseStep;
 };
@@ -69,17 +76,27 @@ export const getEffectiveSliderWidth = (
 
 export const applyValueConstraints = (
   value: number,
-  min: number,
-  max: number,
+  min: number | undefined,
+  max: number | undefined,
   inputType: "int" | "float",
   decimalPlaces: number,
   baseStep?: number
 ): number => {
   let constrainedValue = value;
 
+  if (typeof min === "number" && typeof max === "number" && min > max) {
+    if (!warnedInvalidBounds) {
+      console.warn(`Invalid bounds: min (${min}) > max (${max})`);
+      warnedInvalidBounds = true;
+    }
+    const temp = min;
+    min = max;
+    max = temp;
+  }
+
   // Snap to step if baseStep is provided and greater than zero
   if (baseStep && baseStep > 0) {
-    const reference = min; // align step snapping relative to the minimum value
+    const reference = min ?? 0; // align step snapping relative to the minimum value
     constrainedValue =
       reference +
       Math.round((constrainedValue - reference) / baseStep) * baseStep;
@@ -92,6 +109,12 @@ export const applyValueConstraints = (
     constrainedValue = Math.round(constrainedValue);
   }
 
-  // Clamp to min/max bounds
-  return Math.max(min, Math.min(max, constrainedValue));
+  // Clamp to min/max bounds if they exist
+  if (typeof min === "number") {
+    constrainedValue = Math.max(min, constrainedValue);
+  }
+  if (typeof max === "number") {
+    constrainedValue = Math.min(max, constrainedValue);
+  }
+  return constrainedValue;
 };
