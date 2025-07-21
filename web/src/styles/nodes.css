@@ -148,8 +148,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 0.2em;
-  margin-right: 0.2em;
+  margin: 0.2em;
   padding: 0;
   color: var(--palette-grey-100);
   background-color: transparent;
@@ -273,6 +272,7 @@
 .model-button {
   width: 90%;
   border: 0 !important;
+  margin-top: 1em;
 }
 
 .model-button:hover {
