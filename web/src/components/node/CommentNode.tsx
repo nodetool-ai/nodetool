@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
     },
     ".format-toolbar-container": {
       position: "absolute",
-      top: "-2.2em",
+      top: "-35px",
       left: "0",
       width: "100%",
       display: "flex",
@@ -336,7 +336,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div className="color-picker-container">
           <ColorPicker
             color={color}
-            buttonSize={18}
+            buttonSize={16}
             onColorChange={handleColorChange}
             showCustom={false}
           />
