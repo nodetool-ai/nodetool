@@ -124,12 +124,6 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: ".5em",
       right: ".5em",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "1.2em",
-      height: "1.2em",
-      overflow: "hidden",
       opacity: 0,
       transition: "opacity 0.2s ease",
       "&:hover": {
@@ -342,7 +336,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div className="color-picker-container">
           <ColorPicker
             color={color}
-            size={16}
+            buttonSize={18}
             onColorChange={handleColorChange}
             showCustom={false}
           />

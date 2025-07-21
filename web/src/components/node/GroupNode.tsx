@@ -8,7 +8,6 @@ import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
 import { NodeData } from "../../stores/NodeData";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { debounce, isEqual } from "lodash";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -360,7 +359,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
           <div className="action-buttons">
             <ColorPicker
-              size={16}
+              buttonSize={20}
               color={color || null}
               onColorChange={handleColorChange}
             />
