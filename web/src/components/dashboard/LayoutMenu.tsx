@@ -99,7 +99,16 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
 
   return (
     <div>
-      <Button onClick={handleClick} variant="outlined" startIcon={<Layers />}>
+      <Button
+        className="layout-menu-button"
+        sx={{
+          padding: "0.2em 0.5em",
+          border: 0
+        }}
+        onClick={handleClick}
+        variant="outlined"
+        startIcon={<Layers />}
+      >
         Layouts
       </Button>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>

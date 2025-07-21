@@ -91,7 +91,13 @@ const styles = (theme: Theme) =>
       height: "fit-content"
     },
     "& .chat-input-section": {
-      marginTop: 0
+      backgroundColor: "var(--palette-background-paper)",
+      marginTop: 0,
+      paddingTop: 0
+    },
+    ".chat-controls": {
+      marginTop: 0,
+      paddingTop: 0
     }
   });
 

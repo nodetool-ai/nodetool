@@ -27,7 +27,7 @@ interface WorkflowsListProps {
 
 const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme.vars.palette.grey[800],
+    backgroundColor: theme.vars.palette.background.paper,
     borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",
@@ -88,10 +88,10 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(1),
       cursor: "pointer",
       borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: "transparent",
       transition: "all 0.2s",
       ":hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[900]
       }
     },
     ".workflow-thumbnail": {

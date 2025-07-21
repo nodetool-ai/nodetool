@@ -17,7 +17,7 @@ interface RecentChatsProps {
 
 const styles = (theme: any) =>
   css({
-    backgroundColor: theme.vars.palette.grey[800],
+    backgroundColor: theme.vars.palette.background.paper,
     borderRadius: theme.spacing(1),
     padding: theme.spacing(4),
     display: "flex",
