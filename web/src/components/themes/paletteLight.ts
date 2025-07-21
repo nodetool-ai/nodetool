@@ -149,20 +149,20 @@ export const paletteLight: PaletteOptions = {
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
   c_bg_group: "#bbb7",
-  c_editor_bg_color: "#e3e3e3",
+  c_editor_bg_color: "#f3f2ef",
   c_editor_grid_color: "#ccc",
   c_editor_axis_color: "#bbb",
   c_selection_rect: "rgba(0, 150, 20, 0.08)",
 
   primary: {
-    main: "#009911",
-    light: "#33cc44",
-    dark: "#006611",
+    main: "#0077a3",
+    light: "#7aa3d1",
+    dark: "#008B10", 
     contrastText: "#000"
   },
   secondary: {
     main: "#d23f9e",
-    light: "#e993c5",
+    light: "#a94e6d",
     dark: "#ba008a",
     contrastText: "#fff"
   },

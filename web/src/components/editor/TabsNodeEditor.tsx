@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.vars.palette.grey[700],
+      backgroundColor: theme.vars.palette.grey[800],
       alignItems: "center",
       position: "relative",
       padding: "0",
