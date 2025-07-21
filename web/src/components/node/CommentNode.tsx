@@ -72,7 +72,6 @@ const styles = (theme: Theme) =>
     padding: "1em .5em",
     boxSizing: "border-box",
     boxShadow: `inset 0 0 5px 1px #00000011`,
-    backgroundColor: "transparent",
     position: "relative",
     "&:hover": {
       boxShadow: `inset 0 0 8px 1px #ffffff11`
@@ -123,13 +122,13 @@ const styles = (theme: Theme) =>
     },
     ".color-picker-container": {
       position: "absolute",
-      top: "0",
-      right: "0",
+      top: ".5em",
+      right: ".5em",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "2em",
-      height: "2em",
+      width: "1.2em",
+      height: "1.2em",
       overflow: "hidden",
       opacity: 0,
       transition: "opacity 0.2s ease",
@@ -204,7 +203,12 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [initialEditorState]
   );
 
-  const textColor = getContrastTextColor(color);
+  const textColor = useMemo(() => {
+    if (color.trim().startsWith("var(")) {
+      return theme.vars.palette.text?.primary || "#000000";
+    }
+    return getContrastTextColor(color);
+  }, [color, theme]);
 
   const debouncedUpdate = useMemo(
     () =>
@@ -315,7 +319,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <LexicalComposer initialConfig={editorConfig}>
       <Container
         ref={containerRef}
-        style={{ backgroundColor: hexToRgba(color, 0.5), color: textColor }}
+        style={{
+          backgroundColor: hexToRgba(color, 0.5),
+          color: textColor,
+          paddingRight: "2em"
+        }}
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}
@@ -334,6 +342,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div className="color-picker-container">
           <ColorPicker
             color={color}
+            size={16}
             onColorChange={handleColorChange}
             showCustom={false}
           />
