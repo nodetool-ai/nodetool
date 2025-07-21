@@ -13,11 +13,12 @@ export const buttonStyles = (_theme: Theme) =>
       minWidth: "36px !important"
     },
     ".MuiButton-sizeSmall": {
-      margin: "0.2em !important",
-      padding: "0.25em 0.5em !important",
+      margin: "0.5em 0 0 0 !important",
+      padding: "0.5em !important",
       lineHeight: "1.1em",
       minWidth: "20px",
-      backgroundColor: "var(--palette-background-paper)"
+      fontSize: "0.8em",
+      backgroundColor: "transparent"
     },
     ".MuiButton-sizeSmall:hover": {
       backgroundColor: "var(--palette-grey-700)"
