@@ -360,6 +360,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
           <div className="action-buttons">
             <ColorPicker
+              size={16}
               color={color || null}
               onColorChange={handleColorChange}
             />

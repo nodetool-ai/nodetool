@@ -3,32 +3,27 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
-import styled from "@emotion/styled";
 import { Popover, Button, Tooltip } from "@mui/material";
 import { solarizedColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-const ColorCircle = styled.div<{ color: string | null }>`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: ${({ color }) => color || "#808080"};
-  border: 1px solid rgba(0, 0, 0, 0.75);
-`;
+const POPOVER_BUTTON_SIZE = 24;
+
+const colorCircleCss = {
+  borderRadius: "50%",
+  border: "1px solid rgba(0, 0, 0, 0.75)"
+};
 
 const styles = (theme: Theme) =>
   css({
     "&": {
-      position: "relative",
-      width: "24px",
-      height: "24px"
+      position: "relative"
     },
     ".color-picker-button": {
-      width: "24px",
-      height: "24px",
-      minWidth: "24px",
+      minWidth: "unset",
       margin: "0",
       padding: "0",
+      minHeight: "unset",
       borderRadius: "50%",
       display: "flex",
       alignItems: "center",
@@ -57,24 +52,13 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px"
   });
 
-const ColorCell = styled.button<{ color: string | null; isEmpty: boolean }>`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: ${({ isEmpty }) => (isEmpty ? "2px dashed gray" : "none")};
-  background-color: ${({ color }) => color || "transparent"};
-  cursor: pointer;
-  &:hover {
-    transform: scale(1.1);
-  }
-`;
-
 interface ColorPickerProps {
   color: string | null;
   onColorChange: (newColor: string | null) => void;
   label?: string;
   showCustom?: boolean;
   isNodeProperty?: boolean;
+  size?: number;
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
@@ -82,7 +66,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   onColorChange,
   label,
   showCustom = false,
-  isNodeProperty = false
+  isNodeProperty = false,
+  size = 15
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -111,9 +96,25 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         placement="bottom"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
-        <Button className="color-picker-button action" onClick={handleClick}>
+        <Button
+          className="color-picker-button action"
+          onClick={handleClick}
+          sx={{
+            width: size,
+            height: size
+          }}
+        >
           {label}
-          <ColorCircle color={color || "#ffffffaa"} />
+          <div
+            css={[
+              colorCircleCss,
+              {
+                backgroundColor: color || "#ffffffaa",
+                width: "100%",
+                height: "100%"
+              }
+            ]}
+          />
         </Button>
       </Tooltip>
       <Popover
@@ -132,10 +133,21 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       >
         <div css={colorMatrixStyle}>
           {solarizedColors.map((cellColor, index) => (
-            <ColorCell
+            <Button
               key={index}
-              color={cellColor || ""}
-              isEmpty={cellColor === null}
+              sx={{
+                borderRadius: "50%",
+                cursor: "pointer",
+                "&:hover": {
+                  transform: "scale(1.1)"
+                },
+                width: POPOVER_BUTTON_SIZE,
+                height: POPOVER_BUTTON_SIZE,
+                minWidth: "unset",
+                padding: 0,
+                border: cellColor === null ? "2px dashed gray" : "none",
+                backgroundColor: cellColor || "transparent"
+              }}
               onClick={() => handleColorCellClick(cellColor)}
             />
           ))}
