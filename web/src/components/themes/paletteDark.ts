@@ -121,7 +121,7 @@ export const paletteDark: PaletteOptions = {
     800: "#242424", // from c_gray1
     900: "#0E0E0E", // from c_gray0
     1000: "#000" // black
-  } as Color,
+  },
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",

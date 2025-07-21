@@ -121,7 +121,7 @@ export const paletteLight: PaletteOptions = {
     800: "#D9D9D9", // from c_gray6
     900: "#F5F5F5", // Standard MUI light grey
     1000: "#fff" //  white
-  } as Color,
+  },
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",

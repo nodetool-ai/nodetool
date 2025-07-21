@@ -119,21 +119,18 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     // help text
     ".help-text": {
       position: "absolute",
-      top: "-80px",
+      top: "-90px",
       left: "50%",
       transform: "translateX(-50%)",
-      backgroundColor: hexToRgba(
-        theme.vars.palette.grey[0],
-        GROUP_COLOR_OPACITY
-      ),
-      color: "var(--palette-grey-1000)",
+      color: "var(--palette-grey-50)",
+      backgroundColor: "var(--palette-grey-900)",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
       padding: "0.75em 1em",
       borderRadius: "4px",
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
       zIndex: 100,
-      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-      border: `1px solid ${theme.vars.palette.grey[500]}`,
       opacity: 0,
       visibility: "hidden",
       transition: "opacity 0.2s 2s ease, visibility 0.2s 2s ease"
