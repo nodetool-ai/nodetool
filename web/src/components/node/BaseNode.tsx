@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import { colorForType } from "../../config/data_types";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -48,7 +49,7 @@ import { useNodes } from "../../contexts/NodeContext";
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
-const GROUP_COLOR_OPACITY = 0.5;
+const GROUP_COLOR_OPACITY = 0.55;
 
 const resizer = (
   <div className="node-resizer">
@@ -188,7 +189,6 @@ const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
   if (!firstOutputColor) return { headerColor: "" };
 
   const baseColor = colorForType(firstOutputColor);
-  const bg = theme.vars.palette.c_node_bg;
 
   return {
     headerColor: darkenHexColor(baseColor, 200)
@@ -197,6 +197,7 @@ const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
+  const isDarkMode = useIsDarkMode();
   const { id, type, data, selected, parentId } = props;
   const { workflow_id, title } = data;
   const hasParent = Boolean(parentId);
@@ -212,7 +213,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }),
     [type]
   );
-
   // Status
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
   const isLoading = useMemo(
@@ -228,7 +228,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const parentColor = useNodes((state) => {
     if (!parentId) return "";
-    return hexToRgba("#333", GROUP_COLOR_OPACITY);
+    return isDarkMode
+      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
   });
 
   const specialNamespaces = useMemo(
