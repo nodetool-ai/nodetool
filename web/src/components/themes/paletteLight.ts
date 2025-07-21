@@ -148,7 +148,7 @@ export const paletteLight: PaletteOptions = {
   c_node_header_bg: "#dfdfdf",
   c_node_header_bg_group: "#444",
   c_bg_loop: "#305c9d17",
-  c_bg_group: "#dfdfdf",
+  c_bg_group: "#bbb7",
   c_editor_bg_color: "#e3e3e3",
   c_editor_grid_color: "#ccc",
   c_editor_axis_color: "#bbb",

@@ -381,6 +381,7 @@ export default memo(BaseNode, (prevProps, nextProps) => {
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
+    prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );
 });
