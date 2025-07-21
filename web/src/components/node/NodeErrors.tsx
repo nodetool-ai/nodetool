@@ -20,6 +20,7 @@ export const errorStyles = (theme: Theme) =>
     maxWidth: "240px",
 
     ".error-text": {
+      width: "100%",
       maxHeight: "6em",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
