@@ -16,40 +16,47 @@ const errorBoundaryStyles = (theme: Theme) =>
     justifyContent: "center",
     height: "95vh",
     textAlign: "center",
-    background: `linear-gradient(to bottom, ${theme.vars.palette.grey[800]}, ${theme.vars.palette.grey[900]})`,
+    padding: "2em",
+    background: "var(--palette-background-default)",
 
     ".logo": {
-      width: 100,
-      height: 100,
-      marginBottom: "1rem"
+      width: 120,
+      height: 120,
+      marginBottom: "2rem"
     },
 
     ".error-title": {
-      color: theme.vars.palette.error.main,
-      marginBottom: theme.spacing?.(2) || "16px",
+      marginBottom: "1rem",
+      fontSize: "5em",
+      fontWeight: 500,
       userSelect: "all"
     },
 
     ".error-message": {
-      maxWidth: 600,
-      padding: "2em 0 1em",
+      maxWidth: "80vw",
+      padding: "1em",
       color: theme.vars.palette.grey[100],
-      marginBottom: theme.spacing?.(2) || "16px",
+      marginBottom: "2em",
+      fontSize: "1.2rem",
+      lineHeight: 1.6,
       userSelect: "all"
     },
+
     ".error-text": {
+      width: "80vw",
       color: theme.vars.palette.grey[100],
-      backgroundColor: theme.vars.palette.grey[900],
-      border: "1px solid " + theme.vars.palette.grey[800],
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      margin: "4em 0 0",
-      padding: "2em 3em",
+      fontSize: "1.1rem",
+      margin: "2em 0 2em",
+      padding: "1em 2em",
+      lineHeight: 1.6,
       userSelect: "all"
     },
 
     ".issue-tracker-link": {
       color: theme.vars.palette.c_link,
+      textDecoration: "underline",
+      padding: "0.25em 0.5em",
       "&:hover": {
         color: theme.vars.palette.c_link_visited
       }
@@ -58,6 +65,8 @@ const errorBoundaryStyles = (theme: Theme) =>
     ".refresh-button": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.grey[1000],
+      padding: "1em 2em",
+      fontSize: "1.1rem",
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       }
@@ -65,17 +74,17 @@ const errorBoundaryStyles = (theme: Theme) =>
 
     ".error-stack-trace": {
       color: theme.vars.palette.grey[50],
-      backgroundColor: theme.vars.palette.grey[900],
-      border: "1px solid " + theme.vars.palette.grey[800],
+      border: "2px solid var(--palette-background-paper)",
       fontFamily: "monospace",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "1rem",
       margin: "1em 0 0",
       padding: "1em",
       whiteSpace: "pre-wrap",
       wordBreak: "break-all",
-      maxHeight: "200px",
+      maxHeight: "300px",
       overflowY: "auto",
-      userSelect: "all"
+      userSelect: "all",
+      lineHeight: 1.5
     }
   });
 
@@ -94,39 +103,44 @@ const ErrorBoundary: React.FC = () => {
     <ThemeProvider theme={theme}>
       <Box css={errorBoundaryStyles}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-        <Typography variant="h4" className="error-title">
-          NodeTool has encountered an error
-        </Typography>
-        <Typography variant="body2" className="error-message">
-          If this happens again, please let us know in the{" "}
+        <Typography className="error-title">💩</Typography>
+        <Typography variant="h6" className="error-message">
+          If this happens again, please let us know in the
           <a
             href="https:forum.nodetool.ai"
-            className="issue-tracker-link"
+            style={{
+              textDecoration: "none",
+              border: "1px solid",
+              padding: "0.1em 0.25em",
+              marginLeft: "0.5em"
+            }}
+            className="forum-link"
             target="_blank"
             rel="noreferrer"
           >
             forum
           </a>
-          .
         </Typography>
         <Button
           variant="contained"
+          size="large"
           onClick={() => window.location.reload()}
           className="refresh-button"
         >
-          Refresh the page
+          Reload
         </Button>
 
-        <Typography variant="body2" className="error-text">
+        <Typography variant="body1" className="error-text">
           {errorMessage}
         </Typography>
-        <Box position="relative" width="100%" maxWidth={600}>
+        <Box position="relative" width="100%" maxWidth="80vw">
           <CopyToClipboardButton
             textToCopy={stackTrace || ""}
             tooltipPlacement="top"
-            sx={{ position: "absolute", top: 4, right: 4 }}
+            size="large"
+            sx={{ position: "absolute", top: 25, right: 5 }}
           />
-          <Typography variant="body2" className="error-stack-trace">
+          <Typography variant="body1" className="error-stack-trace">
             {stackTrace}
           </Typography>
         </Box>
