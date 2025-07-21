@@ -19,9 +19,11 @@ const styles = (theme: Theme) =>
     ".open-colors-button": {
       borderRadius: "50%",
       backgroundColor: "transparent",
-      border: "1px solid rgba(0, 0, 0, 0.75)",
+      border: "2px solid rgba(0, 0, 0, 0.75)",
+      padding: 0,
       minWidth: "unset !important",
-      minHeight: "unset !important"
+      minHeight: "unset !important",
+      outline: "1px solid white"
     }
   });
 
@@ -37,8 +39,8 @@ const colorMatrixStyle = (theme: Theme) =>
     ".pick-color-button": {
       borderRadius: "50%",
       border: "1px solid rgba(0, 0, 0, 0.75)",
-      minWidth: "unset !important",
-      minHeight: "unset !important",
+      minWidth: "unset",
+      minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,
       height: PALETTE_BUTTON_SIZE
     }
@@ -91,7 +93,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         <Button
           className="open-colors-button"
           onClick={handleClick}
-          sx={{
+          style={{
+            color: "white",
             width: buttonSize,
             height: buttonSize,
             backgroundColor: color || "#ffffffaa"
@@ -125,8 +128,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 "&:hover": {
                   transform: "scale(1.1)"
                 },
-                width: buttonSize,
-                height: buttonSize,
+                width: PALETTE_BUTTON_SIZE,
+                height: PALETTE_BUTTON_SIZE,
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
