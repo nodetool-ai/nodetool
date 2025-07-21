@@ -14,6 +14,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 const styles = (theme: Theme) =>
   css({
     width: "fit-content",
+    padding: "0.2em 0.5em",
     backgroundColor: theme.vars.palette.grey[900],
 
     "&:hover, &:hover .back-to-editor-title": {

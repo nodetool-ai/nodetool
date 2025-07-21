@@ -18,7 +18,7 @@ interface ExamplesListProps {
 
 const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme.vars.palette.grey[800],
+    backgroundColor: theme.vars.palette.background.paper,
     borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",

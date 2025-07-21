@@ -11,7 +11,7 @@ const styles = css({
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  backgroundColor: "var(--palette-background-default)",
+  backgroundColor: "transparent",
   padding: "1.5em 0.5em",
   marginTop: "auto",
   flexShrink: 0,
@@ -69,7 +69,7 @@ const ChatInputSection = ({
   selectedModel,
   onModelChange,
   agentMode,
-  onAgentModeToggle,
+  onAgentModeToggle
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
 
@@ -93,7 +93,10 @@ const ChatInputSection = ({
             onStop={onStop}
             onNewChat={onNewChat}
             disabled={
-              status === "loading" || status === "streaming" || status === "error" || isDisconnected
+              status === "loading" ||
+              status === "streaming" ||
+              status === "error" ||
+              isDisconnected
             }
             agentMode={agentMode}
           />
