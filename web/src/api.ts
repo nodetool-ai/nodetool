@@ -3469,6 +3469,10 @@ export interface components {
             name?: string | null;
             /** Content */
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            /** Error */
+            error?: string | null;
+            /** Error Type */
+            error_type?: string | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Collections */
@@ -3520,6 +3524,10 @@ export interface components {
             name?: string | null;
             /** Content */
             content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            /** Error */
+            error?: string | null;
+            /** Error Type */
+            error_type?: string | null;
             /** Tool Calls */
             tool_calls?: components["schemas"]["ToolCall"][] | null;
             /** Collections */
@@ -4703,7 +4711,7 @@ export interface components {
             /** User Id */
             user_id: string;
             /** Title */
-            title: string;
+            title: string | null;
             /**
              * Created At
              * Format: date-time

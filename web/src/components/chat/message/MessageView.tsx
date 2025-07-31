@@ -10,6 +10,7 @@ import { ThoughtSection } from "./thought/ThoughtSection";
 import { MessageContentRenderer } from "./MessageContentRenderer";
 import { parseThoughtContent, getMessageClass } from "../utils/messageUtils";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import ErrorIcon from "@mui/icons-material/Error";
 
 interface MessageViewProps {
   message: Message;
@@ -22,7 +23,9 @@ export const MessageView: React.FC<MessageViewProps> = ({
   expandedThoughts,
   onToggleThought
 }) => {
-  const messageClass = getMessageClass(message.role);
+  // Add error class if message has error flag
+  const baseClass = getMessageClass(message.role);
+  const messageClass = message.error ? `${baseClass} error-message` : baseClass;
   const [isHovered, setIsHovered] = useState(false);
 
   const handleCopy = () => {
@@ -84,32 +87,44 @@ export const MessageView: React.FC<MessageViewProps> = ({
   return (
     <li
       className={messageClass}
-      style={{ position: "relative" }}
+      style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "8px" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {showCopyButton && (
-        <CopyToClipboardButton
-          textToCopy={handleCopy()}
-          size="small"
-          style={copyButtonStyle}
-          title="Copy to clipboard"
+      {message.error && (
+        <ErrorIcon 
+          sx={{ 
+            color: 'error.main', 
+            fontSize: 20, 
+            mt: 0.5,
+            flexShrink: 0 
+          }} 
         />
       )}
-      {typeof message.content === "string" &&
-        renderContent(
-          message.content,
-          typeof message.id === "string" ? parseInt(message.id) || 0 : 0
-        )}
-      {Array.isArray(content) &&
-        content.map((c: MessageContent, i: number) => (
-          <MessageContentRenderer
-            key={i}
-            content={c}
-            renderTextContent={renderContent}
-            index={i}
+      <div style={{ flex: 1 }}>
+        {showCopyButton && (
+          <CopyToClipboardButton
+            textToCopy={handleCopy()}
+            size="small"
+            style={copyButtonStyle}
+            title="Copy to clipboard"
           />
-        ))}
+        )}
+        {typeof message.content === "string" &&
+          renderContent(
+            message.content,
+            typeof message.id === "string" ? parseInt(message.id) || 0 : 0
+          )}
+        {Array.isArray(content) &&
+          content.map((c: MessageContent, i: number) => (
+            <MessageContentRenderer
+              key={i}
+              content={c}
+              renderTextContent={renderContent}
+              index={i}
+            />
+          ))}
+      </div>
     </li>
   );
 };

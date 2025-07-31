@@ -92,6 +92,21 @@ export const createStyles = (theme: Theme) => ({
       // color: theme.vars.palette.grey[0]
     },
 
+    "li.error-message": {
+      backgroundColor: theme.vars.palette.error.dark,
+      border: `1px solid ${theme.vars.palette.error.main}`,
+      borderRadius: "8px",
+      padding: "1em",
+      color: theme.vars.palette.error.contrastText,
+      "& .markdown": {
+        color: theme.vars.palette.error.contrastText
+      },
+      "& code": {
+        backgroundColor: "rgba(0,0,0,0.3)",
+        color: theme.vars.palette.error.contrastText
+      }
+    },
+
     "li pre": {
       // fontFamily: theme.fontFamily2,
       // width: "100%",

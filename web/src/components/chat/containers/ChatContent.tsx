@@ -44,7 +44,21 @@ const ChatContent: React.FC<ChatContentProps> = ({ handleSendMessage, graph }) =
         pb: 1
       }}
     >
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            margin: 1, 
+            animation: 'fadeIn 0.3s ease-in',
+            '@keyframes fadeIn': {
+              from: { opacity: 0 },
+              to: { opacity: 1 }
+            }
+          }}
+        >
+          {error}
+        </Alert>
+      )}
       <ChatView
         status={status}
         messages={messages}
