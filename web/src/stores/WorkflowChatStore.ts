@@ -804,11 +804,43 @@ function handleWebSocketMessage(
   } else if (data.type === "error") {
     // Handle error messages
     const errorData = data as any;
+    const threadId = get().currentThreadId;
+    
+    // Set error state
     set({
       error: errorData.message || "An error occurred",
       status: "error",
       statusMessage: errorData.message
     });
+    
+    // Add error message to thread
+    if (threadId) {
+      const errorMessage: Message = {
+        role: "assistant",
+        type: "message",
+        content: errorData.message || "An error occurred",
+        workflow_id: workflow.id,
+        error: true,
+        error_type: errorData.error_type
+      };
+      
+      set((state) => {
+        const thread = state.threads[threadId];
+        if (thread) {
+          return {
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                messages: [...thread.messages, errorMessage],
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
+        }
+        return state;
+      });
+    }
   } else {
     // Handle workflow updates for backward compatibility
     handleUpdate(workflow, data);
