@@ -4,6 +4,9 @@ import {
   JobUpdate,
   Message,
   MessageContent,
+  MessageImageContent,
+  MessageAudioContent,
+  MessageVideoContent,
   NodeProgress,
   NodeUpdate,
   OutputUpdate,
@@ -18,7 +21,6 @@ import {
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
-import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { supabase } from "../lib/supabaseClient";
 import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
@@ -108,39 +110,40 @@ interface WorkflowUpdatedUpdate {
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
-  const dataUri = URL.createObjectURL(new Blob([data]));
+  // const dataUri = URL.createObjectURL(new Blob([data]));
   if (type === "image") {
     return {
       type: "image_url",
       image: {
         type: "image",
-        uri: dataUri
+        data: data,
+        uri: ""
       }
-    };
+    } as MessageImageContent;
   } else if (type === "audio") {
     return {
       type: "audio",
       audio: {
         type: "audio",
-        uri: dataUri
+        data: data,
+        uri: ""
       }
-    };
+    } as MessageAudioContent;
   } else if (type === "video") {
     return {
       type: "video",
       video: {
         type: "video",
-        uri: dataUri
+        data: data,
+        uri: ""
       }
-    };
+    } as MessageVideoContent;
   } else {
     throw new Error(`Unknown message content type: ${type}`);
   }
 };
 
-const useWorkflowChatStore = create<WorkflowChatState>()(
-  persist<WorkflowChatState>(
-    (set, get) => ({
+const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
   // Connection state
   wsManager: null,
   socket: null,
@@ -497,26 +500,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()(
       }
     }
   }
-    }),
-    {
-      name: "workflow-chat-storage",
-      // Only persist threads and currentThreadId
-      partialize: (state): any => ({
-        threads: state.threads || {},
-        currentThreadId: state.currentThreadId || null
-      }),
-      onRehydrateStorage: () => (state) => {
-        // State has been rehydrated from storage
-        if (state) {
-          // Ensure threads is always an object
-          if (!state.threads) {
-            state.threads = {} as Record<string, WorkflowThread>;
-          }
-        }
-      }
-    }
-  )
-);
+}));
 
 // WebSocket message handler
 function handleWebSocketMessage(
@@ -588,10 +572,39 @@ function handleWebSocketMessage(
         const messages = thread.messages;
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === "assistant") {
-          // Append to the last assistant message
+          // Handle mixed content types - preserve array structure if it exists
+          let updatedContent: string | MessageContent[];
+          if (Array.isArray(lastMessage.content)) {
+            // If content is an array, append text to the last text item or add new text item
+            const contentArray = [...lastMessage.content];
+            const lastItem = contentArray[contentArray.length - 1];
+            if (lastItem && lastItem.type === "text") {
+              // Append to existing text item
+              contentArray[contentArray.length - 1] = {
+                ...lastItem,
+                text: lastItem.text + chunk.content
+              };
+            } else {
+              // Add new text item
+              contentArray.push({
+                type: "text",
+                text: chunk.content
+              });
+            }
+            updatedContent = contentArray;
+          } else {
+            // If content is a string, convert to array with text item
+            updatedContent = [
+              {
+                type: "text",
+                text: (lastMessage.content as string || "") + chunk.content
+              }
+            ];
+          }
+          
           const updatedMessage: Message = {
             ...lastMessage,
-            content: (lastMessage.content || "") + chunk.content
+            content: updatedContent
           };
           set((state) => ({
             status: "streaming",
@@ -645,10 +658,35 @@ function handleWebSocketMessage(
             if (update.value === "<nodetool_end_of_stream>") {
               return;
             }
-            // Append to the last assistant message
+            
+            // Handle mixed content types - preserve array structure if it exists
+            let updatedContent: string | MessageContent[];
+            if (Array.isArray(lastMessage.content)) {
+              // If content is an array, append text to the last text item or add new text item
+              const contentArray = [...lastMessage.content];
+              const lastItem = contentArray[contentArray.length - 1];
+              if (lastItem && lastItem.type === "text") {
+                // Append to existing text item
+                contentArray[contentArray.length - 1] = {
+                  ...lastItem,
+                  text: lastItem.text + (update.value as string)
+                };
+              } else {
+                // Add new text item
+                contentArray.push({
+                  type: "text",
+                  text: update.value as string
+                });
+              }
+              updatedContent = contentArray;
+            } else {
+              // If content is a string, append to it
+              updatedContent = (lastMessage.content as string || "") + (update.value as string);
+            }
+            
             const updatedMessage: Message = {
               ...lastMessage,
-              content: lastMessage.content + (update.value as string)
+              content: updatedContent
             };
             set((state) => ({
               status: "streaming",
@@ -820,8 +858,7 @@ function handleWebSocketMessage(
         type: "message",
         content: errorData.message || "An error occurred",
         workflow_id: workflow.id,
-        error: true,
-        error_type: errorData.error_type
+        error_type: errorData.error_type || "unknown"
       };
       
       set((state) => {

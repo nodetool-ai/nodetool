@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useEffect } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import ChatMarkdown from "./ChatMarkdown";
@@ -15,28 +15,47 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
   renderTextContent,
   index
 }) => {
-  const objectUrl = useCallback(
-    (source: string | Uint8Array | undefined, type: string) => {
+  const objectUrlRef = useRef<string | null>(null);
+
+  const createObjectUrl = useCallback(
+    (source: string | Uint8Array | undefined, type: string): string | undefined => {
       if (!source) return undefined;
       if (typeof source === "string") return source;
 
-      return URL.createObjectURL(new Blob([source], { type }));
+      // Revoke previous object URL if it exists
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+
+      // Create new object URL
+      const newObjectUrl = URL.createObjectURL(new Blob([source], { type }));
+      objectUrlRef.current = newObjectUrl;
+      return newObjectUrl;
     },
     []
   );
+
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
+
   const videoRef = useRef<HTMLVideoElement>(null);
 
   switch (content.type) {
     case "text":
-      return <ChatMarkdown content={content.text ?? ""} />;
+      return renderTextContent(content.text ?? "", index);
     case "image_url": {
-      const resolvedImageUrl: string | undefined = objectUrl(
-        content.image?.uri === ""
-          ? (content.image?.data as Uint8Array)
-          : content.image?.uri,
-        "image/png"
-      );
-      return <ImageView source={resolvedImageUrl} />;
+      // If we have a valid URI, use it directly; otherwise create object URL from data
+      const imageSource = content.image?.uri && content.image.uri !== "" 
+        ? content.image.uri 
+        : createObjectUrl(content.image?.data as Uint8Array, "image/png");
+      return <ImageView source={imageSource} />;
     }
     case "audio":
       return (
@@ -49,7 +68,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
         />
       );
     case "video": {
-      const uri = objectUrl(
+      const uri = createObjectUrl(
         content.video?.uri === ""
           ? (content.video?.data as Uint8Array)
           : content.video?.uri,

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { Typography } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 
@@ -8,13 +8,38 @@ interface ImageViewProps {
 
 const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
+  const objectUrlRef = useRef<string | null>(null);
 
   const imageUrl = useMemo(() => {
     if (!source) return undefined;
-    if (typeof source === "string") return source;
+    if (typeof source === "string") {
+      // If it's already a URL string (data URL, blob URL, or http URL), return it directly
+      if (source.startsWith('data:') || source.startsWith('blob:') || source.startsWith('http')) {
+        return source;
+      }
+      // If it's a regular string that's not a URL, treat it as data
+    }
 
-    return URL.createObjectURL(new Blob([source], { type: "image/png" }));
+    // Revoke previous object URL if it exists
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+
+    // Create new object URL
+    const newObjectUrl = URL.createObjectURL(new Blob([source], { type: "image/png" }));
+    objectUrlRef.current = newObjectUrl;
+    return newObjectUrl;
   }, [source]);
+
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   if (!imageUrl) {
     return <Typography>No Image found</Typography>;
