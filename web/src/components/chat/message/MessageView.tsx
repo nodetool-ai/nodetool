@@ -25,7 +25,7 @@ export const MessageView: React.FC<MessageViewProps> = ({
 }) => {
   // Add error class if message has error flag
   const baseClass = getMessageClass(message.role);
-  const messageClass = message.error ? `${baseClass} error-message` : baseClass;
+  const messageClass = message.error_type ? `${baseClass} error-message` : baseClass;
   const [isHovered, setIsHovered] = useState(false);
 
   const handleCopy = () => {
@@ -91,7 +91,7 @@ export const MessageView: React.FC<MessageViewProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {message.error && (
+      {message.error_type && (
         <ErrorIcon 
           sx={{ 
             color: 'error.main', 
