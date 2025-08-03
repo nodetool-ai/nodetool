@@ -11,8 +11,9 @@ import {
   IconButton,
   Button
 } from "@mui/material";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import CheckIcon from "@mui/icons-material/Check";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
@@ -31,11 +32,21 @@ interface GroupedModels {
   }>;
 }
 
+const formatProviderName = (provider: string): string => {
+  return provider
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
   value
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [menuLevel, setMenuLevel] = useState<'providers' | 'models'>('providers');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
 
@@ -76,6 +87,18 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
 
   const handleClose = useCallback(() => {
     setAnchorEl(null);
+    setSelectedProvider(null);
+    setMenuLevel('providers');
+  }, []);
+
+  const handleProviderSelect = useCallback((provider: string) => {
+    setSelectedProvider(provider);
+    setMenuLevel('models');
+  }, []);
+
+  const handleBackToProviders = useCallback(() => {
+    setSelectedProvider(null);
+    setMenuLevel('providers');
   }, []);
 
   const handleModelSelect = useCallback(
@@ -154,12 +177,37 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
           <MenuItem disabled>
             <ListItemText primary="No models available" />
           </MenuItem>
+        ) : menuLevel === 'providers' ? (
+          // First level: Show providers
+          sortedProviders.map((provider) => (
+            <MenuItem
+              key={provider}
+              onClick={() => handleProviderSelect(provider)}
+              className="provider-item"
+            >
+              <ListItemText primary={formatProviderName(provider)} />
+              <ListItemIcon>
+                <ArrowForwardIosIcon sx={{ fontSize: '12px' }} />
+              </ListItemIcon>
+            </MenuItem>
+          ))
         ) : (
-          sortedProviders.map((provider, index) => [
-            <Typography key={`header-${provider}`} className="provider-header">
-              {provider}
+          // Second level: Show models for selected provider
+          [
+            <MenuItem
+              key="back-button"
+              onClick={handleBackToProviders}
+              className="back-button"
+            >
+              <ListItemIcon>
+                <ArrowBackIosIcon sx={{ fontSize: '12px' }} />
+              </ListItemIcon>
+              <ListItemText primary={`Back to providers`} />
+            </MenuItem>,
+            <Typography key="provider-title" className="provider-header">
+              {selectedProvider ? formatProviderName(selectedProvider) : 'Provider'} Models
             </Typography>,
-            ...groupedModels[provider].map((model) => (
+            ...(selectedProvider && groupedModels[selectedProvider] || []).map((model) => (
               <MenuItem
                 key={model.id}
                 onClick={() => handleModelSelect(model.id)}
@@ -176,7 +224,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
                 />
               </MenuItem>
             ))
-          ])
+          ]
         )}
       </Menu>
     </>
