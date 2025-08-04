@@ -31,7 +31,6 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         padding: 0,
-        backgroundColor: theme.vars.palette.grey[600],
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -53,7 +52,7 @@ const styles = (theme: Theme) =>
       ".preview-node-content": {
         height: "100%",
         width: "100%",
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: theme.vars.palette.c_node_bg
       },
       ".node-header": {
         width: "100%",
