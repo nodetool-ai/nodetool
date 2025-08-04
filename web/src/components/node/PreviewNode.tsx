@@ -52,7 +52,8 @@ const styles = (theme: Theme) =>
       },
       ".preview-node-content": {
         height: "100%",
-        width: "100%"
+        width: "100%",
+        backgroundColor: theme.vars.palette.grey[600]
       },
       ".node-header": {
         width: "100%",
