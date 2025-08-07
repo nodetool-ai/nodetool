@@ -60,9 +60,10 @@ Get from idea to production in three simple steps:
 
 **Ready to start building?**
 1. Download and install NodeTool
-2. Launch the app—no configuration needed
-3. Start with a template or create from scratch
-4. Drag, connect, run—see results instantly
+2. Launch the app
+3. Download models
+4. Start with a template or create from scratch
+5. Drag, connect, run—see results instantly
 
 ## Deploy Anywhere
 
@@ -72,19 +73,6 @@ Get from idea to production in three simple steps:
 ```bash
 nodetool deploy --workflow-id my-workflow
 ```
-
-**RunPod Serverless GPUs** — Auto-scaling from zero to hundreds of workers:
-- **RTX 4090**: 24GB VRAM, $1.10/hr
-- **L40S**: 48GB VRAM, $1.90/hr  
-- **A100**: 80GB VRAM, $2.72/hr
-- **H100**: 80GB VRAM, $4.18/hr
-- **H200**: 141GB VRAM, $5.58/hr
-
-**Smart Features:**
-- Sub-200ms cold starts with FlashBoot
-- Auto job queuing and worker lifecycle management
-- 31 global regions for low latency
-- Network storage and custom Docker containers
 
 ## Bring Your Own Providers
 
