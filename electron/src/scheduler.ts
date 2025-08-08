@@ -12,6 +12,7 @@
  */
 
 import { app, shell } from "electron";
+import { serverState } from "./state";
 import * as path from "path";
 import { promises as fsPromises } from "fs";
 import { logMessage } from "./logger";
@@ -93,6 +94,7 @@ async function createLaunchAgent(
 ): Promise<void> {
   const logPath: string = await getLaunchAgentLogPath(workflowId);
 
+  const port = serverState.serverPort ?? 8000;
   const plistContent: string = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -104,7 +106,7 @@ async function createLaunchAgent(
         <string>curl</string>
         <string>-X</string>
         <string>POST</string>
-        <string>http://localhost:8000/api/workflows/${workflowId}/run</string>
+        <string>http://localhost:${port}/api/workflows/${workflowId}/run</string>
     </array>
     <key>StartInterval</key>
     <integer>${intervalMinutes * 60}</integer>

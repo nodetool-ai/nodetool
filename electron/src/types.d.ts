@@ -26,6 +26,8 @@ declare global {
         callback: (data: { defaultPath: string }) => void
       ) => void;
       onShowPackageManager: (callback: () => void) => void;
+      onMenuEvent: (callback: (data: MenuEventData) => void) => void;
+      unregisterMenuEvent: (callback: (data: any) => void) => void;
       startServer: () => Promise<void>;
       installToLocation: (
         location: string,
@@ -56,6 +58,7 @@ export interface ServerState {
   bootMsg: string;
   logs: string[];
   initialURL: string;
+  serverPort?: number;
 }
 
 export interface IntervalRef {

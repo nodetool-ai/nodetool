@@ -2,13 +2,11 @@ import { Tray, Menu, app, BrowserWindow, dialog, shell } from "electron";
 import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
-import { createWindow } from "./window";
+import { createPackageManagerWindow, createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
-import { createChatOverlayWindow } from "./chatWindow";
 import { fetchWorkflows, isConnected } from "./api";
-import { runWorkflow } from "./workflowExecution";
 import { Workflow } from "./types";
 import { emitShowPackageManager } from "./events";
 
@@ -89,8 +87,17 @@ async function createTray(): Promise<Electron.Tray> {
     }
 
     setupWindowsTrayEvents(trayInstance);
+  } else {
+    // On macOS/Linux, show the context menu on click and right-click
+    trayInstance.on("click", () => {
+      trayInstance?.popUpContextMenu();
+    });
+    trayInstance.on("right-click", () => {
+      trayInstance?.popUpContextMenu();
+    });
   }
-
+  // Initialize the tray menu immediately so it responds on first click
+  await updateTrayMenu();
   return trayInstance;
 }
 
@@ -170,16 +177,6 @@ async function updateTrayMenu(): Promise<void> {
   console.log("Updating tray menu...");
 
   const statusIndicator = isConnected ? "🟢" : "🔴";
-  const workflows = await fetchWorkflows();
-
-  // Separate workflows by run_mode
-  const appWorkflows = workflows.filter((w) => w.settings?.run_mode === "app");
-  const chatWorkflows = workflows.filter(
-    (w) => w.settings?.run_mode === "chat"
-  );
-  const headlessWorkflows = workflows.filter(
-    (w) => w.settings?.run_mode === "headless"
-  );
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -214,43 +211,8 @@ async function updateTrayMenu(): Promise<void> {
       click: async () => focusNodeTool(),
     },
     {
-      label: "Show Chat Overlay",
-      click: () => createChatOverlayWindow(),
-    },
-    {
       label: "Package Manager",
-      click: () => emitShowPackageManager(),
-    },
-    { type: "separator" },
-    {
-      label: "Apps",
-      submenu:
-        appWorkflows.length > 0
-          ? appWorkflows.map((workflow) => ({
-              label: getWorkflowLabel(workflow),
-              click: () => runWorkflow(workflow),
-            }))
-          : [{ label: "No apps available", enabled: false }],
-    },
-    {
-      label: "Chat",
-      submenu:
-        chatWorkflows.length > 0
-          ? chatWorkflows.map((workflow) => ({
-              label: getWorkflowLabel(workflow),
-              click: () => runWorkflow(workflow),
-            }))
-          : [{ label: "No chat workflows available", enabled: false }],
-    },
-    {
-      label: "Headless",
-      submenu:
-        headlessWorkflows.length > 0
-          ? headlessWorkflows.map((workflow) => ({
-              label: getWorkflowLabel(workflow),
-              click: () => runWorkflow(workflow),
-            }))
-          : [{ label: "No headless workflows available", enabled: false }],
+      click: () => createPackageManagerWindow(),
     },
     { type: "separator" },
     {

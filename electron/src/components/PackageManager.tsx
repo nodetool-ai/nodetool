@@ -92,15 +92,6 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   if (loading) {
     return (
       <div className="package-manager">
-        <div className="package-manager-header">
-          <h1>NodeTool Package Manager</h1>
-          <button 
-            className="skip-button"
-            onClick={onSkip}
-          >
-            Continue to App
-          </button>
-        </div>
         <div className="loading-message">Loading packages...</div>
       </div>
     );
@@ -110,12 +101,6 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     <div className="package-manager">
       <div className="package-manager-header">
         <h1>NodeTool Package Manager</h1>
-        <button 
-          className="skip-button"
-          onClick={onSkip}
-        >
-          Continue to App
-        </button>
       </div>
 
       {error && (

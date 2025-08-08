@@ -45,7 +45,7 @@ import { createTray } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
-import { createChatOverlayWindow } from "./chatWindow";
+import assert from "assert";
 
 /**
  * Global application state flags and objects
@@ -118,14 +118,16 @@ async function initialize(): Promise<void> {
     logMessage("About to check Python environment...");
     const hasEnvironment = await checkPythonEnvironment();
     logMessage(`Python environment check complete, hasEnvironment: ${hasEnvironment}`);
+
+    assert(mainWindow, "MainWindow is not initialized");
     
     if (hasEnvironment) {
-      // Environment exists, show package manager during startup
-      // Do NOT start the server automatically - wait for user to continue
-      logMessage("Environment exists, showing package manager");
-      emitShowPackageManager();
-      logMessage("emitShowPackageManager() called");
-      logMessage("Skipping workflow shortcuts setup - server not started yet");
+      logMessage("Environment exists, starting backend server");
+      await initializeBackendServer();
+      logMessage("initializeBackendServer() completed");
+      logMessage("Loading web app...");
+      const timestamp = new Date().getTime();
+      mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
     } else {
       // Environment was just installed, proceed normally
       logMessage("Environment was just installed, initializing backend server");
@@ -138,8 +140,9 @@ async function initialize(): Promise<void> {
 
     // Request notification permissions
     if (process.platform === "darwin") {
-      logMessage("Setting activation policy for macOS");
-      app.setActivationPolicy("accessory");
+      logMessage("Setting activation policy for macOS (regular)");
+      // Use 'regular' so the app has a normal menu bar and responds to menu clicks
+      app.setActivationPolicy("regular");
     }
     
     logMessage("=== Application Initialization Complete ===");
@@ -203,33 +206,22 @@ async function checkMediaPermissions(): Promise<void> {
   }
 }
 
+let isInitialized = false;
+
 app.on("ready", async () => {
   await initializeIpcHandlers();
   await checkMediaPermissions();
-
-  // Check for --run argument or environment variable
-  const runIndex = process.argv.indexOf("--run");
-  if (runIndex > -1 && process.argv[runIndex + 1]) {
-    const workflowId = process.argv[runIndex + 1];
-    logMessage(`Running workflow from command line: ${workflowId}`);
-    createWorkflowWindow(workflowId);
-    return;
-  }
-  const chatIndex = process.argv.indexOf("--chat");
-  if (chatIndex > -1) {
-    logMessage(`Running chat from command line`);
-    createChatOverlayWindow();
-    return;
-  }
 
   mainWindow = createWindow();
   mainWindow.on("ready-to-show", async () => {
     mainWindow?.show();
     mainWindow?.focus();
-    // Build menu after the main window is created
-    await buildMenu();
-    await createTray();
-    await initialize();
+    if (!isInitialized) {
+      isInitialized = true;
+      await buildMenu();
+      await createTray();
+      await initialize();
+    }
   });
 });
 

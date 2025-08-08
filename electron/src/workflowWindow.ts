@@ -1,13 +1,12 @@
 import { BrowserWindow, app, Menu, screen } from "electron";
+import { serverState } from "./state";
 import path from "path";
 
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();
 
-export const appPort = app.isPackaged ? 8000 : 5173;
-export const baseUrl = `http://127.0.0.1:${appPort}${
-  app.isPackaged ? "/apps" : ""
-}/index.html`;
+export const appPort = app.isPackaged ? (serverState.serverPort ?? 8000) : 5173;
+export const baseUrl = `http://127.0.0.1:${appPort}${app.isPackaged ? "/apps" : ""}/index.html`;
 
 /**
  * Creates a new frameless workflow window

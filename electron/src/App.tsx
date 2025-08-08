@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import TitleBar from "./components/TitleBar";
 import BootMessage from "./components/BootMessage";
-import InstallLocationPrompt from "./components/InstallLocationPrompt";
+import InstallWizard from "./components/InstallWizard";
 import LogContainer from "./components/LogContainer";
 import UpdateNotification from "./components/UpdateNotification";
-import PackageManager from "./components/PackageManager";
 import { useIconAnimation } from "./hooks/useIconAnimation";
 import "./index.css";
+import PackageManager from "./components/PackageManager";
 
 interface UpdateProgressData {
   componentName: string;
@@ -24,21 +24,23 @@ interface UpdateInfo {
 }
 
 const App: React.FC = () => {
+  const showPackageManager = window.location.search.includes("package-manager");
+
   const [logs, setLogs] = useState<string[]>([]);
   const [bootMessage, setBootMessage] = useState<string>("");
-  const [showBootMessage, setShowBootMessage] = useState(true);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showBootMessage, setShowBootMessage] = useState(!showPackageManager);
+  const [showInstallWizard, setShowInstallPrompt] = useState(false);
   const [showUpdateSteps, setShowUpdateSteps] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
-  const [showPackageManager, setShowPackageManager] = useState(false);
-  const [serverReady, setServerReady] = useState(false);
   const [progressData, setProgressData] = useState<UpdateProgressData>({
     componentName: "",
     progress: 0,
     action: "",
     eta: "",
   });
+  // showPackageManager is declared above to allow conditional initial state
+
   const [installLocationData, setInstallLocationData] =
     useState<InstallLocationData | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -53,8 +55,6 @@ const App: React.FC = () => {
     const timestamp = new Date().getTime();
     window.location.href = `${initialURL}?nocache=${timestamp}`;
   }, []);
-
-  console.log(showPackageManager, showBootMessage, showInstallPrompt);
 
   const initializeApp = useCallback(async () => {
     try {
@@ -93,12 +93,10 @@ const App: React.FC = () => {
   );
 
   const handleServerStarted = useCallback(() => {
-    if (showPackageManager) {
-      setServerReady(true);
-    } else {
+    if (!showPackageManager) {
       initializeApp();
     }
-  }, [showPackageManager, initializeApp]);
+  }, [initializeApp, showPackageManager]);
 
   const handleBootMessage = useCallback(
     (message: string) => {
@@ -126,18 +124,6 @@ const App: React.FC = () => {
     [setInstallLocationData, setShowBootMessage, setShowInstallPrompt]
   );
 
-  const handleShowPackageManager = useCallback(() => {
-    setShowBootMessage(false);
-    setShowInstallPrompt(false);
-    setShowPackageManager(true);
-    startAnimations();
-  }, [
-    setShowBootMessage,
-    setShowInstallPrompt,
-    setShowPackageManager,
-    startAnimations,
-  ]);
-
   const handleUpdateAvailable = useCallback(
     (info: UpdateInfo) => {
       setUpdateInfo(info);
@@ -146,24 +132,59 @@ const App: React.FC = () => {
     [setUpdateInfo, setShowUpdateNotification]
   );
 
+  const handleMenuEvent = useCallback((data: any) => {
+    // Basic reaction to menu clicks so users see immediate feedback
+    // Extend this switch to wire up actual actions as needed
+    switch (data?.type) {
+      case "fitView":
+      case "resetZoom":
+      case "zoomIn":
+      case "zoomOut":
+      case "saveWorkflow":
+      case "newTab":
+      case "close":
+      case "undo":
+      case "redo":
+      case "cut":
+      case "copy":
+      case "paste":
+      case "duplicate":
+      case "duplicateVertical":
+      case "group":
+      case "selectAll":
+      case "align":
+      case "alignWithSpacing":
+        addLog(`Menu action: ${data.type}`);
+        break;
+      default:
+        addLog(`Menu action: ${JSON.stringify(data)}`);
+        break;
+    }
+  }, [addLog]);
+
   useEffect(() => {
     // Initialize platform class
     document.body.classList.add(`platform-${window.api.platform}`);
-
-    // Initialize app
-    initializeApp();
-    // Register event listeners
+    // Register event listeners FIRST
     window.api.onUpdateProgress(handleUpdateProgress);
     window.api.onServerStarted(handleServerStarted);
     window.api.onBootMessage(handleBootMessage);
     window.api.onServerLog(handleServerLog);
     window.api.onInstallLocationPrompt(handleInstallLocationPrompt);
     window.api.onUpdateAvailable(handleUpdateAvailable);
-    window.api.onShowPackageManager(handleShowPackageManager);
+    (window as any).api.onMenuEvent(handleMenuEvent);
+
+    // Initialize app after listeners are in place (skip when showing package manager)
+    if (!showPackageManager) {
+      initializeApp();
+    }
 
     // Cleanup on unmount
     return () => {
       clearAllAnimations();
+      if ((window as any).api.unregisterMenuEvent) {
+        (window as any).api.unregisterMenuEvent(handleMenuEvent);
+      }
 
       // Note: Event listeners are managed by the preload script
       // and don't need explicit cleanup in the renderer
@@ -176,8 +197,9 @@ const App: React.FC = () => {
     handleBootMessage,
     handleServerLog,
     handleInstallLocationPrompt,
-    handleShowPackageManager,
     handleUpdateAvailable,
+    handleMenuEvent,
+    showPackageManager,
   ]);
 
   const handleInstallComplete = useCallback(() => {
@@ -188,7 +210,6 @@ const App: React.FC = () => {
   const handleSkipPackageManager = useCallback(() => {
     setShowBootMessage(true);
     setBootMessage("Starting server...");
-    setShowPackageManager(false);
     clearAllAnimations();
     window.api.startServer();
   }, [clearAllAnimations]);
@@ -197,7 +218,11 @@ const App: React.FC = () => {
     <div className="app">
       <TitleBar />
 
-      {showBootMessage && !showPackageManager && (
+      {showPackageManager && (
+        <PackageManager onSkip={handleSkipPackageManager} />
+      )}
+
+      {showBootMessage && (
         <BootMessage
           message={bootMessage}
           showUpdateSteps={showUpdateSteps}
@@ -205,15 +230,11 @@ const App: React.FC = () => {
         />
       )}
 
-      {showInstallPrompt && installLocationData && (
-        <InstallLocationPrompt
+      {showInstallWizard && installLocationData && (
+        <InstallWizard
           defaultPath={installLocationData.defaultPath}
           onComplete={handleInstallComplete}
         />
-      )}
-
-      {showPackageManager && (
-        <PackageManager onSkip={handleSkipPackageManager} />
       )}
 
       <LogContainer
