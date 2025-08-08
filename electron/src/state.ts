@@ -5,6 +5,7 @@ export interface ServerState {
   bootMsg: string;
   initialURL: string;
   logs: string[];
+  serverPort?: number;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -12,8 +13,9 @@ let mainWindow: BrowserWindow | null = null;
 const serverState: ServerState = {
   isStarted: false,
   bootMsg: "Initializing...",
-  initialURL: "http://127.0.0.1:8000",
+  initialURL: `http://127.0.0.1:${8000}`,
   logs: [],
+  serverPort: 8000,
 };
 
 export function getMainWindow(): BrowserWindow | null {

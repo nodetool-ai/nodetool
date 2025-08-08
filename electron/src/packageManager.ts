@@ -55,7 +55,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
 /**
  * Run a uv command
  */
-async function runUvCommand(args: string[]): Promise<string> {
+async function runUvCommand(args: string[], options?: { stdin?: string }): Promise<string> {
   const uvPath = getUVPath();
   const command = [uvPath, ...args];
   
@@ -66,6 +66,11 @@ async function runUvCommand(args: string[]): Promise<string> {
       env: getProcessEnv(),
       stdio: "pipe"
     });
+
+    if (options?.stdin && process.stdin) {
+      process.stdin.write(options.stdin);
+      process.stdin.end();
+    }
 
     let stdout = "";
     let stderr = "";
@@ -146,7 +151,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       "--system",
       installUrl
     ];
-    
+
     // Add extra index URL for CUDA packages on non-macOS platforms
     if (process.platform !== "darwin") {
       args.push("--extra-index-url", "https://download.pytorch.org/whl/cu121");
@@ -176,7 +181,7 @@ export async function uninstallPackage(repoId: string): Promise<PackageResponse>
     const projectName = repoId.split("/")[1];
     
     // Use uv pip uninstall
-    await runUvCommand(["pip", "uninstall", projectName, "--yes"]);
+    await runUvCommand(["pip", "uninstall", projectName], { stdin: "y\n" });
     
     return {
       success: true,

@@ -49,12 +49,32 @@ async function isPortAvailable(port: number): Promise<boolean> {
 }
 
 /**
+ * Finds the next available port starting from a base port
+ * @param startPort - Port to start scanning from
+ * @param maxIncrements - Maximum number of increments to try
+ */
+async function findAvailablePort(
+  startPort: number,
+  maxIncrements: number = 50
+): Promise<number> {
+  let candidate = startPort;
+  for (let i = 0; i <= maxIncrements; i += 1) {
+    const available = await isPortAvailable(candidate);
+    if (available) return candidate;
+    candidate += 1;
+  }
+  throw new Error(
+    `No available port found from ${startPort} to ${startPort + maxIncrements}`
+  );
+}
+
+/**
  * Displays an error dialog when port 8000 is already in use and quits the application
  */
 async function showPortInUseError(): Promise<void> {
   dialog.showErrorBox(
     "Port Already in Use",
-    "Port 8000 is already in use. Please ensure no other applications are using this port and try again."
+    "The required port is already in use. Please ensure no other applications are using this port and try again."
   );
   app.quit();
 }
@@ -135,12 +155,17 @@ async function startServer(): Promise<void> {
 
   const pythonExecutablePath = getPythonPath();
 
+  const basePort = 8000;
+  const selectedPort = await findAvailablePort(basePort);
+  serverState.serverPort = selectedPort;
+  serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
+
   const args = [
     "-m",
     "nodetool.cli",
     "serve",
     "--port",
-    "8000",
+    String(selectedPort),
     "--static-folder",
     webPath,
     "--apps-folder",
@@ -285,7 +310,9 @@ async function initializeBackendServer(): Promise<void> {
   logMessage("Initializing backend server");
   try {
     try {
-      const response = await fetch("http://127.0.0.1:8000/health");
+      const response = await fetch(
+        `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
+      );
       if (response.ok) {
         logMessage("Server already running and healthy, connecting...");
         emitServerStarted();
@@ -296,10 +323,6 @@ async function initializeBackendServer(): Promise<void> {
       logMessage("Health check failed, proceeding with server startup");
     }
 
-    if (process.platform !== "darwin") {
-      return startServer();
-    }
-
     if (await isServerRunning()) {
       logMessage("Server already running, connecting...");
       await waitForServer();
@@ -307,12 +330,6 @@ async function initializeBackendServer(): Promise<void> {
     }
 
     await killExistingServer();
-    const isPortFree = await isPortAvailable(8000);
-    if (!isPortFree) {
-      await showPortInUseError();
-      return;
-    }
-
     await ensureOllamaIsRunning();
     await startServer();
     await waitForServer();
@@ -330,10 +347,12 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
     try {
-      const response = await fetch("http://127.0.0.1:8000/health");
+      const response = await fetch(
+        `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
+      );
       if (response.ok) {
         logMessage(
-          "Server endpoint is available at http://127.0.0.1:8000/health"
+          `Server endpoint is available at http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
         );
         emitServerStarted();
         return;

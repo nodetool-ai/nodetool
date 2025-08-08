@@ -70,6 +70,44 @@ function createWindow(): BrowserWindow {
 }
 
 /**
+ * Creates a window that opens the app in Package Manager mode
+ * Loads: index.html?package-manager
+ * @returns {BrowserWindow} The created window instance
+ */
+function createPackageManagerWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 1200,
+    height: 900,
+    titleBarStyle: "hidden",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: true,
+      webSecurity: true,
+    },
+  });
+
+  window.setBackgroundColor("#111111");
+
+  window.loadFile(path.join("dist-web", "index.html"), { search: "package-manager" });
+
+  window.webContents.on("before-input-event", (_event, input) => {
+    if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i") {
+      if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
+      } else {
+        window.webContents.openDevTools();
+      }
+    }
+  });
+
+  initializePermissionHandlers();
+
+  return window;
+}
+
+/**
  * Set permission handlers for Electron sessions.
  */
 function initializePermissionHandlers(): void {
@@ -170,4 +208,4 @@ function handleActivation(): void {
   }
 }
 
-export { createWindow, forceQuit, handleActivation };
+export { createWindow, createPackageManagerWindow, forceQuit, handleActivation };

@@ -296,4 +296,5 @@ export {
   getCondaEnvUrl,
   getCondaEnvSize,
   getDefaultInstallLocation,
+  runCommand,
 };

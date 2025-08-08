@@ -1,5 +1,6 @@
 import { Workflow } from "./types";
 import { logMessage } from "./logger";
+import { serverState } from "./state";
 
 export let isConnected = false;
 
@@ -10,7 +11,8 @@ export let isConnected = false;
 export async function fetchWorkflows(): Promise<Workflow[]> {
   logMessage("Fetching workflows from server...");
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/workflows/", {
+    const port = serverState.serverPort ?? 8000;
+    const response = await fetch(`http://127.0.0.1:${port}/api/workflows/`, {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -31,7 +33,8 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 }
 
 async function checkHealth(): Promise<boolean> {
-  const response = await fetch("http://127.0.0.1:8000/api/health/");
+  const port = serverState.serverPort ?? 8000;
+  const response = await fetch(`http://127.0.0.1:${port}/health/`);
   return response.ok;
 }
 

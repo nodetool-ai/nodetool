@@ -2,9 +2,10 @@ import { encode, decode } from "@msgpack/msgpack";
 import { create } from "zustand";
 import WebSocket from "ws";
 import { Notification } from "electron";
+import { serverState } from "./state";
 import { Workflow } from "./types";
 
-const WORKER_URL = "ws://127.0.0.1:8000/predict";
+const getWorkerUrl = () => `ws://127.0.0.1:${serverState.serverPort ?? 8000}/predict`;
 
 interface WorkflowRunnerState {
   workflow: Workflow | null;
@@ -87,7 +88,7 @@ export const createWorkflowRunner = () =>
     connect: async () => {
       return new Promise((resolve, reject) => {
         // Use the global WebSocket without any special options
-        const socket = new WebSocket(WORKER_URL);
+        const socket = new WebSocket(getWorkerUrl());
 
         socket.on("open", () => {
           console.log("WebSocket connected");
