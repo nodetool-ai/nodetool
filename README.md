@@ -33,23 +33,6 @@ Get from idea to production in three simple steps:
 
 **Production ready** — Start local, scale globally. One-command deployment to enterprise infrastructure.
 
-## Why Teams Choose NodeTool
-
-**🚀 Ship faster** — Prototype in hours, not weeks. Visual builder and ready-made nodes.
-- Drag-and-drop interface
-- 1000+ pre-built nodes  
-- Instant preview and testing
-
-**💰 Control costs** — Free local development. Pay for cloud only when you need it.
-- Free local development
-- Transparent cloud pricing
-- No platform fees
-
-**🌐 True portability** — Same workflow, any environment. No vendor lock-in.
-- Laptop to cloud seamlessly
-- Multiple provider support
-- Export and migrate freely
-
 ## Quick Start
 
 | Platform | Download | Requirements |
@@ -58,21 +41,12 @@ Get from idea to production in three simple steps:
 | **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
 | **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
 
-**Ready to start building?**
+### First Steps
 1. Download and install NodeTool
 2. Launch the app
 3. Download models
 4. Start with a template or create from scratch
 5. Drag, connect, run—see results instantly
-
-## Deploy Anywhere
-
-### From Laptop to Production in Minutes
-
-**One command to RunPod:**
-```bash
-nodetool deploy --workflow-id my-workflow
-```
 
 ## Bring Your Own Providers
 
@@ -98,45 +72,6 @@ nodetool deploy --workflow-id my-workflow
 
 **Tool Categories:** Browser Tools • Search & SERP • Google APIs • OpenAI Tools • PDF Processing • Email Management • Math & Statistics • Vector Search • File System • Workflow Management • Asset Tools • HTTP Client • Code Tools
 
-## Build Anything
-
-**From simple automations to complex multi-agent systems:**
-
-🧠 **Smart Assistants** — Create AI that knows your documents, emails, and notes. Keep everything private on your machine.
-
-⚡ **Content Generation** — Generate images, videos, music, and text. Mix and match models for unique results.
-
-🎨 **Creative Workflows** — Design complex multi-step processes that combine text, vision, and audio AI.
-
-📊 **Data Analysis** — Process documents, extract insights, and visualize results with AI assistance.
-
-🤖 **Multi-Agent Systems** — Coordinate multiple AI agents working together on complex tasks.
-
-🔧 **Custom Tools** — Build specialized workflows for your specific use case with visual programming.
-
-## Visual Canvas Features
-
-**🎨 Drag-and-connect, 1000+ nodes**
-
-- **Visual Canvas** — Drag-and-connect, 200+ nodes
-- **Multimodal** — Text, image, audio, video  
-- **Built-in Memory** — ChromaDB for RAG, no extra setup
-- **Observability** — Logs, traces, and error details to debug fast
-
-## Built-in Asset Manager
-
-**Import, organize, and manage all your media assets in one place.**
-
-📸 **Smart Import & Organization** — Drag and drop files. NodeTool auto-organizes by type, project, or tags.
-
-👁️ **Preview Everything** — Instant previews for images, audio, video, and documents.
-
-🔗 **Workflow Integration** — Connect assets to workflows with one click—folders or single files.
-
-**Supported Formats:**
-- **Images & Graphics:** PNG, JPG, GIF, SVG, WebP
-- **Audio & Video:** MP3, WAV, MP4, MOV, AVI  
-- **Documents & Data:** PDF, TXT, JSON, CSV, DOCX
 
 ## Community
 
