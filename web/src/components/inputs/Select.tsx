@@ -12,6 +12,7 @@ import React, {
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface Option {
   value: any;
@@ -198,7 +199,7 @@ const Select: React.FC<SelectProps> = ({
 
   return (
     <div className="select-container">
-      <Tooltip title={label}>
+      <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
           className={`custom-select select-wrapper ${
