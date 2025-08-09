@@ -3,6 +3,7 @@ import { logMessage } from "./logger";
 import { serverState } from "./state";
 
 export let isConnected = false;
+let healthCheckTimer: NodeJS.Timeout | null = null;
 
 /**
  * Fetches workflows from the server
@@ -33,16 +34,44 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 }
 
 async function checkHealth(): Promise<boolean> {
-  const port = serverState.serverPort ?? 8000;
-  const response = await fetch(`http://127.0.0.1:${port}/health/`);
-  return response.ok;
+  try {
+    const port = serverState.serverPort ?? 8000;
+    const response = await fetch(`http://127.0.0.1:${port}/health/`);
+    console.log("response", response);
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
 }
 
-export function startPeriodicHealthCheck(): void {
-  setInterval(async () => {
+export function startPeriodicHealthCheck(
+  onStatusChange?: (connected: boolean) => void
+): void {
+  if (healthCheckTimer) {
+    clearInterval(healthCheckTimer);
+    healthCheckTimer = null;
+  }
+
+  const runCheck = async () => {
+    const previousConnectionStatus = isConnected;
     isConnected = await checkHealth();
+    if (previousConnectionStatus !== isConnected && onStatusChange) {
+      onStatusChange(isConnected);
+    }
     if (!isConnected) {
       logMessage("Server is not responding.", "error");
     }
-  }, 10000);
+  };
+
+  // Run an immediate check when starting
+  void runCheck();
+
+  healthCheckTimer = setInterval(runCheck, 10000);
+}
+
+export function stopPeriodicHealthCheck(): void {
+  if (healthCheckTimer) {
+    clearInterval(healthCheckTimer);
+    healthCheckTimer = null;
+  }
 }

@@ -136,31 +136,8 @@ const GlobalChat: React.FC = () => {
     };
   }, [thread_id, currentThreadId, switchThread, createNewThread, threadsLoaded, isLoadingThreads]);
 
-  // Monitor connection state and reconnect when disconnected or failed
-  useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout | null = null;
-
-    const attemptReconnect = () => {
-      if (status === "disconnected" || status === "failed") {
-        console.log("Connection lost, attempting automatic reconnect...");
-        connect().catch((error) => {
-          console.error("Automatic reconnect failed:", error);
-        });
-      }
-    };
-
-    // Check connection state periodically
-    if (status === "disconnected" || status === "failed") {
-      // Initial reconnect attempt after 2 seconds
-      reconnectTimer = setTimeout(attemptReconnect, 2000);
-    }
-
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-    };
-  }, [status, connect]);
+  // Remove extra reconnect loop; rely on WebSocketManager's exponential backoff and
+  // the store's network/visibility listeners to reconnect. This avoids double reconnects.
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
@@ -251,10 +228,10 @@ const GlobalChat: React.FC = () => {
         maxHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        marginLeft: "5rem",
-        marginRight: "5rem",
-        paddingLeft: "5rem",
-        paddingRight: "5rem",
+        marginLeft: { xs: "0.5rem", md: "2rem" },
+        marginRight: { xs: "0.5rem", md: "2rem" },
+        paddingLeft: { xs: "0.5rem", md: "0" },
+        paddingRight: { xs: "0.5rem", md: "0" },
         overflow: "hidden"
       }}
     >

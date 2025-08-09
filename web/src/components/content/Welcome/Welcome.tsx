@@ -1,11 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, {
-  useState,
-  useCallback,
-  ReactNode,
-  useMemo,
-  useEffect
-} from "react";
+import React, { useState, useCallback, ReactNode, useMemo } from "react";
 import {
   Typography,
   Accordion,
@@ -20,7 +14,11 @@ import {
   FormControlLabel,
   Tooltip,
   Checkbox,
-  Button
+  Button,
+  Grid,
+  Card,
+  CardActionArea,
+  CardContent
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -32,15 +30,19 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
 import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
-import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
 import { DEFAULT_MODEL } from "../../../config/constants";
 import { useNavigate } from "react-router-dom";
 import SettingsMenu from "../../menus/SettingsMenu";
 import { IconForType } from "../../../config/data_types";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import FolderIcon from "@mui/icons-material/Folder";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../../hugging_face/DownloadProgress";
 
 enum TabValue {
   Overview = 0,
@@ -69,26 +71,52 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const InlineModelDownload: React.FC<{ model: UnifiedModel }> = ({ model }) => {
+  const { startDownload, downloads } = useModelDownloadStore((state) => ({
+    startDownload: state.startDownload,
+    downloads: state.downloads
+  }));
+  const downloadKey = model.repo_id || model.id;
+  const inProgress = !!downloads[downloadKey];
+  if (inProgress) {
+    return (
+      <Box component="span" sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}>
+        <DownloadProgress name={downloadKey} />
+      </Box>
+    );
+  }
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      sx={{ ml: 1, verticalAlign: "middle" }}
+      onClick={() =>
+        startDownload(
+          model.repo_id || "",
+          model.type || "hf.model",
+          model.path ?? null,
+          model.allow_patterns ?? null,
+          model.ignore_patterns ?? null
+        )
+      }
+    >
+      Download
+    </Button>
+  );
+};
+
 const recommendedModels: UnifiedModel[] = [
   {
-    id: "SG161222/Realistic_Vision_V5.1_noVAE",
-    name: "Realistic Vision V5.1",
-    type: "hf.stable_diffusion",
-    repo_id: "SG161222/Realistic_Vision_V5.1_noVAE",
-    path: "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
-  },
-  {
-    id: "ai-forever/Real-ESRGAN",
-    name: "Real ESRGAN",
-    type: "hf.real_esrgan",
-    repo_id: "ai-forever/Real-ESRGAN",
-    path: "RealESRGAN_x2.pth"
-  },
-  {
     id: DEFAULT_MODEL,
-    name: "Gemma 3 N",
+    name: "GPT - OSS",
     type: "llama_model",
     repo_id: DEFAULT_MODEL
+  },
+  {
+    id: "deepseek-r1:7b",
+    name: "DeepSeek R1 7B",
+    type: "llama_model",
+    repo_id: "deepseek-r1:7b"
   },
   {
     id: "gemma3:4b",
@@ -97,17 +125,16 @@ const recommendedModels: UnifiedModel[] = [
     repo_id: "gemma3:4b"
   },
   {
+    id: "qwen3:1.5b",
+    name: "Qwen 3 1.5B",
+    type: "llama_model",
+    repo_id: "qwen3:1.5b"
+  },
+  {
     id: "nomic-embed-text",
     name: "Nomic Embed Text",
     type: "llama_model",
     repo_id: "nomic-embed-text:latest"
-  },
-  {
-    id: "openai/whisper-small",
-    name: "whisper-small",
-    type: "hf.automatic_speech_recognition",
-    repo_id: "openai/whisper-small",
-    allow_patterns: ["model.safetensors", "*.json", "*.txt"]
   }
 ];
 
@@ -127,7 +154,6 @@ const extractText = (node: ReactNode): string => {
 const Welcome = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
     originalContent: section.content
@@ -135,20 +161,16 @@ const Welcome = () => {
   const { settings, updateSettings } = useSettingsStore();
   const { secrets } = useRemoteSettingsStore();
   const theme = useTheme();
+  const hasSetupKeysNow = !!(
+    secrets.OPENAI_API_KEY &&
+    secrets.REPLICATE_API_TOKEN &&
+    secrets.ANTHROPIC_API_KEY
+  );
+  const [tabValue, setTabValue] = useState<TabValue>(
+    hasSetupKeysNow ? TabValue.Overview : TabValue.Setup
+  );
 
-  const hasSetupKeys = useMemo(() => {
-    return !!(
-      secrets.OPENAI_API_KEY &&
-      secrets.REPLICATE_API_TOKEN &&
-      secrets.ANTHROPIC_API_KEY
-    );
-  }, [secrets]);
-
-  useEffect(() => {
-    if (!hasSetupKeys) {
-      setTabValue(TabValue.Setup);
-    }
-  }, [hasSetupKeys]);
+  
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
@@ -242,9 +264,14 @@ const Welcome = () => {
   return (
     <div css={welcomeStyles}>
       <div className="header">
-        <Typography className="panel-title" variant="h2">
-          NODETOOL
-        </Typography>
+        <Box>
+          <Typography className="panel-title" variant="h2">
+            NodeTool
+          </Typography>
+          <Typography variant="subtitle1" className="subtitle">
+            Open-Source Visual Agent Builder
+          </Typography>
+        </Box>
 
         <div className="header-right">
           <div className="show-on-startup-toggle">
@@ -270,7 +297,7 @@ const Welcome = () => {
             }}
             className="start-button"
           >
-            START
+            Open Dashboard
           </Button>
         </div>
       </div>
@@ -284,7 +311,7 @@ const Welcome = () => {
             className="overview tabs"
           >
             <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-            <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
+            <Tab label={"What's New"} id="tab-1" aria-controls="tabpanel-1" />
             <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
             <Tab label="Setup" id="tab-3" aria-controls="tabpanel-3" />
           </Tabs>
@@ -294,7 +321,7 @@ const Welcome = () => {
               className="search"
               fullWidth
               variant="outlined"
-              placeholder="Search"
+              placeholder="Search help and tips"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -310,8 +337,90 @@ const Welcome = () => {
 
         <div className="scrollable-content" style={{ overflowY: "auto" }}>
           <TabPanel value={tabValue} index={TabValue.Overview}>
-            {(searchTerm === "" ? sections : filteredSections).map(
-              (section, index) => (
+            {searchTerm === "" && (
+              <Box className="quick-start">
+                <Typography variant="h3" sx={{ mb: 1 }}>
+                  Quick Start
+                </Typography>
+                <Grid container spacing={2} className="quick-start-grid">
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                    <Card className="quick-card" elevation={0}>
+                      <CardActionArea onClick={() => navigate("/editor")}>
+                        <CardContent>
+                          <AddCircleOutlineIcon className="quick-card-icon" />
+                          <Typography className="quick-card-title">
+                            Create Workflow
+                          </Typography>
+                          <Typography className="quick-card-desc">
+                            Start a new canvas and design a workflow from scratch.
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                    <Card className="quick-card" elevation={0}>
+                      <CardActionArea onClick={() => navigate("/examples")}>
+                        <CardContent>
+                          <LibraryBooksIcon className="quick-card-icon" />
+                          <Typography className="quick-card-title">
+                            Browse Examples
+                          </Typography>
+                          <Typography className="quick-card-desc">
+                            Explore ready-made workflows to learn and remix.
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                    <Card className="quick-card" elevation={0}>
+                      <CardActionArea onClick={() => navigate("/chat")}>
+                        <CardContent>
+                          <ChatBubbleOutlineIcon className="quick-card-icon" />
+                          <Typography className="quick-card-title">
+                            Open Chat
+                          </Typography>
+                          <Typography className="quick-card-desc">
+                            Chat globally and trigger workflows from anywhere.
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                    <Card className="quick-card" elevation={0}>
+                      <CardActionArea onClick={() => navigate("/assets")}>
+                        <CardContent>
+                          <FolderIcon className="quick-card-icon" />
+                          <Typography className="quick-card-title">
+                            Open Assets
+                          </Typography>
+                          <Typography className="quick-card-desc">
+                            Manage and import your media and data files.
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+            {(() => {
+              const list = searchTerm === "" ? sections : filteredSections;
+              if (!list || list.length === 0) {
+                return (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="body1" sx={{ opacity: 0.8 }}>
+                      No results. Try different keywords or clear the search.
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                      <Button size="small" onClick={() => setSearchTerm("")}>Clear search</Button>
+                    </Box>
+                  </Box>
+                );
+              }
+              return list.map((section, index) => (
                 <Accordion key={section.id} defaultExpanded={index === 0}>
                   <AccordionSummary
                     className="summary"
@@ -325,8 +434,8 @@ const Welcome = () => {
                     {renderContent(section.originalContent)}
                   </AccordionDetails>
                 </Accordion>
-              )
-            )}
+              ));
+            })()}
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.WhatsNew}>
@@ -367,6 +476,15 @@ const Welcome = () => {
               <br />
               Let us know what you build!
             </div>
+            <Link
+              href="https://discord.gg/26m5xBwe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              Discord
+            </Link>
+            <div className="link-body">Join the community to get help and share workflows.</div>
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
@@ -389,198 +507,210 @@ const Welcome = () => {
                     How to Use Models
                   </Typography>
                   <Typography variant="body1" gutterBottom>
-                    You can use both local and remote AI models in Nodetool:
+                    NodeTool works with both local and remote models. Start with local for
+                    privacy and low latency, then add cloud providers when you need extra
+                    capability.
                   </Typography>
+
                   <Typography variant="subtitle1" className="setup-list-title">
-                    1. Use Local Models
+                    1. Local models (recommended to start)
                   </Typography>
                   <Box className="setup-list-content">
-                    <ul>
+                    <ol className="step-list">
                       <li>
-                        <Typography variant="body2">
-                          Download HuggingFace or Ollama models and run them
-                          locally.
-                        </Typography>
+                        Open the <span className="fake-button">Models</span> manager in the
+                        editor’s top‑right
+                        (
+                        <span style={{ display: "inline-block", verticalAlign: "middle" }}>
+                          <IconForType
+                            iconName="model"
+                            showTooltip={false}
+                            containerStyle={{ display: "inline-block", width: 18, height: 18 }}
+                            bgStyle={{ display: "inline-block", width: 18, height: 18 }}
+                          />
+                        </span>
+                        ).
                       </li>
                       <li>
-                        <Typography variant="body2">
-                          Look for the{" "}
-                          <span className="fake-button">
-                            Recommended Models
-                          </span>{" "}
-                          button on compatible nodes.
-                        </Typography>
+                        Download a model. We recommend <b>GPT - OSS</b> for agentic workflows
+                        (fast setup); other good choices are <b>Qwen 3</b>, <b>R1 Distilled</b>,
+                        and <b>Gemma 3</b>.
                       </li>
+                      <li>Ensure you have free disk space (20GB+ recommended).</li>
                       <li>
-                        <Typography variant="body2">
-                          In the editor view, use the{" "}
-                          <span
-                            style={{
-                              alignItems: "center",
-                              display: "inline-block"
-                            }}
-                          >
-                            <IconForType
-                              iconName="model"
-                              showTooltip={false}
-                              containerStyle={{
-                                display: "inline-block",
-                                width: "18px",
-                                height: "18px"
-                                // marginRight: "4px"
-                              }}
-                              bgStyle={{
-                                display: "inline-block",
-                                fontSize: "10px",
-                                backgroundColor: "transparent",
-                                width: "18px",
-                                height: "18px"
-                              }}
-                            />
-                          </span>{" "}
-                          <span className="fake-button">Models</span> button in
-                          the top-right corner to manage all your models.
-                        </Typography>
+                        Use the <span className="fake-button">Recommended Models</span> button on
+                        compatible nodes to pick the right model.
                       </li>
-                    </ul>
+                    </ol>
+                    <Box className="callout" sx={{ mt: 1 }}>
+                      <Typography variant="body2">
+                        Your data stays local unless you explicitly use cloud providers.
+                      </Typography>
+                    </Box>
                   </Box>
+
                   <Typography variant="subtitle1" className="setup-list-title">
-                    2. Use Remote Models
+                    2. Remote models
                   </Typography>
                   <Box className="setup-list-content">
-                    <Typography component="div" sx={{ mt: 2, mb: 1 }}>
-                      <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
-                        2. Use Remote Models
-                      </Typography>
-                      <Typography sx={{ mb: 1, pl: 2 }}>
-                        Services like OpenAI or Anthropic can be configured in
-                        the{" "}
-                        <SettingsIcon
-                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
-                        />{" "}
-                        <strong>Settings</strong> icon in the top-right corner).
-                        Set up your API keys there to access these powerful
-                        cloud-based AI models. This option is ideal when you
-                        need capabilities beyond local models or if your local
-                        machine resources are limited.
-                      </Typography>
-                      <Typography sx={{ mb: 1, pl: 2 }}>
-                        Additionally, you can integrate services such as{" "}
-                        <Link
-                          href="https://replicate.com/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                    <ol className="step-list">
+                      <li>
+                        Open the <SettingsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} />
+                        <b> Settings</b> menu (top‑right).
+                      </li>
+                      <li>
+                        Add your API keys (OpenAI, Anthropic, Hugging Face, Gemini, etc.).
+                      </li>
+                      <li>
+                        Install optional packs like
+                        {" "}
+                        <Link href="https://replicate.com/" target="_blank" rel="noreferrer">
                           Replicate
                         </Link>
                         ,{" "}
-                        <Link
-                          href="https://fal.ai/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <Link href="https://fal.ai/" target="_blank" rel="noreferrer">
                           Fal.ai
                         </Link>
                         , or{" "}
-                        <Link
-                          href="https://elevenlabs.io/"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <Link href="https://elevenlabs.io/" target="_blank" rel="noreferrer">
                           ElevenLabs
-                        </Link>{" "}
-                        by installing their respective packs. Look for the{" "}
-                        <WidgetsIcon
-                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
-                        />{" "}
-                        <b>Packs</b> button (in the left panel) to find and
-                        install these.
+                        </Link>
+                        {" "}
+                        from the <WidgetsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} />
+                        <b> Packs</b> menu in the left panel.
+                      </li>
+                    </ol>
+                    <Box className="callout" sx={{ mt: 1 }}>
+                      <Typography variant="body2">
+                        Cloud is optional. You control exactly what leaves your machine.
                       </Typography>
-                    </Typography>
+                    </Box>
                   </Box>
-                  <Typography variant="body1" sx={{ mt: 2 }}>
-                    Choose the option that best suits your needs and project
-                    requirements.
+
+                  <Typography variant="subtitle1" className="setup-list-title">
+                    3. Test your setup
                   </Typography>
-                  <Box
-                    sx={{
-                      mt: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1
-                    }}
-                  >
-                    <Typography variant="body1">
-                      You can enter your API keys in the
-                    </Typography>
-                    <SettingsMenu buttonText="Settings Menu" />
-                    <Typography variant="body1">
-                      in the top-right corner.
-                    </Typography>
+                  <Box className="setup-list-content" sx={{ display: "flex", gap: 1 }}>
+                    <Button size="small" variant="outlined" onClick={() => navigate("/examples")}>
+                      Open Examples
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => navigate("/chat")}>
+                      Open Chat
+                    </Button>
                   </Box>
                 </Box>
 
                 <Box
                   sx={{
-                    flex: 1.6,
+                    flex: 1,
                     backgroundColor: theme.vars.palette.grey[800],
                     padding: "20px",
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h2">Local Models</Typography>
-                  <p>
-                    To run many of the examples, we recommend the following
-                    models, all of which should work on M1 Macs or smaller
-                    NVIDIA GPUs.
-                  </p>
-                  <ul>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Realistic Vision V6</b> - A realistic image
-                        generation model.
+                  <Box className="local-models">
+                    <Typography variant="h2" className="section-title">
+                      Local Models
+                    </Typography>
+                    <Typography variant="body1" className="section-subtitle">
+                      Run powerful open models locally. Start small and scale up depending on your
+                      GPU/CPU and latency needs.
+                    </Typography>
+                    <Box className="callout" sx={{ mt: 1 }}>
+                      <Typography variant="body2">
+                        Tip: Use smaller models for prototyping and larger ones when you need more
+                        context or reasoning.
                       </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Real ESRGAN</b> - To enable high-quality image
-                        scaling.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Gemma 3 N</b> - Gemma 3n models are designed for
-                        efficient execution on everyday devices such as laptops,
-                        tablets or phones.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Gemma 3</b> - A family of lightweight models with
-                        multimodal understanding.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Nomic Embed Text</b> - A text embedding model that
-                        can be used to generate embeddings for text.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Whisper</b> - A multilingual speech recognition
-                        model.
-                      </Typography>
-                    </li>
-                    <li>
-                      <Typography variant="body1">
-                        <b>Llama 3.2 - Vision</b> - A vision model to analyze
-                        images.
-                      </Typography>
-                    </li>
-                  </ul>
+                    </Box>
 
-                  <ModelDownloadList models={recommendedModels} />
+                    <Typography variant="h3" className="models-heading">
+                      Popular local models
+                    </Typography>
+
+                    <ul className="local-models-list">
+                      <li>
+                        <div className="local-model-item">
+                          <div className="local-model-header">
+                            <div className="local-model-title">
+                              <Typography variant="h4">GPT - OSS</Typography>
+                            </div>
+                            <div className="local-model-actions">
+                              <InlineModelDownload model={recommendedModels.find((m) => m.id === DEFAULT_MODEL)!} />
+                            </div>
+                          </div>
+                          <div className="local-model-desc">
+                            <Typography variant="body1">
+                              Open‑weight models designed for powerful reasoning, agentic tasks, and
+                              versatile developer use cases.
+                            </Typography>
+                            <Typography variant="body2" className="model-note">
+                              We strongly recommend this model to enable agentic workflows.
+                            </Typography>
+                          </div>
+                        </div>
+                      </li>
+
+                      <li>
+                        <div className="local-model-item">
+                          <div className="local-model-header">
+                            <div className="local-model-title">
+                              <Typography variant="h4">Qwen 3</Typography>
+                            </div>
+                            <div className="local-model-actions">
+                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("qwen3:"))!} />
+                            </div>
+                          </div>
+                          <div className="local-model-desc">
+                            <Typography variant="body1">
+                              Hybrid reasoning (thinking and fast modes), strong multilingual support.
+                              Best for balanced reasoning + speed, agentic workflows, and multilingual
+                              apps.
+                            </Typography>
+                          </div>
+                        </div>
+                      </li>
+
+                      <li>
+                        <div className="local-model-item">
+                          <div className="local-model-header">
+                            <div className="local-model-title">
+                              <Typography variant="h4">R1 Distilled</Typography>
+                            </div>
+                            <div className="local-model-actions">
+                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("deepseek-r1:"))!} />
+                            </div>
+                          </div>
+                          <div className="local-model-desc">
+                            <Typography variant="body1">
+                              Compact models distilled from DeepSeek‑R1 with strong math and logic
+                              performance in smaller footprints. Great when compute is limited but
+                              reasoning quality matters; permissive MIT license.
+                            </Typography>
+                          </div>
+                        </div>
+                      </li>
+
+                      <li>
+                        <div className="local-model-item">
+                          <div className="local-model-header">
+                            <div className="local-model-title">
+                              <Typography variant="h4">Gemma 3</Typography>
+                            </div>
+                            <div className="local-model-actions">
+                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("gemma3:"))!} />
+                            </div>
+                          </div>
+                          <div className="local-model-desc">
+                            <Typography variant="body1">
+                              Lightweight, multimodal (text, images, short video), long 128K context,
+                              designed for single‑GPU/TPU. Ideal for on‑device apps, multimodal
+                              QA/summarization, and multilingual use.
+                            </Typography>
+                          </div>
+                        </div>
+                      </li>
+                    </ul>
+                  </Box>
                 </Box>
               </Box>
             </Box>
