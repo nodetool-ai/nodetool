@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
@@ -201,12 +202,12 @@ const ModelCard: React.FC<
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
-
+  const theme = useTheme();
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
   if (isLoading) {
     return (
-      <Card className="model-card" css={styles}>
+      <Card className="model-card" css={styles(theme)}>
         <CardContent
           sx={{
             display: "flex",
@@ -223,14 +224,17 @@ const ModelCard: React.FC<
 
   if (downloads[modelId]) {
     return (
-      <Card className="model-card" css={styles} sx={{ height: "100%" }}>
+      <Card className="model-card" css={styles(theme)} sx={{ height: "100%" }}>
         <DownloadProgress name={modelId} />
       </Card>
     );
   }
 
   return (
-    <Card className={`model-card ${!modelData ? "missing" : ""}`} css={styles}>
+    <Card
+      className={`model-card ${!modelData ? "missing" : ""}`}
+      css={styles(theme)}
+    >
       <ModelCardContent
         model={model}
         modelData={modelData}

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
@@ -82,7 +82,7 @@ const EditorToolbar = ({
   const theme = useTheme();
 
   return (
-    <div className="editor-toolbar" css={styles}>
+    <Box className="editor-toolbar" css={styles(theme)}>
       {!readOnly && (
         <div className="toolbar-group">
           <Tooltip title="Undo" enterDelay={TOOLTIP_ENTER_DELAY}>
@@ -144,7 +144,7 @@ const EditorToolbar = ({
           </IconButton>
         </Tooltip>
       </div>
-    </div>
+    </Box>
   );
 };
 

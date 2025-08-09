@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, useMemo } from "react";
-import { Button, Typography, Tooltip, Select, MenuItem } from "@mui/material";
+import { Button, Tooltip, Select, MenuItem, Box } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
     ".filter": {
       width: "130px",
       height: "35px",
-      fontSize: theme.fontSizeSmall
+      fontSize: "var(--fontSizeSmall)"
     }
   });
 
@@ -105,7 +105,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   );
 
   return (
-    <div css={styles}>
+    <Box css={styles(theme)}>
       <div className="tools">
         <Tooltip
           title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
@@ -169,7 +169,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </Tooltip>
         )}
       </div>
-    </div>
+    </Box>
   );
 };
 

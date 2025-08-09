@@ -2,6 +2,7 @@
 import { memo, forwardRef } from "react";
 import { Button } from "@mui/material";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ const BackToDashboardButton = forwardRef<
   HTMLButtonElement,
   BackToDashboardButtonProps
 >(({ title, ...props }, ref) => {
+  const theme = useTheme();
   const navigate = useNavigate();
 
   return (
@@ -34,7 +36,7 @@ const BackToDashboardButton = forwardRef<
       ref={ref}
       className="nav-button back-to-dashboard"
       onClick={() => navigate("/dashboard")}
-      css={styles}
+      css={styles(theme)}
       {...props}
     >
       <DashboardIcon sx={{ fontSize: "20px", marginRight: "4px" }} />

@@ -14,73 +14,7 @@ import "@fontsource/jetbrains-mono/300.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 
-declare module "@mui/material/styles" {
-  interface ThemeOptions {
-    fontSizeGiant?: string;
-    fontSizeBigger?: string;
-    fontSizeBig?: string;
-    fontSizeNormal?: string;
-    fontSizeSmall?: string;
-    fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
-    fontFamily1?: string;
-    fontFamily2?: string;
-  }
-  // interface Theme {
-  //   fontSizeGiant: string;
-  //   fontSizeBigger: string;
-  //   fontSizeBig: string;
-  //   fontSizeNormal: string;
-  //   fontSizeSmall: string;
-  //   fontSizeSmaller: string;
-  //   fontSizeTiny: string;
-  //   fontSizeTinyer: string;
-  //   fontFamily1: string;
-  //   fontFamily2: string;
-  // }
-  interface CssVarsThemeOptions {
-    fontSizeGiant?: string;
-    fontSizeBigger?: string;
-    fontSizeBig?: string;
-    fontSizeNormal?: string;
-    fontSizeSmall?: string;
-    fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
-    fontFamily1?: string;
-    fontFamily2?: string;
-  }
-  interface CssVarsTheme {
-    fontSizeGiant: string;
-    fontSizeBigger: string;
-    fontSizeBig: string;
-    fontSizeNormal: string;
-    fontSizeSmall: string;
-    fontSizeSmaller: string;
-    fontSizeTiny: string;
-    fontSizeTinyer: string;
-    fontFamily1: string;
-    fontFamily2: string;
-  }
-  interface ZIndex {
-    mobileStepper: number;
-    fab: number;
-    speedDial: number;
-    appBar: number;
-    drawer: number;
-    modal: number;
-    snackbar: number;
-    tooltip: number;
-    behind: number;
-    base: number;
-    commandMenu: number;
-    popover: number;
-    autocomplete: number;
-    popover2: number;
-    highest: number;
-  }
-}
+// Theme augmentation moved to a single global file `theme.d.ts` to avoid duplication
 
 const ThemeNodetool = createTheme({
   cssVariables: {

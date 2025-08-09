@@ -114,7 +114,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   };
 
   return (
-    <Box className="folder-tree" css={styles}>
+    <Box className="folder-tree" css={styles(theme)}>
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}

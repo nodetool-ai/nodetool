@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import type { Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import React, {
   useMemo,
   useCallback,
@@ -257,6 +258,7 @@ const typeFor = (value: any): string => {
 };
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
+  const theme = useTheme();
   const shouldRender = !(
     value === undefined ||
     value === null ||
@@ -456,7 +458,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "boolean": {
         const boolStr = String(value).toUpperCase();
         return (
-          <div className="output value nodrag noscroll" css={styles}>
+          <div className="output value nodrag noscroll" css={styles(theme)}>
             <ButtonGroup className="actions">
               <Tooltip
                 title="Copy to Clipboard"
@@ -476,7 +478,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       }
       case "email":
         return (
-          <div css={styles}>
+          <div css={styles(theme)}>
             <div className="email-header">
               <p>
                 <strong>From:</strong> {value.sender}
@@ -500,7 +502,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         );
       default:
         return (
-          <div className="output value nodrag noscroll" css={styles}>
+          <div className="output value nodrag noscroll" css={styles(theme)}>
             {value !== null &&
               value !== undefined &&
               value.toString() !== "" && (
@@ -524,7 +526,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
     }
-  }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
+  }, [value, type, onDoubleClickAsset, handleCopyToClipboard, theme]);
 
   if (!shouldRender) {
     return null;

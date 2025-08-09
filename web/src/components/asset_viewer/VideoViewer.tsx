@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 interface VideoViewerProps {
@@ -35,14 +35,14 @@ const styles = (theme: Theme) =>
 const VideoViewer: React.FC<VideoViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   return (
-    <div className="video-viewer" css={styles}>
+    <Box className="video-viewer" css={styles(theme)}>
       <video controls={true} src={asset?.get_url || ""}>
         Your browser does not support the video element.
       </video>
       <Typography variant="h3" color="textSecondary">
         {asset?.name}
       </Typography>
-    </div>
+    </Box>
   );
 };
 

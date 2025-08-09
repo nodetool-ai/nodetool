@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
+import React from "react";
 import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { memo } from "react";
 import { isEqual } from "lodash";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 // icons
 import stc from "string-to-color";
@@ -391,7 +391,7 @@ type IconProps = React.SVGProps<SVGSVGElement> & {
   bgStyle?: React.CSSProperties;
 };
 
-const iconStyles = (theme: any) => ({
+const iconStyles = (theme: Theme) => ({
   "&": {
     display: "flex",
     justifyContent: "center",
@@ -439,7 +439,7 @@ export const IconForType = memo(function IconForType({
   const dataType = datatypeByName(name);
   const description = dataType?.description || "";
   const IconComponent = name
-    ? iconMap[name] || iconMap["any"]
+    ? iconMap[name] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
 
   return (
@@ -454,8 +454,8 @@ export const IconForType = memo(function IconForType({
                 backgroundColor: "transparent",
                 color: "var(--palette-action-active)",
                 display: "block",
-                fontSize: theme.fontSizeNormal,
-                fontFamily: theme.fontFamily1
+                fontSize: "var(--fontSizeNormal)",
+                fontFamily: "var(--fontFamily1)"
               }}
             >
               {name.toUpperCase()} <br />

@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React, { useEffect, useState, useRef, createRef } from "react";
-import { Alert as MUIAlert, AlertColor, IconButton } from "@mui/material";
+import { Alert as MUIAlert, AlertColor } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import {
   useNotificationStore,
@@ -31,54 +31,55 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = css({
-  position: "fixed",
-  top: "60px",
-  right: "2em",
-  zIndex: 10000,
-  display: "flex",
-  flexDirection: "column",
-  gap: "2px",
-  alignItems: "flex-end",
-  ".MuiAlert-message": {
-    padding: "0.5em 2em 0.2em 0",
-    lineHeight: "1.2em",
-    fontSize: "var(--fontSizeBig)",
-    overflowX: "hidden",
-    overflowY: "auto",
-    maxHeight: "80px"
-  },
-  ".MuiIconButton-root svg": {
-    color: "var(--palette-grey-800)"
-  },
-  ".copy-button": {
-    position: "absolute",
-    opacity: 0.8,
-    top: "13px",
-    right: "30px"
-  },
-  li: {
-    listStyleType: "none",
-    maxWidth: MAX_WIDTH,
-    transition: "all 0.3s ease-in-out",
-    "&.alert-enter": {
-      opacity: 0,
-      transform: "translateX(100%)"
+const styles = (theme: Theme) =>
+  css({
+    position: "fixed",
+    top: "60px",
+    right: "2em",
+    zIndex: 10000,
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    alignItems: "flex-end",
+    ".MuiAlert-message": {
+      padding: "0.5em 2em 0.2em 0",
+      lineHeight: "1.2em",
+      fontSize: "var(--fontSizeBig)",
+      overflowX: "hidden",
+      overflowY: "auto",
+      maxHeight: "80px"
     },
-    "&.alert-enter-active": {
-      opacity: 1,
-      transform: "translateX(0)"
+    ".MuiIconButton-root svg": {
+      color: "var(--palette-grey-800)"
     },
-    "&.alert-exit": {
-      opacity: 1,
-      transform: "translateX(0)"
+    ".copy-button": {
+      position: "absolute",
+      opacity: 0.8,
+      top: "13px",
+      right: "30px"
     },
-    "&.alert-exit-active": {
-      opacity: 0,
-      transform: "translateX(100%)"
+    li: {
+      listStyleType: "none",
+      maxWidth: MAX_WIDTH,
+      transition: "all 0.3s ease-in-out",
+      "&.alert-enter": {
+        opacity: 0,
+        transform: "translateX(100%)"
+      },
+      "&.alert-enter-active": {
+        opacity: 1,
+        transform: "translateX(0)"
+      },
+      "&.alert-exit": {
+        opacity: 1,
+        transform: "translateX(0)"
+      },
+      "&.alert-exit-active": {
+        opacity: 0,
+        transform: "translateX(100%)"
+      }
     }
-  }
-});
+  });
 
 const Alert: React.FC = () => {
   const {
@@ -93,7 +94,7 @@ const Alert: React.FC = () => {
     updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
   }));
   const { writeClipboard } = useClipboard();
-
+  const theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);
@@ -188,12 +189,11 @@ const Alert: React.FC = () => {
     }, TRANSITION_DURATION);
   };
 
-  const handleCopy = async (content: string) => {
-    await writeClipboard(content, true);
-  };
-
+  // const handleCopy = async (content: string) => {
+  //   await writeClipboard(content, true);
+  // };
   return (
-    <TransitionGroup component="ul" css={styles} className="alert-list">
+    <TransitionGroup component="ul" css={styles(theme)} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>();

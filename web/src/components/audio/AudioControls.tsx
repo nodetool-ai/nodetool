@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, ReactElement } from "react";
 import { Typography, Button, Tooltip } from "@mui/material";
@@ -167,6 +168,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   onPlayPause,
   onZoomChange
 }): ReactElement => {
+  const theme = useTheme();
   const handleSliderChange = useCallback(
     (event: Event, newValue: number | number[], activeThumb: number): void => {
       event.preventDefault();
@@ -177,7 +179,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   );
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       className="audio-controls"
       style={{ position: "relative" }}
     >

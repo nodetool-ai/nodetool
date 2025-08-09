@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
@@ -63,6 +64,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   isNodeProperty = false,
   buttonSize = 20
 }) => {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -84,7 +86,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <div className="color-picker" css={styles}>
+    <div className="color-picker" css={styles(theme)}>
       <Tooltip
         title="Set color"
         placement="bottom"
@@ -117,7 +119,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           horizontal: "center"
         }}
       >
-        <div css={colorMatrixStyle}>
+        <div css={colorMatrixStyle(theme)}>
           {solarizedColors.map((cellColor, index) => (
             <Button
               key={index}

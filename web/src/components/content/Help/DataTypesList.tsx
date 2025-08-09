@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
@@ -25,6 +26,7 @@ const DataTypesList = ({
   expanded,
   onChange
 }: DataTypesListProps) => {
+  const theme = useTheme();
   const types = dataTypes;
 
   const styles = (theme: Theme) =>
@@ -75,7 +77,7 @@ const DataTypesList = ({
     });
 
   return (
-    <div className="datatypes" css={styles}>
+    <div className="datatypes" css={styles(theme)}>
       <Accordion
         expanded={expanded}
         onChange={onChange}

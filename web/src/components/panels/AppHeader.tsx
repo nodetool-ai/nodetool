@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import Logo from "../Logo";
@@ -151,11 +152,12 @@ const ExamplesButton = memo(function ExamplesButton() {
 });
 
 const AppHeader: React.FC = memo(function AppHeader() {
+  const theme = useTheme();
   // const navigate = useNavigate();
   // const path = useLocation().pathname;
 
   return (
-    <div css={styles} className="app-header">
+    <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <LogoButton />

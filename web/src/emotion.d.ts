@@ -1,7 +1,7 @@
 import "@emotion/react";
-import { Theme as MuiTheme } from "@mui/material/styles";
+import type {} from "@mui/material/themeCssVarsAugmentation";
+import { Theme as MuiTheme, CssVarsTheme } from "@mui/material/styles";
 
 declare module "@emotion/react" {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  export interface Theme extends MuiTheme {}
+  export interface Theme extends MuiTheme, CssVarsTheme {}
 }

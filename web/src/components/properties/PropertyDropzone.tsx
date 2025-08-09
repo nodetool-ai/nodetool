@@ -5,6 +5,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Button, TextField, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
@@ -28,6 +29,7 @@ const PropertyDropzone = ({
   contentType,
   showRecorder = true
 }: PropertyDropzoneProps) => {
+  const theme = useTheme();
   const onChangeAsset = (asset: Asset) =>
     props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
 
@@ -245,7 +247,7 @@ const PropertyDropzone = ({
   }, [contentType, uri, openViewer, asset, id, filename]);
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <div className="drop-container">
         {showUrlInput && (
           <TextField

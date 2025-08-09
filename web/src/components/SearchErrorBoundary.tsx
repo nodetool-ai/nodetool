@@ -5,7 +5,7 @@ import { Typography, Box, Button } from "@mui/material";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-const searchErrorBoundaryStyles = (theme: any) =>
+const searchErrorBoundaryStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",

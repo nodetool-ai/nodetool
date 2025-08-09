@@ -101,7 +101,7 @@ const ErrorBoundary: React.FC = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box css={errorBoundaryStyles}>
+      <Box css={errorBoundaryStyles(theme)}>
         <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
         <Typography className="error-title">💩</Typography>
         <Typography variant="h6" className="error-message">

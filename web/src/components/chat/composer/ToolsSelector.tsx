@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
+import { useTheme, type Theme } from "@mui/material/styles";
 
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
@@ -198,6 +198,7 @@ interface ToolsSelectorProps {
 }
 
 const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
@@ -301,7 +302,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        css={menuStyles}
+        css={menuStyles(theme)}
         anchorOrigin={{
           vertical: "top",
           horizontal: "left"

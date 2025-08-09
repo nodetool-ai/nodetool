@@ -190,17 +190,21 @@
   border-width: 0;
 }
 
-.string-property .MuiOutlinedInput-root.Mui-hover .MuiOutlinedInput-notchedOutline {
+.string-property
+  .MuiOutlinedInput-root.Mui-hover
+  .MuiOutlinedInput-notchedOutline {
   border-width: 0;
 }
 
-.string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+.string-property
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
   border-width: 0;
 }
 
-.string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
-  /* background-color: var(--palette-grey-800); */
-}
+/* .string-property .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-input {
+  background-color: var(--palette-grey-800);
+} */
 
 .string-property .MuiTextField-root {
   margin-top: -5px;
@@ -487,11 +491,13 @@
 .number-input .range-container-wrapper {
   display: block;
   width: 100%;
+  margin-top: -5px;
   height: 18px;
 }
 
 .number-input .range-container {
-  transition: opacity 0.2s, background-color 0.3s  ease-in-out, height  .1s ease-in-out;
+  transition: opacity 0.2s, background-color 0.3s ease-in-out,
+    height 0.1s ease-in-out;
   background-color: var(--palette-grey-600);
   display: block;
   width: 100%;
@@ -502,8 +508,8 @@
   min-width: 1px;
 }
 
-.number-input .range-indicator {  
-  transition: background-color 0.3s  ease-in-out, height 0.2s  ease-in-out;
+.number-input .range-indicator {
+  transition: background-color 0.3s ease-in-out, height 0.2s ease-in-out;
   opacity: 1;
   background-color: var(--palette-grey-500);
   height: 3px;
@@ -630,7 +636,8 @@
 .container input {
   flex: 1;
   padding: 1em 0.5em;
-  border: 1px solid var(--palette-grey-500);  border: 1px solid var(--palette-grey-500);
+  border: 1px solid var(--palette-grey-500);
+  border: 1px solid var(--palette-grey-500);
   border-radius: 4px;
   color: var(--text-primary);
 }
@@ -923,4 +930,4 @@
   display: flex;
   justify-content: center;
   padding: 16px;
-} 
+}

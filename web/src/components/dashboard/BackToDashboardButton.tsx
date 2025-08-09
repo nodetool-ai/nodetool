@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, forwardRef, startTransition } from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Button } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -19,7 +20,7 @@ const styles = (theme: Theme) =>
 
 const BackToDashboardButton = forwardRef<HTMLButtonElement>((props, ref) => {
   const navigate = useNavigate();
-
+  const theme = useTheme();
   return (
     <Button
       ref={ref}
@@ -29,7 +30,7 @@ const BackToDashboardButton = forwardRef<HTMLButtonElement>((props, ref) => {
           navigate("/dashboard");
         });
       }}
-      css={styles}
+      css={styles(theme)}
       startIcon={<DashboardIcon />}
       {...props}
     >

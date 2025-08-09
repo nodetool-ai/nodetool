@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
-import { IconButton, TextField, Tooltip } from "@mui/material";
+import { Box, IconButton, TextField, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -192,7 +192,7 @@ const FindReplaceBar = ({
   const isValidSearch = isValidInput(searchTerm);
 
   return (
-    <div className="find-replace-bar" css={styles}>
+    <Box className="find-replace-bar" css={styles(theme)}>
       <div className="search-group">
         <TextField
           className="search-input"
@@ -306,7 +306,7 @@ const FindReplaceBar = ({
           <CloseIcon fontSize="small" />
         </IconButton>
       </Tooltip>
-    </div>
+    </Box>
   );
 };
 

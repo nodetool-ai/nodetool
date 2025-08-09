@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
@@ -55,9 +56,10 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   recommendedModels,
   startDownload
 }) => {
+  const theme = useTheme();
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       className="recommended-models-dialog"
       open={open}
       onClose={onClose}

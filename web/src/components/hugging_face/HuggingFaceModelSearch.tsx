@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import {
@@ -67,6 +68,7 @@ const styles = (theme: Theme) =>
   });
 
 const HuggingFaceModelSearch: React.FC = () => {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { startDownload, openDialog } = useModelDownloadStore();
@@ -85,7 +87,7 @@ const HuggingFaceModelSearch: React.FC = () => {
   };
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <form onSubmit={handleSubmit}>
         {error && <Typography color="error">{error.message}</Typography>}
         <TextField

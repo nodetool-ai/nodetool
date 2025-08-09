@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Button, CircularProgress, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -10,6 +11,7 @@ import {
 } from "../../hooks/browser/useWaveRecorder";
 
 const WaveRecorder = (props: WaveRecorderProps) => {
+  const theme = useTheme();
   const {
     error,
     micRef,
@@ -70,7 +72,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     });
 
   return (
-    <div className="waverecorder" css={styles}>
+    <Box className="waverecorder" css={styles(theme)}>
       <Button
         onClick={handleRecord}
         className={`record-button nodrag ${isRecording ? " recording" : ""}`}
@@ -145,7 +147,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       )}
 
       <div ref={micRef}></div>
-    </div>
+    </Box>
   );
 };
 

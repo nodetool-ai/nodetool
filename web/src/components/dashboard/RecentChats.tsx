@@ -2,6 +2,8 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ThreadList from "../chat/thread/ThreadList";
 import { Thread } from "../../stores/ApiTypes";
 import { ThreadInfo } from "../chat/types/thread.types";
@@ -15,7 +17,7 @@ interface RecentChatsProps {
   getThreadPreview: (threadId: string) => string;
 }
 
-const styles = (theme: any) =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: theme.vars.palette.background.paper,
     borderRadius: theme.spacing(1),
@@ -45,8 +47,9 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   onDeleteThread,
   getThreadPreview
 }) => {
-  // Try to get theme from MUI, fallback to undefined
-  const theme = (window as any).muiTheme || undefined;
+  const theme = useTheme();
+  // Debug theme presence
+  console.log("RecentChats/useTheme", theme);
 
   const sortedAndTransformedThreads = Object.fromEntries(
     Object.entries(threads)
@@ -59,15 +62,16 @@ const RecentChats: React.FC<RecentChatsProps> = ({
       .map(([id, thread]): [string, ThreadInfo] => [
         id,
         {
-          ...thread,
+          id,
+          title: thread.title ?? undefined,
           updatedAt: thread.updated_at || new Date().toISOString(),
-          messages: []
+          messages: [] as any[]
         }
       ])
   );
 
   return (
-    <div className="recent-chats" css={styles}>
+    <div className="recent-chats" css={styles(theme)}>
       <Typography variant="h3" className="section-title">
         Recent Chats
       </Typography>

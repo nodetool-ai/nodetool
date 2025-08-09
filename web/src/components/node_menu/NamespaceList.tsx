@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Box, List, Tooltip, Typography, Button } from "@mui/material";
@@ -605,6 +606,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
   metadata
 }) => {
+  const theme = useTheme();
   const {
     searchTerm,
     selectedPath,
@@ -666,7 +668,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   return (
     <div
-      css={namespaceStyles}
+      css={namespaceStyles(theme)}
       className={
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||

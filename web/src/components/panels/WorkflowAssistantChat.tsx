@@ -9,6 +9,7 @@ import { NewChatButton } from "../chat/thread/NewChatButton";
 import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import ThreadList from "../chat/thread/ThreadList";
+import type { ThreadInfo } from "../chat/thread";
 import { useNodes } from "../../contexts/NodeContext";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
@@ -102,12 +103,14 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
-    createNewThread().then((newThreadId) => {
-      switchThread(newThreadId);
-      setIsThreadListOpen(false);
-    }).catch((error) => {
-      console.error("Failed to create new thread:", error);
-    });
+    createNewThread()
+      .then((newThreadId) => {
+        switchThread(newThreadId);
+        setIsThreadListOpen(false);
+      })
+      .catch((error) => {
+        console.error("Failed to create new thread:", error);
+      });
   }, [createNewThread, switchThread]);
 
   const handleSelectThread = useCallback(
@@ -175,11 +178,13 @@ const WorkflowAssistantChat: React.FC = () => {
   // Ensure a thread exists after connection
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
-      createNewThread().then((newThreadId) => {
-        switchThread(newThreadId);
-      }).catch((error) => {
-        console.error("Failed to create new thread:", error);
-      });
+      createNewThread()
+        .then((newThreadId) => {
+          switchThread(newThreadId);
+        })
+        .catch((error) => {
+          console.error("Failed to create new thread:", error);
+        });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
 
@@ -196,14 +201,13 @@ const WorkflowAssistantChat: React.FC = () => {
     return status;
   };
 
-  // Create ThreadInfo compatible data for ThreadList
-  const threadsWithMessages = Object.fromEntries(
+  // Create ThreadInfo-compatible data for ThreadList
+  const threadsWithMessages: Record<string, ThreadInfo> = Object.fromEntries(
     Object.entries(threads).map(([id, thread]) => [
       id,
       {
         id: thread.id,
-        title: thread.title,
-        createdAt: thread.created_at,
+        title: thread.title ?? undefined,
         updatedAt: thread.updated_at,
         messages: messageCache[id] || []
       }

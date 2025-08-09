@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
-import type { Theme } from "@mui/material/styles";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
@@ -61,7 +62,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   currentFolder
 }) => {
   const location = useLocation();
-
+  const theme = useTheme();
   // Only show in explorer mode (fullscreen asset browser)
   if (location.pathname !== "/assets") {
     return null;
@@ -85,7 +86,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   }
 
   return (
-    <Box css={styles} className="storage-analytics">
+    <Box css={styles(theme)} className="storage-analytics">
       <Typography className="folder-info">
         {currentFolder?.name || "ASSETS"}
       </Typography>

@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
 import { Typography } from "@mui/material";
+
 import React, {
   useEffect,
   useState,
@@ -126,6 +128,7 @@ const formatTime = (time: number) => {
 };
 
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
+  const theme = useTheme();
   const {
     source,
     alwaysShowControls = wsprops.alwaysShowControls,
@@ -192,7 +195,11 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
   useEffect(() => {
     if (source instanceof Uint8Array) {
-      const blob = new Blob([source], { type: "audio/mp3" });
+      const copied = new Uint8Array(source.byteLength);
+      copied.set(source);
+      const blob = new Blob([copied.buffer as ArrayBuffer], {
+        type: "audio/mp3"
+      });
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
@@ -356,7 +363,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       onClick={(e) => {
         e.stopPropagation();
       }}

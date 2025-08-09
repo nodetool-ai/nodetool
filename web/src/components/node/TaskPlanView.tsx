@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
 import { Task } from "../../stores/ApiTypes";
@@ -20,6 +21,7 @@ const styles = (theme: Theme) =>
   });
 
 const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
+  const theme = useTheme();
   const { tasks, title } = useMemo(() => {
     // Handle either array of tasks or a task_plan object
     if (Array.isArray(data)) {
@@ -30,7 +32,7 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       {title && (
         <Typography variant="h5" className="task-list-title">
           {title}

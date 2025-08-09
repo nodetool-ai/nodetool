@@ -14,7 +14,8 @@ import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 export type DictDataType = "int" | "string" | "datetime" | "float";
 export type DictTableProps = {
   data: Record<string, any>;
@@ -161,8 +162,9 @@ const DictTable: React.FC<DictTableProps> = ({
     };
   }, [data, columns, onCellEdited]);
 
+  const theme = useTheme();
   return (
-    <div className="dicttable nowheel nodrag" css={tableStyles}>
+    <div className="dicttable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
         data={data}

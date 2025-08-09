@@ -10,7 +10,8 @@ import {
   Select,
   Tooltip,
   ListSubheader,
-  ListItemIcon
+  ListItemIcon,
+  Box
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -154,7 +155,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   `;
 
   return (
-    <div css={typeFilterStyles}>
+    <Box css={typeFilterStyles(theme)}>
       <Global styles={globalMenuItemStyles} />
       <div className="type-filter-container">
         <Tooltip
@@ -406,7 +407,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
           </div>
         </Tooltip>
       </div>
-    </div>
+    </Box>
   );
 };
 export default TypeFilter;

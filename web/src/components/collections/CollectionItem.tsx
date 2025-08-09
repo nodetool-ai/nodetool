@@ -1,3 +1,4 @@
+import React from "react";
 import {
   ListItem,
   Typography,
@@ -153,12 +154,11 @@ const CollectionItem = ({
       sx={{
         borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
         cursor: "copy",
-        ...(dragOverCollection === collection.name &&
-          {
-            borderStyle: "dashed",
-            borderWidth: 2,
-            borderColor: "primary.main",
-          }),
+        ...(dragOverCollection === collection.name && {
+          borderStyle: "dashed",
+          borderWidth: 2,
+          borderColor: "primary.main"
+        }),
         transition: "all 0.2s",
         display: "flex",
         flexDirection: "column",
@@ -257,7 +257,11 @@ const CollectionItem = ({
           <WorkflowSelect
             onChange={onWorkflowChange(collection)}
             label="Workflow"
-            value={collection.metadata?.workflow ? { id: collection.metadata.workflow as string } : undefined}
+            value={
+              collection.metadata?.workflow
+                ? { id: collection.metadata.workflow as string }
+                : undefined
+            }
             loading={updateMutation.isPending}
             open={isEditingWorkflow}
             onBlur={() => setIsEditingWorkflow(false)}

@@ -184,7 +184,7 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
-const getHeaderColors = (metadata: NodeMetadata, theme: any) => {
+const getHeaderColors = (metadata: NodeMetadata, theme: Theme) => {
   const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
   if (!firstOutputColor) return { headerColor: "" };
 

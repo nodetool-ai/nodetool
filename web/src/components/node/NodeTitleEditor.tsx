@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import {
@@ -45,6 +46,7 @@ const NodeTitleEditor: React.FC<NodeTitleEditorProps> = ({
   onClose,
   anchorEl
 }) => {
+  const theme = useTheme();
   const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const [title, setTitle] = useState("");
@@ -69,7 +71,7 @@ const NodeTitleEditor: React.FC<NodeTitleEditorProps> = ({
 
   return (
     <Popover
-      css={dialogStyles}
+      css={dialogStyles(theme)}
       open={nodeId !== undefined}
       onClose={handleClose}
       anchorEl={anchorEl}

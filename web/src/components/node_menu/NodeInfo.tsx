@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Typography, Divider, Tooltip } from "@mui/material";
@@ -255,8 +256,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     nodeMetadata.searchInfo
   ).html;
 
+  const theme = useTheme();
   return (
-    <div css={nodeInfoStyles} style={{ width: menuWidth }}>
+    <div css={nodeInfoStyles(theme)} style={{ width: menuWidth }}>
       <div className="title-container">
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}

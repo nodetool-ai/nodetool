@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Grid, Box } from "@mui/material";
@@ -27,6 +28,7 @@ interface ModelDownloadListProps {
 }
 
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
+  const theme = useTheme();
   const { downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
@@ -35,7 +37,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   const modelsWithSize = useModelsWithSize(models);
 
   return (
-    <Box css={styles}>
+    <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
         {modelsWithSize.map((model, index) => {
           const modelId = model.id;

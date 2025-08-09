@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Paper, Typography, List, Divider } from "@mui/material";
 import { Task } from "../../stores/ApiTypes";
@@ -29,8 +30,9 @@ interface TaskViewProps {
 }
 
 const TaskView: React.FC<TaskViewProps> = ({ task }) => {
+  const theme = useTheme();
   return (
-    <div css={styles} className="noscroll">
+    <div css={styles(theme)} className="noscroll">
       <Paper className="task-container" elevation={1}>
         <Typography variant="h6" className="task-title">
           Task: {task.title}

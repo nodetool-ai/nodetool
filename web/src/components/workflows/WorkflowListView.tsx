@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 import { Box } from "@mui/material";
@@ -134,6 +135,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   selectedWorkflows,
   showCheckboxes
 }) => {
+  const theme = useTheme();
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
@@ -169,7 +171,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   };
 
   return (
-    <Box className="container list" css={listStyles}>
+    <Box className="container list" css={listStyles(theme)}>
       <FixedSizeList
         height={CONTAINER_HEIGHT}
         width="100%"

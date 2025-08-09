@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
@@ -311,17 +312,19 @@ const PanelContent = memo(function PanelContent({
   };
 
   // Create ThreadInfo compatible data for ThreadList
-  const threadsWithMessages = Object.fromEntries(
-    Object.entries(threads).map(([id, thread]) => [
-      id,
-      {
+  const threadsWithMessages: Record<
+    string,
+    import("../chat/types/thread.types").ThreadInfo
+  > = Object.fromEntries(
+    Object.entries(threads).map(([id, thread]) => {
+      const item: import("../chat/types/thread.types").ThreadInfo = {
         id: thread.id,
-        title: thread.title,
-        createdAt: thread.created_at,
+        title: (thread.title ?? undefined) as string | undefined,
         updatedAt: thread.updated_at,
         messages: messageCache[id] || []
-      }
-    ])
+      };
+      return [id, item];
+    })
   );
 
   return (
@@ -400,6 +403,7 @@ const PanelContent = memo(function PanelContent({
 });
 
 const PanelLeft: React.FC = () => {
+  const theme = useTheme();
   const {
     ref: panelRef,
     size: panelSize,
@@ -427,7 +431,7 @@ const PanelLeft: React.FC = () => {
 
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 import { Box } from "@mui/material";
@@ -54,15 +55,18 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   isMinimized,
   isOpen,
   children
-}) => (
-  <Box
-    css={styles}
-    className={`workflow-chat-container ${isMinimized ? "minimized" : ""} ${
-      !isOpen ? "closed" : ""
-    }`}
-  >
-    {children}
-  </Box>
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <Box
+      css={styles(theme)}
+      className={`workflow-chat-container ${isMinimized ? "minimized" : ""} ${
+        !isOpen ? "closed" : ""
+      }`}
+    >
+      {children}
+    </Box>
+  );
+};
 
 export default memo(ChatContainer, isEqual);

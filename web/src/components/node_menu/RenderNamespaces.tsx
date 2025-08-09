@@ -14,7 +14,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
 }) => {
   const DEBUG_SEARCH = false;
   const {
-    highlightedNamespaces,
     selectedPath,
     allSearchMatches,
     searchTerm,
@@ -72,34 +71,11 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
 
         const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
 
-        if (import.meta.env.NODE_ENV === "development" && DEBUG_SEARCH) {
+        if ((import.meta as any).env?.NODE_ENV === "development" && DEBUG_SEARCH) {
           console.log(
             `RenderNamespaces: path='${currentFullPath}', isSearchActive=${shouldHighlightByFilter}, searchCount=${searchResultCount}, highlightDueToSearch=${highlightDueToActiveSearch}, finalPropValue=${finalIsHighlightedPropForChild}`
           );
-          if (
-            currentPath.length === 0 &&
-            Object.keys(tree).indexOf(namespace) === 0
-          ) {
-            console.log("RenderNamespaces: searchTerm from store:", searchTerm);
-            console.log(
-              "RenderNamespaces: calculated minSearchTermLength:",
-              minSearchTermLength
-            );
-            console.log(
-              "RenderNamespaces: selectedPath from store:",
-              JSON.stringify(selectedPath)
-            );
-            console.log(
-              "RenderNamespaces: highlightedNamespaces from store:",
-              JSON.stringify(highlightedNamespaces)
-            );
-            console.log(
-              "RenderNamespaces: allSearchMatches (first 3):",
-              allSearchMatches.slice(0, 3).map((m) => ({ ns: m.namespace }))
-            );
-          }
         }
-
         return {
           path,
           namespace,
@@ -113,14 +89,9 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     [
       tree,
       currentPath,
-      highlightedNamespaces,
       selectedPath,
       allSearchMatches,
-      searchTerm,
-      hasEffectiveSearchTerm,
-      hasActiveTypeFilter,
       shouldHighlightByFilter,
-      minSearchTermLength,
       DEBUG_SEARCH
     ]
   );

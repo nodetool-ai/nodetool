@@ -23,7 +23,7 @@ import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const toolsSelectorStyles = (theme: any) =>
+const toolsSelectorStyles = (theme: Theme) =>
   css({
     "&": {
       position: "absolute",

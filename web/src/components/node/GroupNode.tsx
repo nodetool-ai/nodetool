@@ -24,7 +24,7 @@ const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const GROUP_COLOR_OPACITY = 0.5;
 
-const styles = (theme: any, minWidth: number, minHeight: number) =>
+const styles = (theme: Theme, minWidth: number, minHeight: number) =>
   css({
     "&": {
       boxShadow: "none",

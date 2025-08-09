@@ -12,7 +12,7 @@ import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
@@ -50,7 +50,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <div className="chat-tool-bar" css={styles}>
+    <div className="chat-tool-bar" css={styles(theme)}>
       {onModelChange && (
         <LanguageModelSelect
           onChange={(model) => onModelChange(model)}

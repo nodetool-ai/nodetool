@@ -1,33 +1,36 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 
-const styles = css({
-  width: "100%",
-  minHeight: "120px",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: "transparent",
-  padding: "1.5em 0.5em",
-  marginTop: "auto",
-  flexShrink: 0,
-
-  ".chat-controls": {
-    maxWidth: "1100px",
+const styles = (theme: Theme) =>
+  css({
     width: "100%",
+    minHeight: "120px",
     display: "flex",
-    alignItems: "flex-end",
-    gap: "8px"
-  },
-  ".chat-composer-wrapper": {
-    flex: 1,
-    minWidth: 0
-  }
-});
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    padding: "1.5em 0.5em",
+    marginTop: "auto",
+    flexShrink: 0,
+
+    ".chat-controls": {
+      maxWidth: "1100px",
+      width: "100%",
+      display: "flex",
+      alignItems: "flex-end",
+      gap: "8px"
+    },
+    ".chat-composer-wrapper": {
+      flex: 1,
+      minWidth: 0
+    }
+  });
 
 type ChatInputSectionProps = {
   status:
@@ -72,9 +75,9 @@ const ChatInputSection = ({
   onAgentModeToggle
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
-
+  const theme = useTheme();
   return (
-    <div className="chat-input-section" css={styles}>
+    <div className="chat-input-section" css={styles(theme)}>
       <div className="chat-controls">
         <ChatToolBar
           selectedTools={selectedTools}

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
@@ -38,6 +39,7 @@ const styles = (theme: Theme) =>
   });
 
 const JSONProperty = (props: PropertyProps) => {
+  const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
   const [error, setError] = useState<{ message: string; line: number } | null>(
     null
@@ -90,7 +92,7 @@ const JSONProperty = (props: PropertyProps) => {
   );
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

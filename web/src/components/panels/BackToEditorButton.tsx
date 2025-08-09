@@ -2,6 +2,7 @@
 import React, { memo, forwardRef } from "react";
 import { Button } from "@mui/material";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +41,7 @@ const BackToEditorButton = forwardRef<
   HTMLButtonElement,
   BackToEditorButtonProps
 >(({ title, ...props }, ref) => {
+  const theme = useTheme();
   const { currentWorkflowId } = useWorkflowManager((state) => ({
     currentWorkflowId: state.currentWorkflowId
   }));
@@ -87,7 +89,7 @@ const BackToEditorButton = forwardRef<
       ref={ref}
       className="nav-button back-to-editor"
       onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
-      css={styles}
+      css={styles(theme)}
       {...props}
     >
       <KeyboardBackspaceIcon sx={{ fontSize: "20px", marginRight: "4px" }} />

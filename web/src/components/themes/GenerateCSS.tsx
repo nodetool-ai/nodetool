@@ -1,11 +1,12 @@
 import { DATA_TYPES } from "../../config/data_types";
 import { SerializedStyles, css } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 import { darkenHexColor } from "../../utils/ColorUtils";
 
 export const generateCSS = (() => {
   let result: SerializedStyles | null = null;
 
-  return (_theme: any) => {
+  return (_theme: Theme) => {
     if (result) {
       return result;
     }

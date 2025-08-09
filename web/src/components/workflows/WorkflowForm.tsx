@@ -243,7 +243,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     if (MODIFIER_KEYS.includes(pressedKey)) return;
 
     // Build the shortcut string
-    const parts = [];
+    const parts: string[] = [];
     if (event.ctrlKey) parts.push("CommandOrControl");
     if (event.altKey) parts.push("Alt");
     if (event.shiftKey) parts.push("Shift");
@@ -274,7 +274,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   }, []);
 
   return (
-    <div css={styles} className="workflow-form">
+    <div css={styles(theme)} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
         <div className="workflow-header">
           <Typography variant="h3">Workflow Settings</Typography>

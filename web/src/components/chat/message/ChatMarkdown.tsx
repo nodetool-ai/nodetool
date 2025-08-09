@@ -1,21 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import "../../../styles/markdown/github-markdown-dark.css";
-// import "../../../styles/markdown/github-markdown-light.css";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
+import "../../../styles/markdown/github-markdown-dark.css";
+// import "../../../styles/markdown/github-markdown-light.css";
 
 interface ChatMarkdownProps {
   content: string;
 }
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     backgroundColor: "transparent !important",
     ".code-block-header": {
@@ -42,8 +43,9 @@ const styles = () =>
   });
 
 const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
+  const theme = useTheme();
   return (
-    <div css={styles} className="markdown markdown-body">
+    <div css={styles(theme)} className="markdown markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}

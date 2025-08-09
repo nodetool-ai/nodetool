@@ -17,7 +17,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
+export const colorPickerButtonStyles = (theme: Theme, alwaysVisible: boolean) =>
   css({
     ".color-picker-button": {
       pointerEvents: "all",

@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
@@ -25,12 +27,13 @@ interface ActionButtonsProps {
   hasContent: boolean;
 }
 
-const styles = css({
-  position: "relative",
-  marginRight: "0.25em",
-  display: "flex",
-  alignItems: "center"
-});
+const styles = (theme: Theme) =>
+  css({
+    position: "relative",
+    marginRight: "0.25em",
+    display: "flex",
+    alignItems: "center"
+  });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
   status,
@@ -43,16 +46,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   // Show stop button ONLY when generation is actively running
   const showStopButton =
     (status === "loading" || status === "streaming") && onStop;
-
+  const theme = useTheme();
   return (
-    <div className="chat-action-buttons" css={styles}>
+    <div className="chat-action-buttons" css={styles(theme)}>
       {onNewChat && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
           <span style={{ display: "inline-flex" }}>
-            <NewChatComposerButton
-              disabled={isDisabled}
-              onClick={onNewChat}
-            />
+            <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />
           </span>
         </Tooltip>
       )}

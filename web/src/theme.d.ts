@@ -37,12 +37,37 @@ declare module "@mui/material/styles" {
     fontFamily1?: string;
     fontFamily2?: string;
   }
-  // If you also need to access theme.vars in your components or component overrides
-  // you might need to augment the Theme interface as well, though the docs primarily show its usage
-  // for accessing variables like theme.vars.palette.primary.main.
-  // For now, let's focus on getting ThemeOptions right for createTheme.
 
   interface Theme {
+    fontSizeGiant: string;
+    fontSizeBigger: string;
+    fontSizeBig: string;
+    fontSizeNormal: string;
+    fontSizeSmall: string;
+    fontSizeSmaller: string;
+    fontSizeTiny: string;
+    fontSizeTinyer: string;
+    fontFamily1: string;
+    fontFamily2: string;
+    // Ensure theme.vars is treated as always present in our codebase
+    vars: any;
+  }
+
+  // When using @mui/material with CSS variables, many APIs use CssVarsTheme
+  // Merge our custom fields there as well to satisfy callback typings
+  interface CssVarsThemeOptions {
+    fontSizeGiant?: string;
+    fontSizeBigger?: string;
+    fontSizeBig?: string;
+    fontSizeNormal?: string;
+    fontSizeSmall?: string;
+    fontSizeSmaller?: string;
+    fontSizeTiny?: string;
+    fontSizeTinyer?: string;
+    fontFamily1?: string;
+    fontFamily2?: string;
+  }
+  interface CssVarsTheme {
     fontSizeGiant: string;
     fontSizeBigger: string;
     fontSizeBig: string;
@@ -58,5 +83,16 @@ declare module "@mui/material/styles" {
   interface Color {
     0?: string;
     1000?: string;
+  }
+
+  // Extend ZIndex with app-specific levels used across the project
+  interface ZIndex {
+    behind: number;
+    base: number;
+    commandMenu: number;
+    popover: number;
+    autocomplete: number;
+    popover2: number;
+    highest: number;
   }
 }

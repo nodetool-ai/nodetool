@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
-import { CircularProgress } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -60,10 +60,10 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   }, [asset?.get_url]);
 
   return (
-    <div className="output text-viewer" css={styles}>
+    <Box className="output text-viewer" css={styles(theme)}>
       {!document && <CircularProgress className="progress" />}
       <div>{document}</div>
-    </div>
+    </Box>
   );
 };
 

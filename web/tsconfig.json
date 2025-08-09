@@ -10,20 +10,15 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "vite-plugin-svgr/client"],
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx"
   },
-  "include": [
-    "src",
-    "eslint.config.mjs"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["src", "eslint.config.mjs"],
+  "exclude": ["node_modules", "dist"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

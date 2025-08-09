@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import React from "react";
@@ -52,6 +53,7 @@ function DeleteButton<T>({
   tooltipPlacement,
   onClick
 }: DeleteButtonProps<T>): JSX.Element {
+  const theme = useTheme();
   return (
     <Tooltip
       title={tooltip || ""}
@@ -60,7 +62,7 @@ function DeleteButton<T>({
       placement={tooltipPlacement || "bottom"}
     >
       <Button
-        css={styles}
+        css={styles(theme)}
         className={`${className} delete-button`}
         tabIndex={-1}
         onClick={(e) => {

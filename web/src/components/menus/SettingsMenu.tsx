@@ -14,7 +14,7 @@ import {
   Tab,
   Box
 } from "@mui/material";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -513,7 +513,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         </Button>
       </Tooltip>
       <Menu
-        css={settingsStyles}
+        css={settingsStyles(theme)}
         className="settings-menu-container"
         open={isMenuOpen}
         onContextMenu={(event) => event.preventDefault()}

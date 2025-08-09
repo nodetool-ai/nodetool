@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
@@ -58,6 +59,7 @@ const DataframeProperty = ({
   property,
   propertyIndex
 }: PropertyProps) => {
+  const theme = useTheme();
   const id = `${property.name}-${propertyIndex}`;
 
   const onCellChange = useCallback(
@@ -98,7 +100,7 @@ const DataframeProperty = ({
 
   if (nodeType === "nodetool.constant.DataFrame") {
     return (
-      <div className="dataframe-editor" css={styles}>
+      <div className="dataframe-editor" css={styles(theme)}>
         <ButtonGroup className="button-group">
           <Button className="add-column" onClick={addColumn}>
             <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column

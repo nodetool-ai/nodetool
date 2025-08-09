@@ -232,7 +232,7 @@ const PackageList: React.FC = () => {
   if (isLoadingAvailable || isLoadingInstalled) {
     return (
       <Box
-        css={styles}
+        css={styles(theme)}
         className="loadingContainer packagelist-loading"
         sx={{ backgroundColor: "black" }}
       >
@@ -248,7 +248,7 @@ const PackageList: React.FC = () => {
   if (availableError || installedError) {
     return (
       <Box
-        css={styles}
+        css={styles(theme)}
         className="errorContainer packagelist-error"
         sx={{ backgroundColor: "black" }}
       >
@@ -263,7 +263,7 @@ const PackageList: React.FC = () => {
   }
 
   return (
-    <Paper css={styles} elevation={0} className="packagelist-root">
+    <Paper css={styles(theme)} elevation={0} className="packagelist-root">
       {(installMutation.isPending || uninstallMutation.isPending) && (
         <Box className="overlayContainer packagelist-overlay">
           <CircularProgress size={60} color="primary" />

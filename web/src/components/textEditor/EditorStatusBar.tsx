@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
+import { Box } from "@mui/material";
 
 interface EditorStatusBarProps {
   text: string;
@@ -56,7 +57,7 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
   const lineCount = text === "" ? 1 : text.split("\n").length;
 
   return (
-    <div className="editor-status-bar" css={styles}>
+    <Box className="editor-status-bar" css={styles(theme)}>
       <div className="stats">
         <div className="stat-item">
           <span className="label">Words:</span>
@@ -72,7 +73,7 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
         </div>
       </div>
       <div className="status-info">{readOnly && <span>Read-only</span>}</div>
-    </div>
+    </Box>
   );
 };
 

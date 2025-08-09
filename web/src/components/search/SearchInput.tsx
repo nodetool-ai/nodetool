@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
@@ -103,6 +104,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   searchResults = [],
   width = 150
 }) => {
+  const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
   const isControlOrMetaPressed = useKeyPressedStore(
@@ -223,7 +225,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div
       className="search-input-container"
-      css={styles}
+      css={styles(theme)}
       style={{ maxWidth: maxWidth, width: `${width}px` }}
     >
       <input

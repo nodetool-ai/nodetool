@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
@@ -272,6 +273,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   redo,
   reactFlowWrapper
 }) => {
+  const theme = useTheme();
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
 
@@ -312,7 +314,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       open={open}
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
-      css={styles}
+      css={styles(theme)}
     >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />

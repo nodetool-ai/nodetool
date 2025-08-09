@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useState } from "react";
 import { Box, Button, Popover, Tooltip, Typography } from "@mui/material";
@@ -24,12 +25,13 @@ const styles = (theme: Theme) =>
   });
 
 const RightSideButtons: React.FC = () => {
+  const theme = useTheme();
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
   const [modelsOpen, setModelsOpen] = useState(false);
 
   return (
-    <Box className="buttons-right" css={styles}>
+    <Box className="buttons-right" css={styles(theme)}>
       {!isProduction && (
         <>
           <ModelsManager

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect } from "react";
 import {
@@ -70,6 +71,7 @@ const styles = (theme: Theme) =>
   });
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
+  const theme = useTheme();
   const logsRef = useRef<HTMLDivElement>(null);
   const logs = useLogsStore((state) => state.getLogs(workflowId, id));
 
@@ -82,7 +84,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   return (
     <>
       {logs?.length > 0 && (
-        <div className="node-logs" css={styles}>
+        <div className="node-logs" css={styles(theme)}>
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6" component="h6">

@@ -9,6 +9,8 @@ import {
   Box,
   Link
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -17,7 +19,6 @@ import { useModelInfo } from "../../../hooks/useModelInfo";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
-import { getShortModelName } from "../../../utils/modelFormatting";
 import { ModelListItemActions } from "./ModelListItemActions";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -53,11 +54,11 @@ const ModelListItem: React.FC<
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
-
+  const theme = useTheme();
   if (isLoading) {
     return (
       <Box
-        css={modelListItemStyles}
+        css={modelListItemStyles(theme)}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
@@ -70,7 +71,7 @@ const ModelListItem: React.FC<
   if (downloads[modelId]) {
     return (
       <Box
-        css={modelListItemStyles}
+        css={modelListItemStyles(theme)}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
@@ -83,7 +84,7 @@ const ModelListItem: React.FC<
   if (isHuggingFace && formattedSize === "" && !hideMissingInfo) {
     return (
       <Box
-        css={modelListItemStyles}
+        css={modelListItemStyles(theme)}
         className={`model-list-item missing ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
@@ -118,7 +119,7 @@ const ModelListItem: React.FC<
 
   return (
     <Box
-      css={modelListItemStyles}
+      css={modelListItemStyles(theme)}
       className={`model-list-item ${compactView ? "compact " : ""} ${
         downloaded ? "downloaded" : ""
       }`}

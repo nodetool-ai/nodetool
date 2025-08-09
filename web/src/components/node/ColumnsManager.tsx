@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo } from "react";
 import { Grid, InputLabel } from "@mui/material";
@@ -76,7 +77,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0 .5em .25em .5em",
       height: "1em",
-      fontSize: theme.fontSizeSmaller
+      fontSize: "var(--fontSizeSmaller)"
     },
     ".select": {
       margin: "0",
@@ -115,11 +116,11 @@ const styles = (theme: Theme) =>
     },
     ".delete-button": {
       padding: ".1em",
-      fontSize: theme.fontSizeNormal,
+      fontSize: "var(--fontSizeNormal)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       "& svg": {
-        fontSize: theme.fontSizeBig
+        fontSize: "var(--fontSizeBig)"
       },
       "&:hover": {
         color: theme.vars.palette.c_delete,
@@ -142,6 +143,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   allData,
   onChange
 }: ColumnsManagerProps) => {
+  const theme = useTheme();
   const [localColumns, setLocalColumns] = useState(columns);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -218,7 +220,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   };
 
   return (
-    <Grid container spacing={0} css={styles}>
+    <Grid container spacing={0} css={styles(theme)}>
       <div className="labels">
         <InputLabel className="label-name">Name</InputLabel>
         <InputLabel className="label-datatype">Data Type</InputLabel>

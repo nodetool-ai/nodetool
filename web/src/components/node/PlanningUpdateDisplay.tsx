@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useMemo, useCallback } from "react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { PlanningUpdate } from "../../stores/ApiTypes";
@@ -31,6 +32,7 @@ const PLANNING_CONTENT_TRUNCATE_LENGTH = 200; // Max characters before truncatin
 const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   planningUpdate
 }) => {
+  const theme = useTheme();
   const [showFullPlanningContent, setShowFullPlanningContent] = useState(false);
 
   const toggleShowFullPlanningContent = useCallback(() => {
@@ -49,7 +51,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
 
   if (planningUpdate.status === "Failed") {
     return (
-      <div className="planning-update-container noscroll" css={styles}>
+      <div className="planning-update-container noscroll" css={styles(theme)}>
         <h3 className="ai-animated-heading">
           {planningUpdate.phase} <em>{planningUpdate.status}</em>
         </h3>
@@ -57,7 +59,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
     );
   }
   return (
-    <div className="planning-update-container noscroll" css={styles}>
+    <div className="planning-update-container noscroll" css={styles(theme)}>
       <h3 className="ai-animated-heading">
         {planningUpdate.phase} <em>{planningUpdate.status}</em>
       </h3>

@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { useTheme, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 
 interface ExternalLinkProps {
