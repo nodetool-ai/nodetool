@@ -7,7 +7,7 @@ export const createStyles = (theme: Theme) =>
     height: "100%",
     display: "flex",
     flexDirection: "column",
-    backgroundColor: "var(--palette-background-paper)",
+    backgroundColor: "transparent",
 
     ".new-chat-section": { padding: theme.spacing(2) },
 
