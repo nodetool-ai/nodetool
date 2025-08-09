@@ -8,7 +8,6 @@ import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
 import { fetchWorkflows, isConnected } from "./api";
 import { Workflow } from "./types";
-import { emitShowPackageManager } from "./events";
 
 let trayInstance: Electron.Tray | null = null;
 

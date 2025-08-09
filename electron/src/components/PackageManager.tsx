@@ -44,7 +44,10 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     try {
       const result = await window.electronAPI.packages.install(repoId);
       if (result.success) {
-        await loadPackages(); // Refresh the package lists
+        await loadPackages();
+        // Notify and restart the server after successful installation
+        alert('Package installed successfully. The server will restart to apply changes.');
+        await window.api.restartServer();
       } else {
         setError(result.message || 'Installation failed');
       }

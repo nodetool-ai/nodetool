@@ -119,6 +119,10 @@ const PackageManager: React.FC = () => {
       // Refresh installed packages
       const installedData = await fetchInstalledPackages();
       setInstalledPackages(installedData.packages || []);
+      if (!isInstalled) {
+        alert('Package installed successfully. The server will restart to apply changes.');
+        await window.api.restartServer();
+      }
       
     } catch (error: any) {
       console.error('Package action failed:', error);
