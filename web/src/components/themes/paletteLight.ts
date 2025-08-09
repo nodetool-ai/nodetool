@@ -93,98 +93,98 @@ declare module "@mui/material/styles" {
 
 export const paletteLight: PaletteOptions = {
   error: {
-    main: "#FF5555",
+    main: "#EF4444",
     contrastText: "#fff"
   },
   warning: {
-    main: "#FFB86C",
+    main: "#F59E0B",
     contrastText: "#000"
   },
   info: {
-    main: "#B0B620",
-    contrastText: "#000"
+    main: "#2563EB",
+    contrastText: "#fff"
   },
   success: {
-    main: "#50FA7B",
-    contrastText: "#000"
+    main: "#10B981",
+    contrastText: "#fff"
   },
   grey: {
-    0: "#000", // black
-    50: "#0E0E0E", // from c_gray0
-    100: "#242424", // from c_gray1
-    200: "#333333", // spare
-    300: "#444444", // from c_gray2
-    400: "#6D6D6D", // from c_gray3
-    500: "#959595", // from c_gray4
-    600: "#A9A9A9", // spare
-    700: "#BDBDBD", // from c_gray5
-    800: "#D9D9D9", // from c_gray6
-    900: "#F5F5F5", // Standard MUI light grey
-    1000: "#fff" //  white
+    0: "#000000",
+    50: "#111827",
+    100: "#1F2937",
+    200: "#374151",
+    300: "#4B5563",
+    400: "#6B7280",
+    500: "#9CA3AF",
+    600: "#D1D5DB",
+    700: "#E5E7EB",
+    800: "#F1F5F9",
+    900: "#F8FAFC",
+    1000: "#FFFFFF"
   },
-  c_black: "#020202",
-  c_bg_comment: "#fff",
-  c_brightest: "#FCFCFC",
-  c_white: "#FCFCFC",
-  c_background: "#424854",
-  c_node_menu: "#ccc",
-  c_selection: "#8EACA777",
-  c_input: "#374f4f",
-  c_output: "#493f4d",
-  c_attention: "#E35BFF",
-  c_delete: "#FF2222",
-  c_debug: "#FF3355",
-  c_job: "#223399",
-  c_node: "#029486",
-  c_folder: "#d6ae67",
-  c_progress: "#556611",
-  c_link: "#2a8c1f",
-  c_link_visited: "#1e6316",
+  c_black: "#0B1220",
+  c_bg_comment: "#111827",
+  c_brightest: "#FFFFFF",
+  c_white: "#FFFFFF",
+  c_background: "#EAF0F7",
+  c_node_menu: "#E6EBF3",
+  c_selection: "#5B9DFF33",
+  c_input: "#E8F1FF",
+  c_output: "#F3E8FF",
+  c_attention: "#7C3AED",
+  c_delete: "#EF4444",
+  c_debug: "#F43F5E",
+  c_job: "#2563EB",
+  c_node: "#0EA5E9",
+  c_folder: "#EAB308",
+  c_progress: "#22C55E",
+  c_link: "#2563EB",
+  c_link_visited: "#7C3AED",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#585858",
-  c_scroll_thumb: "#535353",
-  c_node_bg: "#f9f9f9",
-  c_node_bg_group: "#fffeff",
-  c_node_header_bg: "#dfdfdf",
-  c_node_header_bg_group: "#444",
-  c_bg_loop: "#305c9d17",
-  c_bg_group: "#bbb7",
-  c_editor_bg_color: "#f3f2ef",
-  c_editor_grid_color: "#ccc",
-  c_editor_axis_color: "#bbb",
-  c_selection_rect: "rgba(0, 150, 20, 0.08)",
+  c_scroll_hover: "#cfcfcf",
+  c_scroll_thumb: "#b5b5b5",
+  c_node_bg: "#FFFFFF",
+  c_node_bg_group: "#F8FAFC",
+  c_node_header_bg: "#F2F4F7",
+  c_node_header_bg_group: "#E5E7EB",
+  c_bg_loop: "#2563EB14",
+  c_bg_group: "#A1A4AD30",
+  c_editor_bg_color: "#F8FAFC",
+  c_editor_grid_color: "#E5E7EB",
+  c_editor_axis_color: "#D1D5DB",
+  c_selection_rect: "rgba(37, 99, 235, 0.12)",
 
   primary: {
-    main: "#0077a3",
-    light: "#7aa3d1",
-    dark: "#008B10", 
-    contrastText: "#000"
+    main: "#2563EB",
+    light: "#60A5FA",
+    dark: "#1E40AF",
+    contrastText: "#fff"
   },
   secondary: {
-    main: "#d23f9e",
-    light: "#a94e6d",
-    dark: "#ba008a",
+    main: "#7C3AED",
+    light: "#A78BFA",
+    dark: "#5B21B6",
     contrastText: "#fff"
   },
   background: {
-    default: "#fff",
-    paper: "#f2f2f2"
+    default: "#F8FAFC",
+    paper: "#FFFFFF"
   },
   text: {
-    primary: "#000",
-    secondary: "#333",
-    disabled: "#777"
+    primary: "#0B1220",
+    secondary: "#3B4351",
+    disabled: "#9AA4B2"
   },
   action: {
-    active: "#000",
-    hover: "#333",
-    selected: "#555",
-    disabled: "#777"
+    active: "#0B1220",
+    hover: "#EEF2F7",
+    selected: "#E2E8F0",
+    disabled: "#94A3B8"
   },
   Paper: {
-    default: "#eee",
-    paper: "#ddd",
-    overlay: "#dedede"
+    default: "#FFFFFF",
+    paper: "#FFFFFF",
+    overlay: "#F2F4F7"
   },
-  divider: "#999"
+  divider: "#E5E7EB"
 };
