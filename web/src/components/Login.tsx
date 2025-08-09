@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Button, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
@@ -81,7 +81,7 @@ function Login() {
   };
 
   return (
-    <div css={styles}>
+    <Box css={styles(theme)}>
       <div className="flex">
         <Logo
           width="250px"
@@ -107,7 +107,7 @@ function Login() {
           </Button>
         ))}
       </div>
-    </div>
+    </Box>
   );
 }
 

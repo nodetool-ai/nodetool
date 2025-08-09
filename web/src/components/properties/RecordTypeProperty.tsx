@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+
 import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
@@ -45,6 +47,7 @@ const styles = (theme: Theme) =>
   });
 
 const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
+  const theme = useTheme();
   if (value === undefined) {
     value = {
       columns: [],
@@ -82,7 +85,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
   }, [onChange, value]);
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <ButtonGroup className="button-group">
         <Button onClick={addColumn}>
           <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column

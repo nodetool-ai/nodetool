@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import { css, ThemeProvider } from "@emotion/react";
-
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import {
   Select,
   MenuItem,
@@ -72,7 +72,7 @@ const FolderProperty = (props: PropertyProps) => {
       refetch();
     });
   };
-
+  const theme = useTheme();
   return (
     <>
       <PropertyLabel
@@ -123,7 +123,7 @@ const FolderProperty = (props: PropertyProps) => {
         </Button>
       </div>
       <Popover
-        css={dialogStyles}
+        css={dialogStyles(theme)}
         className="dialog"
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}

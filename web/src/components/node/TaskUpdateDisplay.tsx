@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Typography, Box } from "@mui/material";
 import { TaskUpdate } from "../../stores/ApiTypes";
@@ -75,8 +76,9 @@ const getEventDisplayText = (event: string): string => {
 const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   taskUpdate
 }) => {
+  const theme = useTheme();
   return (
-    <div className="task-update-container noscroll" css={styles}>
+    <div className="task-update-container noscroll" css={styles(theme)}>
       <Typography variant="h6" className="task-animated-heading">
         Agent Task
         <span className="task-event">

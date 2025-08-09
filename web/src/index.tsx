@@ -1,4 +1,10 @@
 /** @jsxImportSource @emotion/react */
+// Ensure global MUI/Emotion type augmentations are loaded in the TS program
+import type {} from "./theme";
+import type {} from "./emotion";
+import type {} from "./material-ui";
+import type {} from "./window";
+import type {} from "./types/svg-react";
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";

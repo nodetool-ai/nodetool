@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode } from "react";
 import { Tooltip, MenuItem, Button, IconButton } from "@mui/material";
@@ -93,11 +94,12 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
   addButtonClassName,
   controlElement
 }) => {
+  const theme = useTheme();
   return (
-    <div className="context-menu-item" css={styles}>
+    <div className="context-menu-item" css={styles(theme)}>
       {tooltip && (
         <Tooltip
-          css={styles}
+          css={styles(theme)}
           title={tooltip}
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement={"right"}

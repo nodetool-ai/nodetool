@@ -262,7 +262,7 @@ const Welcome = () => {
   };
 
   return (
-    <div css={welcomeStyles}>
+    <div css={welcomeStyles(theme)}>
       <div className="header">
         <Box>
           <Typography className="panel-title" variant="h2">

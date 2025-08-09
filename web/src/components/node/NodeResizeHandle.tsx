@@ -4,6 +4,7 @@ import { NodeResizeControl, NodeResizer } from "@xyflow/react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 
 interface NodeResizeHandleProps {
   minWidth: number;
@@ -55,7 +56,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <div className="node-resize-handle" css={styles}>
+    <Box className="node-resize-handle" css={styles(theme)}>
       <NodeResizeControl
         minWidth={minWidth}
         minHeight={minHeight}
@@ -63,7 +64,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
       >
         <KeyboardArrowDownIcon />
       </NodeResizeControl>
-    </div>
+    </Box>
   );
 };
 

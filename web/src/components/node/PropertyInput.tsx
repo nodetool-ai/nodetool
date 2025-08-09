@@ -397,7 +397,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const componentType = componentFor(property);
 
-  let inputField = null;
+  let inputField: React.ReactNode = null;
   if (componentType) {
     if (isDynamicProperty && isEditingName) {
       inputField = (

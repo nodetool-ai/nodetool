@@ -17,6 +17,7 @@ import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
+import { useTheme } from "@mui/material/styles";
 
 interface AssetRenameConfirmationProps {
   assets: string[];
@@ -35,7 +36,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const { refetchAssetsAndFolders } = useAssets();
   const { mutation } = useAssetUpdate();
-
+  const theme = useTheme();
   useEffect(() => {
     if (dialogOpen) {
       setBaseNewName("");
@@ -153,7 +154,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
         >
           <Dialog
             className="asset-rename-dialog"
-            css={dialogStyles}
+            css={dialogStyles(theme)}
             open={dialogOpen}
             onClose={() => setDialogOpen(false)}
             aria-labelledby="alert-dialog-title"

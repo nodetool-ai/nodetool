@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Paper,
@@ -62,13 +63,14 @@ interface SubTaskViewProps {
 }
 
 const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
+  const theme = useTheme();
   const hasDependencies = (subtask as any).input_tasks
     ? (subtask as any).input_tasks.length > 0
     : false;
   const isRunning = subtask.start_time > 0 && !subtask.completed;
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <Paper className="subtask-item" elevation={0}>
         <div className="subtask-content">
           <Box

@@ -2,6 +2,7 @@
 import React, { memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -103,6 +104,7 @@ const styles = (theme: Theme) =>
   });
 
 const NotificationsList: React.FC = () => {
+  const theme = useTheme();
   const notifications = useNotificationStore((state) => state.notifications);
   const { writeClipboard } = useClipboard();
   const recentNotifications = [...notifications]
@@ -117,7 +119,7 @@ const NotificationsList: React.FC = () => {
   };
 
   return (
-    <Box css={styles} className="notifications-list-container">
+    <Box css={styles(theme)} className="notifications-list-container">
       <List dense className="notifications-list">
         {recentNotifications.map((notification) => (
           <ListItem

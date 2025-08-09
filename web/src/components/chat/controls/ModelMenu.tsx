@@ -19,10 +19,11 @@ import { useQuery } from "@tanstack/react-query";
 import useModelStore from "../../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { LanguageModel } from "../../../stores/ApiTypes";
+import { useTheme } from "@mui/material/styles";
 import {
   isHuggingFaceProvider,
   getProviderBaseName,
-  formatGenericProviderName,
+  formatGenericProviderName
 } from "../../../utils/providerDisplay";
 
 const menuStyles = (theme: Theme) =>
@@ -80,7 +81,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
-
+  const theme = useTheme();
   const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
   const {
     data: models,
@@ -131,19 +132,23 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
     [onModelChange, handleClose]
   );
 
-  const sortedProviders = useMemo(() =>
-    Object.keys(groupedModels).sort((a, b) => {
-      const aKey = (isHuggingFaceProvider(a)
-        ? getProviderBaseName(a)
-        : formatGenericProviderName(a)
-      ).toLowerCase();
-      const bKey = (isHuggingFaceProvider(b)
-        ? getProviderBaseName(b)
-        : formatGenericProviderName(b)
-      ).toLowerCase();
-      return aKey.localeCompare(bKey);
-    })
-  , [groupedModels]);
+  const sortedProviders = useMemo(
+    () =>
+      Object.keys(groupedModels).sort((a, b) => {
+        const aKey = (
+          isHuggingFaceProvider(a)
+            ? getProviderBaseName(a)
+            : formatGenericProviderName(a)
+        ).toLowerCase();
+        const bKey = (
+          isHuggingFaceProvider(b)
+            ? getProviderBaseName(b)
+            : formatGenericProviderName(b)
+        ).toLowerCase();
+        return aKey.localeCompare(bKey);
+      }),
+    [groupedModels]
+  );
 
   return (
     <>
@@ -196,7 +201,7 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        css={menuStyles}
+        css={menuStyles(theme)}
         anchorOrigin={{
           vertical: "top",
           horizontal: "left"
@@ -221,24 +226,27 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         ) : (
           sortedProviders.map((provider, index) => [
             <Typography key={`header-${provider}`} className="provider-header">
-              {isHuggingFaceProvider(provider)
-                ? (
-                  <span>
-                    {getProviderBaseName(provider)} <span
-                      style={{
-                        marginLeft: 6,
-                        padding: "1px 4px",
-                        fontSize: "0.7em",
-                        lineHeight: 1,
-                        borderRadius: 3,
-                        background: "var(--palette-grey-600)",
-                        color: "var(--palette-grey-0)",
-                        letterSpacing: 0.3,
-                      }}
-                    >HF</span>
+              {isHuggingFaceProvider(provider) ? (
+                <span>
+                  {getProviderBaseName(provider)}{" "}
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      padding: "1px 4px",
+                      fontSize: "0.7em",
+                      lineHeight: 1,
+                      borderRadius: 3,
+                      background: "var(--palette-grey-600)",
+                      color: "var(--palette-grey-0)",
+                      letterSpacing: 0.3
+                    }}
+                  >
+                    HF
                   </span>
-                )
-                : formatGenericProviderName(provider)}
+                </span>
+              ) : (
+                formatGenericProviderName(provider)
+              )}
             </Typography>,
             ...groupedModels[provider].map((model) => (
               <MenuItem

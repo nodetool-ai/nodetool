@@ -1,12 +1,14 @@
 /** @jsxImportSource @emotion/react */
 
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import useAuth from "../../stores/useAuth";
 
-const styles = {
+const styles = (theme: Theme) => ({
   svg: {
     display: "block"
   }
-};
+});
 
 const GoogleAuthButton = () => {
   const { signInWithProvider, state } = useAuth();
@@ -14,9 +16,9 @@ const GoogleAuthButton = () => {
     if (state === "loading" || state === "logged_in") return;
     await signInWithProvider("google");
   };
-
+  const theme = useTheme();
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <button className="gsi-material-button" onClick={handleClick}>
         <div className="gsi-material-button-state"></div>
         <div className="gsi-material-button-content-wrapper">

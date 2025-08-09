@@ -305,7 +305,7 @@ const styles = (theme: Theme) =>
     },
     ".matched-item": {
       width: "fit-content",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       padding: ".2em .4em",
       marginRight: ".5em",
@@ -556,7 +556,7 @@ const ExampleGrid = () => {
   const theme = useTheme();
 
   return (
-    <div className="workflow-grid" css={styles}>
+    <Box className="workflow-grid" css={styles(theme)}>
       <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
         <BackToEditorButton />
       </Tooltip>
@@ -675,7 +675,7 @@ const ExampleGrid = () => {
             </Box>
           )}
       </Box>
-    </div>
+    </Box>
   );
 };
 

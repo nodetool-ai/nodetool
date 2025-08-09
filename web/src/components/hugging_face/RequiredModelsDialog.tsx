@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
@@ -57,17 +58,16 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
   repoPaths,
   repos
 }) => {
-  const { startDownload, openDialog, downloads } = useModelDownloadStore(
-    (state) => ({
-      startDownload: state.startDownload,
-      openDialog: state.openDialog,
-      downloads: state.downloads
-    })
-  );
+  const theme = useTheme();
+  const { startDownload, downloads } = useModelDownloadStore((state) => ({
+    startDownload: state.startDownload,
+    openDialog: state.openDialog,
+    downloads: state.downloads
+  }));
 
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       className="model-download-dialog"
       open={open}
       onClose={onClose}

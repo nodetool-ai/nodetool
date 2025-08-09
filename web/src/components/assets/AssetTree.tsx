@@ -9,7 +9,8 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-  Typography
+  Typography,
+  Box
 } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -235,9 +236,9 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }
 
   return assetTree.length > 0 ? (
-    <div className="asset-tree" css={styles}>
+    <Box className="asset-tree" css={styles(theme)}>
       {renderAssetTree(assetTree)}
-    </div>
+    </Box>
   ) : (
     <Typography variant="body1">No assets found</Typography>
   );

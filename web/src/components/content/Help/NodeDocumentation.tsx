@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams } from "react-router-dom";
 import NodeInfo from "../../node_menu/NodeInfo";
@@ -24,6 +25,7 @@ const styles = (theme: Theme) =>
   `;
 
 const NodeDocumentation: React.FC = () => {
+  const theme = useTheme();
   const { nodeType } = useParams<{ nodeType: string }>();
   const nodeMetadata = useMetadataStore((state) =>
     state.getMetadata(nodeType ?? "")
@@ -34,7 +36,7 @@ const NodeDocumentation: React.FC = () => {
     return <NodeInfo nodeMetadata={nodeMetadata} />;
   };
 
-  return <div css={styles}>{renderContent()}</div>;
+  return <div css={styles(theme)}>{renderContent()}</div>;
 };
 
 export default React.memo(NodeDocumentation);

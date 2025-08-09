@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { okaidia } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
@@ -14,11 +16,12 @@ interface CodeBlockProps {
   [key: string]: any;
 }
 
-const styles = css({
-  ".code-block-header": {
-    padding: ".5em 1em"
-  }
-});
+const styles = (theme: Theme) =>
+  css({
+    ".code-block-header": {
+      padding: ".5em 1em"
+    }
+  });
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({
   node,
@@ -28,6 +31,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   _isFromPre,
   ...props
 }) => {
+  const theme = useTheme();
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
 
@@ -58,7 +62,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     };
 
     return (
-      <div css={styles} className="code-block-container">
+      <div css={styles(theme)} className="code-block-container">
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <CopyToClipboardButton textToCopy={codeContent} />

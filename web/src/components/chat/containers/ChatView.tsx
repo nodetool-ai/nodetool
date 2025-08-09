@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useCallback } from "react";
 import {
   Node,
@@ -14,7 +16,7 @@ import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 import { Provider } from "../../../stores/ApiTypes";
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -103,6 +105,7 @@ const ChatView = ({
   noMessagesPlaceholder,
   graph
 }: ChatViewProps) => {
+  const theme = useTheme();
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -141,7 +144,7 @@ const ChatView = ({
   );
 
   return (
-    <div className="chat-view" css={styles}>
+    <div className="chat-view" css={styles(theme)}>
       {messages.length > 0 ? (
         <ChatThreadView
           messages={messages}

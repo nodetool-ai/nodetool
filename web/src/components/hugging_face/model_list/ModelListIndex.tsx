@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
@@ -85,6 +86,7 @@ const styles = (theme: Theme) =>
   });
 
 const ModelListIndex: React.FC = () => {
+  const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const { selectedModelType, modelSearchTerm, modelSource } =
     useModelManagerStore();
@@ -165,7 +167,7 @@ const ModelListIndex: React.FC = () => {
   }
 
   return (
-    <Box className="model-list-container" css={styles}>
+    <Box className="model-list-container" css={styles(theme)}>
       <Box className="model-list-header">
         <ModelListHeader />
       </Box>

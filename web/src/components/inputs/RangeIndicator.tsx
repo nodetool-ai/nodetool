@@ -1,4 +1,5 @@
-import { memo } from "react";
+import React, { memo } from "react";
+import { Box } from "@mui/material";
 
 const RangeIndicator: React.FC<{
   value: number;
@@ -7,22 +8,22 @@ const RangeIndicator: React.FC<{
   isDragging: boolean;
   isEditable: boolean;
 }> = ({ value, min, max, isDragging, isEditable }) => (
-  <div className="range-container-wrapper nodrag">
-    <div
+  <Box className="range-container-wrapper nodrag">
+    <Box
       className={`range-container ${isDragging ? "dragging" : ""} ${
         isEditable ? "editable" : ""
       }`}
       tabIndex={-1}
     >
-      <div
+      <Box
         className="range-indicator"
         tabIndex={-1}
         style={{
           width: `${((value - min) / (max - min)) * 100}%`
         }}
       />
-    </div>
-  </div>
+    </Box>
+  </Box>
 );
 
 export default memo(RangeIndicator);

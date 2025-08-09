@@ -169,7 +169,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         const isFirstNamespaceForService = !seenServices.has(service);
         seenServices.add(service);
 
-        const elements = [];
+        const elements: JSX.Element[] = [];
 
         if (isFirstNamespaceForService) {
           elements.push(

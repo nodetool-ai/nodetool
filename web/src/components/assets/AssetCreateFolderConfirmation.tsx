@@ -19,6 +19,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAssets from "../../serverState/useAssets";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Asset } from "../../stores/ApiTypes";
+import { useTheme } from "@mui/material/styles";
 
 const AssetCreateFolderConfirmation: React.FC = () => {
   const setDialogOpen = useAssetGridStore(
@@ -38,7 +39,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   const [folderName, setFolderName] = useState("New Folder");
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
+  const theme = useTheme();
   const createFolder = useAssetStore((state) => state.createFolder);
   const updateAsset = useAssetStore((state) => state.update);
   const { refetchAssetsAndFolders, folderFilesFiltered } = useAssets();
@@ -206,7 +207,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
         >
           <Dialog
             className="asset-create-folder-dialog"
-            css={dialogStyles}
+            css={dialogStyles(theme)}
             open={dialogOpen}
             onClose={() => setDialogOpen(false)}
             aria-labelledby="alert-dialog-title"

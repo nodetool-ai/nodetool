@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 
@@ -51,6 +52,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   className,
   onTagClick
 }) => {
+  const theme = useTheme();
   if (!description) {
     return null;
   }
@@ -80,7 +82,7 @@ const NodeDescription: React.FC<NodeDescriptionProps> = ({
   };
 
   return (
-    <div css={styles} className={className}>
+    <div css={styles(theme)} className={className}>
       {firstLine && <span className="first-line">{firstLine}</span>}
       {tags.length > 0 && (
         <div className="tags-container">

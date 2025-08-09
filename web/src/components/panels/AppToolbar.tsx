@@ -12,6 +12,7 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
 import { memo, useCallback, useEffect, useState } from "react";
@@ -546,8 +547,11 @@ const RunAsAppButton = memo(function RunAsAppButton() {
 
   const handleRunAsApp = useCallback(() => {
     if (workflowId) {
-      if (window.api) {
-        window.api.runApp(workflowId);
+      const api = (window as any)["api"] as
+        | { runApp: (workflowId: string) => void }
+        | undefined;
+      if (api) {
+        api.runApp(workflowId);
       } else {
         window.open(
           "http://localhost:5173/index.html?workflow_id=" + workflowId,
@@ -619,6 +623,7 @@ interface AppToolbarProps {
 }
 
 const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
+  const theme = useTheme();
   const path = useLocation().pathname;
   const { autoLayout, workflow } = useNodes((state) => ({
     autoLayout: state.autoLayout,
@@ -628,7 +633,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       {path.startsWith("/editor") && (
-        <div className="actions" css={styles}>
+        <div className="actions" css={styles(theme)}>
           <>
             <NodeMenuButton />
             <EditWorkflowButton setWorkflowToEdit={setWorkflowToEdit} />

@@ -1,3 +1,4 @@
+import React from "react";
 import { Box, LinearProgress, LinearProgressProps, Typography } from "@mui/material";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {

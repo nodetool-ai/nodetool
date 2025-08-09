@@ -38,7 +38,7 @@ const groupNodesByNamespace = (nodes: NodeMetadata[]): GroupedNodes => {
   }, {});
 };
 
-const menuStyles = (theme: any) =>
+const menuStyles = (theme: Theme) =>
   css({
     "& .MuiPaper-root": {
       height: "70vh",
@@ -48,7 +48,7 @@ const menuStyles = (theme: any) =>
     }
   });
 
-const scrollableContentStyles = (theme: any) =>
+const scrollableContentStyles = (theme: Theme) =>
   css({
     overflowY: "auto",
     flex: 1,
@@ -106,7 +106,7 @@ const scrollableContentStyles = (theme: any) =>
     // }
   });
 
-const fixedHeaderStyles = (theme: any) =>
+const fixedHeaderStyles = (theme: Theme) =>
   css({
     position: "sticky",
     top: 0,

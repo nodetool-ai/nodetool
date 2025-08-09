@@ -1,4 +1,4 @@
-import { useRef, useCallback, ChangeEvent } from "react";
+import React, { useRef, useCallback, ChangeEvent } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

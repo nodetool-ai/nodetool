@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
     ".modal-content": {
       backgroundColor: theme.vars.palette.grey[800],
       color: theme.vars.palette.grey[100],
-      fontSize: theme.fontSizeBigger,
+      fontSize: "var(--fontSizeBigger)",
       width: "100%",
       height: "100%",
       display: "flex",
@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
         cursor: "default",
         fontWeight: "600",
         margin: "0",
-        fontSize: theme.fontSizeBig,
+        fontSize: "var(--fontSizeBig)",
         letterSpacing: "0.02em"
       }
     },
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       padding: "0",
       margin: "0",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       p: {
         color: theme.vars.palette.grey[200],
         margin: "0 0 0.5em 0",
@@ -144,8 +144,7 @@ const styles = (theme: Theme) =>
       ".editor": {
         flex: 1,
         width: "100%",
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeSmall,
+        fontSize: "var(--fontSizeSmall)",
         lineHeight: "1.2",
         color: theme.vars.palette.grey[0],
         // backgroundColor: theme.vars.palette.grey[600],
@@ -199,7 +198,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       color: `${theme.vars.palette.grey[0]} !important`,
       borderRadius: "4px !important",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: "500",
       transition: "all 0.2s ease",
       minWidth: "32px",
@@ -216,7 +215,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       border: "none",
       borderRadius: "4px",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: "500",
       transition: "all 0.2s ease",
       display: "flex",

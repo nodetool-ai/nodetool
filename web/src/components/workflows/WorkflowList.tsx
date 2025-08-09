@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Typography, CircularProgress } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
@@ -71,6 +72,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 };
 
 const WorkflowList = () => {
+  const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
@@ -229,7 +231,7 @@ const WorkflowList = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles}>
+      <div css={styles(theme)}>
         <WorkflowToolbar
           workflows={workflows}
           setFilterValue={setFilterValue}

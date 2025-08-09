@@ -9,6 +9,7 @@ import React, {
   useRef
 } from "react";
 import { Box } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -102,6 +103,7 @@ const styles = (theme: Theme) =>
   });
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const { currentWorkflowId } = useWorkflowManager((state) => ({
@@ -365,7 +367,7 @@ const Dashboard: React.FC = () => {
   return (
     <Box
       className="dashboard"
-      css={styles}
+      css={styles(theme)}
       sx={{ height: "100vh", width: "100vw", position: "relative" }}
     >
       <DashboardHeader showBackToEditor={!!currentWorkflowId}>

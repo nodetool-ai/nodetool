@@ -23,6 +23,7 @@ import TableActions from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
+import { useTheme } from "@mui/material/styles";
 
 /**
  * Formatter for datetime columns
@@ -74,6 +75,7 @@ const DataTable: React.FC<DataTableProps> = ({
   onChange,
   editable
 }) => {
+  const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
@@ -222,7 +224,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [data, columns, onCellEdited, dataframe.columns]);
 
   return (
-    <div className="datatable nowheel nodrag" css={tableStyles}>
+    <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
         data={data}

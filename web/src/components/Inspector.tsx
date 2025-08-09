@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 import PropertyField from "./node/PropertyField";
-import { Button, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -155,21 +155,21 @@ const Inspector: React.FC = () => {
 
   if (!selectedNode) {
     return (
-      <div className="inspector" css={inspectorStyles}>
-        <div className="top">
-          <div className="top-content">
-            <div className="inspector-header">
+      <Box className="inspector" css={inspectorStyles}>
+        <Box className="top">
+          <Box className="top-content">
+            <Box className="inspector-header">
               <div
                 className="title"
                 style={{ color: "var(--palette-grey-400)" }}
               >
                 Select a node to edit
               </div>
-            </div>
-          </div>
-        </div>
-        <div className="bottom"></div>
-      </div>
+            </Box>
+          </Box>
+        </Box>
+        <Box className="bottom"></Box>
+      </Box>
     );
   }
 
@@ -194,9 +194,9 @@ const Inspector: React.FC = () => {
   };
 
   return (
-    <div className="inspector" css={inspectorStyles}>
-      <div className="top">
-        <div className="top-content" css={allNodeStyles}>
+    <Box className="inspector" css={inspectorStyles}>
+      <Box className="top">
+        <Box className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">
             <div className="title">{metadata.title}</div>
           </div>
@@ -241,8 +241,8 @@ const Inspector: React.FC = () => {
               />
             )
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
       <div className="bottom">
         <NodeDescription
           className="description"
@@ -263,7 +263,7 @@ const Inspector: React.FC = () => {
           </Button>
         </Tooltip>
       </div>
-    </div>
+    </Box>
   );
 };
 

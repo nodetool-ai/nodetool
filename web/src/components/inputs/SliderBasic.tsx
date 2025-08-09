@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { Slider, SliderProps, Tooltip } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 
 const sliderBasicStyles = (theme: Theme) =>
   css({
@@ -53,10 +54,11 @@ const SliderBasic = ({
   tooltipPlacement = "bottom",
   ...props
 }: SliderBasicProps) => {
+  const theme = useTheme();
   return (
     <Tooltip title={tooltipText} placement={tooltipPlacement}>
       <div className="slider-basic">
-        <Slider {...props} css={sliderBasicStyles} tabIndex={-1} />
+        <Slider {...props} css={sliderBasicStyles(theme)} tabIndex={-1} />
       </div>
     </Tooltip>
   );

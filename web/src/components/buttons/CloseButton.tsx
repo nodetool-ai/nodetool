@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import React from "react";
@@ -29,8 +30,9 @@ function CloseButton<T>({
   className = "",
   onClick
 }: CloseButtonProps<T>): JSX.Element {
+  const theme = useTheme();
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <Button
         className={`${className} close-button`}
         onClick={(e) => {

@@ -268,11 +268,11 @@ const styles = (theme: Theme) =>
   });
 
 const WindowControls = () => {
-  const handleMinimize = () => window.api?.windowControls?.minimize();
-  const handleMaximize = () => window.api?.windowControls?.maximize();
-  const handleClose = () => window.api?.windowControls?.close();
+  const handleMinimize = () => (window as any).api?.windowControls?.minimize();
+  const handleMaximize = () => (window as any).api?.windowControls?.maximize();
+  const handleClose = () => (window as any).api?.windowControls?.close();
 
-  if (!window.api?.windowControls) {
+  if (!(window as any).api?.windowControls) {
     console.warn(
       "[TabsNodeEditor] window.api.windowControls not found. Window controls will not function."
     );
@@ -365,7 +365,7 @@ const TabsNodeEditor = () => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles}>
+      <div css={styles(theme)}>
         <div className="tabs-container">
           <TabsBar workflows={tabsToRender} />
           {!isMac && isElectron && <WindowControls />}

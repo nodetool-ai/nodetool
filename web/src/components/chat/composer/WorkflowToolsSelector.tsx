@@ -23,6 +23,7 @@ import {
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Workflow } from "../../../stores/ApiTypes";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
+import { useTheme } from "@mui/material/styles";
 
 // Helper functions for toolId logic
 const generateToolIdFromWorkflowName = (workflowName: string): string => {
@@ -92,7 +93,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const selectedTools = useMemo(() => value || [], [value]);
-
+  const theme = useTheme();
   // Get workflow tools from context
   const {
     workflowTools,
@@ -178,7 +179,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        css={menuStyles}
+        css={menuStyles(theme)}
         anchorOrigin={{
           vertical: "top",
           horizontal: "left"

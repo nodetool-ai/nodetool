@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useRef } from "react";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
@@ -88,10 +89,11 @@ const MessageView = (msg: Message) => {
 };
 
 const ThreadMessageList: React.FC<ChatViewProps> = ({ messages }) => {
+  const theme = useTheme();
   const messagesListRef = useRef<HTMLUListElement | null>(null);
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <ul className="messages" ref={messagesListRef}>
         {messages.map(MessageView)}
       </ul>

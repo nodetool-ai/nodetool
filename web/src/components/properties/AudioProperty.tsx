@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
@@ -8,7 +10,7 @@ import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import { isEqual } from "lodash";
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     "& .property-label": {
       marginBottom: "5px"
@@ -28,10 +30,12 @@ const styles = () =>
 const AudioProperty = (props: PropertyProps) => {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
-  const showRecorder = props.nodeType === "nodetool.input.Audio" || props.nodeType === "nodetool.constant.Audio";
-
+  const showRecorder =
+    props.nodeType === "nodetool.input.Audio" ||
+    props.nodeType === "nodetool.constant.Audio";
+  const theme = useTheme();
   return (
-    <div className="audio-property" css={styles}>
+    <div className="audio-property" css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

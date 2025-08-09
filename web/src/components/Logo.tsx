@@ -9,7 +9,7 @@ const randomDatatype = () => {
 };
 
 const logoStyles = (
-  theme: any,
+  theme: Theme,
   bgColor: string,
   textColor: string,
   opacity: number,

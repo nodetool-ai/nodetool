@@ -1,4 +1,5 @@
 import React from "react";
+import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import GlobalSearchResults from "../../../components/assets/GlobalSearchResults";
@@ -19,7 +20,6 @@ const mockTheme = createTheme({
       primary: "#fff"
     },
     grey: {
-      "0": "#ffffff",
       "100": "#f5f5f5",
       "200": "#eeeeee",
       "400": "#bdbdbd",

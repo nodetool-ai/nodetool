@@ -148,7 +148,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   if (!download) return null;
 
   return (
-    <Box css={styles}>
+    <Box css={styles(theme)}>
       <Tooltip title={getCloseButtonTooltip()}>
         <IconButton
           onClick={handleRemove}

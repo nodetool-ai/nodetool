@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Dialog, DialogContent } from "@mui/material";
 import React from "react";
@@ -69,9 +70,10 @@ interface ModelsManagerProps {
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   const { isDialogOpen, closeDialog, downloads, cancelDownload } =
     useModelDownloadStore();
+  const theme = useTheme();
   return (
     <Dialog
-      css={styles}
+      css={styles(theme)}
       className="models-manager-dialog"
       open={open}
       onClose={onClose}

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useMemo, useCallback } from "react";
 import { Node, NodeProps } from "@xyflow/react";
@@ -98,6 +99,7 @@ const typeForValue = (value: any) => {
 };
 
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
+  const theme = useTheme();
   const nodeType = props.type;
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
@@ -222,7 +224,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     [props.data.collapsed, hasParent]
   );
   return (
-    <Container css={styles} className={className}>
+    <Container css={styles(theme)} className={className}>
       <NodeHeader
         id={props.id}
         metadataTitle={nodeTitle || "Missing Node!"}

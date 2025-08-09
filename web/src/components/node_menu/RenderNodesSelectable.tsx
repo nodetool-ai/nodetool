@@ -169,7 +169,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     // Otherwise use the original namespace-based grouping
     return Object.entries(groupNodes(nodes)).flatMap(
       ([namespace, nodesInNamespace], namespaceIndex) => {
-        const elements = [];
+        const elements: JSX.Element[] = [];
 
         let textForNamespaceHeader = namespace; // Default to full namespace string
 
@@ -186,7 +186,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         // If namespace is not a child of selectedPath and not equal to selectedPath,
         // it also remains the full 'namespace'.
 
-        elements.push(
+        const itemsForNamespace: JSX.Element[] = [
           <Typography
             key={`namespace-${namespace}-${namespaceIndex}`}
             variant="h5"
@@ -195,21 +195,24 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           >
             {textForNamespaceHeader}
           </Typography>,
-          ...nodesInNamespace.map((node) => (
-            <div key={node.node_type}>
-              <NodeItem
-                key={node.node_type}
-                node={node}
-                onDragStart={handleDragStart(node)}
-                onClick={() => handleNodeClick(node)}
-                showCheckbox={showCheckboxes}
-                isSelected={selectedNodeTypes.includes(node.node_type)}
-                onToggleSelection={onToggleSelection}
-              />
-            </div>
-          ))
-        );
-        return elements;
+          ...nodesInNamespace.map(
+            (node): JSX.Element => (
+              <div key={node.node_type}>
+                <NodeItem
+                  key={node.node_type}
+                  node={node}
+                  onDragStart={handleDragStart(node)}
+                  onClick={() => handleNodeClick(node)}
+                  showCheckbox={showCheckboxes}
+                  isSelected={selectedNodeTypes.includes(node.node_type)}
+                  onToggleSelection={onToggleSelection}
+                />
+              </div>
+            )
+          )
+        ];
+
+        return itemsForNamespace;
       }
     );
   }, [

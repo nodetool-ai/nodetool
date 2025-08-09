@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -167,6 +168,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
 });
 
 const PanelRight: React.FC = () => {
+  const theme = useTheme();
   const {
     ref: panelRef,
     size: panelSize,
@@ -186,7 +188,7 @@ const PanelRight: React.FC = () => {
 
   return (
     <div
-      css={styles}
+      css={styles(theme)}
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >

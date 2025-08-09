@@ -108,8 +108,8 @@ export const paletteDark: PaletteOptions = {
     main: "#50FA7B",
     contrastText: "#000"
   },
-  grey: {
-    0: "#fff", //  white
+  grey: ((): any => ({
+    0: "#fff", // white
     50: "#F5F5F5", // Standard MUI light grey
     100: "#D9D9D9", // from c_gray6
     200: "#BDBDBD", // from c_gray5
@@ -121,7 +121,7 @@ export const paletteDark: PaletteOptions = {
     800: "#242424", // from c_gray1
     900: "#0E0E0E", // from c_gray0
     1000: "#000" // black
-  },
+  }))(),
   c_black: "#020202",
   c_bg_comment: "#fff",
   c_brightest: "#FCFCFC",

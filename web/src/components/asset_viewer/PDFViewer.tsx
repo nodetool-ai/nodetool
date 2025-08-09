@@ -5,6 +5,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import {
   Typography,
   CircularProgress,
@@ -218,7 +219,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   );
 
   return (
-    <div className="pdf-viewer" css={styles}>
+    <Box className="pdf-viewer" css={styles(theme)}>
       <div className="content-wrapper">
         {asset?.content_type && (
           <Typography variant="body2" className="content-type">
@@ -279,7 +280,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           aria-label="Page navigation slider"
         />
       </div>
-    </div>
+    </Box>
   );
 };
 

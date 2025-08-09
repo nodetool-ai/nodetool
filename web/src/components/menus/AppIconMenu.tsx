@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import Menu from "@mui/material/Menu";
@@ -26,10 +27,10 @@ type AppIconMenuProps = {
 
 const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
   const open = Boolean(anchorEl);
-
+  const theme = useTheme();
   return (
     <Menu
-      css={styles}
+      css={styles(theme)}
       anchorEl={anchorEl}
       open={open}
       onContextMenu={(event) => event.preventDefault()}

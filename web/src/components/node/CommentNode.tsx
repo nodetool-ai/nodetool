@@ -84,7 +84,6 @@ const styles = (theme: Theme) =>
       "& .editor-input": {
         height: "unset",
         paddingTop: ".5em",
-        fontFamily: theme.fontFamily1,
         lineHeight: "1.1em",
         caretColor: "var(--palette-primary-contrastText)"
       },

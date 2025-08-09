@@ -25,6 +25,7 @@ import React from "react";
 import { debounce, omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
+import type {} from "../window";
 import { QueryClient } from "@tanstack/react-query";
 
 // -----------------------------------------------------------------
@@ -436,12 +437,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (window.api) {
           window.api.onDeleteWorkflow(workflow);
         }
-        
+
         // Remove from workflow tools cache if it was a tool
         set((state) => ({
-          workflowTools: state.workflowTools.filter(w => w.id !== workflow.id)
+          workflowTools: state.workflowTools.filter((w) => w.id !== workflow.id)
         }));
-        
+
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
@@ -606,11 +607,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             });
             nodeStore.getState().setWorkflowDirty(false);
           }
-          
+
           // Update workflow tools cache based on run_mode
           let updatedWorkflowTools = state.workflowTools;
-          const existingToolIndex = state.workflowTools.findIndex(w => w.id === data.id);
-          
+          const existingToolIndex = state.workflowTools.findIndex(
+            (w) => w.id === data.id
+          );
+
           if (data.run_mode === "tool") {
             // Add or update in tools list
             if (existingToolIndex >= 0) {
@@ -621,9 +624,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             }
           } else if (existingToolIndex >= 0) {
             // Remove from tools list if no longer a tool
-            updatedWorkflowTools = state.workflowTools.filter(w => w.id !== data.id);
+            updatedWorkflowTools = state.workflowTools.filter(
+              (w) => w.id !== data.id
+            );
           }
-          
+
           return {
             openWorkflows: state.openWorkflows.map((w) =>
               w.id === workflow.id ? omit(data, ["graph"]) : w
@@ -751,19 +756,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       fetchWorkflowTools: async () => {
         set({ workflowToolsLoading: true, workflowToolsError: null });
-        
+
         const { data, error } = await client.GET("/api/workflows/tools");
-        
+
         if (error) {
           console.error("Error fetching workflow tools", error);
-          set({ 
-            workflowToolsLoading: false, 
+          set({
+            workflowToolsLoading: false,
             workflowToolsError: error as Error,
             workflowTools: []
           });
         } else {
-          set({ 
-            workflowToolsLoading: false, 
+          set({
+            workflowToolsLoading: false,
             workflowToolsError: null,
             workflowTools: data.workflows || []
           });
