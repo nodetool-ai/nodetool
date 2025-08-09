@@ -228,10 +228,10 @@ const GlobalChat: React.FC = () => {
         maxHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        marginLeft: "5rem",
-        marginRight: "5rem",
-        paddingLeft: "5rem",
-        paddingRight: "5rem",
+        marginLeft: { xs: "0.5rem", md: "2rem" },
+        marginRight: { xs: "0.5rem", md: "2rem" },
+        paddingLeft: { xs: "0.5rem", md: "0" },
+        paddingRight: { xs: "0.5rem", md: "0" },
         overflow: "hidden"
       }}
     >

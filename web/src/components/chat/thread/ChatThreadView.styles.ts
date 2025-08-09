@@ -58,22 +58,6 @@ export const createStyles = (theme: Theme) => ({
       position: "relative"
     },
 
-    "li.chat-message .copy-button": {
-      position: "absolute",
-      top: "8px",
-      right: "8px",
-      zIndex: 1,
-      cursor: "pointer"
-    },
-
-    "li.chat-message p": {
-      // margin: "0.2em 0"
-      // fontSize: theme.fontSizeNormal,
-      // lineHeight: "1.5em"
-      // fontWeight: "300"
-      // color: theme.vars.palette.grey[0]
-    },
-
     "li.user": {
       width: "60%",
       margin: "4em 0 2em auto",
@@ -89,6 +73,22 @@ export const createStyles = (theme: Theme) => ({
     },
 
     "li.assistant": {
+      // color: theme.vars.palette.grey[0]
+    },
+
+    "li.chat-message .copy-button": {
+      position: "absolute",
+      top: "8px",
+      right: "8px",
+      zIndex: 1,
+      cursor: "pointer"
+    },
+
+    "li.chat-message p": {
+      // margin: "0.2em 0"
+      // fontSize: theme.fontSizeNormal,
+      // lineHeight: "1.5em"
+      // fontWeight: "300"
       // color: theme.vars.palette.grey[0]
     },
 

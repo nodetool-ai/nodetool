@@ -10,20 +10,20 @@ export const createStyles = (theme: Theme) =>
     ".compose-message": {
       height: "auto",
       width: "100%",
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[800],
       border: "1px solid",
-      borderColor: theme.vars.palette.grey[800],
+      borderColor: theme.vars.palette.grey[700],
       display: "flex",
       alignItems: "center",
-      borderRadius: "16px",
-      marginLeft: "1em",
-      marginRight: "1em",
-      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-      padding: "0px 6px 0px 12px",
+      borderRadius: 20,
+      marginLeft: "0.5em",
+      marginRight: "0.5em",
+      boxShadow: "0 1px 0 rgba(0,0,0,0.25)",
+      padding: "6px 8px 6px 12px",
 
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
-        backgroundColor: `${theme.vars.palette.grey[600]}80`
+        backgroundColor: `${theme.vars.palette.grey[800]}80`
       }
     },
 
@@ -38,8 +38,8 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: "0px 1em 0px .5em",
-      margin: "1em 0",
+      padding: "6px 10px 6px 6px",
+      margin: "6px 0",
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
       "&::placeholder": {
@@ -51,21 +51,22 @@ export const createStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexDirection: "row",
-      gap: "2px",
+      gap: "6px",
       flexShrink: 0,
-      padding: "0 4px",
+      padding: "0 6px",
       "& button": {
         top: "0",
-        padding: ".25em",
-        position: "relative"
+        padding: "6px",
+        position: "relative",
+        borderRadius: 12
       }
     },
 
     ".file-preview-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "4px",
-      padding: "4px 8px"
+      gap: "6px",
+      padding: "6px 8px"
     },
 
     ".file-preview": {

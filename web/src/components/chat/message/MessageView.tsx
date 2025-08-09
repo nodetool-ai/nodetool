@@ -91,16 +91,6 @@ export const MessageView: React.FC<MessageViewProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {message.error_type && (
-        <ErrorIcon 
-          sx={{ 
-            color: 'error.main', 
-            fontSize: 20, 
-            mt: 0.5,
-            flexShrink: 0 
-          }} 
-        />
-      )}
       <div style={{ flex: 1 }}>
         {showCopyButton && (
           <CopyToClipboardButton
@@ -125,6 +115,16 @@ export const MessageView: React.FC<MessageViewProps> = ({
             />
           ))}
       </div>
+      {message.error_type && (
+        <ErrorIcon
+          sx={{
+            color: "error.main",
+            fontSize: 20,
+            mt: 0.5,
+            flexShrink: 0
+          }}
+        />
+      )}
     </li>
   );
 };
