@@ -6,7 +6,12 @@ import { createPackageManagerWindow, createWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer } from "./server";
 import { initializeBackendServer } from "./server";
-import { fetchWorkflows, isConnected } from "./api";
+import {
+  fetchWorkflows,
+  isConnected,
+  startPeriodicHealthCheck,
+  stopPeriodicHealthCheck,
+} from "./api";
 import { Workflow } from "./types";
 
 let trayInstance: Electron.Tray | null = null;
@@ -89,10 +94,18 @@ async function createTray(): Promise<Electron.Tray> {
   } else {
     // On macOS/Linux, show the context menu on click and right-click
     trayInstance.on("click", () => {
+      startPeriodicHealthCheck(async () => {
+        await updateTrayMenu();
+      });
       trayInstance?.popUpContextMenu();
+      setTimeout(() => stopPeriodicHealthCheck(), 30000);
     });
     trayInstance.on("right-click", () => {
+      startPeriodicHealthCheck(async () => {
+        await updateTrayMenu();
+      });
       trayInstance?.popUpContextMenu();
+      setTimeout(() => stopPeriodicHealthCheck(), 30000);
     });
   }
   // Initialize the tray menu immediately so it responds on first click
@@ -118,14 +131,19 @@ function setupWindowsTrayEvents(tray: Electron.Tray): void {
   });
 
   tray.on("click", () => {
-    const mainWindow = getMainWindow();
-    if (mainWindow) {
-      tray.popUpContextMenu();
-    }
+    startPeriodicHealthCheck(async () => {
+      await updateTrayMenu();
+    });
+    tray.popUpContextMenu();
+    setTimeout(() => stopPeriodicHealthCheck(), 30000);
   });
 
   tray.on("right-click", () => {
+    startPeriodicHealthCheck(async () => {
+      await updateTrayMenu();
+    });
     tray.popUpContextMenu();
+    setTimeout(() => stopPeriodicHealthCheck(), 30000);
   });
 }
 
@@ -152,17 +170,6 @@ function focusNodeTool(): void {
       createWindow();
     }
   }
-}
-
-/**
- * Generates a consistent label for workflow menu items, including shortcut if available
- * @param workflow The workflow to generate a label for
- * @returns Formatted label string
- */
-function getWorkflowLabel(workflow: Workflow): string {
-  return workflow.settings?.shortcut
-    ? `${workflow.name} (${workflow.settings.shortcut})`
-    : workflow.name;
 }
 
 /**
