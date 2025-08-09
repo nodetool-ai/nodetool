@@ -41,18 +41,20 @@ import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
  * Most node types are mapped to these category buckets.
  */
 const SpectraNode = {
-  scalar: "#00B7FF", // numbers
-  boolean: "#00C87D", // bool / flag
-  vector: "#19D1C3", // vectors / spatial math (unused for now)
-  matrix: "#5468FF", // matrices / tensors
-  spatial: "#A4E100", // geometry (unused for now)
-  texture: "#E557E5", // images / textures / video
-  textual: "#FF9B34", // strings / text
-  collection: "#F3C500", // list / dict / dataframe / enum
-  reference: "#004CFF", // file‑like, objects, models, folders, assets
-  event: "#FF3D5A", // events / tasks
-  audio: "#0094FF", // audio / sound
-  execution: "#6E7B8C" // execution / misc
+  // Cyan / blue family aligns with app primary for technical types
+  scalar: "#22D3EE", // cyan 400 — numbers
+  boolean: "#10B981", // emerald 500 — booleans / flags
+  vector: "#06B6D4", // cyan 500 — vectors
+  matrix: "#6366F1", // indigo 500 — tensors / matrices
+  // Accents
+  spatial: "#A3E635", // lime 400 — geometry
+  texture: "#D946EF", // fuchsia 500 — images / textures / video
+  textual: "#F59E0B", // amber 500 — text / strings
+  collection: "#FACC15", // yellow 400 — list / dict / dataframe / enum
+  reference: "#3B82F6", // blue 500 — file‑like / objects / models / assets
+  event: "#F43F5E", // rose 500 — events / tasks
+  audio: "#0EA5E9", // sky/cyan 500 — audio / sound
+  execution: "#64748B" // slate 500 — misc / execution
 } as const;
 
 type SpectraKey = keyof typeof SpectraNode;
