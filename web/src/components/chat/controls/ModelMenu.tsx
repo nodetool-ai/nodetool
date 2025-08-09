@@ -19,6 +19,11 @@ import { useQuery } from "@tanstack/react-query";
 import useModelStore from "../../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { LanguageModel } from "../../../stores/ApiTypes";
+import {
+  isHuggingFaceProvider,
+  getProviderBaseName,
+  formatGenericProviderName,
+} from "../../../utils/providerDisplay";
 
 const menuStyles = (theme: Theme) =>
   css({
@@ -126,7 +131,19 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
     [onModelChange, handleClose]
   );
 
-  const sortedProviders = Object.keys(groupedModels).sort();
+  const sortedProviders = useMemo(() =>
+    Object.keys(groupedModels).sort((a, b) => {
+      const aKey = (isHuggingFaceProvider(a)
+        ? getProviderBaseName(a)
+        : formatGenericProviderName(a)
+      ).toLowerCase();
+      const bKey = (isHuggingFaceProvider(b)
+        ? getProviderBaseName(b)
+        : formatGenericProviderName(b)
+      ).toLowerCase();
+      return aKey.localeCompare(bKey);
+    })
+  , [groupedModels]);
 
   return (
     <>
@@ -204,7 +221,24 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
         ) : (
           sortedProviders.map((provider, index) => [
             <Typography key={`header-${provider}`} className="provider-header">
-              {provider}
+              {isHuggingFaceProvider(provider)
+                ? (
+                  <span>
+                    {getProviderBaseName(provider)} <span
+                      style={{
+                        marginLeft: 6,
+                        padding: "1px 4px",
+                        fontSize: "0.7em",
+                        lineHeight: 1,
+                        borderRadius: 3,
+                        background: "var(--palette-grey-600)",
+                        color: "var(--palette-grey-0)",
+                        letterSpacing: 0.3,
+                      }}
+                    >HF</span>
+                  </span>
+                )
+                : formatGenericProviderName(provider)}
             </Typography>,
             ...groupedModels[provider].map((model) => (
               <MenuItem
