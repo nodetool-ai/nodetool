@@ -22,7 +22,7 @@ export const MAX_ZOOM = 4.0;
 export const ZOOMED_OUT = 0.45;
 
 // MODEL
-export const DEFAULT_MODEL = "gemma3n:latest";
+export const DEFAULT_MODEL = "gpt-oss:20b";
 
 // SEARCH
 export const SEARCH_DEBOUNCE_MS = 500;

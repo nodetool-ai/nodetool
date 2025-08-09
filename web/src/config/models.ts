@@ -2,6 +2,13 @@ import { UnifiedModel } from "../stores/ApiTypes";
 
 export const llama_models: UnifiedModel[] = [
   {
+    id: "gpt-oss:20b",
+    name: "GPT - OSS",
+    description: "OpenAI's open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.",
+    type: "llama_model"
+  },
+  
+  {
     id: "llama3.2:1b",
     name: "Llama 3.2 - 1B",
     description: "Meta's Llama 3.2 goes small with 1B and 3B models.",
