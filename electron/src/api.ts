@@ -35,6 +35,7 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
 async function checkHealth(): Promise<boolean> {
   const port = serverState.serverPort ?? 8000;
   const response = await fetch(`http://127.0.0.1:${port}/health/`);
+  console.log("response", response);
   return response.ok;
 }
 

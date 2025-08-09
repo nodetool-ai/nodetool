@@ -44,24 +44,24 @@ export const createPanelComponents = () => ({
       />
     </Box>
   ),
-  chat: (props: IDockviewPanelProps<PanelProps>) => (
-    <ChatView
-      status={props.params?.status || "disconnected"}
-      messages={[]} // empty array to hide the chat view
-      sendMessage={props.params?.sendMessage || (() => {})}
-      progress={props.params?.progress?.current || 0}
-      total={props.params?.progress?.total || 0}
-      progressMessage={props.params?.statusMessage || ""}
-      model={props.params?.model || DEFAULT_MODEL}
-      selectedTools={props.params?.selectedTools || []}
-      onToolsChange={props.params?.onToolsChange || (() => {})}
-      onModelChange={props.params?.onModelChange || (() => {})}
-      onStop={props.params?.onStop || (() => {})}
-      onNewChat={props.params?.onNewChat || (() => {})}
-      agentMode={props.params?.agentMode || false}
-      onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
-      currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
-      currentTaskUpdate={props.params?.currentTaskUpdate || null}
-    />
-  )
+  // chat: (props: IDockviewPanelProps<PanelProps>) => (
+  //   <ChatView
+  //     status={props.params?.status || "disconnected"}
+  //     messages={[]} // empty array to hide the chat view
+  //     sendMessage={props.params?.sendMessage || (() => {})}
+  //     progress={props.params?.progress?.current || 0}
+  //     total={props.params?.progress?.total || 0}
+  //     progressMessage={props.params?.statusMessage || ""}
+  //     model={props.params?.model || DEFAULT_MODEL}
+  //     selectedTools={props.params?.selectedTools || []}
+  //     onToolsChange={props.params?.onToolsChange || (() => {})}
+  //     onModelChange={props.params?.onModelChange || (() => {})}
+  //     onStop={props.params?.onStop || (() => {})}
+  //     onNewChat={props.params?.onNewChat || (() => {})}
+  //     agentMode={props.params?.agentMode || false}
+  //     onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
+  //     currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
+  //     currentTaskUpdate={props.params?.currentTaskUpdate || null}
+  //   />
+  // )
 });

@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from "electron";
-import { getServerState, openLogFile, runApp, initializeBackendServer } from "./server";
+import { getServerState, openLogFile, runApp, initializeBackendServer, stopServer } from "./server";
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { IpcRequest } from "./types.d";
@@ -94,6 +94,18 @@ export function initializeIpcHandlers(): void {
     logMessage("User continued to app from package manager");
     await initializeBackendServer();
     logMessage("Setting up workflow shortcuts after server start...");
+    await setupWorkflowShortcuts();
+  });
+
+  // Restart server handler
+  createIpcMainHandler(IpcChannels.RESTART_SERVER, async () => {
+    logMessage("Restarting backend server by user request");
+    try {
+      await stopServer();
+    } catch (e) {
+      logMessage(`Error while stopping server for restart: ${e}`, "warn");
+    }
+    await initializeBackendServer();
     await setupWorkflowShortcuts();
   });
 
