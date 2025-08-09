@@ -1,6 +1,9 @@
 export const isHuggingFaceProvider = (provider?: string): boolean => {
   if (!provider) return false;
-  return /^huggingface(\/|_|-|\s|$)/i.test(provider) || /^HuggingFace[A-Z]/.test(provider);
+  return (
+    /^huggingface(\/|_|-|\s|$)/i.test(provider) ||
+    /^HuggingFace[A-Z]/.test(provider)
+  );
 };
 
 const insertSpacesBeforeCapitals = (value: string): string => {
@@ -32,7 +35,7 @@ export const getProviderBaseName = (provider?: string): string => {
   }
 
   // Normalize separators
-  remainder = remainder.replace(/[\-_]+/g, " ");
+  remainder = remainder.replace(/[-_]+/g, " ");
   // Add spaces before capitals (e.g., BlackForestLabs -> Black Forest Labs)
   remainder = insertSpacesBeforeCapitals(remainder);
   remainder = remainder.trim();
@@ -46,8 +49,8 @@ export const getProviderBaseName = (provider?: string): string => {
 // Fallback formatter for arbitrary provider strings
 export const formatGenericProviderName = (provider?: string): string => {
   if (!provider) return "";
-  const withSpaces = insertSpacesBeforeCapitals(provider.replace(/_/g, " ").replace(/-/g, " "));
+  const withSpaces = insertSpacesBeforeCapitals(
+    provider.replace(/_/g, " ").replace(/-/g, " ")
+  );
   return toTitleCase(withSpaces.trim());
 };
-
-

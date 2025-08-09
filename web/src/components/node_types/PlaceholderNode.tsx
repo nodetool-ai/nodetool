@@ -120,9 +120,12 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   // Install package mutation
   const installMutation = useMutation({
     mutationFn: async (repoId: string) => {
-      const { data, error } = await client.POST("/api/packages/install", {
-        body: { repo_id: repoId }
-      });
+      const { data, error } = await client.POST(
+        "/api/packages/install" as any,
+        {
+          body: { repo_id: repoId }
+        }
+      );
       if (error) throw error;
       return data;
     },

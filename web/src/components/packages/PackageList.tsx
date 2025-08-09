@@ -153,9 +153,12 @@ const PackageList: React.FC = () => {
   const installMutation = useMutation({
     mutationFn: async (repoId: string) => {
       setActivePackageId(repoId);
-      const { data, error } = await client.POST("/api/packages/install", {
-        body: { repo_id: repoId }
-      });
+      const { data, error } = await client.POST(
+        "/api/packages/install" as any,
+        {
+          body: { repo_id: repoId }
+        }
+      );
       if (error) throw error;
       return data;
     },
@@ -174,9 +177,12 @@ const PackageList: React.FC = () => {
   const uninstallMutation = useMutation({
     mutationFn: async (repoId: string) => {
       setActivePackageId(repoId);
-      const { data, error } = await client.DELETE("/api/packages/uninstall", {
-        body: { repo_id: repoId }
-      });
+      const { data, error } = await client.DELETE(
+        "/api/packages/uninstall" as any,
+        {
+          body: { repo_id: repoId }
+        }
+      );
       if (error) throw error;
       return data;
     },

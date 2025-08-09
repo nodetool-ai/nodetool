@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useEffect, useState, useCallback } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const randomDatatype = () => {
   return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)];
