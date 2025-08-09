@@ -214,6 +214,7 @@ class Build:
                 "lame",
                 "pandoc",
                 "uv",
+                "ollama",
                 "-y",
                 "--channel",
                 "conda-forge",
