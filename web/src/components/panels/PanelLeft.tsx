@@ -458,7 +458,11 @@ const PanelLeft: React.FC = () => {
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
           style: {
             // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
-            boxShadow: isVisible ? "0 4px 10px rgba(0, 0, 0, 0.8)" : "none",
+            boxShadow: isVisible
+              ? theme.palette.mode === "dark"
+                ? `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
+                : "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)"
+              : "none",
             backgroundColor: isVisible
               ? "var(--palette-background-default)"
               : "transparent",
