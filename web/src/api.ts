@@ -1351,66 +1351,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/packages/install": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Install Package
-         * @description Install a package from the registry.
-         */
-        post: operations["install_package_api_packages_install_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/uninstall": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Uninstall Package
-         * @description Uninstall a package.
-         */
-        delete: operations["uninstall_package_api_packages_uninstall_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Update Package
-         * @description Update an installed package.
-         */
-        post: operations["update_package_api_packages_update_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/packages/nodes/all": {
         parameters: {
             query?: never;
@@ -4030,14 +3970,6 @@ export interface components {
              */
             namespaces?: string[];
         };
-        /** PackageInstallRequest */
-        PackageInstallRequest: {
-            /**
-             * Repo Id
-             * @description Repository ID in the format <owner>/<project>
-             */
-            repo_id: string;
-        };
         /** PackageListResponse */
         PackageListResponse: {
             /** Packages */
@@ -4105,21 +4037,6 @@ export interface components {
              * @description Source folder of the package
              */
             source_folder?: string | null;
-        };
-        /** PackageResponse */
-        PackageResponse: {
-            /** Success */
-            success: boolean;
-            /** Message */
-            message: string;
-        };
-        /** PackageUninstallRequest */
-        PackageUninstallRequest: {
-            /**
-             * Repo Id
-             * @description Repository ID in the format <owner>/<project>
-             */
-            repo_id: string;
         };
         /**
          * PlanningUpdate
@@ -4276,7 +4193,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "huggingface_groq" | "huggingface_cerebras" | "ollama" | "comfy" | "local" | "gemini" | "empty";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "gemini" | "empty" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -7839,115 +7756,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstalledPackageListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    install_package_api_packages_install_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PackageInstallRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    uninstall_package_api_packages_uninstall_delete: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PackageUninstallRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_package_api_packages_update_post: {
-        parameters: {
-            query: {
-                repo_id: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageResponse"];
                 };
             };
             /** @description Validation Error */
