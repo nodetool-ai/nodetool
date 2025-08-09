@@ -7,7 +7,7 @@ import ToolsSelector from "../composer/ToolsSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
 import { HelpModeToggle } from "../composer/HelpModeToggle";
-import ModelMenu from "./ModelMenu";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
@@ -52,9 +52,9 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   return (
     <div className="chat-tool-bar" css={styles}>
       {onModelChange && (
-        <ModelMenu
-          selectedModel={selectedModel}
-          onModelChange={onModelChange}
+        <LanguageModelSelect
+          onChange={(model) => onModelChange(model)}
+          value={selectedModel?.id || ""}
         />
       )}
       {onToolsChange && (

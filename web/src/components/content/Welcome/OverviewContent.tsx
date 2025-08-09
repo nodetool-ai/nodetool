@@ -19,38 +19,26 @@ export const overviewContents: Section[] = [
     defaultExpanded: true,
     content: (
       <Typography>
-        <b>NodeTool – Visual AI Prototyping Studio</b>
-        <br />
-        Design, build, and run advanced AI agent systems—right on your own
-        computer.
-        <br />
-        <br />
         <ul>
           <li>
-            <b>🔒 Privacy-First & Fully Local:</b> Run all AI models locally for
-            complete privacy and zero data transmission.
+            <b>🔒 Privacy by design:</b> Your data stays local unless you opt‑in
+            to third‑party nodes.
           </li>
           <li>
-            <b>⚡ Visual Workflow Editor:</b> Prototype complex AI workflows
-            with drag-and-drop simplicity—no coding required.
+            <b>🧰 Own your stack:</b> Open source (AGPL). Fork, customize, and
+            deploy your way—no lock‑in.
           </li>
           <li>
-            <b>🤖 Advanced Agent Design:</b> Build multi-agent systems that
-            plan, reason, and use tools like web browsing, file operations, and
-            the tools you build in NodeTool.
+            <b>🚀 Production ready:</b> Start local, scale globally. One‑command
+            deploys to your cloud.
           </li>
           <li>
-            <b>💻 System Integration:</b> Control apps, clipboard, and browser
-            with AI. Access your knowledge base and local files.
-          </li>
-          <li>
-            <b>🌩️ Hybrid Cloud Integration:</b> Connect to OpenAI, Anthropic,
-            Replicate, and other providers when needed—control what data is
-            shared.
+            <b>🔌 Bring your own providers:</b> OpenAI, Anthropic, Hugging Face,
+            Gemini, Replicate, Groq, Together, Cohere and more.
           </li>
         </ul>
         <b>
-          Explore pre-built <ExamplesIcon /> Examples to get started.
+          Explore <ExamplesIcon /> Examples to get started fast.
         </b>
       </Typography>
     )
@@ -60,9 +48,19 @@ export const overviewContents: Section[] = [
     title: "Creating Workflows",
     content: (
       <>
-        <Typography>
-          Start building by creating a new workflow or exploring templates:
-        </Typography>
+        <Typography>From idea to production in 3 steps:</Typography>
+        <ul>
+          <li>
+            <b>1. Build:</b> Drag nodes to design workflows—no code.
+          </li>
+          <li>
+            <b>2. Run:</b> Test locally. Data stays on your machine by default.
+          </li>
+          <li>
+            <b>3. Deploy:</b> Deploy with one command to your cloud.
+          </li>
+        </ul>
+        <Typography>Start a new workflow or explore templates:</Typography>
         <ul>
           <li>
             Click <b>Workflows</b> in the top panel to browse and manage your
@@ -189,29 +187,31 @@ export const overviewContents: Section[] = [
   },
   {
     id: "panel6",
-    title: "Asset Management",
+    title: "Organize Everything (Assets)",
     content: (
       <>
-        <Typography>
-          Manage your images, audio, video, and other media assets:
-        </Typography>
+        <Typography>Built‑in Asset Manager for all your media:</Typography>
         <ul>
           <li>
-            Drag assets from your file explorer onto the Asset tab to import
+            <b>Smart Import & Organization:</b> Drag and drop files. Auto‑organized
+            by type, project, or tags.
           </li>
-          <li>Drag assets onto the canvas to create constant nodes</li>
-          <li>Double-click any asset to open it in the AssetViewer</li>
           <li>
-            Right-click assets for more options (move, rename, delete, download,
-            etc.)
+            <b>Preview Everything:</b> Instant previews for images, audio, video,
+            and documents.
           </li>
-          <li>Select multiple assets with CTRL or SHIFT</li>
           <li>
-            Move assets between folders by dragging or using the right-click
-            menu
+            <b>Workflow Integration:</b> Drag assets onto the canvas to create
+            constants or connect them in one click.
           </li>
-          <li>Search and sort assets by name or date</li>
-          <li>Rename assets with F2 (works with multiple selections)</li>
+          <li>
+            <b>Manage at scale:</b> Multi‑select, rename (F2), move, search, and
+            sort by name or date.
+          </li>
+          <li>
+            <b>Formats:</b> PNG, JPG, GIF, SVG, WebP, MP3, WAV, MP4, MOV, AVI,
+            PDF, TXT, JSON, CSV, DOCX
+          </li>
         </ul>
       </>
     )
@@ -223,23 +223,93 @@ export const overviewContents: Section[] = [
       <>
         <ul>
           <li>
-            <b>Vector Storage & RAG:</b> Built-in ChromaDB for storing/querying
-            embeddings and building Retrieval-Augmented Generation workflows.
+            <b>Multimodal:</b> Text, image, audio, and video workflows.
           </li>
           <li>
-            <b>Global Chat Overlay:</b> Access and trigger AI workflows from
-            anywhere on your desktop.
+            <b>Built‑in Memory:</b> ChromaDB for RAG—no extra setup.
           </li>
           <li>
-            <b>Mini-App Builder:</b> Turn workflows into desktop apps.
+            <b>Observability:</b> Logs, traces, and error details to debug fast.
           </li>
           <li>
-            <b>API Access:</b> Integrate NodeTool with external apps and
-            services.
+            <b>API Access:</b> OpenAI‑compatible API for easy integration.
+          </li>
+          <li>
+            <b>Global Chat Overlay:</b> Access and trigger workflows anywhere on
+            your desktop.
+          </li>
+          <li>
+            <b>Mini‑App Builder:</b> Turn workflows into desktop apps.
           </li>
           <li>
             <b>ComfyUI Integration (beta):</b> Import and run ComfyUI workflows
             directly in NodeTool.
+          </li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: "panel7b",
+    title: "Deploy Anywhere",
+    content: (
+      <>
+        <Typography>
+          Deploy from laptop to production in minutes. One‑command deploys, GPU
+          auto‑scaling, and portable workflows across environments.
+        </Typography>
+        <ul>
+          <li>
+            <b>Serverless GPUs:</b> Run on providers like RunPod with global
+            regions and flexible pricing.
+          </li>
+          <li>
+            <b>Auto‑scaling:</b> Scale to zero when idle; burst to hundreds of
+            workers on demand.
+          </li>
+          <li>
+            <b>Enterprise features:</b> Network storage, custom Docker, and fast
+            cold starts.
+          </li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: "panel7c",
+    title: "Bring Your Own Providers",
+    content: (
+      <>
+        <Typography>
+          Connect your own keys and mix providers in one workflow. Switch models
+          without code changes.
+        </Typography>
+        <ul>
+          <li>OpenAI, Anthropic, Hugging Face, Gemini</li>
+          <li>Replicate, Groq, Together, Cohere</li>
+          <li>And more—choose per node where it runs</li>
+        </ul>
+      </>
+    )
+  },
+  {
+    id: "panel7d",
+    title: "Agent Tools",
+    content: (
+      <>
+        <Typography>Extensible tools for AI agents to interact with the world:</Typography>
+        <ul>
+          <li>
+            <b>Web & Search:</b> Browser automation, scraping, Google Search,
+            SERP API, screenshots, HTTP requests
+          </li>
+          <li>
+            <b>Content Processing:</b> PDF extraction, TTS, image generation,
+            email, Markdown
+          </li>
+          <li>
+            <b>Data & Analytics:</b> Vector search, math, statistics, geometry,
+            unit conversion, ChromaDB indexing
           </li>
         </ul>
       </>
@@ -251,7 +321,8 @@ export const overviewContents: Section[] = [
     content: (
       <Typography variant="body1">
         Open the <SettingsIcon /> Settings menu (top right) to adjust the
-        interface, set API keys and folder paths.
+        interface, set API keys and folder paths. Bring your own keys for
+        OpenAI, Anthropic, Hugging Face, Replicate, and more.
         <br />
       </Typography>
     )

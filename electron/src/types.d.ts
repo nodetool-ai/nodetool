@@ -29,6 +29,7 @@ declare global {
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       startServer: () => Promise<void>;
+    restartServer: () => Promise<void>;
       installToLocation: (
         location: string,
         packages: PythonPackages
@@ -146,6 +147,7 @@ export enum IpcChannels {
   INSTALL_TO_LOCATION = "install-to-location",
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
+  RESTART_SERVER = "restart-server",
   RUN_APP = "run-app",
   BOOT_MESSAGE = "boot-message",
   SERVER_STARTED = "server-started",
@@ -185,6 +187,7 @@ export interface IpcRequest {
   [IpcChannels.INSTALL_TO_LOCATION]: InstallToLocationData;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
+  [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
@@ -209,6 +212,7 @@ export interface IpcResponse {
   [IpcChannels.INSTALL_TO_LOCATION]: void;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;
+  [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;

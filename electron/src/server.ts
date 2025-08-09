@@ -379,6 +379,7 @@ async function stopServer(): Promise<void> {
       await new Promise<void>((resolve, reject) => {
         nodeToolBackendProcess?.on("exit", () => {
           fs.unlink(PID_FILE_PATH).catch(() => {});
+          nodeToolBackendProcess = null;
           resolve();
         });
         nodeToolBackendProcess?.on("error", reject);
@@ -387,6 +388,7 @@ async function stopServer(): Promise<void> {
           if (nodeToolBackendProcess && !nodeToolBackendProcess.killed) {
             nodeToolBackendProcess.kill("SIGKILL");
           }
+          nodeToolBackendProcess = null;
           resolve();
         }, 5000);
       });

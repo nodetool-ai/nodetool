@@ -26,7 +26,6 @@ import { debounce, omit } from "lodash";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 import { QueryClient } from "@tanstack/react-query";
-import { createWebSocketUpdatesStore } from "../stores/WebSocketUpdatesStore";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -828,14 +827,7 @@ export const WorkflowManagerProvider: React.FC<{
     return workflowManagerStore;
   });
 
-  const [webSocketStore] = useState(() => {
-    return createWebSocketUpdatesStore();
-  });
-
   useEffect(() => {
-    // Connect to the WebSocket server
-    webSocketStore.getState().connect();
-
     // Restore workflows that were previously open from localStorage
     const openWorkflows = storage.getOpenWorkflows();
     openWorkflows.forEach((workflowId: string) => {
@@ -844,12 +836,7 @@ export const WorkflowManagerProvider: React.FC<{
 
     // Fetch workflow tools
     store.getState().fetchWorkflowTools();
-
-    // Cleanup: disconnect WebSocket on component unmount
-    return () => {
-      webSocketStore.getState().disconnect();
-    };
-  }, [store, webSocketStore]);
+  }, [store]);
 
   return (
     <WorkflowManagerContext.Provider value={store}>

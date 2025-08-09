@@ -18,6 +18,11 @@ import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import {
+  isHuggingFaceProvider,
+  getProviderBaseName,
+  formatGenericProviderName,
+} from "../../utils/providerDisplay";
 
 interface LanguageModelSelectProps {
   onChange: (value: any) => void;
@@ -32,12 +37,34 @@ interface GroupedModels {
   }>;
 }
 
-const formatProviderName = (provider: string): string => {
-  return provider
-    .replace(/_/g, ' ')
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+const HFBadge: React.FC = () => (
+  <span
+    style={{
+      marginLeft: 6,
+      padding: "1px 4px",
+      fontSize: "0.7em",
+      lineHeight: 1,
+      borderRadius: 3,
+      background: "var(--palette-grey-600)",
+      color: "var(--palette-grey-0)",
+      letterSpacing: 0.3,
+    }}
+  >
+    HF
+  </span>
+);
+
+const renderProviderLabel = (provider: string): React.ReactNode => {
+  if (isHuggingFaceProvider(provider)) {
+    const base = getProviderBaseName(provider);
+    return (
+      <span>
+        {base}
+        <HFBadge />
+      </span>
+    );
+  }
+  return formatGenericProviderName(provider);
 };
 
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
@@ -103,17 +130,31 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
 
   const handleModelSelect = useCallback(
     (modelId: string) => {
+      const selected = models?.find((m) => m.id === modelId);
       onChange({
         type: "language_model",
         id: modelId,
-        provider: models?.find((m) => m.id === modelId)?.provider
+        provider: selected?.provider,
+        name: selected?.name || ""
       });
       handleClose();
     },
     [onChange, models, handleClose]
   );
 
-  const sortedProviders = Object.keys(groupedModels).sort();
+  const sortedProviders = useMemo(() =>
+    Object.keys(groupedModels).sort((a, b) => {
+      const aKey = (isHuggingFaceProvider(a)
+        ? getProviderBaseName(a)
+        : formatGenericProviderName(a)
+      ).toLowerCase();
+      const bKey = (isHuggingFaceProvider(b)
+        ? getProviderBaseName(b)
+        : formatGenericProviderName(b)
+      ).toLowerCase();
+      return aKey.localeCompare(bKey);
+    })
+  , [groupedModels]);
 
   return (
     <>
@@ -185,7 +226,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
               onClick={() => handleProviderSelect(provider)}
               className="provider-item"
             >
-              <ListItemText primary={formatProviderName(provider)} />
+              <ListItemText primary={renderProviderLabel(provider)} />
               <ListItemIcon>
                 <ArrowForwardIosIcon sx={{ fontSize: '12px' }} />
               </ListItemIcon>
@@ -205,7 +246,13 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
               <ListItemText primary={`Back to providers`} />
             </MenuItem>,
             <Typography key="provider-title" className="provider-header">
-              {selectedProvider ? formatProviderName(selectedProvider) : 'Provider'} Models
+              {selectedProvider ? (isHuggingFaceProvider(selectedProvider) ? (
+                <span>
+                  {getProviderBaseName(selectedProvider)} <HFBadge />
+                </span>
+              ) : (
+                formatGenericProviderName(selectedProvider)
+              )) : 'Provider'} Models
             </Typography>,
             ...(selectedProvider && groupedModels[selectedProvider] || []).map((model) => (
               <MenuItem

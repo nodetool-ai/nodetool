@@ -21,7 +21,11 @@ const welcomeStyles = (theme: Theme) =>
       paddingLeft: "0",
       margin: 0,
       color: theme.vars.palette.grey[0],
-      marginBottom: "1em"
+      marginBottom: 0
+    },
+    ".subtitle": {
+      color: theme.vars.palette.grey[300],
+      marginTop: ".25em"
     },
     ".summary": {
       fontSize: theme.fontSizeBigger,
@@ -87,6 +91,46 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".tab-content": {
       marginTop: "1em"
+    },
+    ".quick-start": {
+      background: theme.vars.palette.grey[900],
+      borderRadius: "12px",
+      padding: "10px 12px",
+      border: `1px solid ${theme.vars.palette.grey[700]}`
+    },
+    ".quick-start-grid": {
+      marginTop: "2px"
+    },
+    ".quick-card": {
+      background: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: "8px",
+      transition: "transform .15s ease, border-color .15s ease",
+      '&:hover': {
+        transform: "translateY(-2px)",
+        borderColor: "var(--palette-primary-main)"
+      }
+    },
+    ".quick-card .MuiCardContent-root": {
+      padding: "10px 12px"
+    },
+    ".quick-card-icon": {
+      fontSize: "22px",
+      color: "var(--palette-primary-main)"
+    },
+    ".quick-card-title": {
+      marginTop: "4px",
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeBig
+    },
+    ".quick-card-desc": {
+      opacity: 0.85,
+      marginTop: "2px",
+      fontSize: "0.9em",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical" as unknown as undefined,
+      overflow: "hidden"
     },
     ".link": {
       color: theme.vars.palette.grey[100],
@@ -229,6 +273,17 @@ const welcomeStyles = (theme: Theme) =>
     ".setup-list-content": {
       marginTop: ".25em"
     },
+    ".step-list": {
+      marginTop: ".25em",
+      paddingLeft: "1.25em",
+      "& li": { marginBottom: ".5em" }
+    },
+    ".callout": {
+      background: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: 8,
+      padding: "8px 12px"
+    },
     ".setup-list-secondary": {
       "& ul": {
         marginTop: "1em"
@@ -242,6 +297,66 @@ const welcomeStyles = (theme: Theme) =>
       "& p": {
         marginTop: "1em"
       }
+    },
+
+    // Local Models section styling
+    ".local-models": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.75em"
+    },
+    ".local-models .section-title": {
+      marginBottom: 0
+    },
+    ".local-models .section-subtitle": {
+      opacity: 0.9
+    },
+    ".models-heading": {
+      marginTop: "0.75em",
+      marginBottom: "0.25em",
+      fontFamily: theme.fontFamily2
+    },
+    ".local-models-list": {
+      listStyleType: "none",
+      padding: 0,
+      margin: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.75em"
+    },
+    ".local-model-item": {
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.grey[900],
+      borderRadius: 10,
+      padding: "12px 14px"
+    },
+    ".local-model-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1em"
+    },
+    ".local-model-title": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em"
+    },
+    ".local-model-badges": {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    },
+    ".local-model-actions": {
+      display: "flex",
+      alignItems: "center"
+    },
+    ".local-model-desc": {
+      marginTop: 6,
+      opacity: 0.95
+    },
+    ".model-note": {
+      color: theme.vars.palette.warning.main,
+      marginTop: 4
     }
   });
 export default welcomeStyles;
