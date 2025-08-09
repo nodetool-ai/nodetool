@@ -443,7 +443,11 @@ export const IconForType = memo(function IconForType({
     : iconMap["notype"];
 
   return (
-    <div css={iconStyles} style={containerStyle} className="icon-container">
+    <div
+      css={iconStyles(theme)}
+      style={containerStyle}
+      className="icon-container"
+    >
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
         title={
