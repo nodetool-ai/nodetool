@@ -101,8 +101,8 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#000"
   },
   info: {
-    main: "#E0E028",
-    contrastText: "#000"
+    main: "#60A5FA",
+    contrastText: "#0B1220"
   },
   success: {
     main: "#50FA7B",
@@ -138,53 +138,53 @@ export const paletteDark: PaletteOptions = {
   c_node: "#029486",
   c_folder: "#d6ae67",
   c_progress: "#556611",
-  c_link: "#e4ffde",
-  c_link_visited: "#d1e2cd",
+  c_link: "#93C5FD",
+  c_link_visited: "#A5B4FC",
   c_scroll_bg: "transparent",
   c_scroll_hover: "#585858",
   c_scroll_thumb: "#535353",
-  c_node_bg: "#2a2a2a",
-  c_node_bg_group: "#3d3d3d",
-  c_node_header_bg: "#202020",
-  c_node_header_bg_group: "#444",
-  c_bg_loop: "#305c9d17",
-  c_bg_group: "#aaa7",
+  c_node_bg: "#1C1F26",
+  c_node_bg_group: "#232734",
+  c_node_header_bg: "#171A20",
+  c_node_header_bg_group: "#2B2F3A",
+  c_bg_loop: "#2563EB22",
+  c_bg_group: "#A1A4AD30",
   c_editor_bg_color: "#111",
-  c_editor_grid_color: "#313131",
-  c_editor_axis_color: "#292929",
+  c_editor_grid_color: "#2A2E38",
+  c_editor_axis_color: "#1F2330",
   c_selection_rect: "#cdcdcd33",
 
   primary: {
-    main: "#77b4e6",
-    light: "#9bc5f0",
-    dark: "#4a7bc4",
-    contrastText: "#000"
+    main: "#60A5FA",
+    light: "#93C5FD",
+    dark: "#1D4ED8",
+    contrastText: "#fff"
   },
   secondary: {
-    main: "#d23f9e",
-    light: "#e993c5",
-    dark: "#ba008a",
+    main: "#A78BFA",
+    light: "#C4B5FD",
+    dark: "#6D28D9",
     contrastText: "#fff"
   },
   background: {
-    default: "#0d0d0d",
-    paper: "#232323"
+    default: "#0F1115",
+    paper: "#161A22"
   },
   text: {
-    primary: "#fff",
-    secondary: "#ddd",
-    disabled: "#aaa"
+    primary: "#FFFFFF",
+    secondary: "#C7D1E0",
+    disabled: "#94A3B8"
   },
   action: {
-    active: "#fff",
-    hover: "#444",
-    selected: "#aaa",
-    disabled: "#666"
+    active: "#FFFFFF",
+    hover: "#2A2F39",
+    selected: "#1F2937",
+    disabled: "#6B7280"
   },
   Paper: {
-    default: "#232323",
-    paper: "#232323",
-    overlay: "#2a2a2a"
+    default: "#161A22",
+    paper: "#161A22",
+    overlay: "#1C1F26"
   },
-  divider: "#555"
+  divider: "#2C3340"
 };
