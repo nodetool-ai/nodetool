@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip } from "@mui/material";
+import { Drawer, Tooltip, IconButton } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
@@ -15,10 +15,10 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
 
 // icons
-import CodeIcon from "@mui/icons-material/Code";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
+import PanelResizeButton from "./PanelResizeButton";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -192,23 +192,12 @@ const PanelRight: React.FC = () => {
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
-      <IconButton
-        disableRipple={true}
-        className={"panel-button panel-button-right"}
-        edge="end"
-        color="inherit"
-        tabIndex={-1}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          handleMouseDown(e);
-        }}
-        style={{
-          padding: isVisible ? "6px" : "2px",
-          right: isVisible ? `${Math.max(panelSize + 12, 30)}px` : "12px"
-        }}
-      >
-        <CodeIcon />
-      </IconButton>
+      <PanelResizeButton
+        side="right"
+        isVisible={isVisible}
+        panelSize={panelSize}
+        onMouseDown={handleMouseDown}
+      />
       <Drawer
         className="panel-right-drawer"
         PaperProps={{
