@@ -16,10 +16,13 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-// Removed manual resizing – the list expands with content
-const ROW_HEIGHT = 1.5; // height of each row in the folder list in em
+// Layout constants for folder tree
+const ROW_HEIGHT_EM = 1.1; // compact row height in em
+const INDENT_PER_LEVEL_EM = 1.3; // left indent per tree level
 const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
-const LEVEL_PADDING = 1; // padding for each level of the folder tree in em
+const EXPAND_ICON_SIZE_PX = 25; // accordion expand icon size
+const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
+const EXPAND_ICON_GUTTER_PX = EXPAND_ICON_SIZE_PX + EXPAND_ICON_LEFT_PX + 2; // space reserved so the arrow doesn't overlap the folder icon
 
 const styles = (theme: Theme) =>
   css({
@@ -33,16 +36,16 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       flexWrap: "nowrap",
-      gap: "0",
-      padding: "0",
+      gap: 0,
+      padding: 0,
       height: "auto",
       overflow: "visible"
     },
     ".childless": {
-      marginBottom: "0.25em"
+      margin: 0
     },
     ".accordion": {
-      height: ROW_HEIGHT + "em",
+      height: ROW_HEIGHT_EM + "em",
       background: "transparent",
       boxShadow: "none",
       color: theme.vars.palette.grey[100],
@@ -59,27 +62,28 @@ const styles = (theme: Theme) =>
     },
     ".accordion-summary": {
       flexDirection: "row-reverse",
-      height: ROW_HEIGHT + "em",
-      minHeight: "unset",
+      height: ROW_HEIGHT_EM + "em",
+      minHeight: ROW_HEIGHT_EM + "em",
+      padding: 0,
       "&.Mui-expanded": {
-        minHeight: "auto"
+        minHeight: ROW_HEIGHT_EM + "em"
       }
     },
     ".accordion-summary .MuiAccordionSummary-content": {
       margin: "0"
     },
     ".accordion .MuiAccordionDetails-root": {
-      padding: "0",
-      marginTop: "0"
+      padding: 0,
+      marginTop: 0
     },
     ".accordion .MuiAccordionDetails-root .MuiBox-root": {
-      height: "1.5em"
+      height: ROW_HEIGHT_EM + "em"
     },
     ".MuiAccordionSummary-expandIconWrapper": {
       position: "relative",
-      padding: "0",
-      width: "0px",
-      height: "0px",
+      padding: 0,
+      width: EXPAND_ICON_GUTTER_PX + "px", // reserve space so the icon doesn't overlap folder icon
+      height: ROW_HEIGHT_EM + "em",
       overflow: "visible",
       transform: "none"
     },
@@ -90,33 +94,33 @@ const styles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".MuiAccordionSummary-expandIconWrapper svg": {
-      width: "25px",
-      height: "25px",
+      width: EXPAND_ICON_SIZE_PX + "px",
+      height: EXPAND_ICON_SIZE_PX + "px",
       position: "absolute",
-      top: "-.6em",
+      top: "50%",
       bottom: "0",
-      left: "4px",
+      left: EXPAND_ICON_LEFT_PX + "px",
       right: "0",
       zIndex: 1000,
       color: theme.vars.palette.grey[200],
       filter: "none",
-      transform: "rotate(-90deg)",
+      transform: "translateY(-50%) rotate(-90deg)",
       transition: "transform 0.25s ease"
     },
     ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
       color: theme.vars.palette.grey[200],
-      transform: "rotate(0deg)"
+      transform: "translateY(-50%) rotate(0deg)"
     },
     //
     ".root-folder": {
-      paddingLeft: "0",
-      marginLeft: "-.5em"
+      paddingLeft: 0,
+      marginLeft: 0
     },
     ".root-folder .folder-icon": {
       width: "18px !important"
     },
     ".root-folder .folder-name": {
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmall
     },
     // No resize handle styles
     // Narrow sidebar tweaks
@@ -154,6 +158,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
 
     return hasChildren ? (
       <Accordion
+        slotProps={{ heading: { component: "div" } }}
         className={"accordion " + (isRoot ? "root-folder" : "")}
         key={folder.id}
         sx={{
@@ -166,7 +171,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           sx={{
             marginTop: 0,
             marginBottom: 0,
-            paddingLeft: `${level * LEVEL_PADDING}em !important`
+            paddingLeft: `${level * INDENT_PER_LEVEL_EM}em !important`
           }}
           expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${folder.id}-content`}
@@ -188,10 +193,10 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       <Box
         className={"childless " + (isRoot ? "root-folder" : "")}
         sx={{
-          height: ROW_HEIGHT + "em",
+          height: ROW_HEIGHT_EM + "em",
           marginTop: 0,
           marginBottom: 0,
-          paddingLeft: `${level * LEVEL_PADDING}em !important`
+          paddingLeft: `${level * INDENT_PER_LEVEL_EM}em !important`
         }}
         key={folder.id}
       >
