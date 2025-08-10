@@ -20,6 +20,7 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
+import { ensureOllamaInstalled } from "./ollama";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -81,7 +82,7 @@ async function startOllamaServer(): Promise<void> {
   const selectedPort = await findAvailablePort(basePort);
   serverState.ollamaPort = selectedPort;
 
-  const ollamaExecutablePath = getOllamaPath();
+  const ollamaExecutablePath = await ensureOllamaInstalled();
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
   const healthUrl = `http://127.0.0.1:${selectedPort}/`;
   const modelsPath = getOllamaModelsPath();

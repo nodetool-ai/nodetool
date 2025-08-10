@@ -20,6 +20,7 @@ import { getCondaUnpackPath } from "./config";
 import { spawn } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
+import { ensureOllamaInstalled } from "./ollama";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
@@ -375,6 +376,16 @@ async function installCondaEnvironment(): Promise<void> {
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
+
+    // Ensure Ollama is available during installation per requirements
+    try {
+      emitBootMessage("Checking for Ollama runtime...");
+      const ollamaPath = await ensureOllamaInstalled();
+      logMessage(`Ollama available at: ${ollamaPath}`);
+    } catch (err: any) {
+      logMessage(`Failed to ensure Ollama is installed: ${err.message}`, "error");
+      // Continue installation even if Ollama fetch failed; it will be retried at runtime
+    }
   } catch (error: any) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
