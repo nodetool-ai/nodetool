@@ -24,7 +24,7 @@ import ThemeToggle from "../ui/ThemeToggle";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
-import WidgetsIcon from "@mui/icons-material/Widgets";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       zIndex: 1200,
       left: "unset",
       right: "unset",
-      width: "40px",
+      width: "36px",
       height: "calc(100vh - 75px)",
       backgroundColor: "transparent",
       border: 0,
@@ -62,6 +62,18 @@ const styles = (theme: Theme) =>
       top: "72px",
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "4px",
+        height: "24px",
+        borderRadius: "2px",
+        backgroundColor: theme.vars.palette.grey[600],
+        opacity: 0.5
+      },
 
       "& svg": {
         fontSize: "0.8em !important",
@@ -72,7 +84,10 @@ const styles = (theme: Theme) =>
       },
 
       "&:hover": {
-        backgroundColor: "#33333344",
+        backgroundColor: `${theme.vars.palette.action.hover}55`,
+        "&::before": {
+          opacity: 0.8
+        },
         "& svg": {
           opacity: 1,
           fontSize: "1em !important"
@@ -92,22 +107,40 @@ const styles = (theme: Theme) =>
       width: "50px",
       display: "flex",
       flexDirection: "column",
+      gap: 6,
       backgroundColor: "transparent",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      // Ensure custom SVG icons (IconForType) are sized like MUI icons
+      "& .icon-container": {
+        width: "18px",
+        height: "18px"
+      },
+      // Give a little extra top spacing to the very first icon button
+      "& .MuiIconButton-root:first-of-type, & .MuiButton-root:first-of-type": {
+        marginTop: "8px"
+      },
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "14px",
-        borderRadius: "5px",
+        padding: "12px",
+        borderRadius: "8px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        willChange: "transform, box-shadow",
+        // Make icons smaller within toolbar buttons
+        "& svg": {
+          fontSize: "1.125rem"
+        },
 
         "&.active": {
-          backgroundColor: `${theme.vars.palette.action.selected}88`
+          backgroundColor: `${theme.vars.palette.action.selected}66`,
+          boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
         },
         "&.active svg": {
           color: theme.vars.palette.primary.main
         },
         "&:hover": {
-          backgroundColor: `${theme.vars.palette.action.hover}88`,
-          boxShadow: `0 0 15px ${theme.vars.palette.action.hover}40`,
+          backgroundColor: `${theme.vars.palette.action.hover}66`,
+          boxShadow: `0 4px 18px ${theme.vars.palette.action.hover}30`,
+          transform: "translateY(-1px) scale(1.02)",
           "&::after": {
             content: '""',
             position: "absolute",
@@ -116,8 +149,16 @@ const styles = (theme: Theme) =>
             right: 0,
             bottom: 0,
             background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}20, transparent)`,
-            borderRadius: "2px"
+            borderRadius: "8px"
+          },
+          "& svg, & .icon-container svg": {
+            transform: "scale(1.05)",
+            filter: `drop-shadow(0 0 6px ${theme.vars.palette.primary.main}33)`
           }
+        },
+        "&:active": {
+          transform: "translateY(0) scale(0.98)",
+          boxShadow: `0 2px 10px ${theme.vars.palette.action.hover}24`
         }
       }
     },
@@ -154,8 +195,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
-  const navigate = useNavigate();
-  const path = useLocation().pathname;
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
   return (
@@ -450,7 +489,7 @@ const PanelLeft: React.FC = () => {
           left: isVisible ? `${Math.max(panelSize + 14, 25)}px` : "0px"
         }}
       >
-        <CodeIcon />
+        <DragIndicatorIcon />
       </IconButton>
       <Drawer
         PaperProps={{
@@ -466,6 +505,9 @@ const PanelLeft: React.FC = () => {
             backgroundColor: isVisible
               ? "var(--palette-background-default)"
               : "transparent",
+            borderRight: isVisible ? `1px solid ${theme.vars.palette.divider}` : "none",
+            borderTopRightRadius: 0,
+            borderBottomRightRadius: 0,
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
           }
         }}

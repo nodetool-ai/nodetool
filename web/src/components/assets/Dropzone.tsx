@@ -108,17 +108,7 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
       onDrop={handleDrop}
     >
       {isExternalDrag && <div className="dragging-overlay" />}
-      <div
-        className="actions-secondary"
-        style={{
-          display: "flex",
-          gap: "0.5em",
-          marginLeft: "0.5em",
-          width: "100%"
-        }}
-      >
-        <FileUploadButton onFileChange={props.onDrop} />
-      </div>
+      {/* Upload button moved into the toolbar; keep drag-and-drop active here */}
       {props.children}
     </div>
   );

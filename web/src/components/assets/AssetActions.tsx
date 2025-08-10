@@ -37,12 +37,14 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import FileUploadButton from "../buttons/FileUploadButton";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
   handleSelectAllAssets: () => void;
   handleDeselectAssets: () => void;
   maxItemSize?: number;
+  onUploadFiles?: (files: File[]) => void;
 }
 
 const styles = (theme: Theme) =>
@@ -51,7 +53,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       gap: ".25em",
-      maxWidth: "500px",
+      maxWidth: "100%",
       flexGrow: 1,
       minHeight: "30px"
     },
@@ -110,7 +112,7 @@ const styles = (theme: Theme) =>
     // sort by
     ".sort-assets": {
       width: "45px",
-      margin: "0 1em",
+      margin: "0 .5em",
       color: "var(--palette-primary-main)",
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
@@ -204,13 +206,33 @@ const styles = (theme: Theme) =>
     },
     ".size-filter.MuiInput-root:hover::after": {
       border: "none"
+    },
+    // Stack controls on very narrow widths
+    "@media (max-width: 520px)": {
+      "&": {
+        flexDirection: "column",
+        alignItems: "stretch"
+      },
+      ".asset-button-group": {
+        justifyContent: "flex-start",
+        flexWrap: "wrap"
+      },
+      ".sort-assets, .size-filter": {
+        margin: "0",
+        width: "100%",
+        maxWidth: "100%"
+      },
+      ".asset-size-slider": {
+        maxWidth: "100%"
+      }
     }
   });
 
 const AssetActions = ({
   handleSelectAllAssets,
   handleDeselectAssets,
-  maxItemSize = 10
+  maxItemSize = 10,
+  onUploadFiles
 }: AssetActionsProps) => {
   const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
@@ -286,38 +308,8 @@ const AssetActions = ({
   };
   return (
     <div className="asset-actions" css={styles(theme)}>
+      <FileUploadButton onFileChange={(files) => onUploadFiles?.(files)} compact />
       <ButtonGroup className="asset-button-group" tabIndex={-1}>
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          title={parentFolder?.name ? `Up to "${parentFolder?.name}"` : "Go up"}
-        >
-          <Button
-            sx={{
-              width: "2em",
-              height: "2em",
-              borderRadius: "50%",
-              padding: "0",
-              margin: "0",
-              "& svg": {
-                height: ".75em",
-                width: "1em"
-              }
-            }}
-            onClick={() => {
-              if (currentFolder?.parent_id) {
-                navigateToFolderId(
-                  currentFolder?.parent_id || currentUser?.id || ""
-                );
-              }
-            }}
-            className={`folder-up-button ${
-              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-            }`}
-            tabIndex={-1}
-          >
-            <NorthIcon />
-          </Button>
-        </Tooltip>
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
           <Button
             onClick={(e) => setCreateFolderAnchor(e.currentTarget)}

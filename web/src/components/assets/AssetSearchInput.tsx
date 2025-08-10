@@ -137,7 +137,9 @@ interface AssetSearchInputProps {
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   debounceTime?: number;
-  width?: number;
+  // Acts as a max width. The input will always try to take 100% width of its
+  // container up to this value. Accepts number (px) or any CSS width string.
+  width?: number | string;
 }
 
 const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
@@ -349,7 +351,11 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         isGlobalSearchMode ? "global-mode" : "local-mode"
       }`}
       css={styles(theme)}
-      style={{ width: `${width}px` }}
+      style={{
+        width: "100%",
+        maxWidth:
+          typeof width === "number" ? `${width}px` : (width as string | undefined)
+      }}
     >
       <Tooltip
         title={

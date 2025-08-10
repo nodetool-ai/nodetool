@@ -27,13 +27,11 @@ export async function logMessage(
   level: LogLevel = "info"
 ): Promise<void> {
   try {
-    const timestamp = new Date().toISOString();
-    const fullMessage = `[${timestamp}] [${level.toUpperCase()}] ${message.trim()}`;
-    log[level](fullMessage);
+    log[level](message.trim());
 
     emitServerLog(message.trim());
 
-    await fs.appendFile(LOG_FILE, fullMessage + "\n").catch((err) => {
+    await fs.appendFile(LOG_FILE, message.trim() + "\n").catch((err) => {
       console.error("Failed to write to log file:", err);
     });
   } catch (error) {

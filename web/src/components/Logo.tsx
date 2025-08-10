@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useEffect, useState, useCallback } from "react";
 import { DATA_TYPES } from "../config/data_types";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 const randomDatatype = () => {
@@ -18,7 +18,8 @@ const logoStyles = (
   height: string,
   fontSize: string,
   borderRadius: string,
-  small: boolean
+  small: boolean,
+  invertLogo: boolean
 ) =>
   css({
     display: "flex",
@@ -64,7 +65,8 @@ const logoStyles = (
     ".logo-image": {
       cursor: "pointer",
       width: "20px",
-      height: "20px"
+      height: "20px",
+      filter: invertLogo ? "invert(1)" : undefined
     }
   });
 
@@ -103,6 +105,8 @@ const Logo = ({
   }, []);
 
   const theme = useTheme();
+  const { mode } = useColorScheme();
+
 
   return (
     <div
@@ -116,7 +120,8 @@ const Logo = ({
         height,
         fontSize,
         borderRadius,
-        small
+        small,
+        mode === "light"
       )}
     >
       {small && (
