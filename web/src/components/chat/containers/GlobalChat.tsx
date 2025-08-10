@@ -177,7 +177,7 @@ const GlobalChat: React.FC = () => {
       ".chat-header": {
         position: "absolute",
         top: 0,
-        left: 0,
+        left: "40px",
         zIndex: 1000
       },
 
@@ -244,7 +244,6 @@ const GlobalChat: React.FC = () => {
           className="chat-header"
           sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
         >
-          <BackToDashboardButton />
           <BackToEditorButton />
         </Box>
 
