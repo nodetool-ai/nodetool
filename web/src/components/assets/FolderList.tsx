@@ -18,7 +18,7 @@ import type { Theme } from "@mui/material/styles";
 
 // Layout constants for folder tree
 const ROW_HEIGHT_REM = 1.3; // compact row height in em
-const INDENT_PER_LEVEL_EM = 0.7; // left indent per tree level
+const INDENT_PER_LEVEL_EM = 0.5; // left indent per tree level
 const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
 const EXPAND_ICON_SIZE_PX = 26; // accordion expand icon size
 // const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
