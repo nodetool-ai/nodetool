@@ -76,6 +76,31 @@ const getPythonPath = (): string => {
 };
 
 /**
+ * Retrieves the path to the Ollama executable from the conda environment only.
+ * @returns {string} Path to Ollama executable
+ */
+const getOllamaPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  const ollamaPath = process.platform === "win32"
+    ? path.join(condaPath, "Scripts", "ollama.exe")
+    : path.join(condaPath, "bin", "ollama");
+
+  logMessage(`getOllamaPath() - condaPath: ${condaPath}`);
+  logMessage(`getOllamaPath() - resolved: ${ollamaPath}`);
+  return ollamaPath;
+};
+
+/**
+ * Returns the per-OS models directory to use for Ollama.
+ * macOS/Linux: ~/.ollama/models
+ * Windows: C:\\Users\\<User>\\.ollama\\models
+ */
+const getOllamaModelsPath = (): string => {
+  const homeDir = app.getPath("home");
+  return path.join(homeDir, ".ollama", "models");
+};
+
+/**
  * Retrieves the path to the conda-unpack executable
  * @returns {string} Path to conda-unpack executable
  */
@@ -123,6 +148,8 @@ export {
   getCondaEnvPath,
   getPythonPath,
   getUVPath,
+  getOllamaPath,
+  getOllamaModelsPath,
   getCondaUnpackPath,
   getProcessEnv,
   srcPath,
