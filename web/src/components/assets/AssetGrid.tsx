@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       flexGrow: 1,
       flexShrink: 1,
       width: "100%",
-      maxHeight: "calc(-170px + 100vh)"
+      maxHeight: "calc(-260px + 100vh)"
     },
     ".audio-controls-container": {
       position: "absolute",
@@ -101,24 +101,9 @@ const styles = (theme: Theme) =>
     ".folder-item": {
       position: "relative",
       alignItems: "center",
-      padding: "0 0 4px 0",
-      marginLeft: "2em",
-      "&::before, &::after": {
-        content: '""',
-        position: "absolute",
-        left: "6px"
-      },
-      "&::before": {
-        top: "0",
-        height: "100%"
-      },
-      "&::after": {
-        top: "12px",
-        width: "12px"
-      },
-      "&:last-child::before": {
-        height: "12px"
-      }
+      // Remove extra spacing that created large gaps between rows
+      padding: 0,
+      marginLeft: 0
     },
     ".folder-icon": {
       marginRight: "0.1em",
@@ -135,8 +120,10 @@ const styles = (theme: Theme) =>
       }
     },
     ".folder-item.selected ": {
-      padding: "0 0.5em 0 0",
-      width: "calc(100% - 2em)",
+      // Keep the color emphasis without shifting layout vertically
+      padding: 0,
+      margin: 0,
+      width: "100%",
       backgroundColor: "transparent",
       "& .folder-name": {
         fontWeight: "600",
@@ -147,10 +134,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".root-folder": {
-      paddingLeft: "4px",
-      "&::before, &::after": {
-        display: "none"
-      }
+      paddingLeft: "4px"
     },
     ".file-info": {
       display: "flex",
@@ -375,10 +359,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu
-        maxItemSize={maxItemSize}
-        onUploadFiles={uploadFiles}
-      />
+      <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
       <StorageAnalytics
         assets={sortedAssets || folderFilesFiltered || []}
         currentFolder={currentFolder}
@@ -402,7 +383,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           style={{
             height: "100%",
             display: "flex",
-            margin: "0.5em",
+            margin: "0",
             flexDirection: isHorizontal ? "row" : "column"
           }}
         >

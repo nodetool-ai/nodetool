@@ -33,7 +33,8 @@ const styles = (theme: Theme) =>
     ".folder-icon": {
       width: "25px",
       height: "100%",
-      left: "0",
+      marginLeft: "2px", // add a tiny gutter to avoid overlap with accordion arrow
+      left: 0,
       color: theme.vars.palette.grey[500]
     },
     ".folder-icon:hover": {
