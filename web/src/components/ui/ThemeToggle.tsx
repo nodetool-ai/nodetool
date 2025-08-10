@@ -8,19 +8,6 @@ export const ThemeToggle: React.FC = () => {
 
   const toggleTheme = () => {
     const newMode = mode === "dark" ? "light" : "dark";
-    console.log(`Switching from ${mode} to ${newMode}`);
-
-    // Check CSS variables after toggle
-    setTimeout(() => {
-      const grey900 = getComputedStyle(
-        document.documentElement
-      ).getPropertyValue("--palette-grey-900");
-      const bg = getComputedStyle(document.documentElement).getPropertyValue(
-        "--palette-background-default"
-      );
-      console.log(`After toggle - grey-900: ${grey900}, bg: ${bg}`);
-    }, 100);
-
     setMode(newMode);
   };
 
