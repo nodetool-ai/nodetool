@@ -13,25 +13,19 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
-import { COMMENT_NODE_METADATA } from "../../utils/nodeUtils";
+// Removed comment creation via drag
 
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  const { cKeyPressed } = useKeyPressed((state) => ({
-    cKeyPressed: state.isKeyPressed("c")
-  }));
+  // Removed: c-key drag-to-create-comment feature
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
   const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
   const reactFlow = useReactFlow();
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [commentDragState, setCommentDragState] = useState<{
-    isActive: boolean;
-    startPos: { x: number; y: number } | null;
-  }>({ isActive: false, startPos: null });
+  const [_startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<
     Node<NodeData> | undefined
   >();
@@ -52,24 +46,7 @@ export default function useDragHandlers() {
       findNode: state.findNode,
       updateNode: state.updateNode
     }));
-
-  const createCommentNode = useCallback(
-    (width: number, height: number, initialPos: { x: number; y: number }) => {
-      const metadata = COMMENT_NODE_METADATA;
-      const newNode = createNode(metadata, {
-        x: initialPos.x,
-        y: initialPos.y - 20
-      });
-      newNode.width = Math.max(width, 150);
-      newNode.height = Math.max(height, 100);
-      newNode.style = {
-        width: newNode.width,
-        height: newNode.height
-      };
-      addNode(newNode);
-    },
-    [addNode, createNode]
-  );
+  // Removed: createCommentNode helper and related drag-to-create logic
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback((event: any) => {
@@ -241,48 +218,19 @@ export default function useDragHandlers() {
         y: currentMousePos.y
       });
       setStartPos(projectedStartPos); // General purpose
-
-      if (cKeyPressed) {
-        setCommentDragState({ isActive: true, startPos: projectedStartPos });
-      } else {
-        if (!commentDragState.isActive) {
-          setCommentDragState({ isActive: false, startPos: null });
-        }
-      }
     },
     [
       reactFlow,
-      cKeyPressed,
       setStartPos,
-      setCommentDragState,
-      commentDragState.isActive
+      // comment creation via drag removed
     ]
   ); // Added commentDragState.isActive
 
   const onSelectionEnd = useCallback(
-    (event: MouseEvent) => {
-      if (commentDragState.isActive && commentDragState.startPos) {
-        const projectedEndPos = reactFlow.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
-
-        const actualStartPos = commentDragState.startPos;
-        const nodeX = Math.min(actualStartPos.x, projectedEndPos.x);
-        const nodeY = Math.min(actualStartPos.y, projectedEndPos.y);
-
-        const width = Math.abs(actualStartPos.x - projectedEndPos.x);
-        const height = Math.abs(actualStartPos.y - projectedEndPos.y);
-
-        if (width > 10 || height > 10) {
-          // Threshold
-          // Pass the calculated top-left (nodeX, nodeY) as the initial position
-          createCommentNode(width, height, { x: nodeX, y: nodeY });
-        }
-      }
-      setCommentDragState({ isActive: false, startPos: null });
+    (_event: MouseEvent) => {
+      // No-op: drag-to-create-comment has been removed
     },
-    [commentDragState, reactFlow, createCommentNode, setCommentDragState]
+    []
   );
 
   // enables pan on drag. accepts boolean or array of mouse buttons
