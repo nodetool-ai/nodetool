@@ -24,7 +24,8 @@ import ThemeToggle from "../ui/ThemeToggle";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+// import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -474,23 +475,12 @@ const PanelLeft: React.FC = () => {
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
-      <IconButton
-        disableRipple={true}
-        className={"panel-button panel-button-left"}
-        edge="start"
-        color="inherit"
-        aria-label="menu"
-        tabIndex={-1}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          handleMouseDown(e);
-        }}
-        style={{
-          left: isVisible ? `${Math.max(panelSize + 14, 25)}px` : "0px"
-        }}
-      >
-        <DragIndicatorIcon />
-      </IconButton>
+      <PanelResizeButton
+        side="left"
+        isVisible={isVisible}
+        panelSize={panelSize}
+        onMouseDown={handleMouseDown}
+      />
       <Drawer
         PaperProps={{
           ref: panelRef,
@@ -505,7 +495,9 @@ const PanelLeft: React.FC = () => {
             backgroundColor: isVisible
               ? "var(--palette-background-default)"
               : "transparent",
-            borderRight: isVisible ? `1px solid ${theme.vars.palette.divider}` : "none",
+            borderRight: isVisible
+              ? `1px solid ${theme.vars.palette.divider}`
+              : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
