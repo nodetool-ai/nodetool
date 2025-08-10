@@ -22,7 +22,14 @@ const styles = (theme: Theme) =>
       justifyContent: "start",
       alignItems: "start",
       gap: ".5em",
-      transition: "max-height 0.5s ease-in-out"
+      width: "100%",
+      transition: "max-height 0.5s ease-in-out",
+      // Tighter, stacked controls for narrow sidebars
+      "@media (max-width: 520px)": {
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: ".4em"
+      }
     },
     ".selected-asset-info": {
       minHeight: "100px",
@@ -37,9 +44,10 @@ const styles = (theme: Theme) =>
 
 interface AssetActionsMenuProps {
   maxItemSize: number;
+  onUploadFiles?: (files: File[]) => void;
 }
 
-const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
+const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUploadFiles }) => {
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
@@ -77,6 +85,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
         handleSelectAllAssets={handleSelectAllAssets}
         handleDeselectAssets={handleDeselectAssets}
         maxItemSize={maxItemSize}
+        onUploadFiles={onUploadFiles}
       />
     </Box>
   );

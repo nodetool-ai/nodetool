@@ -7,7 +7,7 @@ import {
   Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -16,10 +16,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const INITIAL_FOLDER_LIST_HEIGHT = 100; // initial height of the folder list in px
-const MIN_FOLDER_LIST_HEIGHT = 100; // minimum height of the folder list in px
-const MAX_FOLDER_LIST_HEIGHT = 1500; // maximum height of the folder list in px
-const RESIZE_HANDLE_HEIGHT = 20; // height of the resize handle in px
+// Removed manual resizing – the list expands with content
 const ROW_HEIGHT = 1.5; // height of each row in the folder list in em
 const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
 const LEVEL_PADDING = 1; // padding for each level of the folder tree in em
@@ -28,9 +25,9 @@ const styles = (theme: Theme) =>
   css({
     "&.folder-list-container": {
       position: "relative",
-      height: "120px",
-      overflow: "hidden",
-      padding: ".5em 0 0 0"
+      height: "auto",
+      overflow: "visible",
+      padding: ".25em 0 0 0"
     },
     ".folder-list": {
       display: "flex",
@@ -38,8 +35,8 @@ const styles = (theme: Theme) =>
       flexWrap: "nowrap",
       gap: "0",
       padding: "0",
-      height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
-      overflow: "hidden auto"
+      height: "auto",
+      overflow: "visible"
     },
     ".childless": {
       marginBottom: "0.25em"
@@ -115,33 +112,21 @@ const styles = (theme: Theme) =>
       paddingLeft: "0",
       marginLeft: "-.5em"
     },
-    // resize folder list
-    ".resize-handle": {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: `${RESIZE_HANDLE_HEIGHT}px`,
-      cursor: "ns-resize",
-      backgroundColor: "var(--palette-grey-600)",
-      transition: "background-color 0.2s ease",
-      "&:hover, &.resizing": {
-        backgroundColor: "var(--palette-grey-500)"
-      },
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "2em",
-        height: "4px",
-        borderRadius: "2px",
-        backgroundColor: theme.vars.palette.grey[900]
-      }
+    ".root-folder .folder-icon": {
+      width: "18px !important"
     },
-    ".resize-handle:hover::after, .resize-handle.resizing::after": {
-      backgroundColor: "var(--palette-primary-main)"
+    ".root-folder .folder-name": {
+      fontSize: theme.fontSizeSmaller
+    },
+    // No resize handle styles
+    // Narrow sidebar tweaks
+    "@media (max-width: 520px)": {
+      "&.folder-list-container": {
+        height: "100px"
+      },
+      ".MuiAccordionSummary-expandIconWrapper svg": {
+        left: "0"
+      }
     }
   });
 
@@ -153,56 +138,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const theme = useTheme();
   const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
-  const [folderListHeight, setFolderListHeight] = useState(
-    INITIAL_FOLDER_LIST_HEIGHT
-  );
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const initialMouseY = useRef<number>(0);
-  const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
   const { navigateToFolder } = useAssets();
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      setIsResizing(true);
-      initialMouseY.current = e.clientY;
-      initialHeight.current = folderListHeight;
-    },
-    [folderListHeight]
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  const handleResize = useCallback(
-    (e: MouseEvent) => {
-      if (isResizing && containerRef.current) {
-        const deltaY = e.clientY - initialMouseY.current;
-        const newHeight = initialHeight.current + deltaY;
-        const clampedHeight = Math.max(
-          MIN_FOLDER_LIST_HEIGHT,
-          Math.min(newHeight, MAX_FOLDER_LIST_HEIGHT)
-        );
-
-        setFolderListHeight(clampedHeight);
-      }
-    },
-    [isResizing]
-  );
-
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener("mousemove", handleResize);
-      window.addEventListener("mouseup", handleResizeEnd);
-    }
-    return () => {
-      window.removeEventListener("mousemove", handleResize);
-      window.removeEventListener("mouseup", handleResizeEnd);
-    };
-  }, [isResizing, handleResize, handleResizeEnd]);
 
   const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
@@ -281,20 +217,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       className="folder-list-container"
       css={styles(theme)}
       style={{
-        height: `${folderListHeight}px`,
         minHeight: isHorizontal ? "100%" : "auto",
         minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto"
       }}
-      ref={containerRef}
     >
       <div className="folder-list">{renderFolder(rootFolder, 0, true)}</div>
-      {!isHorizontal && (
-        <div
-          className={`resize-handle ${isResizing ? "resizing" : ""}`}
-          onMouseDown={handleResizeStart}
-          ref={resizeRef}
-        />
-      )}
     </div>
   );
 };
