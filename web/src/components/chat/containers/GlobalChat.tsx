@@ -7,8 +7,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
-import BackToEditorButton from "../../panels/BackToEditorButton";
-import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore, { useThreadsQuery } from "../../../stores/GlobalChatStore";
 import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
