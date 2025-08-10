@@ -17,8 +17,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 // Layout constants for folder tree
-const ROW_HEIGHT_REM = 1.3; // compact row height in em
-const INDENT_PER_LEVEL_EM = 0.5; // left indent per tree level
+const ROW_HEIGHT_REM = 1.5; // compact row height in em
+const INDENT_PER_LEVEL_REM = 0.75; // left indent per tree level
 const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
 const EXPAND_ICON_SIZE_PX = 26; // accordion expand icon size
 // const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
@@ -187,7 +187,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         >
           <div
             className="row"
-            style={{ paddingLeft: `${level * INDENT_PER_LEVEL_EM}em` }}
+            style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               const summary =
@@ -228,7 +228,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       >
         <div
           className="row"
-          style={{ paddingLeft: `${level * INDENT_PER_LEVEL_EM}em` }}
+          style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
         >
           <FolderItem
             folder={folder}
