@@ -10,8 +10,6 @@ const srcPath: string = app.isPackaged
   ? path.join(resourcesPath, "src")
   : path.join(__dirname, "..", "..", "src");
 
-const userDataPath: string = app.getPath("userData");
-const legacyCondaPath: string = path.join(userDataPath, "conda_env");
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "..", "..", "web", "dist");
@@ -29,20 +27,7 @@ const getCondaEnvPath = (): string => {
   logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
   console.log(`Settings:`, settings);
 
-  // Check if legacy path exists and settings doesn't have CONDA_ENV
-  logMessage(`Checking legacy path: ${legacyCondaPath}`);
-  console.log(`Legacy path: ${legacyCondaPath}`);
-  
-  if (!settings.CONDA_ENV && fs.existsSync(legacyCondaPath)) {
-    logMessage("Legacy conda environment path found, migrating to settings");
-    console.log("Legacy conda environment path found, migrating to settings");
-    // Update settings with legacy path
-    updateSetting("CONDA_ENV", legacyCondaPath);
-    logMessage("Migrated legacy conda environment path to settings");
-    return legacyCondaPath;
-  }
-
-  const condaPath: string = settings.CONDA_ENV || legacyCondaPath;
+  const condaPath: string = settings.CONDA_ENV;
   logMessage(`Final conda path: ${condaPath}`);
   console.log(`Final conda path: ${condaPath}`);
 
@@ -76,18 +61,14 @@ const getPythonPath = (): string => {
 };
 
 /**
- * Retrieves the path to the Ollama executable from the conda environment only.
- * @returns {string} Path to Ollama executable
+ * Retrieves the path to the Ollama executable from the conda environment.
+ * Note: Actual presence is ensured at runtime by ensureOllamaInstalled().
  */
 const getOllamaPath = (): string => {
   const condaPath: string = getCondaEnvPath();
-  const ollamaPath = process.platform === "win32"
+  return process.platform === "win32"
     ? path.join(condaPath, "Scripts", "ollama.exe")
     : path.join(condaPath, "bin", "ollama");
-
-  logMessage(`getOllamaPath() - condaPath: ${condaPath}`);
-  logMessage(`getOllamaPath() - resolved: ${ollamaPath}`);
-  return ollamaPath;
 };
 
 /**
