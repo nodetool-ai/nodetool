@@ -6,6 +6,7 @@ export interface ServerState {
   initialURL: string;
   logs: string[];
   serverPort?: number;
+  ollamaPort?: number;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -16,6 +17,7 @@ const serverState: ServerState = {
   initialURL: `http://127.0.0.1:${8000}`,
   logs: [],
   serverPort: 8000,
+  ollamaPort: 11435,
 };
 
 export function getMainWindow(): BrowserWindow | null {

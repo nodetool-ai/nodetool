@@ -1,8 +1,10 @@
-import { spawn, ChildProcess, exec } from "child_process";
+import { spawn, ChildProcess } from "child_process";
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
   getPythonPath,
+  getOllamaPath,
+  getOllamaModelsPath,
   getProcessEnv,
   PID_FILE_PATH,
   webPath,
@@ -13,12 +15,16 @@ import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import fs from "fs/promises";
 import net from "net";
-import { updateTrayMenu, createTray } from "./tray";
+import path from "path";
+import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
-import { readSettings, updateSetting } from "./settings";
+import { Watchdog } from "./watchdog";
+import { ensureOllamaInstalled } from "./ollama";
 
-let nodeToolBackendProcess: ChildProcess | null = null;
+let backendWatchdog: Watchdog | null = null;
+let ollamaWatchdog: Watchdog | null = null;
+const OLLAMA_PID_FILE_PATH = path.join(app.getPath("userData"), "ollama.pid");
 
 /**
  * Server Management Module
@@ -69,14 +75,35 @@ async function findAvailablePort(
 }
 
 /**
- * Displays an error dialog when port 8000 is already in use and quits the application
+ * Starts the Ollama server on a custom port using Watchdog
  */
-async function showPortInUseError(): Promise<void> {
-  dialog.showErrorBox(
-    "Port Already in Use",
-    "The required port is already in use. Please ensure no other applications are using this port and try again."
-  );
-  app.quit();
+async function startOllamaServer(): Promise<void> {
+  const basePort = serverState.ollamaPort ?? 11435;
+  const selectedPort = await findAvailablePort(basePort);
+  serverState.ollamaPort = selectedPort;
+
+  const ollamaExecutablePath = await ensureOllamaInstalled();
+  const args = ["serve"]; // OLLAMA_HOST controls bind address/port
+  const healthUrl = `http://127.0.0.1:${selectedPort}/`;
+  const modelsPath = getOllamaModelsPath();
+  try {
+    await fs.mkdir(modelsPath, { recursive: true });
+    logMessage(`Ensured OLLAMA_MODELS directory exists at: ${modelsPath}`);
+  } catch (error) {
+    logMessage(`Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${(error as Error).message}`, "error");
+  }
+
+  ollamaWatchdog = new Watchdog({
+    name: "ollama",
+    command: ollamaExecutablePath,
+    args,
+    env: { ...process.env, OLLAMA_HOST: `127.0.0.1:${selectedPort}`, OLLAMA_MODELS: modelsPath },
+    pidFilePath: OLLAMA_PID_FILE_PATH,
+    healthUrl,
+    onOutput: (line) => emitServerLog(line),
+  });
+
+  await ollamaWatchdog.start();
 }
 
 /**
@@ -155,6 +182,9 @@ async function startServer(): Promise<void> {
 
   const pythonExecutablePath = getPythonPath();
 
+  // Ensure Ollama is started first
+  await startOllamaServer();
+
   const basePort = 8000;
   const selectedPort = await findAvailablePort(basePort);
   serverState.serverPort = selectedPort;
@@ -174,37 +204,20 @@ async function startServer(): Promise<void> {
 
   logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
 
-  try {
-    nodeToolBackendProcess = spawn(pythonExecutablePath, args, {
-      stdio: "pipe",
-      shell: false,
-      env: getProcessEnv(),
-      detached: false,
-      windowsHide: true,
-    });
-  } catch (error) {
-    forceQuit(`Failed to spawn server process: ${(error as Error).message}`);
-    return;
-  }
-
-  nodeToolBackendProcess.on("spawn", () => {
-    logMessage("NodeTool server starting...");
-    emitBootMessage("NodeTool server starting...");
-    if (nodeToolBackendProcess?.pid) {
-      writePidFile(nodeToolBackendProcess.pid);
-    }
+  backendWatchdog = new Watchdog({
+    name: "nodetool",
+    command: pythonExecutablePath,
+    args,
+    env: {
+      ...getProcessEnv(),
+      OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+    },
+    pidFilePath: PID_FILE_PATH,
+    healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+    onOutput: (line) => handleServerOutput(Buffer.from(line)),
   });
 
-  nodeToolBackendProcess.stdout?.on("data", handleServerOutput);
-  nodeToolBackendProcess.stderr?.on("data", handleServerOutput);
-
-  nodeToolBackendProcess.on("error", (error) => {
-    forceQuit(`Server process error: ${error.message}`);
-  });
-
-  nodeToolBackendProcess.on("exit", (code, signal) => {
-    logMessage(`Server process exited with code ${code} and signal ${signal}`);
-  });
+  await backendWatchdog.start();
 }
 
 /**
@@ -246,60 +259,11 @@ function handleServerOutput(data: Buffer): void {
 }
 
 /**
- * Verifies if Ollama AI service is running and accessible
- * @returns Promise resolving to true if Ollama is running, false otherwise
- */
-async function ensureOllamaIsRunning(): Promise<boolean> {
-  try {
-    const response = await fetch("http://localhost:11434/api/version");
-    return response && response.status === 200;
-  } catch (error) {
-    await showOllamaInstallDialog();
-    return false;
-  }
-}
-
-/**
- * Shows a dialog prompting user to install Ollama if not present
- */
-async function showOllamaInstallDialog(): Promise<void> {
-  const downloadUrl = "https://ollama.com/download";
-
-  // Check settings to see if user wants to skip this dialog
-  const settings = readSettings();
-  if (settings.SKIP_OLLAMA_DIALOG === true) {
-    return;
-  }
-
-  const response = await dialog.showMessageBox({
-    type: "info",
-    title: "Download Ollama",
-    message: "Ollama is required to run LLMs locally",
-    detail:
-      "Ollama is an open-source tool that allows NodeTool to run LLMs locally on your machine.\nAlternatively, you can use cloud providers, such as OpenAI, Anthropic or Gemini",
-    buttons: ["Download Ollama", "Continue without Ollama"],
-    defaultId: 0,
-    cancelId: 1,
-    checkboxLabel: "Don't ask again",
-    checkboxChecked: false,
-  });
-
-  // Save user preference if they checked "Don't ask again"
-  if (response.checkboxChecked) {
-    updateSetting("SKIP_OLLAMA_DIALOG", true);
-  }
-
-  if (response.response === 0) {
-    await shell.openExternal(downloadUrl);
-  }
-}
-
-/**
  * Checks if the backend server process is currently running
  * @returns Promise resolving to true if server is running, false otherwise
  */
 async function isServerRunning(): Promise<boolean> {
-  return nodeToolBackendProcess !== null;
+  return backendWatchdog !== null;
 }
 
 /**
@@ -330,7 +294,6 @@ async function initializeBackendServer(): Promise<void> {
     }
 
     await killExistingServer();
-    await ensureOllamaIsRunning();
     await startServer();
     await waitForServer();
   } catch (error) {
@@ -372,26 +335,15 @@ async function stopServer(): Promise<void> {
   logMessage("Initiating graceful shutdown");
 
   try {
-    if (nodeToolBackendProcess) {
-      logMessage("Stopping server process");
-      nodeToolBackendProcess.kill("SIGTERM");
-
-      await new Promise<void>((resolve, reject) => {
-        nodeToolBackendProcess?.on("exit", () => {
-          fs.unlink(PID_FILE_PATH).catch(() => {});
-          nodeToolBackendProcess = null;
-          resolve();
-        });
-        nodeToolBackendProcess?.on("error", reject);
-
-        setTimeout(() => {
-          if (nodeToolBackendProcess && !nodeToolBackendProcess.killed) {
-            nodeToolBackendProcess.kill("SIGKILL");
-          }
-          nodeToolBackendProcess = null;
-          resolve();
-        }, 5000);
-      });
+    if (backendWatchdog) {
+      logMessage("Stopping NodeTool server (watchdog)");
+      await backendWatchdog.stopGracefully();
+      backendWatchdog = null;
+    }
+    if (ollamaWatchdog) {
+      logMessage("Stopping Ollama server (watchdog)");
+      await ollamaWatchdog.stopGracefully();
+      ollamaWatchdog = null;
     }
   } catch (error) {
     logMessage(`Error during shutdown: ${(error as Error).message}`, "error");

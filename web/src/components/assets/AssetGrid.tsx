@@ -36,10 +36,12 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
-      marginTop: "30px",
+      marginTop: "16px",
       flexDirection: "column",
       justifyContent: "flex-start",
-      height: "100%"
+      height: "100%",
+      // Enable container queries based on this component's width
+      containerType: "inline-size"
     },
     ".dropzone": {
       display: "flex",
@@ -53,8 +55,8 @@ const styles = (theme: Theme) =>
     },
     ".audio-controls-container": {
       position: "absolute",
-      width: "calc(100% - 90px)",
-      left: "80px",
+      width: "calc(100% - 32px)",
+      left: "16px",
       bottom: "0",
       display: "flex",
       flexDirection: "column",
@@ -73,7 +75,7 @@ const styles = (theme: Theme) =>
       left: "0",
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.grey[200],
-      margin: "2em 0 0 0"
+      margin: "1em 0 0 0"
     },
     ".folder-slash": {
       color: "var(--palette-primary-main)",
@@ -159,6 +161,25 @@ const styles = (theme: Theme) =>
         overflow: "hidden",
         whiteSpace: "nowrap",
         maxWidth: "200px"
+      }
+    },
+    // Viewport-based fallback (rarely used for panel) and container query for sidebar width
+    "@media (max-width: 520px)": {
+      "&": {
+        marginTop: "8px"
+      },
+      ".dropzone": {
+        maxHeight: "calc(100vh - 140px)"
+      },
+      ".audio-controls-container": {
+        left: "8px",
+        width: "calc(100% - 16px)"
+      }
+    },
+    // Container query: triggers when the asset grid itself is narrow
+    "@container (max-width: 520px)": {
+      ".header-info": {
+        display: "none !important"
       }
     }
   });
@@ -354,7 +375,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu maxItemSize={maxItemSize} />
+      <AssetActionsMenu
+        maxItemSize={maxItemSize}
+        onUploadFiles={uploadFiles}
+      />
       <StorageAnalytics
         assets={sortedAssets || folderFilesFiltered || []}
         currentFolder={currentFolder}
@@ -372,6 +396,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           </Typography>
         </div>
       </div>
+      {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
         <div
           style={{
@@ -383,7 +408,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         >
           <div
             className="folder-list-container"
-            style={{ flexShrink: 0, position: "relative" }}
+            style={{
+              flexShrink: 0,
+              position: "relative"
+            }}
           >
             <FolderList isHorizontal={isHorizontal} />
           </div>
@@ -392,7 +420,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               flexGrow: 1,
               minHeight: 0,
               overflow: "auto",
-              paddingLeft: isHorizontal ? "1em" : ""
+              paddingLeft: isHorizontal ? "1em" : "",
+              width: "100%"
             }}
           >
             <div

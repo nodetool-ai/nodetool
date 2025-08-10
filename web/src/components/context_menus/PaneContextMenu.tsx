@@ -124,7 +124,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       if (!event) return;
       const metadata = useMetadataStore
         .getState()
-        .getMetadata(`nodetool.llms.LLM`);
+        .getMetadata(`nodetool.agents.Agent`);
       if (metadata) {
         const position = reactFlowInstance.screenToFlowPosition({
           x: menuPosition?.x || event.clientX,
