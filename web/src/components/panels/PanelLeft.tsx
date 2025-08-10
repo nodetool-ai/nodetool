@@ -110,11 +110,25 @@ const styles = (theme: Theme) =>
       gap: 6,
       backgroundColor: "transparent",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
+      // Ensure custom SVG icons (IconForType) are sized like MUI icons
+      "& .icon-container": {
+        width: "18px",
+        height: "18px"
+      },
+      // Give a little extra top spacing to the very first icon button
+      "& .MuiIconButton-root:first-of-type, & .MuiButton-root:first-of-type": {
+        marginTop: "8px"
+      },
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "12px",
         borderRadius: "8px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        willChange: "transform, box-shadow",
+        // Make icons smaller within toolbar buttons
+        "& svg": {
+          fontSize: "1.125rem"
+        },
 
         "&.active": {
           backgroundColor: `${theme.vars.palette.action.selected}66`,
@@ -126,6 +140,7 @@ const styles = (theme: Theme) =>
         "&:hover": {
           backgroundColor: `${theme.vars.palette.action.hover}66`,
           boxShadow: `0 4px 18px ${theme.vars.palette.action.hover}30`,
+          transform: "translateY(-1px) scale(1.02)",
           "&::after": {
             content: '""',
             position: "absolute",
@@ -135,7 +150,15 @@ const styles = (theme: Theme) =>
             bottom: 0,
             background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}20, transparent)`,
             borderRadius: "8px"
+          },
+          "& svg, & .icon-container svg": {
+            transform: "scale(1.05)",
+            filter: `drop-shadow(0 0 6px ${theme.vars.palette.primary.main}33)`
           }
+        },
+        "&:active": {
+          transform: "translateY(0) scale(0.98)",
+          boxShadow: `0 2px 10px ${theme.vars.palette.action.hover}24`
         }
       }
     },
