@@ -101,6 +101,7 @@ export interface FolderItemProps {
   onSelect: () => void;
   onClickParent?: (id: string) => void;
   openDeleteDialog?: () => void;
+  children?: React.ReactNode;
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({
@@ -109,7 +110,8 @@ const FolderItem: React.FC<FolderItemProps> = ({
   isSelected,
   enableContextMenu = true,
   showDeleteButton = true,
-  onSelect
+  onSelect,
+  children
 }) => {
   const theme = useTheme();
   const {
@@ -129,7 +131,15 @@ const FolderItem: React.FC<FolderItemProps> = ({
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={onSelect}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest(".expand-gutter")) {
+          // Let the click bubble to AccordionSummary to toggle expansion
+          return;
+        }
+        e.stopPropagation();
+        onSelect();
+      }}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragOver={handleDragOver}
@@ -140,6 +150,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       draggable
     >
       <FolderIcon className="folder-icon" />
+      {children}
       {isParent && <NorthWest className="parent-icon" />}
       <Typography className="folder-name">{folder.name}</Typography>
       {showDeleteButton && (
