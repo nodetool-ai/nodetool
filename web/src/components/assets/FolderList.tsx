@@ -18,11 +18,11 @@ import type { Theme } from "@mui/material/styles";
 
 // Layout constants for folder tree
 const ROW_HEIGHT_REM = 1.3; // compact row height in em
-const INDENT_PER_LEVEL_EM = 1.8; // left indent per tree level
-const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
-const EXPAND_ICON_SIZE_PX = 25; // accordion expand icon size
-const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
-const EXPAND_ICON_GUTTER_PX = EXPAND_ICON_SIZE_PX + EXPAND_ICON_LEFT_PX + 2; // space reserved so the arrow doesn't overlap the folder icon
+const INDENT_PER_LEVEL_EM = 0.7; // left indent per tree level
+const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
+const EXPAND_ICON_SIZE_PX = 26; // accordion expand icon size
+// const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
+// const EXPAND_ICON_GUTTER_PX = EXPAND_ICON_SIZE_PX + EXPAND_ICON_LEFT_PX + 2; // space reserved so the arrow doesn't overlap the folder icon
 
 const styles = (theme: Theme) =>
   css({
@@ -61,7 +61,6 @@ const styles = (theme: Theme) =>
       background: "transparent"
     },
     ".accordion-summary": {
-      flexDirection: "row-reverse",
       height: ROW_HEIGHT_REM + "rem",
       minHeight: ROW_HEIGHT_REM + "rem",
       padding: 0,
@@ -80,37 +79,37 @@ const styles = (theme: Theme) =>
     ".accordion .MuiAccordionDetails-root .MuiBox-root": {
       height: ROW_HEIGHT_REM + "rem"
     },
-    ".MuiAccordionSummary-expandIconWrapper": {
+    // Custom expand gutter to align parent and leaf rows
+    ".row": {
       position: "relative",
-      padding: 0,
-      width: "32px", //EXPAND_ICON_GUTTER_PX + "px", // reserve space so the icon doesn't overlap folder icon
+      display: "flex",
+      alignItems: "center",
+      height: ROW_HEIGHT_REM + "rem",
+      gap: ".25rem"
+    },
+    ".expand-gutter": {
+      position: "absolute",
+      left: "-20px",
+      top: 0,
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: EXPAND_ICON_SIZE_PX + "px",
       height: "100%",
-      overflow: "visible",
-      transform: "none"
+      color: theme.vars.palette.grey[200],
+      zIndex: 2,
+      pointerEvents: "auto"
     },
-    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
-      transform: "none"
-    },
-    ".MuiAccordionSummary-expandIconWrapper:hover": {
-      color: "var(--palette-primary-main)"
-    },
-    ".MuiAccordionSummary-expandIconWrapper svg": {
+    ".expand-gutter svg": {
       width: EXPAND_ICON_SIZE_PX + "px",
       height: EXPAND_ICON_SIZE_PX + "px",
-      position: "absolute",
-      top: "50%",
-      bottom: "0",
-      left: EXPAND_ICON_LEFT_PX + "px",
-      right: "0",
-      zIndex: 1000,
-      color: theme.vars.palette.grey[200],
-      filter: "none",
-      transform: "translateY(-50%) rotate(-90deg)",
+      transform: "rotate(-90deg)",
       transition: "transform 0.25s ease"
     },
-    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
-      color: theme.vars.palette.grey[200],
-      transform: "translateY(-50%) rotate(0deg)"
+    // Rotate icon only when the corresponding summary is expanded
+    ".accordion .accordion-summary.Mui-expanded .expand-gutter svg": {
+      transform: "rotate(0deg)"
     },
     // Ensure all folder rows have a fixed, consistent height
     ".folder-item": {
@@ -140,9 +139,7 @@ const styles = (theme: Theme) =>
       "&.folder-list-container": {
         height: "100px"
       },
-      ".MuiAccordionSummary-expandIconWrapper svg": {
-        left: "0"
-      }
+      ".expand-gutter svg": { left: "0" }
     }
   });
 
@@ -182,18 +179,36 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           className="accordion-summary"
           sx={{
             marginTop: 0,
-            marginBottom: 0,
-            paddingLeft: `${level * INDENT_PER_LEVEL_EM}em !important`
+            marginBottom: 0
+            // padding applied to inner row for consistent structure
           }}
-          expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${folder.id}-content`}
           id={`panel-${folder.id}-header`}
         >
-          <FolderItem
-            folder={folder}
-            onSelect={() => handleSelect(folder)}
-            isSelected={selectedFolderIds.includes(folder.id)}
-          />
+          <div
+            className="row"
+            style={{ paddingLeft: `${level * INDENT_PER_LEVEL_EM}em` }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              const summary =
+                (e.currentTarget.parentElement as HTMLElement) || null;
+              // parentElement should be the AccordionSummary
+              if (summary) {
+                summary.click();
+              }
+            }}
+          >
+            <FolderItem
+              folder={folder}
+              onSelect={() => handleSelect(folder)}
+              isSelected={selectedFolderIds.includes(folder.id)}
+              showDeleteButton={false}
+            >
+              <span className="expand-gutter" aria-hidden="true">
+                <ExpandMoreIcon />
+              </span>
+            </FolderItem>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           {folder.children.map((childNode: any) =>
@@ -207,16 +222,20 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         sx={{
           height: ROW_HEIGHT_REM + "rem",
           marginTop: 0,
-          marginBottom: 0,
-          paddingLeft: `${level * INDENT_PER_LEVEL_EM}em !important`
+          marginBottom: 0
         }}
         key={folder.id}
       >
-        <FolderItem
-          folder={folder}
-          onSelect={() => handleSelect(folder)}
-          isSelected={selectedFolderIds.includes(folder.id)}
-        />
+        <div
+          className="row"
+          style={{ paddingLeft: `${level * INDENT_PER_LEVEL_EM}em` }}
+        >
+          <FolderItem
+            folder={folder}
+            onSelect={() => handleSelect(folder)}
+            isSelected={selectedFolderIds.includes(folder.id)}
+          />
+        </div>
       </Box>
     );
   };
