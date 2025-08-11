@@ -201,7 +201,28 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         params: { isHorizontal, itemSpacing }
       });
 
-      // Initial sizing handled via addPanel options above
+      // Ensure initial width for folders in fullscreen after both panels exist
+      if (isFullscreenAssets && typeof initialFoldersPanelWidth === "number") {
+        try {
+          const foldersPanel: any = api.getPanel("asset-folders");
+          const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
+          if (groupApi && typeof groupApi.setSize === "function") {
+            console.log(
+              "Setting folders panel initial width to",
+              initialFoldersPanelWidth,
+              "px"
+            );
+            groupApi.setSize({ width: initialFoldersPanelWidth });
+          } else if (
+            foldersPanel &&
+            typeof foldersPanel.setSize === "function"
+          ) {
+            foldersPanel.setSize({ width: initialFoldersPanelWidth });
+          }
+        } catch (err) {
+          console.warn("Failed to set initial folders panel width:", err);
+        }
+      }
     },
     [isHorizontal, itemSpacing, initialFoldersPanelWidth]
   );
