@@ -19,9 +19,10 @@ import { Provider } from "../../../stores/ApiTypes";
 const styles = (theme: Theme) =>
   css({
     "&": {
-      position: "relative",
+      position: "absolute",
+      right: "0px",
       height: "100%",
-      width: "100%",
+      width: "calc(100% - 100px)",
       display: "flex",
       flexGrow: 1,
       flexDirection: "column",
