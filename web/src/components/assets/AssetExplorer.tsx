@@ -72,6 +72,14 @@ const styles = (theme: Theme) =>
       height: "fit-content ",
       width: "fit-content"
     },
+    ".asset-actions": {
+      marginTop: ".2em",
+      marginLeft: "1em"
+    },
+    ".back-to-editor": {
+      top: "0.5em",
+      left: "1em !important"
+    },
     ".close-button": {
       position: "absolute",
       top: ".75em",
@@ -101,9 +109,7 @@ const AssetExplorer: React.FC = () => {
           </IconButton>
         </Tooltip>
         <ContextMenuProvider>
-          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <BackToEditorButton />
-          </Tooltip>
+          {currentWorkflowId && <BackToEditorButton />}
           <AssetGrid
             maxItemSize={10}
             itemSpacing={2}
