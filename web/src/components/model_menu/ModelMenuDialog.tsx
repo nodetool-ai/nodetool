@@ -12,10 +12,12 @@ import {
 import type { LanguageModel } from "../../stores/ApiTypes";
 import ProviderList from "./ProviderList";
 import ModelList from "./ModelList";
+import RecentList from "./RecentList";
 import ModelInfoPane from "./ModelInfoPane";
-import SearchBar from "./SearchBar";
+import SearchInput from "../search/SearchInput";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import Fuse from "fuse.js";
 
 export interface ModelMenuDialogProps {
   open: boolean;
@@ -85,26 +87,41 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     if (selectedProvider) {
       list = list.filter((m) => m.provider === selectedProvider);
     }
-    if (search.trim().length > 0) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (m) =>
-          (m.name || "").toLowerCase().includes(q) ||
-          (m.id || "").toLowerCase().includes(q) ||
-          (m.provider || "").toLowerCase().includes(q)
-      );
-    }
     if (onlyAvailable) {
       list = list.filter((m) => isAvailable(m.provider));
     }
+    const term = search.trim();
+    if (term.length > 0) {
+      const fuse = new Fuse(list, {
+        keys: ["name", "id", "provider"],
+        threshold: 0.35,
+        ignoreLocation: true
+      });
+      return fuse.search(term).map((r) => r.item);
+    }
     return list;
   }, [models, selectedProvider, search, onlyAvailable, isAvailable]);
+
+  const recentModels = useMemo(() => {
+    const recents = useModelPreferencesStore.getState().getRecent();
+    const byKey = new Map<string, LanguageModel>(
+      (models ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
+    );
+    const mapped: LanguageModel[] = [];
+    recents.forEach((r) => {
+      const m = byKey.get(`${r.provider}:${r.id}`);
+      if (m) mapped.push(m);
+    });
+    return onlyAvailable
+      ? mapped.filter((m) => isAvailable(m.provider))
+      : mapped;
+  }, [models, onlyAvailable, isAvailable]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
       setSelectedModel(m);
       onModelChange?.(m);
-      // eslint-disable-next-line no-console
+
       console.log("[ModelMenu] select model", {
         provider: m.provider,
         id: m.id
@@ -119,7 +136,18 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       <DialogContent dividers>
         <Box sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}>
           <Box sx={{ flex: 1 }}>
-            <SearchBar value={search} onChange={setSearch} />
+            <SearchInput
+              onSearchChange={(v) => {
+                console.log("[ModelMenu] search", v);
+                setSearch(v);
+              }}
+              placeholder="Search models..."
+              debounceTime={150}
+              focusSearchInput
+              focusOnTyping
+              maxWidth="100%"
+              width={600}
+            />
           </Box>
           <FormControlLabel
             control={
@@ -140,7 +168,12 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             isLoading={!!isLoading}
             isError={!!isError}
           />
-          <ModelList models={filteredModels} onSelect={handleSelectModel} />
+          <Box>
+            {search.trim().length === 0 && !selectedProvider && (
+              <RecentList models={recentModels} onSelect={handleSelectModel} />
+            )}
+            <ModelList models={filteredModels} onSelect={handleSelectModel} />
+          </Box>
           <ModelInfoPane model={selectedModel} />
         </div>
       </DialogContent>
