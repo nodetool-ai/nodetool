@@ -16,7 +16,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { isEqual } from "lodash";
 import DashboardHeader from "./DashboardHeader";
 import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
-import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { defaultLayout } from "../../config/defaultLayouts";

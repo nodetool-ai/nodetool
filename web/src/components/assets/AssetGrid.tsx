@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-
+import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -15,7 +15,7 @@ import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
-// Extracted panels and styles
+//  panels and styles
 import AssetFoldersPanel from "./panels/AssetFoldersPanel";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
@@ -38,7 +38,8 @@ import {
   SerializedDockview
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
-// Static mapping for Dockview components, wrapped in error boundaries
+import { useDockviewPanelSizing } from "./hooks/useDockviewPanelSizing";
+
 const panelComponents = {
   "asset-folders": (_props: IDockviewPanelProps) => (
     <PanelErrorBoundary>
@@ -123,9 +124,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   }));
 
   const { uploadAsset, isUploading } = useAssetUpload();
+  const { ensurePanelWidth } = useDockviewPanelSizing();
 
-  useClickOutsideDeselect(
-    [
+  const deselectIgnoreClasses = useMemo(
+    () => [
       "content-type-header",
       "selected-info",
       "infinite-scroll-component",
@@ -143,6 +145,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       "dropzone",
       "asset-menu-item"
     ],
+    []
+  );
+
+  useClickOutsideDeselect(
+    deselectIgnoreClasses,
     selectedAssetIds.length > 0,
     () => setSelectedAssetIds([])
   );
@@ -242,30 +249,16 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
       // Ensure exact folders width in fullscreen after layout is applied
       if (isFullscreenAssets && typeof initialFoldersPanelWidth === "number") {
-        const applyWidth = () => {
-          const foldersPanel: any = api.getPanel("asset-folders");
-          const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
-          if (groupApi && typeof groupApi.setSize === "function") {
-            console.log("Applying folders width:", initialFoldersPanelWidth);
-            groupApi.setSize({ width: initialFoldersPanelWidth });
-          } else if (
-            foldersPanel &&
-            typeof foldersPanel.setSize === "function"
-          ) {
-            foldersPanel.setSize({ width: initialFoldersPanelWidth });
-          }
-        };
-        if (
-          typeof window !== "undefined" &&
-          "requestAnimationFrame" in window
-        ) {
-          window.requestAnimationFrame(applyWidth);
-        } else {
-          applyWidth();
-        }
+        ensurePanelWidth(api, "asset-folders", initialFoldersPanelWidth);
       }
     },
-    [isHorizontal, itemSpacing, initialFoldersPanelWidth, isFullscreenAssets]
+    [
+      isHorizontal,
+      itemSpacing,
+      initialFoldersPanelWidth,
+      isFullscreenAssets,
+      ensurePanelWidth
+    ]
   );
 
   return (

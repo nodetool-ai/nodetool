@@ -7,7 +7,7 @@ import AssetGridContent from "../AssetGridContent";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 
-interface AssetFilesPanelParams {
+export interface AssetFilesPanelParams {
   isHorizontal?: boolean;
   itemSpacing?: number;
 }

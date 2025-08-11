@@ -7,7 +7,7 @@ import {
   Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React from "react";
+import React, { useCallback } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -176,14 +176,35 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     children: FolderNode[];
   };
 
+  const hasChildNodes = (
+    folder: FolderNode | RootFolder
+  ): folder is FolderNode & { children: FolderNode[] } => {
+    return (
+      "children" in folder &&
+      Array.isArray(folder.children) &&
+      folder.children.length > 0
+    );
+  };
+
+  const handleRowDoubleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.currentTarget as HTMLDivElement;
+      const isRootRow = target.dataset.isRoot === "true";
+      if (isRootRow) return;
+      e.stopPropagation();
+      const summary = target.parentElement as HTMLElement | null;
+      summary?.click();
+    },
+    []
+  );
+
   const renderFolder = (
     folder: FolderNode | RootFolder,
     level = 0,
     isRoot = false
   ) => {
     if (!folder || !folder.id) return null;
-    const hasChildren =
-      (folder as any).children && (folder as any).children.length > 0;
+    const hasChildren = hasChildNodes(folder);
 
     return hasChildren ? (
       <Accordion
@@ -213,15 +234,8 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           <div
             className="row"
             style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
-            onDoubleClick={(e) => {
-              if (isRoot) return; // do not toggle root
-              e.stopPropagation();
-              const summary =
-                (e.currentTarget.parentElement as HTMLElement) || null;
-              if (summary) {
-                summary.click();
-              }
-            }}
+            data-is-root={isRoot ? "true" : "false"}
+            onDoubleClick={handleRowDoubleClick}
           >
             <FolderItem
               folder={folder as Asset}
@@ -238,7 +252,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          {(((folder as any).children || []) as FolderNode[]).map(
+          {(("children" in folder ? folder.children : []) as FolderNode[]).map(
             (childNode: FolderNode) => renderFolder(childNode, level + 1)
           )}
         </AccordionDetails>
