@@ -42,8 +42,6 @@ class ErrorBoundary extends React.Component<
 
 const urlParams = new URLSearchParams(window.location.search);
 
-const workflowId = urlParams.get("workflow_id");
-const isGlobalChat = urlParams.get("chat") === "true";
 const isTestPage = urlParams.get("test") === "true";
 
 const rootElement = document.getElementById("root");
@@ -56,12 +54,8 @@ root.render(
       <Provider>
         {isTestPage ? (
           <ComponentTest />
-        ) : isGlobalChat ? (
-          <Box h="100%" className="chat-interface-container">
-            <ChatInterface token="local_token" />
-          </Box>
         ) : (
-          <App initialWorkflowId={workflowId || undefined} />
+          <ChatInterface token="local_token" />
         )}
       </Provider>
     </ErrorBoundary>
