@@ -12,7 +12,7 @@ export const assetGridStyles = (theme: Theme) => {
       height: "100%",
       containerType: "inline-size"
     },
-    // resize handle
+    // AssetGrid-specific sash tweaks (override shared)
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
       position: "relative",
       backgroundColor: theme.vars.palette.grey[700],
@@ -22,7 +22,6 @@ export const assetGridStyles = (theme: Theme) => {
     "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover::after": {
       backgroundColor: theme.vars.palette.primary.main
     },
-    // Left/Right split (vertical sash)
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {
         width: "10px",
@@ -44,7 +43,6 @@ export const assetGridStyles = (theme: Theme) => {
         opacity: 0.6,
         transition: "background-color 0.15s ease, opacity 0.15s ease"
       },
-    // Top/Bottom split (horizontal sash)
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
       height: "10px",
       cursor: "ns-resize",
@@ -76,7 +74,7 @@ export const assetGridStyles = (theme: Theme) => {
         backgroundColor: `${theme.vars.palette.primary.main} !important`,
         opacity: 1
       },
-    // Hide Dockview tab-actions
+    // Hide Dockview tab-actions in AssetGrid only
     "& .dv-tabs-and-actions-container": {
       display: "none !important"
     },
