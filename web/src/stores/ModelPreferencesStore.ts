@@ -42,7 +42,6 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           favorites.add(k);
         }
         set({ favorites });
-        // eslint-disable-next-line no-console
         console.log("[ModelMenu] toggleFavorite", {
           provider,
           id,
@@ -63,7 +62,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
           .slice(0, MAX_RECENTS);
         set({ recents: next });
-        // eslint-disable-next-line no-console
+
         console.log("[ModelMenu] addRecent", { provider, id, name });
       },
       getRecent: () => get().recents,

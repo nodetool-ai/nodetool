@@ -100,6 +100,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           </Typography>
         </Button>
       </Tooltip>
+      <h3>LlamaModelSelect</h3>
       <Menu
         className="model-menu"
         anchorEl={anchorEl}
@@ -131,7 +132,9 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             <MenuItem
               key={model.id}
               onClick={() => handleModelSelect(model.repo_id)}
-              className={`model-item ${value === model.repo_id ? "selected" : ""}`}
+              className={`model-item ${
+                value === model.repo_id ? "selected" : ""
+              }`}
             >
               {value === model.repo_id && (
                 <ListItemIcon>
