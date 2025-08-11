@@ -31,6 +31,8 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import StorageAnalytics from "./StorageAnalytics";
+import { DockviewReact, DockviewReadyEvent } from "dockview";
+import "dockview/dist/styles/dockview.css";
 
 const styles = (theme: Theme) =>
   css({
@@ -42,6 +44,67 @@ const styles = (theme: Theme) =>
       height: "100%",
       // Enable container queries based on this component's width
       containerType: "inline-size"
+    },
+    // Dockview: more visible resize handle just for AssetGrid
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
+      position: "relative",
+      backgroundColor: theme.vars.palette.grey[700],
+      transition: "background-color 0.15s ease",
+      opacity: 0.95,
+      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.grey[900]}`,
+      borderRadius: "2px"
+    },
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
+      backgroundColor: theme.vars.palette.primary.main
+    },
+    // Left/Right split (vertical sash)
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
+      {
+        width: "10px",
+        cursor: "ew-resize",
+        transform: "translate(0px, 0px)"
+      },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
+      {
+        content: "''",
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "2px",
+        height: "60%",
+        backgroundColor: theme.vars.palette.grey[300],
+        borderRadius: "1px",
+        opacity: 0.6
+      },
+    // Top/Bottom split (horizontal sash)
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
+      height: "10px",
+      cursor: "ns-resize",
+      transform: "translate(0px, 0px)"
+    },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
+      {
+        content: "''",
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "60%",
+        height: "2px",
+        backgroundColor: theme.vars.palette.grey[300],
+        borderRadius: "1px",
+        opacity: 0.6
+      },
+    // Hide Dockview close icons inside this AssetGrid only
+    "& .dockview-container .codicon.codicon-close": {
+      display: "none !important"
+    },
+    "& .dockview-container [class*='codicon-close']": {
+      display: "none !important"
+    },
+    "& .dockview-container .dv-action[aria-label='Close']": {
+      display: "none !important"
     },
     ".dropzone": {
       display: "flex",
@@ -218,30 +281,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );
-  const handleDoubleClick = useCallback(
-    (asset: Asset) => {
-      setOpenAsset(asset);
-    },
-    [setOpenAsset]
-  );
-
   const theme = useTheme();
 
-  const handleGlobalSearchAssetDoubleClick = useCallback(
-    (asset: AssetWithPath) => {
-      setOpenAsset(asset);
-    },
-    [setOpenAsset]
-  );
-
-  const handleNavigateToFolder = useCallback(
-    (folderId: string, folderPath: string) => {
-      setCurrentFolderId(folderId);
-      setIsGlobalSearchActive(false);
-      setIsGlobalSearchMode(false);
-    },
-    [setCurrentFolderId, setIsGlobalSearchActive, setIsGlobalSearchMode]
-  );
+  // Dockview panel components are defined below; handlers for files live inside the Files panel
 
   const { user } = useAuth();
 
@@ -249,13 +291,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     F2KeyPressed: state.isKeyPressed("F2"),
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  // const [containerWidth, setContainerWidth] = React.useState(0);
-
-  // useResizeObserver(containerRef, (entry) => {
-  //   setContainerWidth(entry.contentRect.width);
-  // });
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
@@ -330,12 +365,128 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }
 
+  // Dockview panels
+  const FolderPanel: React.FC = () => {
+    return (
+      <div
+        style={{
+          height: "100%",
+          overflowY: "auto",
+          overflowX: "hidden"
+        }}
+      >
+        <FolderList isHorizontal={false} />
+      </div>
+    );
+  };
+
+  const FilesPanel: React.FC = () => {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
+    const isGlobalSearchActiveLocal = useAssetGridStore(
+      (state) => state.isGlobalSearchActive
+    );
+    const isGlobalSearchModeLocal = useAssetGridStore(
+      (state) => state.isGlobalSearchMode
+    );
+    const globalSearchResultsLocal = useAssetGridStore(
+      (state) => state.globalSearchResults
+    );
+    const setIsGlobalSearchActiveLocal = useAssetGridStore(
+      (state) => state.setIsGlobalSearchActive
+    );
+    const setIsGlobalSearchModeLocal = useAssetGridStore(
+      (state) => state.setIsGlobalSearchMode
+    );
+    const setCurrentFolderIdLocal = useAssetGridStore(
+      (state) => state.setCurrentFolderId
+    );
+
+    const handleDoubleClick = useCallback(
+      (asset: Asset) => {
+        setOpenAssetLocal(asset);
+      },
+      [setOpenAssetLocal]
+    );
+
+    const handleGlobalSearchAssetDoubleClick = useCallback(
+      (asset: AssetWithPath) => {
+        setOpenAssetLocal(asset);
+      },
+      [setOpenAssetLocal]
+    );
+
+    const handleNavigateToFolder = useCallback(
+      (folderId: string, folderPath: string) => {
+        setCurrentFolderIdLocal(folderId);
+        setIsGlobalSearchActiveLocal(false);
+        setIsGlobalSearchModeLocal(false);
+      },
+      [
+        setCurrentFolderIdLocal,
+        setIsGlobalSearchActiveLocal,
+        setIsGlobalSearchModeLocal
+      ]
+    );
+
+    return (
+      <div style={{ height: "100%", overflow: "hidden" }}>
+        <div
+          className={`asset-content-wrapper ${
+            isGlobalSearchModeLocal && isGlobalSearchActiveLocal
+              ? "global-search-mode"
+              : "normal-grid-mode"
+          }`}
+          style={{ height: "100%" }}
+          ref={containerRef}
+        >
+          {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
+            <SearchErrorBoundary fallbackTitle="Search Results Error">
+              <GlobalSearchResults
+                results={globalSearchResultsLocal}
+                onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
+                onNavigateToFolder={handleNavigateToFolder}
+                containerWidth={containerRef.current?.offsetWidth || 800}
+              />
+            </SearchErrorBoundary>
+          ) : (
+            <AssetGridContent
+              isHorizontal={isHorizontal}
+              itemSpacing={itemSpacing}
+              onDoubleClick={handleDoubleClick}
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const panelComponents = useMemo(
+    () => ({
+      "asset-folders": FolderPanel,
+      "asset-files": FilesPanel
+    }),
+    [FolderPanel, FilesPanel]
+  );
+
+  const onReady = useCallback((event: DockviewReadyEvent) => {
+    const { api } = event;
+    api.addPanel({
+      id: "asset-folders",
+      component: "asset-folders",
+      title: "Folders"
+    });
+    api.addPanel({
+      id: "asset-files",
+      component: "asset-files",
+      title: "Files",
+      position: { referencePanel: "asset-folders", direction: "below" }
+    });
+  }, []);
+
   return (
-    <Box
-      css={styles(theme)}
-      className="asset-grid-container"
-      ref={containerRef}
-    >
+    <Box css={styles(theme)} className="asset-grid-container">
       {error && (
         <Typography
           className="error-message"
@@ -380,57 +531,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
         <div
-          style={{
-            height: "100%",
-            display: "flex",
-            margin: "0",
-            flexDirection: isHorizontal ? "row" : "column"
+          className="dropzone"
+          style={{ height: "100%" }}
+          onDragOver={(e) => {
+            // Ensure dropping over Dockview children is allowed
+            e.preventDefault();
           }}
         >
-          <div
-            className="folder-list-container"
-            style={{
-              flexShrink: 0,
-              position: "relative"
-            }}
-          >
-            <FolderList isHorizontal={isHorizontal} />
-          </div>
-          <div
-            style={{
-              flexGrow: 1,
-              minHeight: 0,
-              overflow: "auto",
-              paddingLeft: isHorizontal ? "1em" : "",
-              width: "100%"
-            }}
-          >
-            <div
-              className={`asset-content-wrapper ${
-                isGlobalSearchMode && isGlobalSearchActive
-                  ? "global-search-mode"
-                  : "normal-grid-mode"
-              }`}
-              style={{ height: "100%" }}
-            >
-              {isGlobalSearchMode && isGlobalSearchActive ? (
-                <SearchErrorBoundary fallbackTitle="Search Results Error">
-                  <GlobalSearchResults
-                    results={globalSearchResults}
-                    onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
-                    onNavigateToFolder={handleNavigateToFolder}
-                    containerWidth={containerRef.current?.offsetWidth || 800}
-                  />
-                </SearchErrorBoundary>
-              ) : (
-                <AssetGridContent
-                  isHorizontal={isHorizontal}
-                  itemSpacing={itemSpacing}
-                  onDoubleClick={handleDoubleClick}
-                />
-              )}
-            </div>
-          </div>
+          <DockviewReact
+            components={panelComponents}
+            onReady={onReady}
+            className="dockview-container"
+          />
         </div>
       </Dropzone>
       <Divider />
