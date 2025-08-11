@@ -85,7 +85,8 @@ const AssetExplorer: React.FC = () => {
             maxItemSize={10}
             itemSpacing={2}
             isHorizontal={true}
-            initialFoldersPanelWidth={250}
+            isFullscreenAssets={true}
+            initialFoldersPanelWidth={300}
             sortedAssets={folderFiles}
           />
         </ContextMenuProvider>

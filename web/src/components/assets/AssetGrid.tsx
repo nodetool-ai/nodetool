@@ -33,7 +33,9 @@ import StorageAnalytics from "./StorageAnalytics";
 import {
   DockviewReact,
   DockviewReadyEvent,
-  IDockviewPanelProps
+  IDockviewPanelProps,
+  Orientation,
+  SerializedDockview
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 // Static mapping for Dockview components, wrapped in error boundaries
@@ -51,6 +53,7 @@ const panelComponents = {
 };
 
 const styles = assetGridStyles;
+const FOLDERS_PANEL_HEIGHT = 200;
 
 // Panels are provided via separate components in ./panels
 
@@ -60,6 +63,7 @@ interface AssetGridProps {
   isHorizontal?: boolean;
   sortedAssets?: Asset[];
   initialFoldersPanelWidth?: number;
+  isFullscreenAssets?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -67,7 +71,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
   sortedAssets,
-  initialFoldersPanelWidth
+  initialFoldersPanelWidth,
+  isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
@@ -175,43 +180,73 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
-      const isFullscreenAssets = window.location?.pathname === "/assets";
+      // const isFullscreenAssets = window.location?.pathname === "/assets";
 
-      // Use Dockview panel options for initial sizing
-      const foldersPanelOptions: any = {
-        id: "asset-folders",
-        component: "asset-folders",
-        title: "Folders"
-      };
-      if (!isFullscreenAssets) {
-        foldersPanelOptions.initialHeight = 200;
-      } else if (typeof initialFoldersPanelWidth === "number") {
-        foldersPanelOptions.initialWidth = initialFoldersPanelWidth;
-      }
-      api.addPanel(foldersPanelOptions);
-      api.addPanel({
-        id: "asset-files",
-        component: "asset-files",
-        title: "Files",
-        // initialHeight: 800,
-        position: {
-          referencePanel: "asset-folders",
-          direction: isFullscreenAssets ? "right" : "below"
+      // Build a deterministic layout like Dashboard using fromJSON
+      const orientation = isFullscreenAssets
+        ? Orientation.HORIZONTAL
+        : Orientation.VERTICAL;
+      const foldersSize = isFullscreenAssets
+        ? initialFoldersPanelWidth ?? 250
+        : FOLDERS_PANEL_HEIGHT;
+
+      const layout: SerializedDockview = {
+        grid: {
+          root: {
+            type: "branch",
+            data: [
+              {
+                type: "leaf",
+                data: {
+                  views: ["asset-folders"],
+                  activeView: "asset-folders",
+                  id: "1"
+                },
+                size: foldersSize
+              },
+              {
+                type: "leaf",
+                data: {
+                  views: ["asset-files"],
+                  activeView: "asset-files",
+                  id: "2"
+                },
+                size: 1000
+              }
+            ],
+            size: foldersSize + 1000
+          },
+          width: 1200,
+          height: 900,
+          orientation
         },
-        params: { isHorizontal, itemSpacing }
-      });
+        panels: {
+          "asset-folders": {
+            id: "asset-folders",
+            contentComponent: "asset-folders",
+            title: "Folders"
+          },
+          "asset-files": {
+            id: "asset-files",
+            contentComponent: "asset-files",
+            title: "Files"
+          }
+        },
+        activeGroup: "1"
+      };
 
-      // Ensure initial width for folders in fullscreen after both panels exist
+      api.fromJSON(layout);
+      // Update runtime params for files panel after layout is set
+      const filesPanel = api.getPanel("asset-files");
+      filesPanel?.update({ params: { isHorizontal, itemSpacing } });
+
+      // Ensure exact folders width in fullscreen after layout is applied
       if (isFullscreenAssets && typeof initialFoldersPanelWidth === "number") {
-        try {
+        const applyWidth = () => {
           const foldersPanel: any = api.getPanel("asset-folders");
           const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
           if (groupApi && typeof groupApi.setSize === "function") {
-            console.log(
-              "Setting folders panel initial width to",
-              initialFoldersPanelWidth,
-              "px"
-            );
+            console.log("Applying folders width:", initialFoldersPanelWidth);
             groupApi.setSize({ width: initialFoldersPanelWidth });
           } else if (
             foldersPanel &&
@@ -219,42 +254,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           ) {
             foldersPanel.setSize({ width: initialFoldersPanelWidth });
           }
-        } catch (err) {
-          console.warn("Failed to set initial folders panel width:", err);
-        }
-      }
-
-      // Robustly ensure initial height for folders in non-fullscreen after layout settles
-      if (!isFullscreenAssets) {
-        const applyHeight = () => {
-          try {
-            const foldersPanel: any = api.getPanel("asset-folders");
-            const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
-            if (groupApi && typeof groupApi.setSize === "function") {
-              console.log("Setting folders panel initial height to 400px");
-              groupApi.setSize({ height: 400 });
-            } else if (
-              foldersPanel &&
-              typeof foldersPanel.setSize === "function"
-            ) {
-              foldersPanel.setSize({ height: 400 });
-            }
-          } catch (err) {
-            console.warn("Failed to set initial folders panel height:", err);
-          }
         };
-        // Try immediately, on next frame, and next macrotask to outlast Dockview layout passes
-        applyHeight();
         if (
           typeof window !== "undefined" &&
           "requestAnimationFrame" in window
         ) {
-          window.requestAnimationFrame(() => applyHeight());
+          window.requestAnimationFrame(applyWidth);
+        } else {
+          applyWidth();
         }
-        setTimeout(() => applyHeight(), 0);
       }
     },
-    [isHorizontal, itemSpacing, initialFoldersPanelWidth]
+    [isHorizontal, itemSpacing, initialFoldersPanelWidth, isFullscreenAssets]
   );
 
   return (
