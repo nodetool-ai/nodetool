@@ -87,9 +87,14 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     queryFn: async () => await loadLanguageModels()
   });
 
+  const sortedModels = useMemo(() => {
+    if (!models || isLoading || isError) return [];
+    return models.sort((a, b) => a.name.localeCompare(b.name));
+  }, [models, isLoading, isError]);
+
   const groupedModels = useMemo(() => {
-    if (!models || isLoading || isError) return {};
-    return models.reduce<GroupedModels>((acc, model) => {
+    if (!sortedModels || isLoading || isError) return {};
+    return sortedModels.reduce<GroupedModels>((acc, model) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
         acc[provider] = [];
@@ -101,7 +106,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       });
       return acc;
     }, {});
-  }, [models, isLoading, isError]);
+  }, [sortedModels, isLoading, isError]);
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) return null;

@@ -83,7 +83,7 @@ const NotificationButton: React.FC = React.memo(() => {
             className="notification-badge"
           >
             <NotificationsIcon
-              sx={{ fontSize: "1.2rem" }}
+              sx={{ fontSize: "18px" }}
               className="notification-icon"
             />
           </Badge>
