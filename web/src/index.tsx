@@ -4,7 +4,7 @@ import type {} from "./theme";
 import type {} from "./emotion";
 import type {} from "./material-ui";
 import type {} from "./window";
-import type {} from "./types/svg-react";
+// import type {} from "./types/svg-react"; // removed: file does not exist
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
@@ -34,6 +34,8 @@ import "./styles/vars.css";
 import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
+import "dockview/dist/styles/dockview.css";
+import "./styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";

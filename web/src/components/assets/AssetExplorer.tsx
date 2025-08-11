@@ -3,7 +3,10 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import AssetGrid from "./AssetGrid";
-import { Box, Tooltip } from "@mui/material";
+import { Box, Tooltip, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { useNavigate } from "react-router-dom";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import BackToEditorButton from "../panels/BackToEditorButton";
@@ -26,7 +29,11 @@ const styles = (theme: Theme) =>
       width: "100%"
     },
     ".asset-menu": {
-      marginLeft: "1em"
+      marginLeft: "1em",
+      marginBottom: "1em"
+    },
+    "& .dv-split-view-container .dv-view-container .dv-view": {
+      padding: "0.5em 1em !important"
     },
     ".audio-controls-container": {
       padding: "2em"
@@ -52,7 +59,8 @@ const styles = (theme: Theme) =>
       paddingLeft: ".5em"
     },
     ".dropzone": {
-      outline: "none"
+      outline: "none",
+      maxHeight: "calc(-100px + 100vh) !important"
     },
     ".infinite-scroll-component": {
       border: 0
@@ -64,23 +72,51 @@ const styles = (theme: Theme) =>
       marginRight: "auto",
       height: "fit-content ",
       width: "fit-content"
+    },
+    ".asset-actions": {
+      marginTop: ".2em",
+      marginLeft: "1em"
+    },
+    ".back-to-editor": {
+      top: "0.5em",
+      left: "1em !important"
+    },
+    ".close-button": {
+      position: "absolute",
+      top: ".75em",
+      right: "0.5em",
+      zIndex: 20
     }
   });
 
 const AssetExplorer: React.FC = () => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
+  const navigate = useNavigate();
+  const { currentWorkflowId } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId
+  }));
   return (
     <Box css={styles(theme)}>
       <Box className="asset-explorer">
+        <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            className="close-button"
+            size="small"
+            aria-label="Close"
+            onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
         <ContextMenuProvider>
-          <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <BackToEditorButton />
-          </Tooltip>
+          {currentWorkflowId && <BackToEditorButton />}
           <AssetGrid
             maxItemSize={10}
             itemSpacing={2}
             isHorizontal={true}
+            isFullscreenAssets={true}
+            initialFoldersPanelWidth={200}
             sortedAssets={folderFiles}
           />
         </ContextMenuProvider>
