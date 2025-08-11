@@ -55,9 +55,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   const setOnlyAvailable = useModelPreferencesStore((s) => s.setOnlyAvailable);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
-  const isProviderEnabled = useModelPreferencesStore(
-    (s) => s.isProviderEnabled
-  );
+  const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
 
   const providers = useMemo(() => {
     const set = new Set<string>();
@@ -95,7 +93,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       list = list.filter((m) => m.provider === selectedProvider);
     }
     // Filter out disabled providers
-    list = list.filter((m) => isProviderEnabled(m.provider || ""));
+    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
     if (onlyAvailable) {
       list = list.filter((m) => isAvailable(m.provider));
     }
@@ -115,7 +113,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     search,
     onlyAvailable,
     isAvailable,
-    isProviderEnabled
+    enabledProviders
   ]);
 
   const recentModels = useMemo(() => {
@@ -128,22 +126,24 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       const m = byKey.get(`${r.provider}:${r.id}`);
       if (m) mapped.push(m);
     });
-    const enabledFiltered = mapped.filter((m) =>
-      isProviderEnabled(m.provider || "")
+    const enabledFiltered = mapped.filter(
+      (m) => enabledProviders?.[m.provider || ""] !== false
     );
     return onlyAvailable
       ? enabledFiltered.filter((m) => isAvailable(m.provider))
       : enabledFiltered;
-  }, [models, onlyAvailable, isAvailable, recentsList, isProviderEnabled]);
+  }, [models, onlyAvailable, isAvailable, recentsList, enabledProviders]);
 
   const favoriteModels = useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
       favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
     const list = (models ?? []).filter(
-      (m) => keyHas(m.provider, m.id) && isProviderEnabled(m.provider || "")
+      (m) =>
+        keyHas(m.provider, m.id) &&
+        enabledProviders?.[m.provider || ""] !== false
     );
     return onlyAvailable ? list.filter((m) => isAvailable(m.provider)) : list;
-  }, [models, onlyAvailable, isAvailable, favoritesSet, isProviderEnabled]);
+  }, [models, onlyAvailable, isAvailable, favoritesSet, enabledProviders]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
