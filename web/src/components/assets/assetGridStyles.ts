@@ -12,67 +12,7 @@ export const assetGridStyles = (theme: Theme) => {
       height: "100%",
       containerType: "inline-size"
     },
-    // AssetGrid-specific sash tweaks (override shared)
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      position: "relative",
-      backgroundColor: theme.vars.palette.grey[700],
-      transition: "background-color 0.15s ease",
-      borderRadius: "2px"
-    },
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover::after": {
-      backgroundColor: theme.vars.palette.primary.main
-    },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
-      {
-        width: "10px",
-        cursor: "ew-resize",
-        transform: "translate(0px, 0px)"
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "2px",
-        height: "30%",
-        maxHeight: "100px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
-        opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
-      height: "10px",
-      cursor: "ns-resize",
-      transform: "translate(0px, 0px)"
-    },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "30%",
-        maxWidth: "100px",
-        height: "2px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
-        opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      },
+
     // DROPZONE
     ".dropzone": {
       display: "flex",
@@ -195,7 +135,68 @@ export const assetGridStyles = (theme: Theme) => {
     },
     "& .dv-split-view-container .dv-view-container .dv-view": {
       padding: "0"
-    }
+    },
+    // resize handle
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
+      position: "relative",
+      backgroundColor: theme.vars.palette.grey[700],
+      transition: "background-color 0.15s ease",
+      borderRadius: "2px"
+    },
+    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover::after": {
+      backgroundColor: theme.vars.palette.primary.main
+    },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
+      {
+        width: "10px",
+        cursor: "ew-resize",
+        transform: "translate(0px, 0px)"
+      },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
+      {
+        content: '""',
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "2px",
+        height: "30%",
+        maxHeight: "100px",
+        backgroundColor: theme.vars.palette.grey[300],
+        borderRadius: "1px",
+        opacity: 0.6,
+        transition: "background-color 0.15s ease, opacity 0.15s ease"
+      },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
+      height: "10px",
+      cursor: "ns-resize",
+      transform: "translate(0px, 0px)"
+    },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
+      {
+        content: '""',
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "30%",
+        maxWidth: "100px",
+        height: "2px",
+        backgroundColor: theme.vars.palette.grey[300],
+        borderRadius: "1px",
+        opacity: 0.6,
+        transition: "background-color 0.15s ease, opacity 0.15s ease"
+      },
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
+      {
+        backgroundColor: `${theme.vars.palette.primary.main} !important`,
+        opacity: 1
+      },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash:hover::after":
+      {
+        backgroundColor: `${theme.vars.palette.primary.main} !important`,
+        opacity: 1
+      }
   });
 };
 
