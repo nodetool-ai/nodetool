@@ -141,7 +141,7 @@ export const assetGridStyles = (theme: Theme) => {
     // resize handle
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
       position: "relative",
-      backgroundColor: theme.vars.palette.grey[700],
+      backgroundColor: "transparent",
       transition: "background-color 0.15s ease",
       borderRadius: "2px"
     },
