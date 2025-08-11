@@ -54,6 +54,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
     <List
       dense
       css={listStyles}
+      className="model-menu__models-list"
       sx={{
         "& .MuiListItemButton-root": { py: 0.4 },
         "& .MuiListItemText-primary": { fontSize: "0.95rem" },
@@ -66,6 +67,9 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
         return (
           <ListItemButton
             key={`${m.provider}:${m.id}`}
+            className={`model-menu__model-item ${
+              available ? "" : "is-unavailable"
+            } ${fav ? "is-favorite" : ""}`}
             onClick={() => available && onSelect(m)}
             disabled={!available}
           >

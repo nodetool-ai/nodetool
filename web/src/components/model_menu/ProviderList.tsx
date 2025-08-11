@@ -31,17 +31,24 @@ const ProviderList: React.FC<ProviderListProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div css={listStyles}>
+      <div css={listStyles} className="model-menu__providers-list is-loading">
         <CircularProgress size={20} />
       </div>
     );
   }
   if (isError) {
-    return <div css={listStyles}>Error loading providers</div>;
+    return (
+      <div css={listStyles} className="model-menu__providers-list is-error">
+        Error loading providers
+      </div>
+    );
   }
   return (
-    <List dense css={listStyles}>
+    <List dense css={listStyles} className="model-menu__providers-list">
       <ListItemButton
+        className={`model-menu__provider-item ${
+          selected === null ? "is-selected" : ""
+        }`}
         selected={selected === null}
         onClick={() => onSelect(null)}
       >
@@ -50,6 +57,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
       {providers.map((p) => (
         <ListItemButton
           key={p}
+          className={`model-menu__provider-item ${
+            selected === p ? "is-selected" : ""
+          }`}
           selected={selected === p}
           onClick={() => onSelect(p)}
         >
