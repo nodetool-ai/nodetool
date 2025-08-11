@@ -14,11 +14,15 @@ type ModelPreferencesState = {
   favorites: Set<FavoriteKey>;
   recents: RecentEntry[];
   onlyAvailable: boolean;
+  // Provider enable/disable map. Missing key => enabled
+  enabledProviders: Record<string, boolean>;
   toggleFavorite: (provider: string, id: string) => void;
   isFavorite: (provider: string, id: string) => boolean;
   addRecent: (entry: Omit<RecentEntry, "lastUsedAt">) => void;
   getRecent: () => RecentEntry[];
   setOnlyAvailable: (only: boolean) => void;
+  isProviderEnabled: (provider: string) => boolean;
+  setProviderEnabled: (provider: string, enabled: boolean) => void;
 };
 
 function keyFor(provider: string, id: string): FavoriteKey {
@@ -33,6 +37,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
       favorites: new Set<FavoriteKey>(),
       recents: [],
       onlyAvailable: false,
+      enabledProviders: {},
       toggleFavorite: (provider: string, id: string) => {
         const k = keyFor(provider, id);
         const favorites = new Set(get().favorites);
@@ -66,14 +71,26 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         console.log("[ModelMenu] addRecent", { provider, id, name });
       },
       getRecent: () => get().recents,
-      setOnlyAvailable: (only: boolean) => set({ onlyAvailable: only })
+      setOnlyAvailable: (only: boolean) => set({ onlyAvailable: only }),
+      isProviderEnabled: (provider: string) => {
+        const map = get().enabledProviders || {};
+        // Default to enabled when not present
+        return map[provider] !== false;
+      },
+      setProviderEnabled: (provider: string, enabled: boolean) => {
+        const prev = get().enabledProviders || {};
+        const next = { ...prev, [provider]: enabled };
+        set({ enabledProviders: next });
+        console.log("[ModelMenu] setProviderEnabled", { provider, enabled });
+      }
     }),
     {
       name: "model-preferences",
       partialize: (state) => ({
         favorites: Array.from(state.favorites),
         recents: state.recents,
-        onlyAvailable: state.onlyAvailable
+        onlyAvailable: state.onlyAvailable,
+        enabledProviders: state.enabledProviders
       }),
       // Rehydrate Set
       onRehydrateStorage: () => (state) => {
