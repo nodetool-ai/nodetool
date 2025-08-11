@@ -14,56 +14,30 @@ interface ChatState {
   messages: (Message | ToolCall)[];
   progress: { current: number; total: number };
   error: string | null;
-  workflowId: string | null;
-  socket: WebSocket | null; // kept for API compatibility; unused in HTTP mode
   chatUrl: string; // OpenAI-compatible endpoint, e.g., http://127.0.0.1:8000/v1/chat/completions
   droppedFiles: File[];
   selectedTools: string[];
+  // Selected model for chat requests
+  selectedModelId: string | null;
+  setSelectedModel: (modelId: string | null) => void;
   currentNode: string;
   chunks: string;
+  // Models cache
+  models: Array<{ id: string; name: string; provider?: string }>;
+  isFetchingModels: boolean;
+  modelsError: string | null;
+  modelsLastFetched: number | null;
   // Actions
-  connect: (workflowId?: string) => Promise<void>;
-  disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
   appendMessage: (message: Message) => void;
   setDroppedFiles: (files: File[]) => void;
   setSelectedTools: (tools: string[]) => void;
+  fetchModels: (force?: boolean, authToken?: string) => Promise<
+    Array<{ id: string; name: string; provider?: string }>
+  >;
 }
 
-const makeMessageContent = (
-  type: string,
-  data: Uint8Array
-): WorkflowMessageContent => {
-  const dataUri = URL.createObjectURL(new Blob([data]));
-  if (type === "image") {
-    return {
-      type: "image_url",
-      image: {
-        type: "image",
-        uri: dataUri,
-      },
-    } as WorkflowMessageContent;
-  } else if (type === "audio") {
-    return {
-      type: "audio",
-      audio: {
-        type: "audio",
-        uri: dataUri,
-      },
-    } as WorkflowMessageContent;
-  } else if (type === "video") {
-    return {
-      type: "video",
-      video: {
-        type: "video",
-        uri: dataUri,
-      },
-    } as WorkflowMessageContent;
-  } else {
-    throw new Error(`Unknown message content type: ${type}`);
-  }
-};
 
 const useChatStore = create<ChatState>((set, get) => ({
   status: "disconnected",
@@ -73,33 +47,17 @@ const useChatStore = create<ChatState>((set, get) => ({
   progress: { current: 0, total: 0 },
   currentNode: "",
   error: null,
-  workflowId: null,
-  socket: null,
   chatUrl: "http://127.0.0.1:8000/v1/chat/completions",
   droppedFiles: [],
   selectedTools: [],
+  selectedModelId: null,
+  models: [],
+  isFetchingModels: false,
+  modelsError: null,
+  modelsLastFetched: null,
+  setSelectedModel: (modelId) => set({ selectedModelId: modelId }),
   appendMessage: (message: Message) =>
     set((state) => ({ messages: [...state.messages, message] })),
-
-  connect: async (workflowId?: string) => {
-    // No WebSocket connection needed for OpenAI-compatible HTTP API
-    // Just mark as connected for UI purposes
-    if (get().status === "connected") {
-      set({ workflowId: workflowId || null });
-      return;
-    }
-    set({ workflowId: workflowId || null, status: "connected", error: null });
-    return Promise.resolve();
-  },
-
-  disconnect: () => {
-    // Nothing persistent to disconnect in HTTP mode
-    const { socket } = get();
-    if (socket) {
-      socket.close();
-    }
-    set({ socket: null, status: "disconnected" });
-  },
 
   sendMessage: async (message: Message) => {
     const stateBefore = get();
@@ -113,7 +71,6 @@ const useChatStore = create<ChatState>((set, get) => ({
       role: "assistant",
       type: "message",
       content: "",
-      workflow_id: get().workflowId,
       name: "assistant",
     };
     set((state) => ({ messages: [...state.messages, assistantMessage] }));
@@ -220,7 +177,7 @@ const useChatStore = create<ChatState>((set, get) => ({
     const openAiMessages = await toOpenAIMessages(get().messages);
 
     // Build request payload
-    const model = (message as any).model || "gpt-4o-mini";
+    const model = (message as any).model || get().selectedModelId || "gpt-4o-mini";
     const body = {
       model,
       messages: openAiMessages,
@@ -231,7 +188,8 @@ const useChatStore = create<ChatState>((set, get) => ({
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
-    if (message.auth_token) {
+    const isLocalhost = apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1")  
+    if (message.auth_token && !isLocalhost) {
       headers["Authorization"] = `Bearer ${message.auth_token}`;
     }
 
@@ -313,6 +271,49 @@ const useChatStore = create<ChatState>((set, get) => ({
   resetMessages: () => set({ messages: [] }),
   setDroppedFiles: (files) => set({ droppedFiles: files }),
   setSelectedTools: (tools) => set({ selectedTools: tools }),
+  fetchModels: async (force = false, authToken?: string) => {
+    const { chatUrl, models, modelsLastFetched, isFetchingModels } = get();
+    const cacheIsFresh =
+      !!modelsLastFetched && Date.now() - modelsLastFetched < 5 * 60 * 1000; // 5 minutes
+
+    if (!force && cacheIsFresh && models.length > 0) {
+      return models;
+    }
+    if (isFetchingModels) {
+      return models;
+    }
+
+    set({ isFetchingModels: true, modelsError: null });
+    try {
+      // Derive API origin from chatUrl (e.g., http://127.0.0.1:8000)
+      const origin = new URL(chatUrl).origin;
+      // OpenAI-compatible models endpoint
+      const response = await fetch(`${origin}/v1/models`, {
+        method: "GET",
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+      const payload = (await response.json()) as {
+        object?: string;
+        data?: Array<{ id: string; object?: string; owned_by?: string }>;
+      };
+      const normalized = (payload.data || []).map((m) => ({
+        id: m.id,
+        name: m.id,
+        provider: m.owned_by,
+      }));
+      set({ models: normalized, modelsLastFetched: Date.now() });
+      return normalized;
+    } catch (err: any) {
+      const message = err?.message || "Failed to fetch models";
+      set({ modelsError: message });
+      return [];
+    } finally {
+      set({ isFetchingModels: false });
+    }
+  },
 }));
 
 export default useChatStore;
