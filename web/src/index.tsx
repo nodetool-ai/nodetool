@@ -34,6 +34,7 @@ import "./styles/vars.css";
 import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
+import "dockview/dist/styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
