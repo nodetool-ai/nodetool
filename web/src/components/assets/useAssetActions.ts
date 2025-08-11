@@ -164,24 +164,18 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const handleDelete = useCallback(() => {
-    if (selectedAssetIds?.length === 0) {
-      // Ensure both ids and objects are populated so the delete dialog can compute counts
+    const isAssetAlreadySelected =
+      selectedAssetIds?.includes(asset.id) ?? false;
+
+    if (!isAssetAlreadySelected) {
+      // Match context menu behavior: if the clicked item isn't in the selection,
+      // replace the selection with just this item before opening the dialog
       setSelectedAssetIds([asset.id]);
       setSelectedAssets([asset]);
-      console.log(
-        "[useAssetActions] Auto-selecting folder for deletion",
-        asset
-      );
-      log.debug(
-        "Folder delete clicked with no prior selection; auto-selecting folder",
-        {
-          assetId: asset.id
-        }
-      );
     }
     setDeleteDialogOpen(true);
   }, [
-    selectedAssetIds?.length,
+    selectedAssetIds,
     setDeleteDialogOpen,
     setSelectedAssetIds,
     setSelectedAssets,
