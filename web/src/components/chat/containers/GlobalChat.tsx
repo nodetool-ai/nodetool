@@ -7,11 +7,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
-import BackToEditorButton from "../../panels/BackToEditorButton";
-import BackToDashboardButton from "../../panels/BackToDashboardButton";
 import useGlobalChatStore, { useThreadsQuery } from "../../../stores/GlobalChatStore";
 import { LanguageModel, Message } from "../../../stores/ApiTypes";
 import { DEFAULT_MODEL } from "../../../config/constants";
+import AppHeader from "../../panels/AppHeader";
+import TabsNodeEditor from "../../editor/TabsNodeEditor";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -177,7 +177,7 @@ const GlobalChat: React.FC = () => {
       ".chat-header": {
         position: "absolute",
         top: 0,
-        left: 0,
+        left: "40px",
         zIndex: 1000
       },
 
@@ -228,8 +228,6 @@ const GlobalChat: React.FC = () => {
         maxHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        marginLeft: { xs: "0.5rem", md: "2rem" },
-        marginRight: { xs: "0.5rem", md: "2rem" },
         paddingLeft: { xs: "0.5rem", md: "0" },
         paddingRight: { xs: "0.5rem", md: "0" },
         overflow: "hidden"
@@ -240,12 +238,9 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        <Box
-          className="chat-header"
-          sx={{ display: "flex", alignItems: "center", gap: 1, p: 1 }}
-        >
-          <BackToDashboardButton />
-          <BackToEditorButton />
+        <TabsNodeEditor isChat />
+        <Box className="actions-container" sx={{ position: "absolute", top: "32px", left: 0, right: 0, zIndex: 1000 }}>
+          <AppHeader />
         </Box>
 
         {(error ||
