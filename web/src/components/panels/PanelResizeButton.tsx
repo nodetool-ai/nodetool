@@ -46,8 +46,8 @@ export default function PanelResizeButton({
   panelSize,
   onMouseDown
 }: PanelResizeButtonProps) {
-  const edgePaddingVisible = 12;
-  const minOffsetVisible = 30;
+  const edgePaddingVisible = 0;
+  const minOffsetVisible = 24;
   const collapsedOffset = 12;
 
   const dynamicStyle =
@@ -67,6 +67,7 @@ export default function PanelResizeButton({
 
   return (
     <IconButton
+      className="panel-resize-button"
       disableRipple
       css={buttonStyles}
       tabIndex={-1}

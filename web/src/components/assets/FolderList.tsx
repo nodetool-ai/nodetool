@@ -29,7 +29,8 @@ const styles = (theme: Theme) =>
     "&.folder-list-container": {
       position: "relative",
       height: "auto",
-      overflow: "visible",
+      overflowX: "hidden",
+      overflowY: "visible",
       padding: ".25em 0 0 0"
     },
     ".folder-list": {
