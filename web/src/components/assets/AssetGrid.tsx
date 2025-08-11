@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
 import { Box, Divider, Typography } from "@mui/material";
@@ -9,18 +8,18 @@ import type { Theme } from "@mui/material/styles";
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
 import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
-import GlobalSearchResults from "./GlobalSearchResults";
-import SearchErrorBoundary from "../SearchErrorBoundary";
-import { AssetWithPath } from "../../stores/ApiTypes";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
-import AssetGridContent from "./AssetGridContent";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
-import FolderList from "./FolderList";
+// Extracted panels and styles
+import AssetFoldersPanel from "./panels/AssetFoldersPanel";
+import AssetFilesPanel from "./panels/AssetFilesPanel";
+import assetGridStyles from "./assetGridStyles";
+import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -34,309 +33,9 @@ import StorageAnalytics from "./StorageAnalytics";
 import { DockviewReact, DockviewReadyEvent } from "dockview";
 import "dockview/dist/styles/dockview.css";
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      marginTop: "16px",
-      flexDirection: "column",
-      justifyContent: "flex-start",
-      height: "100%",
-      // Enable container queries based on this component's width
-      containerType: "inline-size"
-    },
-    // resize handle
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      position: "relative",
-      backgroundColor: theme.vars.palette.grey[700],
-      transition: "background-color 0.15s ease",
-      borderRadius: "2px"
-    },
-    // Left/Right split (vertical sash)
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
-      {
-        width: "10px",
-        cursor: "ew-resize",
-        transform: "translate(0px, 0px)"
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "2px",
-        height: "30%",
-        maxHeight: "100px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
-        opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
-      },
-    // Top/Bottom split (horizontal sash)
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
-      height: "10px",
-      cursor: "ns-resize",
-      transform: "translate(0px, 0px)"
-    },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "30%",
-        maxWidth: "100px",
-        height: "2px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
-        opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
-      },
-    // Place hover color rules AFTER default ::after rules for correct precedence
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      },
-    // Hide Dockview tab-actions
-    "& .dv-tabs-and-actions-container": {
-      display: "none !important"
-    },
-    "& .dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0"
-    },
-    ".dropzone": {
-      display: "flex",
-      outline: "none",
-      flexDirection: "column",
-      position: "relative",
-      flexGrow: 1,
-      flexShrink: 1,
-      width: "100%",
-      maxHeight: "calc(-260px + 100vh)"
-    },
-    ".audio-controls-container": {
-      position: "absolute",
-      width: "calc(100% - 32px)",
-      left: "16px",
-      bottom: "0",
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.25em",
-      zIndex: 5000,
-      padding: "0.5em",
-      borderTop: `2px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[800]
-    },
-    ".controls .zoom": {
-      maxWidth: "200px",
-      paddingBottom: "0.5em"
-    },
-    ".current-folder": {
-      display: "block",
-      left: "0",
-      fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[200],
-      margin: "1em 0 0 0"
-    },
-    ".folder-slash": {
-      color: "var(--palette-primary-main)",
-      fontWeight: 600,
-      marginRight: "0.25em",
-      userSelect: "none"
-    },
-    ".selected-asset-info": {
-      fontSize: "12px !important",
-      color: theme.vars.palette.grey[400],
-      minHeight: "25px",
-      padding: "0",
-      margin: "0 0 0 0.5em"
-    },
-    ".folder-list-container": {
-      padding: 0
-    },
-    ".folder-list": {
-      listStyleType: "none",
-      padding: 0,
-      margin: 0
-    },
-    ".folder-item": {
-      position: "relative",
-      alignItems: "center",
-      // Remove extra spacing that created large gaps between rows
-      padding: 0,
-      marginLeft: 0
-    },
-    ".folder-icon": {
-      marginRight: "0.1em",
-      color: "var(--c_folder)",
-      verticalAlign: "middle",
-      backgroundColor: "transparent"
-    },
-    ".folder-name": {
-      fontSize: theme.fontSizeNormal,
-      color: "var(--palette-grey-100)",
-      verticalAlign: "middle",
-      "&:hover": {
-        color: theme.vars.palette.primary.main
-      }
-    },
-    ".folder-item.selected ": {
-      // Keep the color emphasis without shifting layout vertically
-      padding: 0,
-      margin: 0,
-      width: "100%",
-      backgroundColor: "transparent",
-      "& .folder-name": {
-        fontWeight: "600",
-        color: "var(--palette-primary-main)"
-      },
-      "& .folder-icon": {
-        color: "var(--palette-primary-main)"
-      }
-    },
-    ".root-folder": {
-      paddingLeft: "4px"
-    },
-    ".file-info": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-end",
-      "& > span": {
-        textOverflow: "ellipsis",
-        overflow: "hidden",
-        whiteSpace: "nowrap",
-        maxWidth: "200px"
-      }
-    },
-    // Viewport-based fallback (rarely used for panel) and container query for sidebar width
-    "@media (max-width: 520px)": {
-      "&": {
-        marginTop: "8px"
-      },
-      ".dropzone": {
-        maxHeight: "calc(100vh - 140px)"
-      },
-      ".audio-controls-container": {
-        left: "8px",
-        width: "calc(100% - 16px)"
-      }
-    },
-    // Container query: triggers when the asset grid itself is narrow
-    "@container (max-width: 520px)": {
-      ".header-info": {
-        display: "none !important"
-      }
-    }
-  });
+const styles = assetGridStyles;
 
-// Dockview panel components (top-level)
-const FolderPanelComponent: React.FC = () => {
-  return (
-    <div
-      style={{
-        height: "100%",
-        overflowY: "auto",
-        overflowX: "hidden"
-      }}
-    >
-      <FolderList isHorizontal={false} />
-    </div>
-  );
-};
-
-const FilesPanelComponent: React.FC<any> = (props) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
-  const isGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const isGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const globalSearchResultsLocal = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const setIsGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const setIsGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const setCurrentFolderIdLocal = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
-
-  const handleDoubleClick = useCallback(
-    (asset: Asset) => {
-      setOpenAssetLocal(asset);
-    },
-    [setOpenAssetLocal]
-  );
-
-  const handleGlobalSearchAssetDoubleClick = useCallback(
-    (asset: AssetWithPath) => {
-      setOpenAssetLocal(asset);
-    },
-    [setOpenAssetLocal]
-  );
-
-  const handleNavigateToFolder = useCallback(
-    (folderId: string, folderPath: string) => {
-      setCurrentFolderIdLocal(folderId);
-      setIsGlobalSearchActiveLocal(false);
-      setIsGlobalSearchModeLocal(false);
-    },
-    [
-      setCurrentFolderIdLocal,
-      setIsGlobalSearchActiveLocal,
-      setIsGlobalSearchModeLocal
-    ]
-  );
-
-  const isHorizontalParam: boolean | undefined = props?.params?.isHorizontal;
-  const itemSpacingParam: number | undefined = props?.params?.itemSpacing;
-
-  return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
-      <div
-        className={`asset-content-wrapper ${
-          isGlobalSearchModeLocal && isGlobalSearchActiveLocal
-            ? "global-search-mode"
-            : "normal-grid-mode"
-        }`}
-        style={{ height: "100%" }}
-        ref={containerRef}
-      >
-        {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
-          <SearchErrorBoundary fallbackTitle="Search Results Error">
-            <GlobalSearchResults
-              results={globalSearchResultsLocal}
-              onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
-              onNavigateToFolder={handleNavigateToFolder}
-              containerWidth={containerRef.current?.offsetWidth || 800}
-            />
-          </SearchErrorBoundary>
-        ) : (
-          <AssetGridContent
-            isHorizontal={isHorizontalParam}
-            itemSpacing={itemSpacingParam}
-            onDoubleClick={handleDoubleClick}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
+// Panels are provided via separate components in ./panels
 
 interface AssetGridProps {
   maxItemSize?: number;
@@ -401,48 +100,28 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
-  const handleClickOutside = useCallback(
-    (e: MouseEvent) => {
-      const clickedElement = e.target as HTMLElement;
-      const deselectableClassNames = [
-        "content-type-header",
-        "selected-info",
-        "infinite-scroll-component",
-        "asset-grid-flex",
-        "current-folder",
-        "asset-info",
-        "asset-grid-container",
-        "MuiTabs-flexContainer",
-        "asset-list",
-        "autosizer-list",
-        "asset-grid-row",
-        "asset-grid-content",
-        "asset-menu",
-        "panel-right",
-        "dropzone",
-        "asset-menu-item"
-      ];
-
-      if (
-        !clickedElement.classList.contains("selected-asset-info") &&
-        deselectableClassNames.some((className) =>
-          clickedElement.classList.contains(className)
-        )
-      ) {
-        if (selectedAssetIds.length > 0) {
-          setSelectedAssetIds([]);
-        }
-      }
-    },
-    [selectedAssetIds, setSelectedAssetIds]
+  useClickOutsideDeselect(
+    [
+      "content-type-header",
+      "selected-info",
+      "infinite-scroll-component",
+      "asset-grid-flex",
+      "current-folder",
+      "asset-info",
+      "asset-grid-container",
+      "MuiTabs-flexContainer",
+      "asset-list",
+      "autosizer-list",
+      "asset-grid-row",
+      "asset-grid-content",
+      "asset-menu",
+      "panel-right",
+      "dropzone",
+      "asset-menu-item"
+    ],
+    selectedAssetIds.length > 0,
+    () => setSelectedAssetIds([])
   );
-
-  useEffect(() => {
-    window.addEventListener("click", handleClickOutside);
-    return () => {
-      window.removeEventListener("click", handleClickOutside);
-    };
-  }, [handleClickOutside]);
 
   useEffect(() => {
     if (F2KeyPressed && selectedAssetIds.length > 0) {
@@ -476,8 +155,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const panelComponents = useMemo(
     () => ({
-      "asset-folders": FolderPanelComponent,
-      "asset-files": FilesPanelComponent
+      "asset-folders": AssetFoldersPanel,
+      "asset-files": AssetFilesPanel
     }),
     []
   );
