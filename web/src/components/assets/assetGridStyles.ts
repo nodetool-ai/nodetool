@@ -145,9 +145,6 @@ export const assetGridStyles = (theme: Theme) => {
       transition: "background-color 0.15s ease",
       borderRadius: "2px"
     },
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover::after": {
-      backgroundColor: theme.vars.palette.primary.main
-    },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {
         width: "10px",
