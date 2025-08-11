@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
 import styled from "@emotion/styled";
@@ -13,6 +13,14 @@ import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { Composer } from "./Composer";
+import {
+  SelectContent,
+  SelectItem,
+  SelectRoot,
+  SelectTrigger,
+  SelectValueText,
+} from "./ui/select";
+import { createListCollection } from "@chakra-ui/react";
 
 interface ChatInterfaceProps {
   workflowId?: string;
@@ -76,7 +84,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   // const assistantBgColor = useColorModeValue("gray.200", "gray.800");
 
   const {
-    connect,
     status,
     statusMessage,
     messages,
@@ -85,11 +92,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     sendMessage,
     setDroppedFiles,
     selectedTools,
+    isFetchingModels,
+    fetchModels,
+    models,
+    selectedModelId,
+    setSelectedModel,
   } = useChatStore();
-
-  useEffect(() => {
-    connect(workflowId);
-  }, [connect, workflowId]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +108,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const modelOptions = useMemo(() => {
+    return createListCollection({
+      items: (models || []).map((m) => ({
+        label: m.provider ? `${m.name} · ${m.provider}` : m.name,
+        value: m.id,
+      })),
+    });
+  }, [models]);
+
+  const handleOpenModelList = useCallback(async () => {
+    if (!isFetchingModels && (!models || models.length === 0)) {
+      const result = await fetchModels(false);
+      if ((!selectedModelId || selectedModelId.length === 0) && result && result.length > 0) {
+        setSelectedModel(result[0].id);
+      }
+    }
+  }, [fetchModels, isFetchingModels, models, selectedModelId, setSelectedModel]);
 
   const handleSubmit = useCallback(
     async (message: string) => {
@@ -344,6 +370,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
       boxShadow="xl"
       p={4}
     >
+      {/* Header with model selector */}
+      <Flex gap={3} align="center" mb={3}>
+        <Box flex={1} />
+        <Box minW="260px">
+          <SelectRoot
+            collection={modelOptions}
+            value={selectedModelId ? [selectedModelId] : []}
+            onValueChange={(details: any) => {
+              const next = Array.isArray(details?.value)
+                ? details.value[0] || null
+                : details?.value || null;
+              setSelectedModel(next);
+            }}
+            disabled={isFetchingModels}
+          >
+            <SelectTrigger clearable onClick={handleOpenModelList}>
+              <SelectValueText placeholder={
+                isFetchingModels ? "Loading models…" : (selectedModelId ? "" : "Select model")
+              } />
+            </SelectTrigger>
+            <SelectContent>
+              {modelOptions.items.length === 0 ? (
+                <Box px={3} py={2} color="gray.400">
+                  {isFetchingModels ? "Fetching…" : "No models available"}
+                </Box>
+              ) : (
+                modelOptions.items.map((option) => (
+                  <SelectItem item={option} key={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </SelectRoot>
+        </Box>
+      </Flex>
+
       <Flex direction="column" h="calc(100% - 90px)" overflow="hidden">
         <Box flex="1" overflowY="auto">
           {messages.map((msg, index) => {
