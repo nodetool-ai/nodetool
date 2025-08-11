@@ -10,9 +10,10 @@ import AddIcon from "@mui/icons-material/Add";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
+  currentWorkflowId: string;
 }
 
-const TabsBar = ({ workflows }: TabsBarProps) => {
+const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const tabsRef = useRef<HTMLDivElement>(null);
   const [showScrollButtons, setShowScrollButtons] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -28,7 +29,6 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     updateWorkflow,
     removeWorkflow,
     saveWorkflow,
-    currentWorkflowId,
     createNewWorkflow,
     getNodeStore
   } = useWorkflowManager((state) => ({
@@ -38,7 +38,6 @@ const TabsBar = ({ workflows }: TabsBarProps) => {
     reorderWorkflows: state.reorderWorkflows,
     updateWorkflow: state.updateWorkflow,
     saveWorkflow: state.saveWorkflow,
-    currentWorkflowId: state.currentWorkflowId,
     createNewWorkflow: state.createNew,
     getNodeStore: state.getNodeStore
   }));

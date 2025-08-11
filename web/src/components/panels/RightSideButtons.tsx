@@ -20,7 +20,20 @@ const styles = (theme: Theme) =>
   css({
     ".command-icon": {
       color: theme.vars.palette.action.active,
-      padding: "0 .5em"
+      padding: "0 4px",
+      minWidth: "32px",
+      height: "32px",
+      borderRadius: "6px",
+      transition: "all 0.2s ease-out",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.05)"
+      },
+      "& svg, & .MuiSvgIcon-root": {
+        display: "block",
+        width: "18px",
+        height: "18px",
+        fontSize: "18px"
+      }
     }
   });
 
@@ -51,7 +64,8 @@ const RightSideButtons: React.FC = () => {
                 showTooltip={false}
                 bgStyle={{
                   backgroundColor: "transparent",
-                  width: "24px"
+                  width: "18px",
+                  height: "18px"
                 }}
               />
             </Button>
