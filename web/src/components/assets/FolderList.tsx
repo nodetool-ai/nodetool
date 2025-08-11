@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       flexWrap: "nowrap",
       gap: 0,
-      padding: 0,
+      padding: "0 0 0 .5em",
       height: "auto",
       overflow: "visible"
     },
