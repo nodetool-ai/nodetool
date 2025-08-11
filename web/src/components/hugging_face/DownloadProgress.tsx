@@ -102,7 +102,7 @@ const moveRight = keyframes`
   }
 `;
 
-export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
+export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = ({ name, minimal }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const removeDownload = useModelDownloadStore((state) => state.removeDownload);
@@ -146,6 +146,64 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   };
 
   if (!download) return null;
+
+  // Minimal inline variant for compact contexts (e.g., model variant buttons)
+  if (minimal) {
+    const totalBytes = download.totalBytes ?? 0;
+    const downloadedBytes = download.downloadedBytes ?? 0;
+    const percent = totalBytes > 0 ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100)) : 0;
+    const label =
+      download.status === "completed"
+        ? "Done"
+        : download.status === "error"
+        ? "Error"
+        : totalBytes > 0
+        ? `${percent.toFixed(0)}%`
+        : "…";
+
+    const formatBytes = (bytes: number) => {
+      if (!bytes || bytes < 0) return "-";
+      const units = ["B", "KB", "MB", "GB", "TB"] as const;
+      let value = bytes;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+    };
+
+    return (
+      <Tooltip title={`${name}: ${download.status}${download.message ? ` — ${download.message}` : ""}`}>
+        <Box
+          component="span"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.75,
+            ml: 0.5
+          }}
+        >
+          <CircularProgress
+            size={14}
+            color="inherit"
+            variant={download.status === "completed" || totalBytes > 0 ? "determinate" : "indeterminate"}
+            value={download.status === "completed" ? 100 : totalBytes > 0 ? percent : undefined}
+          />
+          <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+            <Typography variant="caption" sx={{ lineHeight: 1 }}>
+              {label}
+            </Typography>
+            {totalBytes > 0 && (
+              <Typography variant="caption" sx={{ lineHeight: 1, opacity: 0.8 }}>
+                {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Tooltip>
+    );
+  }
 
   return (
     <Box css={styles(theme)}>
