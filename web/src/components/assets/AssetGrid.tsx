@@ -45,17 +45,12 @@ const styles = (theme: Theme) =>
       // Enable container queries based on this component's width
       containerType: "inline-size"
     },
-    // Dockview: more visible resize handle just for AssetGrid
+    // resize handle
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
       position: "relative",
       backgroundColor: theme.vars.palette.grey[700],
       transition: "background-color 0.15s ease",
-      opacity: 0.95,
-      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.grey[900]}`,
       borderRadius: "2px"
-    },
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
-      backgroundColor: theme.vars.palette.primary.main
     },
     // Left/Right split (vertical sash)
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
@@ -66,16 +61,18 @@ const styles = (theme: Theme) =>
       },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
       {
-        content: "''",
+        content: '""',
         position: "absolute",
         left: "50%",
         top: "50%",
         transform: "translate(-50%, -50%)",
         width: "2px",
-        height: "60%",
+        height: "30%",
+        maxHeight: "100px",
         backgroundColor: theme.vars.palette.grey[300],
         borderRadius: "1px",
-        opacity: 0.6
+        opacity: 0.6,
+        transition: "background-color 0.15s ease, opacity 0.15s ease"
       },
     // Top/Bottom split (horizontal sash)
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
@@ -85,22 +82,37 @@ const styles = (theme: Theme) =>
     },
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
       {
-        content: "''",
+        content: '""',
         position: "absolute",
         left: "50%",
         top: "50%",
         transform: "translate(-50%, -50%)",
-        width: "60%",
+        width: "30%",
+        maxWidth: "100px",
         height: "2px",
         backgroundColor: theme.vars.palette.grey[300],
         borderRadius: "1px",
-        opacity: 0.6
+        opacity: 0.6,
+        transition: "background-color 0.15s ease, opacity 0.15s ease"
+      },
+    // Place hover color rules AFTER default ::after rules for correct precedence
+    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
+      {
+        backgroundColor: `${theme.vars.palette.primary.main} !important`,
+        opacity: 1
+      },
+    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash:hover::after":
+      {
+        backgroundColor: `${theme.vars.palette.primary.main} !important`,
+        opacity: 1
       },
     // Hide Dockview tab-actions
     "& .dv-tabs-and-actions-container": {
       display: "none !important"
     },
-
+    "& .dv-split-view-container .dv-view-container .dv-view": {
+      padding: "0"
+    },
     ".dropzone": {
       display: "flex",
       outline: "none",
@@ -225,6 +237,106 @@ const styles = (theme: Theme) =>
       }
     }
   });
+
+// Dockview panel components (top-level)
+const FolderPanelComponent: React.FC = () => {
+  return (
+    <div
+      style={{
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden"
+      }}
+    >
+      <FolderList isHorizontal={false} />
+    </div>
+  );
+};
+
+const FilesPanelComponent: React.FC<any> = (props) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
+  const isGlobalSearchActiveLocal = useAssetGridStore(
+    (state) => state.isGlobalSearchActive
+  );
+  const isGlobalSearchModeLocal = useAssetGridStore(
+    (state) => state.isGlobalSearchMode
+  );
+  const globalSearchResultsLocal = useAssetGridStore(
+    (state) => state.globalSearchResults
+  );
+  const setIsGlobalSearchActiveLocal = useAssetGridStore(
+    (state) => state.setIsGlobalSearchActive
+  );
+  const setIsGlobalSearchModeLocal = useAssetGridStore(
+    (state) => state.setIsGlobalSearchMode
+  );
+  const setCurrentFolderIdLocal = useAssetGridStore(
+    (state) => state.setCurrentFolderId
+  );
+
+  const handleDoubleClick = useCallback(
+    (asset: Asset) => {
+      setOpenAssetLocal(asset);
+    },
+    [setOpenAssetLocal]
+  );
+
+  const handleGlobalSearchAssetDoubleClick = useCallback(
+    (asset: AssetWithPath) => {
+      setOpenAssetLocal(asset);
+    },
+    [setOpenAssetLocal]
+  );
+
+  const handleNavigateToFolder = useCallback(
+    (folderId: string, folderPath: string) => {
+      setCurrentFolderIdLocal(folderId);
+      setIsGlobalSearchActiveLocal(false);
+      setIsGlobalSearchModeLocal(false);
+    },
+    [
+      setCurrentFolderIdLocal,
+      setIsGlobalSearchActiveLocal,
+      setIsGlobalSearchModeLocal
+    ]
+  );
+
+  const isHorizontalParam: boolean | undefined = props?.params?.isHorizontal;
+  const itemSpacingParam: number | undefined = props?.params?.itemSpacing;
+
+  return (
+    <div style={{ height: "100%", overflow: "hidden" }}>
+      <div
+        className={`asset-content-wrapper ${
+          isGlobalSearchModeLocal && isGlobalSearchActiveLocal
+            ? "global-search-mode"
+            : "normal-grid-mode"
+        }`}
+        style={{ height: "100%" }}
+        ref={containerRef}
+      >
+        {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
+          <SearchErrorBoundary fallbackTitle="Search Results Error">
+            <GlobalSearchResults
+              results={globalSearchResultsLocal}
+              onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
+              onNavigateToFolder={handleNavigateToFolder}
+              containerWidth={containerRef.current?.offsetWidth || 800}
+            />
+          </SearchErrorBoundary>
+        ) : (
+          <AssetGridContent
+            isHorizontal={isHorizontalParam}
+            itemSpacing={itemSpacingParam}
+            onDoubleClick={handleDoubleClick}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface AssetGridProps {
   maxItemSize?: number;
@@ -360,148 +472,63 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }
 
-  // Dockview panels
-  const FolderPanel: React.FC = () => {
-    return (
-      <div
-        style={{
-          height: "100%",
-          overflowY: "auto",
-          overflowX: "hidden"
-        }}
-      >
-        <FolderList isHorizontal={false} />
-      </div>
-    );
-  };
-
-  const FilesPanel: React.FC = () => {
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
-    const isGlobalSearchActiveLocal = useAssetGridStore(
-      (state) => state.isGlobalSearchActive
-    );
-    const isGlobalSearchModeLocal = useAssetGridStore(
-      (state) => state.isGlobalSearchMode
-    );
-    const globalSearchResultsLocal = useAssetGridStore(
-      (state) => state.globalSearchResults
-    );
-    const setIsGlobalSearchActiveLocal = useAssetGridStore(
-      (state) => state.setIsGlobalSearchActive
-    );
-    const setIsGlobalSearchModeLocal = useAssetGridStore(
-      (state) => state.setIsGlobalSearchMode
-    );
-    const setCurrentFolderIdLocal = useAssetGridStore(
-      (state) => state.setCurrentFolderId
-    );
-
-    const handleDoubleClick = useCallback(
-      (asset: Asset) => {
-        setOpenAssetLocal(asset);
-      },
-      [setOpenAssetLocal]
-    );
-
-    const handleGlobalSearchAssetDoubleClick = useCallback(
-      (asset: AssetWithPath) => {
-        setOpenAssetLocal(asset);
-      },
-      [setOpenAssetLocal]
-    );
-
-    const handleNavigateToFolder = useCallback(
-      (folderId: string, folderPath: string) => {
-        setCurrentFolderIdLocal(folderId);
-        setIsGlobalSearchActiveLocal(false);
-        setIsGlobalSearchModeLocal(false);
-      },
-      [
-        setCurrentFolderIdLocal,
-        setIsGlobalSearchActiveLocal,
-        setIsGlobalSearchModeLocal
-      ]
-    );
-
-    return (
-      <div style={{ height: "100%", overflow: "hidden" }}>
-        <div
-          className={`asset-content-wrapper ${
-            isGlobalSearchModeLocal && isGlobalSearchActiveLocal
-              ? "global-search-mode"
-              : "normal-grid-mode"
-          }`}
-          style={{ height: "100%" }}
-          ref={containerRef}
-        >
-          {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
-            <SearchErrorBoundary fallbackTitle="Search Results Error">
-              <GlobalSearchResults
-                results={globalSearchResultsLocal}
-                onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
-                onNavigateToFolder={handleNavigateToFolder}
-                containerWidth={containerRef.current?.offsetWidth || 800}
-              />
-            </SearchErrorBoundary>
-          ) : (
-            <AssetGridContent
-              isHorizontal={isHorizontal}
-              itemSpacing={itemSpacing}
-              onDoubleClick={handleDoubleClick}
-            />
-          )}
-        </div>
-      </div>
-    );
-  };
+  // Dockview panels are defined as top-level components (see above)
 
   const panelComponents = useMemo(
     () => ({
-      "asset-folders": FolderPanel,
-      "asset-files": FilesPanel
+      "asset-folders": FolderPanelComponent,
+      "asset-files": FilesPanelComponent
     }),
-    [FolderPanel, FilesPanel]
+    []
   );
 
-  const onReady = useCallback((event: DockviewReadyEvent) => {
-    const { api } = event;
-    api.addPanel({
-      id: "asset-folders",
-      component: "asset-folders",
-      title: "Folders"
-    });
+  const onReady = useCallback(
+    (event: DockviewReadyEvent) => {
+      const { api } = event;
+      api.addPanel({
+        id: "asset-folders",
+        component: "asset-folders",
+        title: "Folders"
+      });
 
-    // In fullscreen assets view, arrange panels left/right: folders left, files right
-    const isFullscreenAssets = window.location?.pathname === "/assets";
-    api.addPanel({
-      id: "asset-files",
-      component: "asset-files",
-      title: "Files",
-      position: {
-        referencePanel: "asset-folders",
-        direction: isFullscreenAssets ? "right" : "below"
-      }
-    });
+      // In fullscreen assets view, arrange panels left/right: folders left, files right
+      const isFullscreenAssets = window.location?.pathname === "/assets";
+      api.addPanel({
+        id: "asset-files",
+        component: "asset-files",
+        title: "Files",
+        position: {
+          referencePanel: "asset-folders",
+          direction: isFullscreenAssets ? "right" : "below"
+        },
+        params: { isHorizontal, itemSpacing }
+      });
 
-    if (isFullscreenAssets) {
-      const setFoldersWidth = () => {
-        const foldersPanel: any = api.getPanel("asset-folders");
-        const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
-        if (groupApi && typeof groupApi.setSize === "function") {
-          groupApi.setSize({ width: 250 });
-        } else if (foldersPanel && typeof foldersPanel.setSize === "function") {
-          foldersPanel.setSize({ width: 250 });
+      if (isFullscreenAssets) {
+        const setFoldersWidth = () => {
+          const foldersPanel: any = api.getPanel("asset-folders");
+          const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
+          if (groupApi && typeof groupApi.setSize === "function") {
+            groupApi.setSize({ width: 250 });
+          } else if (
+            foldersPanel &&
+            typeof foldersPanel.setSize === "function"
+          ) {
+            foldersPanel.setSize({ width: 250 });
+          }
+        };
+        // Try immediately and on next frame to ensure layout is ready
+        setFoldersWidth();
+        if (
+          typeof window !== "undefined" &&
+          "requestAnimationFrame" in window
+        ) {
+          window.requestAnimationFrame(() => setFoldersWidth());
         }
-      };
-      // Try immediately and on next frame to ensure layout is ready
-      setFoldersWidth();
-      if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
-        window.requestAnimationFrame(() => setFoldersWidth());
       }
-    }
-  }, []);
+    },
+    [isHorizontal, itemSpacing]
+  );
 
   return (
     <Box css={styles(theme)} className="asset-grid-container">

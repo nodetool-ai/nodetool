@@ -7,7 +7,7 @@ import {
   Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, { useCallback } from "react";
+import React from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -29,8 +29,7 @@ const styles = (theme: Theme) =>
     "&.folder-list-container": {
       position: "relative",
       height: "auto",
-      overflowX: "hidden",
-      overflowY: "visible",
+      overflow: "hidden",
       padding: ".25em 0 0 0"
     },
     ".folder-list": {

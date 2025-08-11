@@ -29,8 +29,8 @@ const styles = (theme: Theme) =>
       marginLeft: "1em",
       marginBottom: "1em"
     },
-    ".dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0 1em"
+    "& .dv-split-view-container .dv-view-container .dv-view": {
+      padding: "0.5em 1em"
     },
     ".audio-controls-container": {
       padding: "2em"
