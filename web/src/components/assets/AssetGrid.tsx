@@ -129,11 +129,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       "content-type-header",
       "selected-info",
       "infinite-scroll-component",
-      "asset-grid-flex",
       "current-folder",
       "asset-info",
       "asset-grid-container",
-      "MuiTabs-flexContainer",
       "asset-list",
       "autosizer-list",
       "asset-grid-row",
@@ -207,7 +205,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         }
       });
 
-      // Best-effort: enforce the initial size after layout
+      // Enforce initial size
       const applyInitialSize = () => {
         const groupApi =
           (foldersPanel as any)?.group?.api ?? (foldersPanel as any)?.group;
@@ -219,11 +217,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           }
         }
       };
-      if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
-        window.requestAnimationFrame(applyInitialSize);
-      } else {
-        applyInitialSize();
-      }
+      applyInitialSize();
     },
     [isFullscreenAssets, isHorizontal, itemSpacing]
   );
