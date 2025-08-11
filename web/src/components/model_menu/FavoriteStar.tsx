@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { useMemo } from "react";
 import { Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
@@ -37,7 +38,17 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
       disableInteractive
       title={isFavorite ? "Unfavorite" : "Favorite"}
     >
-      <span onClick={handleClick}>
+      <span
+        className="favorite-star"
+        css={css({
+          display: "inline-flex",
+          alignItems: "center",
+          cursor: "pointer",
+          opacity: isFavorite ? 1 : 0,
+          transition: "opacity 120ms ease"
+        })}
+        onClick={handleClick}
+      >
         {isFavorite ? (
           <StarIcon fontSize={size} />
         ) : (

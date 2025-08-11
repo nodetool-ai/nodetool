@@ -73,7 +73,8 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
       sx={{
         "& .MuiListItemButton-root": { py: 0.25 },
         "& .MuiListItemText-primary": { fontSize: "0.9rem" },
-        "& .MuiListItemText-secondary": { fontSize: "0.8rem" }
+        "& .MuiListItemText-secondary": { fontSize: "0.8rem" },
+        "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >
       {models.map((m) => {
