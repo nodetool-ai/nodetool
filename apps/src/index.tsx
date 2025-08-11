@@ -52,11 +52,13 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <Provider>
-        {isTestPage ? (
-          <ComponentTest />
-        ) : (
-          <ChatInterface token="local_token" />
-        )}
+        <Box minH="100dvh">
+          {isTestPage ? (
+            <ComponentTest />
+          ) : (
+            <ChatInterface token="local_token" />
+          )}
+        </Box>
       </Provider>
     </ErrorBoundary>
   </React.StrictMode>
