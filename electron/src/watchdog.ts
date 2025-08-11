@@ -184,11 +184,18 @@ export class Watchdog {
   }
 
   private async isHealthy(): Promise<boolean> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 2000);
     try {
-      const res = await fetch(this.opts.healthUrl, { method: "GET" });
+      const res = await fetch(this.opts.healthUrl, {
+        method: "GET",
+        signal: controller.signal,
+      });
       return res.ok;
     } catch {
       return false;
+    } finally {
+      clearTimeout(id);
     }
   }
 
