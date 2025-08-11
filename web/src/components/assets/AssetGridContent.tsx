@@ -41,6 +41,7 @@ const styles = (theme: Theme) =>
     },
     ".asset-list": {
       flex: 1,
+      marginTop: "1em",
       overflow: "hidden"
     },
     ".autosizer-list": {
