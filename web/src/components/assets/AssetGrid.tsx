@@ -30,8 +30,25 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import StorageAnalytics from "./StorageAnalytics";
-import { DockviewReact, DockviewReadyEvent } from "dockview";
-import "dockview/dist/styles/dockview.css";
+import {
+  DockviewReact,
+  DockviewReadyEvent,
+  IDockviewPanelProps
+} from "dockview";
+import PanelErrorBoundary from "../common/PanelErrorBoundary";
+// Static mapping for Dockview components, wrapped in error boundaries
+const panelComponents = {
+  "asset-folders": (_props: IDockviewPanelProps) => (
+    <PanelErrorBoundary>
+      <AssetFoldersPanel />
+    </PanelErrorBoundary>
+  ),
+  "asset-files": (props: IDockviewPanelProps) => (
+    <PanelErrorBoundary>
+      <AssetFilesPanel {...props} />
+    </PanelErrorBoundary>
+  )
+};
 
 const styles = assetGridStyles;
 
@@ -42,13 +59,15 @@ interface AssetGridProps {
   itemSpacing?: number;
   isHorizontal?: boolean;
   sortedAssets?: Asset[];
+  initialFoldersPanelWidth?: number;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 5,
   isHorizontal,
-  sortedAssets
+  sortedAssets,
+  initialFoldersPanelWidth
 }) => {
   const { error, folderFilesFiltered } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
@@ -153,29 +172,28 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   // Dockview panels are defined as top-level components (see above)
 
-  const panelComponents = useMemo(
-    () => ({
-      "asset-folders": AssetFoldersPanel,
-      "asset-files": AssetFilesPanel
-    }),
-    []
-  );
-
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
-      api.addPanel({
+      const isFullscreenAssets = window.location?.pathname === "/assets";
+
+      // Use Dockview panel options for initial sizing
+      const foldersPanelOptions: any = {
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders"
-      });
-
-      // In fullscreen assets view, arrange panels left/right: folders left, files right
-      const isFullscreenAssets = window.location?.pathname === "/assets";
+      };
+      if (!isFullscreenAssets) {
+        foldersPanelOptions.initialHeight = 200;
+      } else if (typeof initialFoldersPanelWidth === "number") {
+        foldersPanelOptions.initialWidth = initialFoldersPanelWidth;
+      }
+      api.addPanel(foldersPanelOptions);
       api.addPanel({
         id: "asset-files",
         component: "asset-files",
         title: "Files",
+        initialHeight: 800,
         position: {
           referencePanel: "asset-folders",
           direction: isFullscreenAssets ? "right" : "below"
@@ -183,30 +201,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         params: { isHorizontal, itemSpacing }
       });
 
-      if (isFullscreenAssets) {
-        const setFoldersWidth = () => {
-          const foldersPanel: any = api.getPanel("asset-folders");
-          const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
-          if (groupApi && typeof groupApi.setSize === "function") {
-            groupApi.setSize({ width: 250 });
-          } else if (
-            foldersPanel &&
-            typeof foldersPanel.setSize === "function"
-          ) {
-            foldersPanel.setSize({ width: 250 });
-          }
-        };
-        // Try immediately and on next frame to ensure layout is ready
-        setFoldersWidth();
-        if (
-          typeof window !== "undefined" &&
-          "requestAnimationFrame" in window
-        ) {
-          window.requestAnimationFrame(() => setFoldersWidth());
-        }
-      }
+      // Initial sizing handled via addPanel options above
     },
-    [isHorizontal, itemSpacing]
+    [isHorizontal, itemSpacing, initialFoldersPanelWidth]
   );
 
   return (

@@ -151,19 +151,39 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const theme = useTheme();
   const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
-  const { navigateToFolder } = useAssets();
+  const { navigateToFolder, navigateToFolderId } = useAssets();
 
   const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
   );
 
-  const handleSelect = (folder: Asset) => {
-    navigateToFolder(folder);
+  const handleSelect = (folder: Asset | RootFolder) => {
+    if ((folder as Asset).user_id !== undefined) {
+      navigateToFolder(folder as Asset);
+    } else {
+      navigateToFolderId(folder.id);
+    }
   };
 
-  const renderFolder = (folder: any, level = 0, isRoot = false) => {
+  interface FolderNode extends Asset {
+    children?: FolderNode[];
+  }
+  type RootFolder = {
+    id: string;
+    name: string;
+    content_type: string;
+    parent_id: string;
+    children: FolderNode[];
+  };
+
+  const renderFolder = (
+    folder: FolderNode | RootFolder,
+    level = 0,
+    isRoot = false
+  ) => {
     if (!folder || !folder.id) return null;
-    const hasChildren = folder.children && folder.children.length > 0;
+    const hasChildren =
+      (folder as any).children && (folder as any).children.length > 0;
 
     return hasChildren ? (
       <Accordion
@@ -204,7 +224,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             }}
           >
             <FolderItem
-              folder={folder}
+              folder={folder as Asset}
               onSelect={() => handleSelect(folder)}
               isSelected={selectedFolderIds.includes(folder.id)}
               showDeleteButton={false}
@@ -218,8 +238,8 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           </div>
         </AccordionSummary>
         <AccordionDetails>
-          {folder.children.map((childNode: any) =>
-            renderFolder(childNode, level + 1)
+          {(((folder as any).children || []) as FolderNode[]).map(
+            (childNode: FolderNode) => renderFolder(childNode, level + 1)
           )}
         </AccordionDetails>
       </Accordion>
@@ -238,7 +258,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
         >
           <FolderItem
-            folder={folder}
+            folder={folder as Asset}
             onSelect={() => handleSelect(folder)}
             isSelected={selectedFolderIds.includes(folder.id)}
           />
@@ -247,11 +267,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     );
   };
 
-  const rootFolder = {
-    id: currentUser?.id,
+  const rootFolder: RootFolder = {
+    id: currentUser?.id ?? "root",
     name: "ASSETS",
     content_type: "folder",
-    children: Object.values(folderTree || {}),
+    children: (Object.values(folderTree || {}) as FolderNode[]) || [],
     parent_id: currentUser?.id || ""
   };
 

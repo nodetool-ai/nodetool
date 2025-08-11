@@ -1,12 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef } from "react";
+import { IDockviewPanelProps } from "dockview";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 
-const AssetFilesPanel: React.FC<any> = (props) => {
+interface AssetFilesPanelParams {
+  isHorizontal?: boolean;
+  itemSpacing?: number;
+}
+const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
+  props
+) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
@@ -56,8 +63,8 @@ const AssetFilesPanel: React.FC<any> = (props) => {
     ]
   );
 
-  const isHorizontal = props?.params?.isHorizontal as boolean | undefined;
-  const itemSpacing = props?.params?.itemSpacing as number | undefined;
+  const isHorizontal = props.params?.isHorizontal;
+  const itemSpacing = props.params?.itemSpacing;
 
   return (
     <div style={{ height: "100%", overflow: "hidden" }}>
