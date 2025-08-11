@@ -557,9 +557,7 @@ const ExampleGrid = () => {
 
   return (
     <Box className="workflow-grid" css={styles(theme)}>
-      <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <BackToEditorButton />
-      </Tooltip>
+      <BackToEditorButton />
       <TagFilter
         tags={groupedWorkflows}
         selectedTag={selectedTag}
