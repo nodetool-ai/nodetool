@@ -20,6 +20,8 @@ import useModelStore from "../../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
+import ModelMenuDialog from "../../model_menu/ModelMenuDialog";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import {
   isHuggingFaceProvider,
   getProviderBaseName,
@@ -79,10 +81,12 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
   onModelChange
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
   const theme = useTheme();
   const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
+  const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const {
     data: models,
     isLoading,
@@ -116,9 +120,19 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
     );
   }, [models, selectedModel]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
+  const USE_NEW_DIALOG = true;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (USE_NEW_DIALOG) {
+        setDialogOpen(true);
+        console.log("[ModelMenu] open dialog");
+      } else {
+        setAnchorEl(event.currentTarget);
+      }
+    },
+    [USE_NEW_DIALOG]
+  );
 
   const handleClose = useCallback(() => {
     setAnchorEl(null);
@@ -126,10 +140,16 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
 
   const handleModelSelect = useCallback(
     (model: LanguageModel) => {
+      addRecent({
+        provider: model.provider || "",
+        id: model.id || "",
+        name: model.name || ""
+      });
       onModelChange?.(model);
       handleClose();
+      setDialogOpen(false);
     },
-    [onModelChange, handleClose]
+    [onModelChange, handleClose, addRecent]
   );
 
   const sortedProviders = useMemo(
@@ -277,6 +297,16 @@ const ModelMenu: React.FC<ModelMenuProps> = ({
           ])
         )}
       </Menu>
+      {USE_NEW_DIALOG && (
+        <ModelMenuDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          models={models}
+          isLoading={isLoading}
+          isError={isError}
+          onModelChange={handleModelSelect}
+        />
+      )}
     </>
   );
 };
