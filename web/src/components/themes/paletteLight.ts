@@ -118,8 +118,8 @@ export const paletteLight: PaletteOptions = {
     500: "#9CA3AF",
     600: "#D1D5DB",
     700: "#E5E7EB",
-    800: "#F1F5F9",
-    900: "#F8FAFC",
+    800: "#F1F1F1",
+    900: "#F8F8F8",
     1000: "#FFFFFF"
   },
   c_black: "#0B1220",
