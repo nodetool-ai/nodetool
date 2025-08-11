@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: 0
     },
-    
+
     // Smaller, cleaner icons in the asset toolbar
     ".asset-button-group .MuiSvgIcon-root, .asset-button-group svg": {
       fontSize: "18px",
@@ -308,9 +308,16 @@ const AssetActions = ({
   };
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <FileUploadButton onFileChange={(files) => onUploadFiles?.(files)} compact />
+      <FileUploadButton
+        onFileChange={(files) => onUploadFiles?.(files)}
+        compact
+      />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Create Folder"
+          disableInteractive
+        >
           <Button
             onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
             tabIndex={-1}
@@ -318,12 +325,20 @@ const AssetActions = ({
             <CreateNewFolderIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Select all">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Select all"
+          disableInteractive
+        >
           <Button onClick={handleSelectAllAssets} tabIndex={-1}>
             <SelectAllIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Deselect">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Deselect"
+          disableInteractive
+        >
           <Button onClick={handleDeselectAssets} tabIndex={-1}>
             <DeselectIcon />
           </Button>
@@ -331,6 +346,7 @@ const AssetActions = ({
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+          disableInteractive
         >
           <Button onClick={handleViewModeToggle} tabIndex={-1}>
             {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
@@ -360,6 +376,7 @@ const AssetActions = ({
         enterDelay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
         placement="bottom"
+        disableInteractive
       >
         <Select
           variant="standard"
@@ -380,6 +397,7 @@ const AssetActions = ({
         enterDelay={TOOLTIP_ENTER_DELAY}
         title="Filter by file size"
         placement="bottom"
+        disableInteractive
       >
         <Select
           className="size-filter"
