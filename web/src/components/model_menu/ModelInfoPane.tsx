@@ -6,7 +6,8 @@ import type { LanguageModel } from "../../stores/ApiTypes";
 
 const paneStyles = css({
   overflowY: "auto",
-  maxHeight: 440
+  maxHeight: 520,
+  fontSize: "0.94rem"
 });
 
 export interface ModelInfoPaneProps {
