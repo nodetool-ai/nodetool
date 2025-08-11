@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as os from "os";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import * as fs from "fs";
@@ -19,19 +20,58 @@ const appsPath: string = app.isPackaged
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 
+// Returns a sane default install location if settings do not define CONDA_ENV
+const getDefaultCondaEnvPath = (): string => {
+  switch (process.platform) {
+    case "win32":
+      return process.env.ALLUSERSPROFILE
+        ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
+        : path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "nodetool", "conda_env");
+    case "darwin":
+      return process.env.SUDO_USER
+        ? path.join("/Library/Application Support/nodetool/conda_env")
+        : path.join(
+            os.homedir(),
+            "Library/Application Support/nodetool/conda_env"
+          );
+    case "linux":
+      return process.env.SUDO_USER
+        ? "/opt/nodetool/conda_env"
+        : path.join(os.homedir(), ".local/share/nodetool/conda_env");
+    default:
+      return path.join(os.homedir(), ".nodetool/conda_env");
+  }
+};
+
 const getCondaEnvPath = (): string => {
   logMessage("=== Getting Conda Environment Path ===");
   console.log("Getting conda environment path...");
-  
+
   const settings = readSettings();
   logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
   console.log(`Settings:`, settings);
 
-  const condaPath: string = settings.CONDA_ENV;
-  logMessage(`Final conda path: ${condaPath}`);
-  console.log(`Final conda path: ${condaPath}`);
+  const condaPathFromSettings: unknown = (settings as Record<string, unknown>)[
+    "CONDA_ENV"
+  ];
 
-  return condaPath;
+  if (
+    typeof condaPathFromSettings === "string" &&
+    condaPathFromSettings.trim().length > 0
+  ) {
+    logMessage(`Final conda path (from settings): ${condaPathFromSettings}`);
+    console.log(`Final conda path (from settings): ${condaPathFromSettings}`);
+    return condaPathFromSettings;
+  }
+
+  const fallbackPath = getDefaultCondaEnvPath();
+  logMessage(
+    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
+  );
+  console.log(
+    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
+  );
+  return fallbackPath;
 };
 
 /**
