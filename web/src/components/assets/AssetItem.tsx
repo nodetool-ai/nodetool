@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: "var(--palette-grey-900)",
+      backgroundColor: "var(--palette-grey-800)",
       borderRadius: "0.5em",
       overflow: "hidden"
     },
