@@ -14,7 +14,7 @@ import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 520,
+  maxHeight: "calc(100% - 20px)",
   fontSize: "0.92rem"
 });
 
@@ -36,6 +36,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const isProviderEnabled = useModelPreferencesStore(
     (s) => s.isProviderEnabled
   );
+  const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const setProviderEnabled = useModelPreferencesStore(
     (s) => s.setProviderEnabled
   );
@@ -74,7 +75,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             }`}
             selected={selected === p}
             onClick={() => onSelect(p)}
-            sx={{ gap: 1, opacity: enabled ? 1 : 0.55 }}
+            sx={{ gap: 0.1, opacity: enabled ? 1 : 0.55 }}
           >
             <ListItemText primary={p} />
             <Box sx={{ ml: "auto" }} onClick={(e) => e.stopPropagation()}>
@@ -82,6 +83,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 <Checkbox
                   edge="end"
                   size="small"
+                  sx={{
+                    padding: 0,
+                    "& .MuiSvgIcon-root": {
+                      fontSize: "1.2rem"
+                    }
+                  }}
                   checked={enabled}
                   onChange={(e) => {
                     setProviderEnabled(p, e.target.checked);
