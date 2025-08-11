@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-export const assetGridStyles = (theme: Theme) =>
-  css({
+export const assetGridStyles = (theme: Theme) => {
+  return css({
     "&": {
       display: "flex",
       marginTop: "16px",
@@ -118,7 +118,7 @@ export const assetGridStyles = (theme: Theme) =>
       margin: "1em 0 0 0"
     },
     ".folder-slash": {
-      color: "var(--palette-primary-main)",
+      color: theme.vars.palette.primary.main,
       fontWeight: 600,
       marginRight: "0.25em",
       userSelect: "none"
@@ -152,7 +152,7 @@ export const assetGridStyles = (theme: Theme) =>
     },
     ".folder-name": {
       fontSize: theme.fontSizeNormal,
-      color: "var(--palette-grey-100)",
+      color: theme.vars.palette.grey[100],
       verticalAlign: "middle",
       "&:hover": {
         color: theme.vars.palette.primary.main
@@ -165,10 +165,10 @@ export const assetGridStyles = (theme: Theme) =>
       backgroundColor: "transparent",
       "& .folder-name": {
         fontWeight: "600",
-        color: "var(--palette-primary-main)"
+        color: theme.vars.palette.primary.main
       },
       "& .folder-icon": {
-        color: "var(--palette-primary-main)"
+        color: theme.vars.palette.primary.main
       }
     },
     ".root-folder": {
@@ -203,5 +203,6 @@ export const assetGridStyles = (theme: Theme) =>
       }
     }
   });
+};
 
 export default assetGridStyles;
