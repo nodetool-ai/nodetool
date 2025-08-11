@@ -79,8 +79,8 @@ const styles = (theme: Theme) =>
       width: "20px",
       minWidth: "20px",
       height: "20px",
-      right: "0",
-      top: "0",
+      right: ".5em",
+      top: 1,
       border: "none",
       color: theme.vars.palette.grey[400],
       transition: "opacity 0.2s .2s ease"

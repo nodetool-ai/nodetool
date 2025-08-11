@@ -87,10 +87,11 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       height: ROW_HEIGHT_REM + "rem",
       gap: ".25rem",
-      boxSizing: "border-box"
+      borderRadius: ".5em"
     },
     ".row:hover": {
       opacity: 0.9,
+
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".expand-gutter": {
