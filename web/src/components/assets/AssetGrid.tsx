@@ -193,7 +193,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         id: "asset-files",
         component: "asset-files",
         title: "Files",
-        initialHeight: 800,
+        // initialHeight: 800,
         position: {
           referencePanel: "asset-folders",
           direction: isFullscreenAssets ? "right" : "below"
@@ -222,6 +222,36 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         } catch (err) {
           console.warn("Failed to set initial folders panel width:", err);
         }
+      }
+
+      // Robustly ensure initial height for folders in non-fullscreen after layout settles
+      if (!isFullscreenAssets) {
+        const applyHeight = () => {
+          try {
+            const foldersPanel: any = api.getPanel("asset-folders");
+            const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
+            if (groupApi && typeof groupApi.setSize === "function") {
+              console.log("Setting folders panel initial height to 400px");
+              groupApi.setSize({ height: 400 });
+            } else if (
+              foldersPanel &&
+              typeof foldersPanel.setSize === "function"
+            ) {
+              foldersPanel.setSize({ height: 400 });
+            }
+          } catch (err) {
+            console.warn("Failed to set initial folders panel height:", err);
+          }
+        };
+        // Try immediately, on next frame, and next macrotask to outlast Dockview layout passes
+        applyHeight();
+        if (
+          typeof window !== "undefined" &&
+          "requestAnimationFrame" in window
+        ) {
+          window.requestAnimationFrame(() => applyHeight());
+        }
+        setTimeout(() => applyHeight(), 0);
       }
     },
     [isHorizontal, itemSpacing, initialFoldersPanelWidth]
