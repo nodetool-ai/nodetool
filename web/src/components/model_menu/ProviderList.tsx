@@ -10,7 +10,8 @@ import {
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 440
+  maxHeight: 520,
+  fontSize: "0.92rem"
 });
 
 export interface ProviderListProps {

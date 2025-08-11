@@ -6,20 +6,22 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tooltip
+  Tooltip,
+  ListSubheader
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 520,
-  fontSize: "0.94rem"
+  maxHeight: 240,
+  fontSize: "0.88rem"
 });
 
-export interface ModelListProps {
+export interface FavoritesListProps {
   models: LanguageModel[];
   onSelect: (m: LanguageModel) => void;
 }
@@ -34,7 +36,7 @@ const requiredSecretForProvider = (provider?: string): string | null => {
   return null;
 };
 
-const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
+const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
 
@@ -50,14 +52,24 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
     return map;
   }, [models, secrets]);
 
+  if (models.length === 0) return null;
+
   return (
     <List
       dense
       css={listStyles}
+      subheader={
+        <ListSubheader
+          component="div"
+          sx={{ fontSize: "0.85rem", letterSpacing: 0.2 }}
+        >
+          Favorites
+        </ListSubheader>
+      }
       sx={{
-        "& .MuiListItemButton-root": { py: 0.4 },
-        "& .MuiListItemText-primary": { fontSize: "0.95rem" },
-        "& .MuiListItemText-secondary": { fontSize: "0.82rem" }
+        "& .MuiListItemButton-root": { py: 0.25 },
+        "& .MuiListItemText-primary": { fontSize: "0.9rem" },
+        "& .MuiListItemText-secondary": { fontSize: "0.8rem" }
       }}
     >
       {models.map((m) => {
@@ -65,7 +77,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
         const available = availabilityMap[`${m.provider}:${m.id}`] ?? true;
         return (
           <ListItemButton
-            key={`${m.provider}:${m.id}`}
+            key={`favorite:${m.provider}:${m.id}`}
             onClick={() => available && onSelect(m)}
             disabled={!available}
           >
@@ -85,4 +97,4 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   );
 };
 
-export default ModelList;
+export default FavoritesList;

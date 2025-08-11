@@ -7,12 +7,14 @@ import {
   DialogContent,
   Box,
   FormControlLabel,
-  Switch
+  Switch,
+  Divider
 } from "@mui/material";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import ProviderList from "./ProviderList";
 import ModelList from "./ModelList";
 import RecentList from "./RecentList";
+import FavoritesList from "./FavoritesList";
 import ModelInfoPane from "./ModelInfoPane";
 import SearchInput from "../search/SearchInput";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
@@ -30,9 +32,9 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "240px 1fr 320px",
+  gridTemplateColumns: "260px 1fr 360px",
   gap: 12,
-  minHeight: 420
+  minHeight: 480
 });
 
 const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
@@ -51,6 +53,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const onlyAvailable = useModelPreferencesStore((s) => s.onlyAvailable);
   const setOnlyAvailable = useModelPreferencesStore((s) => s.setOnlyAvailable);
+  const favoritesSet = useModelPreferencesStore((s) => s.favorites);
+  const recentsList = useModelPreferencesStore((s) => s.recents);
 
   const providers = useMemo(() => {
     const set = new Set<string>();
@@ -103,7 +107,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   }, [models, selectedProvider, search, onlyAvailable, isAvailable]);
 
   const recentModels = useMemo(() => {
-    const recents = useModelPreferencesStore.getState().getRecent();
+    const recents = recentsList;
     const byKey = new Map<string, LanguageModel>(
       (models ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
     );
@@ -115,7 +119,14 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     return onlyAvailable
       ? mapped.filter((m) => isAvailable(m.provider))
       : mapped;
-  }, [models, onlyAvailable, isAvailable]);
+  }, [models, onlyAvailable, isAvailable, recentsList]);
+
+  const favoriteModels = useMemo(() => {
+    const keyHas = (provider?: string, id?: string) =>
+      favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
+    const list = (models ?? []).filter((m) => keyHas(m.provider, m.id));
+    return onlyAvailable ? list.filter((m) => isAvailable(m.provider)) : list;
+  }, [models, onlyAvailable, isAvailable, favoritesSet]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
@@ -131,8 +142,10 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   );
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>Select Model</DialogTitle>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
+      <DialogTitle sx={{ fontSize: "1rem", letterSpacing: 0.4 }}>
+        Select Model
+      </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}>
           <Box sx={{ flex: 1 }}>
@@ -145,8 +158,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
               debounceTime={150}
               focusSearchInput
               focusOnTyping
-              maxWidth="100%"
-              width={600}
+              maxWidth="300px"
+              width={300}
             />
           </Box>
           <FormControlLabel
@@ -170,7 +183,18 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
           />
           <Box>
             {search.trim().length === 0 && !selectedProvider && (
-              <RecentList models={recentModels} onSelect={handleSelectModel} />
+              <>
+                <FavoritesList
+                  models={favoriteModels}
+                  onSelect={handleSelectModel}
+                />
+                <Divider sx={{ my: 1, opacity: 0.25 }} />
+                <RecentList
+                  models={recentModels}
+                  onSelect={handleSelectModel}
+                />
+                <Divider sx={{ my: 1, opacity: 0.15 }} />
+              </>
             )}
             <ModelList models={filteredModels} onSelect={handleSelectModel} />
           </Box>

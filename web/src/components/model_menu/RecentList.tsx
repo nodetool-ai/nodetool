@@ -9,15 +9,15 @@ import {
   Tooltip,
   ListSubheader
 } from "@mui/material";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
+import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 200
+  maxHeight: 240,
+  fontSize: "0.88rem"
 });
 
 export interface RecentListProps {
@@ -36,7 +36,6 @@ const requiredSecretForProvider = (provider?: string): string | null => {
 };
 
 const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
-  const toggleFavorite = useModelPreferencesStore((s) => s.toggleFavorite);
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
 
@@ -58,7 +57,19 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
     <List
       dense
       css={listStyles}
-      subheader={<ListSubheader component="div">Recent</ListSubheader>}
+      subheader={
+        <ListSubheader
+          component="div"
+          sx={{ fontSize: "0.85rem", letterSpacing: 0.2 }}
+        >
+          Recent
+        </ListSubheader>
+      }
+      sx={{
+        "& .MuiListItemButton-root": { py: 0.25 },
+        "& .MuiListItemText-primary": { fontSize: "0.9rem" },
+        "& .MuiListItemText-secondary": { fontSize: "0.8rem" }
+      }}
     >
       {models.map((m) => {
         const fav = isFavorite(m.provider || "", m.id || "");
@@ -69,21 +80,8 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
             onClick={() => available && onSelect(m)}
             disabled={!available}
           >
-            <ListItemIcon>
-              <Tooltip title={fav ? "Unfavorite" : "Favorite"}>
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(m.provider || "", m.id || "");
-                  }}
-                >
-                  {fav ? (
-                    <StarIcon fontSize="small" />
-                  ) : (
-                    <StarBorderIcon fontSize="small" />
-                  )}
-                </span>
-              </Tooltip>
+            <ListItemIcon sx={{ minWidth: 30 }}>
+              <FavoriteStar provider={m.provider} id={m.id} size="small" />
             </ListItemIcon>
             <ListItemText
               primary={m.name}
