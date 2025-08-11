@@ -56,7 +56,10 @@ const styles = (theme: Theme) =>
       transition: "background-color 0.3s ease",
 
       "& svg": {
-        fontSize: "0.8em !important",
+        display: "block",
+        width: "18px",
+        height: "18px",
+        fontSize: "18px !important",
         color: "var(--palette-grey-200)",
         opacity: 0,
         marginLeft: "1px",
@@ -66,8 +69,7 @@ const styles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: "var(--palette-grey-800)",
         "& svg": {
-          opacity: 1,
-          fontSize: "1em !important"
+          opacity: 1
         }
       }
     },
@@ -84,6 +86,12 @@ const styles = (theme: Theme) =>
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "&.active svg": {
           color: "var(--palette-primary-main)"
+        },
+        "& svg": {
+          display: "block",
+          width: "18px",
+          height: "18px",
+          fontSize: "18px"
         }
       }
     },
@@ -159,7 +167,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         >
           <SvgFileIcon
             iconName="assistant"
-            svgProp={{ width: 24, height: 24 }}
+            svgProp={{ width: 18, height: 18 }}
           />
         </IconButton>
       </Tooltip>

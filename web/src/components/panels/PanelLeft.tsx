@@ -110,7 +110,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: 6,
       backgroundColor: "transparent",
-      // borderRight: `1px solid ${theme.vars.palette.divider}`,
       // Ensure custom SVG icons (IconForType) are sized like MUI icons
       "& .icon-container": {
         width: "18px",
@@ -197,6 +196,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
 }) {
+  const theme = useTheme();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
   return (
@@ -487,7 +487,6 @@ const PanelLeft: React.FC = () => {
           ref: panelRef,
           className: `panel panel-left ${isDragging ? "dragging" : ""}`,
           style: {
-            // borderRight: isVisible ? "1px solid var(--palette-grey-600)" : "none",
             boxShadow: isVisible
               ? theme.palette.mode === "dark"
                 ? `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
