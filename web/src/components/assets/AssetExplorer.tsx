@@ -59,7 +59,8 @@ const styles = (theme: Theme) =>
       paddingLeft: ".5em"
     },
     ".dropzone": {
-      outline: "none"
+      outline: "none",
+      height: "calc(-100px + 100vh)"
     },
     ".infinite-scroll-component": {
       border: 0
@@ -115,7 +116,7 @@ const AssetExplorer: React.FC = () => {
             itemSpacing={2}
             isHorizontal={true}
             isFullscreenAssets={true}
-            initialFoldersPanelWidth={300}
+            initialFoldersPanelWidth={200}
             sortedAssets={folderFiles}
           />
         </ContextMenuProvider>

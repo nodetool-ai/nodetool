@@ -38,7 +38,6 @@ import {
   SerializedDockview
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
-import { useDockviewPanelSizing } from "./hooks/useDockviewPanelSizing";
 
 const panelComponents = {
   "asset-folders": (_props: IDockviewPanelProps) => (
@@ -124,7 +123,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   }));
 
   const { uploadAsset, isUploading } = useAssetUpload();
-  const { ensurePanelWidth } = useDockviewPanelSizing();
 
   const deselectIgnoreClasses = useMemo(
     () => [
@@ -187,8 +185,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
-      // const isFullscreenAssets = window.location?.pathname === "/assets";
-
       // Build a deterministic layout like Dashboard using fromJSON
       const orientation = isFullscreenAssets
         ? Orientation.HORIZONTAL
@@ -207,7 +203,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
                 data: {
                   views: ["asset-folders"],
                   activeView: "asset-folders",
-                  id: "1"
+                  id: "1",
+                  initialWidth: foldersSize
                 },
                 size: foldersSize
               },
@@ -247,18 +244,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       const filesPanel = api.getPanel("asset-files");
       filesPanel?.update({ params: { isHorizontal, itemSpacing } });
 
-      // Ensure exact folders width in fullscreen after layout is applied
-      if (isFullscreenAssets && typeof initialFoldersPanelWidth === "number") {
-        ensurePanelWidth(api, "asset-folders", initialFoldersPanelWidth);
-      }
+      // Rely on Dockview's own sizing
     },
-    [
-      isHorizontal,
-      itemSpacing,
-      initialFoldersPanelWidth,
-      isFullscreenAssets,
-      ensurePanelWidth
-    ]
+    [isHorizontal, itemSpacing, initialFoldersPanelWidth, isFullscreenAssets]
   );
 
   return (
