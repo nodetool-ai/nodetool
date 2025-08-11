@@ -20,11 +20,9 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // Layout constants for folder tree
 const ROW_HEIGHT_REM = 1.5; // compact row height in em
-const INDENT_PER_LEVEL_REM = 0.75; // left indent per tree level
+const INDENT_PER_LEVEL_REM = 1.25; // left indent per tree level
 const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
-const EXPAND_ICON_SIZE_PX = 26; // accordion expand icon size
-// const EXPAND_ICON_LEFT_PX = 8; // visual alignment of expand icon
-// const EXPAND_ICON_GUTTER_PX = EXPAND_ICON_SIZE_PX + EXPAND_ICON_LEFT_PX + 2; // space reserved so the arrow doesn't overlap the folder icon
+const EXPAND_ICON_SIZE_PX = 25; // accordion expand icon size
 
 const styles = (theme: Theme) =>
   css({
@@ -97,8 +95,8 @@ const styles = (theme: Theme) =>
     },
     ".expand-gutter": {
       position: "absolute",
-      left: "-20px",
-      top: 0,
+      left: "-22px",
+      top: 1,
       bottom: 0,
       display: "flex",
       alignItems: "center",
