@@ -207,7 +207,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         }
       });
 
-      // Best-effort: enforce the initial size after layout
+      // Enforce the initial size immediately (no rAF needed)
       const applyInitialSize = () => {
         const groupApi =
           (foldersPanel as any)?.group?.api ?? (foldersPanel as any)?.group;
@@ -219,11 +219,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           }
         }
       };
-      if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
-        window.requestAnimationFrame(applyInitialSize);
-      } else {
-        applyInitialSize();
-      }
+      applyInitialSize();
     },
     [isFullscreenAssets, isHorizontal, itemSpacing]
   );
