@@ -17,13 +17,17 @@ export interface ModelInfoPaneProps {
 const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
   if (!model) {
     return (
-      <Box css={paneStyles} sx={{ color: "var(--palette-grey-300)" }}>
+      <Box
+        css={paneStyles}
+        className="model-menu__info-pane is-empty"
+        sx={{ color: "var(--palette-grey-300)" }}
+      >
         <Typography variant="body2">Select a model to see details</Typography>
       </Box>
     );
   }
   return (
-    <Box css={paneStyles}>
+    <Box css={paneStyles} className="model-menu__info-pane">
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         {model.name}
       </Typography>

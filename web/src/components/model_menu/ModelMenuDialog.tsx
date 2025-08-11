@@ -142,12 +142,24 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   );
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-      <DialogTitle sx={{ fontSize: "1rem", letterSpacing: 0.4 }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="lg"
+      className="model-menu__dialog"
+    >
+      <DialogTitle
+        sx={{ fontSize: "1rem", letterSpacing: 0.4 }}
+        className="model-menu__title"
+      >
         Select Model
       </DialogTitle>
       <DialogContent dividers>
-        <Box sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}>
+        <Box
+          sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}
+          className="model-menu__controls"
+        >
           <Box sx={{ flex: 1 }}>
             <SearchInput
               onSearchChange={(v) => {
@@ -173,7 +185,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             label="Only available"
           />
         </Box>
-        <div css={containerStyles}>
+        <div css={containerStyles} className="model-menu__grid">
           <ProviderList
             providers={providers}
             selected={selectedProvider}
@@ -188,12 +200,12 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
                   models={favoriteModels}
                   onSelect={handleSelectModel}
                 />
-                <Divider sx={{ my: 1, opacity: 0.25 }} />
+                <Divider sx={{ my: 1 }} />
                 <RecentList
                   models={recentModels}
                   onSelect={handleSelectModel}
                 />
-                <Divider sx={{ my: 1, opacity: 0.15 }} />
+                <Divider sx={{ my: 1 }} />
               </>
             )}
             <ModelList models={filteredModels} onSelect={handleSelectModel} />

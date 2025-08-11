@@ -58,10 +58,15 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
     <List
       dense
       css={listStyles}
+      className="model-menu__favorites-list"
       subheader={
         <ListSubheader
           component="div"
-          sx={{ fontSize: "0.85rem", letterSpacing: 0.2 }}
+          sx={{
+            fontSize: "0.85rem",
+            letterSpacing: 0.2,
+            backgroundColor: "transparent"
+          }}
         >
           Favorites
         </ListSubheader>
@@ -78,6 +83,9 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
         return (
           <ListItemButton
             key={`favorite:${m.provider}:${m.id}`}
+            className={`model-menu__favorite-item ${
+              available ? "" : "is-unavailable"
+            } ${fav ? "is-favorite" : ""}`}
             onClick={() => available && onSelect(m)}
             disabled={!available}
           >

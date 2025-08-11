@@ -57,10 +57,15 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
     <List
       dense
       css={listStyles}
+      className="model-menu__recent-list"
       subheader={
         <ListSubheader
           component="div"
-          sx={{ fontSize: "0.85rem", letterSpacing: 0.2 }}
+          sx={{
+            backgroundColor: "transparent",
+            fontSize: "fontSizeNormal",
+            letterSpacing: 0.2
+          }}
         >
           Recent
         </ListSubheader>
@@ -77,6 +82,9 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
         return (
           <ListItemButton
             key={`recent:${m.provider}:${m.id}`}
+            className={`model-menu__recent-item ${
+              available ? "" : "is-unavailable"
+            } ${fav ? "is-favorite" : ""}`}
             onClick={() => available && onSelect(m)}
             disabled={!available}
           >
