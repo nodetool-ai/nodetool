@@ -73,7 +73,8 @@ export const assetGridStyles = (theme: Theme) => {
       position: "relative",
       alignItems: "center",
       padding: 0,
-      marginLeft: 0
+      marginLeft: 0,
+      borderRadius: ".5em"
     },
     ".folder-icon": {
       marginRight: "0.1em",
@@ -92,6 +93,7 @@ export const assetGridStyles = (theme: Theme) => {
       width: "100%",
       backgroundColor: theme.vars.palette.grey[800],
       "& .folder-name": {
+        color: theme.vars.palette.grey[0],
         fontWeight: "600"
       },
       "& .folder-icon": {
