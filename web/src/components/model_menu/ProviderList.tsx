@@ -11,6 +11,7 @@ import {
   Box
 } from "@mui/material";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import { isHuggingFaceProvider } from "../../utils/providerDisplay";
 
 const listStyles = css({
   overflowY: "auto",
@@ -67,6 +68,36 @@ const ProviderList: React.FC<ProviderListProps> = ({
       </ListItemButton>
       {providers.map((p) => {
         const enabled = isProviderEnabled(p);
+        const renderBadges = () => {
+          const badges: Array<{ label: string }> = [];
+          if (isHuggingFaceProvider(p)) {
+            badges.push({ label: "HF" });
+          } else if (/ollama|local|lmstudio/i.test(p)) {
+            badges.push({ label: "Local" });
+          } else {
+            badges.push({ label: "API" });
+          }
+          return (
+            <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
+              {badges.map((b) => (
+                <span
+                  key={b.label}
+                  style={{
+                    padding: "1px 4px",
+                    fontSize: "0.7em",
+                    lineHeight: 1,
+                    borderRadius: 3,
+                    background: "var(--palette-grey-600)",
+                    color: "var(--palette-grey-0)",
+                    letterSpacing: 0.3
+                  }}
+                >
+                  {b.label}
+                </span>
+              ))}
+            </Box>
+          );
+        };
         return (
           <ListItemButton
             key={p}
@@ -77,7 +108,14 @@ const ProviderList: React.FC<ProviderListProps> = ({
             onClick={() => onSelect(p)}
             sx={{ gap: 0.1, opacity: enabled ? 1 : 0.55 }}
           >
-            <ListItemText primary={p} />
+            <ListItemText
+              primary={
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <span>{p}</span>
+                  {renderBadges()}
+                </Box>
+              }
+            />
             <Box sx={{ ml: "auto" }} onClick={(e) => e.stopPropagation()}>
               <Tooltip title={enabled ? "Disable provider" : "Enable provider"}>
                 <Checkbox
