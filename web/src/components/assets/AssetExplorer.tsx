@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
     },
     ".dropzone": {
       outline: "none",
-      height: "calc(-100px + 100vh)"
+      maxHeight: "calc(-100px + 100vh) !important"
     },
     ".infinite-scroll-component": {
       border: 0
