@@ -96,16 +96,11 @@ const styles = (theme: Theme) =>
         borderRadius: "1px",
         opacity: 0.6
       },
-    // Hide Dockview close icons inside this AssetGrid only
-    "& .dockview-container .codicon.codicon-close": {
+    // Hide Dockview tab-actions
+    "& .dv-tabs-and-actions-container": {
       display: "none !important"
     },
-    "& .dockview-container [class*='codicon-close']": {
-      display: "none !important"
-    },
-    "& .dockview-container .dv-action[aria-label='Close']": {
-      display: "none !important"
-    },
+
     ".dropzone": {
       display: "flex",
       outline: "none",
@@ -477,12 +472,35 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       component: "asset-folders",
       title: "Folders"
     });
+
+    // In fullscreen assets view, arrange panels left/right: folders left, files right
+    const isFullscreenAssets = window.location?.pathname === "/assets";
     api.addPanel({
       id: "asset-files",
       component: "asset-files",
       title: "Files",
-      position: { referencePanel: "asset-folders", direction: "below" }
+      position: {
+        referencePanel: "asset-folders",
+        direction: isFullscreenAssets ? "right" : "below"
+      }
     });
+
+    if (isFullscreenAssets) {
+      const setFoldersWidth = () => {
+        const foldersPanel: any = api.getPanel("asset-folders");
+        const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
+        if (groupApi && typeof groupApi.setSize === "function") {
+          groupApi.setSize({ width: 250 });
+        } else if (foldersPanel && typeof foldersPanel.setSize === "function") {
+          foldersPanel.setSize({ width: 250 });
+        }
+      };
+      // Try immediately and on next frame to ensure layout is ready
+      setFoldersWidth();
+      if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
+        window.requestAnimationFrame(() => setFoldersWidth());
+      }
+    }
   }, []);
 
   return (

@@ -26,7 +26,11 @@ const styles = (theme: Theme) =>
       width: "100%"
     },
     ".asset-menu": {
-      marginLeft: "1em"
+      marginLeft: "1em",
+      marginBottom: "1em"
+    },
+    ".dv-split-view-container .dv-view-container .dv-view": {
+      padding: "0 1em"
     },
     ".audio-controls-container": {
       padding: "2em"

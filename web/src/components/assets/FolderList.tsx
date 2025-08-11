@@ -175,6 +175,9 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           marginTop: "0 !important",
           marginBottom: "0 !important"
         }}
+        /* Keep the root folder expanded and non-collapsible */
+        expanded={isRoot ? true : undefined}
+        onChange={isRoot ? () => {} : undefined}
       >
         <AccordionSummary
           className="accordion-summary"
@@ -185,15 +188,17 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           }}
           aria-controls={`panel-${folder.id}-content`}
           id={`panel-${folder.id}-header`}
+          /* Prevent toggle interactions on the root summary */
+          onClick={isRoot ? (e) => e.preventDefault() : undefined}
         >
           <div
             className="row"
             style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
             onDoubleClick={(e) => {
+              if (isRoot) return; // do not toggle root
               e.stopPropagation();
               const summary =
                 (e.currentTarget.parentElement as HTMLElement) || null;
-              // parentElement should be the AccordionSummary
               if (summary) {
                 summary.click();
               }
@@ -205,9 +210,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
               isSelected={selectedFolderIds.includes(folder.id)}
               showDeleteButton={false}
             >
-              <span className="expand-gutter" aria-hidden="true">
-                <ExpandMoreIcon />
-              </span>
+              {!isRoot && (
+                <span className="expand-gutter" aria-hidden="true">
+                  <ExpandMoreIcon />
+                </span>
+              )}
             </FolderItem>
           </div>
         </AccordionSummary>
