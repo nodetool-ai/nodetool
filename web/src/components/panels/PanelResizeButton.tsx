@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { IconButton } from "@mui/material";
-import CodeIcon from "@mui/icons-material/Code";
+import { Button } from "@mui/material";
 import type { MouseEvent, CSSProperties } from "react";
 
 type PanelSide = "left" | "right";
@@ -14,7 +13,8 @@ export interface PanelResizeButtonProps {
 }
 
 const buttonStyles = css({
-  width: "30px",
+  width: "25px",
+  minWidth: "unset",
   position: "absolute",
   zIndex: 1200,
   height: "calc(100vh - 75px)",
@@ -24,6 +24,14 @@ const buttonStyles = css({
   top: "72px",
   cursor: "e-resize",
   transition: "background-color 0.3s ease",
+  "& .resize-handle": {
+    width: "5px",
+    height: "100px",
+    borderRadius: "1em",
+    backgroundColor: "var(--palette-grey-800)",
+    opacity: 1,
+    transition: "background-color 0.5s ease"
+  },
   "& svg": {
     fontSize: "0.8em !important",
     color: "var(--palette-grey-200)",
@@ -32,11 +40,10 @@ const buttonStyles = css({
     transition: "all 0.5s ease"
   },
   "&:hover": {
-    backgroundColor: "var(--palette-grey-800)",
-    "& svg": {
-      opacity: 1,
-      fontSize: "1em !important"
-    }
+    backgroundColor: "var(--palette-grey-800)"
+  },
+  "&:hover .resize-handle": {
+    backgroundColor: "var(--palette-primary-main)"
   }
 });
 
@@ -66,7 +73,7 @@ export default function PanelResizeButton({
         };
 
   return (
-    <IconButton
+    <Button
       className="panel-resize-button"
       disableRipple
       css={buttonStyles}
@@ -78,7 +85,8 @@ export default function PanelResizeButton({
       style={dynamicStyle as CSSProperties}
       aria-label={side === "right" ? "Resize right panel" : "Resize left panel"}
     >
-      <CodeIcon />
-    </IconButton>
+      {/* <CodeIcon /> */}
+      <div className="resize-handle" />
+    </Button>
   );
 }
