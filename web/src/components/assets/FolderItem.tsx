@@ -21,7 +21,6 @@ const styles = (theme: Theme) =>
       justifyContent: "start",
       gap: ".3em",
       width: "100%",
-      height: "auto",
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: "transparent",
@@ -33,7 +32,7 @@ const styles = (theme: Theme) =>
     ".folder-icon": {
       width: "25px",
       height: "100%",
-      marginLeft: "2px", // add a tiny gutter to avoid overlap with accordion arrow
+      marginLeft: "2px",
       left: 0,
       color: theme.vars.palette.grey[500]
     },
@@ -69,14 +68,13 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200]
     },
     "&:hover .delete-button": {
-      opacity: 0
+      opacity: 1
     },
     "&.drag-hover": {
       backgroundColor: theme.vars.palette.grey[500]
     },
     ".delete-button": {
       position: "absolute",
-      zIndex: 10,
       opacity: 0,
       width: "20px",
       minWidth: "20px",
