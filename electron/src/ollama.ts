@@ -44,6 +44,24 @@ async function findSystemOllama(): Promise<string | null> {
   } else if (process.platform === "win32") {
     const programFiles = process.env["ProgramFiles"] || "C\\\\Program Files";
     candidates.push(path.join(programFiles, "Ollama", "ollama.exe"));
+
+    const localAppData = process.env["LOCALAPPDATA"];
+    if (localAppData) {
+      candidates.push(
+        path.join(localAppData, "Programs", "Ollama", "ollama.exe")
+      );
+    }
+  }
+
+  const pathEnv = process.env["PATH"];
+  if (pathEnv) {
+    const delimiter = path.delimiter;
+    for (const dir of pathEnv.split(delimiter)) {
+      if (!dir) continue;
+      candidates.push(
+        path.join(dir, process.platform === "win32" ? "ollama.exe" : "ollama")
+      );
+    }
   }
 
   for (const p of candidates) {
@@ -195,10 +213,30 @@ export async function ensureOllamaInstalled(): Promise<string> {
   // Cleanup best-effort
   try {
     await fs.rm(tmpDir, { recursive: true, force: true });
-  } catch {}
+  } catch {
+    // ignore cleanup errors
+  }
 
   logMessage(`Installed Ollama to ${targetPath}`);
   return targetPath;
+}
+
+export async function isOllamaResponsive(
+  port: number,
+  timeoutMs = 2000
+): Promise<boolean> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/tags`, {
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(id);
+  }
 }
 
 

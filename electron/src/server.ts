@@ -20,7 +20,7 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { ensureOllamaInstalled } from "./ollama";
+import { ensureOllamaInstalled, isOllamaResponsive } from "./ollama";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -78,6 +78,13 @@ async function findAvailablePort(
  * Starts the Ollama server on a custom port using Watchdog
  */
 async function startOllamaServer(): Promise<void> {
+  const existingPort = 11434;
+  if (await isOllamaResponsive(existingPort)) {
+    serverState.ollamaPort = existingPort;
+    logMessage(`Detected running Ollama instance on port ${existingPort}`);
+    return;
+  }
+
   const basePort = serverState.ollamaPort ?? 11435;
   const selectedPort = await findAvailablePort(basePort);
   serverState.ollamaPort = selectedPort;
