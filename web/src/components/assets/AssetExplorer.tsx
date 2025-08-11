@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
       marginBottom: "1em"
     },
     "& .dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0.5em 1em"
+      padding: "0.5em 1em !important"
     },
     ".audio-controls-container": {
       padding: "2em"
