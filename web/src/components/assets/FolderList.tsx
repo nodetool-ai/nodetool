@@ -88,10 +88,12 @@ const styles = (theme: Theme) =>
       width: "100%",
       alignItems: "center",
       height: ROW_HEIGHT_REM + "rem",
-      gap: ".25rem"
+      gap: ".25rem",
+      boxSizing: "border-box"
     },
     ".row:hover": {
-      opacity: 0.9
+      opacity: 0.9,
+      backgroundColor: theme.vars.palette.grey[900]
     },
     ".expand-gutter": {
       position: "absolute",
