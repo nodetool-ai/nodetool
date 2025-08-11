@@ -17,9 +17,14 @@ export const SelectTrigger = React.forwardRef<
   return (
     <ChakraSelect.Control {...rest}>
       <ChakraSelect.Trigger ref={ref}>{children}</ChakraSelect.Trigger>
-      <ChakraSelect.IndicatorGroup>
+      <ChakraSelect.IndicatorGroup
+        css={{
+          background: "transparent",
+          borderLeft: "none",
+        }}
+      >
         {clearable && <SelectClearTrigger />}
-        <ChakraSelect.Indicator />
+        <ChakraSelect.Indicator css={{ background: "transparent" }} />
       </ChakraSelect.IndicatorGroup>
     </ChakraSelect.Control>
   );
@@ -55,14 +60,7 @@ export const SelectContent = React.forwardRef<
   return (
     <Portal disabled={!portalled} container={portalRef}>
       <ChakraSelect.Positioner>
-        <ChakraSelect.Content
-          {...rest}
-          ref={ref}
-          bg="gray.900"
-          color="white"
-          borderRadius="lg"
-          boxShadow="md"
-        />
+        <ChakraSelect.Content {...rest} ref={ref} />
       </ChakraSelect.Positioner>
     </Portal>
   );
@@ -79,9 +77,6 @@ export const SelectItem = React.forwardRef<
       item={item}
       {...rest}
       ref={ref}
-      bg="gray.800"
-      color="white"
-      borderRadius="md"
     >
       {children}
       <ChakraSelect.ItemIndicator />

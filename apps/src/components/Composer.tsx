@@ -8,7 +8,9 @@ import {
   VStack,
   useDisclosure,
   Portal,
+  Text,
 } from "@chakra-ui/react";
+import { createListCollection } from "@chakra-ui/react";
 import {
   FaMicrophone,
   FaStop,
@@ -31,6 +33,13 @@ import { FaTimes } from "react-icons/fa";
 import useChatStore from "../stores/ChatStore";
 import { Tooltip } from "./ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  SelectContent,
+  SelectItem,
+  SelectRoot,
+  SelectTrigger,
+  SelectValueText,
+} from "./ui/select";
 
 interface ComposerProps {
   handleAudioChange: (
@@ -102,7 +111,15 @@ export const Composer: React.FC<ComposerProps> = ({
     setSelectedTools,
     droppedFiles,
     setDroppedFiles,
+    isFetchingModels,
+    fetchModels,
+    models,
+    selectedModelId,
+    setSelectedModel,
   } = useChatStore();
+  const shellBg = "bg1";
+  const shellBorder = "border";
+  const hoverBg = "buttonHover";
   const handleSubmit = useCallback(() => {
     if (!textareaRef.current) return;
     const message = textareaRef.current.value.trim();
@@ -110,9 +127,9 @@ export const Composer: React.FC<ComposerProps> = ({
       onSubmit(message);
       textareaRef.current.value = "";
       setDroppedFiles([]);
-      setSelectedTools([]);
+      // Don't clear selected tools - they should persist
     }
-  }, [onSubmit, droppedFiles, setDroppedFiles, setSelectedTools]);
+  }, [onSubmit, droppedFiles, setDroppedFiles]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -194,23 +211,43 @@ export const Composer: React.FC<ComposerProps> = ({
     [selectedTools, setSelectedTools]
   );
 
+  const openModelsIfNeeded = useCallback(async () => {
+    if (!isFetchingModels && (!models || models.length === 0)) {
+      const result = await fetchModels(false);
+      if ((!selectedModelId || selectedModelId.length === 0) && result && result.length > 0) {
+        setSelectedModel(result[0].id);
+      }
+    }
+  }, [fetchModels, isFetchingModels, models, selectedModelId, setSelectedModel]);
+
+  const modelOptions = React.useMemo(() => {
+    return createListCollection({
+      items: (models || []).map((m) => ({
+        label: m.provider ? `${m.name} · ${m.provider}` : m.name,
+        value: m.id,
+      })),
+    });
+  }, [models]);
+
   return (
-    <Box position="fixed" bottom={0} left={0} right={0} p={6}>
+    <Box position="fixed" bottom={0} left={0} right={0} p={{ base: 6, md: 8 }}>
       <Flex
-        maxW="48rem"
+        maxW={{ base: "48rem", md: "64rem" }}
         mx="auto"
-        bg="gray.800"
-        color="white"
+        bg={shellBg}
+        color="text"
         borderRadius="2xl"
-        boxShadow="md"
+        boxShadow="0 18px 60px rgba(0,0,0,0.35)"
         border="1px solid"
-        borderColor="gray.700"
+        borderColor={shellBorder}
         position="relative"
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
+        backdropFilter="saturate(140%) blur(10px)"
       >
+        
         {droppedFiles.length > 0 && (
-          <HStack position="absolute" top={-12} left={0} overflowX="auto" p={2}>
+          <HStack position="absolute" top={-12} right={0} overflowX="auto" p={2}>
             {droppedFiles.map((file, index) => (
               <Box key={index} position="relative">
                 <img
@@ -248,16 +285,14 @@ export const Composer: React.FC<ComposerProps> = ({
           flex="1"
           bg="transparent"
           border="none"
-          color="white"
-          fontSize="sm"
+          color="text"
+          fontSize="md"
           resize="none"
-          minH="24px"
+          minH="40px"
           maxH="200px"
-          py={4}
-          px={6}
-          _placeholder={{
-            color: "gray.400",
-          }}
+          py={5}
+          px={7}
+          _placeholder={{ color: "textGray" }}
           onKeyDown={handleKeyDown}
           rows={1}
           css={{
@@ -267,13 +302,99 @@ export const Composer: React.FC<ComposerProps> = ({
           }}
         />
 
-        <HStack position="absolute" right={3} bottom={3} gap={1}>
+        <HStack position="absolute" right={3} bottom={3} gap={2} align="center">
+          {/* Model selector inline with buttons, minimal UI */}
+          <Box minW="160px" maxW="260px">
+            <SelectRoot
+              collection={modelOptions}
+              value={selectedModelId ? [selectedModelId] : []}
+              onValueChange={(details: any) => {
+                const next = Array.isArray(details?.value)
+                  ? details.value[0] || null
+                  : details?.value || null;
+                setSelectedModel(next);
+              }}
+              disabled={isFetchingModels}
+              positioning={{ sameWidth: true, gutter: 6 }}
+            >
+              <SelectTrigger
+                onClick={openModelsIfNeeded}
+                bg="transparent"
+                borderRadius="full"
+                px={3}
+                py={1}
+                border="1px solid"
+                borderColor="border"
+                _hover={{ bg: hoverBg }}
+                _focus={{ boxShadow: "none" }}
+                height="36px"
+                display="flex"
+                alignItems="center"
+                css={{
+                  "[data-scope=select][data-part=trigger]": {
+                    background: "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                  },
+                  "[data-scope=select][data-part=indicator-group]": {
+                    background: "transparent",
+                    borderLeft: "none",
+                    display: "flex",
+                    alignItems: "center",
+                  },
+                  "[data-scope=select][data-part=indicator]": {
+                    background: "transparent",
+                  },
+                }}
+              >
+                <SelectValueText
+                  style={{
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: "200px",
+                    lineHeight: "1",
+                  }}
+                  placeholder={
+                    isFetchingModels
+                      ? "Loading models…"
+                      : selectedModelId
+                        ? ""
+                        : "Select model"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent
+                bg="bg1"
+                color="text"
+                borderRadius="lg"
+                border="1px solid"
+                borderColor="border"
+                boxShadow="none"
+                p={1}
+              >
+                {(modelOptions.items || []).length === 0 ? (
+                  <Box px={3} py={2} color="textGray">
+                    {isFetchingModels ? "Fetching…" : "No models available"}
+                  </Box>
+                ) : (
+                  modelOptions.items.map((option) => (
+                    <SelectItem key={option.value} item={option} borderRadius="md" _hover={{ bg: hoverBg }}>
+                      {option.label}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </SelectRoot>
+          </Box>
+
           <Tooltip
             content="Tools"
             contentProps={{
-              bg: "gray.800",
-              color: "white",
-              borderColor: "gray.700",
+              bg: "bg1",
+              color: "text",
+              borderColor: shellBorder,
             }}
           >
             <IconButton
@@ -281,13 +402,16 @@ export const Composer: React.FC<ComposerProps> = ({
               aria-label="Toggle tools"
               onClick={onToggle}
               variant="ghost"
-              size="xs"
-              minW="32px"
-              h="32px"
+              size="sm"
+              minW="36px"
+              h="36px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
               bg={open ? "blue.500" : "transparent"}
               borderRadius="full"
               _hover={{
-                bg: open ? "blue.600" : "whiteAlpha.200",
+                bg: open ? "blue.600" : hoverBg,
               }}
             >
               <FaTools />
@@ -295,19 +419,18 @@ export const Composer: React.FC<ComposerProps> = ({
           </Tooltip>
           <Tooltip
             content={isRecording ? "Stop recording" : "Start recording"}
-            contentProps={{
-              bg: "gray.800",
-              color: "white",
-              borderColor: "gray.700",
-            }}
+            contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
           >
             <IconButton
               aria-label={isRecording ? "Stop recording" : "Start recording"}
               onClick={isRecording ? stopRecording : startRecording}
               variant="ghost"
-              size="xs"
-              minW="32px"
-              h="32px"
+              size="sm"
+              minW="36px"
+              h="36px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
               bg={isRecording ? "red.500" : "transparent"}
               borderRadius="full"
             >
@@ -316,21 +439,20 @@ export const Composer: React.FC<ComposerProps> = ({
           </Tooltip>
           <Tooltip
             content="Send message"
-            contentProps={{
-              bg: "gray.800",
-              color: "white",
-              borderColor: "gray.700",
-            }}
+            contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
           >
             <IconButton
               aria-label="Send message"
               onClick={handleSubmit}
               disabled={status === "loading"}
               variant="ghost"
-              size="xs"
-              minW="32px"
-              h="32px"
-              bg={status === "loading" ? "gray.500" : "transparent"}
+              size="sm"
+              minW="36px"
+              h="36px"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              bg={status === "loading" ? "gray400" : "transparent"}
               borderRadius="full"
             >
               <SendIcon />
@@ -355,39 +477,31 @@ export const Composer: React.FC<ComposerProps> = ({
                 zIndex: 1000,
               }}
             >
-              <Box
-                bg="gray.800"
-                borderRadius="xl"
-                p={4}
-                boxShadow="xl"
-                border="1px solid"
-                borderColor="gray.700"
-                maxW="48rem"
-                w="100%"
-                mx="auto"
-              >
-                <VStack gap={2} align="stretch" maxW="340px">
+                <Box
+                  bg={shellBg}
+                  borderRadius="xl"
+                  p={4}
+                  boxShadow="0 10px 40px rgba(0,0,0,0.35)"
+                  border="1px solid"
+                  borderColor={shellBorder}
+                  maxW="48rem"
+                  w="100%"
+                  mx="auto"
+                  backdropFilter="saturate(140%) blur(10px)"
+                >
+                <VStack gap={2} align="stretch" maxW="480px">
                   <Flex wrap="wrap" gap={2}>
                     {tools.map((tool) => (
                       <Tooltip
                         key={tool.id}
                         content={TOOL_DESCRIPTIONS[tool.id] || tool.label}
-                        contentProps={{
-                          bg: "gray.800",
-                          color: "white",
-                          borderColor: "gray.700",
-                        }}
+                        contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
                       >
-                        <IconButton
-                          tabIndex={-1}
-                          aria-label={tool.label}
+                        <HStack
+                          as="button"
                           onClick={() => {
                             toggleTool(tool.id);
                           }}
-                          variant="ghost"
-                          size="sm"
-                          minW="40px"
-                          h="40px"
                           bg={
                             selectedTools.includes(tool.id)
                               ? "blue.500"
@@ -396,11 +510,21 @@ export const Composer: React.FC<ComposerProps> = ({
                           _hover={{
                             bg: selectedTools.includes(tool.id)
                               ? "blue.600"
-                              : "whiteAlpha.200",
+                              : hoverBg,
                           }}
+                          borderRadius="md"
+                          px={3}
+                          py={2}
+                          gap={2}
+                          transition="all 0.2s"
+                          cursor="pointer"
+                          color={selectedTools.includes(tool.id) ? "white" : "text"}
                         >
-                          <tool.icon />
-                        </IconButton>
+                          <tool.icon size={16} />
+                          <Text fontSize="sm" fontWeight="medium">
+                            {tool.label}
+                          </Text>
+                        </HStack>
                       </Tooltip>
                     ))}
                   </Flex>
