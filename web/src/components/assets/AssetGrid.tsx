@@ -34,8 +34,7 @@ import {
   DockviewReact,
   DockviewReadyEvent,
   IDockviewPanelProps,
-  Orientation,
-  SerializedDockview
+  IDockviewPanel
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 
@@ -54,6 +53,7 @@ const panelComponents = {
 
 const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
+const FOLDERS_PANEL_WIDTH = 200;
 
 // Panels are provided via separate components in ./panels
 
@@ -185,68 +185,47 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
-      // Build a deterministic layout like Dashboard using fromJSON
-      const orientation = isFullscreenAssets
-        ? Orientation.HORIZONTAL
-        : Orientation.VERTICAL;
-      const foldersSize = isFullscreenAssets
-        ? initialFoldersPanelWidth ?? 250
-        : FOLDERS_PANEL_HEIGHT;
+      // Add folders panel first with an initial size
+      const foldersPanel: IDockviewPanel = api.addPanel({
+        id: "asset-folders",
+        component: "asset-folders",
+        title: "Folders",
+        ...(isFullscreenAssets
+          ? { initialWidth: FOLDERS_PANEL_WIDTH }
+          : { initialHeight: FOLDERS_PANEL_HEIGHT })
+      });
 
-      const layout: SerializedDockview = {
-        grid: {
-          root: {
-            type: "branch",
-            data: [
-              {
-                type: "leaf",
-                data: {
-                  views: ["asset-folders"],
-                  activeView: "asset-folders",
-                  id: "1",
-                  initialWidth: foldersSize
-                },
-                size: foldersSize
-              },
-              {
-                type: "leaf",
-                data: {
-                  views: ["asset-files"],
-                  activeView: "asset-files",
-                  id: "2"
-                },
-                size: 1000
-              }
-            ],
-            size: foldersSize + 1000
-          },
-          width: 1200,
-          height: 900,
-          orientation
-        },
-        panels: {
-          "asset-folders": {
-            id: "asset-folders",
-            contentComponent: "asset-folders",
-            title: "Folders"
-          },
-          "asset-files": {
-            id: "asset-files",
-            contentComponent: "asset-files",
-            title: "Files"
+      // Add files panel positioned relative to folders
+      api.addPanel({
+        id: "asset-files",
+        component: "asset-files",
+        title: "Files",
+        params: { isHorizontal, itemSpacing },
+        position: {
+          referencePanel: "asset-folders",
+          direction: isFullscreenAssets ? "right" : "below"
+        }
+      });
+
+      // Best-effort: enforce the initial size after layout
+      const applyInitialSize = () => {
+        const groupApi =
+          (foldersPanel as any)?.group?.api ?? (foldersPanel as any)?.group;
+        if (groupApi && typeof groupApi.setSize === "function") {
+          if (isFullscreenAssets) {
+            groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
+          } else {
+            groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
           }
-        },
-        activeGroup: "1"
+        }
       };
-
-      api.fromJSON(layout);
-      // Update runtime params for files panel after layout is set
-      const filesPanel = api.getPanel("asset-files");
-      filesPanel?.update({ params: { isHorizontal, itemSpacing } });
-
-      // Rely on Dockview's own sizing
+      if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
+        window.requestAnimationFrame(applyInitialSize);
+      } else {
+        applyInitialSize();
+      }
     },
-    [isHorizontal, itemSpacing, initialFoldersPanelWidth, isFullscreenAssets]
+    [isFullscreenAssets, isHorizontal, itemSpacing]
   );
 
   return (
