@@ -3,7 +3,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
 import styled from "@emotion/styled";
 import ReactMarkdown from "react-markdown";
-import "./ChatInterface.css";
+// Legacy CSS removed in favor of Chakra theming
 
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
@@ -13,14 +13,7 @@ import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { Composer } from "./Composer";
-import {
-  SelectContent,
-  SelectItem,
-  SelectRoot,
-  SelectTrigger,
-  SelectValueText,
-} from "./ui/select";
-import { createListCollection } from "@chakra-ui/react";
+// model selector moved into Composer
 
 interface ChatInterfaceProps {
   workflowId?: string;
@@ -80,8 +73,7 @@ const createMediaContent = async (
 };
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
-  // const userBgColor = useColorModeValue("gray.100", "gray.900");
-  // const assistantBgColor = useColorModeValue("gray.200", "gray.800");
+  // Use semantic tokens from theme for color-mode aware styling
 
   const {
     status,
@@ -92,40 +84,105 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     sendMessage,
     setDroppedFiles,
     selectedTools,
-    isFetchingModels,
-    fetchModels,
-    models,
-    selectedModelId,
-    setSelectedModel,
   } = useChatStore();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Advanced scroll handling (ported from ChatThreadView)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const userHasScrolledUpRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const lastUserScrollTimeRef = useRef<number>(0);
+  const SCROLL_THRESHOLD = 50;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    lastUserScrollTimeRef.current = Date.now();
+  }, []);
 
-  const modelOptions = useMemo(() => {
-    return createListCollection({
-      items: (models || []).map((m) => ({
-        label: m.provider ? `${m.name} · ${m.provider}` : m.name,
-        value: m.id,
-      })),
-    });
-  }, [models]);
+  const handleScroll = useCallback(() => {
+    lastUserScrollTimeRef.current = Date.now();
+    const element = scrollRef.current;
+    if (!element) return;
 
-  const handleOpenModelList = useCallback(async () => {
-    if (!isFetchingModels && (!models || models.length === 0)) {
-      const result = await fetchModels(false);
-      if ((!selectedModelId || selectedModelId.length === 0) && result && result.length > 0) {
-        setSelectedModel(result[0].id);
+    const calculatedIsNearBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight < SCROLL_THRESHOLD;
+
+    const previousUserHasScrolledUp = userHasScrolledUpRef.current;
+    if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
+      userHasScrolledUpRef.current = true;
+    } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
+      userHasScrolledUpRef.current = false;
+    }
+
+    if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
+      const shouldBeVisible = !isNearBottomRef.current && userHasScrolledUpRef.current;
+      if (shouldBeVisible !== showScrollToBottomButton) {
+        setShowScrollToBottomButton(shouldBeVisible);
       }
     }
-  }, [fetchModels, isFetchingModels, models, selectedModelId, setSelectedModel]);
+  }, [SCROLL_THRESHOLD, showScrollToBottomButton]);
+
+  const scrollToBottom = useCallback(() => {
+    const el = bottomRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+      userHasScrolledUpRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+    const bottomElement = bottomRef.current;
+    if (!scrollElement || !bottomElement) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const wasNearBottom = isNearBottomRef.current;
+        isNearBottomRef.current = entry.isIntersecting;
+
+        if (isNearBottomRef.current !== wasNearBottom) {
+          const shouldBeVisible = !isNearBottomRef.current && userHasScrolledUpRef.current;
+          if (shouldBeVisible !== showScrollToBottomButton) {
+            setShowScrollToBottomButton(shouldBeVisible);
+          }
+        }
+      },
+      { root: scrollElement, threshold: 0.1 }
+    );
+
+    observer.observe(bottomElement);
+    return () => {
+      observer.disconnect();
+    };
+  }, [showScrollToBottomButton]);
+
+  const findLastMessageWithRole = useCallback((arr: (Message | ToolCall)[]) => {
+    for (let i = arr.length - 1; i >= 0; i -= 1) {
+      const candidate = arr[i] as any;
+      if (candidate && typeof candidate === "object" && "role" in candidate) {
+        return candidate as Message;
+      }
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    const lastMessage = findLastMessageWithRole(messages);
+
+    if (lastMessage?.role === "user") {
+      scrollToBottom();
+      return;
+    }
+
+    if (status === "loading" || (lastMessage && lastMessage.role !== "user")) {
+      if (isNearBottomRef.current) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, status, scrollToBottom, findLastMessageWithRole]);
+
+  // model selector moved into Composer
 
   const handleSubmit = useCallback(
     async (message: string) => {
@@ -234,9 +291,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
                 )}
                 <Box>
                   <Button
-                    variant="outline"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => toggleThought(messageIndex, contentIndex)}
-                    _hover={{ textDecoration: "underline" }}
+                    color="textGray"
+                    fontSize="xs"
+                    fontWeight="normal"
+                    px={2}
+                    py={1}
+                    h="auto"
+                    minH="auto"
+                    _hover={{ 
+                      textDecoration: "underline",
+                      color: "text"
+                    }}
                   >
                     {!hasClosingTag ? (
                       <>
@@ -302,20 +370,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
         <Box
           key={index}
           mb="4"
-          p="3"
-          borderRadius="md"
+          p={{ base: 3, md: 4 }}
+          borderRadius="2xl"
           maxW="80%"
-          bg={
-            msg.role === "user"
-              ? "bg1"
-              : msg.role === "assistant"
-                ? "bg2"
-                : "transparent"
-          }
+          bg={msg.role === "user" ? "bg1" : "transparent"}
           ml={msg.role === "user" ? "auto" : undefined}
           mr={msg.role === "assistant" ? "auto" : undefined}
           mx={msg.role === "system" ? "auto" : undefined}
           opacity={msg.role === "system" ? 0.7 : 1}
+          border="none"
+          borderColor="transparent"
+          boxShadow="none"
+          backdropFilter={msg.role === "user" ? "saturate(140%) blur(6px)" : "none"}
         >
           {Array.isArray(msg.content)
             ? msg.content.map((content, i) => (
@@ -363,91 +429,101 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
 
   return (
     <Box
-      h="100%"
-      bg="gray.900"
-      color="white"
-      borderRadius="2xl"
-      boxShadow="xl"
-      p={4}
+      height="100vh"
+      maxH="100vh"
+      display="flex"
+      flexDirection="column"
+      overflow="hidden"
     >
-      {/* Header with model selector */}
-      <Flex gap={3} align="center" mb={3}>
-        <Box flex={1} />
-        <Box minW="260px">
-          <SelectRoot
-            collection={modelOptions}
-            value={selectedModelId ? [selectedModelId] : []}
-            onValueChange={(details: any) => {
-              const next = Array.isArray(details?.value)
-                ? details.value[0] || null
-                : details?.value || null;
-              setSelectedModel(next);
-            }}
-            disabled={isFetchingModels}
+      {/* Main Chat Area */}
+      <Box
+        position="relative"
+        flex={1}
+        display="flex"
+        flexDirection="column"
+        height="100%"
+        maxH="100%"
+      >
+        <Box 
+          className="chat-container"
+          minH={0}
+          flex={1}
+          overflow="hidden"
+        >
+          <Flex 
+            direction="column" 
+            h="100%" 
+            maxH="100%" 
+            overflow="hidden"
+            color="text"
+            px={{ base: 3, md: 6 }}
+            pt={{ base: 4, md: 6 }}
           >
-            <SelectTrigger clearable onClick={handleOpenModelList}>
-              <SelectValueText placeholder={
-                isFetchingModels ? "Loading models…" : (selectedModelId ? "" : "Select model")
-              } />
-            </SelectTrigger>
-            <SelectContent>
-              {modelOptions.items.length === 0 ? (
-                <Box px={3} py={2} color="gray.400">
-                  {isFetchingModels ? "Fetching…" : "No models available"}
+            <Box
+              ref={scrollRef}
+              onScroll={handleScroll}
+              flex="1"
+              overflowY="auto"
+              pr={1}
+              pb={{ base: 28, md: 32 }}
+            >
+              {messages.map((msg, index) => {
+                return renderMessage(msg as Message, index);
+              })}
+              {status === "loading" && (
+                <Box textAlign="center" py={2} maxW="48" mx="auto">
+                  <LoadingDots>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </LoadingDots>
+                  <Text>{statusMessage}</Text>
                 </Box>
-              ) : (
-                modelOptions.items.map((option) => (
-                  <SelectItem item={option} key={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))
               )}
-            </SelectContent>
-          </SelectRoot>
-        </Box>
-      </Flex>
-
-      <Flex direction="column" h="calc(100% - 90px)" overflow="hidden">
-        <Box flex="1" overflowY="auto">
-          {messages.map((msg, index) => {
-            return renderMessage(msg as Message, index);
-          })}
-          {status === "loading" && (
-            <Box textAlign="center" py={2}>
-              <LoadingDots>
-                <span></span>
-                <span></span>
-                <span></span>
-              </LoadingDots>
-              <Text>{statusMessage}</Text>
+              <Box ref={bottomRef} h="1px" />
             </Box>
+
+            {progress.current > 0 && (
+              <ProgressRoot
+                value={(progress.current * 100.0) / progress.total}
+                size="xs"
+                colorScheme="blue"
+                marginLeft="2"
+                marginRight="2"
+              >
+                <ProgressBar />
+                <ProgressValueText>
+                  {progress.current} / {progress.total}
+                </ProgressValueText>
+              </ProgressRoot>
+            )}
+          </Flex>
+
+          <Box position="sticky" bottom={0} zIndex={1} bg="bg0" px={{ base: 3, md: 6 }} pt={2} pb={{ base: 2, md: 3 }} borderTop="1px solid" borderColor="borderSubtle">
+            <Composer
+              onSubmit={handleSubmit}
+              handleAudioChange={handleAudioChange}
+              disabled={status === "loading"}
+              droppedFiles={droppedFiles}
+              setDroppedFiles={setDroppedFiles}
+            />
+          </Box>
+          {showScrollToBottomButton && (
+            <Button
+              onClick={scrollToBottom}
+              position="absolute"
+              right={{ base: 3, md: 6 }}
+              bottom={{ base: 32, md: 40 }}
+              size="sm"
+              borderRadius="full"
+              boxShadow="md"
+              variant="solid"
+            >
+              ↓
+            </Button>
           )}
-          <Box ref={messagesEndRef} />
         </Box>
-
-        {progress.current > 0 && (
-          <ProgressRoot
-            value={(progress.current * 100.0) / progress.total}
-            size="xs"
-            colorScheme="blue"
-            marginLeft="2"
-            marginRight="2"
-          >
-            <ProgressBar />
-            <ProgressValueText>
-              {progress.current} / {progress.total}
-            </ProgressValueText>
-          </ProgressRoot>
-        )}
-      </Flex>
-
-      <Composer 
-        onSubmit={handleSubmit} 
-        handleAudioChange={handleAudioChange}
-        disabled={status === "loading"}
-        droppedFiles={droppedFiles}
-        setDroppedFiles={setDroppedFiles}
-      />
+      </Box>
     </Box>
   );
 };
