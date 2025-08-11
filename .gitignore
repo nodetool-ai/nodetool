@@ -53,4 +53,6 @@ cert.pem
 key.pem
 .aider*
 
+# Dev
 .codegpt
+__plans__
