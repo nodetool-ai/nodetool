@@ -63,7 +63,6 @@ export const assetGridStyles = (theme: Theme) => {
         opacity: 0.6,
         transition: "background-color 0.15s ease, opacity 0.15s ease"
       },
-    // Place hover color rules AFTER default ::after rules for correct precedence
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
       {
         backgroundColor: `${theme.vars.palette.primary.main} !important`,
@@ -74,13 +73,7 @@ export const assetGridStyles = (theme: Theme) => {
         backgroundColor: `${theme.vars.palette.primary.main} !important`,
         opacity: 1
       },
-    // Hide Dockview tab-actions in AssetGrid only
-    "& .dv-tabs-and-actions-container": {
-      display: "none !important"
-    },
-    "& .dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0"
-    },
+    // DROPZONE
     ".dropzone": {
       display: "flex",
       outline: "none",
@@ -144,29 +137,25 @@ export const assetGridStyles = (theme: Theme) => {
     },
     ".folder-icon": {
       marginRight: "0.1em",
-      color: "var(--c_folder)",
+      color: theme.vars.palette.grey[500],
       verticalAlign: "middle",
       backgroundColor: "transparent"
     },
     ".folder-name": {
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.grey[100],
-      verticalAlign: "middle",
-      "&:hover": {
-        color: theme.vars.palette.primary.main
-      }
+      verticalAlign: "middle"
     },
     ".folder-item.selected ": {
       padding: 0,
       margin: 0,
       width: "100%",
-      backgroundColor: "transparent",
+      backgroundColor: theme.vars.palette.grey[800],
       "& .folder-name": {
-        fontWeight: "600",
-        color: theme.vars.palette.primary.main
+        fontWeight: "600"
       },
       "& .folder-icon": {
-        color: theme.vars.palette.primary.main
+        color: theme.vars.palette.c_folder
       }
     },
     ".root-folder": {
@@ -199,6 +188,13 @@ export const assetGridStyles = (theme: Theme) => {
       ".header-info": {
         display: "none !important"
       }
+    },
+    // DOCKVIEW
+    "& .dv-tabs-and-actions-container": {
+      display: "none !important"
+    },
+    "& .dv-split-view-container .dv-view-container .dv-view": {
+      padding: "0"
     }
   });
 };

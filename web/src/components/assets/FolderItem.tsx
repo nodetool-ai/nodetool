@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[0]
     },
     "&.selected .name": {
-      color: "var(--palette-primary-main)"
+      color: "var(--palette-text-primary)"
     },
     "&:hover": {
       color: theme.vars.palette.grey[200]
@@ -82,7 +82,8 @@ const styles = (theme: Theme) =>
       right: "0",
       top: "0",
       border: "none",
-      color: theme.vars.palette.grey[400]
+      color: theme.vars.palette.grey[400],
+      transition: "opacity 0.2s .2s ease"
     },
     ".delete-button:hover": {
       border: "none",
