@@ -17,7 +17,7 @@ const styles = (theme: Theme) =>
     "&": {
       position: "absolute",
       top: "0",
-      right: "0",
+      right: "4em",
       minWidth: "200px",
       maxWidth: "300px",
       display: "flex",
