@@ -5,8 +5,12 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  CircularProgress
+  CircularProgress,
+  Checkbox,
+  Tooltip,
+  Box
 } from "@mui/material";
+import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
 const listStyles = css({
   overflowY: "auto",
@@ -29,6 +33,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
   isLoading,
   isError
 }) => {
+  const isProviderEnabled = useModelPreferencesStore(
+    (s) => s.isProviderEnabled
+  );
+  const setProviderEnabled = useModelPreferencesStore(
+    (s) => s.setProviderEnabled
+  );
   if (isLoading) {
     return (
       <div css={listStyles} className="model-menu__providers-list is-loading">
@@ -54,18 +64,34 @@ const ProviderList: React.FC<ProviderListProps> = ({
       >
         <ListItemText primary="All providers" />
       </ListItemButton>
-      {providers.map((p) => (
-        <ListItemButton
-          key={p}
-          className={`model-menu__provider-item ${
-            selected === p ? "is-selected" : ""
-          }`}
-          selected={selected === p}
-          onClick={() => onSelect(p)}
-        >
-          <ListItemText primary={p} />
-        </ListItemButton>
-      ))}
+      {providers.map((p) => {
+        const enabled = isProviderEnabled(p);
+        return (
+          <ListItemButton
+            key={p}
+            className={`model-menu__provider-item ${
+              selected === p ? "is-selected" : ""
+            }`}
+            selected={selected === p}
+            onClick={() => onSelect(p)}
+            sx={{ gap: 1, opacity: enabled ? 1 : 0.55 }}
+          >
+            <ListItemText primary={p} />
+            <Box sx={{ ml: "auto" }} onClick={(e) => e.stopPropagation()}>
+              <Tooltip title={enabled ? "Disable provider" : "Enable provider"}>
+                <Checkbox
+                  edge="end"
+                  size="small"
+                  checked={enabled}
+                  onChange={(e) => {
+                    setProviderEnabled(p, e.target.checked);
+                  }}
+                />
+              </Tooltip>
+            </Box>
+          </ListItemButton>
+        );
+      })}
     </List>
   );
 };

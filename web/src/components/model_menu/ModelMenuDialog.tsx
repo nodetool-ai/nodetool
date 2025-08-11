@@ -32,7 +32,7 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "260px 1fr 360px",
+  gridTemplateColumns: "260px 320px 360px",
   gap: 12,
   minHeight: 480
 });
@@ -55,6 +55,9 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   const setOnlyAvailable = useModelPreferencesStore((s) => s.setOnlyAvailable);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
+  const isProviderEnabled = useModelPreferencesStore(
+    (s) => s.isProviderEnabled
+  );
 
   const providers = useMemo(() => {
     const set = new Set<string>();
@@ -91,6 +94,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     if (selectedProvider) {
       list = list.filter((m) => m.provider === selectedProvider);
     }
+    // Filter out disabled providers
+    list = list.filter((m) => isProviderEnabled(m.provider || ""));
     if (onlyAvailable) {
       list = list.filter((m) => isAvailable(m.provider));
     }
@@ -104,7 +109,14 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       return fuse.search(term).map((r) => r.item);
     }
     return list;
-  }, [models, selectedProvider, search, onlyAvailable, isAvailable]);
+  }, [
+    models,
+    selectedProvider,
+    search,
+    onlyAvailable,
+    isAvailable,
+    isProviderEnabled
+  ]);
 
   const recentModels = useMemo(() => {
     const recents = recentsList;
@@ -116,17 +128,22 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       const m = byKey.get(`${r.provider}:${r.id}`);
       if (m) mapped.push(m);
     });
+    const enabledFiltered = mapped.filter((m) =>
+      isProviderEnabled(m.provider || "")
+    );
     return onlyAvailable
-      ? mapped.filter((m) => isAvailable(m.provider))
-      : mapped;
-  }, [models, onlyAvailable, isAvailable, recentsList]);
+      ? enabledFiltered.filter((m) => isAvailable(m.provider))
+      : enabledFiltered;
+  }, [models, onlyAvailable, isAvailable, recentsList, isProviderEnabled]);
 
   const favoriteModels = useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
       favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
-    const list = (models ?? []).filter((m) => keyHas(m.provider, m.id));
+    const list = (models ?? []).filter(
+      (m) => keyHas(m.provider, m.id) && isProviderEnabled(m.provider || "")
+    );
     return onlyAvailable ? list.filter((m) => isAvailable(m.provider)) : list;
-  }, [models, onlyAvailable, isAvailable, favoritesSet]);
+  }, [models, onlyAvailable, isAvailable, favoritesSet, isProviderEnabled]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
@@ -146,7 +163,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="lg"
+      maxWidth="md"
       className="model-menu__dialog"
     >
       <DialogTitle
@@ -193,7 +210,10 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             isLoading={!!isLoading}
             isError={!!isError}
           />
-          <Box>
+          <Box
+            className="model-menu__model-list-container"
+            sx={{ maxWidth: 300 }}
+          >
             {search.trim().length === 0 && !selectedProvider && (
               <>
                 <FavoritesList

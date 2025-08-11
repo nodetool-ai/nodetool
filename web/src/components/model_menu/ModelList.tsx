@@ -15,8 +15,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 520,
-  fontSize: "0.94rem"
+  maxHeight: 520
 });
 
 export interface ModelListProps {
