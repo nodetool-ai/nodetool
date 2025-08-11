@@ -38,7 +38,7 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
         style={{
           width: "100%",
           margin: "0",
-          padding: ".5em .5em .5em 2em",
+          padding: "0.25em",
           color: theme.vars.palette.grey[0],
           display: "block"
         }}
@@ -58,6 +58,9 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
             onClick={handleClick}
             size="small"
             tabIndex={-1}
+            sx={{
+              color: theme.vars.palette.grey[400]
+            }}
           >
             <FileUploadIcon />
           </IconButton>
