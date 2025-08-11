@@ -307,11 +307,15 @@ const WindowControls = () => {
   );
 };
 
-const TabsNodeEditor = () => {
+type TabsNodeEditorProps = {
+  isChat?: boolean;
+};
+
+const TabsNodeEditor = ({ isChat = false }: TabsNodeEditorProps) => {
   const { openWorkflows, currentWorkflowId, loadingStates } =
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
-      currentWorkflowId: state.currentWorkflowId,
+      currentWorkflowId: isChat ? undefined : state.currentWorkflowId,
       loadingStates: state.loadingStates
     }));
 
@@ -367,72 +371,76 @@ const TabsNodeEditor = () => {
       )}
       <div css={styles(theme)}>
         <div className="tabs-container">
-          <TabsBar workflows={tabsToRender} />
+          <TabsBar workflows={tabsToRender} currentWorkflowId={currentWorkflowId!} />
           {!isMac && isElectron && <WindowControls />}
         </div>
-        <div
-          className="editor-container"
-          css={generateCSS}
-          style={{ flex: 1, minHeight: 0, minWidth: 0 }}
-        >
-          <Box
-            key={currentWorkflowId}
-            sx={{
-              overflow: "hidden",
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              minHeight: 0,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column"
-            }}
+        {!isChat && (
+          <div
+            className="editor-container"
+            css={generateCSS}
+            style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
-            {activeNodeStore ? (
-              <NodeContext.Provider value={activeNodeStore}>
-                <ReactFlowProvider>
-                  <ContextMenuProvider>
-                    <ConnectableNodesProvider>
-                      <KeyboardProvider>
-                        <div
-                          style={{
-                            flexShrink: 0,
-                            position: "relative",
-                            zIndex: 1
-                          }}
-                        >
-                          <AppHeader />
-                          <div className="actions-container">
-                            <AppToolbar setWorkflowToEdit={setWorkflowToEdit} />
+            <Box
+              key={currentWorkflowId}
+              sx={{
+                overflow: "hidden",
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                minHeight: 0,
+                minWidth: 0,
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              {activeNodeStore ? (
+                <NodeContext.Provider value={activeNodeStore}>
+                  <ReactFlowProvider>
+                    <ContextMenuProvider>
+                      <ConnectableNodesProvider>
+                        <KeyboardProvider>
+                          <div
+                            style={{
+                              flexShrink: 0,
+                              position: "relative",
+                              zIndex: 1
+                            }}
+                          >
+                            <AppHeader />
+                            <div className="actions-container">
+                              <AppToolbar
+                                setWorkflowToEdit={setWorkflowToEdit}
+                              />
+                            </div>
+                            <div className="status-message-container">
+                              <StatusMessage />
+                            </div>
                           </div>
-                          <div className="status-message-container">
-                            <StatusMessage />
+                          <div
+                            style={{
+                              flex: 1,
+                              minHeight: 0,
+                              position: "relative",
+                              width: "100%",
+                              height: "100%"
+                            }}
+                          >
+                            <NodeEditor
+                              workflowId={currentWorkflowId!}
+                              active={true}
+                            />
                           </div>
-                        </div>
-                        <div
-                          style={{
-                            flex: 1,
-                            minHeight: 0,
-                            position: "relative",
-                            width: "100%",
-                            height: "100%"
-                          }}
-                        >
-                          <NodeEditor
-                            workflowId={currentWorkflowId!}
-                            active={true}
-                          />
-                        </div>
-                      </KeyboardProvider>
-                    </ConnectableNodesProvider>
-                  </ContextMenuProvider>
-                </ReactFlowProvider>
-              </NodeContext.Provider>
-            ) : (
-              <StatusMessage />
-            )}
-          </Box>
-        </div>
+                        </KeyboardProvider>
+                      </ConnectableNodesProvider>
+                    </ContextMenuProvider>
+                  </ReactFlowProvider>
+                </NodeContext.Provider>
+              ) : (
+                <StatusMessage />
+              )}
+            </Box>
+          </div>
+        )}
       </div>
     </>
   );
