@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: 6,
       backgroundColor: "transparent",
-      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      // borderRight: `1px solid ${theme.vars.palette.divider}`,
       // Ensure custom SVG icons (IconForType) are sized like MUI icons
       "& .icon-container": {
         width: "18px",
@@ -126,6 +126,7 @@ const styles = (theme: Theme) =>
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
+        backgroundColor: "var(--palette-background-default)",
         // Make icons smaller within toolbar buttons
         "& svg": {
           fontSize: "1.125rem"
