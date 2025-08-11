@@ -51,7 +51,6 @@ const OverallDownloadProgress: React.FC = () => {
         className="overall-download-progress"
         sx={{
           position: "relative",
-          padding: "5px 0",
           cursor: "pointer",
           overflow: "visible"
         }}
