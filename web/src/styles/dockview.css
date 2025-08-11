@@ -5,6 +5,11 @@
   background-color: transparent;
 }
 
+/* Split view container */
+.dv-split-view-container .dv-view-container .dv-view::before {
+  height: 0 !important;
+}
+
 /* Tabs and actions bar */
 .dv-tabs-and-actions-container {
   background-color: transparent;
