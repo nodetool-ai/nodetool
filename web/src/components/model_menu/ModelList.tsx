@@ -14,8 +14,8 @@ import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import useModelPreferencesStore2 from "../../stores/ModelPreferencesStore";
 import { toTitleCase } from "../../utils/providerDisplay";
+import { isProviderAvailable } from "../../stores/ModelMenuStore";
 
 const listStyles = css({
   overflowY: "auto",
@@ -40,7 +40,7 @@ const requiredSecretForProvider = (provider?: string): string | null => {
 
 const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
-  const enabledProviders = useModelPreferencesStore2((s) => s.enabledProviders);
+  const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
   const availabilityMap = useMemo(() => {
@@ -78,7 +78,20 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
     >
       {models.map((m) => {
         const fav = isFavorite(m.provider || "", m.id || "");
-        const available = availabilityMap[`${m.provider}:${m.id}`] ?? true;
+        const env = requiredSecretForProvider(m.provider);
+        const normKey = /gemini|google/i.test(m.provider || "")
+          ? "gemini"
+          : m.provider || "";
+        const providerEnabled = enabledProviders?.[normKey] !== false;
+        const hasKey = env
+          ? Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0)
+          : true;
+        const available = providerEnabled && hasKey;
+        const tooltipTitle = !providerEnabled
+          ? "Enable provider in the left sidebar to use this model"
+          : !hasKey
+          ? "Add API key in Settings to use this model"
+          : "";
         return (
           <Tooltip
             key={`tooltip:${m.provider}:${m.id}`}
@@ -86,7 +99,9 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
             title={
               available
                 ? ""
-                : "Enable provider and add API key if required to use this model"
+                : !providerEnabled
+                ? "Enable provider in the left sidebar to use this model"
+                : "Add API key in Settings to use this model"
             }
           >
             <ListItemButton

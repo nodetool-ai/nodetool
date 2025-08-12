@@ -31,6 +31,21 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   return null;
 };
 
+export const isProviderAvailable = (
+  provider?: string,
+  secrets?: Record<string, string>,
+  enabledProviders?: EnabledProvidersMap
+): boolean => {
+  if (!provider) return false;
+  const p = (provider || "").toLowerCase();
+  const key = /gemini|google/.test(p) ? "gemini" : provider || "";
+  const enabled = enabledProviders?.[key] !== false;
+  const env = requiredSecretForProvider(provider);
+  const hasKey =
+    !env || Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+  return enabled && hasKey;
+};
+
 export const ALWAYS_INCLUDE_PROVIDERS = [
   "openai",
   "anthropic",
