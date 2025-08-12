@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       width: "80%",
       maxWidth: "1200px",
-      backgroundColor: theme.vars.palette.background.paper,
+      background: "transparent",
       boxShadow: theme.shadows[24],
       borderRadius: theme.shape.borderRadius,
       outline: "none"
@@ -58,8 +58,7 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      background:
-        `linear-gradient(180deg, ${theme.vars.palette.background.paper} 70%, transparent)`,
+      background: "transparent",
       margin:0,
       padding: theme.spacing(4, 4),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
@@ -89,7 +88,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       onClose={onClose}
       slotProps={{
         backdrop: {
-          style: { backgroundColor: "rgba(10,12,14,0.6)", backdropFilter: "blur(4px)" }
+          style: { backdropFilter: "blur(20px)" }
         }
       }}
       sx={{
@@ -98,8 +97,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           maxWidth: "1200px",
           margin: "auto",
           borderRadius: 1.5,
+          background: "transparent",
           border: `1px solid ${theme.vars.palette.grey[700]}`,
-          backgroundImage: "none"
         }
       }}
     >
@@ -111,7 +110,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           </IconButton>
         </Tooltip>
       </DialogTitle>
-      <DialogContent sx={{ backgroundColor: "var(--palette-background-paper)", pt: 2 }}>
+      <DialogContent sx={{ background: "transparent", pt: 2 }}>
         <div className="models-manager">
           <div className="existing-models-section">
             <div className="models-list-container">

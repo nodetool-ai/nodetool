@@ -19,8 +19,7 @@ const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       height: "calc(100% - 200px)",
-      backgroundColor: theme.vars.palette.Paper.overlay,
-      backgroundImage: "none",
+      background: "transparent",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       boxShadow: theme.shadows[24]
     },
@@ -82,7 +81,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
         backdrop: {
           sx: {
             backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-            backdropFilter: "blur(4px)"
+            backdropFilter: "blur(20px)"
           }
         }
       }}
