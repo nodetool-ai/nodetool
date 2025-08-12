@@ -44,14 +44,14 @@ const containerStyles = css({
   gridTemplateRows: "auto auto 1fr"
 });
 
-const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
+export default function ModelMenuDialog({
   open,
   onClose,
   models,
   isLoading,
   isError,
   onModelChange
-}) => {
+}: ModelMenuDialogProps) {
   const theme = useTheme();
   const setSearch = useModelMenuStore((s) => s.setSearch);
   const activeSidebarTab = useModelMenuStore((s) => s.activeSidebarTab);
@@ -229,6 +229,4 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
-
-export default ModelMenuDialog;
+}
