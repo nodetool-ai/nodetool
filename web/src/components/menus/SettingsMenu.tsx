@@ -43,7 +43,8 @@ export const settingsStyles = (theme: Theme): any =>
       backdropFilter: "blur(5px)"
     },
     ".MuiPaper-root": {
-      backgroundColor: "var(--palette-background-default)",
+      "--Paper-overlay": "0 !important",
+      backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: ".5em",
