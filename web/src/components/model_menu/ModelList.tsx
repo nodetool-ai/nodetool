@@ -4,11 +4,13 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useMemo } from "react";
 import {
+  Box,
   List,
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tooltip
+  Tooltip,
+  Typography
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -16,6 +18,8 @@ import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { toTitleCase } from "../../utils/providerDisplay";
 import { isProviderAvailable } from "../../stores/ModelMenuStore";
+import useModelMenuStore from "../../stores/ModelMenuStore";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 const listStyles = css({
   overflowY: "auto",
@@ -43,6 +47,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
+  const searchTerm = useModelMenuStore((s) => s.search);
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
@@ -87,6 +92,22 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >
+      {models.length === 0 && (
+        <Box
+          sx={{
+            p: 10,
+            color: theme.vars.palette.text.primary,
+            fontSize: theme.vars.fontSizeNormal
+          }}
+        >
+          <InfoOutlinedIcon color="warning" fontSize="medium" />
+          <Typography sx={{ fontSize: theme.vars.fontSizeNormal }}>
+            {searchTerm.trim().length === 0
+              ? "No models available. Select or enable providers in the left sidebar to see models."
+              : `No models found for "${searchTerm}". Try a different term or enable more providers.`}
+          </Typography>
+        </Box>
+      )}
       {models.map((m) => {
         const fav = isFavorite(m.provider || "", m.id || "");
         const env = requiredSecretForProvider(m.provider);
