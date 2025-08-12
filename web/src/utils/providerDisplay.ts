@@ -54,3 +54,19 @@ export const formatGenericProviderName = (provider?: string): string => {
   );
   return toTitleCase(withSpaces.trim());
 };
+
+/** Returns an external URL for a given provider name when known; otherwise null. */
+export const getProviderUrl = (provider?: string): string | null => {
+  if (!provider) return null;
+  const p = provider.toLowerCase();
+  if (isHuggingFaceProvider(provider)) return "https://huggingface.co";
+  if (p.includes("ollama")) return "https://ollama.com";
+  if (p.includes("lmstudio")) return "https://lmstudio.ai";
+  if (p.includes("openai")) return "https://platform.openai.com";
+  if (p.includes("anthropic")) return "https://console.anthropic.com";
+  if (p.includes("gemini") || p.includes("google"))
+    return "https://ai.google.dev";
+  if (p.includes("replicate")) return "https://replicate.com";
+  // Unknown
+  return null;
+};

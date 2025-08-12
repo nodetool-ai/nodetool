@@ -13,6 +13,7 @@ import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { toTitleCase } from "../../utils/providerDisplay";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const listStyles = css({
@@ -96,7 +97,9 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
             <ListItemText
               primary={m.name}
               secondary={
-                available ? m.provider : `${m.provider} · Setup required`
+                available
+                  ? toTitleCase(m.provider || "")
+                  : `${toTitleCase(m.provider || "")} · Setup required`
               }
             />
           </ListItemButton>
