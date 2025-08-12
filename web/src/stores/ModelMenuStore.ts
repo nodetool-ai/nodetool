@@ -146,14 +146,45 @@ export const filterModelsList = (
   if (term.length > 0) {
     // Ensure disabled providers never appear in search
     list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
+    // Token-based fallback matching to handle cases like "deepseek 8" → "DeepSeek-...-8B"
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const makeIndexText = (m: LanguageModel) =>
+      normalize(`${m.name || ""} ${m.id || ""} ${m.provider || ""}`);
+    const tokens = normalize(term).split(/\s+/).filter(Boolean);
+
+    const tokenMatches = list.filter((m) => {
+      const text = makeIndexText(m);
+      return tokens.every((t) => text.includes(t));
+    });
+
+    // Fuse for fuzzy ranking and typos; looser threshold for better recall
     const fuse = new Fuse(list, {
       keys: ["name", "id", "provider"],
-      threshold: 0.15,
-      ignoreLocation: true
+      threshold: 0.3,
+      ignoreLocation: true,
+      distance: 1000,
+      minMatchCharLength: 1
     });
-    const result = fuse.search(term).map((r) => r.item);
-    console.log("[ModelMenu] filter search", { term, count: result.length });
-    return result;
+    const fuseItems = fuse.search(term).map((r) => r.item);
+
+    // Merge token matches and fuse results (preserve order, de-dupe)
+    const merged: LanguageModel[] = [...tokenMatches];
+    for (const it of fuseItems) {
+      if (!merged.includes(it)) merged.push(it);
+    }
+
+    console.log("[ModelMenu] filter search", {
+      term,
+      tokens,
+      tokenMatches: tokenMatches.length,
+      fuseMatches: fuseItems.length,
+      merged: merged.length
+    });
+    return merged;
   }
   console.log("[ModelMenu] filter", { selectedProvider, total: list.length });
   return list;
