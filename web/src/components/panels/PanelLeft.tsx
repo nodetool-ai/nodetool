@@ -277,9 +277,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
 });
 
 const PanelContent = memo(function PanelContent({
-  activeView
+  activeView,
+  handlePanelToggle
 }: {
   activeView: string;
+  handlePanelToggle: (view: LeftPanelView) => void;
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
@@ -399,6 +401,7 @@ const PanelContent = memo(function PanelContent({
               className={`${path === "/assets" ? "active" : ""}`}
               onClick={() => {
                 navigate("/assets");
+                handlePanelToggle("assets");
               }}
               tabIndex={-1}
               style={{
@@ -514,7 +517,12 @@ const PanelLeft: React.FC = () => {
               onViewChange={onViewChange}
               handlePanelToggle={() => handlePanelToggle(activeView)}
             />
-            {isVisible && <PanelContent activeView={activeView} />}
+            {isVisible && (
+              <PanelContent
+                activeView={activeView}
+                handlePanelToggle={handlePanelToggle}
+              />
+            )}
           </ContextMenuProvider>
         </div>
       </Drawer>

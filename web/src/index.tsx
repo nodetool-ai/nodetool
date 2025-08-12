@@ -139,6 +139,7 @@ function getRoutes() {
       path: "assets",
       element: (
         <ProtectedRoute>
+          <PanelLeft />
           <AssetExplorer />
         </ProtectedRoute>
       )
