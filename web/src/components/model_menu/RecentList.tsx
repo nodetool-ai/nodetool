@@ -17,7 +17,7 @@ import { toTitleCase } from "../../utils/providerDisplay";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 240
+  maxHeight: "100%"
 });
 
 export interface RecentListProps {

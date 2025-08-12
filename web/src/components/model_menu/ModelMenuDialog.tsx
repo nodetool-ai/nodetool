@@ -34,7 +34,8 @@ const containerStyles = css({
   display: "grid",
   gridTemplateColumns: "300px 300px 280px",
   gap: 4,
-  minHeight: 480
+  minHeight: 480,
+  gridTemplateRows: "auto auto 1fr"
 });
 
 const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
@@ -134,7 +135,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             sx={{
               display: "flex",
               flexDirection: "column",
-              maxHeight: 520,
+              height: "100%",
               overflow: "hidden",
               // Hide internal list subheaders from child lists as we have tabs now
               "& .model-menu__favorites-list .MuiListSubheader-root, & .model-menu__recent-list .MuiListSubheader-root":
@@ -177,12 +178,12 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
               )}
             </Box>
           </Box>
-          <ModelMenuFooter
-            filteredCount={filteredCount}
-            totalCount={totalCount}
-            totalActiveCount={totalActiveCount}
-          />
         </div>
+        <ModelMenuFooter
+          filteredCount={filteredCount}
+          totalCount={totalCount}
+          totalActiveCount={totalActiveCount}
+        />
       </DialogContent>
     </Dialog>
   );
