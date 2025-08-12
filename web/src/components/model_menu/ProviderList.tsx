@@ -15,6 +15,10 @@ import {
   Divider
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -145,28 +149,42 @@ const ProviderList: React.FC<ProviderListProps> = ({
             });
             return (
               <Box sx={{ display: "flex", gap: 0.5 }}>
-                {badges.map((b) => (
-                  <span
-                    key={b.label}
-                    style={{
-                      padding: "1px 5px",
-                      fontSize: theme.vars.fontSizeTiny,
-                      lineHeight: 1.1,
-                      borderRadius: 4,
-                      background: "transparent",
-                      color:
-                        b.label === "API"
-                          ? theme.vars.palette.providerApi
-                          : b.label === "Local"
-                          ? theme.vars.palette.providerLocal
-                          : theme.vars.palette.providerHf,
-                      letterSpacing: 0.2,
-                      border: `1px solid currentColor`
-                    }}
-                  >
-                    {b.label}
-                  </span>
-                ))}
+                {badges.map((b) => {
+                  const tooltipTitle =
+                    b.label === "HF"
+                      ? "Hugging Face (HF): Models from the Hugging Face Hub."
+                      : b.label === "Local"
+                      ? "Local: Served by a local runtime (e.g., Ollama/LM Studio)."
+                      : "API: Remote provider; runs via API without local download.";
+                  return (
+                    <Tooltip
+                      key={b.label}
+                      title={tooltipTitle}
+                      enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+                    >
+                      <span
+                        style={{
+                          padding: "1px 5px",
+                          fontSize: theme.vars.fontSizeTiny,
+                          lineHeight: 1.1,
+                          borderRadius: 4,
+                          background: "transparent",
+                          color:
+                            b.label === "API"
+                              ? theme.vars.palette.providerApi
+                              : b.label === "Local"
+                              ? theme.vars.palette.providerLocal
+                              : theme.vars.palette.providerHf,
+                          letterSpacing: 0.2,
+                          border: `1px solid currentColor`
+                        }}
+                      >
+                        {b.label}
+                      </span>
+                    </Tooltip>
+                  );
+                })}
               </Box>
             );
           };
