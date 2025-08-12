@@ -104,18 +104,26 @@ declare module "@mui/material/styles" {
 export const paletteLight: PaletteOptions = {
   error: {
     main: "#EF4444",
+    light: "#FF8A80",
+    dark: "#C62828",
     contrastText: "#fff"
   },
   warning: {
     main: "#F59E0B",
+    light: "#FFD591",
+    dark: "#FF9800",
     contrastText: "#000"
   },
   info: {
     main: "#2563EB",
+    light: "#60A5FA",
+    dark: "#1E40AF",
     contrastText: "#fff"
   },
   success: {
     main: "#10B981",
+    light: "#80E27E",
+    dark: "#229A16",
     contrastText: "#fff"
   },
   grey: {
