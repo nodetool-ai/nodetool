@@ -27,8 +27,8 @@ const styles = (theme: Theme) =>
       position: "relative",
       top: "64px",
       left: "48px",
-      height: "calc(100vh - 64px)",
-      width: "calc(100% - 96px)",
+      height: "calc(100vh - 16px)",
+      width: "calc(100% - 64px)",
       overflow: "scroll"
     },
     "&": {
