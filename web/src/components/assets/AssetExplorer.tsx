@@ -3,16 +3,15 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import AssetGrid from "./AssetGrid";
-import { Box, Tooltip, IconButton } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-import BackToEditorButton from "../panels/BackToEditorButton";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import TabsNodeEditor from "../editor/TabsNodeEditor";
+import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
   css({
@@ -26,7 +25,10 @@ const styles = (theme: Theme) =>
       padding: "0"
     },
     ".asset-explorer": {
-      width: "100%"
+      position: "relative",
+      width: "100%",
+      left: "64px",
+      top: "64px"
     },
     ".asset-menu": {
       marginLeft: "1em",
@@ -98,19 +100,22 @@ const AssetExplorer: React.FC = () => {
   }));
   return (
     <Box css={styles(theme)}>
+      <TabsNodeEditor hideContent />
+      <Box
+        className="actions-container"
+        sx={{
+          position: "absolute",
+          top: "32px",
+          left: 0,
+          right: 0,
+          zIndex: 1000
+        }}
+      >
+        <AppHeader />
+      </Box>
       <Box className="asset-explorer">
-        <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="close-button"
-            size="small"
-            aria-label="Close"
-            onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
+        <Typography variant="h2">Assets</Typography>
         <ContextMenuProvider>
-          {currentWorkflowId && <BackToEditorButton />}
           <AssetGrid
             maxItemSize={10}
             itemSpacing={2}

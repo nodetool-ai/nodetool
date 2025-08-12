@@ -37,6 +37,8 @@ import {
   IDockviewPanel
 } from "dockview";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
+import AppHeader from "../panels/AppHeader";
+import TabsNodeEditor from "../editor/TabsNodeEditor";
 
 const panelComponents = {
   "asset-folders": (_props: IDockviewPanelProps) => (
