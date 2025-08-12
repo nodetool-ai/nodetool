@@ -64,10 +64,10 @@ const ModelListItem: React.FC<
     : "API";
   const providerTooltip =
     providerLabel === "HF"
-      ? "Hugging Face source"
+      ? "Hugging Face (HF): Model is hosted on Hugging Face. Use Download to store locally."
       : providerLabel === "Local"
-      ? "Local file on your machine"
-      : "Remote API provider";
+      ? "Local: Model file exists on your machine and is ready to use."
+      : "API: Model runs via a remote provider; no local download required.";
   if (isLoading) {
     return (
       <Box
