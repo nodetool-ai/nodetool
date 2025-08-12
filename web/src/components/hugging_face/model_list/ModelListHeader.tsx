@@ -16,7 +16,7 @@ const ModelListHeader: React.FC = () => {
       <SearchInput
         focusOnTyping={true}
         focusSearchInput={false}
-        width={300}
+        width={250}
         maxWidth={"300px"}
         onSearchChange={setModelSearchTerm}
         searchTerm={modelSearchTerm}

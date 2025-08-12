@@ -55,6 +55,18 @@ const ModelListItem: React.FC<
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
   const theme = useTheme();
+  // Provider chip (HF / Local / API) with tooltip
+  const providerLabel: "HF" | "Local" | "API" = isHuggingFace
+    ? "HF"
+    : downloaded
+    ? "Local"
+    : "API";
+  const providerTooltip =
+    providerLabel === "HF"
+      ? "Hugging Face (HF): Repository on the Hugging Face Hub."
+      : providerLabel === "Local"
+      ? "Local: Model file exists on your machine."
+      : "API: Remote provider; runs via API without local download.";
   if (isLoading) {
     return (
       <Box
@@ -146,6 +158,34 @@ const ModelListItem: React.FC<
             </div>
 
             <div className="model-details">
+              <Tooltip
+                title={providerTooltip}
+                enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+              >
+                <span style={{ display: "inline-flex" }} tabIndex={0}>
+                  <Chip
+                    label={providerLabel}
+                    size="small"
+                    component="span"
+                    title={providerTooltip}
+                    sx={{
+                      height: 20,
+                      fontSize: theme.vars.fontSizeTiny,
+                      color:
+                        providerLabel === "Local"
+                          ? theme.vars.palette.providerLocal
+                          : providerLabel === "HF"
+                          ? theme.vars.palette.providerHf
+                          : theme.vars.palette.providerApi,
+                      borderColor: "currentColor",
+                      background: "transparent",
+                      borderWidth: 1,
+                      borderStyle: "solid"
+                    }}
+                  />
+                </span>
+              </Tooltip>
               {modelData?.cardData?.pipeline_tag && (
                 <Tooltip
                   title="View trending models with this tag on HuggingFace"
