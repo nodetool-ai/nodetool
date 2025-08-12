@@ -121,7 +121,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
               focusSearchInput
               focusOnTyping
               maxWidth="300px"
-              width={300}
+              width={270}
             />
           </Box>
         </Box>

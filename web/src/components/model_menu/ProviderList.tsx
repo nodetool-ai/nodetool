@@ -25,6 +25,10 @@ import {
   getProviderUrl
 } from "../../utils/providerDisplay";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import {
+  requiredSecretForProvider,
+  isProviderAvailable
+} from "../../stores/ModelMenuStore";
 import useModelMenuStore from "../../stores/ModelMenuStore";
 
 const listStyles = css({
@@ -58,15 +62,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
 
-  const requiredSecretForProvider = (provider?: string): string | null => {
-    const p = (provider || "").toLowerCase();
-    if (p.includes("openai")) return "OPENAI_API_KEY";
-    if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
-    if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
-    if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
-    if (p.includes("aime")) return "AIME_API_KEY";
-    return null;
-  };
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
     console.time("[ProviderList] sort");
@@ -134,9 +129,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
             idx === sortedProviders.enabledList.length &&
             sortedProviders.disabledList.length > 0;
           const env = requiredSecretForProvider(p);
-          const available =
+          const normKey = /gemini|google/i.test(p) ? "gemini" : p;
+          const providerEnabled = (enabledProviders || {})[normKey] !== false;
+          const hasKey =
             !env ||
             Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+          const available = providerEnabled && hasKey;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             let kind: "api" | "local" | "hf" = "api";
@@ -206,11 +204,15 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       </span>
                     </Box>
                   }
-                  primaryTypographyProps={{
-                    sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: (theme) => theme.vars.fontSizeSmall
+                      }
+                    }
                   }}
                 />
-                {!available && (
+                {!hasKey && (
                   <Box
                     sx={{
                       mr: 1,
