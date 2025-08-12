@@ -148,7 +148,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 {badges.map((b) => {
                   const tooltipTitle =
                     b.label === "HF"
-                      ? "HuggingFace): Models from the Hugging Face Hub."
+                      ? "HuggingFace: Models from the Hugging Face Hub."
                       : b.label === "Local"
                       ? "Local: Runs locally on your machine."
                       : "API: Remote provider; runs via API without local download. Requires API key.";
