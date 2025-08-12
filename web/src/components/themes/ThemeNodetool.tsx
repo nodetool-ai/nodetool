@@ -67,24 +67,7 @@ const ThemeNodetool = createTheme({
     autocomplete: 10002,
     highest: 100000
   },
-  // Custom Nodetool tokens
-  providerBadge: {
-    api: {
-      bg: "#1e3a8a",
-      fg: "#dbeafe",
-      border: "#1e3a8a"
-    },
-    local: {
-      bg: "#14532d",
-      fg: "#dcfce7",
-      border: "#14532d"
-    },
-    hf: {
-      bg: "#5b21b6",
-      fg: "#ede9fe",
-      border: "#5b21b6"
-    }
-  },
+
   components: {
     MuiTypography: {
       styleOverrides: {

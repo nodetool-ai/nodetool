@@ -168,10 +168,10 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           background: "transparent",
                           color:
                             b.label === "API"
-                              ? theme.vars.palette.providerApi
+                              ? theme.vars.palette.c_provider_api
                               : b.label === "Local"
-                              ? theme.vars.palette.providerLocal
-                              : theme.vars.palette.providerHf,
+                              ? theme.vars.palette.c_provider_local
+                              : theme.vars.palette.c_provider_hf,
                           letterSpacing: 0.2,
                           border: `1px solid currentColor`
                         }}

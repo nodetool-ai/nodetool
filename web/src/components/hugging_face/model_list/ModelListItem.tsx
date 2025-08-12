@@ -174,10 +174,10 @@ const ModelListItem: React.FC<
                       fontSize: theme.vars.fontSizeTiny,
                       color:
                         providerLabel === "Local"
-                          ? theme.vars.palette.providerLocal
+                          ? theme.vars.palette.c_provider_local
                           : providerLabel === "HF"
-                          ? theme.vars.palette.providerHf
-                          : theme.vars.palette.providerApi,
+                          ? theme.vars.palette.c_provider_hf
+                          : theme.vars.palette.c_provider_api,
                       borderColor: "currentColor",
                       background: "transparent",
                       borderWidth: 1,
