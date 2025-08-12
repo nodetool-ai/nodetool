@@ -72,6 +72,17 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
           color: theme.vars.palette.text.secondary,
           fontSize: theme.vars.fontSizeSmaller
         },
+        // Grey out unavailable/disabled models
+        "& .model-menu__model-item.is-unavailable": {
+          opacity: 0.55,
+          cursor: "not-allowed"
+        },
+        "& .model-menu__model-item.is-unavailable .MuiListItemText-primary": {
+          color: theme.vars.palette.text.disabled
+        },
+        "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
+          color: theme.vars.palette.text.disabled
+        },
         // Reveal star on parent row hover
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
@@ -87,22 +98,19 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
           ? Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0)
           : true;
         const available = providerEnabled && hasKey;
-        const tooltipTitle = !providerEnabled
-          ? "Enable provider in the left sidebar to use this model"
-          : !hasKey
-          ? "Add API key in Settings to use this model"
-          : "";
+        const tooltipTitle =
+          !providerEnabled && !hasKey
+            ? "Enable provider and add API key in Settings to use this model"
+            : !providerEnabled
+            ? "Enable provider in the left sidebar to use this model"
+            : !hasKey
+            ? "Add API key in Settings to use this model"
+            : "";
         return (
           <Tooltip
             key={`tooltip:${m.provider}:${m.id}`}
             disableInteractive
-            title={
-              available
-                ? ""
-                : !providerEnabled
-                ? "Enable provider in the left sidebar to use this model"
-                : "Add API key in Settings to use this model"
-            }
+            title={tooltipTitle}
           >
             <ListItemButton
               key={`${m.provider}:${m.id}`}
