@@ -27,6 +27,13 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
     <li
       className={`thread-item ${isSelected ? "selected" : ""} ${isDeleting ? "deleting" : ""}`}
       onClick={onSelect}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <Typography className="thread-title">
         {thread.title || getPreview()}

@@ -9,56 +9,87 @@ export const createStyles = (theme: Theme) =>
     flexDirection: "column",
     backgroundColor: "transparent",
 
-    ".new-chat-section": { padding: theme.spacing(2) },
+    ".new-chat-section": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      padding: theme.spacing(1.5),
+    },
 
     ".new-chat-button": {
-      width: "100%",
+      width: "calc(100% - 10px)",
       textAlign: "center",
       padding: "0.5em 1em",
       borderRadius: "8px",
-      backgroundColor: "var(--palette-grey-800)",
+      background: "transparent",
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
       color: theme.vars.palette.grey[0],
       textTransform: "none",
       justifyContent: "center",
-      transition: "background 0.2s",
-      "&:hover": { backgroundColor: theme.vars.palette.grey[600] }
+      transition: "background 0.2s, transform 0.15s ease, box-shadow 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[600],
+        transform: "translateY(-1px)"
+      },
+      "&:active": { transform: "translateY(0)" }
     },
 
     ".thread-list": {
       flex: 1,
       overflow: "auto",
-      padding: 0,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
       margin: 0,
-      listStyle: "none"
+      listStyle: "none",
+      scrollbarWidth: "thin",
+      scrollbarColor: `${theme.vars.palette.c_scroll_thumb} ${theme.vars.palette.c_scroll_bg}`,
+      "&::-webkit-scrollbar": { width: 10 },
+      "&::-webkit-scrollbar-track": {
+        background: theme.vars.palette.c_scroll_bg
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: theme.vars.palette.c_scroll_thumb,
+        borderRadius: 10,
+        border: `2px solid ${theme.vars.palette.c_scroll_bg}`
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        backgroundColor: theme.vars.palette.c_scroll_hover
+      }
     },
 
     ".thread-date-group": {
-      padding: "0.5em 1em",
+      padding: "0.5em 0.75em",
       fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.grey[300],
       textTransform: "uppercase",
-      letterSpacing: "0.05em"
+      letterSpacing: "0.06em"
     },
 
     ".thread-item": {
       position: "relative",
-      padding: "0.1em 1em",
-      fontSize: theme.fontSizeBig,
-      borderLeft: `2px solid transparent`,
+      padding: "0.6em 0.75em",
+      fontSize: theme.fontSizeSmall,
+      borderLeft: `3px solid transparent`,
       cursor: "pointer",
       transition:
-        "all 0.2s, opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out",
-      maxHeight: "80px",
+        "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease",
+      borderRadius: 8,
+      maxHeight: "86px",
       overflow: "hidden",
+      outline: "none",
 
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[600],
         ".delete-button": { opacity: 1 }
       },
 
+      "&:focus-visible": {
+        borderLeftColor: "var(--palette-primary-main)",
+        boxShadow: "0 0 0 2px rgba(96,165,250,0.25) inset"
+      },
+
       "&.selected": {
         backgroundColor: theme.vars.palette.grey[600],
-        borderLeft: `2px solid ${"var(--palette-primary-main)"}`
+        borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
 
       "&.deleting": {
@@ -72,45 +103,48 @@ export const createStyles = (theme: Theme) =>
       },
       ".date": {
         fontSize: theme.fontSizeTiny,
-        marginTop: "-0.25em",
+        marginTop: "0.1em",
         textTransform: "uppercase",
-        color: theme.vars.palette.grey[200]
+        color: theme.vars.palette.grey[300]
       },
       p: {
-        fontWeight: "300"
+        fontWeight: 400
       }
     },
 
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: "normal",
+      fontWeight: 500,
       color: theme.vars.palette.grey[0],
       marginBottom: "0.25em",
+      display: "-webkit-box",
+      WebkitLineClamp: 1,
+      WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      paddingRight: "30px"
+      paddingRight: "36px"
     },
 
     ".date": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[200]
+      color: theme.vars.palette.grey[300]
     },
 
     ".delete-button": {
       position: "absolute",
-      right: "0.5em",
+      right: "0.35em",
       top: "50%",
       transform: "translateY(-50%)",
       opacity: 0,
       padding: "4px",
       minWidth: "unset",
       color: theme.vars.palette.grey[200],
-      transition: "opacity 0.2s",
+      transition: "opacity 0.2s, transform 0.15s ease",
 
       "&:hover": {
         color: theme.vars.palette.error.main,
-        backgroundColor: theme.vars.palette.grey[500]
+        backgroundColor: theme.vars.palette.grey[500],
+        transform: "scale(1.05)"
       },
 
       svg: { fontSize: "1.2em" }
