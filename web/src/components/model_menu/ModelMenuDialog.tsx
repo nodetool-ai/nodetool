@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState } from "react";
 import {
   Dialog,
@@ -10,8 +9,11 @@ import {
   Box,
   Divider,
   Tabs,
-  Tab
+  Tab,
+  Tooltip,
+  IconButton
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import ProviderList from "./ProviderList";
 import ModelList from "./ModelList";
@@ -103,34 +105,61 @@ export default function ModelMenuDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      fullWidth
-      maxWidth="md"
       className="model-menu__dialog"
       slotProps={{
-        paper: {
-          sx: {
-            height: "70vh",
-            width: "90vw",
-            maxWidth: "1000px",
-            backgroundImage: "none",
-            backgroundColor: theme.vars.palette.background.paper
-          }
+        backdrop: {
+          style: { backdropFilter: "blur(20px)" }
+        }
+      }}
+      sx={{
+        "& .MuiDialog-paper": {
+          width: "92%",
+          maxWidth: "1200px",
+          margin: "auto",
+          borderRadius: 1.5,
+          background: "transparent",
+          border: `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}
     >
       <DialogTitle
-        sx={{ fontSize: "1rem", letterSpacing: 0.4, padding: "0 1em 0 2em" }}
         className="model-menu__title"
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
+          background: "transparent",
+          m: 0,
+          p: 4,
+          borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+          fontSize: "1rem",
+          letterSpacing: 0.4
+        }}
       >
         Select Model
+        <Tooltip title="Close">
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              position: "absolute",
+              right: (t) => t.spacing(1),
+              top: (t) => t.spacing(2),
+              color: (t) => t.vars.palette.grey[500]
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
       </DialogTitle>
       <DialogContent
-        dividers
         sx={{
+          background: "transparent",
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          overflow: "hidden"
+          overflow: "hidden",
+          marginTop: theme.spacing(4)
         }}
       >
         <Box
