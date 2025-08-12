@@ -127,7 +127,13 @@ interface GenerationStoppedUpdate {
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
-  const dataUri = URL.createObjectURL(new Blob([data]));
+  let mimeType = "application/octet-stream";
+  if (type === "image") mimeType = "image/png";
+  else if (type === "audio") mimeType = "audio/mp3";
+  else if (type === "video") mimeType = "video/mp4";
+
+  const dataUri = URL.createObjectURL(new Blob([data], { type: mimeType }));
+
   if (type === "image") {
     return {
       type: "image_url",
