@@ -15,7 +15,7 @@ import ProviderList from "./ProviderList";
 import ModelList from "./ModelList";
 import RecentList from "./RecentList";
 import FavoritesList from "./FavoritesList";
-import ModelInfoPane from "./ModelInfoPane";
+// import ModelInfoPane from "./ModelInfoPane";
 import SearchInput from "../search/SearchInput";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -32,7 +32,7 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "260px 320px 360px",
+  gridTemplateColumns: "260px 320px 280px",
   gap: 12,
   minHeight: 480
 });
@@ -214,23 +214,19 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             className="model-menu__model-list-container"
             sx={{ maxWidth: 300 }}
           >
-            {search.trim().length === 0 && !selectedProvider && (
-              <>
-                <FavoritesList
-                  models={favoriteModels}
-                  onSelect={handleSelectModel}
-                />
-                <Divider sx={{ my: 1 }} />
-                <RecentList
-                  models={recentModels}
-                  onSelect={handleSelectModel}
-                />
-                <Divider sx={{ my: 1 }} />
-              </>
-            )}
             <ModelList models={filteredModels} onSelect={handleSelectModel} />
           </Box>
-          <ModelInfoPane model={selectedModel} />
+          <Box
+            className="model-menu__sidebar"
+            sx={{ overflowY: "auto", maxHeight: 520 }}
+          >
+            <FavoritesList
+              models={favoriteModels}
+              onSelect={handleSelectModel}
+            />
+            <Divider sx={{ my: 1 }} />
+            <RecentList models={recentModels} onSelect={handleSelectModel} />
+          </Box>
         </div>
       </DialogContent>
     </Dialog>

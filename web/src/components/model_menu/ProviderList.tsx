@@ -11,6 +11,7 @@ import {
   Box,
   Button
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -41,6 +42,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
   isLoading,
   isError
 }) => {
+  const theme = useTheme();
   const isProviderEnabled = useModelPreferencesStore(
     (s) => s.isProviderEnabled
   );
@@ -97,13 +99,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
           Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
         const renderBadges = () => {
           const badges: Array<{ label: string }> = [];
-          if (isHuggingFaceProvider(p)) {
-            badges.push({ label: "HF" });
-          } else if (/ollama|local|lmstudio/i.test(p)) {
-            badges.push({ label: "Local" });
-          } else {
-            badges.push({ label: "API" });
-          }
+          let kind: "api" | "local" | "hf" = "api";
+          if (isHuggingFaceProvider(p)) kind = "hf";
+          else if (/ollama|local|lmstudio/i.test(p)) kind = "local";
+          badges.push({
+            label: kind === "hf" ? "HF" : kind === "local" ? "Local" : "API"
+          });
           return (
             <Box sx={{ display: "flex", gap: 0.5, ml: 0.75 }}>
               {badges.map((b) => (
@@ -114,10 +115,15 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     fontSize: "0.68em",
                     lineHeight: 1.1,
                     borderRadius: 4,
-                    background: "var(--palette-grey-700)",
-                    color: "var(--palette-grey-100)",
+                    background: "transparent",
+                    color:
+                      b.label === "API"
+                        ? theme.vars.palette.providerApi
+                        : b.label === "Local"
+                        ? theme.vars.palette.providerLocal
+                        : theme.vars.palette.providerHf,
                     letterSpacing: 0.2,
-                    border: "1px solid var(--palette-grey-600)"
+                    border: `1px solid currentColor`
                   }}
                 >
                   {b.label}
