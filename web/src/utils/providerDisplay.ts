@@ -49,6 +49,9 @@ export const getProviderBaseName = (provider?: string): string => {
 // Fallback formatter for arbitrary provider strings
 export const formatGenericProviderName = (provider?: string): string => {
   if (!provider) return "";
+  // Normalize common aliases for display
+  const p = provider.toLowerCase();
+  if (p === "google") return "Gemini";
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
   );

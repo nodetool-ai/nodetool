@@ -63,7 +63,7 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
           component="div"
           sx={{
             backgroundColor: "transparent",
-            fontSize: (theme) => theme.fontSizeNormal,
+            fontSize: (theme) => theme.vars.fontSizeNormal,
             letterSpacing: 0.2
           }}
         >
@@ -71,13 +71,13 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
         </ListSubheader>
       }
       sx={{
-        fontSize: (theme) => theme.fontSizeSmall,
+        fontSize: (theme) => theme.vars.fontSizeSmall,
         "& .MuiListItemButton-root": { py: 0.25 },
         "& .MuiListItemText-primary": {
-          fontSize: (theme) => theme.fontSizeSmall
+          fontSize: (theme) => theme.vars.fontSizeSmall
         },
         "& .MuiListItemText-secondary": {
-          fontSize: (theme) => theme.fontSizeSmaller
+          fontSize: (theme) => theme.vars.fontSizeSmaller
         },
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}

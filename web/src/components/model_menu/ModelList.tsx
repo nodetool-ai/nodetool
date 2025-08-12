@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+
 import React, { useMemo } from "react";
 import {
   List,
   ListItemButton,
   ListItemText,
-  ListItemIcon,
-  Tooltip
+  ListItemIcon
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -16,7 +17,8 @@ import { toTitleCase } from "../../utils/providerDisplay";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 520
+  overflowX: "hidden",
+  maxHeight: 600
 });
 
 export interface ModelListProps {
@@ -37,7 +39,7 @@ const requiredSecretForProvider = (provider?: string): string | null => {
 const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
-
+  const theme = useTheme();
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
@@ -56,13 +58,14 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
       css={listStyles}
       className="model-menu__models-list"
       sx={{
+        overflowX: "hidden",
         "& .MuiListItemButton-root": { py: 0.4 },
         "& .MuiListItemText-primary": {
-          fontSize: (theme) => theme.fontSizeNormal
+          fontSize: theme.vars.fontSizeNormal
         },
         "& .MuiListItemText-secondary": {
-          color: (theme) => theme.palette.text.secondary,
-          fontSize: (theme) => theme.fontSizeSmaller
+          color: theme.vars.palette.text.secondary,
+          fontSize: theme.vars.fontSizeSmaller
         },
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
