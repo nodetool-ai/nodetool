@@ -7,12 +7,14 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  Tooltip
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import useModelPreferencesStore2 from "../../stores/ModelPreferencesStore";
 import { toTitleCase } from "../../utils/providerDisplay";
 
 const listStyles = css({
@@ -38,19 +40,22 @@ const requiredSecretForProvider = (provider?: string): string | null => {
 
 const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
+  const enabledProviders = useModelPreferencesStore2((s) => s.enabledProviders);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
       const env = requiredSecretForProvider(m.provider);
+      const providerEnabled = enabledProviders?.[m.provider || ""] !== false;
       const ok =
-        !env ||
-        Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+        providerEnabled &&
+        (!env ||
+          Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0));
       map[`${m.provider}:${m.id}`] = ok;
     });
     return map;
-  }, [models, secrets]);
+  }, [models, secrets, enabledProviders]);
 
   return (
     <List
@@ -67,6 +72,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
           color: theme.vars.palette.text.secondary,
           fontSize: theme.vars.fontSizeSmaller
         },
+        // Reveal star on parent row hover
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >
@@ -74,26 +80,38 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
         const fav = isFavorite(m.provider || "", m.id || "");
         const available = availabilityMap[`${m.provider}:${m.id}`] ?? true;
         return (
-          <ListItemButton
-            key={`${m.provider}:${m.id}`}
-            className={`model-menu__model-item ${
-              available ? "" : "is-unavailable"
-            } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
-            disabled={!available}
+          <Tooltip
+            key={`tooltip:${m.provider}:${m.id}`}
+            disableInteractive
+            title={
+              available
+                ? ""
+                : "Enable provider and add API key if required to use this model"
+            }
           >
-            <ListItemIcon sx={{ minWidth: 30 }}>
-              <FavoriteStar provider={m.provider} id={m.id} size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary={m.name}
-              secondary={
-                available
-                  ? toTitleCase(m.provider || "")
-                  : `${toTitleCase(m.provider || "")} · Setup required`
-              }
-            />
-          </ListItemButton>
+            <ListItemButton
+              key={`${m.provider}:${m.id}`}
+              className={`model-menu__model-item ${
+                available ? "" : "is-unavailable"
+              } ${fav ? "is-favorite" : ""}`}
+              aria-disabled={!available}
+              onClick={() => available && onSelect(m)}
+            >
+              <ListItemIcon sx={{ minWidth: 30 }}>
+                <FavoriteStar provider={m.provider} id={m.id} size="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary={m.name}
+                secondary={
+                  available
+                    ? toTitleCase(m.provider || "")
+                    : `${toTitleCase(
+                        m.provider || ""
+                      )} · Activate provider & setup`
+                }
+              />
+            </ListItemButton>
+          </Tooltip>
         );
       })}
     </List>

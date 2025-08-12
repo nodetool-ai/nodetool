@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useCallback, useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import React, { useCallback, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -32,7 +34,7 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "300px 300px 280px",
+  gridTemplateColumns: "275px 300px 300px",
   gap: 4,
   minHeight: 480,
   gridTemplateRows: "auto auto 1fr"
@@ -46,17 +48,14 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   isError,
   onModelChange
 }) => {
-  const search = useModelMenuStore((s) => s.search);
+  const theme = useTheme();
   const setSearch = useModelMenuStore((s) => s.setSearch);
-  const selectedProvider = useModelMenuStore((s) => s.selectedProvider);
-  const setSelectedProvider = useModelMenuStore((s) => s.setSelectedProvider);
   const activeSidebarTab = useModelMenuStore((s) => s.activeSidebarTab);
   const setActiveSidebarTab = useModelMenuStore((s) => s.setActiveSidebarTab);
   const [selectedModel, setSelectedModel] = useState<LanguageModel | null>(
     null
   );
   const {
-    allModels,
     providers,
     filteredModels,
     favoriteModels,
@@ -65,10 +64,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     filteredCount,
     totalActiveCount
   } = useModelMenuData(models);
-  // Availability, env, and provider enablement handled in store hook
-
-  // derived lists via useModelMenuData (favoriteModels, recentModels, filteredModels)
-
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
       setSelectedModel(m);
@@ -84,21 +79,33 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       fullWidth
       maxWidth="md"
       className="model-menu__dialog"
-      PaperProps={{
-        sx: {
-          backgroundImage: "none",
-          backgroundColor: (theme) => theme.vars.palette.background.paper
+      slotProps={{
+        paper: {
+          sx: {
+            height: "70vh",
+            width: "90vw",
+            maxWidth: "1000px",
+            backgroundImage: "none",
+            backgroundColor: theme.vars.palette.background.paper
+          }
         }
       }}
     >
       <DialogTitle
-        // import ModelInfoPane from "./ModelInfoPane";
         sx={{ fontSize: "1rem", letterSpacing: 0.4, padding: "0 1em 0 2em" }}
         className="model-menu__title"
       >
         Select Model
       </DialogTitle>
-      <DialogContent dividers>
+      <DialogContent
+        dividers
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden"
+        }}
+      >
         <Box
           sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}
           className="model-menu__controls"
@@ -118,15 +125,21 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             />
           </Box>
         </Box>
-        <div css={containerStyles} className="model-menu__grid">
-          <ProviderList
-            providers={providers}
-            isLoading={!!isLoading}
-            isError={!!isError}
-          />
+        <div
+          css={containerStyles}
+          className="model-menu__grid"
+          style={{ flex: 1, minHeight: 0 }}
+        >
+          <Box sx={{ height: "100%", overflow: "hidden" }}>
+            <ProviderList
+              providers={providers}
+              isLoading={!!isLoading}
+              isError={!!isError}
+            />
+          </Box>
           <Box
             className="model-menu__model-list-container"
-            sx={{ maxWidth: 300, overflowX: "hidden" }}
+            sx={{ maxWidth: 300, height: "100%", overflow: "hidden" }}
           >
             <ModelList models={filteredModels} onSelect={handleSelectModel} />
           </Box>

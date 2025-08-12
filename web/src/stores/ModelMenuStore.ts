@@ -129,6 +129,8 @@ export const filterModelsList = (
   }
   const term = search.trim();
   if (term.length > 0) {
+    // Ensure disabled providers never appear in search
+    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
     const fuse = new Fuse(list, {
       keys: ["name", "id", "provider"],
       threshold: 0.15,
