@@ -118,7 +118,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter": {
         width: "150px",
-        height: "32px",
+        height: "36px",
         margin: "0"
       },
       ".type-filter label": {
@@ -132,14 +132,40 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexGrow: 1,
         width: "100%"
       },
+      ".type-filter .MuiFilledInput-root": {
+        backgroundColor: "var(--palette-grey-800)",
+        border: `1px solid ${theme.vars.palette.grey[600]}`,
+        borderRadius: "8px",
+        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
+        boxShadow:
+          "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)",
+        "&:hover": {
+          backgroundColor: "var(--palette-grey-700)",
+          borderColor: theme.vars.palette.grey[500]
+        },
+        "&.Mui-focused": {
+          backgroundColor: "var(--palette-grey-700)",
+          borderColor: "var(--palette-primary-main)",
+          boxShadow: "0 0 0 2px rgba(0,0,0,0.25)"
+        },
+        "&:before, &:after": {
+          display: "none"
+        }
+      },
       ".type-filter .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
         textAlign: "left",
         fontSize: theme.fontSizeNormal,
-        padding: "0 1em 0 .5em",
+        padding: "0 1.75em 0 .75em",
         height: "32px",
-        lineHeight: "32px"
+        lineHeight: "32px",
+        backgroundColor: "var(--palette-grey-800)",
+        border: `1px solid ${theme.vars.palette.grey[600]}`,
+        borderRadius: "8px",
+        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
+        boxShadow:
+          "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)"
       },
       ".type-filter .MuiListItemIcon-root": {
         minWidth: "18px",
