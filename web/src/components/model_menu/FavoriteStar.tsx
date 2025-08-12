@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React, { useMemo } from "react";
 import { Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
@@ -14,6 +16,24 @@ export interface FavoriteStarProps {
   stopPropagation?: boolean;
 }
 
+const styles = (theme: Theme) =>
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    cursor: "pointer",
+    color: theme.vars.palette.info.main,
+    transition: "all 0.2s ease-in-out",
+    opacity: 0,
+    "& svg": {
+      maxWidth: 20,
+      maxHeight: 20
+    },
+    "&:hover": {
+      scale: 1.5,
+      transform: "rotate(42deg)",
+      color: theme.vars.palette.info.light
+    }
+  });
 const FavoriteStar: React.FC<FavoriteStarProps> = ({
   provider = "",
   id = "",
@@ -31,26 +51,28 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
     if (stopPropagation) e.stopPropagation();
     toggleFavorite(provider, id);
   };
-
+  const theme = useTheme();
   return (
     <Tooltip
-      enterDelay={TOOLTIP_ENTER_DELAY}
+      enterDelay={TOOLTIP_ENTER_DELAY * 2}
+      enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
       disableInteractive
       title={isFavorite ? "Unfavorite" : "Favorite"}
     >
       <span
         className="favorite-star"
-        css={css({
-          display: "inline-flex",
-          alignItems: "center",
-          cursor: "pointer",
-          opacity: isFavorite ? 1 : 0,
-          transition: "opacity 120ms ease"
-        })}
+        css={styles(theme as Theme)}
+        style={{
+          // Show when favorited always; otherwise only on parent hover
+          opacity: isFavorite ? 1 : undefined
+        }}
         onClick={handleClick}
       >
         {isFavorite ? (
-          <StarIcon fontSize={size} />
+          <StarIcon
+            fontSize={size}
+            // sx={{ color: theme.vars.palette.info.main }}
+          />
         ) : (
           <StarBorderIcon fontSize={size} />
         )}

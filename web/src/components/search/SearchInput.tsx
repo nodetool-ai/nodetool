@@ -39,14 +39,16 @@ const styles = (theme: Theme) =>
       appearance: "none",
       color: "#ffffff",
       backgroundColor: "var(--palette-grey-700)",
-      border: "1px solid #404040",
+      border: 0,
       borderRadius: "5px",
       transition: "all 0.2s"
     },
     "input[type='text']:focus": {
       backgroundColor: "var(--palette-grey-800)",
-      borderColor: "var(--palette-primary-main)",
-      outline: "none"
+      borderColor: "var(--palette-primary-main)"
+    },
+    "input[type='text']:hover": {
+      backgroundColor: "var(--palette-grey-800)"
     },
     ".clear-search-btn": {
       position: "absolute",
