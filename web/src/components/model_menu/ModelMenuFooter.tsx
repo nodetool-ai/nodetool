@@ -12,20 +12,22 @@ export interface ModelMenuFooterProps {
 
 const footerStyles = (theme: any) =>
   css({
+    borderTop: `1px solid ${theme.vars.palette.grey[600]}`,
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
-    height: 40,
+    height: 25,
     padding: "0 8px",
 
     ".count-pill": {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
+      gap: 8,
       fontSize: theme.vars.fontSizeSmall,
+      marginTop: 15,
       padding: "2px 8px",
       borderRadius: 6,
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[800],
       color: theme.vars.palette.grey[0]
     },
 
@@ -35,7 +37,7 @@ const footerStyles = (theme: any) =>
     },
 
     ".count-pill .label": {
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       fontSize: theme.vars.fontSizeSmaller,
       letterSpacing: 0.2
     }
@@ -52,20 +54,33 @@ const ModelMenuFooter: React.FC<ModelMenuFooterProps> = ({
       <Tooltip
         title={
           totalActiveCount !== undefined
-            ? `${filteredCount} / ${totalActiveCount} active / ${totalCount} models`
-            : `${filteredCount} / ${totalCount} models`
+            ? `Showing ${filteredCount} of ${totalActiveCount} active models (${totalCount} total)`
+            : `Showing ${filteredCount} of ${totalCount} total models`
         }
         placement="top"
       >
-        <Typography component="div" className="count-pill">
+        <Typography
+          component="div"
+          className="count-pill"
+          aria-label="model counts"
+        >
           <span className="value">{filteredCount}</span>
+          <span className="label"> shown</span>
           {totalActiveCount !== undefined ? (
             <>
-              <span className="label">/ {totalActiveCount} active</span>
-              <span className="label">/ {totalCount} models</span>
+              <span className="label"> · </span>
+              <span className="value">{totalActiveCount}</span>
+              <span className="label"> active</span>
+              <span className="label"> · </span>
+              <span className="value">{totalCount}</span>
+              <span className="label"> total</span>
             </>
           ) : (
-            <span className="label">/ {totalCount} models</span>
+            <>
+              <span className="label"> · </span>
+              <span className="value">{totalCount}</span>
+              <span className="label"> total</span>
+            </>
           )}
         </Typography>
       </Tooltip>
