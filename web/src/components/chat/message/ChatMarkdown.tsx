@@ -19,6 +19,11 @@ interface ChatMarkdownProps {
 const styles = (theme: Theme) =>
   css({
     backgroundColor: "transparent !important",
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
     ".code-block-header": {
       display: "flex",
       justifyContent: "space-between",

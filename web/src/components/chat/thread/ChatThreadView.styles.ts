@@ -18,6 +18,7 @@ export const createStyles = (theme: Theme) => ({
     justifyContent: "flex-start",
     alignItems: "center",
     overflowY: "auto",
+    overflowX: "hidden",
     padding: "0 .5em",
     marginTop: ".2em",
     marginRight: ".1em",
@@ -43,6 +44,7 @@ export const createStyles = (theme: Theme) => ({
     listStyleType: "none",
     maxWidth: "1100px",
     width: "100%",
+    minWidth: 0,
     padding: "0",
     margin: "0",
     // backgroundColor: "var(--palette-background-paper)",
@@ -55,7 +57,8 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
-      position: "relative"
+      position: "relative",
+      overflow: "hidden"
     },
 
     "li.user": {
