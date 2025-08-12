@@ -24,15 +24,11 @@ const styles = (theme: Theme) =>
     gap: "0.5rem"
   });
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  showBackToEditor,
-  children
-}) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ children }) => {
   const theme = useTheme();
   return (
     <Box className="dashboard-header" css={styles(theme)}>
       {children}
-      {showBackToEditor && <BackToEditorButton />}
     </Box>
   );
 };

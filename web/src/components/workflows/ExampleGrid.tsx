@@ -551,11 +551,19 @@ const ExampleGrid = () => {
   return (
     <Box css={styles(theme)}>
       <TabsNodeEditor hideContent />
-      <Box className="actions-container" sx={{ position: "absolute", top: "32px", left: 0, right: 0, zIndex: 1000 }}>
+      <Box
+        className="actions-container"
+        sx={{
+          position: "absolute",
+          top: "32px",
+          left: 0,
+          right: 0,
+          zIndex: 1000
+        }}
+      >
         <AppHeader />
       </Box>
       <Box className="workflow-grid">
-        <Typography variant="h2" sx={{ margin: "1em 0.5em" }}>Examples</Typography>
         <TagFilter
           tags={groupedWorkflows}
           selectedTag={selectedTag}
