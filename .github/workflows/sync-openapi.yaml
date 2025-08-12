@@ -1,0 +1,57 @@
+name: Sync API definitions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install nodetool-core
+        run: uv pip install --system https://github.com/nodetool-ai/nodetool-core
+
+      - name: Start API server
+        run: |
+          nohup nodetool serve > /tmp/nodetool.log 2>&1 &
+          timeout=120
+          while ! curl -s http://127.0.0.1:8000/openapi.json >/dev/null 2>&1; do
+            sleep 1
+            timeout=$((timeout-1))
+            if [ $timeout -le 0 ]; then
+              echo "Server failed to start" >&2
+              exit 1
+            fi
+          done
+
+      - name: Generate api.ts
+        run: |
+          cd web
+          npm run openapi
+
+      - name: Commit updated api.ts
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: sync api.ts'
+          file_pattern: web/src/api.ts
+
