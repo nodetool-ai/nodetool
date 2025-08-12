@@ -25,6 +25,7 @@ import {
   getProviderUrl
 } from "../../utils/providerDisplay";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import useModelMenuStore from "../../stores/ModelMenuStore";
 
 const listStyles = css({
   overflowY: "auto",
@@ -33,20 +34,18 @@ const listStyles = css({
 
 export interface ProviderListProps {
   providers: string[];
-  selected: string | null;
-  onSelect: (provider: string | null) => void;
   isLoading: boolean;
   isError: boolean;
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
   providers,
-  selected,
-  onSelect,
   isLoading,
   isError
 }) => {
   const theme = useTheme();
+  const selected = useModelMenuStore((s) => s.selectedProvider);
+  const setSelected = useModelMenuStore((s) => s.setSelectedProvider);
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [menuProvider, setMenuProvider] = React.useState<string | null>(null);
   const isProviderEnabled = useModelPreferencesStore(
@@ -118,7 +117,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
           selected === null ? "is-selected" : ""
         }`}
         selected={selected === null}
-        onClick={() => onSelect(null)}
+        onClick={() => setSelected(null)}
         sx={{ py: 0.25 }}
       >
         <ListItemText
@@ -185,7 +184,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   selected === p ? "is-selected" : ""
                 }`}
                 selected={selected === p}
-                onClick={() => onSelect(p)}
+                onClick={() => setSelected(p)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setMenuAnchor(e.currentTarget);

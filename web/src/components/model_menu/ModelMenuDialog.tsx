@@ -1,12 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   Box,
-  Divider
+  Divider,
+  Tabs,
+  Tab
 } from "@mui/material";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import ProviderList from "./ProviderList";
@@ -14,11 +16,10 @@ import ModelList from "./ModelList";
 import ModelMenuFooter from "./ModelMenuFooter";
 import RecentList from "./RecentList";
 import FavoritesList from "./FavoritesList";
-// import ModelInfoPane from "./ModelInfoPane";
 import SearchInput from "../search/SearchInput";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import Fuse from "fuse.js";
+import useModelMenuStore, {
+  useModelMenuData
+} from "../../stores/ModelMenuStore";
 
 export interface ModelMenuDialogProps {
   open: boolean;
@@ -44,183 +45,33 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   isError,
   onModelChange
 }) => {
-  const [search, setSearch] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const search = useModelMenuStore((s) => s.search);
+  const setSearch = useModelMenuStore((s) => s.setSearch);
+  const selectedProvider = useModelMenuStore((s) => s.selectedProvider);
+  const setSelectedProvider = useModelMenuStore((s) => s.setSelectedProvider);
+  const activeSidebarTab = useModelMenuStore((s) => s.activeSidebarTab);
+  const setActiveSidebarTab = useModelMenuStore((s) => s.setActiveSidebarTab);
   const [selectedModel, setSelectedModel] = useState<LanguageModel | null>(
     null
   );
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
-  const favoritesSet = useModelPreferencesStore((s) => s.favorites);
-  const recentsList = useModelPreferencesStore((s) => s.recents);
-  const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
+  const {
+    allModels,
+    providers,
+    filteredModels,
+    favoriteModels,
+    recentModels,
+    totalCount,
+    filteredCount,
+    totalActiveCount
+  } = useModelMenuData(models);
+  // Availability, env, and provider enablement handled in store hook
 
-  // Merge server models with fallback entries for providers we always want to show
-  const allModels = useMemo(() => {
-    const base = [...(models ?? [])];
-    const hasGeminiOrGoogle = base.some((m) =>
-      /gemini|google/i.test(m.provider || "")
-    );
-    if (!hasGeminiOrGoogle) {
-      const fallbackGemini: LanguageModel[] = [
-        {
-          type: "language_model",
-          provider: "gemini",
-          id: "gemini-1.5-pro",
-          name: "Gemini 1.5 Pro"
-        },
-        {
-          type: "language_model",
-          provider: "gemini",
-          id: "gemini-1.5-flash",
-          name: "Gemini 1.5 Flash"
-        },
-        {
-          type: "language_model",
-          provider: "gemini",
-          id: "gemini-2.0-flash",
-          name: "Gemini 2.0 Flash"
-        }
-      ];
-      base.push(...fallbackGemini);
-    }
-    // Dedupe by provider:id
-    const seen = new Set<string>();
-    const deduped: LanguageModel[] = [];
-    for (const m of base) {
-      const key = `${m.provider || ""}:${m.id || ""}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduped.push(m);
-      }
-    }
-    return deduped;
-  }, [models]);
-
-  const providers = useMemo(() => {
-    const rawProviders = (allModels ?? []).map((m) => m.provider || "Other");
-    const counts = rawProviders.reduce<Record<string, number>>((acc, p) => {
-      acc[p] = (acc[p] || 0) + 1;
-      return acc;
-    }, {});
-    const raw = Array.from(new Set(rawProviders));
-    const hasGeminiOrGoogle = raw.some((p) => /gemini|google/i.test(p));
-    const geminiEnabled = Boolean(
-      secrets?.GEMINI_API_KEY &&
-        String(secrets?.GEMINI_API_KEY).trim().length > 0
-    );
-    // Coalesce Google/Gemini under a single "gemini" entry if present
-    const baseList = raw
-      .filter((p) => !/gemini|google/i.test(p))
-      .concat(hasGeminiOrGoogle || geminiEnabled ? ["gemini"] : [])
-      .sort((a, b) => a.localeCompare(b));
-    // Always include core providers even if no models are returned yet (these will appear greyed out)
-    const ALWAYS_INCLUDE_PROVIDERS = [
-      "openai",
-      "anthropic",
-      "gemini",
-      "replicate",
-      "ollama",
-      "aime"
-    ];
-    const list = Array.from(
-      new Set([...baseList, ...ALWAYS_INCLUDE_PROVIDERS])
-    ).sort((a, b) => a.localeCompare(b));
-    console.log("[ModelMenu] providers computed", {
-      rawProviders,
-      counts,
-      uniqueRaw: raw,
-      hasGeminiOrGoogle,
-      geminiEnabled,
-      alwaysIncluded: ALWAYS_INCLUDE_PROVIDERS,
-      finalList: list
-    });
-    return list;
-  }, [allModels, secrets]);
-
-  const requiredSecretForProvider = useCallback(
-    (provider?: string): string | null => {
-      const p = (provider || "").toLowerCase();
-      if (p.includes("openai")) return "OPENAI_API_KEY";
-      if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
-      if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
-      if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
-      if (p.includes("aime")) return "AIME_API_KEY";
-      // If a provider does not require a key or is local (e.g., ollama, huggingface proxy), return null
-      return null;
-    },
-    []
-  );
-
-  const isAvailable = useCallback(
-    (provider?: string) => {
-      const env = requiredSecretForProvider(provider);
-      if (!env) return true;
-      const value = secrets?.[env];
-      return Boolean(value && String(value).trim().length > 0);
-    },
-    [requiredSecretForProvider, secrets]
-  );
-
-  const filteredModels = useMemo(() => {
-    let list = allModels ?? [];
-    if (selectedProvider) {
-      // Treat Google and Gemini as synonyms for filtering
-      if (/gemini|google/i.test(selectedProvider)) {
-        list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
-      } else {
-        list = list.filter((m) => m.provider === selectedProvider);
-      }
-    }
-    // If viewing "All providers", exclude models from disabled providers
-    if (!selectedProvider) {
-      list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
-    }
-    // Do not hide models based on missing API keys here; we already gray + hint in UI
-    const term = search.trim();
-    if (term.length > 0) {
-      const fuse = new Fuse(list, {
-        keys: ["name", "id", "provider"],
-        threshold: 0.35,
-        ignoreLocation: true
-      });
-      const result = fuse.search(term).map((r) => r.item);
-      console.log("[ModelMenu] filter search", { term, count: result.length });
-      return result;
-    }
-    console.log("[ModelMenu] filter", { selectedProvider, total: list.length });
-    return list;
-  }, [allModels, selectedProvider, search, enabledProviders]);
-
-  const recentModels = useMemo(() => {
-    const recents = recentsList;
-    const byKey = new Map<string, LanguageModel>(
-      (allModels ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
-    );
-    const mapped: LanguageModel[] = [];
-    recents.forEach((r) => {
-      const m = byKey.get(`${r.provider}:${r.id}`);
-      if (m) mapped.push(m);
-    });
-    // Do not filter recents by enabled providers; show them all
-    return mapped;
-  }, [allModels, recentsList]);
-
-  const favoriteModels = useMemo(() => {
-    const keyHas = (provider?: string, id?: string) =>
-      favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
-    const list = (allModels ?? []).filter((m) => keyHas(m.provider, m.id));
-    return list;
-  }, [allModels, favoritesSet]);
+  // derived lists via useModelMenuData (favoriteModels, recentModels, filteredModels)
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
       setSelectedModel(m);
       onModelChange?.(m);
-
-      console.log("[ModelMenu] select model", {
-        provider: m.provider,
-        id: m.id
-      });
     },
     [onModelChange]
   );
@@ -240,7 +91,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       }}
     >
       <DialogTitle
-        sx={{ fontSize: "1rem", letterSpacing: 0.4 }}
+        // import ModelInfoPane from "./ModelInfoPane";
+        sx={{ fontSize: "1rem", letterSpacing: 0.4, padding: "0 1em 0 2em" }}
         className="model-menu__title"
       >
         Select Model
@@ -268,8 +120,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
         <div css={containerStyles} className="model-menu__grid">
           <ProviderList
             providers={providers}
-            selected={selectedProvider}
-            onSelect={setSelectedProvider}
             isLoading={!!isLoading}
             isError={!!isError}
           />
@@ -281,32 +131,56 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
           </Box>
           <Box
             className="model-menu__sidebar"
-            sx={{ overflowY: "auto", maxHeight: 520 }}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              maxHeight: 520,
+              overflow: "hidden",
+              // Hide internal list subheaders from child lists as we have tabs now
+              "& .model-menu__favorites-list .MuiListSubheader-root, & .model-menu__recent-list .MuiListSubheader-root":
+                {
+                  display: "none"
+                }
+            }}
           >
-            <FavoritesList
-              models={favoriteModels}
-              onSelect={handleSelectModel}
-            />
-            <Divider sx={{ my: 1 }} />
-            <RecentList models={recentModels} onSelect={handleSelectModel} />
+            <Tabs
+              value={activeSidebarTab}
+              onChange={(_, v) => {
+                console.log("[ModelMenu] sidebar tab", v);
+                setActiveSidebarTab(v);
+              }}
+              variant="fullWidth"
+              sx={{
+                minHeight: 36,
+                "& .MuiTab-root": {
+                  minHeight: 36,
+                  fontSize: (theme) => theme.vars.fontSizeSmall,
+                  paddingY: 0.5
+                }
+              }}
+            >
+              <Tab value="favorites" label="Favorites" />
+              <Tab value="recent" label="Recent" />
+            </Tabs>
+            <Divider />
+            <Box sx={{ flex: 1, overflowY: "auto", pt: 0.5 }}>
+              {activeSidebarTab === "favorites" ? (
+                <FavoritesList
+                  models={favoriteModels}
+                  onSelect={handleSelectModel}
+                />
+              ) : (
+                <RecentList
+                  models={recentModels}
+                  onSelect={handleSelectModel}
+                />
+              )}
+            </Box>
           </Box>
           <ModelMenuFooter
-            filteredCount={filteredModels.length}
-            totalCount={(allModels ?? []).length}
-            totalActiveCount={(() => {
-              const all = allModels ?? [];
-              const isEnabled = (p?: string) =>
-                enabledProviders?.[p || ""] !== false;
-              const isEnvOk = (p?: string) => {
-                const env = requiredSecretForProvider(p);
-                if (!env) return true;
-                const v = secrets?.[env];
-                return Boolean(v && String(v).trim().length > 0);
-              };
-              return all.filter(
-                (m) => isEnabled(m.provider) && isEnvOk(m.provider)
-              ).length;
-            })()}
+            filteredCount={filteredCount}
+            totalCount={totalCount}
+            totalActiveCount={totalActiveCount}
           />
         </div>
       </DialogContent>
