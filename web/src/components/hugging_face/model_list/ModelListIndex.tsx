@@ -60,11 +60,10 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       "&:hover": {
         color: theme.vars.palette.grey[100],
-        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".model-type-button.Mui-selected": {
-      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
       transition: "background-color 0.2s ease-in"
     },
     ".model-type-button span": {

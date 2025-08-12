@@ -29,8 +29,7 @@ const styles = (theme: Theme) =>
       margin: "auto",
       borderRadius: 6,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundImage: "none",
-      backgroundColor: theme.vars.palette.background.paper,
+      background: "transparent",
       color: theme.vars.palette.text.primary
     },
     ".MuiDialogTitle-root": {
@@ -80,8 +79,7 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: "rgba(10,12,14,0.6)",
-            backdropFilter: "blur(4px)"
+            backdropFilter: "blur(20px)"
           }
         }
       }}
