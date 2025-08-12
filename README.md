@@ -35,13 +35,14 @@ Get from idea to production in three simple steps:
 
 ## Quick Start
 
-| Platform | Download | Requirements |
-| --- | --- | --- |
+| Platform    | Download                                  | Requirements                            |
+| ----------- | ----------------------------------------- | --------------------------------------- |
 | **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
+| **macOS**   | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon                       |
+| **Linux**   | [Download AppImage](https://nodetool.ai)  | Nvidia GPU recommended                  |
 
 ### First Steps
+
 1. Download and install NodeTool
 2. Launch the app
 3. Download models
@@ -55,8 +56,9 @@ Get from idea to production in three simple steps:
 ✅ **Integrated Providers:** OpenAI • Anthropic • Hugging Face • Groq • Together • Replicate • Cohere • + 8 more
 
 **Flexible Architecture:**
+
 - Mix providers in one workflow
-- Switch models without code changes  
+- Switch models without code changes
 - Your keys, your costs—no markup
 - OpenAI-compatible API for easy integration
 
@@ -71,7 +73,6 @@ Get from idea to production in three simple steps:
 📊 **Data & Analytics** — Vector search, math calculations, statistics, geometry, unit conversion, ChromaDB indexing
 
 **Tool Categories:** Browser Tools • Search & SERP • Google APIs • OpenAI Tools • PDF Processing • Email Management • Math & Statistics • Vector Search • File System • Workflow Management • Asset Tools • HTTP Client • Code Tools
-
 
 ## Community
 
@@ -126,6 +127,7 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-base
 NodeTool's functionality is extended via packs. Install only the ones you need.
 
 NOTE:
+
 - Activate the conda environment first
 - Use uv for faster installs.
 
@@ -134,16 +136,60 @@ NOTE:
 nodetool package list -a
 
 # Example: Install packs for specific integrations
-uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface
 uv pip install git+https://github.com/nodetool-ai/nodetool-fal
 uv pip install git+https://github.com/nodetool-ai/nodetool-replicate
 uv pip install git+https://github.com/nodetool-ai/nodetool-elevenlabs
 ```
 
-_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers. Use the `-index-url` when necessary:
+_Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers.
+Use `-index-url` to install:
 
-* https://download.pytorch.org/whl/cu118
-* https://download.pytorch.org/whl/cu128
+### Windows & Linux (NVIDIA GPUs)
+
+1. Check your CUDA version:
+
+```
+nvidia-smi
+```
+
+2. Install PyTorch with CUDA support first:
+
+```
+# For CUDA 11.8
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# For CUDA 12.1-12.3 (most common)
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# For CUDA 12.4+
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+```
+
+3. Install GPU-dependent packs:
+
+```
+# Use --extra-index-url to access both PyPI and PyTorch packages
+uv pip install --extra-index-url https://download.pytorch.org/whl/cu121 git+https://github.com/nodetool-ai/nodetool-huggingface
+```
+
+4. Verify GPU support:
+
+```
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+```
+
+#### Troubleshooting:
+
+If you see "bitsandbytes compiled without GPU support", reinstall it:
+
+```
+uv pip uninstall bitsandbytes
+uv pip install bitsandbytes
+```
+
+If PyTorch shows CPU-only version, make sure you used the correct url from step 2.
+
+Use --extra-index-url (not --index-url) when installing from git repositories to avoid missing dependencies
 
 ### 4. Run NodeTool Backend & Web UI
 
@@ -159,10 +205,10 @@ nodetool serve --reload
 ```
 
 Run frontend in web folder:
+
 ```bash
 npm start
 ```
-
 
 Access the UI in your browser at `http://localhost:3000`.
 
