@@ -187,7 +187,7 @@ export const paletteDark: PaletteOptions = {
   },
   text: {
     primary: "#FFFFFF",
-    secondary: "#C7D1E0",
+    secondary: "#B9B9B4",
     disabled: "#94A3B8"
   },
   action: {
