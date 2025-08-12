@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
+import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -22,41 +23,49 @@ const styles = (theme: Theme) =>
       padding: 0,
       overflow: "hidden"
     },
+    ".search-icon": {
+      position: "absolute",
+      left: "0.6em",
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: theme.vars.palette.grey[400],
+      pointerEvents: "none"
+    },
     ".search-box": {
       position: "relative"
     },
     ".search-input": {
       width: "100%",
-      flexShrink: "0"
+      flexShrink: "0",
     },
     "input[type='text']": {
       outline: "none",
-      padding: "0 2.5em 0 1em",
+      padding: "0 2.5em 0 3em",
       margin: "0",
       height: "36px",
       WebkitAppearance: "none",
       MozAppearance: "none",
       appearance: "none",
-      color: "#ffffff",
-      backgroundColor: "var(--palette-grey-800)",
+      color: theme.vars.palette.text.primary,
+      backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: "8px",
       transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)",
+      boxShadow: "none",
       fontSize: (theme as any).fontSizeNormal ?? undefined,
       "::placeholder": {
         color: theme.vars.palette.grey[400]
       }
     },
     "input[type='text']:hover": {
-      backgroundColor: "var(--palette-grey-700)",
+      backgroundColor: theme.vars.palette.action.hover,
       borderColor: theme.vars.palette.grey[500]
     },
     "input[type='text']:focus": {
-      backgroundColor: "var(--palette-grey-700)",
+      backgroundColor: theme.vars.palette.background.paper,
       borderColor: "var(--palette-primary-main)",
       outline: "none",
-      boxShadow: "0 0 0 2px rgba(0,0,0,0.25)"
+      boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.25)`
     },
     ".clear-search-btn": {
       position: "absolute",
@@ -238,11 +247,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
       css={styles(theme)}
       style={{ maxWidth: maxWidth, width: `${width}px` }}
     >
+      <SearchIcon className="search-icon" />
       <input
         id="search-input"
         className="search-input"
         ref={inputRef}
         type="text"
+        role="searchbox"
+        aria-label={placeholder}
         placeholder={placeholder}
         value={localSearchTerm}
         onChange={handleInputChange}
@@ -258,6 +270,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
           localSearchTerm.trim() === "" ? "disabled" : ""
         }`}
         tabIndex={-1}
+        aria-label="Clear search"
+        title="Clear (⌘⌫)"
         onClick={clearSearch}
         data-testid="search-clear-btn"
       >

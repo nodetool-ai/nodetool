@@ -461,11 +461,9 @@ const NoSelectionContent = memo(function NoSelectionContent({
   selectedPathString: string;
   minSearchTermLength: number;
 }) {
-  const handleViewChange = usePanelStore((state) => state.handleViewChange);
-
   const openPacksPanel = useCallback(() => {
-    handleViewChange("packs");
-  }, [handleViewChange]);
+    window.api.showPackageManager();
+  }, []);
 
   return (
     <div className="no-selection">

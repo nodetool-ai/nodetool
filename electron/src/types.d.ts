@@ -29,7 +29,8 @@ declare global {
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       startServer: () => Promise<void>;
-    restartServer: () => Promise<void>;
+      restartServer: () => Promise<void>;
+      showPackageManager: () => void;
       installToLocation: (
         location: string,
         packages: PythonPackages
@@ -189,6 +190,7 @@ export interface IpcRequest {
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
+  [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -214,6 +216,7 @@ export interface IpcResponse {
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
+  [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
