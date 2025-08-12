@@ -34,10 +34,11 @@ import AppHeader from "../panels/AppHeader";
 const styles = (theme: Theme) =>
   css({
     ".dashboard": {
-      width: "100vw",
+      width: "calc(100vw - 64px)",
       height: "calc(100vh - 64px)",
       overflow: "hidden",
-      top: "64px"
+      top: "64px",
+      left: "64px"
     },
     "& .dockview-container": {
       paddingTop: "2rem"

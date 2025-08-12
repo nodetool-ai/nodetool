@@ -7,7 +7,6 @@ import type { Theme } from "@mui/material/styles";
 import BackToEditorButton from "../panels/BackToEditorButton";
 
 interface DashboardHeaderProps {
-  showBackToEditor: boolean;
   children?: React.ReactNode;
 }
 
