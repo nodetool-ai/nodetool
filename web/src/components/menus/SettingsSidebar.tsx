@@ -41,13 +41,13 @@ const sidebarStyles = (theme: Theme) => css`
 
     &:hover {
       opacity: 1;
-      background-color: rgba(255, 255, 255, 0.05);
+      background-color: rgba(${theme.vars.palette.background.defaultChannel} / 0.08);
     }
 
     &.active {
       opacity: 1;
       border-left-color: ${"var(--palette-primary-main)"};
-      background-color: rgba(255, 255, 255, 0.05);
+      background-color: rgba(${theme.vars.palette.background.defaultChannel} / 0.12);
     }
   }
 

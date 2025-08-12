@@ -4,19 +4,19 @@ import type { Theme } from "@mui/material/styles";
 const modelListItemStyles = (theme: Theme) =>
   css({
     "&.model-list-item": {
-      padding: "0.5em 1em",
+      padding: "0.75em 1.25em",
       marginBottom: "0",
       boxSizing: "border-box",
-      borderBottom: "1px solid " + theme.vars.palette.grey[600],
+      borderBottom: "1px solid " + theme.vars.palette.grey[700],
       wordBreak: "break-word",
-      transition: "background-color 0.125s ease-in, border 0.125s ease-in",
+      transition: "background-color 0.125s ease-in, border 0.125s ease-in, transform 0.08s ease-in",
       "&.compact": {
         padding: ".25em .5em"
       },
 
       "&:hover": {
-        opacity: 0.9,
-        backgroundColor: theme.vars.palette.background.paper
+        opacity: 0.98,
+        backgroundColor: theme.vars.palette.grey[900]
       },
 
       "& .model-content": {
@@ -33,7 +33,7 @@ const modelListItemStyles = (theme: Theme) =>
         alignItems: "center",
         gap: "1em",
         width: "100%",
-        minHeight: "2.5em"
+        minHeight: "2.75em"
       },
 
       "& .model-info-container": {
@@ -72,7 +72,7 @@ const modelListItemStyles = (theme: Theme) =>
         textDecoration: "none",
         marginLeft: "0 !important",
         paddingBottom: "0.25em",
-        "&:hover": {}
+        "&:hover": { textDecoration: "underline" }
       },
 
       "& .model-name": {
@@ -129,7 +129,7 @@ const modelListItemStyles = (theme: Theme) =>
         gap: "1em",
         alignItems: "center",
         flexShrink: 0,
-        minWidth: "200px"
+        minWidth: "220px"
       },
 
       "& .model-stats": {

@@ -19,8 +19,9 @@ const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       height: "calc(100% - 200px)",
-      backgroundColor: theme.vars.palette.Paper.overlay,
-      backgroundImage: "none"
+      background: "transparent",
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      boxShadow: theme.shadows[24]
     },
     ".MuiDialogContent-root": {
       height: "calc(100% - 64px)",
@@ -30,7 +31,18 @@ const styles = (theme: Theme) =>
     ".recommended-models-grid": {
       flex: 1,
       overflow: "auto",
-      paddingRight: "1em"
+      paddingRight: "1em",
+      "&::-webkit-scrollbar": { width: 8 },
+      "&::-webkit-scrollbar-track": {
+        background: theme.vars.palette.background.paper
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.vars.palette.grey[600],
+        borderRadius: 4
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        background: theme.vars.palette.grey[500]
+      }
     },
     ".model-download-button": {
       color: "var(--palette-primary-main)"
@@ -67,8 +79,9 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       fullWidth
       slotProps={{
         backdrop: {
-          style: {
-            backgroundColor: "rgba(15, 9, 9, 0.8)"
+          sx: {
+            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
+            backdropFilter: "blur(20px)"
           }
         }
       }}

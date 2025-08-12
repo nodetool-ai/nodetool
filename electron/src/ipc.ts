@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from "electr
 import { getServerState, openLogFile, runApp, initializeBackendServer, stopServer } from "./server";
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
+import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { updateTrayMenu } from "./tray";
@@ -113,6 +114,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
     await runApp(workflowId);
+  });
+
+  // Show Package Manager window
+  createIpcMainHandler(IpcChannels.SHOW_PACKAGE_MANAGER, async () => {
+    logMessage("Opening Package Manager window");
+    createPackageManagerWindow();
   });
 
   //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {

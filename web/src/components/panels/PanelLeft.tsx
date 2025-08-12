@@ -24,7 +24,8 @@ import ThemeToggle from "../ui/ThemeToggle";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+// import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -109,7 +110,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: 6,
       backgroundColor: "transparent",
-      borderRight: "none",
       // Ensure custom SVG icons (IconForType) are sized like MUI icons
       "& .icon-container": {
         width: "18px",
@@ -125,6 +125,7 @@ const styles = (theme: Theme) =>
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
+        backgroundColor: "var(--palette-background-default)",
         // Make icons smaller within toolbar buttons
         "& svg": {
           fontSize: "1.125rem"
@@ -475,24 +476,12 @@ const PanelLeft: React.FC = () => {
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
-      <IconButton
-        disableRipple={true}
-        className={"panel-button panel-button-left"}
-        edge="start"
-        color="inherit"
-        aria-label="menu"
-        tabIndex={-1}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          handleMouseDown(e);
-        }}
-        style={{
-          display: isVisible ? "block" : "none",
-          left: `${Math.max(panelSize + 14, 25)}px`
-        }}
-      >
-        <DragIndicatorIcon />
-      </IconButton>
+      <PanelResizeButton
+        side="left"
+        isVisible={isVisible}
+        panelSize={panelSize}
+        onMouseDown={handleMouseDown}
+      />
       <Drawer
         PaperProps={{
           ref: panelRef,
@@ -503,9 +492,12 @@ const PanelLeft: React.FC = () => {
                 ? `0 14px 32px rgba(0,0,0,0.85), 0 4px 14px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14), 0 0 24px ${theme.vars.palette.primary.main}33`
                 : "0 8px 24px rgba(16,24,40,0.14), 0 2px 8px rgba(16,24,40,0.08)"
               : "none",
-            backgroundColor: isVisible ? "var(--palette-background-default)" : "transparent",
-            borderRight: isVisible ? `1px solid ${theme.vars.palette.divider}` : "none",
-            boxSizing: "border-box",
+            backgroundColor: isVisible
+              ? "var(--palette-background-default)"
+              : "transparent",
+            borderRight: isVisible
+              ? `1px solid ${theme.vars.palette.divider}`
+              : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED

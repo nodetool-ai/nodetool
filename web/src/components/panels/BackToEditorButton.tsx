@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, forwardRef } from "react";
-import { Button } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -11,6 +11,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
   css({
@@ -85,16 +86,18 @@ const BackToEditorButton = forwardRef<
     ));
 
   return (
-    <Button
-      ref={ref}
-      className="nav-button back-to-editor"
-      onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
-      css={styles(theme)}
-      {...props}
-    >
-      <KeyboardBackspaceIcon sx={{ fontSize: "20px", marginRight: "4px" }} />
-      {buttonTitle}
-    </Button>
+    <Tooltip title="Back to Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Button
+        ref={ref}
+        className="nav-button back-to-editor"
+        onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
+        css={styles(theme)}
+        {...props}
+      >
+        <KeyboardBackspaceIcon sx={{ fontSize: "20px", marginRight: "4px" }} />
+        {buttonTitle}
+      </Button>
+    </Tooltip>
   );
 });
 

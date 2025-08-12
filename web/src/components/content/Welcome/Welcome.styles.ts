@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 const welcomeStyles = (theme: Theme) =>
   css({
     "&": {
-      backgroundColor: "#222",
+      backgroundColor: theme.vars.palette.background.default,
       padding: "0 2em",
       borderRadius: ".5em",
       position: "fixed",
@@ -30,7 +30,7 @@ const welcomeStyles = (theme: Theme) =>
     ".summary": {
       fontSize: theme.fontSizeBigger,
       color: "var(--palette-primary-main)",
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".content": {
       padding: "1em",
@@ -54,9 +54,9 @@ const welcomeStyles = (theme: Theme) =>
       maxWidth: "500px"
     },
     ".MuiAccordion-root": {
-      background: "transparent",
       color: theme.vars.palette.grey[0],
       borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
+      backgroundColor: theme.vars.palette.background.paper,
       marginBottom: "1em",
       "&:before": {
         display: "none"
@@ -86,14 +86,12 @@ const welcomeStyles = (theme: Theme) =>
       }
     },
     ".highlight": {
-      backgroundColor: "var(--palette-primary-main)",
       color: theme.vars.palette.grey[1000]
     },
     ".tab-content": {
       marginTop: "1em"
     },
     ".quick-start": {
-      background: theme.vars.palette.grey[900],
       borderRadius: "12px",
       padding: "10px 12px",
       border: `1px solid ${theme.vars.palette.grey[700]}`
@@ -102,8 +100,6 @@ const welcomeStyles = (theme: Theme) =>
       marginTop: "2px"
     },
     ".quick-card": {
-      background: theme.vars.palette.grey[800],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: "8px",
       transition: "transform .15s ease, border-color .15s ease",
       '&:hover': {
@@ -137,18 +133,15 @@ const welcomeStyles = (theme: Theme) =>
       display: "inline-block",
       padding: "4px 8px",
       textDecoration: "none",
-      backgroundColor: theme.vars.palette.grey[600],
       borderRadius: "4px",
       transition: "all 0.2s"
     },
     ".link:hover": {
       color: theme.vars.palette.grey[1000],
-      backgroundColor: "var(--palette-primary-main)"
     },
 
     ".link-body": {
       fontSize: theme.fontSizeNormal,
-      backgroundColor: "transparent",
       color: theme.vars.palette.grey[100],
       marginTop: ".25em",
       marginBottom: "2em",
@@ -163,7 +156,6 @@ const welcomeStyles = (theme: Theme) =>
     ".header": {
       position: "sticky",
       top: 0,
-      backgroundColor: "#222",
       zIndex: 1,
       padding: "1.5em 0em 0 0em",
       display: "flex",
@@ -188,7 +180,6 @@ const welcomeStyles = (theme: Theme) =>
     ".tabs-and-search": {
       position: "sticky",
       top: 0,
-      backgroundColor: "#222",
       zIndex: 1,
       padding: "0"
     },
@@ -203,7 +194,6 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".fake-button": {
       color: "#fff",
-      backgroundColor: theme.vars.palette.grey[600],
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,

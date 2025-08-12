@@ -13,6 +13,9 @@ export const useAssetActions = (asset: Asset) => {
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
+  const setSelectedAssets = useAssetGridStore(
+    (state) => state.setSelectedAssets
+  );
   const setDeleteDialogOpen = useAssetGridStore(
     (state) => state.setDeleteDialogOpen
   );
@@ -161,15 +164,22 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const handleDelete = useCallback(() => {
-    if (selectedAssetIds?.length === 0) {
+    const isAssetAlreadySelected =
+      selectedAssetIds?.includes(asset.id) ?? false;
+
+    if (!isAssetAlreadySelected) {
+      // Match context menu behavior: if the clicked item isn't in the selection,
+      // replace the selection with just this item before opening the dialog
       setSelectedAssetIds([asset.id]);
+      setSelectedAssets([asset]);
     }
     setDeleteDialogOpen(true);
   }, [
-    selectedAssetIds?.length,
+    selectedAssetIds,
     setDeleteDialogOpen,
     setSelectedAssetIds,
-    asset.id
+    setSelectedAssets,
+    asset
   ]);
 
   return {

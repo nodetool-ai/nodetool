@@ -34,8 +34,8 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      height: "28px",
-      padding: "0.25em .1em 0.25em 1em",
+      height: "32px",
+      padding: "0.35em .5em 0.35em 0.75em",
       display: "flex",
       flexDirection: "row",
       alignItems: "flex-start",
@@ -44,9 +44,11 @@ const listStyles = (theme: Theme) =>
       cursor: "pointer",
       outline: "none",
       border: "none",
-      transition: "background 0.2s",
+      borderLeft: `3px solid transparent`,
+      borderRadius: 6,
+      transition: "background 0.18s ease, border-color 0.2s ease",
       "& .MuiCheckbox-root": {
-        margin: "0 1em 0.5em 0",
+        margin: "0 0.75em 0.35em 0",
         padding: 0
       },
       position: "relative"
@@ -56,7 +58,7 @@ const listStyles = (theme: Theme) =>
     },
     ".workflow.current .name": {
       color: "var(--palette-primary-light)",
-      fontWeight: "bold"
+      fontWeight: 600
     },
     ".workflow.selected .name": {
       fontSize: "1em"
@@ -71,17 +73,23 @@ const listStyles = (theme: Theme) =>
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: "300",
+      fontWeight: 500,
       margin: "0",
       lineHeight: "1.2em",
       color: theme.vars.palette.grey[0],
       userSelect: "none",
-      flex: "1"
+      flex: "1",
+      display: "-webkit-box",
+      WebkitLineClamp: 1,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      paddingRight: "140px"
     },
     ".date": {
       position: "absolute",
-      right: "0.5em",
-      color: theme.vars.palette.grey[200],
+      right: "0.75em",
+      color: theme.vars.palette.grey[300],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       wordSpacing: "-0.1em",
@@ -104,7 +112,7 @@ const listStyles = (theme: Theme) =>
     },
     ".actions": {
       position: "absolute",
-      right: "0.5em",
+      right: "0.35em",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
@@ -140,7 +148,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
 
-  const ITEM_HEIGHT = 28;
+  const ITEM_HEIGHT = 32;
   const CONTAINER_HEIGHT = window.innerHeight - 210;
 
   const Row = ({

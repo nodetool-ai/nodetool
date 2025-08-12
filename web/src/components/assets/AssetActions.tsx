@@ -75,6 +75,14 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: 0
     },
+
+    // Smaller, cleaner icons in the asset toolbar
+    ".asset-button-group .MuiSvgIcon-root, .asset-button-group svg": {
+      fontSize: "18px",
+      width: "18px",
+      height: "18px",
+      color: theme.vars.palette.grey[400]
+    },
     ".asset-button-group .MuiButton-root:hover": {
       border: 0,
       color: "var(--palette-primary-main)",
@@ -111,10 +119,9 @@ const styles = (theme: Theme) =>
     },
     // sort by
     ".sort-assets": {
-      width: "45px",
       margin: "0 .5em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       textTransform: "uppercase",
       position: "relative"
     },
@@ -123,9 +130,9 @@ const styles = (theme: Theme) =>
     },
     ".sort-assets .MuiSelect-select": {
       color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.vars.palette.grey[200],
+      border: "1px solid " + theme.vars.palette.grey[500],
       borderRadius: ".25em",
-      padding: "0 .25em",
+      padding: "0.5em",
       textOverflow: "clip",
       backgroundColor: "transparent",
       textAlign: "center",
@@ -137,13 +144,7 @@ const styles = (theme: Theme) =>
     ".sort-assets .MuiSelect-select:hover": {
       border: "1px solid " + "var(--palette-primary-main)",
       borderRadius: ".25em",
-      padding: "0 .25em",
-      textOverflow: "clip",
-      backgroundColor: "transparent",
-      textAlign: "center",
-      boxSizing: "border-box",
-      lineHeight: "1.2",
-      height: "auto"
+      backgroundColor: "transparent"
     },
 
     ".sort-assets .MuiSelect-icon": {
@@ -165,11 +166,10 @@ const styles = (theme: Theme) =>
     },
     // size filter
     ".size-filter": {
-      width: "90px",
       margin: "0",
       padding: "0 0.25em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       textTransform: "uppercase",
       position: "relative"
     },
@@ -178,9 +178,9 @@ const styles = (theme: Theme) =>
     },
     ".size-filter .MuiSelect-select": {
       color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.vars.palette.grey[200],
+      border: "1px solid " + theme.vars.palette.grey[500],
       borderRadius: ".25em",
-      padding: "0 .25em",
+      padding: "0.5em",
       textOverflow: "ellipsis",
       backgroundColor: "transparent",
       textAlign: "center",
@@ -308,9 +308,16 @@ const AssetActions = ({
   };
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <FileUploadButton onFileChange={(files) => onUploadFiles?.(files)} compact />
-      <ButtonGroup className="asset-button-group" tabIndex={-1}>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Create Folder">
+      <FileUploadButton
+        onFileChange={(files) => onUploadFiles?.(files)}
+        compact
+      />
+      <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Create Folder"
+          disableInteractive
+        >
           <Button
             onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
             tabIndex={-1}
@@ -318,24 +325,28 @@ const AssetActions = ({
             <CreateNewFolderIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Select all">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Select all"
+          disableInteractive
+        >
           <Button onClick={handleSelectAllAssets} tabIndex={-1}>
             <SelectAllIcon />
           </Button>
         </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Deselect">
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          title="Deselect"
+          disableInteractive
+        >
           <Button onClick={handleDeselectAssets} tabIndex={-1}>
             <DeselectIcon />
-          </Button>
-        </Tooltip>
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Refresh">
-          <Button onClick={() => refetchAssetsAndFolders()} tabIndex={-1}>
-            <Refresh />
           </Button>
         </Tooltip>
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+          disableInteractive
         >
           <Button onClick={handleViewModeToggle} tabIndex={-1}>
             {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
@@ -365,6 +376,7 @@ const AssetActions = ({
         enterDelay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
         placement="bottom"
+        disableInteractive
       >
         <Select
           variant="standard"
@@ -385,6 +397,7 @@ const AssetActions = ({
         enterDelay={TOOLTIP_ENTER_DELAY}
         title="Filter by file size"
         placement="bottom"
+        disableInteractive
       >
         <Select
           className="size-filter"

@@ -1,5 +1,5 @@
 import { DataType } from "./data_types";
-import { solarizedColors, monokaiColors } from "./data_type_colors";
+import { solarizedColors, monokaiColors } from "./comfy_colors";
 import comfy_taesd from "../icons/comfy_taesd.svg?react";
 import comfy_clip from "../icons/comfy_clip.svg?react";
 import comfy_clip_vision from "../icons/comfy_clip_vision.svg?react";

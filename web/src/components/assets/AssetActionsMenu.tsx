@@ -21,14 +21,14 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       justifyContent: "start",
       alignItems: "start",
-      gap: ".5em",
+      gap: ".4em",
       width: "100%",
       transition: "max-height 0.5s ease-in-out",
       // Tighter, stacked controls for narrow sidebars
       "@media (max-width: 520px)": {
         flexDirection: "column",
         alignItems: "stretch",
-        gap: ".4em"
+        gap: ".35em"
       }
     },
     ".selected-asset-info": {

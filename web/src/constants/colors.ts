@@ -1,30 +1,24 @@
-export const solarizedColors = [
+// Theme-aligned color palette (paletteDark)
+export const colorPickerColors = [
   null, // Empty color
-  "#002b36",
-  "#073642",
-  "#586e75",
-  "#657b83",
-  "#839496",
-  "#93a1a1",
-  "#eee8d5",
-  "#fdf6e3",
-  "#b58900",
-  "#cb4b16",
-  "#d33682",
-  "#6c71c4",
-  "#268bd2",
-  "#2aa198",
-  "#859900"
-] as const;
-
-export const monokaiColors = [
-  "#2e2e2e", // Background
-  "#797979", // Comments
-  "#d6d6d6", // White
-  "#e5b567", // Yellow
-  "#b4d273", // Green
-  "#e87d3e", // Orange
-  "#9e86c8", // Purple
-  "#b05279", // Pink
-  "#6c99bb" // Blue
+  // Neutrals / background & text
+  "#0F1115", // background.default
+  "#161A22", // background.paper
+  "#C7D1E0", // text.secondary
+  "#FFFFFF", // text.primary
+  "#94A3B8", // text.disabled
+  // Primary scale
+  "#93C5FD", // primary.light
+  "#60A5FA", // primary.main
+  "#1D4ED8", // primary.dark
+  // Secondary scale
+  "#C4B5FD", // secondary.light
+  "#A78BFA", // secondary.main (violet)
+  "#6D28D9", // secondary.dark
+  // Accents
+  "#E35BFF", // c_attention (magenta)
+  "#50FA7B", // success.main (green)
+  "#FFB86C", // warning.main (orange/yellow)
+  "#FF5555", // error.main (red)
+  "#029486" // c_node (teal/cyan)
 ] as const;

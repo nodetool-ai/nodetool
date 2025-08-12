@@ -28,7 +28,7 @@ const nodeInfoStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.default,
     overflowY: "auto",
     gap: ".5em",
-    padding: "1em",
+    padding: "0.75em 1em 1em 1em",
     maxHeight: "55vh",
     position: "relative",
     ".node-title": {

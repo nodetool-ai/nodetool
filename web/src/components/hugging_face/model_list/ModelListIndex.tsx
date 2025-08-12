@@ -19,7 +19,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      position: "relative"
+      position: "relative",
+      background: "transparent"
     },
     ".main": {
       display: "flex",
@@ -39,12 +40,16 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       gap: theme.spacing(1),
       padding: "0.5em 1em",
       position: "sticky",
       top: 0,
       zIndex: 2,
-      width: "100%"
+      width: "100%",
+      backdropFilter: "saturate(120%) blur(20px)",
+      background: "transparent",
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
     },
     ".model-list-header button": {
       padding: ".4em 1em",
@@ -55,11 +60,10 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       "&:hover": {
         color: theme.vars.palette.grey[100],
-        backgroundColor: theme.vars.palette.grey[600]
       }
     },
     ".model-type-button.Mui-selected": {
-      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100],
       transition: "background-color 0.2s ease-in"
     },
     ".model-type-button span": {

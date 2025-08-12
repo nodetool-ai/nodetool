@@ -35,9 +35,9 @@ const styles = (theme: Theme) =>
       margin: "1px 0.75em 0 0"
     },
     ".MuiIconButton-root": {
-      width: "32px",
-      height: "32px",
-      padding: "6px",
+      width: "28px",
+      height: "28px",
+      padding: "4px",
       color: theme.vars.palette.grey[0],
       borderRadius: "6px",
       transition: "all 0.2s ease-out",
@@ -46,9 +46,9 @@ const styles = (theme: Theme) =>
       },
       "& svg": {
         display: "block",
-        width: "20px",
-        height: "20px",
-        fontSize: "20px"
+        width: "18px",
+        height: "18px",
+        fontSize: "18px"
       }
     },
     ".logo-button": {
