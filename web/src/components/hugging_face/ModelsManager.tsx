@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Dialog, DialogContent } from "@mui/material";
+import { Dialog, DialogContent, DialogTitle, Typography, Tooltip } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: "1em",
-      padding: "1em"
+      padding: "0.5em 0 0 0"
     },
     ".models-search": {
       maxWidth: "600px",
@@ -54,10 +54,20 @@ const styles = (theme: Theme) =>
       height: "80vh",
       width: "100%"
     },
+    ".dialog-title": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background:
+        `linear-gradient(180deg, ${theme.vars.palette.background.paper} 70%, transparent)`,
+      margin:0,
+      padding: theme.spacing(4, 4),
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+    },
     ".close-button": {
       position: "absolute",
       right: theme.spacing(1),
-      top: theme.spacing(1),
+      top: theme.spacing(2),
       color: theme.vars.palette.grey[500]
     }
   });
@@ -79,38 +89,30 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       onClose={onClose}
       slotProps={{
         backdrop: {
-          style: { backgroundColor: "#11111122" }
+          style: { backgroundColor: "rgba(10,12,14,0.6)", backdropFilter: "blur(4px)" }
         }
       }}
       sx={{
         "& .MuiDialog-paper": {
-          width: "90%",
-          maxWidth: "90vw",
-          margin: "auto"
+          width: "92%",
+          maxWidth: "1200px",
+          margin: "auto",
+          borderRadius: 1.5,
+          border: `1px solid ${theme.vars.palette.grey[700]}`,
+          backgroundImage: "none"
         }
       }}
     >
-      <DialogContent
-        sx={{
-          backgroundColor: "var(--palette-background-paper)"
-        }}
-      >
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="close-button"
-        >
-          <CloseIcon />
-        </IconButton>
+      <DialogTitle className="dialog-title">
+        <Typography>Model Manager</Typography>
+        <Tooltip title="Close">
+          <IconButton aria-label="close" onClick={onClose} className="close-button">
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
+      </DialogTitle>
+      <DialogContent sx={{ backgroundColor: "var(--palette-background-paper)", pt: 2 }}>
         <div className="models-manager">
-          {/* <div className="download-models-section">
-            <div className="models-search">
-              <HuggingFaceModelSearch />
-            </div>
-            <div className="models-download-dialog">
-              <DownloadManagerDialog />
-            </div>
-          </div> */}
           <div className="existing-models-section">
             <div className="models-list-container">
               <ModelListIndex />
