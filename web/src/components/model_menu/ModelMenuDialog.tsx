@@ -19,9 +19,13 @@ import ModelMenuFooter from "./ModelMenuFooter";
 import RecentList from "./RecentList";
 import FavoritesList from "./FavoritesList";
 import SearchInput from "../search/SearchInput";
+import ModelFiltersBar from "./ModelFiltersBar";
 import useModelMenuStore, {
   useModelMenuData
 } from "../../stores/ModelMenuStore";
+import useModelFiltersStore from "../../stores/ModelFiltersStore";
+import { applyAdvancedModelFilters } from "../../utils/modelFilters";
+import { buildMetaIndex } from "../../utils/modelNormalization";
 
 export interface ModelMenuDialogProps {
   open: boolean;
@@ -64,6 +68,29 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     filteredCount,
     totalActiveCount
   } = useModelMenuData(models);
+
+  // Advanced filters state snapshot
+  const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
+  const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
+  const families = useModelFiltersStore((s) => s.families);
+
+  // Build option lists for Family and Quant based on all models
+  const { familiesList } = React.useMemo(() => {
+    const idx = buildMetaIndex(filteredModels.length ? filteredModels : []);
+    const f = Array.from(
+      new Set(idx.map((x) => x.meta.family).filter(Boolean) as string[])
+    ).sort();
+    return { familiesList: f };
+  }, [filteredModels]);
+
+  const filteredModelsAdvanced = React.useMemo(() => {
+    const result = applyAdvancedModelFilters(filteredModels, {
+      selectedTypes,
+      sizeBucket,
+      families
+    });
+    return result;
+  }, [filteredModels, selectedTypes, sizeBucket, families]);
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
       setSelectedModel(m);
@@ -113,7 +140,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
           <Box sx={{ flex: 1 }}>
             <SearchInput
               onSearchChange={(v) => {
-                console.log("[ModelMenu] search", v);
                 setSearch(v);
               }}
               placeholder="Search models..."
@@ -124,6 +150,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
               width={270}
             />
           </Box>
+          <ModelFiltersBar familiesList={familiesList} />
         </Box>
         <div
           css={containerStyles}
@@ -141,7 +168,10 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             className="model-menu__model-list-container"
             sx={{ maxWidth: 300, height: "100%", overflow: "hidden" }}
           >
-            <ModelList models={filteredModels} onSelect={handleSelectModel} />
+            <ModelList
+              models={filteredModelsAdvanced}
+              onSelect={handleSelectModel}
+            />
           </Box>
           <Box
             className="model-menu__sidebar"
@@ -160,7 +190,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             <Tabs
               value={activeSidebarTab}
               onChange={(_, v) => {
-                console.log("[ModelMenu] sidebar tab", v);
                 setActiveSidebarTab(v);
               }}
               variant="fullWidth"
@@ -193,7 +222,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
           </Box>
         </div>
         <ModelMenuFooter
-          filteredCount={filteredCount}
+          filteredCount={filteredModelsAdvanced.length}
           totalCount={totalCount}
           totalActiveCount={totalActiveCount}
         />

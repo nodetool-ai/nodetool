@@ -68,10 +68,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
-    console.time("[ProviderList] sort");
     // Use enabledProviders map directly to avoid expensive re-computation via selector functions
     const map = enabledProviders || {};
-    console.time("[ProviderList] sort:build");
     const withLabels = providers.map((p) => {
       const label = isHuggingFaceProvider(p)
         ? getProviderBaseName(p)
@@ -87,9 +85,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
       .filter((x) => !x.enabled)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map((x) => x.p);
-    console.timeEnd("[ProviderList] sort:build");
     const result = { enabledList, disabledList };
-    console.timeEnd("[ProviderList] sort");
     return result;
   }, [providers, enabledProviders]);
 
@@ -290,9 +286,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       }}
                       checked={enabled}
                       onChange={(e) => {
-                        console.time("[ProviderList] toggle");
                         setProviderEnabled(p, e.target.checked);
-                        console.timeEnd("[ProviderList] toggle");
                       }}
                     />
                   </Tooltip>

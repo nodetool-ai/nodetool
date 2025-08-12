@@ -49,10 +49,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const theme = useTheme();
   const searchTerm = useModelMenuStore((s) => s.search);
   React.useEffect(() => {
-    console.log("[ModelList] all models (prop)", {
-      count: models.length,
-      models
-    });
+    // Intentionally left blank: previously logged models for debugging
   }, [models]);
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
