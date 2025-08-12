@@ -110,6 +110,7 @@ function getRoutes() {
       path: "/dashboard",
       element: (
         <ProtectedRoute>
+          <PanelLeft />
           <Dashboard />
         </ProtectedRoute>
       )
