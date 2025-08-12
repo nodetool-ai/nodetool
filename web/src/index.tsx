@@ -147,6 +147,7 @@ function getRoutes() {
       path: "examples",
       element: (
         <ProtectedRoute>
+          <PanelLeft />
           <ExampleGrid />
         </ProtectedRoute>
       )

@@ -30,7 +30,6 @@ import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
-import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
@@ -48,9 +47,7 @@ import { DownloadProgress } from "../../hugging_face/DownloadProgress";
 
 enum TabValue {
   Overview = 0,
-  WhatsNew = 1,
-  Links = 2,
-  Setup = 3
+  Setup = 1
 }
 
 interface TabPanelProps {
@@ -389,9 +386,7 @@ const Welcome = () => {
             className="overview tabs"
           >
             <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-            <Tab label={"What's New"} id="tab-1" aria-controls="tabpanel-1" />
-            <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
-            <Tab label="Setup" id="tab-3" aria-controls="tabpanel-3" />
+            <Tab label="Setup" id="tab-1" aria-controls="tabpanel-1" />
           </Tabs>
 
           {tabValue === TabValue.Overview && (
@@ -421,7 +416,7 @@ const Welcome = () => {
                   Quick Start
                 </Typography>
                 <Grid container spacing={2} className="quick-start-grid">
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 4", md: "span 2" } }}>
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea onClick={() => navigate("/editor")}>
                         <CardContent>
@@ -516,54 +511,6 @@ const Welcome = () => {
             })()}
           </TabPanel>
 
-          <TabPanel value={tabValue} index={TabValue.WhatsNew}>
-            <WhatsNew />
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={TabValue.Links}>
-            <Link
-              href="https://forum.nodetool.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              Forum
-            </Link>
-            <div className="link-body">
-              Go to the NodeTool forum for help and advice or share what you
-              made.
-            </div>
-            <Link
-              href="https://github.com/nodetool-ai/nodetool"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              GitHub
-            </Link>
-            <div className="link-body">
-              Want to run Nodetool locally or contribute to its development?
-              <br />
-              Nodetool is open-source and available on GitHub.
-              <br />
-              You can customize it, add new nodes, or integrate it into your own
-              AI workflows.
-              <br />
-              Check out the repository for installation instructions and
-              documentation.
-              <br />
-              Let us know what you build!
-            </div>
-            <Link
-              href="https://discord.gg/26m5xBwe"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              Discord
-            </Link>
-            <div className="link-body">Join the community to get help and share workflows.</div>
-          </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "2em" }}>
@@ -576,8 +523,8 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.vars.palette.grey[800],
                     padding: "20px",
+                    border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
                 >
@@ -681,8 +628,8 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.vars.palette.grey[800],
                     padding: "20px",
+                    border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
                 >

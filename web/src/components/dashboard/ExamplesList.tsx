@@ -18,7 +18,6 @@ interface ExamplesListProps {
 
 const styles = (theme: Theme) =>
   css({
-    backgroundColor: theme.vars.palette.background.paper,
     borderRadius: theme.spacing(1),
     padding: "1em",
     display: "flex",
@@ -45,14 +44,12 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       borderRadius: theme.spacing(1),
       overflow: "hidden",
-      backgroundColor: "var(--palette-grey-800)",
       ":hover": {
         opacity: 0.9
       },
       ".example-description-tooltip": {
         visibility: "hidden",
         width: "200px",
-        backgroundColor: theme.vars.palette.grey[1000],
         color: theme.vars.palette.grey[0],
         textAlign: "center",
         borderRadius: "6px",
@@ -72,7 +69,6 @@ const styles = (theme: Theme) =>
           marginLeft: "-5px",
           borderWidth: "5px",
           borderStyle: "solid",
-          borderColor: theme.vars.palette.grey[1000]
         }
       },
       ":hover .example-description-tooltip": {
@@ -84,12 +80,10 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "180px",
       objectFit: "cover",
-      backgroundColor: theme.vars.palette.grey[600]
     },
     ".example-name": {
       padding: ".2em .5em .5em 0",
       color: theme.vars.palette.grey[0],
-      backgroundColor: theme.vars.palette.grey[800],
       fontSize: "var(--fontSizeSmall)"
     },
     ".loading-container": {

@@ -34,7 +34,6 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100vw",
       height: "100vh",
-      backgroundColor: theme.vars.palette.background.default,
       overflow: "hidden"
     },
     "& .dockview-container": {
@@ -49,7 +48,6 @@ const styles = (theme: Theme) =>
       height: "fit-content"
     },
     "& .chat-input-section": {
-      backgroundColor: "var(--palette-background-paper)",
       marginTop: 0,
       paddingTop: 0
     },
