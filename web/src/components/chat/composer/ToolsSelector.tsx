@@ -5,14 +5,16 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState, useRef } from "react";
 import {
   Button,
-  Menu,
-  MenuItem,
   Typography,
   Box,
   Tooltip,
   Divider,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle
 } from "@mui/material";
 import { isEqual } from "lodash";
 import {
@@ -33,46 +35,76 @@ import {
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-const menuStyles = (theme: Theme) =>
+const dialogStyles = (theme: Theme) =>
   css({
+    ".dialog-title": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background: "transparent",
+      margin: 0,
+      padding: theme.spacing(4, 4),
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+    },
+    ".close-button": {
+      position: "absolute",
+      right: theme.spacing(1),
+      top: theme.spacing(2),
+      color: theme.vars.palette.grey[500]
+    },
+    ".tools-grid": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: theme.spacing(2)
+    },
+    ".category-card": {
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: 8,
+      background: "transparent"
+    },
     ".category-header": {
-      padding: "8px 16px",
-      backgroundColor: theme.vars.palette.grey[600],
-      color: theme.vars.palette.grey[200],
-      fontSize: "0.75rem",
+      padding: theme.spacing(1.5, 2),
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      color: theme.vars.palette.grey[100],
+      fontSize: "0.8rem",
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
-
+    ".tools-list": {
+      display: "flex",
+      flexDirection: "column",
+      padding: theme.spacing(0.5, 0)
+    },
     ".tool-item": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: theme.spacing(1),
+      padding: theme.spacing(1, 1.5),
+      cursor: "pointer",
+      transition: "background-color 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[800]
       },
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[600],
-        borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
-        paddingLeft: "13px"
+        backgroundColor: theme.vars.palette.grey[800],
+        borderLeft: `3px solid var(--palette-primary-main)`,
+        paddingLeft: theme.spacing(1.25)
       }
     },
-
     ".tool-name": {
       color: theme.vars.palette.grey[0]
     },
-
     ".tool-name.selected": {
       color: "var(--palette-primary-main)"
     },
-
     ".tool-description": {
       color: theme.vars.palette.grey[200],
       fontSize: "0.75rem"
     },
-
     ".tool-icon": {
       color: theme.vars.palette.grey[100]
     },
-
     ".tool-icon.selected": {
       color: "var(--palette-primary-main)"
     }
@@ -199,20 +231,19 @@ interface ToolsSelectorProps {
 
 const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const theme = useTheme();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const open = Boolean(anchorEl);
   const selectedTools = useMemo(() => {
     const toolIds = new Set(TOOLS.map((tool) => tool.id));
     return (value || []).filter((toolId) => toolIds.has(toolId));
   }, [value]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+    setIsOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
+    setIsOpen(false);
   }, []);
 
   const handleToggleTool = useCallback(
@@ -298,55 +329,89 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           })}
         ></Button>
       </Tooltip>
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
+      <Dialog
+        css={dialogStyles(theme)}
+        className="tools-selector-dialog"
+        open={isOpen}
         onClose={handleClose}
-        css={menuStyles(theme)}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "left"
+        aria-labelledby="tools-selector-title"
+        slotProps={{
+          backdrop: {
+            style: { backdropFilter: "blur(20px)" }
+          }
         }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "left"
-        }}
+        sx={(theme) => ({
+          "& .MuiDialog-paper": {
+            width: "92%",
+            maxWidth: "1000px",
+            margin: "auto",
+            borderRadius: 1.5,
+            background: "transparent",
+            border: `1px solid ${theme.vars.palette.grey[700]}`
+          }
+        })}
       >
-        {TOOL_CATEGORIES.map((category, index) => [
-          index > 0 && <Divider key={`divider-${category}`} />,
-          <Typography key={`header-${category}`} className="category-header">
-            {category}
-          </Typography>,
-          ...(groupedTools[category]?.map((tool) => {
-            const isSelected = selectedTools.includes(tool.id);
-            return (
-              <MenuItem
-                key={tool.id}
-                onClick={() => handleToggleTool(tool.id)}
-                className={`tool-item ${isSelected ? "selected" : ""}`}
-              >
-                <ListItemIcon
-                  className={`tool-icon ${isSelected ? "selected" : ""}`}
-                >
-                  {tool.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <span
-                      className={`tool-name ${isSelected ? "selected" : ""}`}
-                    >
-                      {tool.name}
-                    </span>
-                  }
-                  secondary={
-                    <span className="tool-description">{tool.description}</span>
-                  }
-                />
-              </MenuItem>
-            );
-          }) || [])
-        ])}
-      </Menu>
+        <DialogTitle className="dialog-title">
+          <Typography variant="h4" id="tools-selector-title">
+            Tools
+          </Typography>
+          <Tooltip title="Close">
+            <IconButton
+              aria-label="close"
+              onClick={handleClose}
+              className="close-button"
+            >
+              <Build />
+            </IconButton>
+          </Tooltip>
+        </DialogTitle>
+        <DialogContent sx={{ background: "transparent", pt: 2 }}>
+          <div className="tools-grid">
+            {TOOL_CATEGORIES.map((category) => (
+              <div key={category} className="category-card">
+                <div className="category-header">{category}</div>
+                <div className="tools-list">
+                  {groupedTools[category]?.map((tool) => {
+                    const isSelected = selectedTools.includes(tool.id);
+                    return (
+                      <div
+                        key={tool.id}
+                        className={`tool-item ${isSelected ? "selected" : ""}`}
+                        onClick={() => handleToggleTool(tool.id)}
+                      >
+                        <ListItemIcon
+                          className={`tool-icon ${
+                            isSelected ? "selected" : ""
+                          }`}
+                          sx={{ minWidth: 32 }}
+                        >
+                          {tool.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <span
+                              className={`tool-name ${
+                                isSelected ? "selected" : ""
+                              }`}
+                            >
+                              {tool.name}
+                            </span>
+                          }
+                          secondary={
+                            <span className="tool-description">
+                              {tool.description}
+                            </span>
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

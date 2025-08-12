@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { memo, useCallback, useMemo } from "react";
 // mui
 // store
@@ -26,6 +27,53 @@ interface RenderNodesSelectableProps {
   onToggleSelection?: (nodeType: string) => void;
   onNodeClick?: (node: NodeMetadata) => void;
 }
+
+const listStyles = (theme: Theme) =>
+  css({
+    "& .MuiPaper-root.MuiAccordion-root": {
+      backgroundColor: "transparent !important",
+      boxShadow: "none !important",
+      "--Paper-overlay": "0 !important",
+      "&:before": {
+        display: "none"
+      },
+      "& .MuiAccordionDetails-root": {
+        backgroundColor: "transparent !important",
+        padding: "0 0 1em 0"
+      },
+      "& .MuiPaper-elevation, .MuiPaper-elevation1": {
+        backgroundColor: "transparent !important"
+      },
+      "& .Mui-expanded": {
+        backgroundColor: "transparent !important"
+      },
+      "& .MuiAccordion-rounded": {
+        backgroundColor: "transparent !important"
+      }
+    },
+    ".MuiAccordionSummary-root": {
+      padding: 0,
+      minHeight: "unset",
+      "& .MuiAccordionSummary-content": {
+        margin: 0
+      }
+    },
+    ".node .node-button": {
+      border: `1px solid transparent`,
+      transition:
+        "outline-color 120ms ease, background-color 120ms ease, border-color 120ms ease"
+    },
+    ".node.selected .node-button": {
+      borderLeftColor: "var(--palette-primary-main)",
+      backgroundColor: theme.vars.palette.grey[800]
+    },
+    ".namespace-text": {
+      color: theme.vars.palette.grey[100],
+      fontSize: "0.95em",
+      fontWeight: 500,
+      padding: "0.25em 0 0.4em"
+    }
+  });
 
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
@@ -110,7 +158,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   const renderGroup = useCallback(
     (group: SearchResultGroup) => {
-      const groupedNodes = groupNodes(group.nodes);
+      // Hide selected nodes from search results, they'll be shown in the top "Selected" section
+      const filteredNodes = group.nodes.filter(
+        (node) => !selectedNodeTypes.includes(node.node_type)
+      );
+      const groupedNodes = groupNodes(filteredNodes);
 
       return (
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
@@ -161,60 +213,101 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   );
 
   const elements = useMemo(() => {
-    // If we're searching, use the grouped results
-    if (searchTerm) {
-      return groupedSearchResults.map(renderGroup);
+    const selectedNodes = nodes.filter((n) =>
+      selectedNodeTypes.includes(n.node_type)
+    );
+    const unselectedNodes = nodes.filter(
+      (n) => !selectedNodeTypes.includes(n.node_type)
+    );
+
+    const selectedSection: JSX.Element[] = [];
+    if (showCheckboxes && selectedNodes.length > 0) {
+      selectedSection.push(
+        <Typography
+          key="namespace-selected"
+          variant="h5"
+          component="div"
+          className="namespace-text"
+        >
+          Selected
+        </Typography>
+      );
+      selectedNodes.forEach((node) => {
+        selectedSection.push(
+          <div key={`selected-${node.node_type}`}>
+            <NodeItem
+              key={`selected-${node.node_type}`}
+              node={node}
+              onDragStart={handleDragStart(node)}
+              onClick={() => handleNodeClick(node)}
+              showCheckbox={showCheckboxes}
+              isSelected={true}
+              onToggleSelection={onToggleSelection}
+            />
+          </div>
+        );
+      });
     }
 
-    // Otherwise use the original namespace-based grouping
-    return Object.entries(groupNodes(nodes)).flatMap(
-      ([namespace, nodesInNamespace], namespaceIndex) => {
-        const elements: JSX.Element[] = [];
+    // If we're searching, use the grouped results, but prepend the Selected section
+    if (searchTerm) {
+      return [...selectedSection, ...groupedSearchResults.map(renderGroup)];
+    }
 
-        let textForNamespaceHeader = namespace; // Default to full namespace string
+    // Otherwise use the original namespace-based grouping, excluding selected nodes (they are shown above)
+    return [
+      ...selectedSection,
+      ...Object.entries(groupNodes(unselectedNodes)).flatMap(
+        ([namespace, nodesInNamespace], namespaceIndex) => {
+          const elements: JSX.Element[] = [];
 
-        if (selectedPath && selectedPath === namespace) {
-          // If the current group of nodes IS the selected namespace, display its last part.
-          // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
-          textForNamespaceHeader = namespace.split(".").pop() || namespace;
-        } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-          // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
-          // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
-          textForNamespaceHeader = namespace.substring(selectedPath.length + 1);
-        }
-        // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
-        // If namespace is not a child of selectedPath and not equal to selectedPath,
-        // it also remains the full 'namespace'.
+          let textForNamespaceHeader = namespace; // Default to full namespace string
 
-        const itemsForNamespace: JSX.Element[] = [
-          <Typography
-            key={`namespace-${namespace}-${namespaceIndex}`}
-            variant="h5"
-            component="div"
-            className="namespace-text"
-          >
-            {textForNamespaceHeader}
-          </Typography>,
-          ...nodesInNamespace.map(
-            (node): JSX.Element => (
-              <div key={node.node_type}>
-                <NodeItem
-                  key={node.node_type}
-                  node={node}
-                  onDragStart={handleDragStart(node)}
-                  onClick={() => handleNodeClick(node)}
-                  showCheckbox={showCheckboxes}
-                  isSelected={selectedNodeTypes.includes(node.node_type)}
-                  onToggleSelection={onToggleSelection}
-                />
-              </div>
+          if (selectedPath && selectedPath === namespace) {
+            // If the current group of nodes IS the selected namespace, display its last part.
+            // e.g., selectedPath="A.B", namespace="A.B" -> display "B"
+            textForNamespaceHeader = namespace.split(".").pop() || namespace;
+          } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
+            // If the current group of nodes is a sub-namespace of the selected one, display the relative path.
+            // e.g., selectedPath="A", namespace="A.B.C" -> display "B.C"
+            textForNamespaceHeader = namespace.substring(
+              selectedPath.length + 1
+            );
+          }
+          // If selectedPath is empty (root is selected), textForNamespaceHeader remains the full 'namespace'.
+          // If namespace is not a child of selectedPath and not equal to selectedPath,
+          // it also remains the full 'namespace'.
+
+          const itemsForNamespace: JSX.Element[] = [
+            <Typography
+              key={`namespace-${namespace}-${namespaceIndex}`}
+              variant="h5"
+              component="div"
+              className="namespace-text"
+            >
+              {textForNamespaceHeader}
+            </Typography>,
+            ...nodesInNamespace.map(
+              (node): JSX.Element => (
+                <div key={node.node_type}>
+                  <NodeItem
+                    key={node.node_type}
+                    node={node}
+                    onDragStart={handleDragStart(node)}
+                    onClick={() => handleNodeClick(node)}
+                    showCheckbox={showCheckboxes}
+                    isSelected={selectedNodeTypes.includes(node.node_type)}
+                    onToggleSelection={onToggleSelection}
+                  />
+                </div>
+              )
             )
-          )
-        ];
+          ];
 
-        return itemsForNamespace;
-      }
-    );
+          return itemsForNamespace;
+        }
+      )
+    ];
   }, [
     searchTerm,
     nodes,
@@ -229,7 +322,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   ]);
 
   return (
-    <div className="nodes">
+    <div className="nodes" css={listStyles(theme)}>
       {nodes.length > 0 ? (
         elements
       ) : (

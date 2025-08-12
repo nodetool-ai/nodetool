@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, forwardRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
-import { Typography, Checkbox } from "@mui/material";
+import { Typography, Checkbox, Chip } from "@mui/material";
 import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 
 interface NodeItemProps {
@@ -82,7 +82,8 @@ const NodeItem = memo(
               display: "flex",
               alignItems: "center",
               flex: 1,
-              gap: "0.5em"
+              gap: "0.5em",
+              position: "relative"
             }}
           >
             {showCheckbox && (

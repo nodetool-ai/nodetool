@@ -2,8 +2,6 @@
 import { css } from "@emotion/react";
 import {
   Button,
-  Menu,
-  MenuItem,
   Checkbox,
   FormControlLabel,
   Typography,
@@ -11,32 +9,61 @@ import {
   Divider,
   IconButton,
   Chip,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogContent,
+  DialogTitle
 } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
+import CloseIcon from "@mui/icons-material/Close";
 import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const styles = {
-  menu: css({
-    "& .MuiPaper-root": {
-      minWidth: "250px",
-      maxHeight: "400px",
-      overflowY: "auto"
-    }
-  }),
-  menuItem: css({
-    padding: "4px 16px",
-    "&:hover": {
-      backgroundColor: "transparent"
-    }
-  }),
-  checkboxLabel: css({
-    margin: 0,
-    width: "100%",
-    "& .MuiCheckbox-root": {
-      padding: "4px 8px"
+  dialog: css({
+    ".dialog-title": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background: "transparent",
+      margin: 0,
+      padding: "24px 32px",
+      borderBottom: "1px solid var(--palette-grey-700)"
+    },
+    ".close-button": {
+      position: "absolute",
+      right: 8,
+      top: 12,
+      color: "var(--palette-grey-500)"
+    },
+    ".dialog-summary": {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 16px",
+      color: "var(--palette-grey-200)"
+    },
+    ".actions": {
+      padding: "8px 16px",
+      display: "flex",
+      gap: 8
+    },
+    ".collections-grid": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: 12,
+      padding: "8px 8px 16px"
+    },
+    ".collection-item": {
+      border: "1px solid var(--palette-grey-700)",
+      borderRadius: 8,
+      background: "transparent",
+      padding: 8
+    },
+    ".checkbox-label": {
+      margin: 0,
+      width: "100%"
     }
   })
 };
@@ -50,7 +77,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   value,
   onChange
 }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const { collections, fetchCollections, isLoading } = useCollectionStore();
 
   useEffect(() => {
@@ -60,11 +87,11 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   }, [collections, fetchCollections]);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+    setIsOpen(true);
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
+    setIsOpen(false);
   };
 
   const handleToggle = (collectionName: string) => {
@@ -136,67 +163,93 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
           })}
         />
       </Tooltip>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+      <Dialog
+        css={styles.dialog}
+        className="collections-selector-dialog"
+        open={isOpen}
         onClose={handleClose}
-        css={styles.menu}
+        aria-labelledby="collections-selector-title"
+        slotProps={{
+          backdrop: { style: { backdropFilter: "blur(20px)" } }
+        }}
+        sx={(theme) => ({
+          "& .MuiDialog-paper": {
+            width: "92%",
+            maxWidth: "1000px",
+            margin: "auto",
+            borderRadius: 1.5,
+            background: "transparent",
+            border: `1px solid ${theme.vars.palette.grey[700]}`
+          }
+        })}
       >
-        <Box px={2} py={1}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Select Collections
+        <DialogTitle className="dialog-title">
+          <Typography variant="h4" id="collections-selector-title">
+            Collections
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {selectedCount} of {totalCount} selected
-          </Typography>
-        </Box>
-        <Divider />
-        <Box px={2} py={0.5}>
-          <Button size="small" onClick={handleSelectAll} sx={{ mr: 1 }}>
-            Select All
-          </Button>
-          <Button size="small" onClick={handleClearAll}>
-            Clear All
-          </Button>
-        </Box>
-        <Divider />
-        {isLoading ? (
-          <MenuItem disabled>
-            <Typography variant="body2">Loading collections...</Typography>
-          </MenuItem>
-        ) : !collections?.collections.length ? (
-          <MenuItem disabled>
-            <Typography variant="body2">No collections available</Typography>
-          </MenuItem>
-        ) : (
-          collections.collections.map((collection) => (
-            <MenuItem
-              key={collection.name}
-              css={styles.menuItem}
-              onClick={(e) => e.stopPropagation()}
+          <Tooltip title="Close">
+            <IconButton
+              aria-label="close"
+              onClick={handleClose}
+              className="close-button"
             >
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={value.includes(collection.name)}
-                    onChange={() => handleToggle(collection.name)}
-                    size="small"
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
+        </DialogTitle>
+        <DialogContent sx={{ background: "transparent", pt: 2 }}>
+          <Box className="dialog-summary">
+            <Typography variant="subtitle2">
+              {selectedCount} of {totalCount} selected
+            </Typography>
+          </Box>
+          <Box className="actions">
+            <Button size="small" onClick={handleSelectAll} sx={{ mr: 1 }}>
+              Select All
+            </Button>
+            <Button size="small" onClick={handleClearAll}>
+              Clear All
+            </Button>
+          </Box>
+          <Divider />
+          <div className="collections-grid">
+            {isLoading ? (
+              <Typography variant="body2" sx={{ p: 2 }}>
+                Loading collections...
+              </Typography>
+            ) : !collections?.collections.length ? (
+              <Typography variant="body2" sx={{ p: 2 }}>
+                No collections available
+              </Typography>
+            ) : (
+              collections.collections.map((collection) => (
+                <div key={collection.name} className="collection-item">
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={value.includes(collection.name)}
+                        onChange={() => handleToggle(collection.name)}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">
+                          {collection.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {collection.count} items
+                        </Typography>
+                      </Box>
+                    }
+                    className="checkbox-label"
                   />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2">{collection.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {collection.count} items
-                    </Typography>
-                  </Box>
-                }
-                css={styles.checkboxLabel}
-              />
-            </MenuItem>
-          ))
-        )}
-      </Menu>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

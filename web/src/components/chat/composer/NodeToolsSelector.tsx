@@ -9,7 +9,9 @@ import {
   CircularProgress,
   Chip,
   IconButton,
-  Modal
+  Dialog,
+  DialogContent,
+  DialogTitle
 } from "@mui/material";
 import { isEqual } from "lodash";
 import { Extension, Close } from "@mui/icons-material";
@@ -20,70 +22,59 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
+import NodeInfo from "../../node_menu/NodeInfo";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const toolsSelectorStyles = (theme: Theme) =>
   css({
-    "&": {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      display: "flex",
-      flexDirection: "column",
-      height: "auto",
-      maxHeight: "min(60vh, 400px)",
-      minHeight: "250px",
-      overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "12px",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-      backgroundColor: theme.vars.palette.grey[800],
-      minWidth: "600px",
-      maxWidth: "800px",
-      outline: "none"
-    },
-    ".modal-header": {
-      borderRadius: "12px 12px 0 0",
-      backgroundColor: theme.vars.palette.grey[600],
-      width: "100%",
-      minHeight: "40px",
-      userSelect: "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 1em",
+    ".dialog-title": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background: "transparent",
+      margin: 0,
+      padding: theme.spacing(4, 4),
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       h4: {
-        margin: "0",
+        margin: 0,
         fontSize: theme.fontSizeNormal,
         fontWeight: 500,
         color: theme.vars.palette.grey[100]
       }
     },
-    ".modal-header:hover": {
-      opacity: 0.95
-    },
     ".close-button": {
-      color: theme.vars.palette.grey[200],
-      width: "28px",
-      height: "28px",
-      padding: "2px",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.04)",
-        color: theme.vars.palette.grey[100]
-      }
+      position: "absolute",
+      right: theme.spacing(1),
+      top: theme.spacing(2),
+      color: theme.vars.palette.grey[500]
     },
-    ".tools-content": {
-      borderRadius: "0 0 8px 8px",
-      padding: ".5em 0px 1em .5em",
-      width: "100%",
-      maxHeight: "77vh",
-      flexGrow: 1,
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    ".selector-grid": {
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "row",
+      gap: theme.spacing(2),
+      alignItems: "stretch"
+    },
+    ".left-pane": {
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      minWidth: 0
+    },
+    ".right-pane": {
+      width: 360,
+      minWidth: 320,
+      maxWidth: 420,
+      borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+      padding: theme.spacing(0, 1.5, 1.5, 1.5),
+      background: "transparent"
+    },
+    ".selector-content": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5em",
+      paddingTop: theme.spacing(1)
     },
     ".search-toolbar": {
       display: "flex",
@@ -106,8 +97,8 @@ const toolsSelectorStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.5em",
       padding: "0.5em 1em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[500]}`,
-      backgroundColor: theme.vars.palette.grey[600],
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: "transparent",
       ".selected-count": {
         backgroundColor: "var(--palette-primary-main)",
         color: theme.vars.palette.grey[1000],
@@ -152,8 +143,23 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const selectedNodeTypes = useMemo(() => value || [], [value]);
   const theme = useTheme();
+  const metadata = useMetadataStore((state) => state.metadata);
+  const selectedNodeTypes = useMemo(
+    () =>
+      (value || []).filter((nodeType) => {
+        return nodeType in metadata;
+      }),
+    [value, metadata]
+  );
+
+  // Ensure selected nodes are always included in the list passed to the renderer
+  const selectedNodeMetadatas = useMemo(() => {
+    return selectedNodeTypes
+      .map((nodeType) => metadata[nodeType])
+      .filter(Boolean) as NodeMetadata[];
+  }, [selectedNodeTypes, metadata]);
+
   // Use NodeMenuStore for search functionality
   const { searchTerm, setSearchTerm, searchResults, isLoading, selectedPath } =
     useStoreWithEqualityFn(
@@ -167,6 +173,12 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       }),
       shallow
     );
+
+  const hoveredNode = useStoreWithEqualityFn(
+    useNodeMenuStore,
+    (state) => state.hoveredNode,
+    Object.is
+  );
 
   const availableNodes = useMemo(() => {
     // Show nodes if either:
@@ -184,6 +196,21 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       (node: NodeMetadata) => node.namespace !== "default"
     );
   }, [searchResults, searchTerm, selectedPath]);
+
+  // Union of available nodes and selected nodes to always show selected at the top
+  const allNodesForDisplay = useMemo(() => {
+    const nodeTypeToNode = new Map<string, NodeMetadata>();
+    // Selected first to preserve order preference when rendered
+    selectedNodeMetadatas.forEach((node) => {
+      if (!nodeTypeToNode.has(node.node_type))
+        nodeTypeToNode.set(node.node_type, node);
+    });
+    availableNodes.forEach((node) => {
+      if (!nodeTypeToNode.has(node.node_type))
+        nodeTypeToNode.set(node.node_type, node);
+    });
+    return Array.from(nodeTypeToNode.values());
+  }, [selectedNodeMetadatas, availableNodes]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setIsMenuOpen(true);
@@ -238,11 +265,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 label={selectedCount}
                 sx={{
                   marginLeft: 1,
-                  backgroundColor: "var(--palette-primary-main)",
-                  color: "var(--palette-grey-1000)",
-                  "& .MuiChip-label": {
-                    padding: "0 4px"
-                  }
+                  backgroundColor: theme.palette.primary.light,
+                  color: theme.palette.grey[100]
                 }}
               />
             )
@@ -264,102 +288,108 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
         />
       </Tooltip>
 
-      <Modal
+      <Dialog
+        css={memoizedStyles}
+        className="node-tools-selector-dialog"
         open={isMenuOpen}
         onClose={handleClose}
         aria-labelledby="node-tools-selector-title"
+        slotProps={{
+          backdrop: {
+            style: { backdropFilter: "blur(20px)" }
+          }
+        }}
+        sx={(theme) => ({
+          "& .MuiDialog-paper": {
+            width: "92%",
+            maxWidth: "1000px",
+            margin: "auto",
+            borderRadius: 1.5,
+            background: "transparent",
+            border: `1px solid ${theme.vars.palette.grey[700]}`
+          }
+        })}
       >
-        <Box css={memoizedStyles} className="node-tools-selector-menu">
-          <div className="modal-header">
-            <Typography variant="h4" id="node-tools-selector-title">
-              Node Tools Selector
-            </Typography>
+        <DialogTitle className="dialog-title">
+          <Typography variant="h4" id="node-tools-selector-title">
+            Node Tools
+          </Typography>
+          <Tooltip title="Close">
             <IconButton
-              className="close-button"
-              size="small"
-              onClick={handleClose}
               aria-label="close"
+              onClick={handleClose}
+              className="close-button"
             >
               <Close />
             </IconButton>
-          </div>
-
-          <div className="tools-content">
-            <div className="search-toolbar">
-              <SearchInput
-                focusSearchInput={isMenuOpen}
-                focusOnTyping={false}
-                placeholder="Search nodes..."
-                debounceTime={150}
-                width={300}
-                maxWidth="100%"
-                searchTerm={searchTerm}
-                onSearchChange={handleSearchChange}
-                onPressEscape={handleClose}
-                searchResults={availableNodes}
-              />
-            </div>
-
-            {selectedCount > 0 && (
-              <div className="selection-info">
-                <Typography
-                  variant="body2"
-                  sx={{ color: "var(--palette-grey-0)" }}
-                >
-                  Selected:
-                </Typography>
-                <Chip
-                  size="small"
-                  label={selectedCount}
-                  className="selected-count"
+          </Tooltip>
+        </DialogTitle>
+        <DialogContent sx={{ background: "transparent", pt: 2 }}>
+          <div className="selector-grid">
+            <div className="left-pane selector-content">
+              <div className="search-toolbar">
+                <SearchInput
+                  focusSearchInput={isMenuOpen}
+                  focusOnTyping={false}
+                  placeholder="Search nodes..."
+                  debounceTime={150}
+                  width={300}
+                  maxWidth="100%"
+                  searchTerm={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  onPressEscape={handleClose}
+                  searchResults={availableNodes}
                 />
-                <Typography
-                  variant="body2"
-                  sx={{ color: "var(--palette-grey-200)" }}
-                >
-                  {selectedCount === 1 ? "node" : "nodes"}
-                </Typography>
               </div>
-            )}
 
-            <div className="nodes-container">
-              {isLoading ? (
-                <div className="loading-container">
-                  <CircularProgress size={24} />
-                </div>
-              ) : availableNodes.length === 0 ? (
-                <div className="no-nodes-message">
-                  <Typography>
-                    {(() => {
-                      const hasNamespaceSelected = selectedPath.length > 0;
-                      const searchLength = searchTerm.trim().length;
+              <div className="nodes-container">
+                {isLoading ? (
+                  <div className="loading-container">
+                    <CircularProgress size={24} />
+                  </div>
+                ) : availableNodes.length === 0 && selectedCount === 0 ? (
+                  <div className="no-nodes-message">
+                    <Typography>
+                      {(() => {
+                        const hasNamespaceSelected = selectedPath.length > 0;
+                        const searchLength = searchTerm.trim().length;
 
-                      if (hasNamespaceSelected && searchLength === 0) {
-                        return "No nodes available in selected namespace.";
-                      } else if (hasNamespaceSelected && searchLength > 0) {
-                        return "No nodes match your search in selected namespace.";
-                      } else if (searchLength === 0) {
-                        return "Type at least 2 characters to search for nodes...";
-                      } else if (searchLength === 1) {
-                        return "Type at least one more character to search...";
-                      } else {
-                        return "No nodes match your search.";
-                      }
-                    })()}
-                  </Typography>
-                </div>
-              ) : (
-                <RenderNodesSelectable
-                  nodes={availableNodes}
-                  showCheckboxes={true}
-                  selectedNodeTypes={selectedNodeTypes}
-                  onToggleSelection={handleToggleNode}
+                        if (hasNamespaceSelected && searchLength === 0) {
+                          return "No nodes available in selected namespace.";
+                        } else if (hasNamespaceSelected && searchLength > 0) {
+                          return "No nodes match your search in selected namespace.";
+                        } else if (searchLength === 0) {
+                          return "Type at least 2 characters to search for nodes...";
+                        } else if (searchLength === 1) {
+                          return "Type at least one more character to search...";
+                        } else {
+                          return "No nodes match your search.";
+                        }
+                      })()}
+                    </Typography>
+                  </div>
+                ) : (
+                  <RenderNodesSelectable
+                    nodes={allNodesForDisplay}
+                    showCheckboxes={true}
+                    selectedNodeTypes={selectedNodeTypes}
+                    onToggleSelection={handleToggleNode}
+                  />
+                )}
+              </div>
+            </div>
+            <div className="right-pane">
+              {hoveredNode && (
+                <NodeInfo
+                  nodeMetadata={hoveredNode}
+                  showConnections={false}
+                  menuWidth={340}
                 />
               )}
             </div>
           </div>
-        </Box>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
