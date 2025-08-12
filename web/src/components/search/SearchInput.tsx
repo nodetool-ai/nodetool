@@ -38,15 +38,25 @@ const styles = (theme: Theme) =>
       MozAppearance: "none",
       appearance: "none",
       color: "#ffffff",
+      backgroundColor: "var(--palette-grey-800)",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderRadius: "8px",
+      transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)",
+      fontSize: (theme as any).fontSizeNormal ?? undefined,
+      "::placeholder": {
+        color: theme.vars.palette.grey[400]
+      }
+    },
+    "input[type='text']:hover": {
       backgroundColor: "var(--palette-grey-700)",
-      border: "1px solid #404040",
-      borderRadius: "5px",
-      transition: "all 0.2s"
+      borderColor: theme.vars.palette.grey[500]
     },
     "input[type='text']:focus": {
-      backgroundColor: "var(--palette-grey-800)",
+      backgroundColor: "var(--palette-grey-700)",
       borderColor: "var(--palette-primary-main)",
-      outline: "none"
+      outline: "none",
+      boxShadow: "0 0 0 2px rgba(0,0,0,0.25)"
     },
     ".clear-search-btn": {
       position: "absolute",
