@@ -55,19 +55,6 @@ const ModelListItem: React.FC<
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
   const theme = useTheme();
-
-  // Provider chip (HF / Local / API) with tooltip
-  const providerLabel: "HF" | "Local" | "API" = isHuggingFace
-    ? "HF"
-    : downloaded
-    ? "Local"
-    : "API";
-  const providerTooltip =
-    providerLabel === "HF"
-      ? "Hugging Face (HF): Model is hosted on Hugging Face. Use Download to store locally."
-      : providerLabel === "Local"
-      ? "Local: Model file exists on your machine and is ready to use."
-      : "API: Model runs via a remote provider; no local download required.";
   if (isLoading) {
     return (
       <Box
@@ -158,35 +145,7 @@ const ModelListItem: React.FC<
               </Link>
             </div>
 
-            <div
-              className="model-details"
-              style={{ display: "flex", gap: 8, alignItems: "center" }}
-            >
-              <Tooltip
-                title={providerTooltip}
-                enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
-              >
-                <Chip
-                  label={providerLabel}
-                  size="small"
-                  component="span"
-                  sx={{
-                    height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
-                    color:
-                      providerLabel === "Local"
-                        ? theme.vars.palette.providerLocal
-                        : providerLabel === "HF"
-                        ? theme.vars.palette.providerHf
-                        : theme.vars.palette.providerApi,
-                    borderColor: "currentColor",
-                    background: "transparent",
-                    borderWidth: 1,
-                    borderStyle: "solid"
-                  }}
-                />
-              </Tooltip>
+            <div className="model-details">
               {modelData?.cardData?.pipeline_tag && (
                 <Tooltip
                   title="View trending models with this tag on HuggingFace"
