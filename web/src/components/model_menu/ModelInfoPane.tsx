@@ -4,11 +4,11 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
-const paneStyles = css({
+const paneStyles = css(({ theme }) => ({
   overflowY: "auto",
   maxHeight: 520,
-  fontSize: "0.94rem"
-});
+  fontSize: theme.fontSizeNormal
+}));
 
 export interface ModelInfoPaneProps {
   model: LanguageModel | null;

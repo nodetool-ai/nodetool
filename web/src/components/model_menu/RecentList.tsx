@@ -17,8 +17,7 @@ import { toTitleCase } from "../../utils/providerDisplay";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 240,
-  fontSize: "0.88rem"
+  maxHeight: 240
 });
 
 export interface RecentListProps {
@@ -64,7 +63,7 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
           component="div"
           sx={{
             backgroundColor: "transparent",
-            fontSize: "fontSizeNormal",
+            fontSize: (theme) => theme.fontSizeNormal,
             letterSpacing: 0.2
           }}
         >
@@ -72,9 +71,14 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
         </ListSubheader>
       }
       sx={{
+        fontSize: (theme) => theme.fontSizeSmall,
         "& .MuiListItemButton-root": { py: 0.25 },
-        "& .MuiListItemText-primary": { fontSize: "0.9rem" },
-        "& .MuiListItemText-secondary": { fontSize: "0.8rem" },
+        "& .MuiListItemText-primary": {
+          fontSize: (theme) => theme.fontSizeSmall
+        },
+        "& .MuiListItemText-secondary": {
+          fontSize: (theme) => theme.fontSizeSmaller
+        },
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >

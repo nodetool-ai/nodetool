@@ -119,7 +119,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       total: list.length
     });
     return list;
-  }, [models, selectedProvider, search, isAvailable, enabledProviders]);
+  }, [models, selectedProvider, search, enabledProviders]);
 
   const recentModels = useMemo(() => {
     const recents = recentsList;
@@ -135,7 +135,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       (m) => enabledProviders?.[m.provider || ""] !== false
     );
     return enabledFiltered;
-  }, [models, isAvailable, recentsList, enabledProviders]);
+  }, [models, recentsList, enabledProviders]);
 
   const favoriteModels = useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
@@ -146,7 +146,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
         enabledProviders?.[m.provider || ""] !== false
     );
     return list;
-  }, [models, isAvailable, favoritesSet, enabledProviders]);
+  }, [models, favoritesSet, enabledProviders]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
@@ -170,7 +170,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
       className="model-menu__dialog"
     >
       <DialogTitle
-        sx={{ fontSize: "1rem", letterSpacing: 0.4 }}
+        sx={{ fontSize: (theme) => theme.fontSizeBig, letterSpacing: 0.4 }}
         className="model-menu__title"
       >
         Select Model
@@ -195,7 +195,11 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             />
           </Box>
         </Box>
-        <div css={containerStyles} className="model-menu__grid">
+        <div
+          css={containerStyles}
+          className="model-menu__grid"
+          style={{ position: "relative" }}
+        >
           <ProviderList
             providers={providers}
             selected={selectedProvider}
@@ -219,6 +223,18 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
             />
             <Divider sx={{ my: 1 }} />
             <RecentList models={recentModels} onSelect={handleSelectModel} />
+          </Box>
+          <Box
+            sx={{
+              position: "absolute",
+              right: 8,
+              bottom: 8,
+              opacity: 0.7,
+              fontSize: (theme) => theme.fontSizeSmaller
+            }}
+            className="model-menu__footer-counts"
+          >
+            {`${filteredModels.length} / ${(models ?? []).length}`}
           </Box>
         </div>
       </DialogContent>
