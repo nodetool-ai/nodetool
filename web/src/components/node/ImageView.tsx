@@ -31,20 +31,19 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     return newObjectUrl;
   }, [source]);
 
-  // Cleanup object URL on unmount
-  useEffect(() => {
-    return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, []);
+  // this cleanup is broken, at least in dev mode
+  // useEffect(() => {
+  //   return () => {
+  //     if (objectUrlRef.current) {
+  //       URL.revokeObjectURL(objectUrlRef.current);
+  //       objectUrlRef.current = null;
+  //     }
+  //   };
+  // }, []);
 
   if (!imageUrl) {
     return <Typography>No Image found</Typography>;
   }
-  console.log("imageUrl", imageUrl);
 
   return (
     <div

@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: "var(--palette-grey-900)",
+      backgroundColor: "var(--palette-grey-800)",
       borderRadius: "0.5em",
       overflow: "hidden"
     },
@@ -475,9 +475,16 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className="filetype info"
               title={asset.content_type || "Unknown content type"}
               style={{
-                borderLeft: `2px solid var(--c_${assetType})`,
-                color: "white",
-                backgroundColor: "#333"
+                borderTop: `2px solid var(--c_${assetType})`,
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                textAlign: "center",
+                zIndex: 1000,
+                color: theme.vars.palette.grey[100],
+                fontSize: theme.fontSizeTiny,
+                backgroundColor: theme.vars.palette.grey[800]
               }}
             >
               {assetFileEnding}

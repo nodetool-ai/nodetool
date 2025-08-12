@@ -1,0 +1,65 @@
+/* Shared Dockview styles */
+
+.dv-groupview,
+.dv-dockview {
+  background-color: transparent;
+}
+
+/* Split view container */
+.dv-split-view-container .dv-view-container .dv-view::before {
+  height: 0 !important;
+}
+
+/* Tabs and actions bar */
+.dv-tabs-and-actions-container {
+  background-color: transparent;
+  position: absolute;
+  height: 1.5rem;
+  top: 3px;
+  left: 2px;
+  right: 10px;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.dv-tabs-and-actions-container:hover {
+  opacity: 1;
+  background-color: var(--palette-grey-700);
+}
+
+.dv-tab {
+  text-transform: uppercase;
+  background-color: transparent;
+  font-size: var(--font-size-tiny, 10px);
+  padding: 0 0.5em;
+  height: 1.5rem;
+}
+
+/* Sash / split-view baseline */
+.dv-split-view-container > .dv-sash-container > .dv-sash {
+  transition-delay: 0s !important;
+}
+
+.dv-split-view-container > .dv-sash-container > .dv-sash:hover {
+  background-color: var(--palette-grey-800) !important;
+}
+
+.dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash {
+  width: 6px;
+  transform: translate(-3px, 0px);
+}
+
+.dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash {
+  height: 6px;
+  transform: translate(0px, 3px);
+}
+
+/* Dashboard-specific Dockview tweaks */
+.dashboard .dockview-container {
+  padding-top: 2rem;
+}
+
+.dashboard .dv-react-part {
+  padding-top: 0.2rem;
+}

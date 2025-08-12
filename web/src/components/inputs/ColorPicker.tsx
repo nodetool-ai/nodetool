@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState } from "react";
 import { MuiColorInput } from "mui-color-input";
 import { Popover, Button, Tooltip } from "@mui/material";
-import { solarizedColors } from "../../constants/colors";
+import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const PALETTE_BUTTON_SIZE = 28;
@@ -120,7 +120,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         }}
       >
         <div css={colorMatrixStyle(theme)}>
-          {solarizedColors.map((cellColor, index) => (
+          {colorPickerColors.map((cellColor, index) => (
             <Button
               key={index}
               className="pick-color-button"

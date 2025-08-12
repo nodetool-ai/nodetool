@@ -21,7 +21,6 @@ const styles = (theme: Theme) =>
       justifyContent: "start",
       gap: ".3em",
       width: "100%",
-      height: "auto",
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: "transparent",
@@ -33,7 +32,8 @@ const styles = (theme: Theme) =>
     ".folder-icon": {
       width: "25px",
       height: "100%",
-      left: "0",
+      marginLeft: "2px",
+      left: 0,
       color: theme.vars.palette.grey[500]
     },
     ".folder-icon:hover": {
@@ -62,28 +62,28 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[0]
     },
     "&.selected .name": {
-      color: "var(--palette-primary-main)"
+      color: "var(--palette-text-primary)"
     },
     "&:hover": {
       color: theme.vars.palette.grey[200]
     },
     "&:hover .delete-button": {
-      opacity: 0
+      opacity: 1
     },
     "&.drag-hover": {
       backgroundColor: theme.vars.palette.grey[500]
     },
     ".delete-button": {
       position: "absolute",
-      zIndex: 10,
       opacity: 0,
       width: "20px",
       minWidth: "20px",
       height: "20px",
-      right: "0",
-      top: "0",
+      right: ".5em",
+      top: 1,
       border: "none",
-      color: theme.vars.palette.grey[400]
+      color: theme.vars.palette.grey[400],
+      transition: "opacity 0.2s .2s ease"
     },
     ".delete-button:hover": {
       border: "none",
@@ -100,6 +100,7 @@ export interface FolderItemProps {
   onSelect: () => void;
   onClickParent?: (id: string) => void;
   openDeleteDialog?: () => void;
+  children?: React.ReactNode;
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({
@@ -108,7 +109,8 @@ const FolderItem: React.FC<FolderItemProps> = ({
   isSelected,
   enableContextMenu = true,
   showDeleteButton = true,
-  onSelect
+  onSelect,
+  children
 }) => {
   const theme = useTheme();
   const {
@@ -128,7 +130,15 @@ const FolderItem: React.FC<FolderItemProps> = ({
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={onSelect}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest(".expand-gutter")) {
+          // Let the click bubble to AccordionSummary to toggle expansion
+          return;
+        }
+        e.stopPropagation();
+        onSelect();
+      }}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragOver={handleDragOver}
@@ -139,6 +149,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       draggable
     >
       <FolderIcon className="folder-icon" />
+      {children}
       {isParent && <NorthWest className="parent-icon" />}
       <Typography className="folder-name">{folder.name}</Typography>
       {showDeleteButton && (

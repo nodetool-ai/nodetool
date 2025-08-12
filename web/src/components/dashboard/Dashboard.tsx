@@ -16,7 +16,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { isEqual } from "lodash";
 import DashboardHeader from "./DashboardHeader";
 import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
-import "dockview/dist/styles/dockview.css";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { defaultLayout } from "../../config/defaultLayouts";
@@ -35,64 +34,20 @@ const styles = (theme: Theme) =>
     "&": {
       width: "100vw",
       height: "100vh",
-      backgroundColor: theme.vars.palette.background.default,
       overflow: "hidden"
     },
-    // DOCKVIEW
     "& .dockview-container": {
       paddingTop: "2rem"
-    },
-    // TABS AND ACTIONS
-    ".dv-tabs-and-actions-container": {
-      backgroundColor: "transparent",
-      position: "absolute",
-      height: "1.5rem",
-      top: 3,
-      left: 2,
-      right: 10,
-      zIndex: 1,
-      opacity: 0,
-      transition: "opacity 0.2s ease-in-out"
-    },
-    "& .dv-tab": {
-      textTransform: "uppercase",
-      backgroundColor: "transparent",
-      fontSize: theme.fontSizeTiny,
-      padding: "0 .5em",
-      height: "1.5rem"
-    },
-    ".dv-tabs-and-actions-container:hover": {
-      opacity: 1,
-      backgroundColor: theme.vars.palette.grey[700]
     },
     // CONTENT
     "& .dv-react-part": {
       paddingTop: ".2rem"
     },
-    // DRAG HANDLE
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      backgroundColor: theme.vars.palette.grey[900],
-      transitionDelay: "0s !important"
-    },
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash:hover": {
-      backgroundColor: "var(--palette-grey-600) !important"
-    },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
-      {
-        width: "6px",
-        transform: "translate(-3px, 0px)"
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
-      height: "6px",
-      transform: "translate(0px, 3px)"
-    },
-    // ------------------------------------------
     // CHAT
     "& .chat-view": {
       height: "fit-content"
     },
     "& .chat-input-section": {
-      backgroundColor: "var(--palette-background-paper)",
       marginTop: 0,
       paddingTop: 0
     },

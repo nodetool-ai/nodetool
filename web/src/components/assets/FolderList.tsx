@@ -4,10 +4,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Box
+  Box,
+  Tooltip
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useAuth from "../../stores/useAuth";
@@ -15,34 +16,36 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-// Removed manual resizing – the list expands with content
-const ROW_HEIGHT = 1.5; // height of each row in the folder list in em
-const LIST_MIN_WIDTH = "200px"; // minimum width of the folder list
-const LEVEL_PADDING = 1; // padding for each level of the folder tree in em
+// Layout constants for folder tree
+const ROW_HEIGHT_REM = 1.5; // compact row height in em
+const INDENT_PER_LEVEL_REM = 1.25; // left indent per tree level
+const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
+const EXPAND_ICON_SIZE_PX = 25; // accordion expand icon size
 
 const styles = (theme: Theme) =>
   css({
     "&.folder-list-container": {
       position: "relative",
       height: "auto",
-      overflow: "visible",
+      overflow: "hidden",
       padding: ".25em 0 0 0"
     },
     ".folder-list": {
       display: "flex",
       flexDirection: "column",
       flexWrap: "nowrap",
-      gap: "0",
-      padding: "0",
+      gap: 0,
+      padding: "0 0 0 .5em",
       height: "auto",
       overflow: "visible"
     },
     ".childless": {
-      marginBottom: "0.25em"
+      margin: 0
     },
     ".accordion": {
-      height: ROW_HEIGHT + "em",
+      height: ROW_HEIGHT_REM + "rem",
       background: "transparent",
       boxShadow: "none",
       color: theme.vars.palette.grey[100],
@@ -58,65 +61,84 @@ const styles = (theme: Theme) =>
       background: "transparent"
     },
     ".accordion-summary": {
-      flexDirection: "row-reverse",
-      height: ROW_HEIGHT + "em",
-      minHeight: "unset",
+      height: ROW_HEIGHT_REM + "rem",
+      minHeight: ROW_HEIGHT_REM + "rem",
+      padding: 0,
       "&.Mui-expanded": {
-        minHeight: "auto"
+        minHeight: ROW_HEIGHT_REM + "rem"
       }
     },
     ".accordion-summary .MuiAccordionSummary-content": {
-      margin: "0"
+      margin: "0",
+      alignItems: "center"
     },
     ".accordion .MuiAccordionDetails-root": {
-      padding: "0",
-      marginTop: "0"
+      padding: 0,
+      marginTop: 0
     },
     ".accordion .MuiAccordionDetails-root .MuiBox-root": {
-      height: "1.5em"
+      height: ROW_HEIGHT_REM + "rem"
     },
-    ".MuiAccordionSummary-expandIconWrapper": {
+    // Custom expand gutter to align parent and leaf rows
+    ".row": {
       position: "relative",
-      padding: "0",
-      width: "0px",
-      height: "0px",
-      overflow: "visible",
-      transform: "none"
+      display: "flex",
+      width: "100%",
+      alignItems: "center",
+      height: ROW_HEIGHT_REM + "rem",
+      gap: ".25rem",
+      borderRadius: ".5em"
     },
-    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
-      transform: "none"
+    ".row:hover": {
+      opacity: 0.9,
+
+      backgroundColor: theme.vars.palette.grey[900]
     },
-    ".MuiAccordionSummary-expandIconWrapper:hover": {
-      color: "var(--palette-primary-main)"
-    },
-    ".MuiAccordionSummary-expandIconWrapper svg": {
-      width: "25px",
-      height: "25px",
+    ".expand-gutter": {
       position: "absolute",
-      top: "-.6em",
-      bottom: "0",
-      left: "4px",
-      right: "0",
-      zIndex: 1000,
+      left: "-22px",
+      top: 1,
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: EXPAND_ICON_SIZE_PX + "px",
+      height: "100%",
       color: theme.vars.palette.grey[200],
-      filter: "none",
+      zIndex: 2,
+      pointerEvents: "auto"
+    },
+    ".expand-gutter svg": {
+      width: EXPAND_ICON_SIZE_PX + "px",
+      height: EXPAND_ICON_SIZE_PX + "px",
       transform: "rotate(-90deg)",
       transition: "transform 0.25s ease"
     },
-    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
-      color: theme.vars.palette.grey[200],
+    // Rotate icon only when the corresponding summary is expanded
+    ".accordion .accordion-summary.Mui-expanded .expand-gutter svg": {
       transform: "rotate(0deg)"
+    },
+    // Ensure all folder rows have a fixed, consistent height
+    ".folder-item": {
+      height: ROW_HEIGHT_REM + "rem"
+      // alignItems: "center"
+    },
+    ".folder-item .folder-name": {
+      margin: 0,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
     },
     //
     ".root-folder": {
-      paddingLeft: "0",
-      marginLeft: "-.5em"
+      paddingLeft: 0,
+      marginLeft: 0
     },
     ".root-folder .folder-icon": {
       width: "18px !important"
     },
     ".root-folder .folder-name": {
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeNormal
     },
     // No resize handle styles
     // Narrow sidebar tweaks
@@ -124,9 +146,7 @@ const styles = (theme: Theme) =>
       "&.folder-list-container": {
         height: "100px"
       },
-      ".MuiAccordionSummary-expandIconWrapper svg": {
-        left: "0"
-      }
+      ".expand-gutter svg": { left: "0" }
     }
   });
 
@@ -138,77 +158,170 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const theme = useTheme();
   const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
-  const { navigateToFolder } = useAssets();
+  const { navigateToFolder, navigateToFolderId } = useAssets();
 
   const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
   );
 
-  const handleSelect = (folder: Asset) => {
-    navigateToFolder(folder);
+  // Control which folders are expanded; disable single-click expansion
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
+    new Set()
+  );
+
+  const handleSelect = (folder: Asset | RootFolder) => {
+    if ((folder as Asset).user_id !== undefined) {
+      navigateToFolder(folder as Asset);
+    } else {
+      navigateToFolderId(folder.id);
+    }
   };
 
-  const renderFolder = (folder: any, level = 0, isRoot = false) => {
+  interface FolderNode extends Asset {
+    children?: FolderNode[];
+  }
+  type RootFolder = {
+    id: string;
+    name: string;
+    content_type: string;
+    parent_id: string;
+    children: FolderNode[];
+  };
+
+  const hasChildNodes = (
+    folder: FolderNode | RootFolder
+  ): folder is FolderNode & { children: FolderNode[] } => {
+    return (
+      "children" in folder &&
+      Array.isArray(folder.children) &&
+      folder.children.length > 0
+    );
+  };
+
+  const handleRowDoubleClick = useCallback(
+    (folderId: string, isRoot: boolean) => {
+      if (isRoot) return;
+      setExpandedFolderIds((previousExpandedIds) => {
+        const nextExpandedIds = new Set(previousExpandedIds);
+        if (nextExpandedIds.has(folderId)) {
+          nextExpandedIds.delete(folderId);
+        } else {
+          nextExpandedIds.add(folderId);
+        }
+        return nextExpandedIds;
+      });
+    },
+    []
+  );
+
+  const renderFolder = (
+    folder: FolderNode | RootFolder,
+    level = 0,
+    isRoot = false
+  ) => {
     if (!folder || !folder.id) return null;
-    const hasChildren = folder.children && folder.children.length > 0;
+    const hasChildren = hasChildNodes(folder);
 
     return hasChildren ? (
+      // Folder with children
       <Accordion
+        slotProps={{ heading: { component: "div" } }}
         className={"accordion " + (isRoot ? "root-folder" : "")}
         key={folder.id}
         sx={{
           marginTop: "0 !important",
           marginBottom: "0 !important"
         }}
+        /* Keep root expanded; disable single-click toggle by controlling expanded */
+        expanded={isRoot ? true : expandedFolderIds.has(folder.id)}
+        onChange={() => {
+          /* no-op: only double-click toggles */
+        }}
       >
         <AccordionSummary
           className="accordion-summary"
           sx={{
             marginTop: 0,
-            marginBottom: 0,
-            paddingLeft: `${level * LEVEL_PADDING}em !important`
+            marginBottom: 0
           }}
-          expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${folder.id}-content`}
           id={`panel-${folder.id}-header`}
+          /* Prevent toggle interactions on the root summary */
+          onClick={(e) => e.preventDefault()}
         >
-          <FolderItem
-            folder={folder}
-            onSelect={() => handleSelect(folder)}
-            isSelected={selectedFolderIds.includes(folder.id)}
-          />
+          <div
+            className="row"
+            style={{
+              paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem`
+            }}
+            data-is-root={isRoot ? "true" : "false"}
+            onDoubleClick={() => handleRowDoubleClick(folder.id, isRoot)}
+          >
+            <FolderItem
+              folder={folder as Asset}
+              onSelect={() => handleSelect(folder)}
+              isSelected={selectedFolderIds.includes(folder.id)}
+            >
+              {!isRoot && (
+                <span
+                  className="expand-gutter"
+                  aria-hidden="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setExpandedFolderIds((previousExpandedIds) => {
+                      const nextExpandedIds = new Set(previousExpandedIds);
+                      if (nextExpandedIds.has(folder.id)) {
+                        nextExpandedIds.delete(folder.id);
+                      } else {
+                        nextExpandedIds.add(folder.id);
+                      }
+                      return nextExpandedIds;
+                    });
+                  }}
+                >
+                  <ExpandMoreIcon />
+                </span>
+              )}
+            </FolderItem>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
-          {folder.children.map((childNode: any) =>
-            renderFolder(childNode, level + 1)
+          {(("children" in folder ? folder.children : []) as FolderNode[]).map(
+            (childNode: FolderNode) => renderFolder(childNode, level + 1)
           )}
         </AccordionDetails>
       </Accordion>
     ) : (
+      // Folder without children
       <Box
         className={"childless " + (isRoot ? "root-folder" : "")}
         sx={{
-          height: ROW_HEIGHT + "em",
+          height: ROW_HEIGHT_REM + "rem",
           marginTop: 0,
-          marginBottom: 0,
-          paddingLeft: `${level * LEVEL_PADDING}em !important`
+          marginBottom: 0
         }}
         key={folder.id}
       >
-        <FolderItem
-          folder={folder}
-          onSelect={() => handleSelect(folder)}
-          isSelected={selectedFolderIds.includes(folder.id)}
-        />
+        <div
+          className="row"
+          style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
+        >
+          <FolderItem
+            folder={folder as Asset}
+            onSelect={() => handleSelect(folder)}
+            isSelected={selectedFolderIds.includes(folder.id)}
+          />
+        </div>
       </Box>
     );
   };
 
-  const rootFolder = {
-    id: currentUser?.id,
+  const rootFolder: RootFolder = {
+    id: currentUser?.id ?? "root",
     name: "ASSETS",
     content_type: "folder",
-    children: Object.values(folderTree || {}),
+    children: (Object.values(folderTree || {}) as FolderNode[]) || [],
     parent_id: currentUser?.id || ""
   };
 

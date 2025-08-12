@@ -101,6 +101,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.START_SERVER),
   restartServer: () =>
     ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
+  showPackageManager: () =>
+    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
   onCreateWorkflow: (workflow: Workflow) =>

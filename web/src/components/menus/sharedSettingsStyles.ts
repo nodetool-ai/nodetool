@@ -23,16 +23,14 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
 
     .save-button {
       position: absolute;
-      bottom: 10px;
+      bottom: 20px;
       right: 10px;
-      padding: 0.6em 2.5em;
+      padding: 0.5em 2.5em;
       font-family: ${theme.fontFamily2};
       word-spacing: -0.2em;
       color: ${theme.vars.palette.primary.contrastText};
-      background-color: ${"var(--palette-primary-main)"};
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-      border-radius: 0.3em;
+      background-color: ${theme.vars.palette.primary.main};
+      border-radius: 8px;
       text-transform: none;
       font-size: ${theme.fontSizeNormal};
       transition: all 0.2s ease;
@@ -104,8 +102,8 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     }
 
     .settings-section {
-      backgroundcolor: rgba(30, 30, 30, 0.4);
-      backdropfilter: blur(5px);
+      background: "transparent";
+      backdropfilter: blur(20px);
       borderradius: 8px;
       padding: 1.2em;
       margin: 1.5em 0 1.5em 0;

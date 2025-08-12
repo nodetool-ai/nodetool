@@ -20,6 +20,8 @@ import {
   CardActionArea,
   CardContent
 } from "@mui/material";
+import Chip from "@mui/material/Chip";
+import DownloadIcon from "@mui/icons-material/Download";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
@@ -28,7 +30,6 @@ import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
-import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
@@ -46,9 +47,7 @@ import { DownloadProgress } from "../../hugging_face/DownloadProgress";
 
 enum TabValue {
   Overview = 0,
-  WhatsNew = 1,
-  Links = 2,
-  Setup = 3
+  Setup = 1
 }
 
 interface TabPanelProps {
@@ -71,7 +70,12 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const InlineModelDownload: React.FC<{ model: UnifiedModel }> = ({ model }) => {
+const InlineModelDownload: React.FC<{
+  model: UnifiedModel;
+  label?: React.ReactNode;
+  isDefault?: boolean;
+  tooltip?: string;
+}> = ({ model, label, isDefault, tooltip }) => {
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
@@ -81,14 +85,17 @@ const InlineModelDownload: React.FC<{ model: UnifiedModel }> = ({ model }) => {
   if (inProgress) {
     return (
       <Box component="span" sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}>
-        <DownloadProgress name={downloadKey} />
+        <DownloadProgress name={downloadKey} minimal />
       </Box>
     );
   }
-  return (
+  const button = (
     <Button
       size="small"
-      variant="outlined"
+      variant={isDefault ? "contained" : "outlined"}
+      color={isDefault ? "primary" : "inherit"}
+      startIcon={<DownloadIcon fontSize="small" />}
+      aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       onClick={() =>
         startDownload(
@@ -100,41 +107,98 @@ const InlineModelDownload: React.FC<{ model: UnifiedModel }> = ({ model }) => {
         )
       }
     >
-      Download
+      {label ?? "Download"}
     </Button>
+  );
+  return tooltip ? (
+    <Tooltip title={tooltip} arrow>
+      <span>{button}</span>
+    </Tooltip>
+  ) : (
+    button
   );
 };
 
-const recommendedModels: UnifiedModel[] = [
+interface FeaturedModel extends UnifiedModel {
+  displayName?: string;
+  note?: string;
+  vision?: boolean;
+  reasoning?: boolean;
+  base?: string;
+  variants?: string[];
+  defaultVariant?: string;
+}
+
+const recommendedModels: FeaturedModel[] = [
   {
     id: DEFAULT_MODEL,
     name: "GPT - OSS",
+    displayName: "GPT - OSS",
     type: "llama_model",
-    repo_id: DEFAULT_MODEL
-  },
-  {
-    id: "deepseek-r1:7b",
-    name: "DeepSeek R1 7B",
-    type: "llama_model",
-    repo_id: "deepseek-r1:7b"
+    repo_id: DEFAULT_MODEL,
+    base: "gpt-oss",
+    variants: ["20b", "120b"],
+    defaultVariant: "20b",
+    description:
+      "Open‑weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.",
+    note: "We strongly recommend this model to enable agentic workflows.",
+    reasoning: true,
+    vision: false
   },
   {
     id: "gemma3:4b",
     name: "Gemma 3 4B",
+    displayName: "Gemma 3",
     type: "llama_model",
-    repo_id: "gemma3:4b"
+    repo_id: "gemma3:4b",
+    base: "gemma3",
+    variants: ["1b", "4b", "12b", "27b"],
+    defaultVariant: "4b",
+    description:
+      "Lightweight, multimodal (text, images, short video), long 128K context, designed for single‑GPU/TPU. Ideal for on‑device apps, multimodal QA/summarization, and multilingual use.",
+    reasoning: true,
+    vision: true
   },
   {
-    id: "qwen3:1.5b",
-    name: "Qwen 3 1.5B",
+    id: "deepseek-r1:7b",
+    name: "DeepSeek R1 7B",
+    displayName: "R1 Distilled",
     type: "llama_model",
-    repo_id: "qwen3:1.5b"
+    repo_id: "deepseek-r1:7b",
+    base: "deepseek-r1",
+    variants: ["1.5b", "7b", "8b", "14b", "32b"],
+    defaultVariant: "7b",
+    description:
+      "Compact models distilled from DeepSeek‑R1 with strong math and logic performance in smaller footprints. Great when compute is limited but reasoning quality matters; permissive MIT license.",
+    reasoning: true,
+    vision: false
+  },
+  {
+    id: "qwen3:4b",
+    name: "Qwen 3 4B",
+    displayName: "Qwen 3",
+    type: "llama_model",
+    repo_id: "qwen3:4b",
+    base: "qwen3",
+    variants: ["0.6b", "1.7b", "4b", "8b", "14b", "30b", "32b"],
+    defaultVariant: "4b",
+    description:
+      "Hybrid reasoning (thinking and fast modes), strong multilingual support. Best for balanced reasoning + speed, agentic workflows, and multilingual apps.",
+    reasoning: true,
+    vision: false
   },
   {
     id: "nomic-embed-text",
     name: "Nomic Embed Text",
+    displayName: "Nomic Embed Text",
     type: "llama_model",
-    repo_id: "nomic-embed-text:latest"
+    repo_id: "nomic-embed-text:latest",
+    base: "nomic-embed-text",
+    variants: ["latest"],
+    defaultVariant: "latest",
+    description: "Embeddings model for retrieval and semantic search.",
+    reasoning: false,
+    vision: false
   }
 ];
 
@@ -261,6 +325,17 @@ const Welcome = () => {
     updateSettings({ showWelcomeOnStartup: event.target.checked });
   };
 
+  // Featured local models to display in the setup section
+  const featuredLocalModelIds = [
+    DEFAULT_MODEL,
+    "qwen3:4b",
+    "deepseek-r1:7b",
+    "gemma3:4b"
+  ];
+  const featuredModels = recommendedModels.filter((m) =>
+    featuredLocalModelIds.includes(m.id)
+  );
+
   return (
     <div css={welcomeStyles(theme)}>
       <div className="header">
@@ -311,9 +386,7 @@ const Welcome = () => {
             className="overview tabs"
           >
             <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-            <Tab label={"What's New"} id="tab-1" aria-controls="tabpanel-1" />
-            <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
-            <Tab label="Setup" id="tab-3" aria-controls="tabpanel-3" />
+            <Tab label="Setup" id="tab-1" aria-controls="tabpanel-1" />
           </Tabs>
 
           {tabValue === TabValue.Overview && (
@@ -343,7 +416,7 @@ const Welcome = () => {
                   Quick Start
                 </Typography>
                 <Grid container spacing={2} className="quick-start-grid">
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 4", md: "span 2" } }}>
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea onClick={() => navigate("/editor")}>
                         <CardContent>
@@ -438,54 +511,6 @@ const Welcome = () => {
             })()}
           </TabPanel>
 
-          <TabPanel value={tabValue} index={TabValue.WhatsNew}>
-            <WhatsNew />
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={TabValue.Links}>
-            <Link
-              href="https://forum.nodetool.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              Forum
-            </Link>
-            <div className="link-body">
-              Go to the NodeTool forum for help and advice or share what you
-              made.
-            </div>
-            <Link
-              href="https://github.com/nodetool-ai/nodetool"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              GitHub
-            </Link>
-            <div className="link-body">
-              Want to run Nodetool locally or contribute to its development?
-              <br />
-              Nodetool is open-source and available on GitHub.
-              <br />
-              You can customize it, add new nodes, or integrate it into your own
-              AI workflows.
-              <br />
-              Check out the repository for installation instructions and
-              documentation.
-              <br />
-              Let us know what you build!
-            </div>
-            <Link
-              href="https://discord.gg/26m5xBwe"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="link"
-            >
-              Discord
-            </Link>
-            <div className="link-body">Join the community to get help and share workflows.</div>
-          </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "2em" }}>
@@ -498,8 +523,8 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.vars.palette.grey[800],
                     padding: "20px",
+                    border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
                 >
@@ -603,8 +628,8 @@ const Welcome = () => {
                 <Box
                   sx={{
                     flex: 1,
-                    backgroundColor: theme.vars.palette.grey[800],
                     padding: "20px",
+                    border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
                 >
@@ -628,87 +653,60 @@ const Welcome = () => {
                     </Typography>
 
                     <ul className="local-models-list">
-                      <li>
-                        <div className="local-model-item">
-                          <div className="local-model-header">
-                            <div className="local-model-title">
-                              <Typography variant="h4">GPT - OSS</Typography>
+                      {featuredModels.map((model) => (
+                        <li key={model.id} style={{ listStyle: "none" }}>
+                          <div className="local-model-item">
+                            <div className="local-model-header">
+                              <div className="local-model-title">
+                                <Typography variant="h4">{(model as FeaturedModel).displayName || model.name}</Typography>
+                              </div>
+                              <div className="local-model-actions">
+                                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                  {(((model as FeaturedModel).variants && (model as FeaturedModel).variants!.length > 0)
+                                    ? (model as FeaturedModel).variants!
+                                    : [model.id.split(":")[1] || "latest"]).map((variant) => {
+                                      const base = (model as FeaturedModel).base || (model.id.includes(":") ? model.id.split(":")[0] : model.id);
+                                      const variantModel: UnifiedModel = {
+                                        ...model,
+                                        id: `${base}:${variant}`,
+                                        repo_id: `${base}:${variant}`
+                                      };
+                                      const defaultVariant = (model as FeaturedModel).defaultVariant || (model.id.includes(":") ? model.id.split(":")[1] : "");
+                                      const isDefault = variant.toLowerCase() === (defaultVariant || "").toLowerCase();
+                                      return (
+                                        <InlineModelDownload
+                                          key={`${model.id}-${variant}`}
+                                          model={variantModel}
+                                          isDefault={isDefault}
+                                          label={`${variant.toUpperCase()}`}
+                                          tooltip={`Download ${base}:${variant}`}
+                                        />
+                                      );
+                                  })}
+                                </Box>
+                              </div>
                             </div>
-                            <div className="local-model-actions">
-                              <InlineModelDownload model={recommendedModels.find((m) => m.id === DEFAULT_MODEL)!} />
-                            </div>
-                          </div>
-                          <div className="local-model-desc">
-                            <Typography variant="body1">
-                              Open‑weight models designed for powerful reasoning, agentic tasks, and
-                              versatile developer use cases.
-                            </Typography>
-                            <Typography variant="body2" className="model-note">
-                              We strongly recommend this model to enable agentic workflows.
-                            </Typography>
-                          </div>
-                        </div>
-                      </li>
-
-                      <li>
-                        <div className="local-model-item">
-                          <div className="local-model-header">
-                            <div className="local-model-title">
-                              <Typography variant="h4">Qwen 3</Typography>
-                            </div>
-                            <div className="local-model-actions">
-                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("qwen3:"))!} />
-                            </div>
-                          </div>
-                          <div className="local-model-desc">
-                            <Typography variant="body1">
-                              Hybrid reasoning (thinking and fast modes), strong multilingual support.
-                              Best for balanced reasoning + speed, agentic workflows, and multilingual
-                              apps.
-                            </Typography>
-                          </div>
-                        </div>
-                      </li>
-
-                      <li>
-                        <div className="local-model-item">
-                          <div className="local-model-header">
-                            <div className="local-model-title">
-                              <Typography variant="h4">R1 Distilled</Typography>
-                            </div>
-                            <div className="local-model-actions">
-                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("deepseek-r1:"))!} />
-                            </div>
-                          </div>
-                          <div className="local-model-desc">
-                            <Typography variant="body1">
-                              Compact models distilled from DeepSeek‑R1 with strong math and logic
-                              performance in smaller footprints. Great when compute is limited but
-                              reasoning quality matters; permissive MIT license.
-                            </Typography>
-                          </div>
-                        </div>
-                      </li>
-
-                      <li>
-                        <div className="local-model-item">
-                          <div className="local-model-header">
-                            <div className="local-model-title">
-                              <Typography variant="h4">Gemma 3</Typography>
-                            </div>
-                            <div className="local-model-actions">
-                              <InlineModelDownload model={recommendedModels.find((m) => m.id.startsWith("gemma3:"))!} />
+                            <div className="local-model-desc">
+                              {model.description && (
+                                <Typography variant="body1">{model.description}</Typography>
+                              )}
+                              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
+                                {((model as FeaturedModel).reasoning ?? false) && (
+                                  <Chip size="small" label="Reasoning" color="primary" variant="outlined" />
+                                )}
+                                {((model as FeaturedModel).vision ?? false) && (
+                                  <Chip size="small" label="Vision" color="secondary" variant="outlined" />
+                                )}
+                              </Box>
+                              {(model as FeaturedModel).note && (
+                                <Typography variant="body2" className="model-note">
+                                  {(model as FeaturedModel).note}
+                                </Typography>
+                              )}
                             </div>
                           </div>
-                          <div className="local-model-desc">
-                            <Typography variant="body1">
-                              Lightweight, multimodal (text, images, short video), long 128K context,
-                              designed for single‑GPU/TPU. Ideal for on‑device apps, multimodal
-                              QA/summarization, and multilingual use.
-                            </Typography>
-                          </div>
-                        </div>
-                      </li>
+                        </li>
+                      ))}
                     </ul>
                   </Box>
                 </Box>

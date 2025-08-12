@@ -39,12 +39,12 @@ import SettingsSidebar from "./SettingsSidebar";
 export const settingsStyles = (theme: Theme): any =>
   css({
     ".MuiBackdrop-root": {
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
-      backdropFilter: "blur(5px)"
+      backdropFilter: "blur(20px)"
     },
     ".MuiPaper-root": {
-      backgroundColor: "var(--palette-background-default)",
-      backdropFilter: "blur(10px)",
+      "--Paper-overlay": "0 !important",
+      background: "transparent",
+      backdropFilter: "blur(20px)",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: ".5em",
       maxWidth: "1000px",
@@ -144,12 +144,12 @@ export const settingsStyles = (theme: Theme): any =>
       borderLeft: "3px solid transparent",
       "&:hover": {
         opacity: 1,
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.08)`
       },
       "&.active": {
         opacity: 1,
         borderLeftColor: "var(--palette-primary-main)",
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.12)`
       }
     },
     ".settings-sidebar-category": {
@@ -179,7 +179,7 @@ export const settingsStyles = (theme: Theme): any =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.grey[800]
+        background: theme.vars.palette.background.paper
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[500],
@@ -239,7 +239,7 @@ export const settingsStyles = (theme: Theme): any =>
         },
         "& .MuiInputBase-root": {
           maxWidth: "34em",
-          backgroundColor: "theme.vars.palette.grey[800]",
+          backgroundColor: theme.vars.palette.background.paper,
           borderRadius: ".3em",
           margin: "0",
           padding: ".3em 1em",
@@ -264,7 +264,7 @@ export const settingsStyles = (theme: Theme): any =>
         lineHeight: "1.6",
         a: {
           color: "var(--palette-primary-main)",
-          backgroundColor: theme.vars.palette.grey[800],
+          backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.10)`,
           padding: ".3em 1em",
           borderRadius: ".3em",
           marginTop: ".5em",
@@ -305,16 +305,16 @@ export const settingsStyles = (theme: Theme): any =>
       margin: "0"
     },
     ".secrets": {
-      backgroundColor: "rgba(30, 30, 30, 0.6)",
+      backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.12)`,
       backdropFilter: "blur(5px)",
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       fontSize: theme.fontSizeBig,
       marginTop: ".8em",
       padding: ".8em 1em",
       borderRadius: ".3em",
       display: "flex",
       alignItems: "center",
-      gap: "0.8em",
+      gap: ".8em",
       border: `1px solid ${theme.vars.palette.warning.main}`,
       boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
     },

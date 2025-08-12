@@ -118,7 +118,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter": {
         width: "150px",
-        height: "32px",
+        height: "38px",
         margin: "0"
       },
       ".type-filter label": {
@@ -137,9 +137,15 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         alignItems: "center",
         textAlign: "left",
         fontSize: theme.fontSizeNormal,
-        padding: "0 1em 0 .5em",
-        height: "32px",
-        lineHeight: "32px"
+        padding: "0 1.75em 0 .75em",
+        height: "36px",
+        lineHeight: "36px",
+        backgroundColor: theme.vars.palette.background.paper,
+        borderColor: theme.vars.palette.grey[600],
+        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s"
+      },
+      ".type-filter .MuiOutlinedInput-root": {
+        borderRadius: "8px"
       },
       ".type-filter .MuiListItemIcon-root": {
         minWidth: "18px",
@@ -182,7 +188,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               className="type-filter-select"
               onChange={(e) => setSelectedInputType(e.target.value)}
               size="medium"
-              variant="filled"
+              variant="outlined"
               label="Input Type"
               value={selectedInputType}
               onOpen={() => setInputSelectOpen(true)}
@@ -306,7 +312,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               className="type-filter-select"
               onChange={(e) => setSelectedOutputType(e.target.value)}
               size="medium"
-              variant="filled"
+              variant="outlined"
               label="Output Type"
               value={selectedOutputType}
               onOpen={() => setOutputSelectOpen(true)}

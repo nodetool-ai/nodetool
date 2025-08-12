@@ -76,17 +76,28 @@ const namespaceStyles = (theme: Theme) =>
     ".namespace-list": {
       display: "flex",
       flexDirection: "column",
-      gap: "0",
+      gap: "2px",
       overflowY: "auto",
       minWidth: "200px",
       width: "100%",
       boxSizing: "border-box",
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
-      paddingRight: "1em",
-      paddingLeft: "1em",
-      boxShadow: "inset 0 0 4px rgba(0, 0, 0, 0.2)",
+      paddingRight: "0.75em",
+      paddingLeft: "0.75em",
+      borderRadius: "10px",
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: "rgba(255,255,255,0.02)",
+      backdropFilter: "blur(2px)"
+    },
+    ".namespace-list::-webkit-scrollbar": { width: "8px" },
+    ".namespace-list::-webkit-scrollbar-track": { background: "transparent" },
+    ".namespace-list::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(255,255,255,0.12)",
       borderRadius: "8px"
+    },
+    ".namespace-list::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "rgba(255,255,255,0.2)"
     },
     ".namespace-list-enabled": {
       flex: "1 1 auto",
@@ -97,22 +108,33 @@ const namespaceStyles = (theme: Theme) =>
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px solid ${theme.vars.palette.grey[900]}`,
-      marginTop: "0.5em",
+      borderTop: `1px dashed ${theme.vars.palette.grey[700]}`,
+      marginTop: "0.75em",
       paddingTop: "0.5em",
       ".namespace-item": {
-        color: theme.vars.palette.grey[200]
+        color: theme.vars.palette.grey[300]
       }
     },
     ".node-list": {
       height: "100%",
       maxHeight: "750px",
-      width: "250px",
+      width: "260px",
       flex: "0 1 auto",
       backgroundColor: "transparent",
-      transition: "max-width 1s ease-out, width 1s ease-out",
+      transition: "max-width 0.35s ease, width 0.35s ease",
       overflowX: "hidden",
-      overflowY: "auto"
+      overflowY: "auto",
+      // borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+      padding: "0 0.5em"
+    },
+    ".node-list::-webkit-scrollbar": { width: "8px" },
+    ".node-list::-webkit-scrollbar-track": { background: "transparent" },
+    ".node-list::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(255,255,255,0.12)",
+      borderRadius: "8px"
+    },
+    ".node-list::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "rgba(255,255,255,0.2)"
     },
     ".no-selection": {
       maxWidth: "200px",
@@ -215,18 +237,21 @@ const namespaceStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       minWidth: "200px",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      padding: "0"
     },
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "0",
-      padding: "0.025em",
-      borderRadius: "3px",
+      margin: "2px 0",
+      padding: "2px",
+      borderRadius: "6px",
       cursor: "pointer",
+      transition: "background-color 0.18s ease, box-shadow 0.18s ease",
       ".node-button": {
-        padding: ".1em .5em",
+        padding: ".25em .6em",
         flexGrow: 1,
+        borderRadius: "6px",
         "&:hover": {
           backgroundColor: "var(--palette-grey-800)"
         },
@@ -242,7 +267,8 @@ const namespaceStyles = (theme: Theme) =>
       }
     },
     ".node:hover": {
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800],
+      boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)"
     },
     ".node.focused": {
       color: "var(--palette-primary-main)",
@@ -252,11 +278,11 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespace-text": {
       color: theme.vars.palette.grey[400],
-      fontWeight: "500",
-      fontSize: "75%",
-      borderTop: `1px solid ${theme.vars.palette.grey[600]}`,
-      padding: ".5em 0 0 0",
-      margin: "1em 0 .5em 0",
+      fontWeight: 500,
+      fontSize: "0.7rem",
+      // borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
+      padding: ".4em 0 0 0",
+      margin: "0.75em 0 .4em 0",
       letterSpacing: "0.5px",
       wordBreak: "break-word",
       userSelect: "none",
@@ -292,16 +318,16 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespaces .list-item": {
       cursor: "pointer",
-      padding: ".3em .75em",
+      padding: ".4em .8em",
       backgroundColor: "transparent",
-      borderLeft: `3px solid ${theme.vars.palette.grey[800]}`,
+      // borderLeft: `3px solid ${theme.vars.palette.grey[800]}`,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      fontWeight: "300",
-      transition: "all 0.2s ease-in-out",
+      fontWeight: 300,
+      transition: "background-color 0.18s ease, border-color 0.18s ease",
       overflow: "hidden",
       margin: "0",
-      borderRadius: "0 4px 4px 0"
+      borderRadius: "0 6px 6px 0"
     },
     ".namespaces .list-item.disabled": {
       backgroundColor: "transparent",
@@ -316,8 +342,8 @@ const namespaceStyles = (theme: Theme) =>
       marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: theme.vars.palette.grey[500],
-      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
+      backgroundColor: theme.vars.palette.grey[600],
+      // borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.expanded": {
       opacity: 1
@@ -332,7 +358,8 @@ const namespaceStyles = (theme: Theme) =>
     ".namespaces .list-item.selected": {
       backgroundColor: "var(--palette-primary-main)",
       borderLeft: `3px solid ${"var(--palette-primary-main)"}`,
-      fontWeight: "500"
+      fontWeight: 600,
+      boxShadow: "0 1px 6px rgba(0,0,0,0.25)"
     },
     ".namespaces .list-item.selected .namespace-item": {
       color: theme.vars.palette.grey[1000]
@@ -367,6 +394,7 @@ const namespaceStyles = (theme: Theme) =>
       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       width: "270px",
       marginRight: "0.5em",
+      marginLeft: "0.75em",
       "&.collapsed": {
         width: 0,
         opacity: 0,
@@ -376,31 +404,50 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".node-info-container": {
       width: "300px",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+      paddingLeft: "0.5em"
     },
     ".toggle-panel-button": {
       position: "absolute",
-      left: "0",
-      top: "0",
+      left: 0,
+      top: 0,
       height: "100%",
+      width: "28px",
       zIndex: 1,
       backgroundColor: "transparent",
       border: "none",
-      borderRadius: "0 4px 4px 0",
+      borderRadius: "0 6px 6px 0",
       cursor: "pointer",
       color: theme.vars.palette.grey[0],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      transition: "background-color 0.18s ease",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        backgroundColor: "rgba(255, 255, 255, 0.06)"
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
       },
       "& svg": {
-        color: "rgba(255, 255, 255, 0.5)",
-        transition: "transform 0.3s ease-in-out"
+        color: "rgba(255, 255, 255, 0.55)",
+        transition: "transform 0.25s ease-in-out"
       },
       "&.collapsed svg": {
         transform: "rotate(180deg)"
+      }
+    },
+    ".node-packs-info .MuiButton-root": {
+      textTransform: "none",
+      borderRadius: "8px",
+      padding: "6px 10px",
+      borderColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.grey[0],
+      "&:hover": {
+        backgroundColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.vars.palette.grey[500]
       }
     }
   });
@@ -414,11 +461,9 @@ const NoSelectionContent = memo(function NoSelectionContent({
   selectedPathString: string;
   minSearchTermLength: number;
 }) {
-  const handleViewChange = usePanelStore((state) => state.handleViewChange);
-
   const openPacksPanel = useCallback(() => {
-    handleViewChange("packs");
-  }, [handleViewChange]);
+    window.api.showPackageManager();
+  }, []);
 
   return (
     <div className="no-selection">
@@ -660,12 +705,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return Object.values(allMetadata).length;
   }, [allMetadata]);
 
-  const [isPanelCollapsed, setIsPanelCollapsed] = React.useState(false);
-
-  const togglePanel = useCallback(() => {
-    setIsPanelCollapsed((prev) => !prev);
-  }, []);
-
   return (
     <div
       css={namespaceStyles(theme)}
@@ -678,19 +717,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           : "no-search-results"
       }
     >
-      <button
-        className={`toggle-panel-button ${isPanelCollapsed ? "collapsed" : ""}`}
-        onClick={togglePanel}
-        title={isPanelCollapsed ? "Show namespaces" : "Hide namespaces"}
-      >
-        <KeyboardArrowLeft />
-      </button>
       <Box className="list-box">
-        <div
-          className={`namespace-panel-container ${
-            isPanelCollapsed ? "collapsed" : ""
-          }`}
-        >
+        <div className={`namespace-panel-container`} id="namespace-panel">
           <List className="namespace-list">
             <div className="namespace-list-enabled">
               <RenderNamespaces tree={enabledTree} />
