@@ -28,19 +28,48 @@ const styles = (theme: Theme) =>
     "&": {
       marginLeft: "0px"
     },
+    
+    ".toolbar-header": {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      padding: "0.5em 0.75em",
+      background: "transparent",
+      backdropFilter: "blur(4px)",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+    },
+
     ".loading-indicator": {
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       flexDirection: "column",
-      height: "50vh",
-      width: "100%"
+      height: "45vh",
+      width: "100%",
+      gap: "0.75em",
+      color: theme.vars.palette.grey[0]
     },
     ".status": {
-      margin: "1em 1em 0 2em"
+      margin: "0.5em 0.75em 0 0.75em",
+      color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      paddingTop: "0.5em"
+      padding: "0.5em 0.75em 0.75em",
+      overflow: "auto",
+      scrollbarWidth: "thin",
+      scrollbarColor: `${theme.vars.palette.c_scroll_thumb} ${theme.vars.palette.c_scroll_bg}`,
+      "&::-webkit-scrollbar": { width: 10 },
+      "&::-webkit-scrollbar-track": {
+        background: theme.vars.palette.c_scroll_bg
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: theme.vars.palette.c_scroll_thumb,
+        borderRadius: 10,
+        border: `2px solid ${theme.vars.palette.c_scroll_bg}`
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        backgroundColor: theme.vars.palette.c_scroll_hover
+      }
     },
     // Toggle category
     ".toggle-category": {
@@ -55,6 +84,16 @@ const styles = (theme: Theme) =>
       padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[200]
+    },
+
+    ".empty-state": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "0.5em",
+      padding: "2em 1em",
+      color: theme.vars.palette.grey[300]
     }
   });
 
@@ -232,7 +271,8 @@ const WorkflowList = () => {
         />
       )}
       <div css={styles(theme)}>
-        <WorkflowToolbar
+        <div className="toolbar-header">
+          <WorkflowToolbar
           workflows={workflows}
           setFilterValue={setFilterValue}
           selectedTag={selectedTag}
@@ -246,7 +286,8 @@ const WorkflowList = () => {
             );
             setIsDeleteDialogOpen(true);
           }}
-        />
+          />
+        </div>
         <div className="status">
           {isLoading && (
             <div className="loading-indicator">
@@ -263,6 +304,14 @@ const WorkflowList = () => {
           )}
         </div>
         <div className="workflow-items">
+          {!isLoading && !isError && finalWorkflows.length === 0 ? (
+            <div className="empty-state">
+              <Typography variant="h6">No workflows yet</Typography>
+              <Typography variant="body2">
+                Create your first workflow with the + button above.
+              </Typography>
+            </div>
+          ) : (
           <WorkflowListView
             workflows={finalWorkflows}
             onOpenWorkflow={handleOpenWorkflow}
@@ -274,6 +323,7 @@ const WorkflowList = () => {
             workflowCategory="user"
             showCheckboxes={showCheckboxes}
           />
+          )}
         </div>
       </div>
     </>
