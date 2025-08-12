@@ -308,14 +308,14 @@ const WindowControls = () => {
 };
 
 type TabsNodeEditorProps = {
-  isChat?: boolean;
+  hideContent?: boolean;
 };
 
-const TabsNodeEditor = ({ isChat = false }: TabsNodeEditorProps) => {
+const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const { openWorkflows, currentWorkflowId, loadingStates } =
     useWorkflowManager((state) => ({
       openWorkflows: state.openWorkflows,
-      currentWorkflowId: isChat ? undefined : state.currentWorkflowId,
+      currentWorkflowId: hideContent ? undefined : state.currentWorkflowId,
       loadingStates: state.loadingStates
     }));
 
@@ -374,7 +374,7 @@ const TabsNodeEditor = ({ isChat = false }: TabsNodeEditorProps) => {
           <TabsBar workflows={tabsToRender} currentWorkflowId={currentWorkflowId!} />
           {!isMac && isElectron && <WindowControls />}
         </div>
-        {!isChat && (
+        {!hideContent && (
           <div
             className="editor-container"
             css={generateCSS}

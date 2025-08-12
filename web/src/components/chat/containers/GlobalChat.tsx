@@ -238,7 +238,7 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        <TabsNodeEditor isChat />
+        <TabsNodeEditor hideContent />
         <Box className="actions-container" sx={{ position: "absolute", top: "32px", left: 0, right: 0, zIndex: 1000 }}>
           <AppHeader />
         </Box>
