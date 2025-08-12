@@ -28,13 +28,16 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { PANEL_CONFIG } from "./panelConfig";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
+import TabsNodeEditor from "../editor/TabsNodeEditor";
+import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
   css({
-    "&": {
+    ".dashboard": {
       width: "100vw",
-      height: "100vh",
-      overflow: "hidden"
+      height: "calc(100vh - 64px)",
+      overflow: "hidden",
+      top: "64px"
     },
     "& .dockview-container": {
       paddingTop: "2rem"
@@ -320,23 +323,37 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <Box
-      className="dashboard"
-      css={styles(theme)}
-      sx={{ height: "100vh", width: "100vw", position: "relative" }}
-    >
-      <DashboardHeader showBackToEditor={!!currentWorkflowId}>
-        <LayoutMenu dockviewApi={dockviewApi} />
-        <AddPanelDropdown
-          availablePanels={availablePanels}
-          onAddPanel={handleAddPanel}
+    <Box css={styles(theme)}>
+      <TabsNodeEditor hideContent />
+      <Box
+        className="actions-container"
+        sx={{
+          position: "absolute",
+          top: "32px",
+          left: 0,
+          right: 0,
+          zIndex: 1000
+        }}
+      >
+        <AppHeader />
+      </Box>
+      <Box
+        className="dashboard"
+        sx={{ height: "100vh", width: "100vw", position: "relative" }}
+      >
+        <DashboardHeader>
+          <LayoutMenu dockviewApi={dockviewApi} />
+          <AddPanelDropdown
+            availablePanels={availablePanels}
+            onAddPanel={handleAddPanel}
+          />
+        </DashboardHeader>
+        <DockviewReact
+          components={panelComponents}
+          onReady={onReady}
+          className="dockview-container"
         />
-      </DashboardHeader>
-      <DockviewReact
-        components={panelComponents}
-        onReady={onReady}
-        className="dockview-container"
-      />
+      </Box>
     </Box>
   );
 };

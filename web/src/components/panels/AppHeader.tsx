@@ -4,8 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import Logo from "../Logo";
-import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -35,11 +35,11 @@ const styles = (theme: Theme) =>
       margin: "1px 0.75em 0 0"
     },
     ".MuiIconButton-root": {
-      width: "28px",
       height: "28px",
       padding: "4px",
       color: theme.vars.palette.grey[0],
       borderRadius: "6px",
+      fontSize: theme.typography.body2.fontSize,
       transition: "all 0.2s ease-out",
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"
@@ -48,7 +48,8 @@ const styles = (theme: Theme) =>
         display: "block",
         width: "18px",
         height: "18px",
-        fontSize: "18px"
+        fontSize: "18px",
+        marginRight: "4px"
       }
     },
     ".logo-button": {
@@ -64,6 +65,45 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       flex: "1 1 auto",
       gap: "8px"
+    },
+    ".nav-group": {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "2px 4px",
+      borderRadius: "10px",
+      backgroundColor: `${theme.vars.palette.action.hover}33`,
+      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
+    },
+    ".nav-button": {
+      padding: "4px 8px",
+      borderRadius: "8px",
+      fontWeight: 600,
+      letterSpacing: "0.01em",
+      color: theme.vars.palette.grey[100],
+      "& svg": {
+        marginRight: "6px"
+      },
+      position: "relative",
+      "&.active": {
+        backgroundColor: `${theme.vars.palette.action.selected}66`,
+        color: theme.vars.palette.primary.main,
+        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}55 inset, 0 6px 22px ${theme.vars.palette.primary.main}10`,
+        "& svg": {
+          color: theme.vars.palette.primary.main
+        }
+      },
+      "&.active::after": {
+        content: '""',
+        position: "absolute",
+        left: "10%",
+        right: "10%",
+        bottom: "-6px",
+        height: "2px",
+        borderRadius: "2px",
+        background: theme.vars.palette.primary.main,
+        opacity: 0.85
+      }
     },
     ".buttons-right": {
       display: "flex",
@@ -103,9 +143,13 @@ const LogoButton = memo(function LogoButton() {
   );
 });
 
-const DashboardButton = memo(function DashboardButton() {
+const DashboardButton = memo(function DashboardButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
   const navigate = useNavigate();
-
+  const theme = useTheme();
   const handleClick = useCallback(() => {
     navigate("/dashboard");
   }, [navigate]);
@@ -117,18 +161,25 @@ const DashboardButton = memo(function DashboardButton() {
       placement="bottom"
     >
       <IconButton
-        className="dashboard-button"
+        className={`nav-button dashboard-button ${isActive ? "active" : ""}`}
         onClick={handleClick}
         tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
       >
         <DashboardIcon />
+        Dashboard
       </IconButton>
     </Tooltip>
   );
 });
 
-const ExamplesButton = memo(function ExamplesButton() {
+const ExamplesButton = memo(function ExamplesButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const handleClick = useCallback(() => {
     navigate("/examples");
@@ -141,11 +192,13 @@ const ExamplesButton = memo(function ExamplesButton() {
       placement="bottom"
     >
       <IconButton
-        className="examples-button"
+        className={`nav-button examples-button ${isActive ? "active" : ""}`}
         onClick={handleClick}
         tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
       >
         <ExamplesIcon />
+        Examples
       </IconButton>
     </Tooltip>
   );
@@ -153,16 +206,17 @@ const ExamplesButton = memo(function ExamplesButton() {
 
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
-  // const navigate = useNavigate();
-  // const path = useLocation().pathname;
+  const path = useLocation().pathname;
 
   return (
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <LogoButton />
-          <DashboardButton />
-          <ExamplesButton />
+          <div className="nav-group">
+            <DashboardButton isActive={path.startsWith("/dashboard")} />
+            <ExamplesButton isActive={path.startsWith("/examples")} />
+          </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
         <RightSideButtons />
