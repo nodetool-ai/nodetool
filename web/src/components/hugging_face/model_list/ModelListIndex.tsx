@@ -19,7 +19,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      position: "relative"
+      position: "relative",
+      background: theme.vars.palette.background.paper
     },
     ".main": {
       display: "flex",
@@ -39,12 +40,17 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       gap: theme.spacing(1),
       padding: "0.5em 1em",
       position: "sticky",
       top: 0,
       zIndex: 2,
-      width: "100%"
+      width: "100%",
+      backdropFilter: "saturate(120%) blur(4px)",
+      background:
+        `linear-gradient(180deg, ${theme.vars.palette.background.paper} 80%, rgba(0,0,0,0))`,
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
     },
     ".model-list-header button": {
       padding: ".4em 1em",
