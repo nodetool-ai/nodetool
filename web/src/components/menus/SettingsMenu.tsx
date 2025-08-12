@@ -39,13 +39,12 @@ import SettingsSidebar from "./SettingsSidebar";
 export const settingsStyles = (theme: Theme): any =>
   css({
     ".MuiBackdrop-root": {
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
-      backdropFilter: "blur(5px)"
+      backdropFilter: "blur(20px)"
     },
     ".MuiPaper-root": {
       "--Paper-overlay": "0 !important",
-      backgroundColor: theme.vars.palette.background.paper,
-      backdropFilter: "blur(10px)",
+      background: "transparent",
+      backdropFilter: "blur(20px)",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: ".5em",
       maxWidth: "1000px",
