@@ -100,7 +100,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
       dense
       css={listStyles}
       className="model-menu__providers-list"
-      sx={{ fontSize: (theme) => theme.fontSizeSmall }}
+      sx={{ fontSize: (theme) => theme.vars.fontSizeSmall }}
     >
       {isLoading && (
         <div className="is-loading" style={{ padding: 8 }}>
@@ -124,12 +124,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
         <ListItemText
           primary="All providers"
           primaryTypographyProps={{
-            sx: { fontSize: (theme) => theme.fontSizeSmall }
+            sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
           }}
         />
       </ListItemButton>
       {[...sortedProviders.enabledList, ...sortedProviders.disabledList].map(
-        (p, idx, arr) => {
+        (p, idx) => {
           const enabled = isProviderEnabled(p);
           const showDivider =
             idx === sortedProviders.enabledList.length &&
@@ -153,7 +153,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     key={b.label}
                     style={{
                       padding: "1px 5px",
-                      fontSize: theme.fontSizeTiny,
+                      fontSize: theme.vars.fontSizeTiny,
                       lineHeight: 1.1,
                       borderRadius: 4,
                       background: "transparent",
@@ -175,13 +175,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
           };
           const providerUrl = getProviderUrl(p);
           return (
-            <>
+            <React.Fragment key={`provider-item-${p}`}>
               {showDivider && (
                 <Divider component="li" sx={{ my: 0.5, opacity: 0.5 }} />
               )}
               <ListItemButton
                 disableRipple
-                key={p}
                 className={`model-menu__provider-item ${
                   selected === p ? "is-selected" : ""
                 }`}
@@ -209,7 +208,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     </Box>
                   }
                   primaryTypographyProps={{
-                    sx: { fontSize: (theme) => theme.fontSizeSmall }
+                    sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
                   }}
                 />
                 {!available && (
@@ -225,7 +224,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     <Tooltip title="API key required">
                       <InfoOutlinedIcon
                         sx={{
-                          fontSize: (theme) => theme.fontSizeNormal,
+                          fontSize: (theme) => theme.vars.fontSizeNormal,
                           color: "warning.main"
                         }}
                       />
@@ -238,7 +237,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         sx={{
                           minWidth: "auto",
                           p: 0,
-                          fontSize: (theme) => theme.fontSizeSmaller
+                          fontSize: (theme) => theme.vars.fontSizeSmaller
                         }}
                         onClick={() => setMenuOpen(true, 1)}
                       >
@@ -267,7 +266,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       sx={{
                         padding: 0,
                         "& .MuiSvgIcon-root": {
-                          fontSize: (theme) => theme.fontSizeBig
+                          fontSize: (theme) => theme.vars.fontSizeBig
                         }
                       }}
                       checked={enabled}
@@ -280,7 +279,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   </Tooltip>
                 </Box>
               </ListItemButton>
-            </>
+            </React.Fragment>
           );
         }
       )}
