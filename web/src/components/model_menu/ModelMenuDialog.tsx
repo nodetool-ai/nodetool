@@ -6,8 +6,6 @@ import {
   DialogTitle,
   DialogContent,
   Box,
-  FormControlLabel,
-  Switch,
   Divider
 } from "@mui/material";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -32,8 +30,8 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "260px 320px 280px",
-  gap: 12,
+  gridTemplateColumns: "300px 300px 280px",
+  gap: 4,
   minHeight: 480
 });
 
@@ -51,8 +49,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     null
   );
   const secrets = useRemoteSettingsStore((s) => s.secrets);
-  const onlyAvailable = useModelPreferencesStore((s) => s.onlyAvailable);
-  const setOnlyAvailable = useModelPreferencesStore((s) => s.setOnlyAvailable);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
@@ -60,7 +56,19 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
   const providers = useMemo(() => {
     const set = new Set<string>();
     (models ?? []).forEach((m) => set.add(m.provider || "Other"));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const list = Array.from(set).sort((a, b) => a.localeCompare(b));
+    if (
+      !list.includes("gemini") &&
+      (models ?? []).some((m) => /gemini|google/i.test(m.provider || ""))
+    ) {
+      console.log(
+        "[ModelMenu] providers computed; note: gemini not present but models contain google/gemini variants",
+        list
+      );
+    } else {
+      console.log("[ModelMenu] providers computed", list);
+    }
+    return list;
   }, [models]);
 
   const requiredSecretForProvider = useCallback(
@@ -94,9 +102,7 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     }
     // Filter out disabled providers
     list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
-    if (onlyAvailable) {
-      list = list.filter((m) => isAvailable(m.provider));
-    }
+    // Do not hide models based on missing API keys here; we already gray + hint in UI
     const term = search.trim();
     if (term.length > 0) {
       const fuse = new Fuse(list, {
@@ -104,17 +110,16 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
         threshold: 0.35,
         ignoreLocation: true
       });
-      return fuse.search(term).map((r) => r.item);
+      const result = fuse.search(term).map((r) => r.item);
+      console.log("[ModelMenu] filter search", { term, count: result.length });
+      return result;
     }
+    console.log("[ModelMenu] filter", {
+      selectedProvider,
+      total: list.length
+    });
     return list;
-  }, [
-    models,
-    selectedProvider,
-    search,
-    onlyAvailable,
-    isAvailable,
-    enabledProviders
-  ]);
+  }, [models, selectedProvider, search, isAvailable, enabledProviders]);
 
   const recentModels = useMemo(() => {
     const recents = recentsList;
@@ -129,10 +134,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
     const enabledFiltered = mapped.filter(
       (m) => enabledProviders?.[m.provider || ""] !== false
     );
-    return onlyAvailable
-      ? enabledFiltered.filter((m) => isAvailable(m.provider))
-      : enabledFiltered;
-  }, [models, onlyAvailable, isAvailable, recentsList, enabledProviders]);
+    return enabledFiltered;
+  }, [models, isAvailable, recentsList, enabledProviders]);
 
   const favoriteModels = useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
@@ -142,8 +145,8 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
         keyHas(m.provider, m.id) &&
         enabledProviders?.[m.provider || ""] !== false
     );
-    return onlyAvailable ? list.filter((m) => isAvailable(m.provider)) : list;
-  }, [models, onlyAvailable, isAvailable, favoritesSet, enabledProviders]);
+    return list;
+  }, [models, isAvailable, favoritesSet, enabledProviders]);
 
   const handleSelectModel = useCallback(
     (m: LanguageModel) => {
@@ -191,16 +194,6 @@ const ModelMenuDialog: React.FC<ModelMenuDialogProps> = ({
               width={300}
             />
           </Box>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={onlyAvailable}
-                onChange={(e) => setOnlyAvailable(e.target.checked)}
-              />
-            }
-            label="Only available"
-          />
         </Box>
         <div css={containerStyles} className="model-menu__grid">
           <ProviderList

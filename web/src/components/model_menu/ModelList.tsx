@@ -12,6 +12,7 @@ import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { toTitleCase } from "../../utils/providerDisplay";
 
 const listStyles = css({
   overflowY: "auto",
@@ -79,7 +80,9 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
             <ListItemText
               primary={m.name}
               secondary={
-                available ? m.provider : `${m.provider} · Setup required`
+                available
+                  ? toTitleCase(m.provider || "")
+                  : `${toTitleCase(m.provider || "")} · Setup required`
               }
             />
           </ListItemButton>
