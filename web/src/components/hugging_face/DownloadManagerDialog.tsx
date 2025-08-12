@@ -1,4 +1,6 @@
+/** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { css } from "@emotion/react";
 import {
   Dialog,
   DialogTitle,
@@ -18,6 +20,31 @@ import { isEqual } from "lodash";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
 import { openInExplorer } from "../../utils/fileExplorer";
+
+const styles = (theme: Theme) =>
+  css({
+    ".MuiDialog-paper": {
+      width: "92%",
+      maxWidth: "900px",
+      margin: "auto",
+      borderRadius: 6,
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundImage: "none",
+      backgroundColor: theme.vars.palette.background.paper,
+      color: theme.vars.palette.text.primary
+    },
+    ".MuiDialogTitle-root": {
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeBig,
+      fontWeight: 400
+    },
+    ".download-actions": {
+      padding: "8px 24px 16px",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      color: "inherit"
+    }
+  });
 
 const DownloadManagerDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
@@ -44,6 +71,7 @@ const DownloadManagerDialog: React.FC = () => {
 
   return (
     <Dialog
+      css={styles(theme)}
       className="download-dialog"
       open={isDialogOpen}
       onClose={closeDialog}
@@ -52,13 +80,8 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.7)`
-          }
-        },
-        paper: {
-          sx: {
-            backgroundColor: theme.vars.palette.background.paper,
-            color: theme.vars.palette.text.primary
+            backgroundColor: "rgba(10,12,14,0.6)",
+            backdropFilter: "blur(4px)"
           }
         }
       }}
@@ -102,14 +125,7 @@ const DownloadManagerDialog: React.FC = () => {
           </Button>
         </Box>
       </DialogContent>
-      <DialogActions
-        sx={{
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          paddingRight: "1.5em",
-          color: "inherit"
-        }}
-      >
+      <DialogActions className="download-actions">
         <Typography
           variant="body1"
           sx={{
