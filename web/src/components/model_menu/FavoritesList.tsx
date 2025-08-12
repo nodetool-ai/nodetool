@@ -18,7 +18,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 240
+  maxHeight: "100%"
 });
 
 export interface FavoritesListProps {
