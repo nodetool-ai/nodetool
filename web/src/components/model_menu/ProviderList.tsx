@@ -28,8 +28,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: "calc(100% - 20px)",
-  fontSize: "0.92rem"
+  maxHeight: "calc(100% - 20px)"
 });
 
 export interface ProviderListProps {
@@ -71,8 +70,10 @@ const ProviderList: React.FC<ProviderListProps> = ({
   };
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
+    console.time("[ProviderList] sort");
     // Use enabledProviders map directly to avoid expensive re-computation via selector functions
     const map = enabledProviders || {};
+    console.time("[ProviderList] sort:build");
     const withLabels = providers.map((p) => {
       const label = isHuggingFaceProvider(p)
         ? getProviderBaseName(p)
@@ -88,11 +89,19 @@ const ProviderList: React.FC<ProviderListProps> = ({
       .filter((x) => !x.enabled)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map((x) => x.p);
-    return { enabledList, disabledList };
+    console.timeEnd("[ProviderList] sort:build");
+    const result = { enabledList, disabledList };
+    console.timeEnd("[ProviderList] sort");
+    return result;
   }, [providers, enabledProviders]);
 
   return (
-    <List dense css={listStyles} className="model-menu__providers-list">
+    <List
+      dense
+      css={listStyles}
+      className="model-menu__providers-list"
+      sx={{ fontSize: (theme) => theme.fontSizeSmall }}
+    >
       {isLoading && (
         <div className="is-loading" style={{ padding: 8 }}>
           <CircularProgress size={20} />
@@ -104,6 +113,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
         </div>
       )}
       <ListItemButton
+        disableRipple
         className={`model-menu__provider-item ${
           selected === null ? "is-selected" : ""
         }`}
@@ -113,7 +123,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
       >
         <ListItemText
           primary="All providers"
-          primaryTypographyProps={{ fontSize: "0.92rem" }}
+          primaryTypographyProps={{
+            sx: { fontSize: (theme) => theme.fontSizeSmall }
+          }}
         />
       </ListItemButton>
       {[...sortedProviders.enabledList, ...sortedProviders.disabledList].map(
@@ -141,7 +153,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     key={b.label}
                     style={{
                       padding: "1px 5px",
-                      fontSize: "0.68em",
+                      fontSize: theme.fontSizeTiny,
                       lineHeight: 1.1,
                       borderRadius: 4,
                       background: "transparent",
@@ -168,6 +180,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 <Divider component="li" sx={{ my: 0.5, opacity: 0.5 }} />
               )}
               <ListItemButton
+                disableRipple
                 key={p}
                 className={`model-menu__provider-item ${
                   selected === p ? "is-selected" : ""
@@ -195,7 +208,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       </span>
                     </Box>
                   }
-                  primaryTypographyProps={{ fontSize: "0.92rem" }}
+                  primaryTypographyProps={{
+                    sx: { fontSize: (theme) => theme.fontSizeSmall }
+                  }}
                 />
                 {!available && (
                   <Box
@@ -209,7 +224,10 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   >
                     <Tooltip title="API key required">
                       <InfoOutlinedIcon
-                        sx={{ fontSize: 16, color: "warning.main" }}
+                        sx={{
+                          fontSize: (theme) => theme.fontSizeNormal,
+                          color: "warning.main"
+                        }}
                       />
                     </Tooltip>
                     <Tooltip title="Open Settings to add API key">
@@ -217,7 +235,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         size="small"
                         variant="text"
                         color="warning"
-                        sx={{ minWidth: "auto", p: 0, fontSize: "0.75rem" }}
+                        sx={{
+                          minWidth: "auto",
+                          p: 0,
+                          fontSize: (theme) => theme.fontSizeSmaller
+                        }}
                         onClick={() => setMenuOpen(true, 1)}
                       >
                         Add key
@@ -245,12 +267,14 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       sx={{
                         padding: 0,
                         "& .MuiSvgIcon-root": {
-                          fontSize: "1.2rem"
+                          fontSize: (theme) => theme.fontSizeBig
                         }
                       }}
                       checked={enabled}
                       onChange={(e) => {
+                        console.time("[ProviderList] toggle");
                         setProviderEnabled(p, e.target.checked);
+                        console.timeEnd("[ProviderList] toggle");
                       }}
                     />
                   </Tooltip>

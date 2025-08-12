@@ -18,8 +18,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const listStyles = css({
   overflowY: "auto",
-  maxHeight: 240,
-  fontSize: "0.88rem"
+  maxHeight: 240
 });
 
 export interface FavoritesListProps {
@@ -64,7 +63,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
         <ListSubheader
           component="div"
           sx={{
-            fontSize: "0.85rem",
+            fontSize: (theme) => theme.fontSizeSmall,
             letterSpacing: 0.2,
             backgroundColor: "transparent"
           }}
@@ -73,9 +72,14 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ models, onSelect }) => {
         </ListSubheader>
       }
       sx={{
+        fontSize: (theme) => theme.fontSizeSmall,
         "& .MuiListItemButton-root": { py: 0.25 },
-        "& .MuiListItemText-primary": { fontSize: "0.9rem" },
-        "& .MuiListItemText-secondary": { fontSize: "0.8rem" },
+        "& .MuiListItemText-primary": {
+          fontSize: (theme) => theme.fontSizeSmall
+        },
+        "& .MuiListItemText-secondary": {
+          fontSize: (theme) => theme.fontSizeSmaller
+        },
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >

@@ -57,8 +57,13 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
       className="model-menu__models-list"
       sx={{
         "& .MuiListItemButton-root": { py: 0.4 },
-        "& .MuiListItemText-primary": { fontSize: "0.95rem" },
-        "& .MuiListItemText-secondary": { fontSize: "0.82rem" },
+        "& .MuiListItemText-primary": {
+          fontSize: (theme) => theme.fontSizeNormal
+        },
+        "& .MuiListItemText-secondary": {
+          color: (theme) => theme.palette.text.secondary,
+          fontSize: (theme) => theme.fontSizeSmaller
+        },
         "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
       }}
     >
