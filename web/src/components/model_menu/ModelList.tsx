@@ -48,6 +48,12 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
   const searchTerm = useModelMenuStore((s) => s.search);
+  React.useEffect(() => {
+    console.log("[ModelList] all models (prop)", {
+      count: models.length,
+      models
+    });
+  }, [models]);
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
