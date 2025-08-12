@@ -91,7 +91,7 @@ export const MessageView: React.FC<MessageViewProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", wordBreak: "break-word", overflowWrap: "anywhere" }}>
         {showCopyButton && (
           <CopyToClipboardButton
             textToCopy={handleCopy()}
