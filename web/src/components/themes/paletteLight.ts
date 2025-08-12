@@ -41,6 +41,11 @@ declare module "@mui/material/styles" {
     c_editor_axis_color?: string;
     c_selection_rect?: string;
 
+    // Provider badge colors
+    providerApi?: string;
+    providerLocal?: string;
+    providerHf?: string;
+
     background?: { default?: string; paper?: string };
     Paper?: {
       default?: string;
@@ -82,6 +87,11 @@ declare module "@mui/material/styles" {
     c_editor_axis_color?: string;
     c_selection_rect?: string;
 
+    // Provider badge colors
+    providerApi?: string;
+    providerLocal?: string;
+    providerHf?: string;
+
     background: { default: string; paper: string };
     Paper: {
       default: string;
@@ -94,18 +104,26 @@ declare module "@mui/material/styles" {
 export const paletteLight: PaletteOptions = {
   error: {
     main: "#EF4444",
+    light: "#FF8A80",
+    dark: "#C62828",
     contrastText: "#fff"
   },
   warning: {
     main: "#F59E0B",
+    light: "#FFD591",
+    dark: "#FF9800",
     contrastText: "#000"
   },
   info: {
     main: "#2563EB",
+    light: "#60A5FA",
+    dark: "#1E40AF",
     contrastText: "#fff"
   },
   success: {
     main: "#10B981",
+    light: "#80E27E",
+    dark: "#229A16",
     contrastText: "#fff"
   },
   grey: {
@@ -153,6 +171,11 @@ export const paletteLight: PaletteOptions = {
   c_editor_grid_color: "#E5E7EB",
   c_editor_axis_color: "#D1D5DB",
   c_selection_rect: "rgba(37, 99, 235, 0.12)",
+
+  // Provider badge colors (light) - single token per provider type
+  providerApi: "#1E3A8A",
+  providerLocal: "#14532D",
+  providerHf: "#5B21B6",
 
   primary: {
     main: "#2563EB",

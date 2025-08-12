@@ -1,19 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import {
-  Menu,
-  MenuItem,
-  ListItemText,
-  ListItemIcon,
-  Typography,
-  Tooltip,
-  CircularProgress,
-  Box,
-  IconButton,
-  Button
-} from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import { Typography, Tooltip, Button } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
@@ -21,8 +7,11 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   isHuggingFaceProvider,
   getProviderBaseName,
-  formatGenericProviderName,
+  formatGenericProviderName
 } from "../../utils/providerDisplay";
+import ModelMenuDialog from "../model_menu/ModelMenuDialog";
+import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import type { LanguageModel } from "../../stores/ApiTypes";
 
 interface LanguageModelSelectProps {
   onChange: (value: any) => void;
@@ -47,7 +36,7 @@ const HFBadge: React.FC = () => (
       borderRadius: 3,
       background: "var(--palette-grey-600)",
       color: "var(--palette-grey-0)",
-      letterSpacing: 0.3,
+      letterSpacing: 0.3
     }}
   >
     HF
@@ -71,11 +60,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
   value
 }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [menuLevel, setMenuLevel] = useState<'providers' | 'models'>('providers');
+  const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const open = Boolean(anchorEl);
+  const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
   const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
   const {
@@ -113,53 +100,49 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     return models.find((m) => m.id === value);
   }, [models, value]);
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleClick = useCallback(() => {
+    setDialogOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
-    setSelectedProvider(null);
-    setMenuLevel('providers');
+    setDialogOpen(false);
   }, []);
 
-  const handleProviderSelect = useCallback((provider: string) => {
-    setSelectedProvider(provider);
-    setMenuLevel('models');
-  }, []);
-
-  const handleBackToProviders = useCallback(() => {
-    setSelectedProvider(null);
-    setMenuLevel('providers');
-  }, []);
-
-  const handleModelSelect = useCallback(
-    (modelId: string) => {
-      const selected = models?.find((m) => m.id === modelId);
+  const handleDialogModelSelect = useCallback(
+    (model: LanguageModel) => {
       onChange({
         type: "language_model",
-        id: modelId,
-        provider: selected?.provider,
-        name: selected?.name || ""
+        id: model.id,
+        provider: model.provider,
+        name: model.name || ""
       });
-      handleClose();
+      addRecent({
+        provider: model.provider || "",
+        id: model.id || "",
+        name: model.name || ""
+      });
+      setDialogOpen(false);
     },
-    [onChange, models, handleClose]
+    [onChange, addRecent]
   );
 
-  const sortedProviders = useMemo(() =>
-    Object.keys(groupedModels).sort((a, b) => {
-      const aKey = (isHuggingFaceProvider(a)
-        ? getProviderBaseName(a)
-        : formatGenericProviderName(a)
-      ).toLowerCase();
-      const bKey = (isHuggingFaceProvider(b)
-        ? getProviderBaseName(b)
-        : formatGenericProviderName(b)
-      ).toLowerCase();
-      return aKey.localeCompare(bKey);
-    })
-  , [groupedModels]);
+  const sortedProviders = useMemo(
+    () =>
+      Object.keys(groupedModels).sort((a, b) => {
+        const aKey = (
+          isHuggingFaceProvider(a)
+            ? getProviderBaseName(a)
+            : formatGenericProviderName(a)
+        ).toLowerCase();
+        const bKey = (
+          isHuggingFaceProvider(b)
+            ? getProviderBaseName(b)
+            : formatGenericProviderName(b)
+        ).toLowerCase();
+        return aKey.localeCompare(bKey);
+      }),
+    [groupedModels]
+  );
 
   return (
     <>
@@ -197,88 +180,14 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
           </Typography>
         </Button>
       </Tooltip>
-      <Menu
-        className="model-menu"
-        anchorEl={anchorEl}
-        open={open}
+      <ModelMenuDialog
+        open={dialogOpen}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "left"
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "left"
-        }}
-      >
-        {isLoading ? (
-          <Box className="loading-container">
-            <CircularProgress size={24} />
-          </Box>
-        ) : isError ? (
-          <MenuItem disabled>
-            <ListItemText primary="Error loading models" />
-          </MenuItem>
-        ) : Object.keys(groupedModels).length === 0 ? (
-          <MenuItem disabled>
-            <ListItemText primary="No models available" />
-          </MenuItem>
-        ) : menuLevel === 'providers' ? (
-          // First level: Show providers
-          sortedProviders.map((provider) => (
-            <MenuItem
-              key={provider}
-              onClick={() => handleProviderSelect(provider)}
-              className="provider-item"
-            >
-              <ListItemText primary={renderProviderLabel(provider)} />
-              <ListItemIcon>
-                <ArrowForwardIosIcon sx={{ fontSize: '12px' }} />
-              </ListItemIcon>
-            </MenuItem>
-          ))
-        ) : (
-          // Second level: Show models for selected provider
-          [
-            <MenuItem
-              key="back-button"
-              onClick={handleBackToProviders}
-              className="back-button"
-            >
-              <ListItemIcon>
-                <ArrowBackIosIcon sx={{ fontSize: '12px' }} />
-              </ListItemIcon>
-              <ListItemText primary={`Back to providers`} />
-            </MenuItem>,
-            <Typography key="provider-title" className="provider-header">
-              {selectedProvider ? (isHuggingFaceProvider(selectedProvider) ? (
-                <span>
-                  {getProviderBaseName(selectedProvider)} <HFBadge />
-                </span>
-              ) : (
-                formatGenericProviderName(selectedProvider)
-              )) : 'Provider'} Models
-            </Typography>,
-            ...(selectedProvider && groupedModels[selectedProvider] || []).map((model) => (
-              <MenuItem
-                key={model.id}
-                onClick={() => handleModelSelect(model.id)}
-                className={`model-item ${value === model.id ? "selected" : ""}`}
-              >
-                {value === model.id && (
-                  <ListItemIcon>
-                    <CheckIcon fontSize="small" />
-                  </ListItemIcon>
-                )}
-                <ListItemText
-                  inset={value !== model.id}
-                  primary={<span className="model-name">{model.name}</span>}
-                />
-              </MenuItem>
-            ))
-          ]
-        )}
-      </Menu>
+        models={models}
+        isLoading={isLoading}
+        isError={isError}
+        onModelChange={handleDialogModelSelect}
+      />
     </>
   );
 };
