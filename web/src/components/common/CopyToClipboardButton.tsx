@@ -68,7 +68,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         className="copy-to-clipboard-button"
         onClick={handleCopy}
         size={size}
-        sx={{ color: "var(--palette-grey-400)" }}
+        sx={{ color: "var(--palette-grey-100)" }}
         {...props}
       >
         {isCopied ? (
@@ -76,7 +76,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
             sx={{ fontSize: "0.875rem", color: "var(--palette-success-main)" }}
           />
         ) : (
-          <ContentCopyIcon sx={{ fontSize: "0.875rem" }} />
+          <ContentCopyIcon sx={{ fontSize: "0.875rem", color: "inherit" }} />
         )}
       </IconButton>
     </Tooltip>

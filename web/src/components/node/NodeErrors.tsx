@@ -49,7 +49,8 @@ export const errorStyles = (theme: Theme) =>
         opacity: 1
       },
       transition: "opacity 0.2s ease",
-      color: theme.vars.palette.grey[1000]
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[100]
     }
   });
 export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
