@@ -118,7 +118,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       },
       ".type-filter": {
         width: "150px",
-        height: "36px",
+        height: "38px",
         margin: "0"
       },
       ".type-filter label": {
@@ -132,40 +132,20 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         flexGrow: 1,
         width: "100%"
       },
-      ".type-filter .MuiFilledInput-root": {
-        backgroundColor: "var(--palette-grey-800)",
-        border: `1px solid ${theme.vars.palette.grey[600]}`,
-        borderRadius: "8px",
-        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)",
-        "&:hover": {
-          backgroundColor: "var(--palette-grey-700)",
-          borderColor: theme.vars.palette.grey[500]
-        },
-        "&.Mui-focused": {
-          backgroundColor: "var(--palette-grey-700)",
-          borderColor: "var(--palette-primary-main)",
-          boxShadow: "0 0 0 2px rgba(0,0,0,0.25)"
-        },
-        "&:before, &:after": {
-          display: "none"
-        }
-      },
       ".type-filter .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
         textAlign: "left",
         fontSize: theme.fontSizeNormal,
         padding: "0 1.75em 0 .75em",
-        height: "32px",
-        lineHeight: "32px",
-        backgroundColor: "var(--palette-grey-800)",
-        border: `1px solid ${theme.vars.palette.grey[600]}`,
-        borderRadius: "8px",
-        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s",
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.25)"
+        height: "36px",
+        lineHeight: "36px",
+        backgroundColor: theme.vars.palette.background.paper,
+        borderColor: theme.vars.palette.grey[600],
+        transition: "background-color 0.2s, border-color 0.2s, box-shadow 0.2s"
+      },
+      ".type-filter .MuiOutlinedInput-root": {
+        borderRadius: "8px"
       },
       ".type-filter .MuiListItemIcon-root": {
         minWidth: "18px",
@@ -208,7 +188,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               className="type-filter-select"
               onChange={(e) => setSelectedInputType(e.target.value)}
               size="medium"
-              variant="filled"
+              variant="outlined"
               label="Input Type"
               value={selectedInputType}
               onOpen={() => setInputSelectOpen(true)}
@@ -332,7 +312,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               className="type-filter-select"
               onChange={(e) => setSelectedOutputType(e.target.value)}
               size="medium"
-              variant="filled"
+              variant="outlined"
               label="Output Type"
               value={selectedOutputType}
               onOpen={() => setOutputSelectOpen(true)}
