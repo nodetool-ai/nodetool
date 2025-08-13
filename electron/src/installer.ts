@@ -7,6 +7,7 @@ import {
   getCondaEnvUrl,
   getDefaultInstallLocation,
   updateCondaEnvironment,
+  runCommand,
 } from "./python";
 
 import { logMessage } from "./logger";
@@ -21,6 +22,7 @@ import { spawn } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
 import { ensureOllamaInstalled } from "./ollama";
+import { getPythonPath } from "./config";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
@@ -374,6 +376,18 @@ async function installCondaEnvironment(): Promise<void> {
 
     await updateCondaEnvironment(packages);
 
+    // Install Playwright browsers in the freshly set up environment
+    try {
+      emitBootMessage("Installing Playwright browsers...");
+      logMessage("Running Playwright install in Python environment");
+      const pythonPath = getPythonPath();
+      await runCommand([pythonPath, "-m", "playwright", "install"]);
+      logMessage("Playwright installation completed successfully");
+    } catch (err: any) {
+      logMessage(`Failed to install Playwright: ${err.message}`, "error");
+      throw err;
+    }
+
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
 
@@ -383,7 +397,10 @@ async function installCondaEnvironment(): Promise<void> {
       const ollamaPath = await ensureOllamaInstalled();
       logMessage(`Ollama available at: ${ollamaPath}`);
     } catch (err: any) {
-      logMessage(`Failed to ensure Ollama is installed: ${err.message}`, "error");
+      logMessage(
+        `Failed to ensure Ollama is installed: ${err.message}`,
+        "error"
+      );
       // Continue installation even if Ollama fetch failed; it will be retried at runtime
     }
   } catch (error: any) {
@@ -394,25 +411,21 @@ async function installCondaEnvironment(): Promise<void> {
     throw error;
   }
 }
-createIpcMainHandler(
-  IpcChannels.SELECT_CUSTOM_LOCATION,
-  async (_event) => {
-    const defaultLocation = getDefaultInstallLocation();
-    const { filePaths, canceled } = await dialog.showOpenDialog({
-      properties: ["openDirectory", "createDirectory"],
-      title: "Select the folder to install the Python environment to",
-      buttonLabel: "Select Folder",
-      defaultPath: defaultLocation,
-    });
+createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
+  const defaultLocation = getDefaultInstallLocation();
+  const { filePaths, canceled } = await dialog.showOpenDialog({
+    properties: ["openDirectory", "createDirectory"],
+    title: "Select the folder to install the Python environment to",
+    buttonLabel: "Select Folder",
+    defaultPath: defaultLocation,
+  });
 
-    if (canceled || !filePaths?.[0]) {
-      return null;
-    }
-
-    return path.join(filePaths[0], "nodetool-python");
+  if (canceled || !filePaths?.[0]) {
+    return null;
   }
-);
 
+  return path.join(filePaths[0], "nodetool-python");
+});
 
 /**
  * Prompt for install location

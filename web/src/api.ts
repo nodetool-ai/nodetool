@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/v1/chat/completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Openai Chat Completions
+         * @description OpenAI-compatible chat completions endpoint mirroring /chat/sse behaviour.
+         */
+        post: operations["openai_chat_completions_v1_chat_completions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Openai Models
+         * @description Returns list of models filtered by provider in OpenAI format.
+         */
+        get: operations["openai_models_v1_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assets/": {
         parameters: {
             query?: never;
@@ -978,29 +1018,6 @@ export interface paths {
          * @description Run a specific workflow by ID.
          */
         post: operations["run_workflow_by_id_api_workflows__id__run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/workflows/create-smart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Smart Workflow
-         * @description Create a workflow automatically using AI based on a description.
-         *
-         *     This endpoint uses WorkflowPlanner to generate a workflow structure based on
-         *     natural language description provided in the request.
-         */
-        post: operations["create_smart_workflow_api_workflows_create_smart_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3791,6 +3808,12 @@ export interface components {
              * @default false
              */
             is_streaming: boolean;
+            /**
+             * Expose As Tool
+             * @description Whether the node is exposed as a tool
+             * @default false
+             */
+            expose_as_tool: boolean;
         };
         /**
          * NodeProgress
@@ -4341,18 +4364,6 @@ export interface components {
             /** Rfilename */
             rfilename: string;
         };
-        /** SmartWorkflowCreateRequest */
-        SmartWorkflowCreateRequest: {
-            /** Prompt */
-            prompt: string;
-        };
-        /** SmartWorkflowResponse */
-        SmartWorkflowResponse: {
-            /** Nodes */
-            nodes: components["schemas"]["Node"][];
-            /** Edges */
-            edges: components["schemas"]["Edge"][];
-        };
         /**
          * SubTask
          * @description A subtask item with completion status, dependencies, and tools.
@@ -4876,6 +4887,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    openai_chat_completions_v1_chat_completions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    openai_models_v1_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     index_api_assets__get: {
         parameters: {
             query?: {
@@ -6901,43 +6952,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_smart_workflow_api_workflows_create_smart_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SmartWorkflowCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SmartWorkflowResponse"];
                 };
             };
             /** @description Validation Error */
