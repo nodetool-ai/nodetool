@@ -19,6 +19,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { loadMetadata } from "../../serverState/useMetadata";
 import SearchIcon from "@mui/icons-material/Search";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import { hexToRgba } from "../../utils/ColorUtils";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();
@@ -30,6 +32,8 @@ interface PlaceholderNodeData extends Node<NodeData> {
     collapsed?: boolean;
   };
 }
+
+const GROUP_COLOR_OPACITY = 0.55;
 
 const styles = (theme: Theme) =>
   css({
@@ -100,6 +104,7 @@ const typeForValue = (value: any) => {
 
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const theme = useTheme();
+  const isDarkMode = useIsDarkMode();
   const nodeType = props.type;
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
@@ -108,6 +113,13 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const queryClient = useQueryClient();
   const edges = useNodes((n) => n.edges);
   const incomingEdges = edges.filter((e) => e.target === props.id);
+
+  const parentColor = useMemo(() => {
+    if (!hasParent) return "";
+    return isDarkMode
+      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
+  }, [hasParent, isDarkMode]);
 
   // Add state for node search and package info
   const [isSearching, setIsSearching] = useState(false);
@@ -227,7 +239,13 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     [props.data.collapsed, hasParent]
   );
   return (
-    <Container css={styles(theme)} className={className}>
+    <Container
+      css={styles(theme)}
+      className={className}
+      sx={{
+        backgroundColor: theme.vars.palette.c_node_bg
+      }}
+    >
       <NodeHeader
         id={props.id}
         metadataTitle={nodeTitle || "Missing Node!"}
