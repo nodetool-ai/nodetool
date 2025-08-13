@@ -23,6 +23,7 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import { hexToRgba } from "../../utils/ColorUtils";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();
@@ -35,12 +36,11 @@ interface PlaceholderNodeData extends Node<NodeData> {
   };
 }
 
-const GROUP_COLOR_OPACITY = 0.55;
-
 const styles = (theme: Theme) =>
   css({
     "&": {
-      outline: "2px solid" + theme.vars.palette.error.main
+      outline: "2px solid",
+      outlineColor: theme.vars.palette.error.main
     },
     ".node-header ": {
       minWidth: "50px",
@@ -68,14 +68,14 @@ const styles = (theme: Theme) =>
       margin: "8px 0"
     },
     ".search-button": {
-      backgroundColor: "var(--palette-grey-400)",
+      // backgroundColor: "var(--palette-grey-400)",
+      // padding: 0,
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.1em",
-      minWidth: "unset",
-      padding: "2px 6px",
-      "&:hover": {
-        backgroundColor: "var(--palette-grey-200)"
-      }
+      minWidth: "unset"
+      // "&:hover": {
+      //   backgroundColor: "var(--palette-grey-200)"
+      // }
     },
     ".install-button": {
       backgroundColor: "var(--palette-grey-400)",
@@ -86,17 +86,17 @@ const styles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: "var(--palette-grey-200)"
       }
-    },
-    ".open-menu-button": {
-      backgroundColor: "var(--palette-grey-400)",
-      fontSize: "var(--fontSizeTiny)",
-      lineHeight: "1.1em",
-      minWidth: "unset",
-      padding: "2px 6px",
-      "&:hover": {
-        backgroundColor: "var(--palette-grey-200)"
-      }
     }
+    // ".open-menu-button": {
+    //   backgroundColor: "var(--palette-grey-400)",
+    //   fontSize: "var(--fontSizeTiny)",
+    //   lineHeight: "1.1em",
+    //   minWidth: "unset",
+    //   padding: "2px 6px",
+    //   "&:hover": {
+    //     backgroundColor: "var(--palette-grey-200)"
+    //   }
+    // }
   });
 
 const typeForValue = (value: any) => {
@@ -127,18 +127,26 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
-  const nodeNamespace = nodeType?.split(".").slice(0, -1).join(".") || "";
   const queryClient = useQueryClient();
   const edges = useNodes((n) => n.edges);
   const incomingEdges = edges.filter((e) => e.target === props.id);
   const openNodeMenu = useNodeMenuStore((s) => s.openNodeMenu);
 
+  // Resolve the type/namespace to display strictly from originalType when available
+  const resolvedType = useMemo(() => {
+    const originalType = (nodeData as any)?.originalType as string | undefined;
+    const nodeDataType = (nodeData as any)?.node_type as string | undefined;
+    return originalType || nodeType || nodeDataType || "";
+  }, [nodeType, nodeData]);
+
+  const resolvedNamespace = useMemo(() => {
+    return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
+  }, [resolvedType]);
+
   const parentColor = useMemo(() => {
     if (!hasParent) return "";
-    return isDarkMode
-      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
-  }, [hasParent, isDarkMode]);
+    return theme.vars.palette.c_node_bg;
+  }, [hasParent, theme]);
 
   // Add state for node search and package info
   const [isSearching, setIsSearching] = useState(false);
@@ -175,26 +183,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
     setIsSearching(true);
     try {
-      console.debug("[PlaceholderNode] server search for", {
-        nodeTypeToSearch
-      });
-      console.log("[PlaceholderNode] request", {
-        method: "GET",
-        url: "/api/packages/nodes/package",
-        params: { query: { node_type: nodeTypeToSearch } }
-      });
       const { data, error } = await client.GET("/api/packages/nodes/package", {
         params: { query: { node_type: nodeTypeToSearch } }
       });
-      console.log("[PlaceholderNode] response", { data, error });
-      if (data && typeof (data as any).found !== "undefined") {
-        console.debug("[PlaceholderNode] server search parsed", {
-          found: (data as any).found,
-          node_type: (data as any).node_type,
-          package: (data as any).package
-        });
-      }
-
       if (error) throw error;
 
       setNodeFound(data.found);
@@ -328,8 +319,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     () => ({
       title: computedHeaderTitle || nodeTitle || "Missing Node",
       description: "This node is missing",
-      namespace: nodeNamespace || "unknown",
-      node_type: nodeType || "unknown",
+      namespace: resolvedNamespace,
+      node_type: resolvedType || "unknown",
       layout: "default",
       properties: mockProperties,
       basic_fields: [],
@@ -348,7 +339,13 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       the_model_info: {},
       recommended_models: []
     }),
-    [computedHeaderTitle, nodeTitle, nodeNamespace, nodeType, mockProperties]
+    [
+      computedHeaderTitle,
+      nodeTitle,
+      resolvedNamespace,
+      resolvedType,
+      mockProperties
+    ]
   );
   const basicFields = mockProperties
     .slice(0, 2)
@@ -367,7 +364,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       css={styles(theme)}
       className={className}
       sx={{
-        backgroundColor: parentColor || theme.vars.palette.c_node_bg
+        backgroundColor: theme.vars.palette.c_node_bg
       }}
     >
       <NodeHeader
@@ -377,7 +374,10 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         showMenu={false}
         selected={props.selected}
       />
-      <Tooltip title="Try to find a replacement node or write us a fax.">
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title="Try to find a replacement node or write us a fax."
+      >
         <Typography variant="h4" className="missing-node-text">
           Missing Node
         </Typography>
@@ -386,11 +386,14 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       <div className="node-actions">
         {!isSearching && !nodeFound && (
           <>
-            <Tooltip title="Open the Node Menu prefilled with this node's type">
+            <Tooltip
+              enterDelay={TOOLTIP_ENTER_DELAY}
+              title="Open the Node Menu prefilled with this node's type"
+            >
               <Button
                 variant="contained"
                 size="small"
-                className="open-menu-button"
+                className="search-button"
                 onClick={handleSearchClick}
                 startIcon={<ManageSearchIcon />}
               >
@@ -441,9 +444,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
       <NodeFooter
-        nodeNamespace={nodeNamespace || ""}
+        nodeNamespace={resolvedNamespace}
         metadata={mockMetadata}
-        nodeType={nodeType || ""}
+        nodeType={resolvedType || nodeType || ""}
       />
     </Container>
   );
