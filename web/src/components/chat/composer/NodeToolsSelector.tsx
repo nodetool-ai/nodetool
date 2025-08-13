@@ -145,12 +145,21 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
   const metadata = useMetadataStore((state) => state.metadata);
+  const nodeTools = useMemo(() => {
+    return Object.values(metadata)
+      .filter((node) => node.expose_as_tool)
+      .reduce((acc, node) => {
+        acc[node.node_type] = node;
+        return acc;
+      }, {} as Record<string, NodeMetadata>);
+  }, [metadata]);
+
   const selectedNodeTypes = useMemo(
     () =>
       (value || []).filter((nodeType) => {
-        return nodeType in metadata;
+        return nodeType in nodeTools;
       }),
-    [value, metadata]
+    [value, nodeTools]
   );
 
   // Ensure selected nodes are always included in the list passed to the renderer
@@ -181,21 +190,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   );
 
   const availableNodes = useMemo(() => {
-    // Show nodes if either:
-    // 1. A namespace is selected (selectedPath has items), OR
-    // 2. Search term has at least 2 characters
-    const hasNamespaceSelected = selectedPath.length > 0;
-    const hasMinSearchChars = searchTerm.trim().length >= 2;
+    return searchResults.filter((node: NodeMetadata) => node.expose_as_tool);
+  }, [searchResults]);
 
-    if (!hasNamespaceSelected && !hasMinSearchChars) {
-      return [];
-    }
-
-    // Filter out nodes with default namespace and return sorted results
-    return searchResults.filter(
-      (node: NodeMetadata) => node.namespace !== "default"
-    );
-  }, [searchResults, searchTerm, selectedPath]);
+  console.log(availableNodes);
 
   // Union of available nodes and selected nodes to always show selected at the top
   const allNodesForDisplay = useMemo(() => {
