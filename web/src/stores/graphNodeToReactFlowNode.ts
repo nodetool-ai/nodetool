@@ -26,7 +26,8 @@ export function graphNodeToReactFlowNode(
       collapsed: false,
       workflow_id: workflow.id,
       title: ui_properties?.title,
-      color: ui_properties?.color
+      color: ui_properties?.color,
+      originalType: node.type
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
