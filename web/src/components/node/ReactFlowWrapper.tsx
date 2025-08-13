@@ -168,6 +168,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["default"] = PlaceholderNode;
+  // debug removed: too noisy
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
@@ -284,11 +285,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   // ON NODES CHANGE
   const handleNodesChange = useCallback(
-    (changes: any) => {
+    (changes: any[]) => {
       onNodesChange(changes);
-      closeNodeMenu();
+      // Do not auto-close the Node Menu on node internals/position updates.
+      // Pane clicks, panning, or explicit actions will close it elsewhere.
     },
-    [onNodesChange, closeNodeMenu]
+    [onNodesChange]
   );
 
   // EDGE HANDLER

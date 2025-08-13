@@ -102,6 +102,8 @@ type NodeMenuStore = {
       allMatches: NodeMetadata[];
     }
   >;
+  // Guard to prevent immediate close right after open
+  closeBlockUntil: number;
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
@@ -123,6 +125,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
   return {
     // menu
     isMenuOpen: false,
+    closeBlockUntil: 0,
     dropType: "",
     dragToCreate: false,
     selectedInputType: "",
@@ -151,11 +154,14 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     menuHeight: 0,
     searchTerm: "",
     setSearchTerm: (term) => {
-      set({
+      // Update searchTerm and trigger search synchronously so opening with a term shows results
+      set((state) => ({
         searchTerm: term,
-        selectedPath: [],
+        // keep selectedPath as-is; allow callers to control it
+        selectedPath: state.selectedPath,
         hoveredNode: null
-      });
+      }));
+      // Run search immediately with the provided term, not state.searchTerm (which might lag in React dev mode)
       get().performSearch(term);
     },
     selectedPath: [],
@@ -248,6 +254,13 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
      * @param searchId - Optional ID to cancel outdated searches
      */
     performSearch: (term: string, searchId?: number) => {
+      // eslint-disable-next-line no-console
+      console.debug("[NodeMenuStore] performSearch", {
+        term,
+        searchId,
+        isMenuOpen: get().isMenuOpen,
+        selectedPath: get().selectedPath
+      });
       if (searchId !== undefined && searchId !== get().currentSearchId) {
         return;
       }
@@ -344,6 +357,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({ highlightedNamespaces: [...newHighlightedNamespaces] });
     },
     closeNodeMenu: () => {
+      // eslint-disable-next-line no-console
+      console.debug("[NodeMenuStore] closeNodeMenu executing", {
+        isOpen: get().isMenuOpen
+      });
+      // eslint-disable-next-line no-console
+      console.trace("[NodeMenuStore] closeNodeMenu trace");
       if (get().isMenuOpen) {
         if (get().dragToCreate) {
           set({ dragToCreate: false });
@@ -368,6 +387,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
     },
     openNodeMenu: (params: OpenNodeMenuParams) => {
+      // eslint-disable-next-line no-console
+      console.debug("[NodeMenuStore] openNodeMenu called", params);
       set({ clickPosition: { x: params.x, y: params.y } });
       const { menuWidth, menuHeight } = get();
 
@@ -408,10 +429,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       const finalX = visualX;
       const finalY = visualY - Y_OFFSET_COMPENSATION;
 
-      // Determine if search params have changed
-      const searchParamsChanged =
-        (params.searchTerm !== undefined &&
-          params.searchTerm !== get().searchTerm) ||
+      // Determine if we should run search immediately on open
+      // Always run if a searchTerm is provided (even if unchanged), or if filters changed
+      const shouldSearchOnOpen =
+        params.searchTerm !== undefined ||
         (params.dropType &&
           params.connectDirection === "target" &&
           params.dropType !== get().selectedInputType) ||
@@ -421,13 +442,17 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         (params.selectedPath &&
           params.selectedPath.join(".") !== get().selectedPath.join("."));
 
+      const initialSelectedPath = params.searchTerm
+        ? []
+        : params.selectedPath || [];
       set({
         isMenuOpen: true,
+        // ensure these are set before running the search
         searchTerm: params.searchTerm || "",
+        selectedPath: initialSelectedPath,
         menuPosition: { x: finalX, y: finalY },
         dropType: params.dropType || "",
         connectDirection: params.connectDirection || null,
-        selectedPath: params.selectedPath || [],
         selectedInputType:
           params.dropType && params.connectDirection === "target"
             ? params.dropType
@@ -440,10 +465,34 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
         menuHeight: 700
       });
 
-      // Only perform search if any search-related params changed
-      if (searchParamsChanged) {
+      // debug: after state set
+      setTimeout(() => {
+        // eslint-disable-next-line no-console
+        console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
+      }, 0);
+
+      // Perform search when opening if needed
+      if (shouldSearchOnOpen) {
+        const term = params.searchTerm || "";
+        // run immediately so initial render shows results, using current state
+        // Defer to next tick to let isMenuOpen take effect for subscribers
+        setTimeout(() => get().performSearch(term), 0);
+        // safety: re-run after tick and once metadata arrives
         setTimeout(() => {
-          get().performSearch(params.searchTerm || "");
+          get().performSearch(term);
+          if (
+            term &&
+            Object.values(useMetadataStore.getState().metadata).length === 0
+          ) {
+            const unsubscribe = useMetadataStore.subscribe(() => {
+              if (
+                Object.values(useMetadataStore.getState().metadata).length > 0
+              ) {
+                get().performSearch(term);
+                unsubscribe();
+              }
+            });
+          }
         }, 0);
       }
     },
