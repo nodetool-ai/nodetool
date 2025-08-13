@@ -100,7 +100,6 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           </Typography>
         </Button>
       </Tooltip>
-      <h3>LlamaModelSelect</h3>
       <Menu
         className="model-menu"
         anchorEl={anchorEl}
