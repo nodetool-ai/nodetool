@@ -18,9 +18,11 @@ import { client } from "../../stores/ApiClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { loadMetadata } from "../../serverState/useMetadata";
 import SearchIcon from "@mui/icons-material/Search";
+import ManageSearchIcon from "@mui/icons-material/ManageSearch";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import { hexToRgba } from "../../utils/ColorUtils";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();
@@ -60,13 +62,17 @@ const styles = (theme: Theme) =>
     ".node-actions": {
       display: "flex",
       justifyContent: "center",
-      gap: "8px",
+      alignItems: "center",
+      flexDirection: "column",
+      gap: "6px",
       margin: "8px 0"
     },
     ".search-button": {
       backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
-      lineHeight: "1.2em",
+      lineHeight: "1.1em",
+      minWidth: "unset",
+      padding: "2px 6px",
       "&:hover": {
         backgroundColor: "var(--palette-grey-200)"
       }
@@ -74,7 +80,19 @@ const styles = (theme: Theme) =>
     ".install-button": {
       backgroundColor: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeTiny)",
-      lineHeight: "1.2em",
+      lineHeight: "1.1em",
+      minWidth: "unset",
+      padding: "2px 6px",
+      "&:hover": {
+        backgroundColor: "var(--palette-grey-200)"
+      }
+    },
+    ".open-menu-button": {
+      backgroundColor: "var(--palette-grey-400)",
+      fontSize: "var(--fontSizeTiny)",
+      lineHeight: "1.1em",
+      minWidth: "unset",
+      padding: "2px 6px",
       "&:hover": {
         backgroundColor: "var(--palette-grey-200)"
       }
@@ -113,6 +131,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const queryClient = useQueryClient();
   const edges = useNodes((n) => n.edges);
   const incomingEdges = edges.filter((e) => e.target === props.id);
+  const openNodeMenu = useNodeMenuStore((s) => s.openNodeMenu);
 
   const parentColor = useMemo(() => {
     if (!hasParent) return "";
@@ -150,13 +169,31 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
   // Function to search for the node on the server
   const searchForNode = useCallback(async () => {
-    if (!nodeType) return;
+    const originalType = (nodeData as any)?.originalType;
+    const nodeTypeToSearch = originalType || nodeType;
+    if (!nodeTypeToSearch) return;
 
     setIsSearching(true);
     try {
-      const { data, error } = await client.GET("/api/packages/nodes/package", {
-        params: { query: { node_type: nodeType } }
+      console.debug("[PlaceholderNode] server search for", {
+        nodeTypeToSearch
       });
+      console.log("[PlaceholderNode] request", {
+        method: "GET",
+        url: "/api/packages/nodes/package",
+        params: { query: { node_type: nodeTypeToSearch } }
+      });
+      const { data, error } = await client.GET("/api/packages/nodes/package", {
+        params: { query: { node_type: nodeTypeToSearch } }
+      });
+      console.log("[PlaceholderNode] response", { data, error });
+      if (data && typeof (data as any).found !== "undefined") {
+        console.debug("[PlaceholderNode] server search parsed", {
+          found: (data as any).found,
+          node_type: (data as any).node_type,
+          package: (data as any).package
+        });
+      }
 
       if (error) throw error;
 
@@ -173,7 +210,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     } finally {
       setIsSearching(false);
     }
-  }, [nodeType]);
+  }, [nodeData, nodeType]);
 
   // Function to install the package
   const installPackage = useCallback(() => {
@@ -181,6 +218,53 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       installMutation.mutate(packageInfo.package);
     }
   }, [packageInfo, installMutation]);
+
+  // Open the Node Menu prefilled with the missing node's type
+  const handleSearchClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const originalType = (nodeData as any)?.originalType || nodeType || "";
+      const parts = originalType.split(".").filter(Boolean);
+      const selectedPath = parts.slice(0, -1);
+      const searchTerm = parts.slice(-1)[0] || originalType;
+      console.debug("[PlaceholderNode] opening node menu with", {
+        originalType,
+        selectedPath,
+        searchTerm
+      });
+      // kick off server-side search for missing packs
+      searchForNode();
+      console.debug("[PlaceholderNode] calling openNodeMenu", {
+        x: e.clientX,
+        y: e.clientY,
+        searchTerm,
+        selectedPath
+      });
+      openNodeMenu({ x: e.clientX, y: e.clientY, searchTerm, selectedPath });
+      setTimeout(() => {
+        const getState = (useNodeMenuStore as any).getState;
+        if (typeof getState === "function") {
+          const state = getState();
+          console.debug(
+            "[PlaceholderNode] post-open isMenuOpen?",
+            state?.isMenuOpen
+          );
+        }
+      }, 0);
+    },
+    [nodeData, nodeType, openNodeMenu, searchForNode]
+  );
+
+  // Trigger server search without bubbling to React Flow
+  const handleServerSearchClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      searchForNode();
+    },
+    [searchForNode]
+  );
 
   const mockProperties = useMemo(() => {
     const props = Object.entries(nodeData.properties).map(([key, value]) => ({
@@ -283,7 +367,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       css={styles(theme)}
       className={className}
       sx={{
-        backgroundColor: theme.vars.palette.c_node_bg
+        backgroundColor: parentColor || theme.vars.palette.c_node_bg
       }}
     >
       <NodeHeader
@@ -301,29 +385,46 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
       <div className="node-actions">
         {!isSearching && !nodeFound && (
-          <Button
-            variant="contained"
-            size="small"
-            className="search-button"
-            onClick={searchForNode}
-            startIcon={<SearchIcon />}
-          >
-            Search for Node
-          </Button>
+          <>
+            <Tooltip title="Open the Node Menu prefilled with this node's type">
+              <Button
+                variant="contained"
+                size="small"
+                className="open-menu-button"
+                onClick={handleSearchClick}
+                startIcon={<ManageSearchIcon />}
+              >
+                Open Node Menu
+              </Button>
+            </Tooltip>
+            <Tooltip title="Search installed/available packs on the server for a matching node">
+              <Button
+                variant="contained"
+                size="small"
+                className="search-button"
+                onClick={handleServerSearchClick}
+                startIcon={<SearchIcon />}
+              >
+                Server Search
+              </Button>
+            </Tooltip>
+          </>
         )}
 
         {isSearching && <CircularProgress size={24} />}
 
         {nodeFound && packageInfo && !installMutation.isPending && (
-          <Button
-            variant="contained"
-            size="small"
-            className="install-button"
-            onClick={installPackage}
-            startIcon={<CloudDownloadIcon />}
-          >
-            Install Package
-          </Button>
+          <Tooltip title={`Install package ${packageInfo.package}`}>
+            <Button
+              variant="contained"
+              size="small"
+              className="install-button"
+              onClick={installPackage}
+              startIcon={<CloudDownloadIcon />}
+            >
+              Install Package
+            </Button>
+          </Tooltip>
         )}
 
         {installMutation.isPending && <CircularProgress size={24} />}

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useEffect } from "react";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -178,7 +178,26 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   useCombo(["Escape"], closeNodeMenu);
 
-  if (!isMenuOpen) return null;
+  // Ensure search is performed after menu opens with a preset term
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    if (!searchTerm || searchTerm.trim() === "") return;
+    if (searchResults.length > 0) return;
+    try {
+      const state: any = (useNodeMenuStore as any).getState?.();
+      const path = state?.selectedPath || [];
+      if (path.length > 0) {
+        state?.setSelectedPath?.([]);
+      }
+      state?.performSearch?.(searchTerm);
+    } catch (_) {}
+  }, [isMenuOpen, searchTerm, searchResults.length]);
+
+  if (!isMenuOpen) {
+    // eslint-disable-next-line no-console
+    console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
+    return null;
+  }
 
   return (
     <Draggable
