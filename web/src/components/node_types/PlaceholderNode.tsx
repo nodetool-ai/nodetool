@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useState, useMemo, useCallback } from "react";
+import { memo, useState, useMemo, useCallback, useEffect } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip, Button, CircularProgress } from "@mui/material";
@@ -200,9 +200,49 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     return props;
   }, [nodeData.properties, incomingEdges]);
 
+  // Compute a better header title for missing node
+  const computedHeaderTitle = useMemo(() => {
+    const originalType = (nodeData as any)?.originalType as string | undefined;
+    const sourceType =
+      packageInfo?.node_type ||
+      originalType ||
+      nodeType ||
+      (nodeData as any)?.node_type ||
+      "";
+    const preferredTitle = (nodeData as any)?.title as string | undefined;
+    const raw =
+      preferredTitle && preferredTitle.trim().length > 0
+        ? preferredTitle
+        : sourceType;
+    const lastSegment = raw?.split(".").pop() || "";
+    return humanizeType(lastSegment) || "Missing Node";
+  }, [packageInfo?.node_type, nodeType, nodeData]);
+
+  // Debug logs to trace why header shows an unexpected title
+  useEffect(() => {
+    console.debug("[PlaceholderNode] header title debug", {
+      id: props.id,
+      nodeType,
+      originalType: (nodeData as any)?.originalType,
+      nodeDataTitle: (nodeData as any)?.title,
+      nodeDataType: (nodeData as any)?.node_type,
+      packageInfo,
+      computedHeaderTitle
+    });
+    if ((computedHeaderTitle || "").toLowerCase() === "default") {
+      console.debug(
+        "[PlaceholderNode] title resolved to 'default' — check node type segments",
+        {
+          typeSegments: (nodeType || "").split("."),
+          rawTitle: (nodeData as any)?.title
+        }
+      );
+    }
+  }, [props.id, nodeType, nodeData, packageInfo, computedHeaderTitle]);
+
   const mockMetadata: NodeMetadata = useMemo(
     () => ({
-      title: nodeTitle || "Missing Node",
+      title: computedHeaderTitle || nodeTitle || "Missing Node",
       description: "This node is missing",
       namespace: nodeNamespace || "unknown",
       node_type: nodeType || "unknown",
@@ -224,7 +264,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       the_model_info: {},
       recommended_models: []
     }),
-    [nodeTitle, nodeNamespace, nodeType, mockProperties]
+    [computedHeaderTitle, nodeTitle, nodeNamespace, nodeType, mockProperties]
   );
   const basicFields = mockProperties
     .slice(0, 2)
@@ -248,7 +288,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     >
       <NodeHeader
         id={props.id}
-        metadataTitle={nodeTitle || "Missing Node!"}
+        metadataTitle={computedHeaderTitle || nodeTitle || "Missing Node!"}
         data={nodeData || {}}
         showMenu={false}
         selected={props.selected}
