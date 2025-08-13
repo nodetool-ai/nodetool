@@ -9,7 +9,8 @@ const modelListItemStyles = (theme: Theme) =>
       boxSizing: "border-box",
       borderBottom: "1px solid " + theme.vars.palette.grey[700],
       wordBreak: "break-word",
-      transition: "background-color 0.125s ease-in, border 0.125s ease-in, transform 0.08s ease-in",
+      transition:
+        "background-color 0.125s ease-in, border 0.125s ease-in, transform 0.08s ease-in",
       "&.compact": {
         padding: ".25em .5em"
       },
@@ -60,8 +61,8 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-description": {
         display: "block",
-        color: theme.vars.palette.grey[300],
-        fontSize: "var(--fontSizeSmaller)",
+        color: theme.vars.palette.text.secondary,
+        fontSize: "var(--fontSizeSmall)",
         lineHeight: "1.4em",
         wordBreak: "break-word"
       },
@@ -111,10 +112,12 @@ const modelListItemStyles = (theme: Theme) =>
         fontSize: "0.875rem"
       },
       "& .pipeline-tag": {
-        color: "var(--palette-grey-800)",
+        backgroundColor: "var(--palette-grey-700)",
+        color: "var(--palette-grey-50)",
         fontSize: "var(--fontSizeSmaller)",
         fontWeight: "bold",
-        padding: "8px .5em",
+        marginLeft: "0.5em",
+        padding: ".8em .2em",
         borderRadius: "0.5em",
         height: "1em"
       },
