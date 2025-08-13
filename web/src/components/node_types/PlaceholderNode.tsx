@@ -219,28 +219,12 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       const parts = originalType.split(".").filter(Boolean);
       const selectedPath = parts.slice(0, -1);
       const searchTerm = parts.slice(-1)[0] || originalType;
-      console.debug("[PlaceholderNode] opening node menu with", {
-        originalType,
-        selectedPath,
-        searchTerm
-      });
-      // kick off server-side search for missing packs
       searchForNode();
-      console.debug("[PlaceholderNode] calling openNodeMenu", {
-        x: e.clientX,
-        y: e.clientY,
-        searchTerm,
-        selectedPath
-      });
       openNodeMenu({ x: e.clientX, y: e.clientY, searchTerm, selectedPath });
       setTimeout(() => {
         const getState = (useNodeMenuStore as any).getState;
         if (typeof getState === "function") {
           const state = getState();
-          console.debug(
-            "[PlaceholderNode] post-open isMenuOpen?",
-            state?.isMenuOpen
-          );
         }
       }, 0);
     },
@@ -293,28 +277,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     return humanizeType(lastSegment) || "Missing Node";
   }, [packageInfo?.node_type, nodeType, nodeData]);
 
-  // Debug logs to trace why header shows an unexpected title
-  useEffect(() => {
-    console.debug("[PlaceholderNode] header title debug", {
-      id: props.id,
-      nodeType,
-      originalType: (nodeData as any)?.originalType,
-      nodeDataTitle: (nodeData as any)?.title,
-      nodeDataType: (nodeData as any)?.node_type,
-      packageInfo,
-      computedHeaderTitle
-    });
-    if ((computedHeaderTitle || "").toLowerCase() === "default") {
-      console.debug(
-        "[PlaceholderNode] title resolved to 'default' — check node type segments",
-        {
-          typeSegments: (nodeType || "").split("."),
-          rawTitle: (nodeData as any)?.title
-        }
-      );
-    }
-  }, [props.id, nodeType, nodeData, packageInfo, computedHeaderTitle]);
-
   const mockMetadata: NodeMetadata = useMemo(
     () => ({
       title: computedHeaderTitle || nodeTitle || "Missing Node",
@@ -326,6 +288,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       basic_fields: [],
       is_dynamic: false,
       is_streaming: false,
+      expose_as_tool: false,
       outputs: [
         {
           name: "output",
