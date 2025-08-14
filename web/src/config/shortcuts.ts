@@ -464,22 +464,6 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     electronOnly: true
   },
   {
-    title: "Zoom In",
-    slug: "zoomIn",
-    keyCombo: ["Control", "="],
-    category: "workflow" as const,
-    description: "Zoom in on canvas",
-    registerCombo: true
-  },
-  {
-    title: "Zoom Out",
-    slug: "zoomOut",
-    keyCombo: ["Control", "-"],
-    category: "workflow" as const,
-    description: "Zoom out on canvas",
-    registerCombo: true
-  },
-  {
     title: "Previous Tab",
     slug: "prevTab",
     keyCombo: ["Control", "PageUp"],
