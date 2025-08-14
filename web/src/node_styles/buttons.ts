@@ -18,8 +18,8 @@ export const buttonStyles = (_theme: Theme) =>
       padding: "0.2em 0.6em",
       lineHeight: "1.1em",
       minWidth: "20px",
-      fontSize: "0.8em",
-      backgroundColor: _theme.vars.palette.grey[800]
+      fontSize: "0.8em"
+      // backgroundColor: _theme.vars.palette.grey[800]
     },
     ".MuiButton-sizeSmall:hover": {
       backgroundColor: _theme.vars.palette.action.hover
