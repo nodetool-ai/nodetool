@@ -255,7 +255,7 @@ export const paletteDark: PaletteOptions = {
     paper: "#161A22",
     overlay: "#1C1F26"
   },
-  divider: "#2C3340",
+  divider: "#525865",
   glass: {
     blur: "blur(45px)",
     backgroundDialog: "rgba(0, 0, 0, 0.2)",
