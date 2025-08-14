@@ -19,7 +19,7 @@ import ModelsManager from "../hugging_face/ModelsManager";
 const styles = (theme: Theme) =>
   css({
     ".command-icon": {
-      color: theme.vars.palette.action.active,
+      color: theme.vars.palette.text.primary,
       padding: "0 4px",
       minWidth: "32px",
       height: "32px",
