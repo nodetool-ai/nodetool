@@ -36,7 +36,9 @@
   background-color: transparent;
   color: var(--palette-grey-0);
   margin: 0;
-  border-radius: var(--rounded-node) var(--rounded-node) 0 0;
+  /* slightly slanted corners on header to align with node body */
+  border-radius: calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px)
+    0 0;
 }
 
 .node-drag-handle {
@@ -222,7 +224,11 @@
 .react-flow__node.selected {
   outline-color: var(--palette-text-primary) !important;
   box-shadow: 0 0 0 2px var(--palette-text-primary),
-    0.1em 0.1em 0.8em 0px rgba(0, 0, 0, 0.6);
+    0.1em 0.1em 8px 0px rgba(0, 0, 0, 0.6);
+}
+.react-flow.zoomed-out .react-flow__node.selected {
+  box-shadow: 0 0 0 6px var(--palette-text-primary),
+    0.1em 0.1em 8px 0px rgba(0, 0, 0, 0.6) !important;
 }
 
 .react-flow__node:not(.selected) {
