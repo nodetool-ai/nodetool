@@ -203,9 +203,9 @@ export const paletteDark: PaletteOptions = {
     disabled: "#94A3B8"
   },
   action: {
-    active: "#333",
-    hover: "#2A2F39",
-    selected: "#1F2937",
+    active: "#D1D5DB",
+    hover: "#1C2430",
+    selected: "#233043",
     disabled: "#6B7280"
   },
   Paper: {
