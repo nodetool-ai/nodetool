@@ -179,7 +179,7 @@ const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: "transparent",
       height: "calc(100% - 43px)",
       width: "100%",
       padding: ".25em",
