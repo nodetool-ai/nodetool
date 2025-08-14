@@ -46,7 +46,7 @@ export const inputStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.0em",
       backgroundColor: "transparent",
-      minHeight: 15,
+      minHeight: 18,
       margin: 0,
       padding: "0 0.5em 0.5em 0.2em",
       resize: "vertical" as const,
@@ -56,8 +56,8 @@ export const inputStyles = (theme: Theme) =>
       },
 
       ".MuiInputBase-inputMultiline": {
-        fontSize: theme.fontSizeTinyer,
-        lineHeight: "1.1em",
+        fontSize: theme.fontSizeTiny,
+        lineHeight: "1.5em",
         cursor: "auto"
       },
 
