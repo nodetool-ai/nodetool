@@ -164,7 +164,6 @@ export default function ModelMenuDialog({
       </DialogTitle>
       <DialogContent
         sx={{
-          background: "transparent",
           display: "flex",
           flexDirection: "column",
           height: "100%",
