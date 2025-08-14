@@ -14,6 +14,7 @@ import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+// simple inline glass helpers (no shared module)
 
 const styles = (theme: Theme) =>
   css({
@@ -84,12 +85,7 @@ interface ModelsManagerProps {
 
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   const theme = useTheme();
-  const isDarkMode = useIsDarkMode();
-  const backdropBg = (theme as any)?.vars?.palette?.background?.defaultChannel
-    ? `rgba(${(theme as any).vars.palette.background.defaultChannel} / 0.7)`
-    : isDarkMode
-    ? "rgba(0 0 0 / 0.7)"
-    : "rgba(255 255 255 / 0.7)";
+
   return (
     <Dialog
       css={styles(theme)}
@@ -99,8 +95,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       slotProps={{
         backdrop: {
           style: {
-            backdropFilter: "blur(50px)",
-            backgroundColor: backdropBg
+            backdropFilter: theme.vars.glass.blur,
+            backgroundColor: theme.vars.glass.backgroundDialog
           }
         }
       }}
@@ -109,8 +105,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           width: "92%",
           maxWidth: "1200px",
           margin: "auto",
-          borderRadius: 1.5,
           background: "transparent",
+          borderRadius: 6,
           border: `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}
@@ -127,7 +123,12 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           </IconButton>
         </Tooltip>
       </DialogTitle>
-      <DialogContent sx={{ background: "transparent", pt: 2 }}>
+      <DialogContent
+        sx={{
+          backgroundColor: theme.vars.glass.backgroundDialogContent,
+          pt: 2
+        }}
+      >
         <div className="models-manager">
           <div className="existing-models-section">
             <div className="models-list-container">

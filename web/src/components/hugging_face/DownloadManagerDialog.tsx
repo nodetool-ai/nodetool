@@ -79,7 +79,10 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backdropFilter: "blur(20px)"
+            backdropFilter:
+              (theme as any)?.palette?.glass?.blur ?? "blur(20px)",
+            backgroundColor:
+              (theme as any)?.palette?.glass?.backgroundDialog ?? undefined
           }
         }
       }}
@@ -87,7 +90,12 @@ const DownloadManagerDialog: React.FC = () => {
       <DialogTitle sx={{ color: "inherit" }}>
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent
+        sx={{
+          backgroundColor:
+            (theme as any)?.palette?.glass?.backgroundDialogContent ?? undefined
+        }}
+      >
         <Box mt={2}>
           {Object.keys(downloads).length > 0 ? (
             Object.keys(downloads).map((name) => (
