@@ -193,12 +193,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       slotProps={{
         paper: {
           sx: {
-            "& .MuiList-root": {
-              padding: "0"
-            },
-            "& .MuiMenuItem-root": {
-              padding: "3px 15px"
-            }
+            borderRadius: "8px"
           }
         }
       }}
@@ -249,12 +244,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         label="Add Task Planner"
         IconComponent={<TextsmsIcon />}
         tooltip="Add a Task Planner node"
-      />
-      <ContextMenuItem
-        onClick={addLLMNode}
-        label="Add LLM"
-        IconComponent={<TextsmsIcon />}
-        tooltip="Add an LLM node"
       />
       <ContextMenuItem
         onClick={addDataGeneratorNode}

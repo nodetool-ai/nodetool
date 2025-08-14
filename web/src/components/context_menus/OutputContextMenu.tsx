@@ -275,7 +275,7 @@ const OutputContextMenu: React.FC = () => {
     if (menuPosition) {
       // When showing connectable nodes from an output handle,
       // we're looking for nodes with compatible inputs
-      setSourceHandle(sourceHandle);  // This output handle will be the source
+      setSourceHandle(sourceHandle); // This output handle will be the source
       setNodeId(nodeId);
       setFilterType("input");
       setConnectableType(sourceType);
@@ -297,19 +297,14 @@ const OutputContextMenu: React.FC = () => {
             ? { top: menuPosition.y, left: menuPosition.x }
             : undefined
         }
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
+        }}
       >
-        <MenuItem disabled>
-          <Typography
-            style={{
-              margin: ".1em 0",
-              padding: "0"
-            }}
-            variant="body1"
-          >
-            Output
-          </Typography>
-        </MenuItem>
-        <Divider />
         <ContextMenuItem
           onClick={handleCreatePreviewNode}
           label="Create Preview Node"
