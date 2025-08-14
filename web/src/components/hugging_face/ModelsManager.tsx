@@ -2,12 +2,18 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Dialog, DialogContent, DialogTitle, Typography, Tooltip } from "@mui/material";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
+  Tooltip
+} from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 const styles = (theme: Theme) =>
   css({
@@ -59,7 +65,7 @@ const styles = (theme: Theme) =>
       top: 0,
       zIndex: 2,
       background: "transparent",
-      margin:0,
+      margin: 0,
       padding: theme.spacing(4, 4),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
@@ -77,9 +83,13 @@ interface ModelsManagerProps {
 }
 
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
-  const { isDialogOpen, closeDialog, downloads, cancelDownload } =
-    useModelDownloadStore();
   const theme = useTheme();
+  const isDarkMode = useIsDarkMode();
+  const backdropBg = (theme as any)?.vars?.palette?.background?.defaultChannel
+    ? `rgba(${(theme as any).vars.palette.background.defaultChannel} / 0.7)`
+    : isDarkMode
+    ? "rgba(0 0 0 / 0.7)"
+    : "rgba(255 255 255 / 0.7)";
   return (
     <Dialog
       css={styles(theme)}
@@ -88,7 +98,10 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       onClose={onClose}
       slotProps={{
         backdrop: {
-          style: { backdropFilter: "blur(20px)" }
+          style: {
+            backdropFilter: "blur(50px)",
+            backgroundColor: backdropBg
+          }
         }
       }}
       sx={{
@@ -98,14 +111,18 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           margin: "auto",
           borderRadius: 1.5,
           background: "transparent",
-          border: `1px solid ${theme.vars.palette.grey[700]}`,
+          border: `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}
     >
       <DialogTitle className="dialog-title">
         <Typography>Model Manager</Typography>
         <Tooltip title="Close">
-          <IconButton aria-label="close" onClick={onClose} className="close-button">
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            className="close-button"
+          >
             <CloseIcon />
           </IconButton>
         </Tooltip>
