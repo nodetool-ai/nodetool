@@ -238,12 +238,6 @@ export const paletteDark: PaletteOptions = {
     // Higher emphasis than selected (used for activated states)
     activatedOpacity: 0.24
   },
-  // action: {
-  //   active: "#333",
-  //   hover: "#2A2F39",
-  //   selected: "#1F2937",
-  //   disabled: "#6B7280"
-  // },
   Paper: {
     default: "#161A22",
     paper: "#161A22",
