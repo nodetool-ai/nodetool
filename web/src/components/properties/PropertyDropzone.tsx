@@ -64,11 +64,10 @@ const PropertyDropzone = ({
         backgroundColor: theme.vars.palette.grey[600],
         fontSize: theme.fontSizeTinyer,
         lineHeight: "1.1em",
-        width: "15px",
         height: "15px",
         minWidth: "unset",
         margin: "0",
-        padding: ".2em",
+        padding: ".2em .5em",
         borderRadius: "0"
       },
       ".url-input": {
