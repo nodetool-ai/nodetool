@@ -421,6 +421,7 @@
 
 .number-input .value {
   margin-top: 3px;
+  font-family: var(--font_family2);
   font-size: var(--fontSizeNormal);
 }
 .number-input .slider-value .name {
@@ -442,7 +443,7 @@
   position: absolute;
   color: var(--palette-grey-100);
   color: var(--palette-grey-100);
-  max-width: 80px;
+  max-width: 100px;
   height: 1em;
   top: 0px;
   right: 0px;
