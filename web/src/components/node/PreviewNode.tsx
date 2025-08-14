@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "1000px",
         minHeight: "150px",
-        borderRadius: "8px"
+        borderRadius: "var(--rounded-node)"
       },
       "&.preview-node": {
         padding: 0,
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
         textTransform: "uppercase",
         fontSize: "var(--fontSizeTiny)",
         fontFamily: "var(--fontFamily2)",
-        color: theme.vars.palette.grey[200],
+        color: "var(--palette-grey-200) !important",
         marginTop: "0.25em"
       }
     },

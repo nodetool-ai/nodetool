@@ -99,6 +99,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         },
         paper: {
           style: {
+            borderRadius: theme.vars.rounded.dialog,
             background: theme.vars.palette.glass.backgroundDialogContent
           }
         }
@@ -108,7 +109,7 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           width: "92%",
           maxWidth: "1200px",
           margin: "auto",
-          borderRadius: 6,
+          borderRadius: (theme as any)?.rounded?.dialog ?? 6,
           border: `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}

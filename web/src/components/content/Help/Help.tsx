@@ -44,10 +44,11 @@ interface TabPanelProps {
 
 const helpStyles = (theme: Theme) =>
   css({
+    height: "100%",
     ".help": {
+      height: "100%",
       display: "flex",
       flexDirection: "column",
-      height: "100%",
       gap: ".1em",
       overflow: "hidden"
     },
@@ -211,7 +212,7 @@ const Help = ({
           maxWidth: "1000px",
           height: "85vh",
           margin: "auto",
-          borderRadius: 2,
+          borderRadius: (theme as any)?.rounded?.dialog ?? 2,
           border: `1px solid ${theme.vars.palette.grey[700]}`,
           backgroundColor:
             (theme as any)?.palette?.glass?.backgroundDialogContent ??
@@ -227,6 +228,7 @@ const Help = ({
         },
         paper: {
           style: {
+            borderRadius: theme.vars.rounded.dialog,
             background: theme.vars.palette.glass.backgroundDialogContent
           }
         }

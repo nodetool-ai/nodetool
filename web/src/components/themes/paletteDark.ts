@@ -60,6 +60,12 @@ declare module "@mui/material/styles" {
       backgroundDialog?: string;
       backgroundDialogContent?: string;
     };
+    rounded?: {
+      dialog?: string;
+      node?: string;
+      buttonSmall?: string;
+      buttonLarge?: string;
+    };
   }
 
   interface Palette {
@@ -113,6 +119,12 @@ declare module "@mui/material/styles" {
       blur: string;
       backgroundDialog: string;
       backgroundDialogContent: string;
+    };
+    rounded: {
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
     };
   }
 }
@@ -245,8 +257,8 @@ export const paletteDark: PaletteOptions = {
   },
   divider: "#2C3340",
   glass: {
-    blur: "blur(50px)",
-    backgroundDialog: "rgba(0, 0, 0, 0.27)",
-    backgroundDialogContent: "rgba(0, 0, 0, 0.6)"
+    blur: "blur(45px)",
+    backgroundDialog: "rgba(0, 0, 0, 0.2)",
+    backgroundDialogContent: "rgba(0, 0, 0, 0.5)"
   }
 };

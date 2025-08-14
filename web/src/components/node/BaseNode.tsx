@@ -124,7 +124,7 @@ const getNodeStyles = (colors: string[]) =>
         ${colors[4]},
         ${colors[0]}
       )`,
-        borderRadius: "8px",
+        borderRadius: "rounded.node",
         zIndex: -20,
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
         transition: "opacity 0.5s ease-in-out"

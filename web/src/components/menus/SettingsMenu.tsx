@@ -521,6 +521,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
           },
           paper: {
             style: {
+              borderRadius: theme.vars.rounded.dialog,
               background: theme.vars.palette.glass.backgroundDialogContent
             }
           }

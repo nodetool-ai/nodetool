@@ -60,6 +60,12 @@ declare module "@mui/material/styles" {
       backgroundDialog?: string;
       backgroundDialogContent?: string;
     };
+    rounded?: {
+      dialog?: string;
+      node?: string;
+      buttonSmall?: string;
+      buttonLarge?: string;
+    };
   }
 
   interface Palette {
@@ -106,6 +112,12 @@ declare module "@mui/material/styles" {
       blur: string;
       backgroundDialog: string;
       backgroundDialogContent: string;
+    };
+    rounded: {
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
     };
   }
 }
