@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useState } from "react";
-import { Box, Button, Popover, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
@@ -73,21 +73,7 @@ const RightSideButtons: React.FC = () => {
         </>
       )}
       <NotificationButton />
-      <Popover
-        open={helpOpen}
-        onClose={handleCloseHelp}
-        anchorReference="none"
-        style={{
-          position: "fixed",
-          width: "100%",
-          height: "100%",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)"
-        }}
-      >
-        <Help handleClose={handleCloseHelp} />
-      </Popover>
+      <Help open={helpOpen} handleClose={handleCloseHelp} />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
         title={
