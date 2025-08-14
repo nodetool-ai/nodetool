@@ -10,7 +10,10 @@ import { useNodes } from "../contexts/NodeContext";
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined
 ) => {
-  const clickPosition = useNodeMenuStore((state) => state.clickPosition);
+  const { clickPosition, closeNodeMenu } = useNodeMenuStore((state) => ({
+    clickPosition: state.clickPosition,
+    closeNodeMenu: state.closeNodeMenu
+  }));
   const reactFlowInstance = useReactFlow();
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
@@ -29,8 +32,11 @@ export const useCreateNode = (
 
       const newNode = createNode(metadata, rfPos);
       addNode(newNode);
+      
+      // Close the node menu after creating a node
+      closeNodeMenu();
     },
-    [reactFlowInstance, centerPosition, clickPosition, createNode, addNode]
+    [reactFlowInstance, centerPosition, clickPosition, createNode, addNode, closeNodeMenu]
   );
 
   return handleCreateNode;
