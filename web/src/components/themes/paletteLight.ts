@@ -244,9 +244,7 @@ export const paletteLight: PaletteOptions = {
   divider: "#E5E7EB",
   glass: {
     blur: "blur(50px)",
-    backgroundDialog:
-      "rgba(var(--mui-palette-background-defaultChannel) / 0.7)",
-    backgroundDialogContent:
-      "rgba(var(--mui-palette-background-defaultChannel) / 0.06)"
+    backgroundDialog: "rgba(255, 255, 255, 0.27)",
+    backgroundDialogContent: "rgba(255, 255, 255, 0.6)"
   }
 };

@@ -29,7 +29,6 @@ const styles = (theme: Theme) =>
       margin: "auto",
       borderRadius: 6,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      background: "transparent",
       color: theme.vars.palette.text.primary
     },
     ".MuiDialogTitle-root": {
@@ -79,10 +78,13 @@ const DownloadManagerDialog: React.FC = () => {
       slotProps={{
         backdrop: {
           style: {
-            backdropFilter:
-              (theme as any)?.palette?.glass?.blur ?? "blur(20px)",
-            backgroundColor:
-              (theme as any)?.palette?.glass?.backgroundDialog ?? undefined
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
+          }
+        },
+        paper: {
+          style: {
+            background: theme.vars.palette.glass.backgroundDialogContent
           }
         }
       }}
@@ -91,10 +93,10 @@ const DownloadManagerDialog: React.FC = () => {
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
       </DialogTitle>
       <DialogContent
-        sx={{
-          backgroundColor:
-            (theme as any)?.palette?.glass?.backgroundDialogContent ?? undefined
-        }}
+        className="download-dialog-content"
+        // sx={{
+        //   background: theme.vars.palette.glass.backgroundDialogContent
+        // }}
       >
         <Box mt={2}>
           {Object.keys(downloads).length > 0 ? (
