@@ -265,6 +265,12 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         tooltip="Add an integer input node"
       />
       <ContextMenuItem
+        onClick={(e) => addInputNode("FloatInput", e)}
+        label="Float Input"
+        IconComponent={<NumbersIcon />}
+        tooltip="Add a float input node"
+      />
+      <ContextMenuItem
         onClick={(e) => addInputNode("ChatInput", e)}
         label="Chat Input"
         IconComponent={<ChatIcon />}
