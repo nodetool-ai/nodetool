@@ -398,7 +398,6 @@
     var(--color-5),
     var(--color-1)
   );
-  border-radius: inherit;
   z-index: -20;
   animation: gradientAnimation 5s ease-in-out infinite;
   transition: opacity 0.5s ease-in-out;
