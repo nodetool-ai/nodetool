@@ -201,10 +201,30 @@ export const paletteLight: PaletteOptions = {
     disabled: "#9AA4B2"
   },
   action: {
-    active: "#0B1220",
-    hover: "#EEF2F7",
-    selected: "#E2E8F0",
-    disabled: "#94A3B8"
+    // Icons, enabled interactive elements, "on" state indicators
+    active: "rgba(0, 0, 0, 0.54)",
+
+    // Background when hovering over clickable items
+    hover: "rgba(0, 0, 0, 0.04)",
+    hoverOpacity: 0.04,
+
+    // Background for selected list items, active nav items
+    selected: "rgba(0, 0, 0, 0.08)",
+    selectedOpacity: 0.08,
+
+    // Text color for disabled buttons, form fields, icons
+    disabled: "rgba(0, 0, 0, 0.26)",
+    disabledOpacity: 0.38,
+
+    // Background color for disabled buttons, form controls
+    disabledBackground: "rgba(0, 0, 0, 0.12)",
+
+    // Focus ring color, keyboard navigation indicators
+    focus: "rgba(0, 0, 0, 0.12)",
+    focusOpacity: 0.12,
+
+    // Higher emphasis than selected (used for activated states)
+    activatedOpacity: 0.12
   },
   Paper: {
     default: "#FFFFFF",
