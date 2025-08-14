@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.5em"
     },
     button: {
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[100],
       backgroundColor: theme.vars.palette.grey[600],
       border: 0,
@@ -36,13 +36,13 @@ const styles = (theme: Theme) =>
       margin: 0,
       gap: "0.25em",
       padding: ".1em 1em 0 .5em",
-      borderRadius: "0"
+      borderRadius: "4px"
     },
     "button:hover": {
       color: theme.vars.palette.grey[0]
     },
     "button svg": {
-      fontSize: theme.fontSizeBig
+      fontSize: theme.fontSizeSmall
     }
   });
 

@@ -322,7 +322,6 @@
 
 .string-property .container .expand-button {
   width: 20px;
-  border-radius: 2px;
 }
 
 .string-property .expand-button {
@@ -333,7 +332,7 @@
   padding: 0 0.5em;
   display: flex;
   justify-content: center;
-  border-radius: 0.1em;
+  border-radius: 8px;
   border: none;
   color: var(--c-gray6);
   background: transparent;
@@ -358,7 +357,7 @@
   position: relative;
   color: var(--palette-grey-100);
   background-color: var(--palette-grey-900);
-  border-radius: 0.25em;
+  border-radius: 8px;
   border: none;
   padding: 0 1em 0 0;
   margin: 0;
@@ -384,7 +383,7 @@
   padding: 0px;
   background-color: var(--palette-grey-900);
   color: var(--palette-grey-0);
-  border-radius: 0.1em;
+  border-radius: 8px;
   font-size: var(--fontSizeNormal);
   /* box-sizing: content-box; */
 }
@@ -536,7 +535,7 @@
   margin: 2px 0 8px 0;
   padding: 0px 3px;
   background-color: var(--palette-grey-900);
-  border-radius: 2px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -567,7 +566,7 @@
   left: 0;
   background-color: var(--palette-grey-800);
   background-color: var(--palette-grey-800);
-  border-radius: 0 0 2px 2px;
+  border-radius: 0 0 8px 8px;
   list-style-type: none;
   padding: 0;
   margin: 0;
@@ -598,7 +597,7 @@
   padding: 6px;
   min-width: 18px;
   height: 18px;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 8px;
   font-weight: 600;
   border-style: none;
@@ -638,7 +637,7 @@
   padding: 1em 0.5em;
   border: 1px solid var(--palette-grey-500);
   border: 1px solid var(--palette-grey-500);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--text-primary);
 }
 
