@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useRef, useEffect } from "react";
+import { memo, useMemo, useRef, useEffect, useState } from "react";
 
 // mui
 import { IconButton, Box, Typography } from "@mui/material";
@@ -31,7 +31,7 @@ const treeStyles = (theme: Theme) =>
       height: "auto",
       maxHeight: "90vh",
       minHeight: "35vh",
-      top: 50,
+      top: 0,
       left: 0,
       position: "absolute",
       overflow: "hidden",
@@ -135,6 +135,13 @@ type NodeMenuProps = {
 
 const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const nodeRef = useRef<HTMLDivElement>(null);
+  const [bounds, setBounds] = useState({
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0
+  });
+  const BOTTOM_SAFE_MARGIN = 50;
 
   // Only subscribe to minimal state when closed
   const isMenuOpen = useStoreWithEqualityFn(
@@ -154,7 +161,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     selectedOutputType,
     setSelectedOutputType,
     searchTerm,
-    setSearchTerm
+    setSearchTerm,
+    setMenuSize
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -167,7 +175,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       selectedOutputType: state.selectedOutputType,
       setSelectedOutputType: state.setSelectedOutputType,
       searchTerm: state.searchTerm,
-      setSearchTerm: state.setSearchTerm
+      setSearchTerm: state.setSearchTerm,
+      setMenuSize: state.setMenuSize
     }),
     isEqual
   );
@@ -195,6 +204,48 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 
+  // Keep the draggable bounds within the viewport, accounting for element size
+  useEffect(() => {
+    const updateBounds = () => {
+      const el = nodeRef.current;
+      const width = el?.offsetWidth ?? 0;
+      const height = el?.offsetHeight ?? 0;
+      if (width && height) {
+        setMenuSize(width, height);
+      }
+      const right = Math.max(0, window.innerWidth - width);
+      const bottom = Math.max(
+        0,
+        window.innerHeight - height - BOTTOM_SAFE_MARGIN
+      );
+      setBounds({ left: 0, top: 0, right, bottom });
+    };
+    updateBounds();
+    window.addEventListener("resize", updateBounds);
+    return () => window.removeEventListener("resize", updateBounds);
+  }, [isMenuOpen, setMenuSize]);
+
+  // If initial position clips right/bottom, correct after mount using measured size
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const el = nodeRef.current;
+    if (!el) return;
+    const width = el.offsetWidth;
+    const height = el.offsetHeight;
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return;
+    const maxX = Math.max(0, window.innerWidth - width - 10);
+    const maxY = Math.max(
+      0,
+      window.innerHeight - height - 10 - BOTTOM_SAFE_MARGIN
+    );
+    const correctedX = Math.min(menuPosition.x, maxX);
+    const correctedY = Math.min(menuPosition.y, maxY);
+    if (correctedX !== menuPosition.x || correctedY !== menuPosition.y) {
+      // Imperatively move the draggable node to corrected position
+      el.style.transform = `translate(${correctedX}px, ${correctedY}px)`;
+    }
+  }, [isMenuOpen, menuPosition.x, menuPosition.y]);
+
   if (!isMenuOpen) {
     console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
     return null;
@@ -202,12 +253,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   return (
     <Draggable
-      bounds={{
-        left: 0,
-        right: window.innerWidth,
-        top: 0,
-        bottom: window.innerHeight
-      }}
+      bounds={bounds}
       nodeRef={nodeRef}
       defaultPosition={{ x: menuPosition.x, y: menuPosition.y }}
       handle=".draggable-header"

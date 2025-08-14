@@ -52,6 +52,7 @@ type NodeMenuStore = {
   setMenuPosition: (x: number, y: number) => void;
   menuWidth: number;
   menuHeight: number;
+  setMenuSize: (width: number, height: number) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedInputType: string;
@@ -152,6 +153,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
     menuWidth: 0,
     menuHeight: 0,
+    setMenuSize: (width, height) =>
+      set({ menuWidth: width, menuHeight: height }),
     searchTerm: "",
     setSearchTerm: (term) => {
       // Update searchTerm and trigger search synchronously so opening with a term shows results
@@ -254,7 +257,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
      * @param searchId - Optional ID to cancel outdated searches
      */
     performSearch: (term: string, searchId?: number) => {
-      // eslint-disable-next-line no-console
       console.debug("[NodeMenuStore] performSearch", {
         term,
         searchId,
@@ -357,11 +359,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       set({ highlightedNamespaces: [...newHighlightedNamespaces] });
     },
     closeNodeMenu: () => {
-      // eslint-disable-next-line no-console
       console.debug("[NodeMenuStore] closeNodeMenu executing", {
         isOpen: get().isMenuOpen
       });
-      // eslint-disable-next-line no-console
       console.trace("[NodeMenuStore] closeNodeMenu trace");
       if (get().isMenuOpen) {
         if (get().dragToCreate) {
@@ -387,29 +387,30 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
     },
     openNodeMenu: (params: OpenNodeMenuParams) => {
-      // eslint-disable-next-line no-console
       console.debug("[NodeMenuStore] openNodeMenu called", params);
       set({ clickPosition: { x: params.x, y: params.y } });
       const { menuWidth, menuHeight } = get();
 
       // --- Configuration ---
-      // There's a CSS/layout offset that gets added to our component's final Y position
-      const Y_OFFSET_COMPENSATION = 60; // Reduced from 120 for better MacBook compatibility
       // Fallback dimensions for the first render when the actual dimensions are 0
-      const FALLBACK_MENU_WIDTH = 800;
-      const FALLBACK_MENU_HEIGHT = 700; // Reduced from 870 for MacBook screens
+      const FALLBACK_MENU_WIDTH = 950;
+      const FALLBACK_MENU_HEIGHT = 900;
       // Padding from the window edge when the menu is forced to move
       const WINDOW_EDGE_OFFSET_X = 10;
-      const WINDOW_EDGE_OFFSET_Y = 60 + 10; // Increased padding for macOS menu bar
+      const WINDOW_EDGE_OFFSET_TOP = 10;
+      const WINDOW_EDGE_OFFSET_BOTTOM = 80; // reserve space for bottom UI/safe area
+      // Slight anchor so the header appears closer to the cursor
+      const CURSOR_ANCHOR_OFFSET_Y = 40;
 
       // --- Calculation ---
-      const actualMenuWidth = menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
+      const actualMenuWidth =
+        menuWidth && menuWidth > 0 ? menuWidth : FALLBACK_MENU_WIDTH;
       const actualMenuHeight =
-        menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
+        menuHeight && menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
 
       // 1. Start with the desired visual position at the mouse cursor
       let visualX = params.x;
-      let visualY = params.y;
+      let visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
 
       // 2. Check if the menu overflows the window edges and adjust
       // Adjust X if it overflows the right edge
@@ -418,16 +419,17 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
       }
       // Adjust Y if it overflows the bottom edge
       if (visualY + actualMenuHeight > window.innerHeight) {
-        visualY = window.innerHeight - actualMenuHeight - WINDOW_EDGE_OFFSET_Y;
+        visualY =
+          window.innerHeight - actualMenuHeight - WINDOW_EDGE_OFFSET_BOTTOM;
       }
 
       // 3. Ensure the final position is not negative and account for macOS menu bar
       visualX = Math.max(WINDOW_EDGE_OFFSET_X, visualX);
-      visualY = Math.max(WINDOW_EDGE_OFFSET_Y, visualY);
+      visualY = Math.max(WINDOW_EDGE_OFFSET_TOP, visualY);
 
-      // 4. Apply the Y-offset compensation to get the final value for the component
+      // 4. Final values applied to the component
       const finalX = visualX;
-      const finalY = visualY - Y_OFFSET_COMPENSATION;
+      const finalY = visualY;
 
       // Determine if we should run search immediately on open
       // Always run if a searchTerm is provided (even if unchanged), or if filters changed
@@ -461,13 +463,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
           params.dropType && params.connectDirection === "source"
             ? params.dropType
             : "",
-        menuWidth: 800,
-        menuHeight: 700
+        menuWidth: 950,
+        menuHeight: 900
       });
 
       // debug: after state set
       setTimeout(() => {
-        // eslint-disable-next-line no-console
         console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
       }, 0);
 
