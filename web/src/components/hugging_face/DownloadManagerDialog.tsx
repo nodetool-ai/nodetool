@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       width: "92%",
       maxWidth: "900px",
       margin: "auto",
-      borderRadius: 6,
+      borderRadius: (theme as any)?.rounded?.dialog ?? 6,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       color: theme.vars.palette.text.primary
     },
@@ -84,6 +84,7 @@ const DownloadManagerDialog: React.FC = () => {
         },
         paper: {
           style: {
+            borderRadius: theme.vars.rounded.dialog,
             background: theme.vars.palette.glass.backgroundDialogContent
           }
         }

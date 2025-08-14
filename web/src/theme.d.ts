@@ -36,6 +36,12 @@ declare module "@mui/material/styles" {
     fontSizeTinyer?: string;
     fontFamily1?: string;
     fontFamily2?: string;
+    rounded?: {
+      dialog?: string;
+      node?: string;
+      buttonSmall?: string;
+      buttonLarge?: string;
+    };
   }
 
   interface Theme {
@@ -51,6 +57,12 @@ declare module "@mui/material/styles" {
     fontFamily2: string;
     // Ensure theme.vars is treated as always present in our codebase
     vars: any;
+    rounded: {
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
+    };
   }
 
   // When using @mui/material with CSS variables, many APIs use CssVarsTheme
@@ -66,6 +78,12 @@ declare module "@mui/material/styles" {
     fontSizeTinyer?: string;
     fontFamily1?: string;
     fontFamily2?: string;
+    rounded?: {
+      dialog?: string;
+      node?: string;
+      buttonSmall?: string;
+      buttonLarge?: string;
+    };
   }
   interface CssVarsTheme {
     fontSizeGiant: string;
@@ -78,6 +96,12 @@ declare module "@mui/material/styles" {
     fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
+    rounded: {
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
+    };
   }
 
   interface Color {

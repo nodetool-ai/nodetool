@@ -39,6 +39,12 @@ const ThemeNodetool = createTheme({
   fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
+  rounded: {
+    dialog: "20px",
+    node: "8px",
+    buttonSmall: "4px",
+    buttonLarge: "6px"
+  },
   typography: {
     fontFamily: "'Inter', sans-serif",
     fontSize: 15

@@ -19,7 +19,7 @@
   width: auto;
   cursor: default !important;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--rounded-node);
   background-color: transparent;
   transition: background-color 0.05s;
   transition: box-shadow 0.15s ease-in-out;
@@ -33,14 +33,10 @@
   gap: 0;
   width: 100%;
   min-height: 24px;
-  /* background-color: var(--c_node_header_bg); */
   background-color: transparent;
-
   color: var(--palette-grey-0);
   margin: 0;
-  border-radius: 8px 8px 0 0;
-  /* text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); */
-  /* box-shadow: 0.1em 0.1em 7px 0px rgb(201 201 201 / 5%); */
+  border-radius: var(--rounded-node) var(--rounded-node) 0 0;
 }
 
 .node-drag-handle {
@@ -215,7 +211,7 @@
   display: flex;
   flex-direction: column;
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--rounded-node);
 }
 
 .react-flow .has-result {
