@@ -1,7 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { Typography, Tabs, Tab, Box, TextField } from "@mui/material";
+import {
+  Typography,
+  Tabs,
+  Tab,
+  Box,
+  TextField,
+  Dialog,
+  DialogContent
+} from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
@@ -36,25 +44,6 @@ interface TabPanelProps {
 
 const helpStyles = (theme: Theme) =>
   css({
-    "&": {
-      backgroundColor: theme.vars.palette.background.default,
-      backdropFilter: "blur(10px)",
-      padding: "0em 1em",
-      borderRadius: "1em",
-      position: "fixed",
-      width: "70vw",
-      minWidth: "600px",
-      maxWidth: "1000px",
-      height: "85vh",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      border: "1px solid rgba(255, 255, 255, 0.1)",
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
-      overflow: "auto",
-      fontSize: theme.fontSizeNormal,
-      zIndex: 1000
-    },
     ".help": {
       display: "flex",
       flexDirection: "column",
@@ -172,7 +161,13 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const Help = ({ handleClose }: { handleClose: () => void }) => {
+const Help = ({
+  open,
+  handleClose
+}: {
+  open: boolean;
+  handleClose: () => void;
+}) => {
   const { helpIndex, setHelpIndex } = useAppHeaderStore();
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setHelpIndex(newValue);
@@ -204,61 +199,82 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
     };
 
   return (
-    <>
-      <div
-        css={css`
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: theme.vars.palette.background.default;
-          backdrop-filter: blur(5px);
-          z-index: 999;
-        `}
-        onClick={handleClose}
-      />
-      <div className="help-container" css={helpStyles(theme)}>
-        <div className="help">
-          <div className="top">
-            <Typography variant="h2">Help</Typography>
-            <CloseButton onClick={handleClose} />
-          </div>
-          <Tabs
-            className="help-tabs"
-            value={helpIndex}
-            onChange={handleChange}
-            aria-label="help tabs"
-          >
-            <Tab label="Shortcuts" id="help-tab-0" />
-            <Tab label="Keyboard" id="help-tab-1" />
-            <Tab label="DataTypes" id="help-tab-2" />
-          </Tabs>
-          <div className="content">
-            <TabPanel value={helpIndex} index={0}>
-              <ControlsShortcutsTab />
-            </TabPanel>
-            <TabPanel value={helpIndex} index={1}>
-              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-            </TabPanel>
-            <TabPanel value={helpIndex} index={2}>
-              <DataTypesList
-                title="Nodetool Data Types"
-                dataTypes={nodetoolTypes}
-                expanded={expandedNodetool}
-                onChange={handleAccordionChange("nodetool")}
-              />
-              <DataTypesList
-                title="Comfy Data Types"
-                dataTypes={comfyTypes}
-                expanded={expandedComfy}
-                onChange={handleAccordionChange("comfy")}
-              />
-            </TabPanel>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="md"
+      sx={{
+        "& .MuiDialog-paper": {
+          width: "70vw",
+          minWidth: "600px",
+          maxWidth: "1000px",
+          height: "85vh",
+          margin: "auto",
+          borderRadius: 2,
+          border: `1px solid ${theme.vars.palette.grey[700]}`,
+          backgroundColor:
+            (theme as any)?.palette?.glass?.backgroundDialogContent ??
+            "transparent"
+        }
+      }}
+      slotProps={{
+        backdrop: {
+          style: {
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
+          }
+        },
+        paper: {
+          style: {
+            background: theme.vars.palette.glass.backgroundDialogContent
+          }
+        }
+      }}
+    >
+      <DialogContent sx={{ p: 0 }}>
+        <div css={helpStyles(theme)}>
+          <div className="help">
+            <div className="top">
+              <Typography variant="h2">Help</Typography>
+              <CloseButton onClick={handleClose} />
+            </div>
+            <Tabs
+              className="help-tabs"
+              value={helpIndex}
+              onChange={handleChange}
+              aria-label="help tabs"
+            >
+              <Tab label="Shortcuts" id="help-tab-0" />
+              <Tab label="Keyboard" id="help-tab-1" />
+              <Tab label="DataTypes" id="help-tab-2" />
+            </Tabs>
+            <div className="content">
+              <TabPanel value={helpIndex} index={0}>
+                <ControlsShortcutsTab />
+              </TabPanel>
+              <TabPanel value={helpIndex} index={1}>
+                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+              </TabPanel>
+              <TabPanel value={helpIndex} index={2}>
+                <DataTypesList
+                  title="Nodetool Data Types"
+                  dataTypes={nodetoolTypes}
+                  expanded={expandedNodetool}
+                  onChange={handleAccordionChange("nodetool")}
+                />
+                <DataTypesList
+                  title="Comfy Data Types"
+                  dataTypes={comfyTypes}
+                  expanded={expandedComfy}
+                  onChange={handleAccordionChange("comfy")}
+                />
+              </TabPanel>
+            </div>
           </div>
         </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };
 
