@@ -55,6 +55,11 @@ declare module "@mui/material/styles" {
       paper?: string;
       overlay?: string;
     };
+    glass?: {
+      blur?: string;
+      backgroundDialog?: string;
+      backgroundDialogContent?: string;
+    };
   }
 
   interface Palette {
@@ -96,6 +101,11 @@ declare module "@mui/material/styles" {
       default: string;
       paper: string;
       overlay: string;
+    };
+    glass: {
+      blur: string;
+      backgroundDialog: string;
+      backgroundDialogContent: string;
     };
   }
 }
@@ -231,5 +241,12 @@ export const paletteLight: PaletteOptions = {
     paper: "#FFFFFF",
     overlay: "#F2F4F7"
   },
-  divider: "#E5E7EB"
+  divider: "#E5E7EB",
+  glass: {
+    blur: "blur(50px)",
+    backgroundDialog:
+      "rgba(var(--mui-palette-background-defaultChannel) / 0.7)",
+    backgroundDialogContent:
+      "rgba(var(--mui-palette-background-defaultChannel) / 0.06)"
+  }
 };
