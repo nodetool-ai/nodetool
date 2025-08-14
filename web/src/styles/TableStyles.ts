@@ -131,7 +131,7 @@ export const tableStyles = (theme: Theme) =>
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
-      borderRadius: "0",
+      borderRadius: "8px",
       backgroundColor: "white"
     },
     ".datetime": {
@@ -142,7 +142,7 @@ export const tableStyles = (theme: Theme) =>
         padding: 0,
         top: "0",
         right: ".5em",
-        borderRadius: "0",
+        borderRadius: "8px",
         backgroundColor: "white",
         "&:hover svg": {
           color: "var(--palette-primary-main)"

@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
       height: "2em"
     },
     ".textfield .MuiInputBase-root": {
-      borderRadius: "0"
+      borderRadius: "4px"
     },
     ".textfield input": {
       margin: "0",
@@ -83,10 +83,10 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0",
       border: 0,
-      borderRadius: "0"
+      borderRadius: "4px"
     },
     ".select .MuiSelect-select": {
-      borderRadius: "0",
+      borderRadius: "8px",
       height: "2em",
       margin: "0"
     },
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
       width: "1em",
       minWidth: "1em",
       height: "1em",
-      borderRadius: "0",
+      borderRadius: "4px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       "&:hover": {

@@ -19,8 +19,7 @@
 .react-flow__node-nodetool\.group\.Loop .tools,
 .react-flow__node-nodetool\.workflows\.base_node\.Group .node-header,
 .react-flow__node-nodetool\.workflows\.base_node\.Group .node-resizer,
-.react-flow__node-nodetool\.workflows\.base_node\.Group .tools
- {
+.react-flow__node-nodetool\.workflows\.base_node\.Group .tools {
   pointer-events: all;
 }
 
@@ -72,19 +71,23 @@
   max-height: 5000px;
   padding: 0;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 8px;
   border: none;
   background-color: #fff2;
   box-shadow: none;
   overflow: visible;
 }
 
-.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
+.react-flow.zoomed-out
+  .react-flow__node-nodetool\.workflows\.base_node\.Comment,
 .react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
   background-color: #0001;
 }
-.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group .node-header input {
+.react-flow.zoomed-out
+  .react-flow__node-nodetool\.workflows\.base_node\.Group
+  .node-header
+  input {
   font-size: 3em;
   height: 1em;
 }
@@ -143,8 +146,8 @@
 }
 
 /* Datatable */
-.node-property.dataframe{
-  padding: .5em;
+.node-property.dataframe {
+  padding: 0.5em;
 }
 
 /* Selected node */
