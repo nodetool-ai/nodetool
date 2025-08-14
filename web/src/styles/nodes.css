@@ -228,6 +228,11 @@
   outline-offset: 1px;
 }
 
+.react-flow__node:not(.selected) {
+  outline: 1px solid var(--palette-grey-700) !important;
+  /* outline-offset: 1px; */
+}
+
 .react-flow__node:hover:not(.selected) {
   outline: 1px solid var(--palette-grey-500) !important;
   outline-offset: 1px;
