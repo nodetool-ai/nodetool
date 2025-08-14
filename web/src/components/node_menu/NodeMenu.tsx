@@ -190,11 +190,12 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         state?.setSelectedPath?.([]);
       }
       state?.performSearch?.(searchTerm);
-    } catch (_) {}
+    } catch (error) {
+      console.error("Error performing search:", error);
+    }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 
   if (!isMenuOpen) {
-    // eslint-disable-next-line no-console
     console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
     return null;
   }
