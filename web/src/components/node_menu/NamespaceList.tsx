@@ -249,7 +249,7 @@ const namespaceStyles = (theme: Theme) =>
       cursor: "pointer",
       transition: "background-color 0.18s ease, box-shadow 0.18s ease",
       ".node-button": {
-        padding: ".25em .6em",
+        padding: "0",
         flexGrow: 1,
         borderRadius: "6px",
         "&:hover": {
@@ -342,7 +342,7 @@ const namespaceStyles = (theme: Theme) =>
       marginTop: "0.5em"
     },
     ".namespaces .list-item:hover": {
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[600]
       // borderLeft: `3px solid ${"var(--palette-primary-main)"}`
     },
     ".namespaces .list-item.expanded": {

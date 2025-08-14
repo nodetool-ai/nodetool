@@ -78,7 +78,6 @@ const NodeItem = memo(
             onClick={handleClick}
             style={{
               cursor: "pointer",
-              padding: ".4em ",
               display: "flex",
               alignItems: "center",
               flex: 1,
