@@ -150,15 +150,7 @@
   padding: 0.5em;
 }
 
-/* Selected node */
-
-.react-flow .react-flow__node.react-flow__node.selected {
-  outline: 1px solid #fff8;
-}
-
-.react-flow.zoomed-out .react-flow__node.react-flow__node.selected {
-  outline: 4px solid #fff8;
-}
+/* Selected node - handled in nodes.css */
 
 .react-flow__node-default .react-flow__handle-left {
   left: -6px !important;

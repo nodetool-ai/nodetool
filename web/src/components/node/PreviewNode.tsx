@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "1000px",
         minHeight: "150px",
-        borderRadius: "2px"
+        borderRadius: "8px"
       },
       "&.preview-node": {
         padding: 0,
@@ -57,7 +57,6 @@ const styles = (theme: Theme) =>
       ".node-header": {
         width: "100%",
         minHeight: "unset",
-        height: "20px",
         top: 0,
         left: 0,
         margin: 0,
@@ -384,7 +383,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           position={Position.Left}
           isConnectable={true}
         />
-        {memoizedOutputRenderer}
+        <div className="content">{memoizedOutputRenderer}</div>
       </div>
     </Container>
   );

@@ -214,23 +214,23 @@
 .react-flow__node .node-body {
   display: flex;
   flex-direction: column;
-}
-
-/* Node body */
-.react-flow .node-body {
   padding: 0;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .react-flow .has-result {
   border-bottom: 3px solid var(--palette-primary-main);
 }
 
-/* Node selection */
+/* Node selection and highlighting */
 .react-flow__node.selected {
-  outline-color: var(--palette-text-primary) !important;
-  box-shadow: 0 0 0 2px var(--palette-text-primary),
-    0.1em 0.1em 0.8em 0px rgba(0, 0, 0, 0.6);
+  outline: 1px solid var(--palette-primary-main) !important;
+  outline-offset: 1px;
+}
+
+.react-flow__node:hover:not(.selected) {
+  outline: 1px solid var(--palette-grey-500) !important;
+  outline-offset: 1px;
 }
 
 /* Compact nodes */
@@ -417,7 +417,7 @@
 /* Node Footer Styles */
 .node-footer {
   display: flex;
-  height: 18px;
+  /* height: 18px; */
   align-items: flex-start;
   background: var(--c_node_header_bg);
   border-radius: 0 0 8px 8px;
