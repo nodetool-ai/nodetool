@@ -128,7 +128,8 @@ const styles = (theme: Theme) =>
         backgroundColor: "var(--palette-background-default)",
         // Make icons smaller within toolbar buttons
         "& svg": {
-          fontSize: "1.125rem"
+          fontSize: "1.125rem",
+          color: theme.vars.palette.grey[100]
         },
 
         "&.active": {
