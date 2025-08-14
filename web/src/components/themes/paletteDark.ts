@@ -203,11 +203,37 @@ export const paletteDark: PaletteOptions = {
     disabled: "#94A3B8"
   },
   action: {
-    active: "#333",
-    hover: "#2A2F39",
-    selected: "#1F2937",
-    disabled: "#6B7280"
+    // Icons, enabled interactive elements, "on" state indicators
+    active: "#fff",
+
+    // Background when hovering over clickable items
+    hover: "rgba(255, 255, 255, 0.08)",
+    hoverOpacity: 0.08,
+
+    // Background for selected list items, active nav items
+    selected: "rgba(255, 255, 255, 0.16)",
+    selectedOpacity: 0.16,
+
+    // Text color for disabled buttons, form fields, icons
+    disabled: "rgba(255, 255, 255, 0.3)",
+    disabledOpacity: 0.38,
+
+    // Background color for disabled buttons, form controls
+    disabledBackground: "rgba(255, 255, 255, 0.12)",
+
+    // Focus ring color, keyboard navigation indicators
+    focus: "rgba(255, 255, 255, 0.12)",
+    focusOpacity: 0.12,
+
+    // Higher emphasis than selected (used for activated states)
+    activatedOpacity: 0.24
   },
+  // action: {
+  //   active: "#333",
+  //   hover: "#2A2F39",
+  //   selected: "#1F2937",
+  //   disabled: "#6B7280"
+  // },
   Paper: {
     default: "#161A22",
     paper: "#161A22",

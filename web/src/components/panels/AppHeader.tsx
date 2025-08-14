@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       gap: "6px",
       padding: "2px 4px",
       borderRadius: "10px",
-      backgroundColor: `${theme.vars.palette.action.hover}33`,
+      backgroundColor: theme.vars.palette.action.hover,
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       },
       position: "relative",
       "&.active": {
-        backgroundColor: `${theme.vars.palette.action.selected}66`,
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.primary.main,
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}55 inset, 0 6px 22px ${theme.vars.palette.primary.main}10`,
         "& svg": {

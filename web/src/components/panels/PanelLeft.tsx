@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
         "&:hover": {
           backgroundColor: `${theme.vars.palette.action.hover}66`,
           boxShadow: `0 4px 18px ${theme.vars.palette.action.hover}30`,
-          transform: "translateY(-1px) scale(1.02)",
+          transform: "scale(1.02)",
           "&::after": {
             content: '""',
             position: "absolute",
@@ -159,7 +159,7 @@ const styles = (theme: Theme) =>
           }
         },
         "&:active": {
-          transform: "translateY(0) scale(0.98)",
+          transform: "scale(0.98)",
           boxShadow: `0 2px 10px ${theme.vars.palette.action.hover}24`
         }
       }
