@@ -108,7 +108,17 @@ export default function ModelMenuDialog({
       className="model-menu__dialog"
       slotProps={{
         backdrop: {
-          style: { backdropFilter: "blur(20px)" }
+          style: {
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
+          }
+        },
+        paper: {
+          style: {
+            maxWidth: "950px",
+            borderRadius: theme.vars.rounded.dialog,
+            background: theme.vars.palette.glass.backgroundDialogContent
+          }
         }
       }}
       sx={{
