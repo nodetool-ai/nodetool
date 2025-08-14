@@ -88,9 +88,7 @@ const NodeContextMenu: React.FC = () => {
       slotProps={{
         paper: {
           sx: {
-            "& .MuiList-root": {
-              padding: "0"
-            }
+            borderRadius: "8px"
           }
         }
       }}

@@ -192,7 +192,7 @@ const InputContextMenu: React.FC = () => {
     if (menuPosition) {
       // When showing connectable nodes from an input handle,
       // we're looking for nodes with compatible outputs
-      setTargetHandle(handleId);  // This input handle will be the target
+      setTargetHandle(handleId); // This input handle will be the target
       setNodeId(nodeId);
       setFilterType("output");
       setConnectableType(type);
@@ -214,19 +214,14 @@ const InputContextMenu: React.FC = () => {
             ? { top: menuPosition.y, left: menuPosition.x }
             : undefined
         }
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
+        }}
       >
-        <MenuItem disabled>
-          <Typography
-            style={{
-              margin: ".1em 0",
-              padding: "0"
-            }}
-            variant="body1"
-          >
-            Input
-          </Typography>
-        </MenuItem>
-        <Divider />
         {constantNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateConstantNode}
