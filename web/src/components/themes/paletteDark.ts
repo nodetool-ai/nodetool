@@ -252,9 +252,7 @@ export const paletteDark: PaletteOptions = {
   divider: "#2C3340",
   glass: {
     blur: "blur(50px)",
-    backgroundDialog:
-      "rgba(var(--mui-palette-background-defaultChannel) / 0.7)",
-    backgroundDialogContent:
-      "rgba(var(--mui-palette-background-defaultChannel) / 0.06)"
+    backgroundDialog: "rgba(0, 0, 0, 0.27)",
+    backgroundDialogContent: "rgba(0, 0, 0, 0.6)"
   }
 };

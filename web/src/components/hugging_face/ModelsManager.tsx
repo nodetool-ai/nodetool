@@ -13,8 +13,6 @@ import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import { useIsDarkMode } from "../../hooks/useIsDarkMode";
-// simple inline glass helpers (no shared module)
 
 const styles = (theme: Theme) =>
   css({
@@ -95,8 +93,13 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       slotProps={{
         backdrop: {
           style: {
-            backdropFilter: theme.vars.glass.blur,
-            backgroundColor: theme.vars.glass.backgroundDialog
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
+          }
+        },
+        paper: {
+          style: {
+            background: theme.vars.palette.glass.backgroundDialogContent
           }
         }
       }}
@@ -105,7 +108,6 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
           width: "92%",
           maxWidth: "1200px",
           margin: "auto",
-          background: "transparent",
           borderRadius: 6,
           border: `1px solid ${theme.vars.palette.grey[700]}`
         }
@@ -125,7 +127,6 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       </DialogTitle>
       <DialogContent
         sx={{
-          backgroundColor: theme.vars.glass.backgroundDialogContent,
           pt: 2
         }}
       >
