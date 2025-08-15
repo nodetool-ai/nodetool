@@ -20,13 +20,15 @@ import {
   ThreadCreateRequest,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
-  ThreadList
+  ThreadList,
+  LanguageModel
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
 import { uuidv4 } from "./uuidv4";
+import { DEFAULT_MODEL } from "../config/constants";
 import {
   WebSocketManager,
   ConnectionState
@@ -67,6 +69,14 @@ interface GlobalChatState {
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
 
+  // Selections
+  selectedModel: LanguageModel;
+  setSelectedModel: (model: LanguageModel) => void;
+  selectedTools: string[];
+  setSelectedTools: (tools: string[]) => void;
+  selectedCollections: string[];
+  setSelectedCollections: (collections: string[]) => void;
+
   // Planning updates
   currentPlanningUpdate: PlanningUpdate | null;
   setPlanningUpdate: (update: PlanningUpdate | null) => void;
@@ -96,7 +106,8 @@ interface GlobalChatState {
   summarizeThread: (
     threadId: string,
     provider: string,
-    model: string
+    model: string,
+    content: string
   ) => Promise<void>;
   stopGeneration: () => void;
 
@@ -136,6 +147,15 @@ interface WorkflowUpdatedUpdate {
 interface GenerationStoppedUpdate {
   type: "generation_stopped";
   message: string;
+}
+
+function buildDefaultLanguageModel(): LanguageModel {
+  return {
+    type: "language_model",
+    provider: "empty",
+    id: DEFAULT_MODEL,
+    name: DEFAULT_MODEL
+  };
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
@@ -191,6 +211,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Agent mode
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
+
+      // Selections
+      selectedModel: buildDefaultLanguageModel(),
+      setSelectedModel: (model: LanguageModel) => {
+        set({ selectedModel: model });
+      },
+      selectedTools: [],
+      setSelectedTools: (tools: string[]) => set({ selectedTools: tools }),
+      selectedCollections: [],
+      setSelectedCollections: (collections: string[]) =>
+        set({ selectedCollections: collections }),
 
       // Planning updates
       currentPlanningUpdate: null,
@@ -667,10 +698,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
       summarizeThread: async (
         threadId: string,
         provider: string,
-        model: string
+        model: string,
+        content: string
       ) => {
         console.log("summarizeThread called:", { threadId, provider, model });
-        const request: ThreadSummarizeRequest = { provider, model };
+        const request: ThreadSummarizeRequest = {
+          provider,
+          model,
+          content
+        };
         try {
           const { data, error } = await client.POST(
             "/api/threads/{thread_id}/summarize",
@@ -793,9 +829,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }),
     {
       name: "global-chat-storage",
-      // Only persist threads and currentThreadId - not message cache
+      // Persist minimal subset incl. selections; do not persist message cache
       partialize: (state): any => ({
-        threads: state.threads || {}
+        threads: state.threads || {},
+        selectedModel: state.selectedModel,
+        selectedTools: state.selectedTools,
+        selectedCollections: state.selectedCollections
       }),
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
@@ -823,6 +862,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
               });
             }, 0);
           }
+          // Ensure selection defaults are present
+          if (!state.selectedTools) state.selectedTools = [];
+          if (!state.selectedCollections) state.selectedCollections = [];
+          if (!state.selectedModel)
+            state.selectedModel = buildDefaultLanguageModel();
         }
       }
     }
@@ -848,51 +892,9 @@ function handleWebSocketMessage(
       return;
     }
   }
+  console.log("data", data);
 
-  if (data.type === "message") {
-    const message = data as Message;
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      const messages = get().messageCache[threadId] || [];
-      set((state) => {
-        const thread = state.threads[threadId];
-        if (thread) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            status: "connected",
-            progress: { current: 0, total: 0 },
-            statusMessage: null
-          };
-        }
-        console.log("message", message);
-        console.log("messages", messages);
-        if (
-          message.role === "assistant" &&
-          messages.length < 3 &&
-          message.provider &&
-          message.model
-        ) {
-          console.log("Triggering thread summarization for thread:", threadId);
-          get()
-            .summarizeThread(threadId, message.provider, message.model)
-            .catch((error) => {
-              log.error("Failed to summarize thread:", error);
-            });
-        }
-        return state;
-      });
-    }
-  } else if (data.type === "job_update") {
+  if (data.type === "job_update") {
     const update = data as JobUpdate;
     if (update.status === "completed") {
       set({
@@ -979,6 +981,24 @@ function handleWebSocketMessage(
             currentPlanningUpdate: null,
             currentTaskUpdate: null
           });
+          const threadId = get().currentThreadId;
+          if (threadId) {
+            const messages = get().messageCache[threadId];
+            const model = get().selectedModel;
+            if (messages.length == 2)
+              console.log(
+                "Triggering thread summarization for thread:",
+                threadId
+              );
+            if (model.provider && model.id) {
+              get().summarizeThread(
+                threadId,
+                model.provider,
+                model.id,
+                JSON.stringify(messages)
+              );
+            }
+          }
         }
       }
     }

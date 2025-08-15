@@ -4671,6 +4671,8 @@ export interface components {
             provider: string;
             /** Model */
             model: string;
+            /** Content */
+            content: string;
         };
         /**
          * ThreadUpdateRequest
