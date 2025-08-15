@@ -16,12 +16,14 @@ import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 import { BASE_URL, authHeader } from "../../../stores/ApiClient";
+import { getIsElectronDetails } from "../../../utils/browser";
 
 type OSInfo = { platform: string; release: string; arch: string };
 type VersionsInfo = {
   python?: string | null;
   nodetool_core?: string | null;
   nodetool_base?: string | null;
+  cuda?: string | null;
 };
 type PathsInfo = {
   settings_path: string;
@@ -29,6 +31,8 @@ type PathsInfo = {
   data_dir: string;
   core_logs_dir: string;
   core_log_file: string;
+  ollama_models_dir: string;
+  huggingface_cache_dir: string;
   electron_user_data: string;
   electron_log_file: string;
   electron_logs_dir: string;
@@ -102,6 +106,7 @@ function StatusIcon({ status }: { status: HealthCheck["status"] }) {
 
 async function openInExplorer(path: string) {
   try {
+    if (!path) return;
     console.log("Opening in explorer:", path);
     const headers = await authHeader();
     const res = await fetch(
@@ -123,6 +128,7 @@ export default function SystemTab() {
   const [info, setInfo] = useState<SystemInfoResponse | null>(null);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isElectron } = getIsElectronDetails();
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +144,38 @@ export default function SystemTab() {
         ]);
         const infoJson = (await infoRes.json()) as SystemInfoResponse;
         const healthJson = (await healthRes.json()) as HealthResponse;
+
+        // Fallback: fetch Ollama/HF paths from existing endpoints if missing
+        try {
+          const headers = await authHeader();
+          const updates: Partial<PathsInfo> = {};
+          if (!infoJson.paths.ollama_models_dir) {
+            const r = await fetch(`${BASE_URL}/api/models/ollama_base_path`, {
+              headers
+            });
+            if (r.ok) {
+              const j = (await r.json()) as any;
+              if (j && typeof j.path === "string")
+                updates.ollama_models_dir = j.path;
+            }
+          }
+          if (!infoJson.paths.huggingface_cache_dir) {
+            const r = await fetch(
+              `${BASE_URL}/api/models/huggingface_base_path`,
+              { headers }
+            );
+            if (r.ok) {
+              const j = (await r.json()) as any;
+              if (j && typeof j.path === "string")
+                updates.huggingface_cache_dir = j.path;
+            }
+          }
+          if (Object.keys(updates).length > 0) {
+            infoJson.paths = { ...infoJson.paths, ...updates } as PathsInfo;
+          }
+        } catch (e) {
+          // ignore fallback errors
+        }
         if (!cancelled) {
           setInfo(infoJson);
           setHealth(healthJson);
@@ -161,7 +199,9 @@ export default function SystemTab() {
     lines.push(
       `Versions: python=${info.versions.python ?? ""}, core=${
         info.versions.nodetool_core ?? ""
-      }, base=${info.versions.nodetool_base ?? ""}`
+      }, base=${info.versions.nodetool_base ?? ""}, cuda=${
+        info.versions.cuda ?? ""
+      }`
     );
     lines.push("Paths:");
     const p = info.paths;
@@ -170,6 +210,8 @@ export default function SystemTab() {
     lines.push(`  data_dir: ${p.data_dir}`);
     lines.push(`  core_logs_dir: ${p.core_logs_dir}`);
     lines.push(`  core_log_file: ${p.core_log_file}`);
+    lines.push(`  ollama_models_dir: ${p.ollama_models_dir}`);
+    lines.push(`  huggingface_cache_dir: ${p.huggingface_cache_dir}`);
     lines.push(`  electron_user_data: ${p.electron_user_data}`);
     lines.push(`  electron_log_file: ${p.electron_log_file}`);
     lines.push(`  electron_logs_dir: ${p.electron_logs_dir}`);
@@ -188,6 +230,28 @@ export default function SystemTab() {
     return lines.join("\n");
   }, [info, health]);
 
+  // Build paths list unconditionally to keep hooks order stable
+  const paths: Array<{ label: string; value: string }> = useMemo(() => {
+    if (!info) return [];
+    const list: Array<{ label: string; value: string }> = [
+      { label: "Settings", value: info.paths.settings_path },
+      { label: "Secrets", value: info.paths.secrets_path },
+      { label: "Data Dir", value: info.paths.data_dir },
+      { label: "Core Logs Dir", value: info.paths.core_logs_dir },
+      { label: "Core Log File", value: info.paths.core_log_file },
+      { label: "Ollama Models", value: info.paths.ollama_models_dir },
+      { label: "HF Cache (hub)", value: info.paths.huggingface_cache_dir }
+    ];
+    if (isElectron) {
+      list.push(
+        { label: "Electron UserData", value: info.paths.electron_user_data },
+        { label: "Electron Log File", value: info.paths.electron_log_file },
+        { label: "Electron Logs Dir", value: info.paths.electron_logs_dir }
+      );
+    }
+    return list;
+  }, [info, isElectron]);
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -200,17 +264,6 @@ export default function SystemTab() {
   if (!info) {
     return <Typography variant="body2">No system info available.</Typography>;
   }
-
-  const paths: Array<{ label: string; value: string }> = [
-    { label: "Settings", value: info.paths.settings_path },
-    { label: "Secrets", value: info.paths.secrets_path },
-    { label: "Data Dir", value: info.paths.data_dir },
-    { label: "Core Logs Dir", value: info.paths.core_logs_dir },
-    { label: "Core Log File", value: info.paths.core_log_file },
-    { label: "Electron UserData", value: info.paths.electron_user_data },
-    { label: "Electron Log File", value: info.paths.electron_log_file },
-    { label: "Electron Logs Dir", value: info.paths.electron_logs_dir }
-  ];
 
   return (
     <div css={systemTabStyles(theme)}>
@@ -232,7 +285,8 @@ export default function SystemTab() {
         <Typography variant="body2" color={theme.vars.palette.grey[300]}>
           Versions: python={info.versions.python ?? ""} core=
           {info.versions.nodetool_core ?? ""} base=
-          {info.versions.nodetool_base ?? ""}
+          {info.versions.nodetool_base ?? ""} cuda=
+          {info.versions.cuda ?? ""}
         </Typography>
       </div>
 
@@ -246,18 +300,21 @@ export default function SystemTab() {
               {label}
             </Typography>
             <Typography className="value" variant="body2">
-              {value}
+              {value || "-"}
             </Typography>
             <div className="path-actions">
               <CopyToClipboardButton
                 title={`Copy ${label}`}
-                textToCopy={value}
+                textToCopy={value ?? ""}
                 tooltipPlacement="top"
               />
               <Button
                 size="small"
                 variant="outlined"
                 onClick={() => openInExplorer(value)}
+                disabled={
+                  !value || value.startsWith("~") || value.includes("%")
+                }
                 startIcon={<OpenInNewIcon sx={{ fontSize: "1rem" }} />}
                 sx={{
                   borderColor: theme.vars.palette.grey[600],

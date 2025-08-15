@@ -247,6 +247,8 @@ const Help = ({
               value={helpIndex}
               onChange={handleChange}
               aria-label="help tabs"
+              variant="scrollable"
+              scrollButtons="auto"
             >
               <Tab label="Shortcuts" id="help-tab-0" />
               <Tab label="Keyboard" id="help-tab-1" />
