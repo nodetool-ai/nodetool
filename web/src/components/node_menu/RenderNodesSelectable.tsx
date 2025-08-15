@@ -12,7 +12,9 @@ import {
   Tooltip,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Checkbox,
+  Box
 } from "@mui/material";
 import { isEqual } from "lodash";
 import { useTheme } from "@mui/material/styles";
@@ -26,6 +28,7 @@ interface RenderNodesSelectableProps {
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
   onNodeClick?: (node: NodeMetadata) => void;
+  onSetSelection?: (newSelection: string[]) => void;
 }
 
 const listStyles = (theme: Theme) =>
@@ -68,10 +71,33 @@ const listStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800]
     },
     ".namespace-text": {
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.primary.main,
       fontSize: "0.95em",
-      fontWeight: 500,
+      fontWeight: 600,
       padding: "0.25em 0 0.4em"
+    },
+    ".namespace-row": {
+      display: "flex",
+      alignItems: "center",
+      padding: "2px 0",
+      margin: "4px 0"
+    },
+    ".namespace-row .namespace-text": {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 8,
+      backgroundColor: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.grey[700]}`
+    },
+    ".namespace-row .namespace-text:hover": {
+      borderColor: theme.vars.palette.grey[600]
+    },
+    ".checkbox-cell": {
+      width: "28px",
+      minWidth: "28px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
     }
   });
 
@@ -118,7 +144,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   showCheckboxes = false,
   selectedNodeTypes = [],
   onToggleSelection,
-  onNodeClick
+  onNodeClick,
+  onSetSelection
 }) => {
   const theme = useTheme();
   const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
@@ -156,6 +183,45 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
+  const nodesByNamespaceAll = useMemo(() => groupNodes(nodes), [nodes]);
+
+  const computeNamespaceSelectionState = useCallback(
+    (namespace: string) => {
+      const allInNamespace = nodesByNamespaceAll[namespace] || [];
+      const total = allInNamespace.length;
+      const selected = allInNamespace.filter((n) =>
+        selectedNodeTypes.includes(n.node_type)
+      ).length;
+      return {
+        total,
+        selected,
+        checked: total > 0 && selected === total,
+        indeterminate: selected > 0 && selected < total
+      };
+    },
+    [nodesByNamespaceAll, selectedNodeTypes]
+  );
+
+  const toggleNamespace = useCallback(
+    (namespace: string, nextChecked: boolean) => {
+      if (!onSetSelection) return;
+      const allInNamespace = nodesByNamespaceAll[namespace] || [];
+      const typesInNamespace = new Set(allInNamespace.map((n) => n.node_type));
+      let nextSelection: string[];
+      if (nextChecked) {
+        const union = new Set(selectedNodeTypes);
+        typesInNamespace.forEach((t) => union.add(t));
+        nextSelection = Array.from(union);
+      } else {
+        nextSelection = selectedNodeTypes.filter(
+          (t) => !typesInNamespace.has(t)
+        );
+      }
+      onSetSelection(nextSelection);
+    },
+    [nodesByNamespaceAll, onSetSelection, selectedNodeTypes]
+  );
+
   const renderGroup = useCallback(
     (group: SearchResultGroup) => {
       // Hide selected nodes from search results, they'll be shown in the top "Selected" section
@@ -173,15 +239,34 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
             {Object.entries(groupedNodes).map(
               ([namespace, nodesInNamespace]) => (
                 <div key={namespace}>
-                  <Typography
-                    variant="h5"
-                    component="div"
-                    className="namespace-text"
-                  >
-                    {selectedPath.length > 0
-                      ? namespace.replaceAll(selectedPath + ".", "")
-                      : namespace}
-                  </Typography>
+                  <Box className="namespace-row">
+                    <span className="checkbox-cell">
+                      {showCheckboxes && (
+                        <Checkbox
+                          size="small"
+                          checked={
+                            computeNamespaceSelectionState(namespace).checked
+                          }
+                          indeterminate={
+                            computeNamespaceSelectionState(namespace)
+                              .indeterminate
+                          }
+                          onChange={(e) =>
+                            toggleNamespace(namespace, e.target.checked)
+                          }
+                        />
+                      )}
+                    </span>
+                    <Typography
+                      variant="h5"
+                      component="div"
+                      className="namespace-text"
+                    >
+                      {selectedPath.length > 0
+                        ? namespace.replaceAll(selectedPath + ".", "")
+                        : namespace}
+                    </Typography>
+                  </Box>
                   {nodesInNamespace.map((node) => (
                     <div key={node.node_type}>
                       <NodeItem
@@ -208,7 +293,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,
-      handleNodeClick
+      handleNodeClick,
+      computeNamespaceSelectionState,
+      toggleNamespace
     ]
   );
 
@@ -232,21 +319,62 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           Selected
         </Typography>
       );
-      selectedNodes.forEach((node) => {
-        selectedSection.push(
-          <div key={`selected-${node.node_type}`}>
-            <NodeItem
-              key={`selected-${node.node_type}`}
-              node={node}
-              onDragStart={handleDragStart(node)}
-              onClick={() => handleNodeClick(node)}
-              showCheckbox={showCheckboxes}
-              isSelected={true}
-              onToggleSelection={onToggleSelection}
-            />
-          </div>
-        );
-      });
+      const groupedSelected = groupNodes(selectedNodes);
+      Object.entries(groupedSelected).forEach(
+        ([namespace, nodesInNamespace], idx) => {
+          let textForNamespaceHeader = namespace;
+          if (selectedPath && selectedPath === namespace) {
+            textForNamespaceHeader = namespace.split(".").pop() || namespace;
+          } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
+            textForNamespaceHeader = namespace.substring(
+              selectedPath.length + 1
+            );
+          }
+
+          const nsState = computeNamespaceSelectionState(namespace);
+          selectedSection.push(
+            <Box
+              key={`selected-namespace-${namespace}-${idx}`}
+              className="namespace-row"
+            >
+              <span className="checkbox-cell">
+                {showCheckboxes && (
+                  <Checkbox
+                    size="small"
+                    checked={nsState.checked}
+                    indeterminate={nsState.indeterminate}
+                    onChange={(e) =>
+                      toggleNamespace(namespace, e.target.checked)
+                    }
+                  />
+                )}
+              </span>
+              <Typography
+                variant="h5"
+                component="div"
+                className="namespace-text"
+              >
+                {textForNamespaceHeader}
+              </Typography>
+            </Box>
+          );
+          nodesInNamespace.forEach((node) => {
+            selectedSection.push(
+              <div key={`selected-${node.node_type}`}>
+                <NodeItem
+                  key={`selected-${node.node_type}`}
+                  node={node}
+                  onDragStart={handleDragStart(node)}
+                  onClick={() => handleNodeClick(node)}
+                  showCheckbox={showCheckboxes}
+                  isSelected={true}
+                  onToggleSelection={onToggleSelection}
+                />
+              </div>
+            );
+          });
+        }
+      );
     }
 
     // If we're searching, use the grouped results, but prepend the Selected section
@@ -278,15 +406,32 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           // If namespace is not a child of selectedPath and not equal to selectedPath,
           // it also remains the full 'namespace'.
 
+          const nsState = computeNamespaceSelectionState(namespace);
           const itemsForNamespace: JSX.Element[] = [
-            <Typography
+            <Box
               key={`namespace-${namespace}-${namespaceIndex}`}
-              variant="h5"
-              component="div"
-              className="namespace-text"
+              className="namespace-row"
             >
-              {textForNamespaceHeader}
-            </Typography>,
+              <span className="checkbox-cell">
+                {showCheckboxes && (
+                  <Checkbox
+                    size="small"
+                    checked={nsState.checked}
+                    indeterminate={nsState.indeterminate}
+                    onChange={(e) =>
+                      toggleNamespace(namespace, e.target.checked)
+                    }
+                  />
+                )}
+              </span>
+              <Typography
+                variant="h5"
+                component="div"
+                className="namespace-text"
+              >
+                {textForNamespaceHeader}
+              </Typography>
+            </Box>,
             ...nodesInNamespace.map(
               (node): JSX.Element => (
                 <div key={node.node_type}>
@@ -318,7 +463,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     handleNodeClick,
     showCheckboxes,
     selectedNodeTypes,
-    onToggleSelection
+    onToggleSelection,
+    computeNamespaceSelectionState,
+    toggleNamespace
   ]);
 
   return (

@@ -59,7 +59,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
       )}
       {onToolsChange && (
         <>
-          <ToolsSelector value={selectedTools} onChange={onToolsChange} />
           <WorkflowToolsSelector
             value={selectedTools}
             onChange={onToolsChange}
