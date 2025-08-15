@@ -259,14 +259,57 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     setGlobalSearchQuery
   ]);
 
-  // Toggle between local and global search modes
-  const toggleSearchMode = useCallback(() => {
+  // Toggle between local and global search modes without clearing the input
+  const toggleSearchMode = useCallback(async () => {
     const newMode = !isGlobalSearchMode;
     setIsGlobalSearchMode(newMode);
 
-    // Reset search when switching modes
-    resetSearch();
-  }, [isGlobalSearchMode, setIsGlobalSearchMode, resetSearch]);
+    if (newMode) {
+      // Switching to global: run global search with current term
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (localSearchTerm.length < 2) {
+        setIsGlobalSearchActive(false);
+        setGlobalSearchResults([]);
+        setGlobalSearchQuery(localSearchTerm);
+        return;
+      }
+      const ac = new AbortController();
+      abortControllerRef.current = ac;
+      try {
+        const result = await searchAssets(
+          localSearchTerm,
+          undefined,
+          100,
+          undefined,
+          ac.signal
+        );
+        if (!ac.signal.aborted && result) {
+          setGlobalSearchResults(result.assets);
+          setIsGlobalSearchActive(true);
+          setGlobalSearchQuery(localSearchTerm);
+        }
+      } catch (error) {
+        if (!ac.signal.aborted) {
+          setIsGlobalSearchActive(false);
+          setGlobalSearchResults([]);
+        }
+      }
+    } else {
+      // Switching to local: apply filter with current term
+      onLocalSearchChange(localSearchTerm);
+    }
+  }, [
+    isGlobalSearchMode,
+    setIsGlobalSearchMode,
+    localSearchTerm,
+    searchAssets,
+    setIsGlobalSearchActive,
+    setGlobalSearchResults,
+    setGlobalSearchQuery,
+    onLocalSearchChange
+  ]);
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback(
@@ -354,7 +397,9 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       style={{
         width: "100%",
         maxWidth:
-          typeof width === "number" ? `${width}px` : (width as string | undefined)
+          typeof width === "number"
+            ? `${width}px`
+            : (width as string | undefined)
       }}
     >
       <Tooltip
