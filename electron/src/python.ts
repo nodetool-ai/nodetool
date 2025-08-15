@@ -86,7 +86,6 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
-  console.log("Checking conda environment installation...");
 
   let pythonExecutablePath: string | null = null;
   try {
@@ -101,13 +100,11 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   }
 
   logMessage(`Python executable path: ${pythonExecutablePath}`);
-  console.log(`Checking Python executable at: ${pythonExecutablePath}`);
 
   try {
     logMessage("Attempting to access Python executable...");
     await fs.access(pythonExecutablePath);
     logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-    console.log(`✓ Python executable found at ${pythonExecutablePath}`);
     return true;
   } catch (error) {
     logMessage(
@@ -115,10 +112,6 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
       "error"
     );
     logMessage(`Access error: ${error}`, "error");
-    console.error(
-      `✗ Python executable not found at ${pythonExecutablePath}`,
-      error
-    );
     return false;
   }
 }

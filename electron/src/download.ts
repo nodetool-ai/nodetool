@@ -122,6 +122,14 @@ async function downloadFile(url: string, dest: string): Promise<void> {
         return;
       }
 
+      if (response.statusCode && response.statusCode >= 400) {
+        const code = response.statusCode;
+        const msg = `HTTP ${code} while downloading ${url}`;
+        logMessage(msg, "error");
+        reject(new Error(msg));
+        return;
+      }
+
       if (response.statusCode === 302 || response.statusCode === 301) {
         logMessage(`Redirected to ${response.headers.location}`);
         https

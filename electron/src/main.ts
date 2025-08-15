@@ -59,10 +59,10 @@ let mainWindow: BrowserWindow | null = null;
  */
 async function checkPythonEnvironment(): Promise<boolean> {
   logMessage("=== Starting Python Environment Check ===");
-  
+
   emitBootMessage("Checking for Python environment...");
   logMessage("Emitted boot message: Checking for Python environment...");
-  
+
   try {
     logMessage("Calling isCondaEnvironmentInstalled()...");
     const hasCondaEnv = await isCondaEnvironmentInstalled();
@@ -79,8 +79,25 @@ async function checkPythonEnvironment(): Promise<boolean> {
       return false;
     }
   } catch (error) {
+    // Be defensive: if the check itself failed, attempt to run installer as fallback
     logMessage(`Error in checkPythonEnvironment: ${error}`, "error");
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    // If the error already occurred during installation, don't attempt to run the installer again
+    if (
+      errorMessage.includes("Failed to install Python environment") ||
+      errorMessage.includes("install-to-location")
+    ) {
+      throw error;
+    }
+    try {
+      emitBootMessage("Environment check failed, starting installer...");
+      await installCondaEnvironment();
+      logMessage("Fallback installation completed");
+      return false;
+    } catch (installError) {
+      logMessage(`Fallback installation failed: ${installError}`, "error");
+      throw installError;
+    }
   } finally {
     logMessage("=== Python Environment Check Complete ===");
   }
@@ -98,7 +115,7 @@ async function initialize(): Promise<void> {
     logMessage("Verifying application paths...");
     const validationResult = await verifyApplicationPaths();
     logMessage(`Path validation result: ${JSON.stringify(validationResult)}`);
-    
+
     if (validationResult.errors.length > 0) {
       logMessage("Critical permission errors detected", "error");
       const errorMessage =
@@ -117,10 +134,12 @@ async function initialize(): Promise<void> {
     // Check if conda environment is installed
     logMessage("About to check Python environment...");
     const hasEnvironment = await checkPythonEnvironment();
-    logMessage(`Python environment check complete, hasEnvironment: ${hasEnvironment}`);
+    logMessage(
+      `Python environment check complete, hasEnvironment: ${hasEnvironment}`
+    );
 
     assert(mainWindow, "MainWindow is not initialized");
-    
+
     if (hasEnvironment) {
       logMessage("Environment exists, starting backend server");
       await initializeBackendServer();
@@ -133,7 +152,7 @@ async function initialize(): Promise<void> {
       logMessage("Environment was just installed, initializing backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
-      
+
       logMessage("Setting up workflow shortcuts...");
       await setupWorkflowShortcuts();
     }
@@ -144,7 +163,7 @@ async function initialize(): Promise<void> {
       // Use 'regular' so the app has a normal menu bar and responds to menu clicks
       app.setActivationPolicy("regular");
     }
-    
+
     logMessage("=== Application Initialization Complete ===");
   } catch (error) {
     logMessage(`Initialization error: ${error}`, "error");

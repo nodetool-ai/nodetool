@@ -26,7 +26,12 @@ const getDefaultCondaEnvPath = (): string => {
     case "win32":
       return process.env.ALLUSERSPROFILE
         ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
-        : path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "nodetool", "conda_env");
+        : path.join(
+            process.env.APPDATA ||
+              path.join(os.homedir(), "AppData", "Roaming"),
+            "nodetool",
+            "conda_env"
+          );
     case "darwin":
       return process.env.SUDO_USER
         ? path.join("/Library/Application Support/nodetool/conda_env")
@@ -45,30 +50,33 @@ const getDefaultCondaEnvPath = (): string => {
 
 const getCondaEnvPath = (): string => {
   logMessage("=== Getting Conda Environment Path ===");
-  console.log("Getting conda environment path...");
 
-  const settings = readSettings();
-  logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
-  console.log(`Settings:`, settings);
+  let settings: Record<string, unknown> = {};
+  try {
+    settings = readSettings();
+    logMessage(`Settings loaded: ${JSON.stringify(settings, null, 2)}`);
+  } catch (error) {
+    logMessage(
+      `Failed to read settings, using default conda path. Error: ${error}`,
+      "error"
+    );
+    const fallbackOnError = getDefaultCondaEnvPath();
+    logMessage(`Conda path fallback (readSettings error): ${fallbackOnError}`);
+    return fallbackOnError;
+  }
 
-  const condaPathFromSettings: unknown = (settings as Record<string, unknown>)[
-    "CONDA_ENV"
-  ];
+  const condaPathFromSettings: unknown = settings["CONDA_ENV"];
 
   if (
     typeof condaPathFromSettings === "string" &&
     condaPathFromSettings.trim().length > 0
   ) {
     logMessage(`Final conda path (from settings): ${condaPathFromSettings}`);
-    console.log(`Final conda path (from settings): ${condaPathFromSettings}`);
     return condaPathFromSettings;
   }
 
   const fallbackPath = getDefaultCondaEnvPath();
   logMessage(
-    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
-  );
-  console.log(
     `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
   );
   return fallbackPath;
@@ -89,14 +97,14 @@ const getUVPath = (): string =>
  */
 const getPythonPath = (): string => {
   const condaPath = getCondaEnvPath();
-  const pythonPath = process.platform === "win32"
-    ? path.join(condaPath, "python.exe")
-    : path.join(condaPath, "bin", "python");
-  
+  const pythonPath =
+    process.platform === "win32"
+      ? path.join(condaPath, "python.exe")
+      : path.join(condaPath, "bin", "python");
+
   logMessage(`getPythonPath() - condaPath: ${condaPath}`);
   logMessage(`getPythonPath() - pythonPath: ${pythonPath}`);
-  console.log(`getPythonPath() - condaPath: ${condaPath}, pythonPath: ${pythonPath}`);
-  
+
   return pythonPath;
 };
 
@@ -141,27 +149,38 @@ interface ProcessEnv {
 const getProcessEnv = (): ProcessEnv => {
   const condaPath: string = getCondaEnvPath();
 
+  // Sanitize base env to include only string values
+  const baseEnv: { [key: string]: string } = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === "string") {
+      baseEnv[key] = value;
+    }
+  }
+
+  const pathSegmentsWin = [
+    path.join(condaPath),
+    path.join(condaPath, "Library", "mingw-w64", "bin"),
+    path.join(condaPath, "Library", "usr", "bin"),
+    path.join(condaPath, "Library", "bin"),
+    path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
+    path.join(condaPath, "Scripts"),
+    baseEnv.PATH || "",
+  ];
+  const pathSegmentsUnix = [
+    path.join(condaPath, "bin"),
+    path.join(condaPath, "lib"),
+    baseEnv.PATH || "",
+  ];
+
   return {
-    ...process.env,
+    ...baseEnv,
     PYTHONPATH: srcPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
     PATH:
       process.platform === "win32"
-        ? [
-          path.join(condaPath),
-          path.join(condaPath, "Library", "mingw-w64", "bin"),
-          path.join(condaPath, "Library", "usr", "bin"),
-          path.join(condaPath, "Library", "bin"),
-          path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
-          path.join(condaPath, "Scripts"),
-          process.env.PATH,
-        ].join(path.delimiter)
-        : [
-          path.join(condaPath, "bin"),
-          path.join(condaPath, "lib"),
-          process.env.PATH,
-        ].join(path.delimiter),
+        ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
+        : pathSegmentsUnix.filter(Boolean).join(path.delimiter),
   };
 };
 

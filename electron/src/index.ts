@@ -1,3 +1,4 @@
+import { logMessage } from "./logger";
 import { IntervalRef } from "./types";
 
 const logElement = document.getElementById("log")!;
@@ -180,7 +181,9 @@ function initializeApp(): void {
   window.api
     .getServerState()
     .then(({ isStarted, bootMsg, logs, initialURL }) => {
-      console.log("Server state:", { isStarted, bootMsg, logs });
+      logMessage(
+        `Server state: ${JSON.stringify({ isStarted, bootMsg, logs })}`
+      );
       if (isStarted) {
         loadContentWithNoCaching(initialURL);
         hideBootMessage();
