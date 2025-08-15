@@ -234,6 +234,14 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     [setSearchTerm]
   );
 
+  const handleSetSelection = useCallback(
+    (newNodeTypes: string[]) => {
+      const filtered = newNodeTypes.filter((nodeType) => nodeType in nodeTools);
+      onChange(filtered);
+    },
+    [nodeTools, onChange]
+  );
+
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
   const memoizedStyles = useMemo(() => toolsSelectorStyles(theme), [theme]);
@@ -370,6 +378,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                     showCheckboxes={true}
                     selectedNodeTypes={selectedNodeTypes}
                     onToggleSelection={handleToggleNode}
+                    onSetSelection={handleSetSelection}
                   />
                 )}
               </div>
