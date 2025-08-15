@@ -71,7 +71,10 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
 
         const finalIsHighlightedPropForChild = highlightDueToActiveSearch;
 
-        if ((import.meta as any).env?.NODE_ENV === "development" && DEBUG_SEARCH) {
+        if (
+          (import.meta as any).env?.NODE_ENV === "development" &&
+          DEBUG_SEARCH
+        ) {
           console.log(
             `RenderNamespaces: path='${currentFullPath}', isSearchActive=${shouldHighlightByFilter}, searchCount=${searchResultCount}, highlightDueToSearch=${highlightDueToActiveSearch}, finalPropValue=${finalIsHighlightedPropForChild}`
           );

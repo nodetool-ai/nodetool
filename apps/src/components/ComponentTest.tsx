@@ -80,8 +80,6 @@ interface ComponentTestProps {
 export function ComponentTest({ className }: ComponentTestProps) {
   const { theme, resolvedTheme } = useTheme();
   const displayTheme = resolvedTheme || theme || "light";
-  console.log("theme", displayTheme);
-
   const [audioData, setAudioData] = useState<Uint8Array | null>(null);
   const [imageData, setImageData] = useState<Uint8Array | null>(null);
   const [videoData, setVideoData] = useState<Uint8Array | null>(null);
@@ -302,7 +300,7 @@ export function ComponentTest({ className }: ComponentTestProps) {
                   name="demo-schema"
                   schema={sampleSchema}
                   value={{}}
-                  onChange={console.log}
+                  onChange={() => {}}
                 />
               </Box>
             </Section>
@@ -310,11 +308,11 @@ export function ComponentTest({ className }: ComponentTestProps) {
             <Section title="Composer">
               <Box p={4} borderWidth="1px" borderRadius="md">
                 <Composer
-                  onSubmit={console.log}
+                  onSubmit={() => {}}
                   disabled={false}
                   droppedFiles={[]}
-                  setDroppedFiles={console.log}
-                  handleAudioChange={console.log}
+                  setDroppedFiles={() => {}}
+                  handleAudioChange={() => {}}
                 />
               </Box>
             </Section>

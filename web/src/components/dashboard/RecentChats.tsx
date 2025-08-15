@@ -47,9 +47,6 @@ const RecentChats: React.FC<RecentChatsProps> = ({
   getThreadPreview
 }) => {
   const theme = useTheme();
-  // Debug theme presence
-  console.log("RecentChats/useTheme", theme);
-
   const sortedAndTransformedThreads = Object.fromEntries(
     Object.entries(threads)
       .sort(([, a], [, b]) => {

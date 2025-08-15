@@ -12,20 +12,6 @@ const categories = Object.keys(muiComponentsByCategory) as Array<
 const LayoutTest: React.FC = () => {
   const [tab, setTab] = useState(0);
   const { mode, setMode } = useColorScheme();
-
-  useEffect(() => {
-    console.log("Current color scheme mode:", mode);
-    const root = document.documentElement;
-    console.log(
-      "color-scheme CSS property:",
-      getComputedStyle(root).getPropertyValue("color-scheme")
-    );
-    console.log(
-      "--palette-primary-main CSS variable:",
-      getComputedStyle(root).getPropertyValue("--palette-primary-main").trim()
-    );
-  }, [mode]);
-
   const toggleColorMode = () => {
     setMode(mode === "light" ? "dark" : "light");
   };
