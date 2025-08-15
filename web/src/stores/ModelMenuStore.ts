@@ -176,17 +176,8 @@ export const filterModelsList = (
     for (const it of fuseItems) {
       if (!merged.includes(it)) merged.push(it);
     }
-
-    console.log("[ModelMenu] filter search", {
-      term,
-      tokens,
-      tokenMatches: tokenMatches.length,
-      fuseMatches: fuseItems.length,
-      merged: merged.length
-    });
     return merged;
   }
-  console.log("[ModelMenu] filter", { selectedProvider, total: list.length });
   return list;
 };
 
