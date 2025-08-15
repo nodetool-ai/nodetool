@@ -31,11 +31,13 @@ type PathsInfo = {
   data_dir: string;
   core_logs_dir: string;
   core_log_file: string;
+  core_main_log_file?: string;
   ollama_models_dir: string;
   huggingface_cache_dir: string;
   electron_user_data: string;
   electron_log_file: string;
   electron_logs_dir: string;
+  electron_main_log_file?: string;
 };
 type SystemInfoResponse = {
   os: OSInfo;
@@ -208,13 +210,26 @@ export default function SystemTab() {
     lines.push(`  settings_path: ${p.settings_path}`);
     lines.push(`  secrets_path: ${p.secrets_path}`);
     lines.push(`  data_dir: ${p.data_dir}`);
-    lines.push(`  core_logs_dir: ${p.core_logs_dir}`);
-    lines.push(`  core_log_file: ${p.core_log_file}`);
+    const chatLogs = isElectron ? p.electron_logs_dir : p.core_logs_dir;
+    lines.push(`  chat_logs_folder: ${chatLogs}`);
+    // Show only if backend provides it to avoid guessing
+    if (!isElectron && (p as any).core_main_log_file) {
+      lines.push(`  core_main_log_file: ${(p as any).core_main_log_file}`);
+    }
     lines.push(`  ollama_models_dir: ${p.ollama_models_dir}`);
     lines.push(`  huggingface_cache_dir: ${p.huggingface_cache_dir}`);
-    lines.push(`  electron_user_data: ${p.electron_user_data}`);
-    lines.push(`  electron_log_file: ${p.electron_log_file}`);
-    lines.push(`  electron_logs_dir: ${p.electron_logs_dir}`);
+    if (!isElectron && (p as any).core_main_log_file) {
+      lines.push(`  core_main_log_file: ${(p as any).core_main_log_file}`);
+    }
+    if (isElectron) {
+      lines.push(`  electron_user_data: ${p.electron_user_data}`);
+      lines.push(`  electron_log_file: ${p.electron_log_file}`);
+      lines.push(`  electron_logs_dir: ${p.electron_logs_dir}`);
+      if ((p as any).electron_main_log_file)
+        lines.push(
+          `  electron_main_log_file: ${(p as any).electron_main_log_file}`
+        );
+    }
     if (health) {
       lines.push("Health Summary:");
       lines.push(
@@ -228,7 +243,7 @@ export default function SystemTab() {
       }
     }
     return lines.join("\n");
-  }, [info, health]);
+  }, [info, health, isElectron]);
 
   // Build paths list unconditionally to keep hooks order stable
   const paths: Array<{ label: string; value: string }> = useMemo(() => {
@@ -237,16 +252,36 @@ export default function SystemTab() {
       { label: "Settings", value: info.paths.settings_path },
       { label: "Secrets", value: info.paths.secrets_path },
       { label: "Data Dir", value: info.paths.data_dir },
-      { label: "Core Logs Dir", value: info.paths.core_logs_dir },
-      { label: "Core Log File", value: info.paths.core_log_file },
+      {
+        label: "Chat Logs Folder",
+        value: isElectron
+          ? info.paths.electron_logs_dir
+          : info.paths.core_logs_dir
+      },
+      ...(!isElectron && (info.paths as any).core_main_log_file
+        ? [
+            {
+              label: "Main Log",
+              value: (info.paths as any).core_main_log_file as string
+            }
+          ]
+        : []),
       { label: "Ollama Models", value: info.paths.ollama_models_dir },
-      { label: "HF Cache (hub)", value: info.paths.huggingface_cache_dir }
+      { label: "HuggingFace Cache", value: info.paths.huggingface_cache_dir }
     ];
     if (isElectron) {
       list.push(
         { label: "Electron UserData", value: info.paths.electron_user_data },
         { label: "Electron Log File", value: info.paths.electron_log_file },
-        { label: "Electron Logs Dir", value: info.paths.electron_logs_dir }
+        { label: "Electron Logs Dir", value: info.paths.electron_logs_dir },
+        ...((info.paths as any).electron_main_log_file
+          ? [
+              {
+                label: "Electron Main Log",
+                value: (info.paths as any).electron_main_log_file as string
+              }
+            ]
+          : [])
       );
     }
     return list;
