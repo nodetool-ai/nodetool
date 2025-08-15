@@ -21,6 +21,7 @@ import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { getShortcutTooltip } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
+import SystemTab from "./SystemTab";
 
 interface HelpItem {
   text: string;
@@ -250,6 +251,7 @@ const Help = ({
               <Tab label="Shortcuts" id="help-tab-0" />
               <Tab label="Keyboard" id="help-tab-1" />
               <Tab label="DataTypes" id="help-tab-2" />
+              <Tab label="System" id="help-tab-3" />
             </Tabs>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
@@ -271,6 +273,9 @@ const Help = ({
                   expanded={expandedComfy}
                   onChange={handleAccordionChange("comfy")}
                 />
+              </TabPanel>
+              <TabPanel value={helpIndex} index={3}>
+                <SystemTab />
               </TabPanel>
             </div>
           </div>
