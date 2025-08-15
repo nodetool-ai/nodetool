@@ -204,6 +204,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const globalSearchQuery = useAssetGridStore(
     (state) => state.globalSearchQuery
   );
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const setSelectedAssets = useAssetGridStore(
+    (state) => state.setSelectedAssets
+  );
   const { isSearching } = useAssetSearch();
 
   const handleContextMenu = useCallback(
@@ -212,6 +218,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       event.stopPropagation();
 
       if (assetId) {
+        // If right-clicking on a non-selected item, select only that item first
+        if (!selectedAssetIds.includes(assetId)) {
+          setSelectedAssetIds([assetId]);
+          const clicked = memoizedResults.find((a) => a.id === assetId);
+          setSelectedAssets(clicked ? [clicked] : []);
+        }
         openContextMenu(
           "asset-item-context-menu",
           assetId,
@@ -220,7 +232,13 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         );
       }
     },
-    [openContextMenu]
+    [
+      openContextMenu,
+      selectedAssetIds,
+      setSelectedAssetIds,
+      setSelectedAssets,
+      memoizedResults
+    ]
   );
 
   const handleDragStart = useCallback(
