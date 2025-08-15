@@ -356,7 +356,20 @@ async function installCondaEnvironment(): Promise<void> {
         break;
       } catch (error) {
         attempts--;
-        if (attempts === 0) throw error;
+        if (attempts === 0) {
+          const prettyUrl = environmentUrl;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          const friendly =
+            message.includes("File not found") || message.includes("404")
+              ? `The installer could not find the Python environment archive at:\n\n${prettyUrl}\n\nThis likely means the release asset is missing for your platform or version.`
+              : `We couldn't download the Python environment.\n\nError: ${message}`;
+          dialog.showErrorBox(
+            "Download Failed",
+            `${friendly}\n\nTroubleshooting:\n- Check your internet connection.\n- If you're on a VPN/Proxy, try disabling it.\n- Verify that the file exists in the release assets.\n\nYou can also choose a different install location and try again.`
+          );
+          throw error;
+        }
         logMessage(`Download failed, retrying... (${attempts} attempts left)`);
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -408,6 +421,13 @@ async function installCondaEnvironment(): Promise<void> {
       `Failed to install Python environment: ${error.message}`,
       "error"
     );
+    // Provide a consolidated, user-friendly message when installation fails early
+    if (error?.message?.includes("install-to-location")) {
+      dialog.showErrorBox(
+        "Installer Error",
+        "The installer encountered an internal conflict while waiting for your selection. Please close any duplicate windows and try again."
+      );
+    }
     throw error;
   }
 }
@@ -444,10 +464,18 @@ async function promptForInstallLocation(): Promise<{
     createIpcMainHandler(
       IpcChannels.INSTALL_TO_LOCATION,
       async (_event, { location, packages }: InstallToLocationData) => {
-        console.log("location", location);
-        updateSettings({
-          CONDA_ENV: location,
-        });
+        logMessage(`Updating CONDA_ENV setting to: ${location}`);
+        try {
+          updateSettings({
+            CONDA_ENV: location,
+          });
+        } catch (e) {
+          logMessage(
+            `Failed to persist CONDA_ENV setting: ${String(e)}`,
+            "error"
+          );
+          // Continue; installation can still proceed and settings can be updated later
+        }
         resolve({ location, packages });
       }
     );

@@ -58,7 +58,6 @@ type IpcEventHandler<T extends keyof IpcEvents> = (
 function createEventHandler<T extends keyof IpcEvents>(
   channel: T
 ): IpcEventHandler<T> {
-  console.log("createEventHandler", channel);
   return (callback: (data: IpcEvents[T]) => void) => {
     ipcRenderer.on(channel as string, (_event, data: IpcEvents[T]) =>
       callback(data)
@@ -95,12 +94,9 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
   selectCustomInstallLocation: () =>
     ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
-  continueToApp: () =>
-    ipcRenderer.invoke(IpcChannels.START_SERVER),
-  startServer: () =>
-    ipcRenderer.invoke(IpcChannels.START_SERVER),
-  restartServer: () =>
-    ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
+  continueToApp: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
+  startServer: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
+  restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
   showPackageManager: () =>
     ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER),
   runApp: (workflowId: string) =>
@@ -145,11 +141,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   packages: {
     listAvailable: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_AVAILABLE),
     listInstalled: () => ipcRenderer.invoke(IpcChannels.PACKAGE_LIST_INSTALLED),
-    install: (repo_id: string) => 
+    install: (repo_id: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_INSTALL, { repo_id }),
-    uninstall: (repo_id: string) => 
+    uninstall: (repo_id: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_UNINSTALL, { repo_id }),
-    update: (repo_id: string) => 
+    update: (repo_id: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_UPDATE, repo_id),
   },
   openExternal: (url: string) => {

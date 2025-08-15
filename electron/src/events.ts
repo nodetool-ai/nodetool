@@ -1,20 +1,19 @@
 import { BrowserWindow } from "electron";
 import { getMainWindow, serverState } from "./state";
 import { IpcChannels, UpdateProgressData } from "./types.d";
+import { logMessage } from "./logger";
 
 /**
  * Emit a boot message to the renderer process
  * @param {string} message - The boot message to emit
  */
 function emitBootMessage(message: string): void {
-  console.log(`emitBootMessage: ${message}`);
   serverState.bootMsg = message;
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    console.log(`Sending boot message to renderer: ${message}`);
     mainWindow.webContents.send(IpcChannels.BOOT_MESSAGE, message);
   } else {
-    console.log("No main window available to send boot message");
+    logMessage("No main window available to send boot message");
   }
 }
 
@@ -76,13 +75,12 @@ function emitUpdateProgress(
  * Emit show package manager event to the renderer process
  */
 function emitShowPackageManager(): void {
-  console.log("emitShowPackageManager called");
   const mainWindow: BrowserWindow | null = getMainWindow();
   if (mainWindow) {
-    console.log("Sending SHOW_PACKAGE_MANAGER to renderer");
+    logMessage("Sending SHOW_PACKAGE_MANAGER to renderer");
     mainWindow.webContents.send(IpcChannels.SHOW_PACKAGE_MANAGER);
   } else {
-    console.log("No main window available to send SHOW_PACKAGE_MANAGER");
+    logMessage("No main window available to send SHOW_PACKAGE_MANAGER");
   }
 }
 

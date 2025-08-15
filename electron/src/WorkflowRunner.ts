@@ -5,7 +5,8 @@ import { Notification } from "electron";
 import { serverState } from "./state";
 import { Workflow } from "./types";
 
-const getWorkerUrl = () => `ws://127.0.0.1:${serverState.serverPort ?? 8000}/predict`;
+const getWorkerUrl = () =>
+  `ws://127.0.0.1:${serverState.serverPort ?? 8000}/predict`;
 
 interface WorkflowRunnerState {
   workflow: Workflow | null;
@@ -91,7 +92,6 @@ export const createWorkflowRunner = () =>
         const socket = new WebSocket(getWorkerUrl());
 
         socket.on("open", () => {
-          console.log("WebSocket connected");
           set({ socket, state: "connected" });
           resolve();
         });
@@ -110,7 +110,7 @@ export const createWorkflowRunner = () =>
             buffer = new Uint8Array(event);
           } else if (event instanceof ArrayBuffer) {
             buffer = new Uint8Array(event);
-          } else if (typeof event === 'string') {
+          } else if (typeof event === "string") {
             // Convert string to Uint8Array
             const encoder = new TextEncoder();
             buffer = encoder.encode(event);
