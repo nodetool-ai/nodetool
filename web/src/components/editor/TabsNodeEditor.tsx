@@ -371,7 +371,10 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       )}
       <div css={styles(theme)}>
         <div className="tabs-container">
-          <TabsBar workflows={tabsToRender} currentWorkflowId={currentWorkflowId!} />
+          <TabsBar
+            workflows={tabsToRender}
+            currentWorkflowId={currentWorkflowId!}
+          />
           {!isMac && isElectron && <WindowControls />}
         </div>
         {!hideContent && (

@@ -4,10 +4,11 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "gpt-oss:20b",
     name: "GPT - OSS",
-    description: "OpenAI's open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.",
+    description:
+      "OpenAI's open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.",
     type: "llama_model"
   },
-  
+
   {
     id: "llama3.2:1b",
     name: "Llama 3.2 - 1B",
@@ -119,13 +120,6 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "gemma2:2b",
-    name: "Gemma2 - 2B",
-    description:
-      "Google Gemma 2 is a high-performing and efficient model available in three sizes: 2B, 9B, and 27B.",
-    type: "llama_model"
-  },
-  {
     id: "codegemma:latest",
     name: "Codegemma",
     description:
@@ -193,57 +187,45 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "gemma3:270m",
+    name: "Gemma3 - 270M",
+    description:
+      "Google Gemma 3 is a lightweight model with 270M parameters. Text-only model designed for resource-limited devices while maintaining strong performance in reasoning and language tasks.",
+    type: "llama_model"
+  },
+  {
     id: "gemma3:latest",
     name: "Gemma3 - Latest",
-    description: "Google Gemma 3 is a lightweight, multimodal model built on Gemini technology. Features a 128K context window with support for over 140 languages and can process both text and images.",
+    description:
+      "Google Gemma 3 is a lightweight, multimodal model built on Gemini technology. Features a 128K context window with support for over 140 languages and can process both text and images.",
     type: "llama_model"
   },
   {
     id: "gemma3:1b",
     name: "Gemma3 - 1B",
-    description: "Compact 1B parameter Gemma 3 model with 32K context window. Text-only model designed for resource-limited devices while maintaining strong performance in reasoning and language tasks.",
+    description:
+      "Compact 1B parameter Gemma 3 model with 32K context window. Text-only model designed for resource-limited devices while maintaining strong performance in reasoning and language tasks.",
     type: "llama_model"
   },
   {
     id: "gemma3:4b",
     name: "Gemma3 - 4B",
-    description: "Multimodal 4B parameter Gemma 3 model with 128K context window. Can process both text and images, excelling in tasks like question answering, summarization, and visual reasoning.",
+    description:
+      "Multimodal 4B parameter Gemma 3 model with 128K context window. Can process both text and images, excelling in tasks like question answering, summarization, and visual reasoning.",
     type: "llama_model"
   },
   {
     id: "gemma3:12b",
     name: "Gemma3 - 12B",
-    description: "Advanced 12B parameter multimodal Gemma 3 model with 128K context window. Processes text and images with superior performance in complex reasoning, coding, and multilingual tasks.",
+    description:
+      "Advanced 12B parameter multimodal Gemma 3 model with 128K context window. Processes text and images with superior performance in complex reasoning, coding, and multilingual tasks.",
     type: "llama_model"
   },
   {
     id: "gemma3:27b",
     name: "Gemma3 - 27B",
-    description: "Flagship 27B parameter multimodal Gemma 3 model with 128K context window. The most capable model in the series, offering top-tier performance in text and image processing tasks.",
-    type: "llama_model"
-  },
-  {
-    id: "gemma3:1b-it-qat",
-    name: "Gemma3 - 1B QAT",
-    description: "Quantization-aware trained 1B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
-    type: "llama_model"
-  },
-  {
-    id: "gemma3:4b-it-qat",
-    name: "Gemma3 - 4B QAT",
-    description: "Quantization-aware trained 4B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
-    type: "llama_model"
-  },
-  {
-    id: "gemma3:12b-it-qat",
-    name: "Gemma3 - 12B QAT",
-    description: "Quantization-aware trained 12B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
-    type: "llama_model"
-  },
-  {
-    id: "gemma3:27b-it-qat",
-    name: "Gemma3 - 27B QAT",
-    description: "Quantization-aware trained 27B parameter Gemma 3 model. Preserves similar quality as half precision models while maintaining 3x lower memory footprint compared to non-quantized versions.",
+    description:
+      "Flagship 27B parameter multimodal Gemma 3 model with 128K context window. The most capable model in the series, offering top-tier performance in text and image processing tasks.",
     type: "llama_model"
   },
   {
