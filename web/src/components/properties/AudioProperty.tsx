@@ -31,7 +31,7 @@ const AudioProperty = (props: PropertyProps) => {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
   const showRecorder =
-    props.nodeType === "nodetool.input.Audio" ||
+    props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
   const theme = useTheme();
   return (
