@@ -122,12 +122,10 @@ const typeForValue = (value: any) => {
 
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const theme = useTheme();
-  const isDarkMode = useIsDarkMode();
   const nodeType = props.type;
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
-  const queryClient = useQueryClient();
   const edges = useNodes((n) => n.edges);
   const incomingEdges = edges.filter((e) => e.target === props.id);
   const openNodeMenu = useNodeMenuStore((s) => s.openNodeMenu);
@@ -156,24 +154,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     package: string;
   } | null>(null);
 
-  // Install package mutation
-  const installMutation = useMutation({
-    mutationFn: async (repoId: string) => {
-      const { data, error } = await client.POST(
-        "/api/packages/install" as any,
-        {
-          body: { repo_id: repoId }
-        }
-      );
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["installedPackages"] });
-      // Reload metadata after package installation
-      loadMetadata();
-    }
-  });
+  const installPackage = useCallback(() => {
+    window.api.showPackageManager();
+  }, []);
 
   // Function to search for the node on the server
   const searchForNode = useCallback(async () => {
@@ -202,13 +185,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       setIsSearching(false);
     }
   }, [nodeData, nodeType]);
-
-  // Function to install the package
-  const installPackage = useCallback(() => {
-    if (packageInfo && packageInfo.package) {
-      installMutation.mutate(packageInfo.package);
-    }
-  }, [packageInfo, installMutation]);
 
   // Open the Node Menu prefilled with the missing node's type
   const handleSearchClick = useCallback(
@@ -379,7 +355,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
         {isSearching && <CircularProgress size={24} />}
 
-        {nodeFound && packageInfo && !installMutation.isPending && (
+        {nodeFound && packageInfo && (
           <Tooltip title={`Install package ${packageInfo.package}`}>
             <Button
               variant="contained"
@@ -392,8 +368,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
             </Button>
           </Tooltip>
         )}
-
-        {installMutation.isPending && <CircularProgress size={24} />}
       </div>
 
       {mockProperties.length > 0 && (
