@@ -14,13 +14,14 @@ import "@fontsource/jetbrains-mono/300.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/600.css";
 
-// Theme augmentation moved to a single global file `theme.d.ts` to avoid duplication
+// Theme augmentation in `theme.d.ts`
 
 const ThemeNodetool = createTheme({
   cssVariables: {
     cssVarPrefix: "",
     colorSchemeSelector: "class"
   },
+  defaultColorScheme: "dark",
   colorSchemes: {
     light: {
       palette: paletteLight
