@@ -193,8 +193,6 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     return searchResults.filter((node: NodeMetadata) => node.expose_as_tool);
   }, [searchResults]);
 
-  console.log(availableNodes);
-
   // Union of available nodes and selected nodes to always show selected at the top
   const allNodesForDisplay = useMemo(() => {
     const nodeTypeToNode = new Map<string, NodeMetadata>();

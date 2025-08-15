@@ -144,7 +144,6 @@ export const Composer: React.FC<ComposerProps> = ({
   const handleFileChange = useCallback(
     (changes: any) => {
       setDroppedFiles(changes.acceptedFiles);
-      console.log(changes);
     },
     [setDroppedFiles]
   );
@@ -214,11 +213,21 @@ export const Composer: React.FC<ComposerProps> = ({
   const openModelsIfNeeded = useCallback(async () => {
     if (!isFetchingModels && (!models || models.length === 0)) {
       const result = await fetchModels(false);
-      if ((!selectedModelId || selectedModelId.length === 0) && result && result.length > 0) {
+      if (
+        (!selectedModelId || selectedModelId.length === 0) &&
+        result &&
+        result.length > 0
+      ) {
         setSelectedModel(result[0].id);
       }
     }
-  }, [fetchModels, isFetchingModels, models, selectedModelId, setSelectedModel]);
+  }, [
+    fetchModels,
+    isFetchingModels,
+    models,
+    selectedModelId,
+    setSelectedModel,
+  ]);
 
   const modelOptions = React.useMemo(() => {
     return createListCollection({
@@ -245,9 +254,14 @@ export const Composer: React.FC<ComposerProps> = ({
         onDragOver={(e) => e.preventDefault()}
         backdropFilter="saturate(140%) blur(10px)"
       >
-        
         {droppedFiles.length > 0 && (
-          <HStack position="absolute" top={-12} right={0} overflowX="auto" p={2}>
+          <HStack
+            position="absolute"
+            top={-12}
+            right={0}
+            overflowX="auto"
+            p={2}
+          >
             {droppedFiles.map((file, index) => (
               <Box key={index} position="relative">
                 <img
@@ -380,7 +394,12 @@ export const Composer: React.FC<ComposerProps> = ({
                   </Box>
                 ) : (
                   modelOptions.items.map((option) => (
-                    <SelectItem key={option.value} item={option} borderRadius="md" _hover={{ bg: hoverBg }}>
+                    <SelectItem
+                      key={option.value}
+                      item={option}
+                      borderRadius="md"
+                      _hover={{ bg: hoverBg }}
+                    >
                       {option.label}
                     </SelectItem>
                   ))
@@ -419,7 +438,11 @@ export const Composer: React.FC<ComposerProps> = ({
           </Tooltip>
           <Tooltip
             content={isRecording ? "Stop recording" : "Start recording"}
-            contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
+            contentProps={{
+              bg: "bg1",
+              color: "text",
+              borderColor: shellBorder,
+            }}
           >
             <IconButton
               aria-label={isRecording ? "Stop recording" : "Start recording"}
@@ -439,7 +462,11 @@ export const Composer: React.FC<ComposerProps> = ({
           </Tooltip>
           <Tooltip
             content="Send message"
-            contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
+            contentProps={{
+              bg: "bg1",
+              color: "text",
+              borderColor: shellBorder,
+            }}
           >
             <IconButton
               aria-label="Send message"
@@ -477,25 +504,29 @@ export const Composer: React.FC<ComposerProps> = ({
                 zIndex: 1000,
               }}
             >
-                <Box
-                  bg={shellBg}
-                  borderRadius="xl"
-                  p={4}
-                  boxShadow="0 10px 40px rgba(0,0,0,0.35)"
-                  border="1px solid"
-                  borderColor={shellBorder}
-                  maxW="48rem"
-                  w="100%"
-                  mx="auto"
-                  backdropFilter="saturate(140%) blur(10px)"
-                >
+              <Box
+                bg={shellBg}
+                borderRadius="xl"
+                p={4}
+                boxShadow="0 10px 40px rgba(0,0,0,0.35)"
+                border="1px solid"
+                borderColor={shellBorder}
+                maxW="48rem"
+                w="100%"
+                mx="auto"
+                backdropFilter="saturate(140%) blur(10px)"
+              >
                 <VStack gap={2} align="stretch" maxW="480px">
                   <Flex wrap="wrap" gap={2}>
                     {tools.map((tool) => (
                       <Tooltip
                         key={tool.id}
                         content={TOOL_DESCRIPTIONS[tool.id] || tool.label}
-                        contentProps={{ bg: "bg1", color: "text", borderColor: shellBorder }}
+                        contentProps={{
+                          bg: "bg1",
+                          color: "text",
+                          borderColor: shellBorder,
+                        }}
                       >
                         <HStack
                           as="button"
@@ -518,7 +549,9 @@ export const Composer: React.FC<ComposerProps> = ({
                           gap={2}
                           transition="all 0.2s"
                           cursor="pointer"
-                          color={selectedTools.includes(tool.id) ? "white" : "text"}
+                          color={
+                            selectedTools.includes(tool.id) ? "white" : "text"
+                          }
                         >
                           <tool.icon size={16} />
                           <Text fontSize="sm" fontWeight="medium">

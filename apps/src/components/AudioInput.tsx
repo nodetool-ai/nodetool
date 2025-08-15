@@ -72,7 +72,7 @@ const AudioInput: React.FC<AudioInputProps> = ({ onChange, className }) => {
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === "AbortError") {
-          console.log("Fetch aborted");
+          console.warn("AudioInput: Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${err.message}`);
         }

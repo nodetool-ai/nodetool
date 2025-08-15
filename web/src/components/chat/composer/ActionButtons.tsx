@@ -61,7 +61,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
           <span style={{ display: "inline-flex" }}>
             <StopGenerationButton
               onClick={() => {
-                console.log("Stop button clicked");
                 onStop?.();
               }}
             />
