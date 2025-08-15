@@ -99,23 +99,6 @@ const toolsSelectorStyles = (theme: Theme) =>
         flex: 1
       }
     },
-    ".selection-info": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em",
-      padding: "0.5em 1em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: "transparent",
-      ".selected-count": {
-        backgroundColor: "var(--palette-primary-main)",
-        color: theme.vars.palette.grey[1000],
-        fontSize: "0.75rem",
-        height: "20px",
-        "& .MuiChip-label": {
-          padding: "0 6px"
-        }
-      }
-    },
     ".nodes-container": {
       flex: 1,
       overflow: "auto",
@@ -275,9 +258,14 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 size="small"
                 label={selectedCount}
                 sx={{
-                  marginLeft: 1,
                   backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.grey[100]
+                  color: theme.palette.grey[100],
+                  borderRadius: "6px",
+                  height: "18px",
+                  "& .MuiChip-label": {
+                    padding: "0 5px",
+                    fontSize: "0.75rem"
+                  }
                 }}
               />
             )
