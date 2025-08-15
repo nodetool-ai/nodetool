@@ -68,7 +68,10 @@ const toolsSelectorStyles = (theme: Theme) =>
       maxWidth: 420,
       borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
       padding: theme.spacing(0, 1.5, 1.5, 1.5),
-      background: "transparent"
+      background: "transparent",
+      position: "sticky",
+      top: 0,
+      alignSelf: "flex-start"
     },
     ".selector-content": {
       display: "flex",
@@ -84,9 +87,13 @@ const toolsSelectorStyles = (theme: Theme) =>
       minHeight: "40px",
       flexGrow: 0,
       overflow: "hidden",
-      width: "100%",
+      width: "60%",
       margin: 0,
-      padding: ".5em 1em 0 .7em",
+      padding: ".5em 1em .5em .7em",
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background: "transparent",
       ".search-input-container": {
         minWidth: "170px",
         flex: 1
@@ -329,23 +336,22 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           </Tooltip>
         </DialogTitle>
         <DialogContent sx={{ background: "transparent", pt: 2 }}>
+          <div className="search-toolbar">
+            <SearchInput
+              focusSearchInput={isMenuOpen}
+              focusOnTyping={false}
+              placeholder="Search nodes..."
+              debounceTime={150}
+              width={300}
+              maxWidth="100%"
+              searchTerm={searchTerm}
+              onSearchChange={handleSearchChange}
+              onPressEscape={handleClose}
+              searchResults={availableNodes}
+            />
+          </div>
           <div className="selector-grid">
             <div className="left-pane selector-content">
-              <div className="search-toolbar">
-                <SearchInput
-                  focusSearchInput={isMenuOpen}
-                  focusOnTyping={false}
-                  placeholder="Search nodes..."
-                  debounceTime={150}
-                  width={300}
-                  maxWidth="100%"
-                  searchTerm={searchTerm}
-                  onSearchChange={handleSearchChange}
-                  onPressEscape={handleClose}
-                  searchResults={availableNodes}
-                />
-              </div>
-
               <div className="nodes-container">
                 {isLoading ? (
                   <div className="loading-container">
@@ -362,10 +368,6 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                           return "No nodes available in selected namespace.";
                         } else if (hasNamespaceSelected && searchLength > 0) {
                           return "No nodes match your search in selected namespace.";
-                        } else if (searchLength === 0) {
-                          return "Type at least 2 characters to search for nodes...";
-                        } else if (searchLength === 1) {
-                          return "Type at least one more character to search...";
                         } else {
                           return "No nodes match your search.";
                         }
