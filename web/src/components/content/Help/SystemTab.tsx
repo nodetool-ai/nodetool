@@ -376,20 +376,27 @@ export default function SystemTab() {
               {health.checks.map((c) => (
                 <div className="status" key={c.id}>
                   <StatusIcon status={c.status} />
-                  <Typography variant="body2" sx={{ minWidth: 220 }}>
-                    {c.id}
-                  </Typography>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {c.details || ""}
-                  </Typography>
-                  {c.fix_hint && (
-                    <Typography
-                      variant="body2"
-                      color={theme.vars.palette.grey[400]}
-                    >
-                      {c.fix_hint}
-                    </Typography>
-                  )}
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", flex: 1 }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography variant="body2" sx={{ minWidth: 220 }}>
+                        {c.id}
+                      </Typography>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        {c.details || ""}
+                      </Typography>
+                    </Box>
+                    {c.fix_hint && (
+                      <Typography
+                        variant="body2"
+                        color={theme.vars.palette.grey[400]}
+                        sx={{ paddingLeft: 0, marginTop: 0.25 }}
+                      >
+                        {c.fix_hint}
+                      </Typography>
+                    )}
+                  </Box>
                 </div>
               ))}
             </Box>
