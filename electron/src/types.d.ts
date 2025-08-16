@@ -3,6 +3,7 @@ declare global {
     api: {
       platform: string;
       getServerState: () => Promise<ServerState>;
+      getSystemInfo: () => Promise<BasicSystemInfo | null>;
       clipboardWriteText: (text: string) => void;
       clipboardReadText: () => string;
       openLogFile: () => Promise<void>;
@@ -131,19 +132,20 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-  | "cut"
-  | "copy"
-  | "paste"
-  | "selectAll"
-  | "undo"
-  | "redo"
-  | "close"
-  | "fitView";
+    | "cut"
+    | "copy"
+    | "paste"
+    | "selectAll"
+    | "undo"
+    | "redo"
+    | "close"
+    | "fitView";
 }
 
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
+  GET_SYSTEM_INFO = "get-system-info",
   OPEN_LOG_FILE = "open-log-file",
   INSTALL_TO_LOCATION = "install-to-location",
   SELECT_CUSTOM_LOCATION = "select-custom-location",
@@ -184,6 +186,7 @@ export interface InstallToLocationData {
 // Request/Response types for each IPC channel
 export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
+  [IpcChannels.GET_SYSTEM_INFO]: void;
   [IpcChannels.OPEN_LOG_FILE]: void;
   [IpcChannels.INSTALL_TO_LOCATION]: InstallToLocationData;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
@@ -210,6 +213,7 @@ export interface IpcRequest {
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
+  [IpcChannels.GET_SYSTEM_INFO]: BasicSystemInfo | null;
   [IpcChannels.OPEN_LOG_FILE]: void;
   [IpcChannels.INSTALL_TO_LOCATION]: void;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
@@ -257,6 +261,28 @@ export interface UpdateProgressData {
 
 export interface UpdateInfo {
   releaseUrl: string;
+}
+
+export interface BasicSystemInfo {
+  os: {
+    platform: string;
+    release: string;
+    arch: string;
+  };
+  versions: {
+    python?: string;
+    nodetool_core?: string;
+    nodetool_base?: string;
+  };
+  paths: {
+    data_dir: string;
+    core_logs_dir: string;
+    electron_logs_dir: string;
+  };
+  server: {
+    status: "connected" | "disconnected" | "checking";
+    port?: number;
+  };
 }
 
 export interface InstallLocationData {

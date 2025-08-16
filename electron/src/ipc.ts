@@ -1,19 +1,32 @@
-import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from "electron";
-import { getServerState, openLogFile, runApp, initializeBackendServer, stopServer } from "./server";
+import {
+  ipcMain,
+  BrowserWindow,
+  clipboard,
+  globalShortcut,
+  shell,
+} from "electron";
+import {
+  getServerState,
+  openLogFile,
+  runApp,
+  initializeBackendServer,
+  stopServer,
+} from "./server";
 import { logMessage } from "./logger";
 import { IpcChannels, IpcEvents, IpcResponse } from "./types.d";
 import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { updateTrayMenu } from "./tray";
-import { 
-  fetchAvailablePackages, 
-  listInstalledPackages, 
-  installPackage, 
-  uninstallPackage, 
+import {
+  fetchAvailablePackages,
+  listInstalledPackages,
+  installPackage,
+  uninstallPackage,
   updatePackage,
-  validateRepoId 
+  validateRepoId,
 } from "./packageManager";
+import { fetchBasicSystemInfo } from "./api";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -84,6 +97,10 @@ export function initializeIpcHandlers(): void {
   // Server state handlers
   createIpcMainHandler(IpcChannels.GET_SERVER_STATE, async () => {
     return getServerState();
+  });
+
+  createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
+    return await fetchBasicSystemInfo();
   });
 
   createIpcMainHandler(IpcChannels.OPEN_LOG_FILE, async () => {
@@ -194,36 +211,27 @@ export function initializeIpcHandlers(): void {
   );
 
   // Package manager handlers
-  createIpcMainHandler(
-    IpcChannels.PACKAGE_LIST_AVAILABLE,
-    async () => {
-      logMessage("Fetching available packages");
-      return await fetchAvailablePackages();
-    }
-  );
+  createIpcMainHandler(IpcChannels.PACKAGE_LIST_AVAILABLE, async () => {
+    logMessage("Fetching available packages");
+    return await fetchAvailablePackages();
+  });
 
-  createIpcMainHandler(
-    IpcChannels.PACKAGE_LIST_INSTALLED,
-    async () => {
-      logMessage("Listing installed packages");
-      return await listInstalledPackages();
-    }
-  );
+  createIpcMainHandler(IpcChannels.PACKAGE_LIST_INSTALLED, async () => {
+    logMessage("Listing installed packages");
+    return await listInstalledPackages();
+  });
 
-  createIpcMainHandler(
-    IpcChannels.PACKAGE_INSTALL,
-    async (_event, request) => {
-      logMessage(`Installing package: ${request.repo_id}`);
-      const validation = validateRepoId(request.repo_id);
-      if (!validation.valid) {
-        return {
-          success: false,
-          message: validation.error || "Invalid repository ID"
-        };
-      }
-      return await installPackage(request.repo_id);
+  createIpcMainHandler(IpcChannels.PACKAGE_INSTALL, async (_event, request) => {
+    logMessage(`Installing package: ${request.repo_id}`);
+    const validation = validateRepoId(request.repo_id);
+    if (!validation.valid) {
+      return {
+        success: false,
+        message: validation.error || "Invalid repository ID",
+      };
     }
-  );
+    return await installPackage(request.repo_id);
+  });
 
   createIpcMainHandler(
     IpcChannels.PACKAGE_UNINSTALL,
@@ -233,27 +241,24 @@ export function initializeIpcHandlers(): void {
       if (!validation.valid) {
         return {
           success: false,
-          message: validation.error || "Invalid repository ID"
+          message: validation.error || "Invalid repository ID",
         };
       }
       return await uninstallPackage(request.repo_id);
     }
   );
 
-  createIpcMainHandler(
-    IpcChannels.PACKAGE_UPDATE,
-    async (_event, repoId) => {
-      logMessage(`Updating package: ${repoId}`);
-      const validation = validateRepoId(repoId);
-      if (!validation.valid) {
-        return {
-          success: false,
-          message: validation.error || "Invalid repository ID"
-        };
-      }
-      return await updatePackage(repoId);
+  createIpcMainHandler(IpcChannels.PACKAGE_UPDATE, async (_event, repoId) => {
+    logMessage(`Updating package: ${repoId}`);
+    const validation = validateRepoId(repoId);
+    if (!validation.valid) {
+      return {
+        success: false,
+        message: validation.error || "Invalid repository ID",
+      };
     }
-  );
+    return await updatePackage(repoId);
+  });
 
   createIpcMainHandler(
     IpcChannels.PACKAGE_OPEN_EXTERNAL,

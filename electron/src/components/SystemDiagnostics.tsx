@@ -76,32 +76,12 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
   };
 
   const fetchBasicSystemInfo = async (): Promise<BasicSystemInfo> => {
-    // This will be implemented when we add the API integration
-    // For now, return mock data
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          os: {
-            platform: window.api.platform,
-            release: "Unknown",
-            arch: "Unknown",
-          },
-          versions: {
-            python: "Loading...",
-            nodetool_core: "Loading...",
-            nodetool_base: "Loading...",
-          },
-          paths: {
-            data_dir: "Loading...",
-            core_logs_dir: "Loading...",
-            electron_logs_dir: "Loading...",
-          },
-          server: {
-            status: "checking",
-          },
-        });
-      }, 1000);
-    });
+    // Use the real API integration
+    const systemInfo = await window.api.getSystemInfo();
+    if (!systemInfo) {
+      throw new Error("Failed to fetch system information");
+    }
+    return systemInfo;
   };
 
   const copySystemInfo = async () => {
