@@ -55,7 +55,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
-import { useColorScheme } from "@mui/material/styles";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -90,7 +90,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
   active
 }) => {
-  const { mode } = useColorScheme();
+  const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   const {
     nodes,
@@ -378,7 +378,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }
 
   const reactFlowClasses = [
-    mode,
     zoom <= ZOOMED_OUT ? "zoomed-out" : "",
     connecting ? "is-connecting" : ""
   ]
@@ -402,6 +401,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     >
       <ReactFlow
         className={reactFlowClasses}
+        colorMode={isDarkMode ? "dark" : "light"}
         style={{
           width: "100%",
           height: "100%",
