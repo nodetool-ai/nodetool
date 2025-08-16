@@ -52,18 +52,24 @@ export class Watchdog {
       this.process.kill("SIGTERM");
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: error sending SIGTERM: ${(error as Error).message}`
+        `${this.opts.name} watchdog: error sending SIGTERM: ${
+          (error as Error).message
+        }`
       );
     }
 
-    await new Promise((resolve) => setTimeout(resolve, this.opts.gracefulStopTimeoutMs));
+    await new Promise((resolve) =>
+      setTimeout(resolve, this.opts.gracefulStopTimeoutMs)
+    );
 
     if (this.process && !this.process.killed) {
       try {
         this.process.kill("SIGKILL");
       } catch (error) {
         logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message}`
+          `${this.opts.name} watchdog: error sending SIGKILL: ${
+            (error as Error).message
+          }`
         );
       }
     }
@@ -83,7 +89,9 @@ export class Watchdog {
         this.process.kill("SIGKILL");
       } catch (error) {
         logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message}`
+          `${this.opts.name} watchdog: error sending SIGKILL: ${
+            (error as Error).message
+          }`
         );
       }
     }
@@ -91,7 +99,7 @@ export class Watchdog {
     await this.removePidFile();
   }
 
-  async waitUntilHealthy(timeoutMs: number = 60000): Promise<void> {
+  async waitUntilHealthy(timeoutMs: number = 300000): Promise<void> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       if (await this.isHealthy()) return;
@@ -102,9 +110,9 @@ export class Watchdog {
 
   private async spawnProcess(): Promise<void> {
     logMessage(
-      `${this.opts.name} watchdog: starting: ${this.opts.command} ${this.opts.args.join(
-        " "
-      )}`
+      `${this.opts.name} watchdog: starting: ${
+        this.opts.command
+      } ${this.opts.args.join(" ")}`
     );
 
     try {
@@ -117,12 +125,16 @@ export class Watchdog {
       });
     } catch (error) {
       throw new Error(
-        `${this.opts.name} watchdog: failed to spawn: ${(error as Error).message}`
+        `${this.opts.name} watchdog: failed to spawn: ${
+          (error as Error).message
+        }`
       );
     }
 
     this.process.on("spawn", () => {
-      logMessage(`${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`);
+      logMessage(
+        `${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`
+      );
       if (this.process?.pid) {
         this.writePidFile(this.process.pid).catch(() => {});
       }
@@ -132,12 +144,17 @@ export class Watchdog {
     this.process.stderr?.on("data", (buf) => this.handleOutput(buf));
 
     this.process.on("exit", (code, signal) => {
-      logMessage(`${this.opts.name} watchdog: process exited (code=${code}, signal=${signal})`);
+      logMessage(
+        `${this.opts.name} watchdog: process exited (code=${code}, signal=${signal})`
+      );
       // If not intentionally stopped, monitor loop will trigger restart on next tick
     });
 
     this.process.on("error", (error) => {
-      logMessage(`${this.opts.name} watchdog: process error: ${error.message}`, "error");
+      logMessage(
+        `${this.opts.name} watchdog: process error: ${error.message}`,
+        "error"
+      );
     });
   }
 
@@ -164,7 +181,9 @@ export class Watchdog {
           await this.restart();
         } catch (error) {
           logMessage(
-            `${this.opts.name} watchdog: restart failed: ${(error as Error).message}`,
+            `${this.opts.name} watchdog: restart failed: ${
+              (error as Error).message
+            }`,
             "error"
           );
         }
@@ -202,10 +221,14 @@ export class Watchdog {
   private async writePidFile(pid: number): Promise<void> {
     try {
       await fs.writeFile(this.opts.pidFilePath, String(pid));
-      logMessage(`${this.opts.name} watchdog: wrote PID ${pid} to ${this.opts.pidFilePath}`);
+      logMessage(
+        `${this.opts.name} watchdog: wrote PID ${pid} to ${this.opts.pidFilePath}`
+      );
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: failed to write PID file: ${(error as Error).message}`,
+        `${this.opts.name} watchdog: failed to write PID file: ${
+          (error as Error).message
+        }`,
         "error"
       );
     }
@@ -219,5 +242,3 @@ export class Watchdog {
     }
   }
 }
-
-
