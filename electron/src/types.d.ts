@@ -273,6 +273,7 @@ export interface BasicSystemInfo {
     python?: string;
     nodetool_core?: string;
     nodetool_base?: string;
+    cuda?: string;
   };
   paths: {
     data_dir: string;

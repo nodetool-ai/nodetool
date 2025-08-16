@@ -10,6 +10,7 @@ interface BasicSystemInfo {
     python?: string;
     nodetool_core?: string;
     nodetool_base?: string;
+    cuda?: string;
   };
   paths: {
     data_dir: string;
@@ -89,15 +90,15 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
 
     const info = [
       `OS: ${systemInfo.os.platform} ${systemInfo.os.release} (${systemInfo.os.arch})`,
-      `Python: ${systemInfo.versions.python || "Unknown"}`,
-      `NodeTool Core: ${systemInfo.versions.nodetool_core || "Unknown"}`,
-      `NodeTool Base: ${systemInfo.versions.nodetool_base || "Unknown"}`,
+      `Python: ${systemInfo.versions.python || "-"}`,
+      `NodeTool Core: ${systemInfo.versions.nodetool_core || "-"}`,
+      `NodeTool Base: ${systemInfo.versions.nodetool_base || "-"}`,
+      `CUDA: ${systemInfo.versions.cuda || "-"}`,
       `Server Status: ${systemInfo.server.status}${
         systemInfo.server.port ? ` (port ${systemInfo.server.port})` : ""
       }`,
       `Data Directory: ${systemInfo.paths.data_dir}`,
-      `Core Logs: ${systemInfo.paths.core_logs_dir}`,
-      `Electron Logs: ${systemInfo.paths.electron_logs_dir}`,
+      `Logs: ${systemInfo.paths.electron_logs_dir}`,
     ].join("\n");
 
     try {
@@ -151,20 +152,24 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
               <div className="system-info-item">
                 <span className="label">Python:</span>
                 <span className="value">
-                  {systemInfo.versions.python || "Unknown"}
+                  {systemInfo.versions.python || "-"}
                 </span>
               </div>
               <div className="system-info-item">
                 <span className="label">NodeTool Core:</span>
                 <span className="value">
-                  {systemInfo.versions.nodetool_core || "Unknown"}
+                  {systemInfo.versions.nodetool_core || "-"}
                 </span>
               </div>
               <div className="system-info-item">
                 <span className="label">NodeTool Base:</span>
                 <span className="value">
-                  {systemInfo.versions.nodetool_base || "Unknown"}
+                  {systemInfo.versions.nodetool_base || "-"}
                 </span>
+              </div>
+              <div className="system-info-item">
+                <span className="label">CUDA:</span>
+                <span className="value">{systemInfo.versions.cuda || "-"}</span>
               </div>
             </div>
 
@@ -187,13 +192,7 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
                 <span className="value path">{systemInfo.paths.data_dir}</span>
               </div>
               <div className="system-info-item">
-                <span className="label">Core Logs:</span>
-                <span className="value path">
-                  {systemInfo.paths.core_logs_dir}
-                </span>
-              </div>
-              <div className="system-info-item">
-                <span className="label">Electron Logs:</span>
+                <span className="label">Logs:</span>
                 <span className="value path">
                   {systemInfo.paths.electron_logs_dir}
                 </span>

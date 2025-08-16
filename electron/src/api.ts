@@ -6,6 +6,7 @@ import { spawn } from "child_process";
 import { getPythonPath } from "./config";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 
 export let isConnected = false;
 let healthCheckTimer: NodeJS.Timeout | null = null;
@@ -183,6 +184,81 @@ async function getLocalNodeToolVersions(): Promise<{
 }
 
 /**
+ * Gets CUDA version locally by checking nvcc or nvidia-smi
+ * @returns {Promise<string | null>} CUDA version or null if unavailable
+ */
+async function getLocalCudaVersion(): Promise<string | null> {
+  try {
+    // Try nvcc first to get actual CUDA toolkit version
+    const nvccVersion = await new Promise<string | null>((resolve) => {
+      const child = spawn("nvcc", ["--version"], {
+        timeout: 3000,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let output = "";
+      child.stdout?.on("data", (data) => {
+        output += data.toString();
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) {
+          // Extract CUDA version from nvcc output (e.g., "release 12.1")
+          const match = output.match(/release (\d+\.\d+)/);
+          resolve(match ? match[1] : null);
+        } else {
+          resolve(null);
+        }
+      });
+
+      child.on("error", () => {
+        resolve(null);
+      });
+    });
+
+    if (nvccVersion) {
+      return nvccVersion;
+    }
+
+    // Try nvidia-smi to get CUDA runtime version as fallback
+    const nvidiaSmiCudaVersion = await new Promise<string | null>((resolve) => {
+      const child = spawn(
+        "nvidia-smi",
+        ["--query-gpu=cuda_version", "--format=csv,noheader,nounits"],
+        {
+          timeout: 3000,
+          stdio: ["ignore", "pipe", "pipe"],
+        }
+      );
+
+      let output = "";
+      child.stdout?.on("data", (data) => {
+        output += data.toString();
+      });
+
+      child.on("close", (code) => {
+        if (code === 0 && output.trim()) {
+          const cudaVersion = output.trim().split("\n")[0];
+          // nvidia-smi sometimes returns "N/A" for CUDA version
+          resolve(cudaVersion !== "N/A" ? cudaVersion : null);
+        } else {
+          resolve(null);
+        }
+      });
+
+      child.on("error", () => {
+        resolve(null);
+      });
+    });
+
+    return nvidiaSmiCudaVersion;
+  } catch (error) {
+    logMessage(`Failed to get local CUDA version: ${error}`, "error");
+    return null;
+  }
+}
+
+/**
  * Fetches basic system information for diagnostics
  * @returns {Promise<BasicSystemInfo | null>} Basic system info or null if unavailable
  */
@@ -226,20 +302,23 @@ export async function fetchBasicSystemInfo(): Promise<BasicSystemInfo | null> {
     // Get local fallback information when backend is unavailable
     let localPythonVersion: string | null = null;
     let localNodeToolVersions: { core?: string; base?: string } = {};
+    let localCudaVersion: string | null = null;
 
     if (serverStatus === "disconnected") {
       logMessage("Backend unavailable, fetching local system information...");
-      [localPythonVersion, localNodeToolVersions] = await Promise.all([
-        getLocalPythonVersion(),
-        getLocalNodeToolVersions(),
-      ]);
+      [localPythonVersion, localNodeToolVersions, localCudaVersion] =
+        await Promise.all([
+          getLocalPythonVersion(),
+          getLocalNodeToolVersions(),
+          getLocalCudaVersion(),
+        ]);
     }
 
     // Build system info object with enhanced fallbacks
     const systemInfo: BasicSystemInfo = {
       os: {
         platform: systemData?.os?.platform || process.platform,
-        release: systemData?.os?.release || require("os").release(),
+        release: systemData?.os?.release || os.release(),
         arch: systemData?.os?.arch || process.arch,
       },
       versions: {
@@ -252,10 +331,11 @@ export async function fetchBasicSystemInfo(): Promise<BasicSystemInfo | null> {
           systemData?.versions?.nodetool_base ||
           localNodeToolVersions.base ||
           undefined,
+        cuda: systemData?.versions?.cuda || localCudaVersion || undefined,
       },
       paths: {
         data_dir: systemData?.paths?.data_dir || app.getPath("userData"),
-        core_logs_dir: systemData?.paths?.core_logs_dir || "Unknown",
+        core_logs_dir: systemData?.paths?.core_logs_dir || "-",
         electron_logs_dir: app.getPath("logs"),
       },
       server: {
@@ -269,25 +349,31 @@ export async function fetchBasicSystemInfo(): Promise<BasicSystemInfo | null> {
     logMessage(`Failed to fetch system information: ${error}`, "error");
 
     // Enhanced fallback with local information
-    const [localPythonVersion, localNodeToolVersions] = await Promise.all([
-      getLocalPythonVersion().catch(() => null),
-      getLocalNodeToolVersions().catch(() => ({})),
-    ]);
+    const [localPythonVersion, localNodeToolVersions, localCudaVersion] =
+      await Promise.all([
+        getLocalPythonVersion().catch(() => null),
+        getLocalNodeToolVersions().catch(() => ({
+          core: undefined,
+          base: undefined,
+        })),
+        getLocalCudaVersion().catch(() => null),
+      ]);
 
     return {
       os: {
         platform: process.platform,
-        release: require("os").release(),
+        release: os.release(),
         arch: process.arch,
       },
       versions: {
         python: localPythonVersion || undefined,
         nodetool_core: localNodeToolVersions.core || undefined,
         nodetool_base: localNodeToolVersions.base || undefined,
+        cuda: localCudaVersion || undefined,
       },
       paths: {
         data_dir: app.getPath("userData"),
-        core_logs_dir: "Unknown",
+        core_logs_dir: "-",
         electron_logs_dir: app.getPath("logs"),
       },
       server: {
