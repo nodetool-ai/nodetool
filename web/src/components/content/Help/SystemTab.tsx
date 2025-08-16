@@ -25,6 +25,9 @@ type VersionsInfo = {
   nodetool_core?: string | null;
   nodetool_base?: string | null;
   cuda?: string | null;
+  gpu_name?: string | null;
+  vram_total_gb?: string | null;
+  driver_version?: string | null;
 };
 type PathsInfo = {
   settings_path: string;
@@ -211,6 +214,19 @@ export default function SystemTab() {
         info.versions.cuda ?? ""
       }`
     );
+    if (
+      info.versions.gpu_name ||
+      info.versions.vram_total_gb ||
+      info.versions.driver_version
+    ) {
+      lines.push(
+        `GPU: ${info.versions.gpu_name ?? "N/A"}, VRAM=${
+          info.versions.vram_total_gb
+            ? info.versions.vram_total_gb + "GB"
+            : "N/A"
+        }, driver=${info.versions.driver_version ?? "N/A"}`
+      );
+    }
     lines.push("Paths:");
     const p = info.paths;
     lines.push(`  settings_path: ${p.settings_path}`);
@@ -324,6 +340,18 @@ export default function SystemTab() {
           {info.versions.nodetool_base ?? ""} cuda=
           {info.versions.cuda ?? ""}
         </Typography>
+        {(info.versions.gpu_name ||
+          info.versions.vram_total_gb ||
+          info.versions.driver_version) && (
+          <Typography variant="body2" color={theme.vars.palette.grey[300]}>
+            GPU: {info.versions.gpu_name ?? "N/A"}, VRAM=
+            {info.versions.vram_total_gb
+              ? info.versions.vram_total_gb + "GB"
+              : "N/A"}
+            , driver=
+            {info.versions.driver_version ?? "N/A"}
+          </Typography>
+        )}
       </div>
 
       <Divider />

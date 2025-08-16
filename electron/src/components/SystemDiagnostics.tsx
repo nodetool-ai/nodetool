@@ -11,6 +11,9 @@ interface BasicSystemInfo {
     nodetool_core?: string;
     nodetool_base?: string;
     cuda?: string;
+    gpu_name?: string;
+    vram_total_gb?: string;
+    driver_version?: string;
   };
   paths: {
     data_dir: string;
@@ -94,6 +97,19 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
       `NodeTool Core: ${systemInfo.versions.nodetool_core || "-"}`,
       `NodeTool Base: ${systemInfo.versions.nodetool_base || "-"}`,
       `CUDA: ${systemInfo.versions.cuda || "-"}`,
+      ...(systemInfo.versions.gpu_name ||
+      systemInfo.versions.vram_total_gb ||
+      systemInfo.versions.driver_version
+        ? [
+            `GPU: ${systemInfo.versions.gpu_name || "N/A"}`,
+            `VRAM: ${
+              systemInfo.versions.vram_total_gb
+                ? systemInfo.versions.vram_total_gb + "GB"
+                : "N/A"
+            }`,
+            `Driver: ${systemInfo.versions.driver_version || "N/A"}`,
+          ]
+        : []),
       `Server Status: ${systemInfo.server.status}${
         systemInfo.server.port ? ` (port ${systemInfo.server.port})` : ""
       }`,
@@ -171,6 +187,32 @@ const SystemDiagnostics: React.FC<SystemDiagnosticsProps> = ({
                 <span className="label">CUDA:</span>
                 <span className="value">{systemInfo.versions.cuda || "-"}</span>
               </div>
+              {(systemInfo.versions.gpu_name ||
+                systemInfo.versions.vram_total_gb ||
+                systemInfo.versions.driver_version) && (
+                <>
+                  <div className="system-info-item">
+                    <span className="label">GPU:</span>
+                    <span className="value">
+                      {systemInfo.versions.gpu_name || "N/A"}
+                    </span>
+                  </div>
+                  <div className="system-info-item">
+                    <span className="label">VRAM:</span>
+                    <span className="value">
+                      {systemInfo.versions.vram_total_gb
+                        ? systemInfo.versions.vram_total_gb + "GB"
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="system-info-item">
+                    <span className="label">Driver:</span>
+                    <span className="value">
+                      {systemInfo.versions.driver_version || "N/A"}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="system-info-section">
