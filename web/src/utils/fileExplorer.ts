@@ -40,13 +40,16 @@ export function isPathValid(path: string): boolean {
   // 1. POSIX absolute path starting with '/'
   // 2. Windows absolute path starting with a drive letter followed by ':' and either \\ or '/'
   // 3. Home‐relative path starting with '~'
+  // 4. Windows environment variables like %APPDATA%, %LOCALAPPDATA%, etc.
   const windowsAbsRegex = /^[a-zA-Z]:[\\/].+/;
   const posixAbsRegex = /^\/.+/;
   const homeRegex = /^~[\\/].+/;
+  const windowsEnvVarRegex = /^%[A-Z_]+%[\\/].*/;
 
   return (
     windowsAbsRegex.test(path) ||
     posixAbsRegex.test(path) ||
-    homeRegex.test(path)
+    homeRegex.test(path) ||
+    windowsEnvVarRegex.test(path)
   );
 }
