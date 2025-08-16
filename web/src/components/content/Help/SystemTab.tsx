@@ -15,8 +15,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
-import { BASE_URL, authHeader } from "../../../stores/ApiClient";
+import { BASE_URL } from "../../../stores/ApiClient";
 import { getIsElectronDetails } from "../../../utils/browser";
+import { isPathValid, openInExplorer } from "../../../utils/fileExplorer";
 
 type OSInfo = { platform: string; release: string; arch: string };
 type VersionsInfo = {
@@ -38,6 +39,14 @@ type PathsInfo = {
   electron_log_file: string;
   electron_logs_dir: string;
   electron_main_log_file?: string;
+};
+
+type OllamaBasePathResponse = {
+  path: string;
+};
+
+type HuggingFaceBasePathResponse = {
+  path: string;
 };
 type SystemInfoResponse = {
   os: OSInfo;
@@ -106,25 +115,6 @@ function StatusIcon({ status }: { status: HealthCheck["status"] }) {
   return <ErrorIcon sx={{ color: theme.vars.palette.error.main }} />;
 }
 
-async function openInExplorer(path: string) {
-  try {
-    if (!path) return;
-    console.log("Opening in explorer:", path);
-    const headers = await authHeader();
-    const res = await fetch(
-      `${BASE_URL}/api/models/open_in_explorer?path=${encodeURIComponent(
-        path
-      )}`,
-      { method: "POST", headers }
-    );
-    if (!res.ok) {
-      console.warn("open_in_explorer failed with status", res.status);
-    }
-  } catch (e) {
-    console.error("open_in_explorer error", e);
-  }
-}
-
 export default function SystemTab() {
   const theme = useTheme();
   const [info, setInfo] = useState<SystemInfoResponse | null>(null);
@@ -137,43 +127,58 @@ export default function SystemTab() {
     async function load() {
       try {
         const [infoRes, healthRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/system`, {
+          fetch(`${BASE_URL}/api/system/`, {
             headers: { Accept: "application/json" }
           }),
           fetch(`${BASE_URL}/api/system/health`, {
             headers: { Accept: "application/json" }
           })
         ]);
+
+        if (!infoRes.ok) {
+          throw new Error(
+            `Failed to load system info: ${infoRes.status} ${infoRes.statusText}`
+          );
+        }
+        if (!healthRes.ok) {
+          throw new Error(
+            `Failed to load health info: ${healthRes.status} ${healthRes.statusText}`
+          );
+        }
+
         const infoJson = (await infoRes.json()) as SystemInfoResponse;
         const healthJson = (await healthRes.json()) as HealthResponse;
 
         // Fallback: fetch Ollama/HF paths from existing endpoints if missing
         try {
-          const headers = await authHeader();
           const updates: Partial<PathsInfo> = {};
           if (!infoJson.paths.ollama_models_dir) {
-            const r = await fetch(`${BASE_URL}/api/models/ollama_base_path`, {
-              headers
+            const res = await fetch(`${BASE_URL}/api/models/ollama_base_path`, {
+              headers: { Accept: "application/json" }
             });
-            if (r.ok) {
-              const j = (await r.json()) as any;
-              if (j && typeof j.path === "string")
-                updates.ollama_models_dir = j.path;
+            if (res.ok) {
+              const data = (await res.json()) as OllamaBasePathResponse;
+              if (data?.path) {
+                updates.ollama_models_dir = data.path;
+              }
             }
           }
           if (!infoJson.paths.huggingface_cache_dir) {
-            const r = await fetch(
+            const res = await fetch(
               `${BASE_URL}/api/models/huggingface_base_path`,
-              { headers }
+              {
+                headers: { Accept: "application/json" }
+              }
             );
-            if (r.ok) {
-              const j = (await r.json()) as any;
-              if (j && typeof j.path === "string")
-                updates.huggingface_cache_dir = j.path;
+            if (res.ok) {
+              const data = (await res.json()) as HuggingFaceBasePathResponse;
+              if (data?.path) {
+                updates.huggingface_cache_dir = data.path;
+              }
             }
           }
           if (Object.keys(updates).length > 0) {
-            infoJson.paths = { ...infoJson.paths, ...updates } as PathsInfo;
+            infoJson.paths = { ...infoJson.paths, ...updates };
           }
         } catch (e) {
           // ignore fallback errors
@@ -183,7 +188,8 @@ export default function SystemTab() {
           setHealth(healthJson);
         }
       } catch (e) {
-        console.error("Failed to load system info/health", e);
+        console.error("Failed to load system info/health:", e);
+        // You could set an error state here to show user-friendly error messages
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -213,22 +219,17 @@ export default function SystemTab() {
     const chatLogs = isElectron ? p.electron_logs_dir : p.core_logs_dir;
     lines.push(`  chat_logs_folder: ${chatLogs}`);
     // Show only if backend provides it to avoid guessing
-    if (!isElectron && (p as any).core_main_log_file) {
-      lines.push(`  core_main_log_file: ${(p as any).core_main_log_file}`);
+    if (!isElectron && p.core_main_log_file) {
+      lines.push(`  core_main_log_file: ${p.core_main_log_file}`);
     }
     lines.push(`  ollama_models_dir: ${p.ollama_models_dir}`);
     lines.push(`  huggingface_cache_dir: ${p.huggingface_cache_dir}`);
-    if (!isElectron && (p as any).core_main_log_file) {
-      lines.push(`  core_main_log_file: ${(p as any).core_main_log_file}`);
-    }
     if (isElectron) {
       lines.push(`  electron_user_data: ${p.electron_user_data}`);
       lines.push(`  electron_log_file: ${p.electron_log_file}`);
       lines.push(`  electron_logs_dir: ${p.electron_logs_dir}`);
-      if ((p as any).electron_main_log_file)
-        lines.push(
-          `  electron_main_log_file: ${(p as any).electron_main_log_file}`
-        );
+      if (p.electron_main_log_file)
+        lines.push(`  electron_main_log_file: ${p.electron_main_log_file}`);
     }
     if (health) {
       lines.push("Health Summary:");
@@ -258,11 +259,11 @@ export default function SystemTab() {
           ? info.paths.electron_logs_dir
           : info.paths.core_logs_dir
       },
-      ...(!isElectron && (info.paths as any).core_main_log_file
+      ...(!isElectron && info.paths.core_main_log_file
         ? [
             {
               label: "Main Log",
-              value: (info.paths as any).core_main_log_file as string
+              value: info.paths.core_main_log_file
             }
           ]
         : []),
@@ -274,11 +275,11 @@ export default function SystemTab() {
         { label: "Electron UserData", value: info.paths.electron_user_data },
         { label: "Electron Log File", value: info.paths.electron_log_file },
         { label: "Electron Logs Dir", value: info.paths.electron_logs_dir },
-        ...((info.paths as any).electron_main_log_file
+        ...(info.paths.electron_main_log_file
           ? [
               {
                 label: "Electron Main Log",
-                value: (info.paths as any).electron_main_log_file as string
+                value: info.paths.electron_main_log_file
               }
             ]
           : [])
@@ -347,9 +348,7 @@ export default function SystemTab() {
                 size="small"
                 variant="outlined"
                 onClick={() => openInExplorer(value)}
-                disabled={
-                  !value || value.startsWith("~") || value.includes("%")
-                }
+                disabled={!isPathValid(value)}
                 startIcon={<OpenInNewIcon sx={{ fontSize: "1rem" }} />}
                 sx={{
                   borderColor: theme.vars.palette.grey[600],
