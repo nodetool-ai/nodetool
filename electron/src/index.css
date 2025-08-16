@@ -1735,3 +1735,32 @@ body::before {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(118, 229, 184, 0.35);
 }
+
+/* Boot Message System Info Integration */
+.boot-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.system-info-toggle {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--c_text_secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.system-info-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--c_text_primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from "react";
+import SystemDiagnostics from "./SystemDiagnostics";
 
 interface UpdateProgressData {
   componentName: string;
@@ -13,7 +14,13 @@ interface BootMessageProps {
   progressData: UpdateProgressData;
 }
 
-const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, progressData }) => {
+const BootMessage: React.FC<BootMessageProps> = ({
+  message,
+  showUpdateSteps,
+  progressData,
+}) => {
+  const [showSystemInfo, setShowSystemInfo] = useState(false);
+
   return (
     <div id="boot-message">
       <div className="boot-panel">
@@ -71,7 +78,7 @@ const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, pro
                     {Math.round(progressData.progress)}%
                   </span>
                   <span className="progress-eta">
-                    {progressData.eta ? ` (${progressData.eta})` : ''}
+                    {progressData.eta ? ` (${progressData.eta})` : ""}
                   </span>
                 </span>
               </div>
@@ -84,6 +91,20 @@ const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, pro
             </div>
           </div>
         )}
+
+        <div className="boot-actions">
+          <button
+            className="system-info-toggle"
+            onClick={() => setShowSystemInfo(!showSystemInfo)}
+          >
+            {showSystemInfo ? "▼" : "▶"} System Info
+          </button>
+        </div>
+
+        <SystemDiagnostics
+          isVisible={showSystemInfo}
+          onToggle={() => setShowSystemInfo(!showSystemInfo)}
+        />
       </div>
     </div>
   );
