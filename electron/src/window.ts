@@ -90,10 +90,16 @@ function createPackageManagerWindow(): BrowserWindow {
 
   window.setBackgroundColor("#111111");
 
-  window.loadFile(path.join("dist-web", "index.html"), { search: "package-manager" });
+  window.loadFile(path.join("dist-web", "index.html"), {
+    search: "package-manager",
+  });
 
   window.webContents.on("before-input-event", (_event, input) => {
-    if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i") {
+    if (
+      (input.control || input.meta) &&
+      input.shift &&
+      input.key.toLowerCase() === "i"
+    ) {
       if (window.webContents.isDevToolsOpened()) {
         window.webContents.closeDevTools();
       } else {
@@ -128,7 +134,6 @@ function initializePermissionHandlers(): void {
       logMessage(
         `Permission requested: ${permission} from ${details.requestingUrl}`
       );
-      console.log(`Permission details:`, { permission, details });
 
       // Special handling for media permissions
       if (permission === allowedPermissions[0]) {
@@ -146,7 +151,6 @@ function initializePermissionHandlers(): void {
       // Only log specific permission denials
       if (!allowedPermissions.includes(permission)) {
         logMessage(`Denying permission: ${permission}`);
-        console.log("Permission denied:", { permission, details });
       }
       callback(false);
     }
@@ -208,4 +212,9 @@ function handleActivation(): void {
   }
 }
 
-export { createWindow, createPackageManagerWindow, forceQuit, handleActivation };
+export {
+  createWindow,
+  createPackageManagerWindow,
+  forceQuit,
+  handleActivation,
+};

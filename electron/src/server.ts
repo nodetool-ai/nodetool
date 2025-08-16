@@ -97,14 +97,23 @@ async function startOllamaServer(): Promise<void> {
     await fs.mkdir(modelsPath, { recursive: true });
     logMessage(`Ensured OLLAMA_MODELS directory exists at: ${modelsPath}`);
   } catch (error) {
-    logMessage(`Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${(error as Error).message}`, "error");
+    logMessage(
+      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${
+        (error as Error).message
+      }`,
+      "error"
+    );
   }
 
   ollamaWatchdog = new Watchdog({
     name: "ollama",
     command: ollamaExecutablePath,
     args,
-    env: { ...process.env, OLLAMA_HOST: `127.0.0.1:${selectedPort}`, OLLAMA_MODELS: modelsPath },
+    env: {
+      ...process.env,
+      OLLAMA_HOST: `127.0.0.1:${selectedPort}`,
+      OLLAMA_MODELS: modelsPath,
+    },
     pidFilePath: OLLAMA_PID_FILE_PATH,
     healthUrl,
     onOutput: (line) => emitServerLog(line),
@@ -187,7 +196,20 @@ async function killExistingServer(): Promise<void> {
 async function startServer(): Promise<void> {
   emitBootMessage("Configuring server environment...");
 
-  const pythonExecutablePath = getPythonPath();
+  let pythonExecutablePath: string;
+  try {
+    pythonExecutablePath = getPythonPath();
+  } catch (error) {
+    logMessage(
+      `Could not resolve Python executable path. Ensure environment is installed. Error: ${error}`,
+      "error"
+    );
+    dialog.showErrorBox(
+      "Python Environment Missing",
+      "The Python environment could not be found. Please reinstall the Python environment from the installer prompt."
+    );
+    throw error;
+  }
 
   // Ensure Ollama is started first
   await startOllamaServer();
@@ -322,7 +344,9 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
       );
       if (response.ok) {
         logMessage(
-          `Server endpoint is available at http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
+          `Server endpoint is available at http://127.0.0.1:${
+            serverState.serverPort ?? 8000
+          }/health`
         );
         emitServerStarted();
         return;
