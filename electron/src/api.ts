@@ -37,7 +37,7 @@ async function checkHealth(): Promise<boolean> {
   try {
     const port = serverState.serverPort ?? 8000;
     const response = await fetch(`http://127.0.0.1:${port}/health/`);
-    console.log("response", response);
+    logMessage(`Health check response: ${response.ok}`);
     return response.ok;
   } catch (error) {
     return false;

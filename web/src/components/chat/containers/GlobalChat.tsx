@@ -1,15 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { Box, Alert, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
-import useGlobalChatStore, { useThreadsQuery } from "../../../stores/GlobalChatStore";
-import { LanguageModel, Message } from "../../../stores/ApiTypes";
-import { DEFAULT_MODEL } from "../../../config/constants";
+import useGlobalChatStore, {
+  useThreadsQuery
+} from "../../../stores/GlobalChatStore";
 import AppHeader from "../../panels/AppHeader";
 import TabsNodeEditor from "../../editor/TabsNodeEditor";
 
@@ -41,25 +41,17 @@ const GlobalChat: React.FC = () => {
   } = useGlobalChatStore();
 
   // Use the consolidated TanStack Query hook from the store
-  const {
-    isLoading: isLoadingThreads,
-    error: threadsError
-  } = useThreadsQuery();
+  const { isLoading: isLoadingThreads, error: threadsError } =
+    useThreadsQuery();
 
-  const tryParseModel = (model: string) => {
-    try {
-      return JSON.parse(model);
-    } catch (error) {
-      return DEFAULT_MODEL;
-    }
-  };
-
-  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
-    const savedModel = localStorage.getItem("selectedModel");
-    return savedModel ? tryParseModel(savedModel) : DEFAULT_MODEL;
-  });
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
+  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
+  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
+  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
+  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
+  const setSelectedCollections = useGlobalChatStore(
+    (s) => s.setSelectedCollections
+  );
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -111,7 +103,7 @@ const GlobalChat: React.FC = () => {
         } else if (!currentThreadId && !thread_id) {
           // Create new thread if none exists
           const newThreadId = await createNewThread();
-          
+
           // Check if operation was cancelled before switching
           if (!abortController.signal.aborted) {
             switchThread(newThreadId);
@@ -134,7 +126,14 @@ const GlobalChat: React.FC = () => {
         abortControllerRef.current = null;
       }
     };
-  }, [thread_id, currentThreadId, switchThread, createNewThread, threadsLoaded, isLoadingThreads]);
+  }, [
+    thread_id,
+    currentThreadId,
+    switchThread,
+    createNewThread,
+    threadsLoaded,
+    isLoadingThreads
+  ]);
 
   // Remove extra reconnect loop; rely on WebSocketManager's exponential backoff and
   // the store's network/visibility listeners to reconnect. This avoids double reconnects.
@@ -146,10 +145,7 @@ const GlobalChat: React.FC = () => {
     }
   }, [isMobile]);
 
-  // Save selectedModel to localStorage
-  useEffect(() => {
-    localStorage.setItem("selectedModel", JSON.stringify(selectedModel));
-  }, [selectedModel]);
+  // model persistence is handled inside the store's setter
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
@@ -239,7 +235,16 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         <TabsNodeEditor hideContent />
-        <Box className="actions-container" sx={{ position: "absolute", top: "32px", left: 0, right: 0, zIndex: 1000 }}>
+        <Box
+          className="actions-container"
+          sx={{
+            position: "absolute",
+            top: "32px",
+            left: 0,
+            right: 0,
+            zIndex: 1000
+          }}
+        >
           <AppHeader />
         </Box>
 

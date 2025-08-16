@@ -180,8 +180,6 @@ function focusNodeTool(): void {
 async function updateTrayMenu(): Promise<void> {
   if (!trayInstance) return;
 
-  console.log("Updating tray menu...");
-
   const statusIndicator = isConnected ? "🟢" : "🔴";
 
   const contextMenu = Menu.buildFromTemplate([

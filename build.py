@@ -206,6 +206,7 @@ class Build:
                 str(self.ENV_DIR),
                 "ffmpeg",
                 "cairo",
+                "git",
                 "x264",
                 "x265",
                 "aom",

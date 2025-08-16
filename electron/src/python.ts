@@ -86,22 +86,32 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
-  console.log("Checking conda environment installation...");
-  
-  const pythonExecutablePath = getPythonPath();
+
+  let pythonExecutablePath: string | null = null;
+  try {
+    pythonExecutablePath = getPythonPath();
+  } catch (error) {
+    // If we cannot even resolve a python path, treat as not installed so installer is triggered
+    logMessage(
+      `Failed to resolve Python path, treating as not installed: ${error}`,
+      "error"
+    );
+    return false;
+  }
+
   logMessage(`Python executable path: ${pythonExecutablePath}`);
-  console.log(`Checking Python executable at: ${pythonExecutablePath}`);
-  
+
   try {
     logMessage("Attempting to access Python executable...");
     await fs.access(pythonExecutablePath);
     logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-    console.log(`✓ Python executable found at ${pythonExecutablePath}`);
     return true;
   } catch (error) {
-    logMessage(`✗ Python executable not found at ${pythonExecutablePath}`, "error");
+    logMessage(
+      `✗ Python executable not found at ${pythonExecutablePath}`,
+      "error"
+    );
     logMessage(`Access error: ${error}`, "error");
-    console.error(`✗ Python executable not found at ${pythonExecutablePath}`, error);
     return false;
   }
 }
@@ -237,7 +247,6 @@ async function getCondaEnvSize(): Promise<number> {
   }
 }
 
-
 /**
  * Get the default installation location based on platform
  */
@@ -253,9 +262,9 @@ function getDefaultInstallLocation(): string {
       return process.env.SUDO_USER
         ? path.join("/Library/Application Support/nodetool/conda_env")
         : path.join(
-          os.homedir(),
-          "Library/Application Support/nodetool/conda_env"
-        );
+            os.homedir(),
+            "Library/Application Support/nodetool/conda_env"
+          );
     case "linux":
       // Use /opt for all users, or ~/.local/share for current user
       return process.env.SUDO_USER
