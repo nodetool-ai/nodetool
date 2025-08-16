@@ -26,6 +26,7 @@ import {
   updatePackage,
   validateRepoId,
 } from "./packageManager";
+import { fetchBasicSystemInfo } from "./api";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -108,6 +109,10 @@ export function initializeIpcHandlers(): void {
   // Server state handlers
   createIpcMainHandler(IpcChannels.GET_SERVER_STATE, async () => {
     return getServerState();
+  });
+
+  createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
+    return await fetchBasicSystemInfo();
   });
 
   createIpcMainHandler(IpcChannels.OPEN_LOG_FILE, async () => {
