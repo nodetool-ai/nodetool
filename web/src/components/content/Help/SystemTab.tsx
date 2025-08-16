@@ -19,7 +19,6 @@ import { BASE_URL } from "../../../stores/ApiClient";
 import { getIsElectronDetails } from "../../../utils/browser";
 import { isPathValid, openInExplorer } from "../../../utils/fileExplorer";
 
-
 type OSInfo = { platform: string; release: string; arch: string };
 type VersionsInfo = {
   python?: string | null;
