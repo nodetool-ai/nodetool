@@ -24,7 +24,16 @@ const BootMessage: React.FC<BootMessageProps> = ({
   return (
     <div id="boot-message">
       <div className="boot-panel">
-        <div className="brand">NodeTool</div>
+        <div className="boot-panel-header">
+          <div className="brand">NodeTool</div>
+          <button
+            className="system-info-toggle"
+            onClick={() => setShowSystemInfo(!showSystemInfo)}
+            title="System Information"
+          >
+            {showSystemInfo ? "✕" : "ℹ"}
+          </button>
+        </div>
         <div className="brand-ring" aria-hidden="true" />
 
         <svg
@@ -91,21 +100,13 @@ const BootMessage: React.FC<BootMessageProps> = ({
             </div>
           </div>
         )}
-
-        <div className="boot-actions">
-          <button
-            className="system-info-toggle"
-            onClick={() => setShowSystemInfo(!showSystemInfo)}
-          >
-            {showSystemInfo ? "▼" : "▶"} System Info
-          </button>
-        </div>
-
-        <SystemDiagnostics
-          isVisible={showSystemInfo}
-          onToggle={() => setShowSystemInfo(!showSystemInfo)}
-        />
       </div>
+
+      {/* System Diagnostics Overlay */}
+      <SystemDiagnostics
+        isVisible={showSystemInfo}
+        onToggle={() => setShowSystemInfo(!showSystemInfo)}
+      />
     </div>
   );
 };

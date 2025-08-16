@@ -696,6 +696,7 @@ ul li {
   text-transform: uppercase;
   letter-spacing: 0.28em;
   color: var(--c_text_secondary);
+  flex: 1;
 }
 
 .brand-ring {
@@ -1592,14 +1593,30 @@ body::before {
 
 /* System Diagnostics Styles */
 .system-diagnostics {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   background: var(--c_panel_bg);
   border: 1px solid var(--c_panel_border);
   border-radius: 12px;
-  margin-top: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
-  max-width: 600px;
-  width: 100%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(15px);
+  max-width: 500px;
+  width: 90vw;
+  z-index: 1200;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .system-diagnostics-header {
@@ -1637,7 +1654,7 @@ body::before {
 
 .system-diagnostics-content {
   padding: 16px;
-  max-height: 400px;
+  max-height: 60vh;
   overflow-y: auto;
 }
 
@@ -1737,30 +1754,35 @@ body::before {
 }
 
 /* Boot Message System Info Integration */
-.boot-actions {
-  margin-top: 16px;
+.boot-panel-header {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 16px;
 }
 
 .system-info-toggle {
   background: rgba(255, 255, 255, 0.06);
   color: var(--c_text_secondary);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .system-info-toggle:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--c_text_primary);
   border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
