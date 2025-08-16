@@ -1594,9 +1594,9 @@ body::before {
 /* System Diagnostics Styles */
 .system-diagnostics {
   position: absolute;
-  top: 20px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   background: var(--c_panel_bg);
   border: 1px solid var(--c_panel_border);
   border-radius: 12px;
@@ -1605,17 +1605,17 @@ body::before {
   max-width: 500px;
   width: 90vw;
   z-index: 1200;
-  animation: slideDown 0.2s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
-@keyframes slideDown {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
+    transform: translate(-50%, -50%) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
