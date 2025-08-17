@@ -1,7 +1,10 @@
+import { TypeMetadata } from "./ApiTypes";
+
 export type NodeData = {
   properties: any;
   selectable: boolean | undefined;
   dynamic_properties: any;
+  dynamic_outputs?: Record<string, TypeMetadata>;
   workflow_id: string;
   title?: string;
   color?: string;

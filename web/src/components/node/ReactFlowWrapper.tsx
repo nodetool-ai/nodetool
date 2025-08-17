@@ -428,16 +428,16 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={settings.connectionSnap}
-        isValidConnection={(connection) => {
-          if (!connection.source || !connection.target) return true;
-          const src = findNode(connection.source);
-          const tgt = findNode(connection.target);
-          if (!src || !tgt) return false;
-          return validateConnection(connection as Connection, src, tgt);
-        }}
+        // isValidConnection={(connection) => {
+        //   if (!connection.source || !connection.target) return true;
+        //   const src = findNode(connection.source);
+        //   const tgt = findNode(connection.target);
+        //   if (!src || !tgt) return false;
+        //   return validateConnection(connection as Connection, src, tgt);
+        // }}
         attributionPosition="bottom-left"
         selectNodesOnDrag={settings.selectNodesOnDrag}
-        onClick={handleClick}
+        // onClick={handleClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}

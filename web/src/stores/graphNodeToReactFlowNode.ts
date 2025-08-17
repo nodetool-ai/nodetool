@@ -22,6 +22,7 @@ export function graphNodeToReactFlowNode(
     data: {
       properties: node.data || {},
       dynamic_properties: node.dynamic_properties || {},
+      dynamic_outputs: node.dynamic_outputs || {},
       selectable: ui_properties?.selectable,
       collapsed: false,
       workflow_id: workflow.id,

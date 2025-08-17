@@ -34,6 +34,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     data: node.data?.properties,
     parent_id: node.parentId,
     ui_properties: ui_properties,
-    dynamic_properties: node.data?.dynamic_properties || {}
+    dynamic_properties: node.data?.dynamic_properties || {},
+    dynamic_outputs: node.data?.dynamic_outputs || {}
   };
 }

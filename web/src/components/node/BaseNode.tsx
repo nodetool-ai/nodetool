@@ -28,15 +28,10 @@ import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
-import {
-  darkenHexColor,
-  hexToRgba,
-  simulateOpacity
-} from "../../utils/ColorUtils";
+import { darkenHexColor, hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
-import NodePropertyForm from "./NodePropertyForm";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -296,9 +291,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
 
-  const { handleDeleteProperty, handleAddProperty, handleUpdatePropertyName } =
-    useDynamicProperty(id, data.dynamic_properties as Record<string, any>);
-
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
   }
@@ -349,13 +341,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         status={status}
         workflowId={workflow_id}
         renderedResult={renderedResult}
-        onUpdatePropertyName={handleUpdatePropertyName}
-        onDeleteProperty={handleDeleteProperty}
       />
 
-      {metadata?.is_dynamic && (
-        <NodePropertyForm onAddProperty={handleAddProperty} />
-      )}
       {selected && resizer}
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>

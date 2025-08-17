@@ -150,13 +150,13 @@
 ul.multi-outputs {
   position: relative;
   padding: 0;
-  margin: .5em 0 0;
+  margin: 0.5em 0 0;
   width: 100%;
 }
 ul.multi-outputs li {
   position: relative;
   padding: 0 0.75em 0.75em 0;
-  color: var(--palette-grey-200);
+  /* color: var(--palette-grey-200); */
   text-transform: capitalize;
   text-align: right;
 }

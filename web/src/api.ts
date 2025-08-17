@@ -1994,9 +1994,16 @@ export interface components {
             fonts: string[];
         };
         /** Graph */
-        Graph: {
+        "Graph-Input": {
             /** Nodes */
-            nodes: components["schemas"]["Node"][];
+            nodes: components["schemas"]["Node-Input"][];
+            /** Edges */
+            edges: components["schemas"]["Edge"][];
+        };
+        /** Graph */
+        "Graph-Output": {
+            /** Nodes */
+            nodes: components["schemas"]["Node-Output"][];
             /** Edges */
             edges: components["schemas"]["Edge"][];
         };
@@ -3410,7 +3417,7 @@ export interface components {
             id?: string | null;
             /** Workflow Id */
             workflow_id?: string | null;
-            graph?: components["schemas"]["Graph"] | null;
+            graph?: components["schemas"]["Graph-Input"] | null;
             /** Thread Id */
             thread_id?: string | null;
             /** Tools */
@@ -3463,7 +3470,7 @@ export interface components {
             id?: string | null;
             /** Workflow Id */
             workflow_id?: string | null;
-            graph?: components["schemas"]["Graph"] | null;
+            graph?: components["schemas"]["Graph-Output"] | null;
             /** Thread Id */
             thread_id?: string | null;
             /** Tools */
@@ -3719,7 +3726,7 @@ export interface components {
             shape: number[];
         };
         /** Node */
-        Node: {
+        "Node-Input": {
             /** Id */
             id: string;
             /** Parent Id */
@@ -3736,6 +3743,34 @@ export interface components {
             /** Dynamic Properties */
             dynamic_properties?: {
                 [key: string]: unknown;
+            };
+            /** Dynamic Outputs */
+            dynamic_outputs?: {
+                [key: string]: components["schemas"]["TypeMetadata-Input"];
+            };
+        };
+        /** Node */
+        "Node-Output": {
+            /** Id */
+            id: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /**
+             * Type
+             * @default default
+             */
+            type: string;
+            /** Data */
+            data?: unknown;
+            /** Ui Properties */
+            ui_properties?: unknown;
+            /** Dynamic Properties */
+            dynamic_properties?: {
+                [key: string]: unknown;
+            };
+            /** Dynamic Outputs */
+            dynamic_outputs?: {
+                [key: string]: components["schemas"]["TypeMetadata-Output"];
             };
         };
         /**
@@ -3814,6 +3849,12 @@ export interface components {
              * @default false
              */
             expose_as_tool: boolean;
+            /**
+             * Supports Dynamic Outputs
+             * @description Whether the node can declare outputs dynamically at runtime (only for dynamic nodes)
+             * @default false
+             */
+            supports_dynamic_outputs: boolean;
         };
         /**
          * NodeProgress
@@ -3902,7 +3943,7 @@ export interface components {
          * @description An output slot is a slot that can be connected to an input slot.
          */
         OutputSlot: {
-            type: components["schemas"]["TypeMetadata"];
+            type: components["schemas"]["TypeMetadata-Output"];
             /** Name */
             name: string;
             /**
@@ -4200,7 +4241,7 @@ export interface components {
         Property: {
             /** Name */
             name: string;
-            type: components["schemas"]["TypeMetadata"];
+            type: components["schemas"]["TypeMetadata-Output"];
             /** Default */
             default?: unknown | null;
             /** Title */
@@ -4283,7 +4324,7 @@ export interface components {
             env?: {
                 [key: string]: unknown;
             } | null;
-            graph?: components["schemas"]["Graph"] | null;
+            graph?: components["schemas"]["Graph-Input"] | null;
             /**
              * Explicit Types
              * @default false
@@ -4737,7 +4778,7 @@ export interface components {
          * TypeMetadata
          * @description Metadata for a type.
          */
-        TypeMetadata: {
+        "TypeMetadata-Input": {
             /** Type */
             type: string;
             /**
@@ -4751,7 +4792,29 @@ export interface components {
              * Type Args
              * @default []
              */
-            type_args: components["schemas"]["TypeMetadata"][];
+            type_args: components["schemas"]["TypeMetadata-Input"][];
+            /** Type Name */
+            type_name?: string | null;
+        };
+        /**
+         * TypeMetadata
+         * @description Metadata for a type.
+         */
+        "TypeMetadata-Output": {
+            /** Type */
+            type: string;
+            /**
+             * Optional
+             * @default false
+             */
+            optional: boolean;
+            /** Values */
+            values?: (string | number)[] | null;
+            /**
+             * Type Args
+             * @default []
+             */
+            type_args: components["schemas"]["TypeMetadata-Output"][];
             /** Type Name */
             type_name?: string | null;
         };
@@ -4809,7 +4872,7 @@ export interface components {
             thumbnail?: string | null;
             /** Thumbnail Url */
             thumbnail_url?: string | null;
-            graph: components["schemas"]["Graph"];
+            graph: components["schemas"]["Graph-Output"];
             /** Input Schema */
             input_schema?: {
                 [key: string]: unknown;
@@ -4868,7 +4931,7 @@ export interface components {
             thumbnail_url?: string | null;
             /** Access */
             access: string;
-            graph?: components["schemas"]["Graph"] | null;
+            graph?: components["schemas"]["Graph-Input"] | null;
             /** Comfy Workflow */
             comfy_workflow?: {
                 [key: string]: unknown;
