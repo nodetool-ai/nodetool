@@ -2,8 +2,9 @@ import { useCallback, useRef } from "react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { TypeName } from "../../stores/ApiTypes";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import useContextMenu from "../../stores/ContextMenuStore";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
+import { findOutputHandle, findInputHandle } from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -50,7 +51,7 @@ export default function useConnectionHandlers() {
     })
   );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenu();
 
   /* CONNECT START */
   const onConnectStart = useCallback(
@@ -111,24 +112,31 @@ export default function useConnectionHandlers() {
         onConnect(connectionWithClassName);
         return;
       }
-      const sourceMetadata = getMetadata(sourceNode.type || "");
-      const targetMetadata = getMetadata(targetNode.type || "");
-      const sourceHandleMetadata = sourceMetadata?.outputs.find(
-        (prop) => prop.name === sourceHandle
-      );
-      const targetHandleMetadata = targetMetadata?.properties.find(
-        (prop) => prop.name === targetHandle
-      );
-      if (!sourceHandleMetadata || !targetHandleMetadata) {
+      if (!sourceHandle || !targetHandle) {
+        console.warn(
+          `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
+        );
         return;
       }
-      if (
-        isConnectable(
-          sourceHandleMetadata.type,
-          targetHandleMetadata.type,
-          true
-        )
-      ) {
+      const sourceMetadata = getMetadata(sourceNode.type || "");
+      const targetMetadata = getMetadata(targetNode.type || "");
+      
+      if (!sourceMetadata || !targetMetadata) {
+        console.warn("Missing metadata for source or target node");
+        return;
+      }
+
+      const sourceHandleMetadata = findOutputHandle(sourceNode, sourceHandle, sourceMetadata);
+      const targetHandleMetadata = findInputHandle(targetNode, targetHandle, targetMetadata);
+      
+      if (!sourceHandleMetadata || !targetHandleMetadata) {
+        console.warn(
+          `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
+        );
+        return;
+      }
+      
+      if (isConnectable(sourceHandleMetadata.type, targetHandleMetadata.type, true)) {
         connectionCreated.current = true;
         // Add className based on the source handle type
         const connectionWithClassName = {
@@ -201,97 +209,6 @@ export default function useConnectionHandlers() {
           handleOnConnect(newConnection);
           endConnecting();
           return;
-        }
-
-        // Original auto-connect logic
-        if (connectDirection === "source") {
-          const possibleInputs = nodeMetadata.properties.filter(
-            (prop) =>
-              isConnectable(
-                {
-                  type: connectType?.type || "any",
-                  optional: false,
-                  type_args: []
-                },
-                {
-                  type: prop.type.type as TypeName,
-                  optional: false,
-                  type_args: []
-                }
-              ),
-            true
-          );
-
-          if (possibleInputs.length > 0) {
-            const unusedInput = possibleInputs.find(
-              (input) =>
-                !edges.some(
-                  (edge) =>
-                    edge.target === nodeId && edge.targetHandle === input.name
-                )
-            );
-
-            if (unusedInput) {
-              const newConnection = {
-                source: connectNodeId || "",
-                sourceHandle: connectHandleId || "",
-                target: nodeId,
-                targetHandle: unusedInput.name,
-                className: Slugify(connectType?.type || "")
-              };
-              handleOnConnect(newConnection);
-              endConnecting();
-            } else {
-              // If all inputs are connected, use the first compatible input
-              const newConnection = {
-                source: connectNodeId || "",
-                sourceHandle: connectHandleId || "",
-                target: nodeId,
-                targetHandle: possibleInputs[0].name,
-                className: Slugify(connectType?.type || "")
-              };
-              handleOnConnect(newConnection);
-              endConnecting();
-            }
-          } else {
-            endConnecting();
-            addNotification({
-              type: "warning",
-              alert: true,
-              content: "No possible connections found for this node"
-            });
-          }
-        } else if (connectDirection === "target") {
-          const possibleOutputs = nodeMetadata.outputs.filter((prop) =>
-            isConnectable(
-              {
-                type: connectType?.type || "any",
-                optional: false,
-                type_args: []
-              },
-              {
-                type: prop.type.type as TypeName,
-                optional: false,
-                type_args: []
-              },
-              true
-            )
-          );
-          if (possibleOutputs.length > 0) {
-            // connect first possible output
-            const firstOutput = possibleOutputs[0];
-            const newConnection = {
-              source: nodeId,
-              sourceHandle: firstOutput.name,
-              target: connectNodeId || "",
-              targetHandle: connectHandleId || "",
-              className: Slugify(firstOutput.type.type || "")
-            };
-            handleOnConnect(newConnection);
-            endConnecting();
-          } else {
-            endConnecting();
-          }
         }
       }
 

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
-import { Property } from "../../stores/ApiTypes";
+import { NodeMetadata, Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
@@ -11,6 +11,8 @@ import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { css } from "@emotion/react";
 import { Collapse } from "@mui/material";
+import NodePropertyForm from "./NodePropertyForm";
+import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 
 export interface NodeInputsProps {
   id: string;
@@ -18,6 +20,7 @@ export interface NodeInputsProps {
   nodeType: string;
   properties: Property[];
   data: NodeData;
+  nodeMetadata: NodeMetadata;
   showFields?: boolean;
   showHandle?: boolean;
   showAdvancedFields?: boolean;
@@ -63,9 +66,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   tabIndex,
   showAdvancedFields,
   basicFields,
-  isDynamicProperty,
-  onDeleteProperty,
-  onUpdatePropertyName
+  isDynamicProperty
 }) {
   const { edges } = useNodes((state) => ({
     edges: state.edges
@@ -86,7 +87,6 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   if (isAdvancedField && !isConnected && !showAdvancedFields) {
     return null;
   }
-
   return (
     <PropertyField
       key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
@@ -100,8 +100,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
       showHandle={showHandle && !isConstantNode}
       tabIndex={tabIndex}
       isDynamicProperty={isDynamicProperty}
-      onDeleteProperty={onDeleteProperty}
-      onUpdatePropertyName={onUpdatePropertyName}
+      data={data}
     />
   );
 },
@@ -111,6 +110,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
+  nodeMetadata,
   nodeType,
   showHandle = true,
   showFields = true,
@@ -118,9 +118,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showAdvancedFields,
   basicFields,
   hasAdvancedFields,
-  onToggleAdvancedFields,
-  onDeleteProperty,
-  onUpdatePropertyName
+  onToggleAdvancedFields
 }) => {
   const tabableProperties = properties.filter((property) => {
     const type = property.type;
@@ -195,8 +193,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         showHandle={true}
         tabIndex={-1}
         isDynamicProperty={true}
-        onDeleteProperty={onDeleteProperty}
-        onUpdatePropertyName={onUpdatePropertyName}
       />
     )
   );
@@ -221,8 +217,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
               size="small"
               variant="text"
             >
-              <ExpandMoreIcon />{" "}
-              {showAdvancedFields ? "Less" : "More"}
+              <ExpandMoreIcon /> {showAdvancedFields ? "Less" : "More"}
             </Button>
           </Tooltip>
         </div>

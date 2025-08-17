@@ -2,11 +2,13 @@ import { useMemo } from "react";
 import { Edge, Node } from "@xyflow/react";
 import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
+import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { NodeData } from "../stores/NodeData";
 
 interface ProcessedEdgesOptions {
   edges: Edge[];
-  nodes: Node[];
-  getNode: (id: string) => Node | undefined;
+  nodes: Node<NodeData>[];
+  getNode: (id: string) => Node<NodeData> | undefined;
   dataTypes: DataType[];
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
 }
@@ -38,12 +40,10 @@ export function useProcessedEdges({
       // --- Source Type Detection ---
       if (sourceNode && sourceNode.type && edge.sourceHandle) {
         const sourceMetadata = getMetadata(sourceNode.type);
-        if (sourceMetadata && sourceMetadata.outputs) {
-          const outputInfo = sourceMetadata.outputs.find(
-            (o) => o.name === edge.sourceHandle
-          );
-          if (outputInfo && outputInfo.type && outputInfo.type.type) {
-            const typeString = outputInfo.type.type;
+        if (sourceMetadata) {
+          const outputHandle = findOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata);
+          if (outputHandle && outputHandle.type && outputHandle.type.type) {
+            const typeString = outputHandle.type.type;
             const typeInfoFromDataTypes = dataTypes.find(
               (dt) =>
                 dt.value === typeString ||
@@ -61,12 +61,10 @@ export function useProcessedEdges({
       // --- Target Type Detection ---
       if (targetNode && targetNode.type && edge.targetHandle) {
         const targetMetadata = getMetadata(targetNode.type);
-        if (targetMetadata && targetMetadata.properties) {
-          const inputInfo = targetMetadata.properties.find(
-            (p) => p.name === edge.targetHandle
-          );
-          if (inputInfo && inputInfo.type && inputInfo.type.type) {
-            const typeString = inputInfo.type.type;
+        if (targetMetadata) {
+          const inputHandle = findInputHandle(targetNode, edge.targetHandle, targetMetadata);
+          if (inputHandle && inputHandle.type && inputHandle.type.type) {
+            const typeString = inputHandle.type.type;
             const typeInfoFromDataTypes = dataTypes.find(
               (dt) =>
                 dt.value === typeString ||

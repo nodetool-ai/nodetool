@@ -45,25 +45,26 @@ const mockMetadata: Record<string, NodeMetadata> = {
     description: "A test node",
     namespace: "test",
     layout: "default",
-    the_model_info: {},
-    recommended_models: [],
-    basic_fields: [],
     outputs: [
       {
         name: "output1",
-        type: { type: "str", optional: false, type_args: [] },
+        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
         stream: false
       }
     ],
     properties: [
       {
         name: "input1",
-        type: { type: "str", optional: false, type_args: [] },
-        default: ""
+        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        default: "",
+        title: "Input 1",
+        description: "Test input"
       }
     ],
     is_dynamic: false,
-    is_streaming: false
+    supports_dynamic_outputs: false,
+    is_output: false,
+    expose_as_tool: false
   },
   dynamic_test: {
     node_type: "dynamic_test",
@@ -71,19 +72,18 @@ const mockMetadata: Record<string, NodeMetadata> = {
     description: "A dynamic test node",
     namespace: "test",
     layout: "default",
-    the_model_info: {},
-    recommended_models: [],
-    basic_fields: [],
     outputs: [
       {
         name: "output1",
-        type: { type: "str", optional: false, type_args: [] },
+        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
         stream: false
       }
     ],
     properties: [],
     is_dynamic: true,
-    is_streaming: false
+    supports_dynamic_outputs: true,
+    is_output: false,
+    expose_as_tool: false
   }
 };
 describe("NodeStore node management", () => {
@@ -280,10 +280,32 @@ describe("Edge Validation", () => {
   test("should support dynamic nodes", () => {
     const nodeA = makeNode("a", store.getState().workflow.id, "test");
     const nodeB = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    
+    // Add a dynamic property to the target node
+    nodeB.data.dynamic_properties = { "any_handle": "test_value" };
+    
     store.getState().addNode(nodeA);
     store.getState().addNode(nodeB);
 
     const validEdge = makeEdge("a", "b", "output1", "any_handle");
+    store.getState().addEdge(validEdge);
+
+    expect(store.getState().edges).toHaveLength(1);
+  });
+
+  test("should support dynamic outputs", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "dynamic_test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    
+    // Add a dynamic output to the source node
+    nodeA.data.dynamic_outputs = { 
+      "dynamic_output": { type: "str", optional: false, values: null, type_args: [], type_name: null }
+    };
+    
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    const validEdge = makeEdge("a", "b", "dynamic_output", "input1");
     store.getState().addEdge(validEdge);
 
     expect(store.getState().edges).toHaveLength(1);
@@ -311,6 +333,143 @@ describe("Edge Validation", () => {
     store.getState().addEdge(invalidEdge);
 
     expect(store.getState().edges).toHaveLength(0);
+  });
+});
+
+describe("Handle Validation with Centralized Functions", () => {
+  const originalMetadata = useMetadataStore.getState();
+  let store: ReturnType<typeof createNodeStore>;
+
+  beforeEach(() => {
+    store = createNodeStore();
+    useMetadataStore.setState(
+      { ...originalMetadata, metadata: mockMetadata },
+      true
+    );
+  });
+
+  afterEach(() => {
+    useMetadataStore.setState(originalMetadata, true);
+  });
+
+  test("validateConnection should use centralized handle functions", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    // Valid connection
+    const validConnection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    };
+    
+    expect(store.getState().validateConnection(validConnection, nodeA, nodeB)).toBe(true);
+
+    // Invalid source handle
+    const invalidSourceConnection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "invalid_output",
+      targetHandle: "input1"
+    };
+    
+    expect(store.getState().validateConnection(invalidSourceConnection, nodeA, nodeB)).toBe(false);
+
+    // Invalid target handle
+    const invalidTargetConnection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "invalid_input"
+    };
+    
+    expect(store.getState().validateConnection(invalidTargetConnection, nodeA, nodeB)).toBe(false);
+  });
+
+  test("validateConnection should work with dynamic outputs", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "dynamic_test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    
+    // Add dynamic output
+    nodeA.data.dynamic_outputs = {
+      "dynamic_out": { type: "str", optional: false, values: null, type_args: [], type_name: null }
+    };
+    
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    const connection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "dynamic_out",
+      targetHandle: "input1"
+    };
+    
+    expect(store.getState().validateConnection(connection, nodeA, nodeB)).toBe(true);
+  });
+
+  test("validateConnection should work with dynamic properties", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    
+    // Add dynamic property
+    nodeB.data.dynamic_properties = { "dynamic_in": "test_value" };
+    
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    const connection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "dynamic_in"
+    };
+    
+    expect(store.getState().validateConnection(connection, nodeA, nodeB)).toBe(true);
+  });
+
+  test("validateConnection should reject connections to non-existent dynamic properties", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    const connection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "nonexistent_dynamic"
+    };
+    
+    expect(store.getState().validateConnection(connection, nodeA, nodeB)).toBe(false);
+  });
+
+  test("should reject duplicate connections", () => {
+    const nodeA = makeNode("a", store.getState().workflow.id, "test");
+    const nodeB = makeNode("b", store.getState().workflow.id, "test");
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    const connection = {
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    };
+    
+    // First connection should succeed
+    expect(store.getState().validateConnection(connection, nodeA, nodeB)).toBe(true);
+    
+    // Add the edge
+    const edge = makeEdge("a", "b", "output1", "input1");
+    store.getState().addEdge(edge);
+    
+    // Second identical connection should fail
+    expect(store.getState().validateConnection(connection, nodeA, nodeB)).toBe(false);
   });
 });
 

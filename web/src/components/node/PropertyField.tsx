@@ -10,6 +10,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
+import { NodeData } from "../../stores/NodeData";
 
 export type PropertyFieldProps = {
   id: string;
@@ -23,11 +24,7 @@ export type PropertyFieldProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
-  onDeleteProperty?: (propertyName: string) => void;
-  onUpdatePropertyName?: (
-    oldPropertyName: string,
-    newPropertyName: string
-  ) => void;
+  data: NodeData;
 };
 
 /**
@@ -44,8 +41,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   tabIndex,
   isDynamicProperty,
-  onDeleteProperty,
-  onUpdatePropertyName
+  data
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
@@ -118,8 +114,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             isInspector={isInspector}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
-            onUpdatePropertyName={onUpdatePropertyName}
-            onDeleteProperty={onDeleteProperty}
+            data={data}
           />
         </>
       ) : (

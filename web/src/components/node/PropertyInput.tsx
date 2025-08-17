@@ -2,7 +2,7 @@
 import React, { useCallback, createElement, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import useContextMenu from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import StringProperty from "../properties/StringProperty";
 import TextProperty from "../properties/TextProperty";
@@ -42,6 +42,8 @@ import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
+import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import { NodeData } from "../../stores/NodeData";
 
 export type PropertyProps = {
   property: Property;
@@ -231,6 +233,7 @@ function componentFor(
 export type PropertyInputProps = {
   id: string;
   nodeType: string;
+  data: NodeData;
   value: any;
   property: Property;
   propertyIndex?: string;
@@ -238,23 +241,18 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
-  onUpdateProperty?: (property: string, value: any) => void;
-  onDeleteProperty?: (property: string) => void;
-  onUpdatePropertyName?: (oldName: string, newName: string) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
   id,
   nodeType,
+  data,
   value,
   property,
   propertyIndex,
   controlKeyPressed,
   tabIndex,
   isDynamicProperty,
-  onDeleteProperty,
-  onUpdateProperty,
-  onUpdatePropertyName,
   isInspector
 }: PropertyInputProps) => {
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
@@ -304,7 +302,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   };
 
   // Property Context Menu
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenu();
   const handlePropertyContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, prop: Property) => {
       event.preventDefault();
@@ -386,14 +384,21 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
+  const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
+    id,
+    data.dynamic_properties as Record<string, any>
+  );
 
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editedName && editedName !== property.name) {
-      onUpdatePropertyName?.(property.name, editedName);
-    }
-    setIsEditingName(false);
-  };
+  const handleNameSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (editedName && editedName !== property.name) {
+        handleUpdatePropertyName(property.name, editedName);
+      }
+      setIsEditingName(false);
+    },
+    [handleUpdatePropertyName, property.name, editedName]
+  );
 
   const componentType = componentFor(property);
 
@@ -416,22 +421,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   } else {
     inputField = <div>Unsupported property type</div>;
   }
-
-  const textStyles = (theme: Theme) =>
-    css({
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      lineHeight: "1.2",
-      color: theme.vars.palette.grey[0]
-    });
-
   return (
     <div
       className={`${className} property-input-container`}
       onContextMenu={onContextMenu}
     >
       {inputField}
-      {(isDynamicProperty || onDeleteProperty) && !isEditingName && (
+      {isDynamicProperty && (
         <div className="action-icons">
           {isDynamicProperty && (
             <Edit
@@ -439,10 +435,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
               onClick={() => setIsEditingName(true)}
             />
           )}
-          {onDeleteProperty && (
+          {handleDeleteProperty && (
             <Close
               className="action-icon close"
-              onClick={() => onDeleteProperty(property.name)}
+              onClick={() => handleDeleteProperty(property.name)}
             />
           )}
         </div>

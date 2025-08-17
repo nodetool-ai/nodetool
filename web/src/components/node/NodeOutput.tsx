@@ -13,9 +13,10 @@ import { css } from "@emotion/react";
 export type NodeOutputProps = {
   id: string;
   output: OutputSlot;
+  isDynamic?: boolean;
 };
 
-const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -41,14 +42,48 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
     [openContextMenu]
   );
 
+  const isConnectable = useMemo(() => {
+    // Output handles should always be draggable to start connections
+    if (!connectType || connectDirection !== "target") {
+      return true;
+    }
+    
+    // When something is being dragged TO this output (which shouldn't happen for source handles)
+    // or when checking compatibility for dynamic outputs
+    if (isDynamic) {
+      return true;
+    }
+    
+    return isConnectableCached(connectType, output.type) && connectNodeId !== id;
+  }, [
+    output.type,
+    connectType,
+    connectNodeId,
+    id,
+    connectDirection,
+    isDynamic
+  ]);
+
   const classConnectable = useMemo(() => {
-    return connectType !== null &&
-      isConnectableCached(connectType, output.type) &&
-      connectNodeId !== id &&
-      connectDirection === "target"
+    if (!connectType || connectDirection !== "target") {
+      return "is-connectable";
+    }
+    
+    if (isDynamic) {
+      return "is-connectable";
+    }
+    
+    return isConnectableCached(connectType, output.type) && connectNodeId !== id
       ? "is-connectable"
       : "not-connectable";
-  }, [output.type, connectType, connectNodeId, id, connectDirection]);
+  }, [
+    output.type,
+    connectType,
+    connectNodeId,
+    id,
+    connectDirection,
+    isDynamic
+  ]);
 
   return (
     <div
@@ -72,7 +107,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
           type="source"
           id={output.name}
           position={Position.Right}
-          isConnectable={true}
+          isConnectable={isConnectable}
           onContextMenu={(e) => outputContextMenu(e, id, output)}
           className={`${classConnectable} ${Slugify(output.type.type)}`}
         />

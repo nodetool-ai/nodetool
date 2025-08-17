@@ -1,6 +1,6 @@
 import { components } from "../api";
 
-export type Node = components["schemas"]["Node"];
+export type Node = components["schemas"]["Node-Input"];
 export type Edge = components["schemas"]["Edge"];
 export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
   size?: number | null; // File size in bytes - added for size sorting
@@ -49,7 +49,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
     }>;
   };
 }
-export type TypeMetadata = components["schemas"]["TypeMetadata"];
+export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
 export type Message = components["schemas"]["Message-Output"];
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
@@ -123,10 +123,11 @@ export type SubTask = components["schemas"]["SubTask"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
 export type SubTaskResult = components["schemas"]["SubTaskResult"];
-export type InferenceProvider = components["schemas"]["InferenceProvider"]; 
+export type InferenceProvider = components["schemas"]["InferenceProvider"];
 export type Provider = components["schemas"]["Provider"];
 export type Thread = components["schemas"]["Thread"];
 export type ThreadCreateRequest = components["schemas"]["ThreadCreateRequest"];
 export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
-export type ThreadSummarizeRequest = components["schemas"]["ThreadSummarizeRequest"];
+export type ThreadSummarizeRequest =
+  components["schemas"]["ThreadSummarizeRequest"];
 export type ThreadList = components["schemas"]["ThreadList"];

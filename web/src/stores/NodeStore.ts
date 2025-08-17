@@ -42,6 +42,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable } from "../utils/TypeHandler";
+import { findOutputHandle, findInputHandle, hasOutputHandle, hasInputHandle } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
@@ -57,14 +58,14 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
  * Falls back to a simple implementation if crypto.randomUUID is not available
  */
 const generateUUID = (): string => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
+
   // Fallback implementation for environments without crypto.randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 };
@@ -119,19 +120,17 @@ const isValidEdge = (
     return true;
   }
 
+  if (!edge.sourceHandle || !edge.targetHandle) {
+    return false;
+  }
+
   // Validate source handle
-  const hasValidSourceHandle = sourceMetadata.outputs.some(
-    (output) => output.name === edge.sourceHandle
-  );
-  if (!hasValidSourceHandle) {
+  if (!hasOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata)) {
     return false;
   }
 
   // Validate target handle
-  const hasValidTargetHandle =
-    targetMetadata.is_dynamic ||
-    targetMetadata.properties.some((prop) => prop.name === edge.targetHandle);
-  if (!hasValidTargetHandle) {
+  if (!hasInputHandle(targetNode, edge.targetHandle, targetMetadata)) {
     return false;
   }
 
@@ -265,37 +264,45 @@ const sanitizeGraph = (
       const sourceMetadata = metadata[sourceNode.type];
       const targetMetadata = metadata[targetNode.type];
 
-      if (sourceMetadata && targetMetadata) {
-        const hasValidSourceHandle = sourceMetadata.outputs.some(
-          (output) => output.name === edge.sourceHandle
+      if (
+        !sourceMetadata ||
+        !targetMetadata ||
+        !edge.sourceHandle ||
+        !edge.targetHandle
+      ) {
+        log.warn(
+          `Edge ${edge.id} references invalid source or target handle. Source: ${edge.sourceHandle}, Target: ${edge.targetHandle}. Removing edge.`
         );
-        const hasValidTargetHandle =
-          targetMetadata.is_dynamic ||
-          targetMetadata.properties.some(
-            (prop) => prop.name === edge.targetHandle
-          );
+        return false;
+      }
 
-        if (!hasValidSourceHandle) {
-          log.warn(
-            `Edge ${edge.id} references invalid source handle "${
-              edge.sourceHandle
-            }" on node ${edge.source} (type: ${
-              sourceNode.type
-            }). Available outputs: ${sourceMetadata.outputs
-              .map((o) => o.name)
-              .join(", ")}. Removing edge.`
-          );
-        } else if (!hasValidTargetHandle) {
-          log.warn(
-            `Edge ${edge.id} references invalid target handle "${
-              edge.targetHandle
-            }" on node ${edge.target} (type: ${
-              targetNode.type
-            }). Available properties: ${targetMetadata.properties
-              .map((p) => p.name)
-              .join(", ")}. Removing edge.`
-          );
-        }
+      const sourceHasValidHandle = hasOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata);
+      const targetHasValidHandle = hasInputHandle(targetNode, edge.targetHandle, targetMetadata);
+
+      if (!sourceHasValidHandle) {
+        const sourceDynamicOutputs = sourceNode.data.dynamic_outputs || {};
+        log.warn(
+          `Edge ${edge.id} references invalid source handle "${
+            edge.sourceHandle
+          }" on node ${edge.source} (type: ${
+            sourceNode.type
+          }). Available outputs: ${[
+            ...sourceMetadata.outputs.map((o) => o.name),
+            ...Object.keys(sourceDynamicOutputs)
+          ].join(", ")}. Removing edge.`
+        );
+      } else if (!targetHasValidHandle) {
+        const dynamicProperties = targetNode.data.dynamic_properties || {};
+        log.warn(
+          `Edge ${edge.id} references invalid target handle "${
+            edge.targetHandle
+          }" on node ${edge.target} (type: ${
+            targetNode.type
+          }). Available properties: ${[
+            ...targetMetadata.properties.map((p) => p.name),
+            ...Object.keys(dynamicProperties)
+          ].join(", ")}. Removing edge.`
+        );
       }
     }
 
@@ -391,7 +398,8 @@ export const createNodeStore = (
           missingModelFiles: [],
           missingModelRepos: [],
           viewport: null,
-          workflow: workflow ? workflow
+          workflow: workflow
+            ? workflow
             : {
                 id: "",
                 name: "",
@@ -906,41 +914,19 @@ export const createNodeStore = (
             }
 
             // Validate source handle exists
-            const srcHandle = connection.sourceHandle;
-            const srcOutput = srcMetadata.outputs.find(
-              (output: OutputSlot) => output.name === srcHandle
-            );
-            if (!srcOutput) {
+            const srcHandle = findOutputHandle(srcNode, connection.sourceHandle, srcMetadata);
+            if (!srcHandle) {
               return false;
             }
 
-            // Validate target handle exists (for non-dynamic nodes)
-            const targetHandle = connection.targetHandle;
-            const hasValidTargetHandle =
-              targetMetadata.is_dynamic ||
-              targetMetadata.properties.some(
-                (property: Property) => property.name === targetHandle
-              );
-            if (!hasValidTargetHandle) {
+            // Validate target handle exists
+            const targetHandle = findInputHandle(targetNode, connection.targetHandle, targetMetadata);
+            if (!targetHandle) {
               return false;
             }
 
             // Validate type compatibility
-            const srcType = srcOutput.type;
-            const targetProperty = targetMetadata.properties.find(
-              (property: Property) => property.name === targetHandle
-            );
-            const targetType = targetProperty?.type || {
-              type: "str",
-              optional: false,
-              type_args: []
-            };
-
-            return (
-              srcType !== undefined &&
-              targetType !== undefined &&
-              isConnectable(srcType, targetType)
-            );
+            return isConnectable(srcHandle.type, targetHandle.type);
           },
           workflowJSON: (): string => {
             const workflow = get().getWorkflow();

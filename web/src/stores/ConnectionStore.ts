@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { Node } from "@xyflow/react";
+import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 export type ConnectDirection = "target" | "source" | "" | null;
 
 type ConnectionStore = {
@@ -56,9 +57,9 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     metadata: NodeMetadata
   ) => {
     if (handleType === "source") {
-      const connectType = metadata.outputs.find(
-        (output: OutputSlot) => output.name === handleId
-      )?.type as TypeMetadata;
+      const outputHandle = findOutputHandle(node, handleId, metadata);
+      const connectType = outputHandle?.type;
+      
       set({
         connecting: true,
         connectType,
@@ -68,16 +69,9 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       });
     }
     if (handleType === "target") {
-      let connectType = metadata.properties.find(
-        (input: Property) => input.name === handleId
-      )?.type as TypeMetadata;
-      if (node?.data.dynamic_properties[handleId] !== undefined) {
-        connectType = {
-          type: "str",
-          type_args: [],
-          optional: false
-        };
-      }
+      const inputHandle = findInputHandle(node, handleId, metadata);
+      const connectType = inputHandle?.type;
+      
       set({
         connecting: true,
         connectType,

@@ -7,6 +7,8 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
 import NodeProgress from "./NodeProgress";
+import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import NodePropertyForm from "./NodePropertyForm";
 
 interface NodeContentProps {
   id: string;
@@ -22,11 +24,6 @@ interface NodeContentProps {
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
-  onDeleteProperty: (propertyName: string) => void;
-  onUpdatePropertyName: (
-    oldPropertyName: string,
-    newPropertyName: string
-  ) => void;
 }
 
 const NodeContent: React.FC<NodeContentProps> = ({
@@ -42,14 +39,20 @@ const NodeContent: React.FC<NodeContentProps> = ({
   onToggleAdvancedFields,
   status,
   workflowId,
-  renderedResult,
-  onDeleteProperty,
-  onUpdatePropertyName
+  renderedResult
 }) => {
+  const { handleAddProperty } = useDynamicProperty(
+    id,
+    data.dynamic_properties as Record<string, any>
+  );
+
+  console.log(nodeMetadata);
+
   return (
     <>
       <NodeInputs
         id={id}
+        nodeMetadata={nodeMetadata}
         layout={nodeMetadata.layout}
         properties={nodeMetadata.properties}
         nodeType={nodeType}
@@ -59,9 +62,16 @@ const NodeContent: React.FC<NodeContentProps> = ({
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
         onToggleAdvancedFields={onToggleAdvancedFields}
-        onDeleteProperty={onDeleteProperty}
-        onUpdatePropertyName={onUpdatePropertyName}
       />
+      {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
+        <NodePropertyForm
+          id={id}
+          isDynamic={nodeMetadata.is_dynamic}
+          supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
+          dynamicOutputs={data.dynamic_outputs || {}}
+          onAddProperty={handleAddProperty}
+        />
+      )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}
       <ProcessTimer status={status} />
