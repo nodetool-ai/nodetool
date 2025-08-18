@@ -1,0 +1,165 @@
+/* Unified Mobile Styles */
+/* Applied when .mobile class is present on body or root container */
+
+@media (max-width: 599.95px) {
+  /* Chat Composer Mobile Styles */
+  .mobile .compose-message {
+    display: flex !important;
+    flex-direction: row !important;
+    height: 40px !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+    contain: layout style !important;
+  }
+
+  .mobile .compose-message .message-input-container {
+    flex: 1 !important;
+    min-width: 0 !important;
+    height: 40px !important;
+    max-height: 40px !important;
+  }
+
+  .mobile .compose-message .action-buttons-container {
+    flex-shrink: 0 !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Chat Thread View Mobile Styles */
+  .mobile .chat-thread-view-root {
+    contain: layout style !important;
+  }
+
+  .mobile .scrollable-message-wrapper {
+    padding: 8px !important;
+    scrollbar-width: thin !important;
+  }
+
+  .mobile .scrollable-message-wrapper::-webkit-scrollbar {
+    width: 4px !important;
+  }
+
+  /* Chat Input Section Mobile Styles */
+  .mobile .chat-input-section {
+    flex-direction: row !important;
+    padding: 12px 12px 8px 12px !important;
+  }
+
+  .mobile .chat-input-section .chat-controls {
+    max-width: auto !important;
+    width: auto !important;
+  }
+
+  .mobile .chat-input-sectioan .chat-composer-wrapper {
+    width: auto !important;
+    order: 2 !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+  }
+
+  .mobile .chat-input-section .chat-composer-wrapper .chat-input {
+    padding: 6px 12px !important;
+  }
+
+  /* Global Chat Mobile Styles */
+  .mobile .global-chat-container {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    max-width: 100vw !important;
+    contain: layout style !important;
+  }
+
+  /* App Header Mobile Styles */
+  .mobile .app-header {
+    min-height: 56px !important;
+    height: 56px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .mobile .app-header .toolbar {
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    padding: 0 8px !important;
+  }
+
+  .mobile .app-header .nav-button {
+    padding: 6px !important;
+    min-width: 32px !important;
+  }
+
+  .mobile .app-header .nav-button-text {
+    display: none !important;
+  }
+
+  .mobile .app-header .navigate {
+    gap: 4px !important;
+  }
+
+  .mobile .app-header .nav-group {
+    gap: 2px !important;
+    padding: 2px !important;
+  }
+
+  .mobile .app-header .MuiIconButton-root svg {
+    margin-right: 0 !important;
+  }
+
+  .mobile .app-header .buttons-right {
+    margin-right: 2px !important;
+  }
+
+  /* Panel Left Mobile Styles */
+  .mobile .panel-container {
+    z-index: 1050 !important;
+  }
+
+  .mobile .panel-container .panel-left {
+    max-height: calc(100dvh - 56px) !important;
+    contain: layout style !important;
+  }
+
+  .mobile .panel-container .panel-button {
+    height: calc(100vh - 56px) !important;
+    top: 56px !important;
+    cursor: pointer !important;
+  }
+
+  .mobile .panel-container .vertical-toolbar .MuiIconButton-root,
+  .mobile .panel-container .vertical-toolbar .MuiButton-root {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* General Mobile Layout */
+  .mobile {
+    touch-action: manipulation !important;
+  }
+
+  .mobile * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  /* Ensure mobile-optimized touch targets */
+  .mobile button,
+  .mobile .MuiIconButton-root,
+  .mobile .MuiButton-root {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* Mobile viewport containment */
+  .mobile .main-container {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    contain: layout style !important;
+  }
+}

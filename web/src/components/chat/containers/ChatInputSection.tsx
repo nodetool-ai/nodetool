@@ -8,32 +8,31 @@ import ChatToolBar from "../controls/ChatToolBar";
 import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 
-const styles = (theme: Theme, isMobile: boolean) =>
+const styles = (theme: Theme) =>
   css({
     width: "100%",
     display: "flex",
-    flexDirection: isMobile ? "row" : "column", // Single row on mobile
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: isMobile
-      ? `${theme.vars.palette.grey[900]}F0`
-      : "transparent",
-    padding: isMobile ? "12px 12px 8px 12px" : "1.5em 0.5em", // More top padding for spacing from border
+    backgroundColor: "transparent",
+    padding: "1.5em 0.5em",
     marginTop: "auto",
     flexShrink: 0,
+    // Mobile styles handled via separate CSS file
 
     ".chat-controls": {
-      maxWidth: isMobile ? "auto" : "100%", // Auto width for inline
-      width: isMobile ? "auto" : "100%", // Auto width for inline
-      flexShrink: 0 // Don't shrink the controls
+      maxWidth: "100%",
+      width: "100%",
+      flexShrink: 0
     },
     ".chat-composer-wrapper": {
       flex: 1,
       minWidth: 0,
-      width: isMobile ? "auto" : "100%", // Auto width for flex grow
-      order: isMobile ? 2 : 1, // Composer second on mobile
-      minHeight: isMobile ? "40px" : "44px", // Single row height
-      maxHeight: isMobile ? "40px" : "120px", // Single row constraint
+      width: "100%",
+      order: 1,
+      minHeight: "44px",
+      maxHeight: "120px",
       display: "flex",
       flexDirection: "column",
       overflow: "visible",
@@ -87,7 +86,7 @@ const ChatInputSection = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   return (
-    <div className="chat-input-section" css={styles(theme, isMobile)}>
+    <div className="chat-input-section" css={styles(theme)}>
       <div className="chat-controls">
         {isMobile ? (
           <MobileChatToolbar

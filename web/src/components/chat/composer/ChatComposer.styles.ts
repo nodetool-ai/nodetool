@@ -30,22 +30,7 @@ export const createStyles = (theme: Theme) =>
         backgroundColor: `${theme.vars.palette.grey[800]}80`
       },
 
-      // Mobile: single row layout with direct children inline
-      [theme.breakpoints.down("sm")]: {
-        borderRadius: 8,
-        padding: "6px 8px",
-        height: "40px",
-        minHeight: "40px",
-        maxHeight: "40px",
-        margin: 0,
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        flexWrap: "nowrap",
-        overflow: "visible",
-        gap: "4px",
-        boxSizing: "border-box"
-      }
+      // Mobile styles are handled via separate CSS file
     },
 
     // Textarea and input styling
@@ -85,24 +70,7 @@ export const createStyles = (theme: Theme) =>
         cursor: "not-allowed"
       },
 
-      // Mobile: single line input takes remaining space
-      [theme.breakpoints.down("sm")]: {
-        fontSize: "16px !important", // Prevent zoom on iOS
-        padding: "0 6px !important",
-        margin: "0 !important",
-        height: "28px !important",
-        minHeight: "28px !important",
-        maxHeight: "28px !important",
-        lineHeight: "28px !important", // Center text vertically
-        flex: "1 !important", // Take available space
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        resize: "none !important",
-        borderRadius: "6px !important",
-        boxSizing: "border-box !important",
-        border: "none !important",
-        outline: "none !important"
-      }
+      // Mobile styles handled via separate CSS file
     },
 
     // Additional input selectors - inherit from textarea styles
@@ -125,20 +93,7 @@ export const createStyles = (theme: Theme) =>
       width: "100% !important",
       display: "block !important",
       
-      // Mobile styles
-      [theme.breakpoints.down("sm")]: {
-        fontSize: "16px !important",
-        padding: "0 6px !important",
-        margin: "0 !important",
-        height: "28px !important",
-        minHeight: "28px !important",
-        maxHeight: "28px !important",
-        lineHeight: "28px !important",
-        flex: "1 !important",
-        boxSizing: "border-box !important",
-        border: "none !important",
-        outline: "none !important"
-      }
+      // Mobile styles handled via separate CSS file
     },
 
     // Fallback for any nested textarea elements
@@ -171,22 +126,7 @@ export const createStyles = (theme: Theme) =>
         borderRadius: 12
       },
       
-      // Mobile: compact buttons for single row
-      [theme.breakpoints.down("sm")]: {
-        gap: "2px",
-        padding: "0 2px",
-        flexShrink: 0,
-        "& button": {
-          padding: "4px",
-          minWidth: "28px",
-          width: "28px",
-          height: "28px",
-          borderRadius: 6,
-          "& svg": {
-            fontSize: "16px"
-          }
-        }
-      }
+      // Mobile styles handled via separate CSS file
     },
 
     ".file-preview-container": {
@@ -195,23 +135,7 @@ export const createStyles = (theme: Theme) =>
       gap: "6px",
       padding: "6px 8px",
       
-      // Mobile: compact inline previews for single row
-      [theme.breakpoints.down("sm")]: {
-        flexWrap: "nowrap",
-        overflowX: "auto",
-        padding: "0",
-        margin: "0",
-        gap: "2px",
-        maxWidth: "40px", // Very limited space for single row
-        height: "28px", // Match input height
-        flexShrink: 0,
-        alignItems: "center",
-        
-        "&::-webkit-scrollbar": {
-          display: "none"
-        },
-        scrollbarWidth: "none"
-      }
+      // Mobile styles handled via separate CSS file
     },
 
     ".file-preview": {
@@ -220,13 +144,7 @@ export const createStyles = (theme: Theme) =>
       maxHeight: "24px",
       flexShrink: 0,
       
-      // Mobile: tiny previews for single row
-      [theme.breakpoints.down("sm")]: {
-        maxWidth: "14px",
-        maxHeight: "14px",
-        minWidth: "14px",
-        minHeight: "14px"
-      },
+      // Mobile styles handled via separate CSS file
 
       ".remove-button": {
         position: "absolute",

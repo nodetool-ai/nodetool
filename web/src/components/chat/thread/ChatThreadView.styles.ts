@@ -11,10 +11,7 @@ export const createStyles = (theme: Theme) => ({
     padding: "2em 0",
     minHeight: 0,
     
-    // Mobile optimizations
-    [theme.breakpoints.down("sm")]: {
-      padding: "1em 0"
-    }
+    // Mobile styles handled via separate CSS file
   }),
   scrollableMessageWrapper: css({
     flex: 1,
@@ -47,14 +44,7 @@ export const createStyles = (theme: Theme) => ({
       background: "var(--palette-warning-main) !important"
     },
     
-    // Mobile optimizations
-    [theme.breakpoints.down("sm")]: {
-      padding: "0 .25em",
-      marginRight: "0",
-      "&::-webkit-scrollbar": {
-        width: "6px !important"
-      }
-    }
+    // Mobile styles handled via separate CSS file
   }),
   chatMessagesList: css({
     listStyleType: "none",

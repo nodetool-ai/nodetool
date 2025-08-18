@@ -136,20 +136,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       flexShrink: 0,
       marginRight: isMobile ? "2px" : "4px"
     },
-    // Mobile-specific optimizations
-    [theme.breakpoints.down("sm")]: {
-      ".nav-group": {
-        gap: "2px",
-        padding: "2px"
-      },
-      ".nav-button": {
-        padding: "6px",
-        minWidth: "32px",
-        "& svg": {
-          marginRight: "0"
-        }
-      }
-    }
+    // Mobile styles handled via separate CSS file
   });
 
 const LogoButton = memo(function LogoButton() {

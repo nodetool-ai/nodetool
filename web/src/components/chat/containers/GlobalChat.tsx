@@ -230,19 +230,7 @@ const GlobalChat: React.FC = () => {
         position: "relative"
       },
 
-      // Mobile-specific adjustments
-      [theme.breakpoints.down("sm")]: {
-        height: "100%",
-        maxHeight: "100%",
-        contain: "layout style", // CSS containment for better performance
-        ".chat-container": {
-          paddingBottom: "max(16px, env(safe-area-inset-bottom))", // More space at bottom
-          overflow: "hidden",
-          contain: "none", // Remove containment to prevent clipping
-          height: "100%",
-          maxHeight: "100%"
-        }
-      }
+      // Mobile styles handled via separate CSS file
     });
 
   // Show loading state if threads are still loading
@@ -282,6 +270,7 @@ const GlobalChat: React.FC = () => {
   return (
     <Box
       ref={chatContainerRef}
+      className="global-chat-container"
       sx={{
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
@@ -294,21 +283,7 @@ const GlobalChat: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        // Mobile viewport containment
-        [theme.breakpoints.down("sm")]: {
-          height: "100dvh",
-          maxHeight: "100dvh",
-          minHeight: "100dvh",
-          width: "100vw",
-          maxWidth: "100vw",
-          position: "relative",
-          paddingLeft: "60px",
-          paddingRight: "4px",
-          paddingTop: "56px",
-          boxSizing: "border-box",
-          contain: "layout style",
-          overscrollBehavior: "none"
-        }
+        // Mobile styles handled via separate CSS file
       }}
     >
       <AppHeader />
