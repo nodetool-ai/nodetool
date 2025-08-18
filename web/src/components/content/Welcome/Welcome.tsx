@@ -64,6 +64,7 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`overview-tabpanel-${index}`}
       aria-labelledby={`overview-tab-${index}`}
+      className="welcome-tab-panel"
     >
       {value === index && <Box className="tab-content">{children}</Box>}
     </div>
@@ -84,7 +85,11 @@ const InlineModelDownload: React.FC<{
   const inProgress = !!downloads[downloadKey];
   if (inProgress) {
     return (
-      <Box component="span" sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}>
+      <Box
+        component="span"
+        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
+        className="inline-download-progress"
+      >
         <DownloadProgress name={downloadKey} minimal />
       </Box>
     );
@@ -97,6 +102,7 @@ const InlineModelDownload: React.FC<{
       startIcon={<DownloadIcon fontSize="small" />}
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
+      className={`model-download-button ${isDefault ? "default-model" : ""}`}
       onClick={() =>
         startDownload(
           model.repo_id || "",
@@ -234,8 +240,6 @@ const Welcome = () => {
     hasSetupKeysNow ? TabValue.Overview : TabValue.Setup
   );
 
-  
-
   const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
   };
@@ -337,9 +341,9 @@ const Welcome = () => {
   );
 
   return (
-    <div css={welcomeStyles(theme)}>
+    <div css={welcomeStyles(theme)} className="welcome-container">
       <div className="header">
-        <Box>
+        <Box className="header-left">
           <Typography className="panel-title" variant="h2">
             NodeTool
           </Typography>
@@ -360,9 +364,11 @@ const Welcome = () => {
                     checked={settings.showWelcomeOnStartup}
                     onChange={handleToggleWelcomeOnStartup}
                     name="showWelcomeOnStartup"
+                    className="welcome-startup-checkbox"
                   />
                 }
                 label="Show on Startup"
+                className="welcome-startup-label"
               />
             </Tooltip>
           </div>
@@ -385,13 +391,23 @@ const Welcome = () => {
             aria-label="overview tabs"
             className="overview tabs"
           >
-            <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-            <Tab label="Setup" id="tab-1" aria-controls="tabpanel-1" />
+            <Tab
+              label="Overview"
+              id="tab-0"
+              aria-controls="tabpanel-0"
+              className="welcome-tab"
+            />
+            <Tab
+              label="Setup"
+              id="tab-1"
+              aria-controls="tabpanel-1"
+              className="welcome-tab"
+            />
           </Tabs>
 
           {tabValue === TabValue.Overview && (
             <TextField
-              className="search"
+              className="search welcome-search"
               fullWidth
               variant="outlined"
               placeholder="Search help and tips"
@@ -412,29 +428,50 @@ const Welcome = () => {
           <TabPanel value={tabValue} index={TabValue.Overview}>
             {searchTerm === "" && (
               <Box className="quick-start">
-                <Typography variant="h3" sx={{ mb: 1 }}>
+                <Typography
+                  variant="h3"
+                  sx={{ mb: 1 }}
+                  className="quick-start-title"
+                >
                   Quick Start
                 </Typography>
                 <Grid container spacing={2} className="quick-start-grid">
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 4", md: "span 2" } }}>
+                  <Grid
+                    sx={{
+                      gridColumn: { xs: "span 12", sm: "span 4", md: "span 2" }
+                    }}
+                    className="quick-start-grid-item"
+                  >
                     <Card className="quick-card" elevation={0}>
-                      <CardActionArea onClick={() => navigate("/editor")}>
-                        <CardContent>
+                      <CardActionArea
+                        onClick={() => navigate("/editor")}
+                        className="quick-card-action"
+                      >
+                        <CardContent className="quick-card-content">
                           <AddCircleOutlineIcon className="quick-card-icon" />
                           <Typography className="quick-card-title">
                             Create Workflow
                           </Typography>
                           <Typography className="quick-card-desc">
-                            Start a new canvas and design a workflow from scratch.
+                            Start a new canvas and design a workflow from
+                            scratch.
                           </Typography>
                         </CardContent>
                       </CardActionArea>
                     </Card>
                   </Grid>
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                  <Grid
+                    sx={{
+                      gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" }
+                    }}
+                    className="quick-start-grid-item"
+                  >
                     <Card className="quick-card" elevation={0}>
-                      <CardActionArea onClick={() => navigate("/examples")}>
-                        <CardContent>
+                      <CardActionArea
+                        onClick={() => navigate("/examples")}
+                        className="quick-card-action"
+                      >
+                        <CardContent className="quick-card-content">
                           <LibraryBooksIcon className="quick-card-icon" />
                           <Typography className="quick-card-title">
                             Browse Examples
@@ -446,10 +483,18 @@ const Welcome = () => {
                       </CardActionArea>
                     </Card>
                   </Grid>
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                  <Grid
+                    sx={{
+                      gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" }
+                    }}
+                    className="quick-start-grid-item"
+                  >
                     <Card className="quick-card" elevation={0}>
-                      <CardActionArea onClick={() => navigate("/chat")}>
-                        <CardContent>
+                      <CardActionArea
+                        onClick={() => navigate("/chat")}
+                        className="quick-card-action"
+                      >
+                        <CardContent className="quick-card-content">
                           <ChatBubbleOutlineIcon className="quick-card-icon" />
                           <Typography className="quick-card-title">
                             Open Chat
@@ -461,10 +506,18 @@ const Welcome = () => {
                       </CardActionArea>
                     </Card>
                   </Grid>
-                  <Grid sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" } }}>
+                  <Grid
+                    sx={{
+                      gridColumn: { xs: "span 12", sm: "span 6", md: "span 3" }
+                    }}
+                    className="quick-start-grid-item"
+                  >
                     <Card className="quick-card" elevation={0}>
-                      <CardActionArea onClick={() => navigate("/assets")}>
-                        <CardContent>
+                      <CardActionArea
+                        onClick={() => navigate("/assets")}
+                        className="quick-card-action"
+                      >
+                        <CardContent className="quick-card-content">
                           <FolderIcon className="quick-card-icon" />
                           <Typography className="quick-card-title">
                             Open Assets
@@ -483,27 +536,41 @@ const Welcome = () => {
               const list = searchTerm === "" ? sections : filteredSections;
               if (!list || list.length === 0) {
                 return (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="body1" sx={{ opacity: 0.8 }}>
+                  <Box sx={{ mt: 3 }} className="no-search-results">
+                    <Typography
+                      variant="body1"
+                      sx={{ opacity: 0.8 }}
+                      className="no-results-text"
+                    >
                       No results. Try different keywords or clear the search.
                     </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Button size="small" onClick={() => setSearchTerm("")}>Clear search</Button>
+                    <Box sx={{ mt: 1 }} className="clear-search-container">
+                      <Button
+                        size="small"
+                        onClick={() => setSearchTerm("")}
+                        className="clear-search-button"
+                      >
+                        Clear search
+                      </Button>
                     </Box>
                   </Box>
                 );
               }
               return list.map((section, index) => (
-                <Accordion key={section.id} defaultExpanded={index === 0}>
+                <Accordion
+                  key={section.id}
+                  defaultExpanded={index === 0}
+                  className="welcome-accordion"
+                >
                   <AccordionSummary
-                    className="summary"
+                    className="summary welcome-accordion-summary"
                     expandIcon={<ExpandMoreIcon />}
                   >
-                    <Typography>
+                    <Typography className="welcome-accordion-title">
                       {highlightText(section.title, searchTerm)}
                     </Typography>
                   </AccordionSummary>
-                  <AccordionDetails className="content">
+                  <AccordionDetails className="content welcome-accordion-content">
                     {renderContent(section.originalContent)}
                   </AccordionDetails>
                 </Accordion>
@@ -511,14 +578,17 @@ const Welcome = () => {
             })()}
           </TabPanel>
 
-
           <TabPanel value={tabValue} index={TabValue.Setup}>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "2em" }}>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: "2em" }}
+              className="setup-container"
+            >
               <Box
                 sx={{
                   display: "flex",
                   gap: "2em"
                 }}
+                className="setup-content"
               >
                 <Box
                   sx={{
@@ -527,14 +597,23 @@ const Welcome = () => {
                     border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
+                  className="setup-instructions"
                 >
-                  <Typography variant="h2" sx={{ mb: 2 }}>
+                  <Typography
+                    variant="h2"
+                    sx={{ mb: 2 }}
+                    className="setup-title"
+                  >
                     How to Use Models
                   </Typography>
-                  <Typography variant="body1" gutterBottom>
-                    NodeTool works with both local and remote models. Start with local for
-                    privacy and low latency, then add cloud providers when you need extra
-                    capability.
+                  <Typography
+                    variant="body1"
+                    gutterBottom
+                    className="setup-description"
+                  >
+                    NodeTool works with both local and remote models. Start with
+                    local for privacy and low latency, then add cloud providers
+                    when you need extra capability.
                   </Typography>
 
                   <Typography variant="subtitle1" className="setup-list-title">
@@ -542,34 +621,51 @@ const Welcome = () => {
                   </Typography>
                   <Box className="setup-list-content">
                     <ol className="step-list">
-                      <li>
-                        Open the <span className="fake-button">Models</span> manager in the
-                        editor’s top‑right
-                        (
-                        <span style={{ display: "inline-block", verticalAlign: "middle" }}>
+                      <li className="setup-step">
+                        Open the <span className="fake-button">Models</span>{" "}
+                        manager in the editor's top‑right (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            verticalAlign: "middle"
+                          }}
+                          className="model-icon-container"
+                        >
                           <IconForType
                             iconName="model"
                             showTooltip={false}
-                            containerStyle={{ display: "inline-block", width: 18, height: 18 }}
-                            bgStyle={{ display: "inline-block", width: 18, height: 18 }}
+                            containerStyle={{
+                              display: "inline-block",
+                              width: 18,
+                              height: 18
+                            }}
+                            bgStyle={{
+                              display: "inline-block",
+                              width: 18,
+                              height: 18
+                            }}
                           />
                         </span>
                         ).
                       </li>
-                      <li>
-                        Download a model. We recommend <b>GPT - OSS</b> for agentic workflows
-                        (fast setup); other good choices are <b>Qwen 3</b>, <b>R1 Distilled</b>,
-                        and <b>Gemma 3</b>.
+                      <li className="setup-step">
+                        Download a model. We recommend <b>GPT - OSS</b> for
+                        agentic workflows (fast setup); other good choices are{" "}
+                        <b>Qwen 3</b>, <b>R1 Distilled</b>, and <b>Gemma 3</b>.
                       </li>
-                      <li>Ensure you have free disk space (20GB+ recommended).</li>
-                      <li>
-                        Use the <span className="fake-button">Recommended Models</span> button on
-                        compatible nodes to pick the right model.
+                      <li className="setup-step">
+                        Ensure you have free disk space (20GB+ recommended).
+                      </li>
+                      <li className="setup-step">
+                        Use the{" "}
+                        <span className="fake-button">Recommended Models</span>{" "}
+                        button on compatible nodes to pick the right model.
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2">
-                        Your data stays local unless you explicitly use cloud providers.
+                      <Typography variant="body2" className="callout-text">
+                        Your data stays local unless you explicitly use cloud
+                        providers.
                       </Typography>
                     </Box>
                   </Box>
@@ -579,35 +675,56 @@ const Welcome = () => {
                   </Typography>
                   <Box className="setup-list-content">
                     <ol className="step-list">
-                      <li>
-                        Open the <SettingsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} />
+                      <li className="setup-step">
+                        Open the{" "}
+                        <SettingsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />
                         <b> Settings</b> menu (top‑right).
                       </li>
-                      <li>
-                        Add your API keys (OpenAI, Anthropic, Hugging Face, Gemini, etc.).
+                      <li className="setup-step">
+                        Add your API keys (OpenAI, Anthropic, Hugging Face,
+                        Gemini, etc.).
                       </li>
-                      <li>
-                        Install optional packs like
-                        {" "}
-                        <Link href="https://replicate.com/" target="_blank" rel="noreferrer">
+                      <li className="setup-step">
+                        Install optional packs like{" "}
+                        <Link
+                          href="https://replicate.com/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="setup-link"
+                        >
                           Replicate
                         </Link>
                         ,{" "}
-                        <Link href="https://fal.ai/" target="_blank" rel="noreferrer">
+                        <Link
+                          href="https://fal.ai/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="setup-link"
+                        >
                           Fal.ai
                         </Link>
                         , or{" "}
-                        <Link href="https://elevenlabs.io/" target="_blank" rel="noreferrer">
+                        <Link
+                          href="https://elevenlabs.io/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="setup-link"
+                        >
                           ElevenLabs
-                        </Link>
-                        {" "}
-                        from the <WidgetsIcon sx={{ verticalAlign: "middle", fontSize: "inherit" }} />
+                        </Link>{" "}
+                        from the{" "}
+                        <WidgetsIcon
+                          sx={{ verticalAlign: "middle", fontSize: "inherit" }}
+                        />
                         <b> Packs</b> menu in the left panel.
                       </li>
                     </ol>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2">
-                        Cloud is optional. You control exactly what leaves your machine.
+                      <Typography variant="body2" className="callout-text">
+                        Cloud is optional. You control exactly what leaves your
+                        machine.
                       </Typography>
                     </Box>
                   </Box>
@@ -615,11 +732,24 @@ const Welcome = () => {
                   <Typography variant="subtitle1" className="setup-list-title">
                     3. Test your setup
                   </Typography>
-                  <Box className="setup-list-content" sx={{ display: "flex", gap: 1 }}>
-                    <Button size="small" variant="outlined" onClick={() => navigate("/examples")}>
+                  <Box
+                    className="setup-list-content"
+                    sx={{ display: "flex", gap: 1 }}
+                  >
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => navigate("/examples")}
+                      className="setup-test-button"
+                    >
                       Open Examples
                     </Button>
-                    <Button size="small" variant="outlined" onClick={() => navigate("/chat")}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => navigate("/chat")}
+                      className="setup-test-button"
+                    >
                       Open Chat
                     </Button>
                   </Box>
@@ -632,19 +762,20 @@ const Welcome = () => {
                     border: `1px solid ${theme.vars.palette.grey[600]}`,
                     borderRadius: "20px"
                   }}
+                  className="local-models-container"
                 >
                   <Box className="local-models">
                     <Typography variant="h2" className="section-title">
                       Local Models
                     </Typography>
                     <Typography variant="body1" className="section-subtitle">
-                      Run powerful open models locally. Start small and scale up depending on your
-                      GPU/CPU and latency needs.
+                      Run powerful open models locally. Start small and scale up
+                      depending on your GPU/CPU and latency needs.
                     </Typography>
                     <Box className="callout" sx={{ mt: 1 }}>
-                      <Typography variant="body2">
-                        Tip: Use smaller models for prototyping and larger ones when you need more
-                        context or reasoning.
+                      <Typography variant="body2" className="callout-text">
+                        Tip: Use smaller models for prototyping and larger ones
+                        when you need more context or reasoning.
                       </Typography>
                     </Box>
 
@@ -654,52 +785,110 @@ const Welcome = () => {
 
                     <ul className="local-models-list">
                       {featuredModels.map((model) => (
-                        <li key={model.id} style={{ listStyle: "none" }}>
+                        <li
+                          key={model.id}
+                          style={{ listStyle: "none" }}
+                          className="local-model-list-item"
+                        >
                           <div className="local-model-item">
                             <div className="local-model-header">
                               <div className="local-model-title">
-                                <Typography variant="h4">{(model as FeaturedModel).displayName || model.name}</Typography>
+                                <Typography
+                                  variant="h4"
+                                  className="model-display-name"
+                                >
+                                  {(model as FeaturedModel).displayName ||
+                                    model.name}
+                                </Typography>
                               </div>
                               <div className="local-model-actions">
-                                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                                  {(((model as FeaturedModel).variants && (model as FeaturedModel).variants!.length > 0)
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    flexWrap: "wrap"
+                                  }}
+                                  className="model-variant-buttons"
+                                >
+                                  {((model as FeaturedModel).variants &&
+                                  (model as FeaturedModel).variants!.length > 0
                                     ? (model as FeaturedModel).variants!
-                                    : [model.id.split(":")[1] || "latest"]).map((variant) => {
-                                      const base = (model as FeaturedModel).base || (model.id.includes(":") ? model.id.split(":")[0] : model.id);
-                                      const variantModel: UnifiedModel = {
-                                        ...model,
-                                        id: `${base}:${variant}`,
-                                        repo_id: `${base}:${variant}`
-                                      };
-                                      const defaultVariant = (model as FeaturedModel).defaultVariant || (model.id.includes(":") ? model.id.split(":")[1] : "");
-                                      const isDefault = variant.toLowerCase() === (defaultVariant || "").toLowerCase();
-                                      return (
-                                        <InlineModelDownload
-                                          key={`${model.id}-${variant}`}
-                                          model={variantModel}
-                                          isDefault={isDefault}
-                                          label={`${variant.toUpperCase()}`}
-                                          tooltip={`Download ${base}:${variant}`}
-                                        />
-                                      );
+                                    : [model.id.split(":")[1] || "latest"]
+                                  ).map((variant) => {
+                                    const base =
+                                      (model as FeaturedModel).base ||
+                                      (model.id.includes(":")
+                                        ? model.id.split(":")[0]
+                                        : model.id);
+                                    const variantModel: UnifiedModel = {
+                                      ...model,
+                                      id: `${base}:${variant}`,
+                                      repo_id: `${base}:${variant}`
+                                    };
+                                    const defaultVariant =
+                                      (model as FeaturedModel).defaultVariant ||
+                                      (model.id.includes(":")
+                                        ? model.id.split(":")[1]
+                                        : "");
+                                    const isDefault =
+                                      variant.toLowerCase() ===
+                                      (defaultVariant || "").toLowerCase();
+                                    return (
+                                      <InlineModelDownload
+                                        key={`${model.id}-${variant}`}
+                                        model={variantModel}
+                                        isDefault={isDefault}
+                                        label={`${variant.toUpperCase()}`}
+                                        tooltip={`Download ${base}:${variant}`}
+                                      />
+                                    );
                                   })}
                                 </Box>
                               </div>
                             </div>
                             <div className="local-model-desc">
                               {model.description && (
-                                <Typography variant="body1">{model.description}</Typography>
+                                <Typography
+                                  variant="body1"
+                                  className="model-description"
+                                >
+                                  {model.description}
+                                </Typography>
                               )}
-                              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
-                                {((model as FeaturedModel).reasoning ?? false) && (
-                                  <Chip size="small" label="Reasoning" color="primary" variant="outlined" />
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 1,
+                                  flexWrap: "wrap",
+                                  mt: 1
+                                }}
+                                className="model-capabilities"
+                              >
+                                {((model as FeaturedModel).reasoning ??
+                                  false) && (
+                                  <Chip
+                                    size="small"
+                                    label="Reasoning"
+                                    color="primary"
+                                    variant="outlined"
+                                    className="capability-chip reasoning-chip"
+                                  />
                                 )}
                                 {((model as FeaturedModel).vision ?? false) && (
-                                  <Chip size="small" label="Vision" color="secondary" variant="outlined" />
+                                  <Chip
+                                    size="small"
+                                    label="Vision"
+                                    color="secondary"
+                                    variant="outlined"
+                                    className="capability-chip vision-chip"
+                                  />
                                 )}
                               </Box>
                               {(model as FeaturedModel).note && (
-                                <Typography variant="body2" className="model-note">
+                                <Typography
+                                  variant="body2"
+                                  className="model-note"
+                                >
                                   {(model as FeaturedModel).note}
                                 </Typography>
                               )}
