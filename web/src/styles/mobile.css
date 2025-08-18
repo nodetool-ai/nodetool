@@ -54,15 +54,15 @@
     width: auto !important;
   }
 
-  .mobile .chat-input-sectioan .chat-composer-wrapper {
+  /* .mobile .chat-input-sectioan .chat-composer-wrapper {
     width: auto !important;
     order: 2 !important;
     min-height: 40px !important;
     max-height: 40px !important;
-  }
+  } */
 
   .mobile .chat-input-section .chat-composer-wrapper .chat-input {
-    padding: 6px 12px !important;
+    padding: 0px 12px;
   }
 
   /* Global Chat Mobile Styles */

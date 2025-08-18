@@ -27,10 +27,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
         id="chat-prompt"
         aria-labelledby="chat-prompt"
         ref={ref}
-        style={{
-          height: "2.2em",
-          backgroundColor: "transparent"
-        }}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}

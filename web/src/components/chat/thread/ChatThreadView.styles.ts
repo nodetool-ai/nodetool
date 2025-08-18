@@ -9,8 +9,8 @@ export const createStyles = (theme: Theme) => ({
     display: "flex",
     flexDirection: "column",
     padding: "2em 0",
-    minHeight: 0,
-    
+    minHeight: 0
+
     // Mobile styles handled via separate CSS file
   }),
   scrollableMessageWrapper: css({
@@ -42,8 +42,8 @@ export const createStyles = (theme: Theme) => ({
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: "var(--palette-warning-main) !important"
-    },
-    
+    }
+
     // Mobile styles handled via separate CSS file
   }),
   chatMessagesList: css({
@@ -63,8 +63,7 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
-      position: "relative",
-      overflow: "hidden"
+      position: "relative"
     },
 
     "li.user": {
@@ -76,7 +75,7 @@ export const createStyles = (theme: Theme) => ({
       opacity: 0.9,
       borderRadius: "20px"
     },
-    
+
     // Mobile-specific message styling
     [theme.breakpoints.down("sm")]: {
       "li.user": {

@@ -28,88 +28,27 @@ export const createStyles = (theme: Theme) =>
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
         backgroundColor: `${theme.vars.palette.grey[800]}80`
-      },
-
-      // Mobile styles are handled via separate CSS file
+      }
     },
 
-    // Textarea and input styling
     ".compose-message textarea": {
-      fontFamily: `${theme.fontFamily1} !important`,
-      fontSize: `${theme.fontSizeNormal} !important`,
-      backgroundColor: "transparent !important",
-      color: `${theme.vars.palette.grey[0]} !important`,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal,
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[0],
       resize: "none",
       overflowY: "auto",
-      flex: "1 !important",
-      outline: "none !important",
-      border: "0 !important",
-      borderColor: "transparent !important",
-      padding: "6px 10px 6px 6px !important",
-      margin: "6px 0 !important",
+      flex: 1,
+      outline: "none",
+      border: "0",
+      borderColor: "transparent",
+      padding: "6px 10px 6px 6px",
+      margin: "6px 0",
       boxSizing: "border-box",
       transition: "border 0.2s ease-in-out",
-      minHeight: "20px !important",
-      maxHeight: "80px",
-      lineHeight: "1.4 !important",
-      width: "100% !important",
-      display: "block !important",
-      visibility: "visible",
-      opacity: 1,
-      
       "&::placeholder": {
-        color: `${theme.vars.palette.grey[500]} !important`
-      },
-      "&:focus": {
-        outline: "none !important",
-        borderColor: "transparent !important",
-        boxShadow: "none !important"
-      },
-      "&:disabled": {
-        opacity: "0.6 !important",
-        cursor: "not-allowed"
-      },
-
-      // Mobile styles handled via separate CSS file
-    },
-
-    // Additional input selectors - inherit from textarea styles
-    ".compose-message .chat-input, .compose-message .MuiInputBase-input, .compose-message [role='textbox']": {
-      fontFamily: `${theme.fontFamily1} !important`,
-      fontSize: `${theme.fontSizeNormal} !important`,
-      backgroundColor: "transparent !important",
-      color: `${theme.vars.palette.grey[0]} !important`,
-      resize: "none",
-      flex: "1 !important",
-      outline: "none !important",
-      border: "0 !important",
-      borderColor: "transparent !important",
-      padding: "6px 10px 6px 6px !important",
-      margin: "6px 0 !important",
-      boxSizing: "border-box",
-      minHeight: "20px !important",
-      maxHeight: "80px",
-      lineHeight: "1.4 !important",
-      width: "100% !important",
-      display: "block !important",
-      
-      // Mobile styles handled via separate CSS file
-    },
-
-    // Fallback for any nested textarea elements
-    "textarea": {
-      fontFamily: `${theme.fontFamily1} !important`,
-      fontSize: `${theme.fontSizeNormal} !important`,
-      backgroundColor: "transparent !important",
-      color: `${theme.vars.palette.grey[0]} !important`,
-      border: "none !important",
-      outline: "none !important",
-      resize: "none",
-      minHeight: "20px !important",
-      width: "100% !important",
-      display: "block !important",
-      visibility: "visible",
-      opacity: 1
+        color: theme.vars.palette.grey[500]
+      }
     },
 
     ".button-container": {
@@ -124,8 +63,8 @@ export const createStyles = (theme: Theme) =>
         padding: "6px",
         position: "relative",
         borderRadius: 12
-      },
-      
+      }
+
       // Mobile styles handled via separate CSS file
     },
 
@@ -133,8 +72,8 @@ export const createStyles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       gap: "6px",
-      padding: "6px 8px",
-      
+      padding: "6px 8px"
+
       // Mobile styles handled via separate CSS file
     },
 
@@ -143,7 +82,7 @@ export const createStyles = (theme: Theme) =>
       maxWidth: "24px",
       maxHeight: "24px",
       flexShrink: 0,
-      
+
       // Mobile styles handled via separate CSS file
 
       ".remove-button": {
