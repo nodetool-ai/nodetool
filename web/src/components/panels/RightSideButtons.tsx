@@ -37,7 +37,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const RightSideButtons: React.FC = () => {
+interface RightSideButtonsProps {
+  isMobile?: boolean;
+}
+
+const RightSideButtons: React.FC<RightSideButtonsProps> = ({ isMobile = false }) => {
   const theme = useTheme();
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 

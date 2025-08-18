@@ -7,48 +7,49 @@ import {
   DialogContent,
   DialogTitle,
   Typography,
-  Tooltip
+  Tooltip,
+  useMediaQuery
 } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
-    margin: "2em 0 0",
+    margin: isMobile ? "0" : "2em 0 0",
     "&.models-manager": {
       display: "flex",
-      gap: "1em",
-      padding: "1em"
+      gap: isMobile ? "0.5em" : "1em",
+      padding: isMobile ? "0.5em" : "1em"
     },
     ".download-models-section": {
       display: "flex",
-      width: "50%",
+      width: isMobile ? "100%" : "50%",
       flexDirection: "column",
       gap: "1em",
-      padding: "1em"
+      padding: isMobile ? "0.5em" : "1em"
     },
     ".existing-models-section": {
       width: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: "1em",
-      padding: "0.5em 0 0 0"
+      gap: isMobile ? "0.5em" : "1em",
+      padding: isMobile ? "0.25em 0 0 0" : "0.5em 0 0 0"
     },
     ".models-search": {
-      maxWidth: "600px",
+      maxWidth: isMobile ? "100%" : "600px",
       overflow: "hidden",
       backgroundColor: "transparent",
-      padding: theme.spacing(2)
+      padding: isMobile ? theme.spacing(1) : theme.spacing(2)
     },
     ".modal-content": {
       position: "absolute",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      width: "80%",
-      maxWidth: "1200px",
+      width: isMobile ? "95%" : "80%",
+      maxWidth: isMobile ? "100%" : "1200px",
       background: "transparent",
       boxShadow: theme.shadows[24],
       borderRadius: theme.shape.borderRadius,
@@ -56,7 +57,7 @@ const styles = (theme: Theme) =>
     },
     ".models-list-container": {
       position: "relative",
-      height: "80vh",
+      height: isMobile ? "70vh" : "80vh",
       width: "100%"
     },
     ".dialog-title": {
@@ -65,14 +66,16 @@ const styles = (theme: Theme) =>
       zIndex: 2,
       background: "transparent",
       margin: 0,
-      padding: theme.spacing(4, 4),
+      padding: isMobile ? theme.spacing(2, 2) : theme.spacing(4, 4),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     ".close-button": {
       position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(2),
-      color: theme.vars.palette.grey[500]
+      right: isMobile ? theme.spacing(0.5) : theme.spacing(1),
+      top: isMobile ? theme.spacing(1) : theme.spacing(2),
+      color: theme.vars.palette.grey[500],
+      minWidth: isMobile ? "44px" : "auto",
+      minHeight: isMobile ? "44px" : "auto"
     }
   });
 
@@ -83,13 +86,15 @@ interface ModelsManagerProps {
 
 const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <Dialog
-      css={styles(theme)}
+      css={styles(theme, isMobile)}
       className="models-manager-dialog"
       open={open}
       onClose={onClose}
+      fullScreen={isMobile}
       slotProps={{
         backdrop: {
           style: {
@@ -99,18 +104,19 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         },
         paper: {
           style: {
-            borderRadius: theme.vars.rounded.dialog,
+            borderRadius: isMobile ? 0 : theme.vars.rounded.dialog,
             background: theme.vars.palette.glass.backgroundDialogContent
           }
         }
       }}
       sx={{
         "& .MuiDialog-paper": {
-          width: "92%",
-          maxWidth: "1200px",
-          margin: "auto",
-          borderRadius: (theme as any)?.rounded?.dialog ?? 6,
-          border: `1px solid ${theme.vars.palette.grey[700]}`
+          width: isMobile ? "100%" : "92%",
+          maxWidth: isMobile ? "none" : "1200px",
+          height: isMobile ? "100%" : "auto",
+          margin: isMobile ? 0 : "auto",
+          borderRadius: isMobile ? 0 : (theme as any)?.rounded?.dialog ?? 6,
+          border: isMobile ? "none" : `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}
     >

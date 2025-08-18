@@ -8,7 +8,7 @@ import React, {
   useMemo,
   useRef
 } from "react";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { LanguageModel, Thread } from "../../stores/ApiTypes";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -31,14 +31,28 @@ import { PanelInfo } from "./AddPanelDropdown";
 import TabsNodeEditor from "../editor/TabsNodeEditor";
 import AppHeader from "../panels/AppHeader";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
-    ".dashboard": {
-      width: "calc(100vw - 64px)",
-      height: "calc(100vh - 64px)",
+    "&": {
+      width: "100%",
+      height: "100dvh", // Use dynamic viewport height
+      maxHeight: "100dvh",
+      maxWidth: "100vw",
       overflow: "hidden",
-      top: "64px",
-      left: "64px"
+      position: "relative",
+      boxSizing: "border-box",
+      // Account for fixed AppHeader
+      paddingTop: isMobile ? "56px" : "40px",
+      paddingLeft: isMobile ? "60px" : "64px" // Account for panel
+    },
+    ".dashboard": {
+      width: "100%",
+      height: "100%",
+      maxWidth: "100%",
+      maxHeight: "100%",
+      overflow: "hidden",
+      position: "relative",
+      boxSizing: "border-box"
     },
     "& .dockview-container": {
       paddingTop: "2rem"
@@ -63,6 +77,7 @@ const styles = (theme: Theme) =>
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const { currentWorkflowId } = useWorkflowManager((state) => ({
@@ -324,23 +339,14 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <Box css={styles(theme)}>
+    <Box css={styles(theme, isMobile)}>
       <TabsNodeEditor hideContent />
-      <Box
-        className="actions-container"
-        sx={{
-          position: "absolute",
-          top: "32px",
-          left: 0,
-          right: 0,
-          zIndex: 1000
-        }}
-      >
-        <AppHeader />
-      </Box>
+      <AppHeader />
       <Box
         className="dashboard"
-        sx={{ height: "100vh", width: "100vw", position: "relative" }}
+        sx={{ 
+          overflow: "hidden"
+        }}
       >
         <DashboardHeader>
           <LayoutMenu dockviewApi={dockviewApi} />

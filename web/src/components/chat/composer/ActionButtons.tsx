@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Tooltip, Typography } from "@mui/material";
@@ -47,9 +48,11 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const showStopButton =
     (status === "loading" || status === "streaming") && onStop;
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
-      {onNewChat && (
+      {onNewChat && !isMobile && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
           <span style={{ display: "inline-flex" }}>
             <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />

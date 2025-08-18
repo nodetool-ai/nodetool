@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography, useMediaQuery } from "@mui/material";
 
 import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
@@ -13,7 +13,7 @@ import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
     "&": {
       display: "flex",
@@ -24,25 +24,28 @@ const styles = (theme: Theme) =>
     },
     ".main": {
       display: "flex",
-      flexDirection: "row",
+      flexDirection: isMobile ? "column" : "row",
       flexGrow: 1,
       height: "100%",
       overflow: "hidden"
     },
     ".sidebar": {
-      width: "26%",
-      minWidth: "200px",
-      maxWidth: "350px",
-      paddingRight: "2em",
-      overflowY: "auto"
+      width: isMobile ? "100%" : "26%",
+      minWidth: isMobile ? "auto" : "200px",
+      maxWidth: isMobile ? "none" : "350px",
+      paddingRight: isMobile ? "0" : "2em",
+      paddingBottom: isMobile ? "1em" : "0",
+      overflowY: "auto",
+      maxHeight: isMobile ? "40vh" : "none",
+      borderBottom: isMobile ? `1px solid ${theme.vars.palette.grey[800]}` : "none"
     },
     ".model-list-header": {
       display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
+      flexDirection: isMobile ? "column" : "row",
+      alignItems: isMobile ? "stretch" : "center",
       justifyContent: "space-between",
       gap: theme.spacing(1),
-      padding: "0.5em 1em",
+      padding: isMobile ? "0.5em" : "0.5em 1em",
       position: "sticky",
       top: 0,
       zIndex: 2,
@@ -52,12 +55,14 @@ const styles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
     },
     ".model-list-header button": {
-      padding: ".4em 1em",
-      fontSize: "0.9rem"
+      padding: isMobile ? ".6em 1em" : ".4em 1em",
+      fontSize: isMobile ? "0.85rem" : "0.9rem",
+      minHeight: isMobile ? "44px" : "auto"
     },
     "& .model-type-button": {
-      padding: "0.25em 1em",
+      padding: isMobile ? "0.5em 1em" : "0.25em 1em",
       backgroundColor: "transparent",
+      minHeight: isMobile ? "44px" : "auto",
       "&:hover": {
         color: theme.vars.palette.grey[100],
       }
@@ -78,19 +83,20 @@ const styles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".content": {
-      width: "80%",
-      height: "95%",
+      width: isMobile ? "100%" : "80%",
+      height: isMobile ? "auto" : "95%",
       flexGrow: 1,
       overflowY: "auto",
-      padding: "0 0 4em 1em"
+      padding: isMobile ? "0.5em" : "0 0 4em 1em"
     },
     ".model-list-section": {
-      marginBottom: theme.spacing(5)
+      marginBottom: isMobile ? theme.spacing(3) : theme.spacing(5)
     }
   });
 
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const { selectedModelType, modelSearchTerm, modelSource } =
     useModelManagerStore();
@@ -171,7 +177,7 @@ const ModelListIndex: React.FC = () => {
   }
 
   return (
-    <Box className="model-list-container" css={styles(theme)}>
+    <Box className="model-list-container" css={styles(theme, isMobile)}>
       <Box className="model-list-header">
         <ModelListHeader />
       </Box>

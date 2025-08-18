@@ -4,35 +4,52 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import Logo from "../Logo";
-import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
+import { Tooltip, Toolbar, Box, IconButton, Typography, useMediaQuery } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
     "&": {
       width: "100%",
-      overflow: "visible",
+      maxWidth: "100vw",
+      overflow: "hidden", // Prevent overflow
       backgroundColor: theme.vars.palette.grey[900],
-      paddingLeft: "8px"
+      paddingLeft: isMobile ? "4px" : "8px",
+      minHeight: isMobile ? "56px" : "40px",
+      height: isMobile ? "56px" : "40px", // Fixed height
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1100,
+      borderBottom: isMobile ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+      backdropFilter: "saturate(180%) blur(20px)",
+      WebkitBackdropFilter: "saturate(180%) blur(20px)",
+      boxShadow: isMobile ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
+      boxSizing: "border-box"
     },
     ".toolbar": {
-      backgroundColor: theme.vars.palette.grey[900],
-      overflow: "visible",
-      display: "flex",
+      backgroundColor: "transparent",
+      overflow: "hidden", // Prevent toolbar overflow
+      display: "flex !important",
       justifyContent: "space-between",
       alignItems: "center",
       position: "relative",
-      height: "40px",
-      minHeight: "40px",
-      padding: "0 2px 0 12px",
-      border: "0"
+      height: isMobile ? "56px" : "40px",
+      minHeight: isMobile ? "56px" : "40px",
+      maxHeight: isMobile ? "56px" : "40px", // Prevent expansion
+      padding: isMobile ? "0 8px" : "0 2px 0 12px",
+      border: "0",
+      width: "100%",
+      maxWidth: "100%",
+      boxSizing: "border-box"
     },
     ".nodetool-logo": {
-      margin: "1px 0.75em 0 0"
+      margin: isMobile ? "1px 0.5em 0 0" : "1px 0.75em 0 0"
     },
     ".MuiIconButton-root": {
       height: "28px",
@@ -49,7 +66,7 @@ const styles = (theme: Theme) =>
         width: "18px",
         height: "18px",
         fontSize: "18px",
-        marginRight: "4px"
+        marginRight: isMobile ? "0" : "4px"
       }
     },
     ".logo-button": {
@@ -61,28 +78,30 @@ const styles = (theme: Theme) =>
       }
     },
     ".navigate": {
-      display: "flex",
+      display: "flex !important",
       alignItems: "center",
       flex: "1 1 auto",
-      gap: "8px"
+      gap: isMobile ? "4px" : "8px",
+      visibility: "visible"
     },
     ".nav-group": {
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      padding: "2px 4px",
+      gap: isMobile ? "2px" : "6px",
+      padding: isMobile ? "2px" : "2px 4px",
       borderRadius: "10px",
       backgroundColor: theme.vars.palette.action.hover,
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
-      padding: "4px 8px",
+      padding: isMobile ? "6px" : "4px 8px",
       borderRadius: "8px",
       fontWeight: 600,
       letterSpacing: "0.01em",
       color: theme.vars.palette.grey[100],
+      minWidth: isMobile ? "32px" : "auto",
       "& svg": {
-        marginRight: "6px"
+        marginRight: isMobile ? "0" : "6px"
       },
       position: "relative",
       "&.active": {
@@ -105,6 +124,9 @@ const styles = (theme: Theme) =>
         opacity: 0.85
       }
     },
+    ".nav-button-text": {
+      display: isMobile ? "none" : "inline"
+    },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
@@ -112,7 +134,21 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
-      marginRight: "4px"
+      marginRight: isMobile ? "2px" : "4px"
+    },
+    // Mobile-specific optimizations
+    [theme.breakpoints.down("sm")]: {
+      ".nav-group": {
+        gap: "2px",
+        padding: "2px"
+      },
+      ".nav-button": {
+        padding: "6px",
+        minWidth: "32px",
+        "& svg": {
+          marginRight: "0"
+        }
+      }
     }
   });
 
@@ -144,9 +180,11 @@ const LogoButton = memo(function LogoButton() {
 });
 
 const DashboardButton = memo(function DashboardButton({
-  isActive
+  isActive,
+  isMobile
 }: {
   isActive: boolean;
+  isMobile: boolean;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -167,16 +205,18 @@ const DashboardButton = memo(function DashboardButton({
         aria-current={isActive ? "page" : undefined}
       >
         <DashboardIcon />
-        Dashboard
+        <span className="nav-button-text">Dashboard</span>
       </IconButton>
     </Tooltip>
   );
 });
 
 const ExamplesButton = memo(function ExamplesButton({
-  isActive
+  isActive,
+  isMobile
 }: {
   isActive: boolean;
+  isMobile: boolean;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -198,7 +238,7 @@ const ExamplesButton = memo(function ExamplesButton({
         aria-current={isActive ? "page" : undefined}
       >
         <ExamplesIcon />
-        Examples
+        <span className="nav-button-text">Examples</span>
       </IconButton>
     </Tooltip>
   );
@@ -207,19 +247,26 @@ const ExamplesButton = memo(function ExamplesButton({
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <div css={styles(theme)} className="app-header">
+    <div css={styles(theme, isMobile)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <LogoButton />
           <div className="nav-group">
-            <DashboardButton isActive={path.startsWith("/dashboard")} />
-            <ExamplesButton isActive={path.startsWith("/examples")} />
+            <DashboardButton 
+              isActive={path.startsWith("/dashboard")} 
+              isMobile={isMobile}
+            />
+            <ExamplesButton 
+              isActive={path.startsWith("/examples")} 
+              isMobile={isMobile}
+            />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
-        <RightSideButtons />
+        <RightSideButtons isMobile={isMobile} />
       </Toolbar>
     </div>
   );

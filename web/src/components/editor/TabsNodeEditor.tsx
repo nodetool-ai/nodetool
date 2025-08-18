@@ -9,7 +9,7 @@ import StatusMessage from "../panels/StatusMessage";
 import AppToolbar from "../panels/AppToolbar";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 
 import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
@@ -17,23 +17,28 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import AppHeader from "../panels/AppHeader";
+import MobileFloatingToolbar from "../panels/MobileFloatingToolbar";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
     position: "absolute",
-    top: 0,
-    left: 0,
+    top: isMobile ? "56px" : "40px",
+    left: isMobile ? "60px" : "64px",
     display: "flex",
     flexDirection: "column",
-    width: "100%",
-    height: "100%",
+    width: isMobile ? "calc(100vw - 60px)" : "calc(100vw - 64px)",
+    height: isMobile ? "calc(100dvh - 56px)" : "calc(100dvh - 40px)", // Dynamic viewport height
+    maxWidth: isMobile ? "calc(100vw - 60px)" : "calc(100vw - 64px)",
+    maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100dvh - 40px)",
     flex: 1,
     minWidth: 0,
+    overflow: "hidden",
+    boxSizing: "border-box",
     "& .tabs-container": {
-      display: "flex",
+      display: isMobile ? "none" : "flex", // Hide tabs on mobile to save space
       backgroundColor: theme.vars.palette.grey[800],
       alignItems: "center",
       position: "relative",
@@ -359,6 +364,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [openWorkflows, loadingStates]);
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <>
@@ -369,7 +375,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles(theme)}>
+      <div css={styles(theme, isMobile)}>
         <div className="tabs-container">
           <TabsBar
             workflows={tabsToRender}
@@ -433,6 +439,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                               active={true}
                             />
                           </div>
+                          
+                          {/* Mobile Floating Toolbar - needs to be inside NodeContext */}
+                          <MobileFloatingToolbar />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>

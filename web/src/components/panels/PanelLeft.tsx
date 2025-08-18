@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Box, Button, useMediaQuery } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
@@ -31,10 +31,15 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, isMobile: boolean) =>
   css({
     position: "absolute",
     left: "0",
+    top: isMobile ? "56px" : "40px", // Account for fixed AppHeader  
+    height: isMobile ? ["calc(100vh - 56px)", "calc(100dvh - 56px)"] : "calc(100vh - 40px)",
+    maxHeight: isMobile ? ["calc(100vh - 56px)", "calc(100dvh - 56px)"] : "calc(100vh - 40px)",
+    zIndex: isMobile ? 1050 : "auto", // Higher z-index on mobile to overlay content
+    contain: isMobile ? "layout style" : "none", // Lighter containment to prevent layout issues
     ".panel-container": {
       flexShrink: 0,
       position: "absolute"
@@ -46,8 +51,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "72px",
-      height: "calc(-72px + 100vh)"
+      top: "0",
+      height: "100%"
     },
 
     ".panel-button": {
@@ -56,12 +61,12 @@ const styles = (theme: Theme) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: "calc(100vh - 75px)",
+      height: isMobile ? "calc(100vh - 56px)" : "calc(100vh - 40px)",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "72px",
-      cursor: "e-resize",
+      top: isMobile ? "56px" : "40px",
+      cursor: isMobile ? "pointer" : "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
         content: '""',
@@ -449,6 +454,7 @@ const PanelContent = memo(function PanelContent({
 
 const PanelLeft: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     ref: panelRef,
     size: panelSize,
@@ -476,7 +482,7 @@ const PanelLeft: React.FC = () => {
 
   return (
     <div
-      css={styles(theme)}
+      css={styles(theme, isMobile)}
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
@@ -504,7 +510,12 @@ const PanelLeft: React.FC = () => {
               : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
-            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
+            width: isVisible ? `${isMobile ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75)) : panelSize}px` : PANEL_WIDTH_COLLAPSED,
+            maxWidth: isMobile ? "75vw" : "none",
+            maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 40px)", // Use dynamic viewport height when available
+            contain: isMobile ? "layout style" : "none",
+            boxSizing: "border-box",
+            overflow: "hidden" // Prevent panel content from overflowing
           }
         }}
         variant="persistent"

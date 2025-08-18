@@ -1,6 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useRef, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  useCallback
+} from "react";
 import { Box, Alert, Typography } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -56,6 +62,7 @@ const GlobalChat: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -145,6 +152,46 @@ const GlobalChat: React.FC = () => {
     }
   }, [isMobile]);
 
+  // Handle mobile keyboard behavior and maintain scroll position
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleViewportChange = () => {
+      // Maintain scroll position when virtual keyboard appears/disappears
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          const chatArea = chatContainerRef.current.querySelector(
+            ".chat-thread-container"
+          );
+          if (chatArea) {
+            // Check if user was at bottom before viewport change
+            const wasAtBottom =
+              chatArea.scrollTop + chatArea.clientHeight >=
+              chatArea.scrollHeight - 100;
+            if (wasAtBottom) {
+              // Keep scrolled to bottom
+              chatArea.scrollTop = chatArea.scrollHeight;
+            }
+          }
+        }
+      }, 150);
+    };
+
+    // Use Visual Viewport API for better keyboard handling
+    if ((window as any).visualViewport) {
+      (window as any).visualViewport.addEventListener(
+        "resize",
+        handleViewportChange
+      );
+      return () => {
+        (window as any).visualViewport.removeEventListener(
+          "resize",
+          handleViewportChange
+        );
+      };
+    }
+  }, [isMobile]);
+
   // model persistence is handled inside the store's setter
 
   // Map status to ChatView compatible status
@@ -169,17 +216,32 @@ const GlobalChat: React.FC = () => {
       flex: 1,
       display: "flex",
       flexDirection: "column",
-
-      ".chat-header": {
-        position: "absolute",
-        top: 0,
-        left: "40px",
-        zIndex: 1000
-      },
+      height: "100%",
+      minHeight: 0,
+      maxHeight: "100%",
 
       ".chat-container": {
         flex: 1,
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        maxHeight: "100%",
+        position: "relative"
+      },
+
+      // Mobile-specific adjustments
+      [theme.breakpoints.down("sm")]: {
+        height: "100%",
+        maxHeight: "100%",
+        contain: "layout style", // CSS containment for better performance
+        ".chat-container": {
+          paddingBottom: "max(16px, env(safe-area-inset-bottom))", // More space at bottom
+          overflow: "hidden",
+          contain: "none", // Remove containment to prevent clipping
+          height: "100%",
+          maxHeight: "100%"
+        }
       }
     });
 
@@ -219,33 +281,45 @@ const GlobalChat: React.FC = () => {
 
   return (
     <Box
+      ref={chatContainerRef}
       sx={{
-        height: "100vh",
-        maxHeight: "100vh",
+        height: "100dvh", // Dynamic viewport height
+        maxHeight: "100dvh",
+        maxWidth: "100vw",
         display: "flex",
         flexDirection: "column",
-        paddingLeft: { xs: "0.5rem", md: "0" },
-        paddingRight: { xs: "0.5rem", md: "0" },
-        overflow: "hidden"
+        paddingLeft: { xs: "48px", md: "0px" },
+        paddingRight: { xs: "8px", md: "0px" },
+        paddingTop: isMobile ? "56px" : "40px",
+        overflow: "hidden",
+        position: "relative",
+        boxSizing: "border-box",
+        // Mobile viewport containment
+        [theme.breakpoints.down("sm")]: {
+          height: "100dvh",
+          maxHeight: "100dvh",
+          minHeight: "100dvh",
+          width: "100vw",
+          maxWidth: "100vw",
+          position: "relative",
+          paddingLeft: "60px",
+          paddingRight: "4px",
+          paddingTop: "56px",
+          boxSizing: "border-box",
+          contain: "layout style",
+          overscrollBehavior: "none"
+        }
       }}
     >
+      <AppHeader />
       {/* Main Chat Area */}
       <Box
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        <TabsNodeEditor hideContent />
-        <Box
-          className="actions-container"
-          sx={{
-            position: "absolute",
-            top: "32px",
-            left: 0,
-            right: 0,
-            zIndex: 1000
-          }}
-        >
-          <AppHeader />
+        {/* Hide TabsNodeEditor completely in chat mode to prevent header overlap */}
+        <Box sx={{ display: "none" }}>
+          <TabsNodeEditor hideContent />
         </Box>
 
         {(error ||
@@ -262,11 +336,12 @@ const GlobalChat: React.FC = () => {
             }
             sx={{
               position: "absolute",
-              top: "5rem",
-              left: "50%",
-              transform: "translateX(-50%)",
-              maxWidth: "600px",
-              width: "100%",
+              top: isMobile ? "60px" : "5rem",
+              left: isMobile ? "8px" : "50%",
+              right: isMobile ? "8px" : "auto",
+              transform: isMobile ? "none" : "translateX(-50%)",
+              maxWidth: isMobile ? "none" : "600px",
+              width: isMobile ? "auto" : "100%",
               zIndex: 1001,
               flexShrink: 0
             }}

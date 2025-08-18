@@ -6,12 +6,47 @@
         overflow: hidden;
         width: 100%;
         height: 100%;
+        /* Mobile-first viewport handling */
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for modern browsers */
       }
       body {
         width: 100%;
         height: 100%;
+        height: 100vh;
+        height: 100dvh;
         background-color: #0e0e0e;
         font-family: "sans-serif";
+        margin: 0;
+        padding: 0;
+        /* Prevent mobile bouncing and zooming */
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-overflow-scrolling: touch;
+        /* Prevent content overflow on mobile */
+        overflow: hidden;
+        position: relative;
+      }
+      
+      /* Mobile-specific viewport containment */
+      @media (max-width: 599px) {
+        html, body {
+          overflow: hidden !important;
+          position: fixed !important;
+          width: 100% !important;
+          height: 100% !important;
+          height: 100vh !important;
+          height: 100dvh !important;
+        }
+        
+        #root {
+          width: 100% !important;
+          height: 100% !important;
+          height: 100vh !important;
+          height: 100dvh !important;
+          overflow: hidden !important;
+          position: relative !important;
+        }
       }
     </style>
     <meta charset="utf-8" />
@@ -20,7 +55,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
