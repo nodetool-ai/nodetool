@@ -25,6 +25,7 @@ const logoStyles = (
     display: "flex",
     alignItems: "center",
     gap: "20px",
+    margin: "1px 0 0 0",
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -106,7 +107,6 @@ const Logo = ({
 
   const theme = useTheme();
   const { mode } = useColorScheme();
-
 
   return (
     <div

@@ -8,6 +8,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import Logo from "../Logo";
+import { getIsElectronDetails } from "../../utils/browser";
+import { isMac } from "../../utils/platform";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
@@ -196,6 +198,11 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     navigate("/welcome");
   }, [navigate]);
 
+  // Determine if we are running inside Electron on macOS to avoid overlapping the traffic lights
+  const electronDetails = getIsElectronDetails();
+  const onMacElectron = isMac() && electronDetails.isElectron;
+  const logoLeftMargin = onMacElectron ? 80 : 15;
+
   useEffect(() => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
@@ -223,8 +230,12 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
           alignItems: "center",
           backgroundColor: "transparent",
           padding: 0,
-          margin: "0 15px",
-          border: "none"
+          margin: 0,
+          marginLeft: logoLeftMargin,
+          marginRight: 15,
+          border: "none",
+          cursor: "pointer",
+          zIndex: 1001
         }}
       >
         <Logo
