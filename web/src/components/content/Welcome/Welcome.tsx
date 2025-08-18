@@ -44,6 +44,7 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
+import Logo from "../../Logo";
 
 enum TabValue {
   Overview = 0,
@@ -342,6 +343,21 @@ const Welcome = () => {
 
   return (
     <div css={welcomeStyles(theme)} className="welcome-container">
+      <div
+        className="logo-container"
+        style={{ position: "absolute", top: 0, left: 10, cursor: "pointer" }}
+        onClick={() => navigate(-1)}
+        title="Go Back"
+      >
+        <Logo
+          width="20px"
+          height="20px"
+          fontSize="1em"
+          borderRadius="4px"
+          small={true}
+          singleLine={true}
+        />
+      </div>
       <div className="header">
         <Box className="header-left">
           <Typography className="panel-title" variant="h2">
