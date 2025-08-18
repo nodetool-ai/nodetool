@@ -102,7 +102,10 @@ const moveRight = keyframes`
   }
 `;
 
-export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = ({ name, minimal }) => {
+export const DownloadProgress: React.FC<{
+  name: string;
+  minimal?: boolean;
+}> = ({ name, minimal }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const removeDownload = useModelDownloadStore((state) => state.removeDownload);
@@ -151,7 +154,10 @@ export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = (
   if (minimal) {
     const totalBytes = download.totalBytes ?? 0;
     const downloadedBytes = download.downloadedBytes ?? 0;
-    const percent = totalBytes > 0 ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100)) : 0;
+    const percent =
+      totalBytes > 0
+        ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
+        : 0;
     const label =
       download.status === "completed"
         ? "Done"
@@ -174,7 +180,11 @@ export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = (
     };
 
     return (
-      <Tooltip title={`${name}: ${download.status}${download.message ? ` — ${download.message}` : ""}`}>
+      <Tooltip
+        title={`${name}: ${download.status}${
+          download.message ? ` — ${download.message}` : ""
+        }`}
+      >
         <Box
           component="span"
           sx={{
@@ -187,15 +197,31 @@ export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = (
           <CircularProgress
             size={14}
             color="inherit"
-            variant={download.status === "completed" || totalBytes > 0 ? "determinate" : "indeterminate"}
-            value={download.status === "completed" ? 100 : totalBytes > 0 ? percent : undefined}
+            variant={
+              download.status === "completed" || totalBytes > 0
+                ? "determinate"
+                : "indeterminate"
+            }
+            value={
+              download.status === "completed"
+                ? 100
+                : totalBytes > 0
+                ? percent
+                : undefined
+            }
           />
-          <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            component="span"
+            sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}
+          >
             <Typography variant="caption" sx={{ lineHeight: 1 }}>
               {label}
             </Typography>
             {totalBytes > 0 && (
-              <Typography variant="caption" sx={{ lineHeight: 1, opacity: 0.8 }}>
+              <Typography
+                variant="caption"
+                sx={{ lineHeight: 1, opacity: 0.8 }}
+              >
                 {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
               </Typography>
             )}
@@ -296,7 +322,10 @@ export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = (
               <Typography
                 className="download-progress-text download-size"
                 variant="body2"
-                style={{ marginTop: ".5em" }}
+                style={{
+                  marginTop: ".5em",
+                  fontFamily: "var(--fontFamily2)"
+                }}
               >
                 Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
                 {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
@@ -319,7 +348,10 @@ export const DownloadProgress: React.FC<{ name: string; minimal?: boolean }> = (
             <Typography
               className="download-progress-text download-speed"
               variant="body2"
-              style={{ minHeight: "1.5em" }}
+              style={{
+                minHeight: "1.5em",
+                fontFamily: "var(--fontFamily2)"
+              }}
             >
               Speed:{" "}
               {download.speed
