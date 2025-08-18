@@ -44,7 +44,6 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
-import Logo from "../../Logo";
 
 enum TabValue {
   Overview = 0,
@@ -343,27 +342,31 @@ const Welcome = () => {
 
   return (
     <div css={welcomeStyles(theme)} className="welcome-container">
-      <div
-        className="logo-container"
-        style={{ position: "absolute", top: 0, left: 10, cursor: "pointer" }}
-        onClick={() => navigate(-1)}
-        title="Go Back"
-      >
-        <Logo
-          width="20px"
-          height="20px"
-          fontSize="1em"
-          borderRadius="4px"
-          small={true}
-          singleLine={true}
-        />
-      </div>
       <div className="header">
-        <Box className="header-left">
+        <Box
+          className="header-left"
+          style={{ display: "flex", alignItems: "center" }}
+        >
+          <img
+            className="logo-image"
+            src="/nodetool_icon.png"
+            alt="NodeTool"
+            style={{
+              width: "28px",
+              height: "28px",
+              marginRight: "1em"
+            }}
+          />
           <Typography className="panel-title" variant="h2">
             NodeTool
           </Typography>
-          <Typography variant="subtitle1" className="subtitle">
+          <Typography
+            variant="subtitle1"
+            className="subtitle"
+            style={{
+              marginLeft: "1em"
+            }}
+          >
             Open-Source Visual Agent Builder
           </Typography>
         </Box>
@@ -639,7 +642,7 @@ const Welcome = () => {
                     <ol className="step-list">
                       <li className="setup-step">
                         Open the <span className="fake-button">Models</span>{" "}
-                        manager in the editor's top‑right (
+                        manager in the editor&apos;s top‑right (
                         <span
                           style={{
                             display: "inline-block",

@@ -30,9 +30,6 @@ const styles = (theme: Theme) =>
       padding: "0 2px 0 12px",
       border: "0"
     },
-    ".nodetool-logo": {
-      margin: "1px 0.75em 0 0"
-    },
     ".MuiIconButton-root": {
       height: "28px",
       padding: "4px",
@@ -49,14 +46,6 @@ const styles = (theme: Theme) =>
         height: "18px",
         fontSize: "18px",
         marginRight: "4px"
-      }
-    },
-    ".logo-button": {
-      "& svg": {
-        color: "var(--palette-warning-main)"
-      },
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".navigate": {

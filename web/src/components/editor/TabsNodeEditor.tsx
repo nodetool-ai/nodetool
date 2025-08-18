@@ -231,6 +231,11 @@ const styles = (theme: Theme) =>
         fontSize: "20px"
       }
     },
+    "& .tabs-logo-button": {
+      WebkitAppRegion: "no-drag",
+      position: "relative",
+      zIndex: 1001
+    },
     "& .window-controls": {
       display: "flex",
       height: "32px",
