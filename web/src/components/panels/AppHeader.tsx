@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-import Logo from "../Logo";
 import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -116,32 +115,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const LogoButton = memo(function LogoButton() {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/welcome");
-  }, [navigate]);
-
-  return (
-    <Tooltip
-      title="Open Welcome Screen"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton className="logo-button" onClick={handleClick} tabIndex={-1}>
-        <Logo
-          width="20px"
-          height="20px"
-          fontSize="1em"
-          borderRadius="4px"
-          small={true}
-          singleLine={true}
-        />
-      </IconButton>
-    </Tooltip>
-  );
-});
+// Removed logo button from header; logo now lives in the editor tabs bar
 
 const DashboardButton = memo(function DashboardButton({
   isActive
@@ -212,7 +186,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
-          <LogoButton />
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />
             <ExamplesButton isActive={path.startsWith("/examples")} />
