@@ -102,7 +102,7 @@ const welcomeStyles = (theme: Theme) =>
     ".quick-card": {
       borderRadius: "8px",
       transition: "transform .15s ease, border-color .15s ease",
-      '&:hover': {
+      "&:hover": {
         transform: "translateY(-2px)",
         borderColor: "var(--palette-primary-main)"
       }
@@ -137,7 +137,7 @@ const welcomeStyles = (theme: Theme) =>
       transition: "all 0.2s"
     },
     ".link:hover": {
-      color: theme.vars.palette.grey[1000],
+      color: theme.vars.palette.grey[1000]
     },
 
     ".link-body": {
@@ -303,8 +303,7 @@ const welcomeStyles = (theme: Theme) =>
     },
     ".models-heading": {
       marginTop: "0.75em",
-      marginBottom: "0.25em",
-      fontFamily: theme.fontFamily2
+      marginBottom: "0.25em"
     },
     ".local-models-list": {
       listStyleType: "none",
@@ -339,6 +338,13 @@ const welcomeStyles = (theme: Theme) =>
     ".local-model-actions": {
       display: "flex",
       alignItems: "center"
+    },
+    ".model-variant-buttons": {
+      "& .inline-download-progress": {
+        "& .MuiTypography-root": {
+          fontFamily: theme.fontFamily2
+        }
+      }
     },
     ".local-model-desc": {
       marginTop: 6,
