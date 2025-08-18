@@ -31,15 +31,10 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
-const styles = (theme: Theme, isMobile: boolean) =>
+const styles = (theme: Theme) =>
   css({
     position: "absolute",
     left: "0",
-    top: isMobile ? "56px" : "40px", // Account for fixed AppHeader  
-    height: isMobile ? ["calc(100vh - 56px)", "calc(100dvh - 56px)"] : "calc(100vh - 40px)",
-    maxHeight: isMobile ? ["calc(100vh - 56px)", "calc(100dvh - 56px)"] : "calc(100vh - 40px)",
-    zIndex: isMobile ? 1050 : "auto", // Higher z-index on mobile to overlay content
-    contain: isMobile ? "layout style" : "none", // Lighter containment to prevent layout issues
     ".panel-container": {
       flexShrink: 0,
       position: "absolute"
@@ -51,8 +46,8 @@ const styles = (theme: Theme, isMobile: boolean) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "0",
-      height: "100%"
+      top: "72px",
+      height: "calc(-72px + 100vh)"
     },
 
     ".panel-button": {
@@ -61,12 +56,12 @@ const styles = (theme: Theme, isMobile: boolean) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: isMobile ? "calc(100vh - 56px)" : "calc(100vh - 40px)",
+      height: "calc(100vh - 75px)",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: isMobile ? "56px" : "40px",
-      cursor: isMobile ? "pointer" : "e-resize",
+      top: "72px",
+      cursor: "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
         content: '""',
@@ -482,7 +477,7 @@ const PanelLeft: React.FC = () => {
 
   return (
     <div
-      css={styles(theme, isMobile)}
+      css={styles(theme)}
       className="panel-container"
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >

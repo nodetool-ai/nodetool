@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-import { IconButton, useMediaQuery, Fab, Box } from "@mui/material";
+import { IconButton, Fab, Box } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useLocation } from "react-router-dom";
@@ -69,7 +69,6 @@ const styles = (theme: Theme) =>
 
 const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const path = useLocation().pathname;
   
   const { workflow, nodes, edges } = useNodes((state) => ({
@@ -114,13 +113,13 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
     cancel();
   }, [cancel]);
 
-  // Only show on mobile and in editor view
-  if (!isMobile || !path.startsWith("/editor")) {
+  // Only show in editor view (visibility toggled by CSS for mobile)
+  if (!path.startsWith("/editor")) {
     return null;
   }
 
   return (
-    <Box css={styles(theme)}>
+    <Box css={styles(theme)} className="mobile-floating-toolbar">
       <Fab
         className={`floating-action-button ${isWorkflowRunning ? "running" : ""} ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleRun}

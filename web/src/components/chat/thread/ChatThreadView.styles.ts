@@ -10,8 +10,6 @@ export const createStyles = (theme: Theme) => ({
     flexDirection: "column",
     padding: "2em 0",
     minHeight: 0
-
-    // Mobile styles handled via separate CSS file
   }),
   scrollableMessageWrapper: css({
     flex: 1,
@@ -27,8 +25,6 @@ export const createStyles = (theme: Theme) => ({
     position: "relative",
     scrollbarWidth: "auto",
     scrollbarColor: "var(--palette-grey-600) transparent",
-    // Smooth scrolling for mobile
-    WebkitOverflowScrolling: "touch",
 
     "&::-webkit-scrollbar": {
       width: "12px !important"
@@ -43,8 +39,6 @@ export const createStyles = (theme: Theme) => ({
     "&::-webkit-scrollbar-thumb:hover": {
       background: "var(--palette-warning-main) !important"
     }
-
-    // Mobile styles handled via separate CSS file
   }),
   chatMessagesList: css({
     listStyleType: "none",
@@ -74,23 +68,6 @@ export const createStyles = (theme: Theme) => ({
       backgroundColor: theme.vars.palette.grey[600],
       opacity: 0.9,
       borderRadius: "20px"
-    },
-
-    // Mobile-specific message styling
-    [theme.breakpoints.down("sm")]: {
-      "li.user": {
-        width: "85%",
-        margin: "2em 0 1em auto",
-        fontSize: theme.fontSizeSmall
-      },
-      "li.chat-message": {
-        marginBottom: "0.75em",
-        padding: "0.375em 0"
-      },
-      "li.chat-message .copy-button": {
-        top: "4px",
-        right: "4px"
-      }
     },
 
     ".chat-message.user .markdown": {

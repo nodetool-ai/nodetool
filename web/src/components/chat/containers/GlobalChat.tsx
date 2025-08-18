@@ -7,8 +7,7 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Alert, Typography } from "@mui/material";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -59,10 +58,10 @@ const GlobalChat: React.FC = () => {
     (s) => s.setSelectedCollections
   );
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -147,10 +146,8 @@ const GlobalChat: React.FC = () => {
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
-    if (!isMobile) {
-      setDrawerOpen(false);
-    }
-  }, [isMobile]);
+    setDrawerOpen(false);
+  }, []);
 
   // Handle mobile keyboard behavior and maintain scroll position
   useEffect(() => {
@@ -190,7 +187,7 @@ const GlobalChat: React.FC = () => {
         );
       };
     }
-  }, [isMobile]);
+  }, []);
 
   // model persistence is handled inside the store's setter
 
@@ -228,7 +225,7 @@ const GlobalChat: React.FC = () => {
         minHeight: 0,
         maxHeight: "100%",
         position: "relative"
-      },
+      }
 
       // Mobile styles handled via separate CSS file
     });
@@ -277,12 +274,10 @@ const GlobalChat: React.FC = () => {
         maxWidth: "100vw",
         display: "flex",
         flexDirection: "column",
-        paddingLeft: { xs: "48px", md: "0px" },
-        paddingRight: { xs: "8px", md: "0px" },
-        paddingTop: isMobile ? "56px" : "40px",
+        paddingTop: "40px",
         overflow: "hidden",
         position: "relative",
-        boxSizing: "border-box",
+        boxSizing: "border-box"
         // Mobile styles handled via separate CSS file
       }}
     >
@@ -302,6 +297,7 @@ const GlobalChat: React.FC = () => {
           status === "disconnected" ||
           status === "failed") && (
           <Alert
+            className="global-chat-status-alert"
             severity={
               status === "reconnecting"
                 ? "info"
@@ -311,12 +307,11 @@ const GlobalChat: React.FC = () => {
             }
             sx={{
               position: "absolute",
-              top: isMobile ? "60px" : "5rem",
-              left: isMobile ? "8px" : "50%",
-              right: isMobile ? "8px" : "auto",
-              transform: isMobile ? "none" : "translateX(-50%)",
-              maxWidth: isMobile ? "none" : "600px",
-              width: isMobile ? "auto" : "100%",
+              top: "5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
               zIndex: 1001,
               flexShrink: 0
             }}

@@ -113,7 +113,7 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
     }, []);
 
     return (
-      <Box css={styles(theme, isExpanded)}>
+      <Box css={styles(theme, isExpanded)} className="mobile-chat-toolbar">
         {!isExpanded ? (
           <IconButton
             className="toggle-button"
@@ -141,7 +141,6 @@ const MobileChatToolbar: React.FC<MobileChatToolbarProps> = memo(
                 onAgentModeToggle={onAgentModeToggle}
                 selectedCollections={selectedCollections}
                 onCollectionsChange={onCollectionsChange}
-                isMobile={true}
               />
             </Collapse>
           </div>

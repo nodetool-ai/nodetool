@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback } from "react";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   Node,
   Edge,
@@ -16,7 +15,7 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 
-const styles = (theme: Theme, isMobile: boolean) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -116,7 +115,6 @@ const ChatView = ({
   graph
 }: ChatViewProps) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -155,7 +153,7 @@ const ChatView = ({
   );
 
   return (
-    <div className="chat-view" css={styles(theme, isMobile)}>
+    <div className="chat-view" css={styles(theme)}>
       <div className="chat-thread-container">
         {messages.length > 0 ? (
           <ChatThreadView

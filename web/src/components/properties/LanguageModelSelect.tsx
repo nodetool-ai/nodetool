@@ -1,5 +1,13 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button, IconButton, useMediaQuery, Select, MenuItem, FormControl } from "@mui/material";
+import {
+  Typography,
+  Tooltip,
+  Button,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -67,7 +75,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
   const {
@@ -150,135 +157,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     [groupedModels]
   );
 
-  // Mobile version with simple dropdown
-  if (isMobile) {
-    return (
-      <FormControl
-        size="small"
-        sx={{
-          minWidth: 140,
-          maxWidth: 160,
-          "& .MuiOutlinedInput-root": {
-            backgroundColor: "var(--palette-grey-800)",
-            border: "1px solid var(--palette-grey-600)",
-            borderRadius: "8px",
-            color: "var(--palette-grey-0)",
-            fontSize: "0.75rem",
-            "&:hover": {
-              borderColor: "var(--palette-grey-500)"
-            },
-            "&.Mui-focused": {
-              borderColor: "var(--palette-primary-main)"
-            }
-          },
-          "& .MuiSelect-select": {
-            padding: "6px 8px",
-            paddingRight: "24px !important"
-          },
-          "& .MuiSelect-icon": {
-            color: "var(--palette-grey-400)",
-            right: "4px"
-          }
-        }}
-      >
-        <Select
-          value={value || ""}
-          onChange={(e) => {
-            const selectedModel = models?.find(m => m.id === e.target.value);
-            if (selectedModel) {
-              const modelToPass = {
-                type: "language_model" as const,
-                id: selectedModel.id,
-                provider: selectedModel.provider,
-                name: selectedModel.name || ""
-              };
-              onChange(modelToPass);
-              addRecent({
-                provider: selectedModel.provider || "",
-                id: selectedModel.id || "",
-                name: selectedModel.name || ""
-              });
-            }
-          }}
-          displayEmpty
-          IconComponent={KeyboardArrowDownIcon}
-          renderValue={(selected) => {
-            if (!selected) {
-              return (
-                <Typography variant="body2" sx={{ color: "var(--palette-grey-500)" }}>
-                  Select Model
-                </Typography>
-              );
-            }
-            const selectedModel = models?.find(m => m.id === selected);
-            return (
-              <Typography variant="body2" sx={{ color: "var(--palette-grey-0)" }}>
-                {selectedModel?.name?.split('/').pop() || selected}
-              </Typography>
-            );
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                backgroundColor: "var(--palette-grey-800)",
-                border: "1px solid var(--palette-grey-600)",
-                borderRadius: "8px",
-                maxHeight: "300px",
-                "& .MuiMenuItem-root": {
-                  color: "var(--palette-grey-0)",
-                  fontSize: "0.75rem",
-                  padding: "8px 12px",
-                  "&:hover": {
-                    backgroundColor: "var(--palette-grey-700)"
-                  },
-                  "&.Mui-selected": {
-                    backgroundColor: "var(--palette-primary-main)",
-                    "&:hover": {
-                      backgroundColor: "var(--palette-primary-dark)"
-                    }
-                  }
-                }
-              }
-            }
-          }}
-        >
-          {!models || isLoading ? (
-            <MenuItem disabled>
-              <Typography variant="body2">Loading models...</Typography>
-            </MenuItem>
-          ) : isError ? (
-            <MenuItem disabled>
-              <Typography variant="body2">Error loading models</Typography>
-            </MenuItem>
-          ) : (
-            sortedProviders.map((provider) => [
-              <MenuItem key={`provider-${provider}`} disabled sx={{ 
-                fontWeight: "bold", 
-                backgroundColor: "var(--palette-grey-700) !important",
-                color: "var(--palette-grey-300) !important"
-              }}>
-                {renderProviderLabel(provider)}
-              </MenuItem>,
-              ...groupedModels[provider].map((model) => (
-                <MenuItem key={model.id} value={model.id}>
-                  <Typography variant="body2" sx={{ 
-                    paddingLeft: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
-                  }}>
-                    {model.name.split('/').pop() || model.name}
-                  </Typography>
-                </MenuItem>
-              ))
-            ]).flat()
-          )}
-        </Select>
-      </FormControl>
-    );
-  }
-
-  // Desktop version with full text
   return (
     <>
       <Tooltip
@@ -296,7 +174,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       >
         <Button
           ref={buttonRef}
-          className={`select-model-button ${value ? "active" : ""}`}
+          className={`select-model-button language-model-button ${
+            value ? "active" : ""
+          }`}
           sx={{
             fontSize: "var(--fontSizeTiny)",
             border: "1px solid transparent",

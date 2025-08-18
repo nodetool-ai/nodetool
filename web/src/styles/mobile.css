@@ -49,6 +49,11 @@
     padding: 12px 12px 8px 12px !important;
   }
 
+  /* Hide chat composer action buttons on mobile (send/stop/new) */
+  .mobile .chat-action-buttons {
+    display: none !important;
+  }
+
   .mobile .chat-input-section .chat-controls {
     max-width: auto !important;
     width: auto !important;
@@ -73,47 +78,8 @@
     contain: layout style !important;
   }
 
-  /* App Header Mobile Styles */
-  .mobile .app-header {
-    min-height: 56px !important;
-    height: 56px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: saturate(180%) blur(20px) !important;
-    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-  }
-
-  .mobile .app-header .toolbar {
-    height: 56px !important;
-    min-height: 56px !important;
-    max-height: 56px !important;
-    padding: 0 8px !important;
-  }
-
-  .mobile .app-header .nav-button {
-    padding: 6px !important;
-    min-width: 32px !important;
-  }
-
   .mobile .app-header .nav-button-text {
     display: none !important;
-  }
-
-  .mobile .app-header .navigate {
-    gap: 4px !important;
-  }
-
-  .mobile .app-header .nav-group {
-    gap: 2px !important;
-    padding: 2px !important;
-  }
-
-  .mobile .app-header .MuiIconButton-root svg {
-    margin-right: 0 !important;
-  }
-
-  .mobile .app-header .buttons-right {
-    margin-right: 2px !important;
   }
 
   /* Panel Left Mobile Styles */
@@ -122,21 +88,22 @@
   }
 
   .mobile .panel-container .panel-left {
-    max-height: calc(100dvh - 56px) !important;
+    top: 72px !important; /* 32px tabs + 40px header */
+    max-height: calc(100dvh - 72px) !important;
     contain: layout style !important;
   }
 
   .mobile .panel-container .panel-button {
-    height: calc(100vh - 56px) !important;
-    top: 56px !important;
+    height: calc(100vh - 72px) !important;
+    top: 72px !important;
     cursor: pointer !important;
   }
 
-  .mobile .panel-container .vertical-toolbar .MuiIconButton-root,
+  /* .mobile .panel-container .vertical-toolbar .MuiIconButton-root,
   .mobile .panel-container .vertical-toolbar .MuiButton-root {
     min-height: 44px !important;
     min-width: 44px !important;
-  }
+  } */
 
   /* General Mobile Layout */
   .mobile {
@@ -147,19 +114,26 @@
     -webkit-tap-highlight-color: transparent !important;
   }
 
-  /* Ensure mobile-optimized touch targets */
-  .mobile button,
+  Ensure mobile-optimized touch targets */ .mobile button,
   .mobile .MuiIconButton-root,
   .mobile .MuiButton-root {
     min-height: 44px !important;
     min-width: 44px !important;
   }
 
-  /* Mobile viewport containment */
   .mobile .main-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
     contain: layout style !important;
+  }
+
+  /* Hide AppToolbar actions (editor) on mobile */
+  .mobile .tabs-node-editor .actions-container .actions {
+    display: none !important;
+  }
+
+  .mobile .tab {
+    top: 10px;
   }
 }

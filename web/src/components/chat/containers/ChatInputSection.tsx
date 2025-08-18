@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
 import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const styles = (theme: Theme) =>
   css({
@@ -109,7 +109,6 @@ const ChatInputSection = ({
             onModelChange={onModelChange}
             agentMode={agentMode}
             onAgentModeToggle={onAgentModeToggle}
-            isMobile={isMobile}
           />
         )}
       </div>

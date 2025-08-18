@@ -12,27 +12,13 @@ import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
 
-const styles = (theme: Theme, isMobile: boolean) =>
+const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
     width: "100%",
-    
-    // Desktop layout
-    ...(!isMobile && {
-      gap: "8px",
-      flexWrap: "wrap"
-    }),
-    
-    // Mobile-first: tight 2-row layout
-    ...(isMobile && {
-      flexDirection: "column",
-      gap: "6px",
-      padding: "8px 12px",
-      backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "12px",
-      border: `1px solid ${theme.vars.palette.grey[600]}`
-    }),
+    gap: "8px",
+    flexWrap: "wrap",
     
     // Row styling
     ".controls-row": {
@@ -55,13 +41,10 @@ const styles = (theme: Theme, isMobile: boolean) =>
       justifyContent: "flex-end"
     },
     
-    // Compact button styling for mobile
+    // Button styling (desktop defaults; mobile overrides in CSS)
     "& .MuiButton-root, & .MuiIconButton-root": {
-      padding: isMobile ? "6px 8px" : "6px",
-      margin: "0",
-      minHeight: isMobile ? "36px" : "auto",
-      fontSize: isMobile ? "0.75rem" : "inherit",
-      minWidth: isMobile ? "36px" : "auto"
+      padding: "6px",
+      margin: "0"
     }
   });
 
@@ -74,7 +57,6 @@ interface ChatToolBarProps {
   onAgentModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
-  isMobile?: boolean;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -85,60 +67,13 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   agentMode,
   onAgentModeToggle,
   selectedCollections,
-  onCollectionsChange,
-  isMobile = false
+  onCollectionsChange
 }) => {
   const theme = useTheme();
 
-  if (isMobile) {
-    // Clean mobile 2-row layout
-    return (
-      <div className="chat-tool-bar" css={styles(theme, isMobile)}>
-        {/* Row 1: Model + Tools/Controls */}
-        <div className="controls-row">
-          <div className="model-select">
-            {onModelChange && (
-              <LanguageModelSelect
-                onChange={(model) => onModelChange(model)}
-                value={selectedModel?.id || ""}
-              />
-            )}
-          </div>
-          
-          <div className="tools-container">
-            {onAgentModeToggle && (
-              <AgentModeToggle
-                agentMode={agentMode || false}
-                onToggle={onAgentModeToggle}
-              />
-            )}
-            {onToolsChange && (
-              <>
-                <WorkflowToolsSelector
-                  value={selectedTools}
-                  onChange={onToolsChange}
-                />
-                <NodeToolsSelector 
-                  value={selectedTools} 
-                  onChange={onToolsChange} 
-                />
-                {onCollectionsChange && (
-                  <CollectionsSelector
-                    value={selectedCollections || []}
-                    onChange={onCollectionsChange}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Desktop layout (unchanged)
   return (
-    <div className="chat-tool-bar" css={styles(theme, isMobile)}>
+    <div className="chat-tool-bar" css={styles(theme)}>
       {onModelChange && (
         <LanguageModelSelect
           onChange={(model) => onModelChange(model)}

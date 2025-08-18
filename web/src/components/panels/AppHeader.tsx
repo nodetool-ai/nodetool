@@ -4,52 +4,35 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import Logo from "../Logo";
-import { Tooltip, Toolbar, Box, IconButton, Typography, useMediaQuery } from "@mui/material";
+import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
 
-const styles = (theme: Theme, isMobile: boolean) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100%",
-      maxWidth: "100vw",
-      overflow: "hidden", // Prevent overflow
+      overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
-      paddingLeft: isMobile ? "4px" : "8px",
-      minHeight: isMobile ? "56px" : "40px",
-      height: isMobile ? "56px" : "40px", // Fixed height
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1100,
-      borderBottom: isMobile ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-      backdropFilter: "saturate(180%) blur(20px)",
-      WebkitBackdropFilter: "saturate(180%) blur(20px)",
-      boxShadow: isMobile ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
-      boxSizing: "border-box"
+      paddingLeft: "8px"
     },
     ".toolbar": {
-      backgroundColor: "transparent",
-      overflow: "hidden", // Prevent toolbar overflow
-      display: "flex !important",
+      backgroundColor: theme.vars.palette.grey[900],
+      overflow: "visible",
+      display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
       position: "relative",
-      height: isMobile ? "56px" : "40px",
-      minHeight: isMobile ? "56px" : "40px",
-      maxHeight: isMobile ? "56px" : "40px", // Prevent expansion
-      padding: isMobile ? "0 8px" : "0 2px 0 12px",
-      border: "0",
-      width: "100%",
-      maxWidth: "100%",
-      boxSizing: "border-box"
+      height: "40px",
+      minHeight: "40px",
+      padding: "0 2px 0 12px",
+      border: "0"
     },
     ".nodetool-logo": {
-      margin: isMobile ? "1px 0.5em 0 0" : "1px 0.75em 0 0"
+      margin: "1px 0.75em 0 0"
     },
     ".MuiIconButton-root": {
       height: "28px",
@@ -66,7 +49,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         width: "18px",
         height: "18px",
         fontSize: "18px",
-        marginRight: isMobile ? "0" : "4px"
+        marginRight: "4px"
       }
     },
     ".logo-button": {
@@ -81,27 +64,25 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex !important",
       alignItems: "center",
       flex: "1 1 auto",
-      gap: isMobile ? "4px" : "8px",
-      visibility: "visible"
+      gap: "8px"
     },
     ".nav-group": {
       display: "flex",
       alignItems: "center",
-      gap: isMobile ? "2px" : "6px",
-      padding: isMobile ? "2px" : "2px 4px",
+      gap: "6px",
+      padding: "2px 4px",
       borderRadius: "10px",
-      backgroundColor: theme.vars.palette.action.hover,
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
-      padding: isMobile ? "6px" : "4px 8px",
+      padding: "0px 8px",
       borderRadius: "8px",
       fontWeight: 600,
       letterSpacing: "0.01em",
       color: theme.vars.palette.grey[100],
-      minWidth: isMobile ? "32px" : "auto",
+      minWidth: "auto",
       "& svg": {
-        marginRight: isMobile ? "0" : "6px"
+        marginRight: "6px"
       },
       position: "relative",
       "&.active": {
@@ -125,7 +106,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       }
     },
     ".nav-button-text": {
-      display: isMobile ? "none" : "inline"
+      display: "inline"
     },
     ".buttons-right": {
       display: "flex",
@@ -134,8 +115,8 @@ const styles = (theme: Theme, isMobile: boolean) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
-      marginRight: isMobile ? "2px" : "4px"
-    },
+      marginRight: "4px"
+    }
     // Mobile styles handled via separate CSS file
   });
 
@@ -167,11 +148,9 @@ const LogoButton = memo(function LogoButton() {
 });
 
 const DashboardButton = memo(function DashboardButton({
-  isActive,
-  isMobile
+  isActive
 }: {
   isActive: boolean;
-  isMobile: boolean;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -199,11 +178,9 @@ const DashboardButton = memo(function DashboardButton({
 });
 
 const ExamplesButton = memo(function ExamplesButton({
-  isActive,
-  isMobile
+  isActive
 }: {
   isActive: boolean;
-  isMobile: boolean;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -234,26 +211,19 @@ const ExamplesButton = memo(function ExamplesButton({
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <div css={styles(theme, isMobile)} className="app-header">
+    <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <LogoButton />
           <div className="nav-group">
-            <DashboardButton 
-              isActive={path.startsWith("/dashboard")} 
-              isMobile={isMobile}
-            />
-            <ExamplesButton 
-              isActive={path.startsWith("/examples")} 
-              isMobile={isMobile}
-            />
+            <DashboardButton isActive={path.startsWith("/dashboard")} />
+            <ExamplesButton isActive={path.startsWith("/examples")} />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
-        <RightSideButtons isMobile={isMobile} />
+        <RightSideButtons />
       </Toolbar>
     </div>
   );

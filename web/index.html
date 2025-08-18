@@ -1,54 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <style>
-      html {
-        overflow: hidden;
-        width: 100%;
-        height: 100%;
-        /* Mobile-first viewport handling */
-        height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for modern browsers */
-      }
-      body {
-        width: 100%;
-        height: 100%;
-        height: 100vh;
-        height: 100dvh;
-        background-color: #0e0e0e;
-        font-family: "sans-serif";
-        margin: 0;
-        padding: 0;
-        /* Prevent mobile bouncing and zooming */
-        overscroll-behavior: none;
-        touch-action: manipulation;
-        -webkit-overflow-scrolling: touch;
-        /* Prevent content overflow on mobile */
-        overflow: hidden;
-        position: relative;
-      }
-      
-      /* Mobile-specific viewport containment */
-      @media (max-width: 599px) {
-        html, body {
-          overflow: hidden !important;
-          position: fixed !important;
-          width: 100% !important;
-          height: 100% !important;
-          height: 100vh !important;
-          height: 100dvh !important;
-        }
-        
-        #root {
-          width: 100% !important;
-          height: 100% !important;
-          height: 100vh !important;
-          height: 100dvh !important;
-          overflow: hidden !important;
-          position: relative !important;
-        }
-      }
-    </style>
     <meta charset="utf-8" />
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
