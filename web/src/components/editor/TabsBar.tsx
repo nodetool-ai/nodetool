@@ -7,6 +7,7 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
+import Logo from "../Logo";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
@@ -191,6 +192,10 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     navigate(`/editor/${newWorkflow.id}`);
   }, [createNewWorkflow, navigate]);
 
+  const handleLogoClick = useCallback(() => {
+    navigate("/welcome");
+  }, [navigate]);
+
   useEffect(() => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
@@ -208,6 +213,29 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
 
   return (
     <div className="tabs-container">
+      <button
+        tabIndex={-1}
+        className="tabs-logo-button"
+        onClick={handleLogoClick}
+        title="Open Welcome Screen"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "transparent",
+          padding: 0,
+          margin: "0 15px",
+          border: "none"
+        }}
+      >
+        <Logo
+          width="20px"
+          height="20px"
+          fontSize="1em"
+          borderRadius="4px"
+          small={true}
+          singleLine={true}
+        />
+      </button>
       <button
         className="scroll-button"
         onClick={handleScrollLeft}
