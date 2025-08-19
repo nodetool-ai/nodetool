@@ -131,12 +131,13 @@ export default function SystemTab() {
       try {
         // Since /api/system/ endpoint doesn't exist, we'll create a basic system info
         // and fetch what we can from available endpoints
-        const [healthResult, ollamaPathResult, hfPathResult] = await Promise.all([
-          // Use the available /health endpoint instead of /api/system/health
-          client.GET("/health", {}),
-          client.GET("/api/models/ollama_base_path", {}),
-          client.GET("/api/models/huggingface_base_path", {})
-        ]);
+        const [healthResult, ollamaPathResult, hfPathResult] =
+          await Promise.all([
+            // Use the available /health endpoint instead of /api/system/health
+            client.GET("/health", {}),
+            client.GET("/api/models/ollama_base_path", {}),
+            client.GET("/api/models/huggingface_base_path", {})
+          ]);
 
         console.log("Health result:", healthResult);
         console.log("Ollama path result:", ollamaPathResult);
@@ -160,12 +161,14 @@ export default function SystemTab() {
           },
           paths: {
             settings_path: "Not available",
-            secrets_path: "Not available", 
+            secrets_path: "Not available",
             data_dir: "Not available",
             core_logs_dir: "Not available",
             core_log_file: "Not available",
-            ollama_models_dir: (ollamaPathResult.data as any)?.path || "Not available",
-            huggingface_cache_dir: (hfPathResult.data as any)?.path || "Not available",
+            ollama_models_dir:
+              (ollamaPathResult.data as any)?.path || "Not available",
+            huggingface_cache_dir:
+              (hfPathResult.data as any)?.path || "Not available",
             electron_user_data: "Not available",
             electron_log_file: "Not available",
             electron_logs_dir: "Not available"
@@ -179,7 +182,9 @@ export default function SystemTab() {
             {
               id: "api_connection",
               status: hasHealthError ? "error" : "ok",
-              details: hasHealthError ? "API connection failed" : "API connection successful",
+              details: hasHealthError
+                ? "API connection failed"
+                : "API connection successful",
               fix_hint: hasHealthError ? "Check if the server is running" : null
             }
           ],
@@ -201,7 +206,7 @@ export default function SystemTab() {
           const fallbackInfo: SystemInfoResponse = {
             os: {
               platform: navigator.platform || "Unknown",
-              release: "Unknown", 
+              release: "Unknown",
               arch: "Unknown"
             },
             versions: {
@@ -216,7 +221,7 @@ export default function SystemTab() {
             paths: {
               settings_path: "Not available",
               secrets_path: "Not available",
-              data_dir: "Not available", 
+              data_dir: "Not available",
               core_logs_dir: "Not available",
               core_log_file: "Not available",
               ollama_models_dir: "Not available",
@@ -226,7 +231,7 @@ export default function SystemTab() {
               electron_logs_dir: "Not available"
             }
           };
-          
+
           const fallbackHealth: HealthResponse = {
             checks: [
               {
@@ -238,7 +243,7 @@ export default function SystemTab() {
             ],
             summary: { ok: 0, warn: 0, error: 1 }
           };
-          
+
           setInfo(fallbackInfo);
           setHealth(fallbackHealth);
         }
