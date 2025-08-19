@@ -86,6 +86,7 @@ function unregisterEventHandler<T extends keyof IpcEvents>(
 contextBridge.exposeInMainWorld("api", {
   // Request-response methods
   getServerState: () => ipcRenderer.invoke(IpcChannels.GET_SERVER_STATE),
+  getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
   clipboardWriteText: (text: string) =>
     ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
   clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),

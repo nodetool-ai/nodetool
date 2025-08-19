@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from "react";
+import SystemDiagnostics from "./SystemDiagnostics";
 
 interface UpdateProgressData {
   componentName: string;
@@ -13,11 +14,26 @@ interface BootMessageProps {
   progressData: UpdateProgressData;
 }
 
-const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, progressData }) => {
+const BootMessage: React.FC<BootMessageProps> = ({
+  message,
+  showUpdateSteps,
+  progressData,
+}) => {
+  const [showSystemInfo, setShowSystemInfo] = useState(false);
+
   return (
     <div id="boot-message">
       <div className="boot-panel">
-        <div className="brand">NodeTool</div>
+        <div className="boot-panel-header">
+          <div className="brand">NodeTool</div>
+          <button
+            className="system-info-toggle"
+            onClick={() => setShowSystemInfo(!showSystemInfo)}
+            title="System Information"
+          >
+            {showSystemInfo ? "✕" : "ℹ"}
+          </button>
+        </div>
         <div className="brand-ring" aria-hidden="true" />
 
         <svg
@@ -71,7 +87,7 @@ const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, pro
                     {Math.round(progressData.progress)}%
                   </span>
                   <span className="progress-eta">
-                    {progressData.eta ? ` (${progressData.eta})` : ''}
+                    {progressData.eta ? ` (${progressData.eta})` : ""}
                   </span>
                 </span>
               </div>
@@ -85,6 +101,12 @@ const BootMessage: React.FC<BootMessageProps> = ({ message, showUpdateSteps, pro
           </div>
         )}
       </div>
+
+      {/* System Diagnostics Overlay */}
+      <SystemDiagnostics
+        isVisible={showSystemInfo}
+        onToggle={() => setShowSystemInfo(!showSystemInfo)}
+      />
     </div>
   );
 };

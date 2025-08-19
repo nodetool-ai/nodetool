@@ -21,6 +21,8 @@ import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { getShortcutTooltip } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
+import SystemTab from "./SystemTab";
+import { isProduction } from "../../../stores/ApiClient";
 
 interface HelpItem {
   text: string;
@@ -246,10 +248,13 @@ const Help = ({
               value={helpIndex}
               onChange={handleChange}
               aria-label="help tabs"
+              variant="scrollable"
+              scrollButtons="auto"
             >
               <Tab label="Shortcuts" id="help-tab-0" />
               <Tab label="Keyboard" id="help-tab-1" />
               <Tab label="DataTypes" id="help-tab-2" />
+              {!isProduction && <Tab label="System" id="help-tab-3" />}
             </Tabs>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
@@ -272,6 +277,11 @@ const Help = ({
                   onChange={handleAccordionChange("comfy")}
                 />
               </TabPanel>
+              {!isProduction && (
+                <TabPanel value={helpIndex} index={3}>
+                  <SystemTab />
+                </TabPanel>
+              )}
             </div>
           </div>
         </div>
