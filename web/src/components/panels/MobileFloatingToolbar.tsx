@@ -10,6 +10,8 @@ import { useLocation } from "react-router-dom";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import ControlPointIcon from "@mui/icons-material/ControlPoint";
 
 const styles = (theme: Theme) =>
   css({
@@ -113,6 +115,25 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
     cancel();
   }, [cancel]);
 
+  // Node menu open/close for mobile
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
+    (state) => ({
+      openNodeMenu: state.openNodeMenu,
+      closeNodeMenu: state.closeNodeMenu,
+      isMenuOpen: state.isMenuOpen
+    })
+  );
+  const handleToggleNodeMenu = useCallback(() => {
+    if (isMenuOpen) {
+      closeNodeMenu();
+    } else {
+      // Open as a bottom sheet (full-width) near the top for full-height layout
+      const x = 0;
+      const y = Math.max(8, Math.floor(window.innerHeight * 0.06));
+      openNodeMenu({ x, y });
+    }
+  }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
+
   // Only show in editor view (visibility toggled by CSS for mobile)
   if (!path.startsWith("/editor")) {
     return null;
@@ -120,6 +141,13 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
 
   return (
     <Box css={styles(theme)} className="mobile-floating-toolbar">
+      <Fab
+        className={`floating-action-button`}
+        onClick={handleToggleNodeMenu}
+        aria-label="Open node menu"
+      >
+        <ControlPointIcon />
+      </Fab>
       <Fab
         className={`floating-action-button ${isWorkflowRunning ? "running" : ""} ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleRun}

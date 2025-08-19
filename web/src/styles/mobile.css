@@ -2,6 +2,74 @@
 /* Applied when .mobile class is present on body or root container */
 
 @media (max-width: 599.95px) {
+  /* Node Menu (Editor) – hide namespace tree and NodeInfo panel for a cleaner mobile menu */
+  .mobile .floating-node-menu .namespace-panel-container,
+  .mobile .floating-node-menu .node-info-container {
+    display: none !important;
+  }
+
+  /* Hide type filters in mobile node menu */
+  .mobile .floating-node-menu .type-filter-container {
+    display: none !important;
+  }
+
+  /* Make floating node menu full-width on mobile */
+  .mobile .floating-node-menu {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 96dvh !important;
+    max-height: 96dvh !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  /* Ensure the inner container scroll area fills available height */
+  .mobile .floating-node-menu .node-menu-container {
+    max-height: calc(96dvh - 50px) !important; /* header ~40px + padding */
+    overflow: auto !important;
+  }
+
+  /* Expand node results to full width when side panels are hidden */
+  .mobile .floating-node-menu .node-list {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Static Node Menu (if visible in any mobile layout) */
+  .mobile .static-node-menu .namespace-panel-container,
+  .mobile .static-node-menu .node-info-container {
+    display: none !important;
+  }
+
+  /* Hide type filters if present in static menu headers */
+  .mobile .static-node-menu .type-filter-container {
+    display: none !important;
+  }
+
+  .mobile .static-node-menu .node-list {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Make search input full-width in node menu on mobile */
+  .mobile .floating-node-menu .search-input-container,
+  .mobile .static-node-menu .search-input-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Make property inputs full-width inside nodes on mobile */
+  .mobile .node-property input[type="text"],
+  .mobile .node-property input[type="number"],
+  .mobile .node-property textarea,
+  .mobile .node-property .MuiInputBase-root,
+  .mobile .node-property .MuiSelect-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
   /* Models Manager (Hugging Face) – hide left panel on mobile */
   /* The left panel is the download/search side: .download-models-section */
   .mobile .models-manager-dialog .download-models-section {
@@ -269,8 +337,17 @@
 
   /* Ensure the panel container itself doesn't constrain width on mobile */
   .mobile .panel-container {
-    left: 0 !important;
-    width: 100vw !important;
+    /* Revert overly broad width that blocked canvas interactions */
+    left: auto !important;
+    width: auto !important;
   }
 
+}
+
+/* Ensure ReactFlow receives touch gestures on mobile */
+@media (max-width: 599.95px) {
+  .mobile .reactflow-wrapper,
+  .mobile .react-flow {
+    touch-action: none !important;
+  }
 }
