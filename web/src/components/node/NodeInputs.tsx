@@ -9,10 +9,7 @@ import { Button } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { css } from "@emotion/react";
 import { Collapse } from "@mui/material";
-import NodePropertyForm from "./NodePropertyForm";
-import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 
 export interface NodeInputsProps {
   id: string;

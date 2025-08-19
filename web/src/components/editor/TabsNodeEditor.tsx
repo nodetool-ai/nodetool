@@ -50,9 +50,7 @@ const styles = (theme: Theme) =>
       minHeight: "32px",
       overflowX: "auto",
       overflowY: "hidden",
-      padding: "0 10px",
-      paddingLeft: "40px",
-      paddingRight: "138px",
+      padding: "0 5px",
       whiteSpace: "nowrap",
       scrollbarWidth: "none",
       msOverflowStyle: "none",
@@ -241,6 +239,11 @@ const styles = (theme: Theme) =>
       "& svg": {
         fontSize: "20px"
       }
+    },
+    "& .tabs-logo-button": {
+      WebkitAppRegion: "no-drag",
+      position: "relative",
+      zIndex: 1001
     },
     "& .window-controls": {
       display: "flex",

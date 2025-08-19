@@ -6,10 +6,6 @@ import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";
 import { client } from "../../stores/ApiClient";
 
-interface FontsResponse {
-  fonts: string[];
-}
-
 const fetchFonts = async (): Promise<string[]> => {
   const response = await client.GET("/api/fonts/", {});
   if (!response.data) {
@@ -35,6 +31,7 @@ const FontProperty: React.FC<PropertyProps> = ({
     queryKey: ["fonts"],
     queryFn: fetchFonts
   });
+  console.log(fonts);
 
   // Handle value change
   const handleChange = useCallback(
@@ -45,16 +42,16 @@ const FontProperty: React.FC<PropertyProps> = ({
   );
 
   // Current value handling
-  const currentValue = value && typeof value === "object" && value.type === "font" 
-    ? value.name 
-    : "";
+  const currentValue =
+    value && typeof value === "object" && value.type === "font"
+      ? value.name
+      : "";
 
   // Prepare options for Select component
   const options = useMemo(() => {
-    if (!fonts || isLoading || isError) return [
-      { value: "", label: "Select a font" }
-    ];
-    
+    if (!fonts || isLoading || isError)
+      return [{ value: "", label: "Select a font" }];
+
     return [
       { value: "", label: "Select a font" },
       ...fonts

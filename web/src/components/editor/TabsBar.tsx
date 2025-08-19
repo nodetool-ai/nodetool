@@ -7,6 +7,9 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
+import Logo from "../Logo";
+import { getIsElectronDetails } from "../../utils/browser";
+import { isMac } from "../../utils/platform";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
@@ -191,6 +194,15 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     navigate(`/editor/${newWorkflow.id}`);
   }, [createNewWorkflow, navigate]);
 
+  const handleLogoClick = useCallback(() => {
+    navigate("/welcome");
+  }, [navigate]);
+
+  // Determine if we are running inside Electron on macOS to avoid overlapping the traffic lights
+  const electronDetails = getIsElectronDetails();
+  const onMacElectron = isMac() && electronDetails.isElectron;
+  const logoLeftMargin = onMacElectron ? 80 : 15;
+
   useEffect(() => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
@@ -208,6 +220,33 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
 
   return (
     <div className="tabs-container">
+      <button
+        tabIndex={-1}
+        className="tabs-logo-button"
+        onClick={handleLogoClick}
+        title="Open Welcome Screen"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "transparent",
+          padding: 0,
+          margin: 0,
+          marginLeft: logoLeftMargin,
+          marginRight: 15,
+          border: "none",
+          cursor: "pointer",
+          zIndex: 1001
+        }}
+      >
+        <Logo
+          width="20px"
+          height="20px"
+          fontSize="1em"
+          borderRadius="4px"
+          small={true}
+          singleLine={true}
+        />
+      </button>
       <button
         className="scroll-button"
         onClick={handleScrollLeft}

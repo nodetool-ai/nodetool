@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-import Logo from "../Logo";
 import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -35,9 +34,6 @@ const styles = (theme: Theme) =>
       padding: "0 2px 0 12px",
       border: "0"
     },
-    ".nodetool-logo": {
-      margin: "1px 0.75em 0 0"
-    },
     ".MuiIconButton-root": {
       height: "28px",
       padding: "4px",
@@ -54,14 +50,6 @@ const styles = (theme: Theme) =>
         height: "18px",
         fontSize: "18px",
         marginRight: "4px"
-      }
-    },
-    ".logo-button": {
-      "& svg": {
-        color: "var(--palette-warning-main)"
-      },
-      "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
       }
     },
     ".navigate": {
@@ -124,32 +112,7 @@ const styles = (theme: Theme) =>
     // Mobile styles handled via separate CSS file
   });
 
-const LogoButton = memo(function LogoButton() {
-  const navigate = useNavigate();
-
-  const handleClick = useCallback(() => {
-    navigate("/welcome");
-  }, [navigate]);
-
-  return (
-    <Tooltip
-      title="Open Welcome Screen"
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <IconButton className="logo-button" onClick={handleClick} tabIndex={-1}>
-        <Logo
-          width="20px"
-          height="20px"
-          fontSize="1em"
-          borderRadius="4px"
-          small={true}
-          singleLine={true}
-        />
-      </IconButton>
-    </Tooltip>
-  );
-});
+// Removed logo button from header; logo now lives in the editor tabs bar
 
 const DashboardButton = memo(function DashboardButton({
   isActive
@@ -220,7 +183,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
-          <LogoButton />
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />
             <ExamplesButton isActive={path.startsWith("/examples")} />
