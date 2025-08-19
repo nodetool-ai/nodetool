@@ -1,11 +1,14 @@
+/* SHOULD BE REMOVED IN FUTURE */
+/* USE GENERATED CSS VARS INSTEAD */
+
 :root {
   --font_family: Inter, Arial, sans-serif;
   --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
-  
+
   /* General */
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);
- 
+
   /* Highlights */
   --c_link: var(--palette-c_link);
   --c_link_visited: var(--palette-c_link_visited);
@@ -34,5 +37,15 @@
   --c_node_bg_group: var(--palette-c_node_bg_group);
   --c_node_header_bg: var(--palette-c_node_header_bg);
   --c_node_header_bg_group: var(--palette-c_node_header_bg_group);
-}
 
+  /* REACTFLOW */
+  --c_editor_bg_color: var(--palette-c_editor_bg_color);
+  --c_editor_grid_color: var(--palette-c_editor_grid_color);
+  --c_editor_axis_color: var(--palette-c_editor_axis_color);
+  --c_selection_rect: var(--palette-c_selection_rect);
+
+  /* PROVIDERS */
+  --c_provider_api: var(--palette-c_provider_api);
+  --c_provider_local: var(--palette-c_provider_local);
+  --c_provider_hf: var(--palette-c_provider_hf);
+}
