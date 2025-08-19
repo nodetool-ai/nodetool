@@ -16,7 +16,6 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
-import AppHeader from "../panels/AppHeader";
 import MobileFloatingToolbar from "../panels/MobileFloatingToolbar";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
@@ -79,13 +78,13 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
       background: "transparent",
-      borderRadius: "2px 2px 0 0",
+      borderRadius: "8px 8px 0 0",
+      border: `1px solid transparent`,
       fontSize: "13px",
       letterSpacing: "0.3px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       position: "relative",
       marginRight: "1px",
-      border: "none",
       boxSizing: "border-box",
 
       "&::before": {
@@ -102,8 +101,9 @@ const styles = (theme: Theme) =>
       },
 
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.03)",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
         color: theme.vars.palette.grey[0],
+        borderColor: theme.vars.palette.grey[700],
         "&::before": {
           opacity: 0.3,
           transform: "scaleX(0.3)"
@@ -113,8 +113,16 @@ const styles = (theme: Theme) =>
       "&.active": {
         color: theme.vars.palette.grey[0],
         backgroundColor: theme.vars.palette.grey[900],
+        borderColor: theme.vars.palette.grey[700],
+        // Overlap the strip divider so the active tab looks connected
+        marginBottom: "-1px",
+        zIndex: 2,
+        // Hide the bottom edge to avoid a double divider
+        borderBottomColor: theme.vars.palette.grey[900],
+        boxShadow: "0 1px 0 rgba(0,0,0,0), 0 -1px 0 rgba(0,0,0,0.2)",
         "&::before": {
-          opacity: 0.8,
+          // Hide the underline when active; the tab border is the affordance
+          opacity: 0,
           transform: "scaleX(1)"
         }
       },
@@ -370,7 +378,14 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
           workflow={workflowToEdit}
         />
       )}
-      <div css={styles(theme)} className="tabs-node-editor">
+      <div
+        css={styles(theme)}
+        className="tabs-node-editor"
+        style={{
+          top: hideContent ? 0 : 40,
+          height: hideContent ? "100%" : "calc(100% - 40px)"
+        }}
+      >
         <div className="tabs-container">
           <TabsBar
             workflows={tabsToRender}
@@ -403,22 +418,11 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                     <ContextMenuProvider>
                       <ConnectableNodesProvider>
                         <KeyboardProvider>
-                          <div
-                            style={{
-                              flexShrink: 0,
-                              position: "relative",
-                              zIndex: 1
-                            }}
-                          >
-                            <AppHeader />
-                            <div className="actions-container">
-                              <AppToolbar
-                                setWorkflowToEdit={setWorkflowToEdit}
-                              />
-                            </div>
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
+                          <div className="actions-container">
+                            <AppToolbar setWorkflowToEdit={setWorkflowToEdit} />
+                          </div>
+                          <div className="status-message-container">
+                            <StatusMessage />
                           </div>
                           <div
                             style={{
@@ -434,7 +438,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                               active={true}
                             />
                           </div>
-                          
+
                           {/* Mobile Floating Toolbar - needs to be inside NodeContext */}
                           <MobileFloatingToolbar />
                         </KeyboardProvider>

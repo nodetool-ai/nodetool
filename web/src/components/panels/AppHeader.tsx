@@ -17,7 +17,11 @@ const styles = (theme: Theme) =>
       width: "100%",
       overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
-      paddingLeft: "8px"
+      paddingLeft: "8px",
+      position: "fixed",
+      top: 0,
+      left: 0,
+      zIndex: 1100
     },
     ".toolbar": {
       backgroundColor: theme.vars.palette.grey[900],

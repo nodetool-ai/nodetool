@@ -10,7 +10,6 @@ import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import TabsNodeEditor from "../editor/TabsNodeEditor";
 import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
@@ -100,7 +99,6 @@ const AssetExplorer: React.FC = () => {
   }));
   return (
     <Box css={styles(theme)}>
-      <TabsNodeEditor hideContent />
       <Box
         className="actions-container"
         sx={{

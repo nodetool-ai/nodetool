@@ -2,6 +2,94 @@
 /* Applied when .mobile class is present on body or root container */
 
 @media (max-width: 599.95px) {
+  /* Models Manager (Hugging Face) – hide left panel on mobile */
+  /* The left panel is the download/search side: .download-models-section */
+  .mobile .models-manager-dialog .download-models-section {
+    display: none !important;
+  }
+
+  /* Expand existing models section to full width when left is hidden */
+  .mobile .models-manager-dialog .existing-models-section {
+    width: 100% !important;
+  }
+
+  /* Model List view – hide the ModelTypeSidebar (left panel) on mobile */
+  .mobile .models-manager-dialog .model-list-container .sidebar,
+  .mobile .models-manager-dialog .model-list-container .model-type-list {
+    display: none !important;
+  }
+
+  /* Ensure the right content expands when sidebar is hidden */
+  .mobile .models-manager-dialog .model-list-container .content {
+    width: 100% !important;
+    padding-left: 0 !important;
+  }
+
+  /* Compact model item actions on mobile */
+  .mobile .models-manager-dialog .model-list-item .actions-container {
+    gap: 0.25em !important;
+    min-width: auto !important;
+  }
+  .mobile .models-manager-dialog .model-list-item .model-actions {
+    gap: 0.1em !important;
+  }
+  .mobile .models-manager-dialog .model-list-item .model-download-button {
+    padding: 0.25em 0.5em !important;
+    font-size: var(--fontSizeSmall) !important;
+  }
+  .mobile .models-manager-dialog .model-list-item .model-size {
+    min-width: auto !important;
+    font-size: var(--fontSizeSmaller) !important;
+  }
+  /* Hide external links in actions for tighter layout */
+  .mobile .models-manager-dialog .model-list-item .model-link {
+    display: none !important;
+  }
+
+  /* Hide provider chip and file explorer button on mobile */
+  .mobile .models-manager-dialog .model-list-item .model-details .MuiChip-root:not(.pipeline-tag) {
+    display: none !important;
+  }
+  .mobile .models-manager-dialog .model-list-item .show-in-explorer-button {
+    display: none !important;
+  }
+  /* Model Menu (LanguageModelSelect) Mobile Trims */
+  .mobile .model-menu__dialog .MuiDialog-paper {
+    width: 98% !important;
+    max-width: 100% !important;
+    margin: 8px !important;
+  }
+
+  /* Collapse complex 3-column grid → single column */
+  .mobile .model-menu__grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    gap: 4px !important;
+  }
+
+  /* Hide provider list and sidebar (favorites/recent) */
+  .mobile .model-menu__providers-list,
+  .mobile .model-menu__sidebar {
+    display: none !important;
+  }
+
+  /* Hide advanced filters bar (keep just search) */
+  .mobile .model-menu__filters-bar {
+    display: none !important;
+  }
+
+  /* Expand model list to full width */
+  .mobile .model-menu__model-list-container {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Hide footer counts and other non-essential info */
+  .mobile .model-menu__footer {
+    display: none !important;
+  }
+
   /* Chat Composer Mobile Styles */
   .mobile .compose-message {
     display: flex !important;
@@ -49,9 +137,25 @@
     padding: 12px 12px 8px 12px !important;
   }
 
-  /* Hide chat composer action buttons on mobile (send/stop/new) */
+  /* Show chat composer action buttons on mobile (send/stop/new) */
   .mobile .chat-action-buttons {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  /* Hide only the New Chat button on mobile */
+  .mobile .new-chat-button-wrapper {
     display: none !important;
+  }
+
+  /* Ensure composer icon buttons fit the 40px composer height */
+  .mobile .compose-message .MuiIconButton-root {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
   }
 
   .mobile .chat-input-section .chat-controls {
@@ -74,12 +178,21 @@
   .mobile .global-chat-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
-    max-width: 100vw !important;
+    /* Leave space for the left panel/resize handle */
+    margin-left: 60px !important;
+    max-width: calc(100vw - 60px) !important;
     contain: layout style !important;
   }
 
   .mobile .app-header .nav-button-text {
     display: none !important;
+  }
+
+  /* Keep header fixed at the very top on mobile */
+  .mobile .app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1300 !important;
   }
 
   /* Panel Left Mobile Styles */
@@ -114,7 +227,8 @@
     -webkit-tap-highlight-color: transparent !important;
   }
 
-  Ensure mobile-optimized touch targets */ .mobile button,
+  /* Ensure mobile-optimized touch targets */
+  .mobile button,
   .mobile .MuiIconButton-root,
   .mobile .MuiButton-root {
     min-height: 44px !important;
@@ -133,7 +247,30 @@
     display: none !important;
   }
 
-  .mobile .tab {
-    top: 10px;
+  /* Hide top editor tabs on mobile */
+  .mobile .tabs-node-editor .tabs-container {
+    display: none !important;
   }
+
+  /* Move App Header to the very top and adjust left panel offsets */
+  .mobile .panel-container .panel-left {
+    top: 40px !important; /* Header only (40px) */
+    max-height: calc(100dvh - 40px) !important;
+    /* Expand left panel to full width on mobile */
+    width: 100vw !important;
+    max-width: 100vw !important;
+    left: 0 !important;
+  }
+
+  .mobile .panel-container .panel-button {
+    top: 40px !important;
+    height: calc(100vh - 40px) !important;
+  }
+
+  /* Ensure the panel container itself doesn't constrain width on mobile */
+  .mobile .panel-container {
+    left: 0 !important;
+    width: 100vw !important;
+  }
+
 }

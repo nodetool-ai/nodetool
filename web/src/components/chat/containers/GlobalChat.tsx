@@ -16,7 +16,8 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import AppHeader from "../../panels/AppHeader";
-import TabsNodeEditor from "../../editor/TabsNodeEditor";
+import { usePanelStore } from "../../../stores/PanelStore";
+import { useRightPanelStore } from "../../../stores/RightPanelStore";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -62,6 +63,10 @@ const GlobalChat: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Side panel states (for desktop spacing)
+  const leftPanel = usePanelStore((s) => s.panel);
+  const rightPanel = useRightPanelStore((s) => s.panel);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -274,7 +279,19 @@ const GlobalChat: React.FC = () => {
         maxWidth: "100vw",
         display: "flex",
         flexDirection: "column",
-        paddingTop: "40px",
+        // Keep top padding on desktop to match overall layout; remove on mobile
+        paddingTop: isMobile ? 0 : "40px",
+        // Add horizontal padding on desktop to avoid side panes
+        paddingLeft: isMobile
+          ? 0
+          : leftPanel.isVisible
+          ? `${leftPanel.panelSize}px`
+          : `${leftPanel.minWidth}px`,
+        paddingRight: isMobile
+          ? 0
+          : rightPanel.isVisible
+          ? `${rightPanel.panelSize}px`
+          : 0,
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box"
@@ -287,11 +304,6 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {/* Hide TabsNodeEditor completely in chat mode to prevent header overlap */}
-        <Box sx={{ display: "none" }}>
-          <TabsNodeEditor hideContent />
-        </Box>
-
         {(error ||
           status === "reconnecting" ||
           status === "disconnected" ||

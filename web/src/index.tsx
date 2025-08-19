@@ -71,6 +71,7 @@ import LayoutTest from "./components/LayoutTest";
 import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
+import AppHeader from "./components/panels/AppHeader";
 
 (window as any).log = log;
 
@@ -161,18 +162,23 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <FetchCurrentWorkflow>
-            <div
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <TabsNodeEditor />
-              <PanelRight />
-              <Alert />
-            </div>
+            <>
+              {/* Fixed application header at the very top */}
+              <AppHeader />
+              {/* Main editor area beneath the header */}
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <PanelLeft />
+                <TabsNodeEditor />
+                <PanelRight />
+                <Alert />
+              </div>
+            </>
           </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
