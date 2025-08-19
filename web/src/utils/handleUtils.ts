@@ -1,6 +1,11 @@
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
-import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "../stores/ApiTypes";
+import {
+  NodeMetadata,
+  OutputSlot,
+  Property,
+  TypeMetadata
+} from "../stores/ApiTypes";
 
 /**
  * Represents an output handle (either static or dynamic)
@@ -34,7 +39,7 @@ export function findOutputHandle(
   const staticOutput = metadata.outputs.find(
     (output: OutputSlot) => output.name === handleName
   );
-  
+
   if (staticOutput) {
     return {
       name: staticOutput.name,
@@ -47,7 +52,7 @@ export function findOutputHandle(
   // Then check dynamic outputs
   const dynamicOutputs = node.data.dynamic_outputs || {};
   const dynamicOutput = dynamicOutputs[handleName];
-  
+
   if (dynamicOutput) {
     return {
       name: handleName,
@@ -73,7 +78,7 @@ export function findInputHandle(
   const staticProperty = metadata.properties.find(
     (property: Property) => property.name === handleName
   );
-  
+
   if (staticProperty) {
     return {
       name: staticProperty.name,
@@ -89,7 +94,7 @@ export function findInputHandle(
       return {
         name: handleName,
         type: {
-          type: "str", // Dynamic properties default to string type
+          type: "any",
           optional: false,
           values: null,
           type_args: [],

@@ -12,6 +12,7 @@ type OutputItem = Property & { isDynamic?: boolean };
 export interface DynamicOutputItemProps {
   id: string;
   output: OutputItem;
+  showLabel: boolean;
   supportsDynamicOutputs: boolean;
   onStartEdit: (name: string) => void;
   onDelete: (name: string) => void;
@@ -20,6 +21,7 @@ export interface DynamicOutputItemProps {
 const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   id,
   output,
+  showLabel,
   supportsDynamicOutputs,
   onStartEdit,
   onDelete
@@ -80,7 +82,9 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
             ":hover .actions": { opacity: 1 }
           }}
         >
-          <Typography textAlign="right">{output.name}</Typography>
+          {showLabel && (
+            <Typography textAlign="right">{output.name}</Typography>
+          )}
         </Box>
       )}
 

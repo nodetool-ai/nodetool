@@ -96,20 +96,8 @@ export default function useConnectionHandlers() {
       const { source, sourceHandle, target, targetHandle } = connection;
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
-      if (!targetHandle) {
-        return;
-      }
       if (!sourceNode || !targetNode) {
-        return;
-      }
-      if (targetNode.data.dynamic_properties[targetHandle] !== undefined) {
-        connectionCreated.current = true;
-        // Add className for dynamic properties connection
-        const connectionWithClassName = {
-          ...connection,
-          className: Slugify("any") // Dynamic properties use "any" type
-        };
-        onConnect(connectionWithClassName);
+        console.warn("Invalid source or target node", { source, target });
         return;
       }
       if (!sourceHandle || !targetHandle) {
@@ -136,18 +124,29 @@ export default function useConnectionHandlers() {
         targetHandle,
         targetMetadata
       );
+      const isDynamicProperty =
+        targetNode.data.dynamic_properties[targetHandle] !== undefined;
 
-      if (!sourceHandleMetadata || !targetHandleMetadata) {
-        console.warn(
-          `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
-        );
+      if (!sourceHandleMetadata) {
+        console.warn(`Invalid source handle. Source: ${sourceHandle}`);
+        return;
+      }
+
+      if (!targetHandleMetadata && !isDynamicProperty) {
+        console.warn(`Invalid target handle. Target: ${targetHandle}`);
         return;
       }
 
       if (
+        isDynamicProperty ||
         isConnectable(
           sourceHandleMetadata.type,
-          targetHandleMetadata.type,
+          targetHandleMetadata?.type || {
+            type: "any",
+            optional: false,
+            type_args: [],
+            type_name: "any"
+          },
           true
         )
       ) {

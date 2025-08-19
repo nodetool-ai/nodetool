@@ -116,6 +116,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
               <DynamicOutputItem
                 id={id}
                 output={output}
+                showLabel={true}
                 supportsDynamicOutputs={Boolean(
                   metadata?.supports_dynamic_outputs
                 )}
@@ -131,6 +132,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
             key={output.name}
             id={id}
             output={output}
+            showLabel={false}
             supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
             onStartEdit={onStartEdit}
             onDelete={handleDeleteOutput}
