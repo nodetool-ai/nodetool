@@ -15,7 +15,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
-import { BASE_URL } from "../../../stores/ApiClient";
+import { client } from "../../../stores/ApiClient";
 import { getIsElectronDetails } from "../../../utils/browser";
 import { isPathValid, openInExplorer } from "../../../utils/fileExplorer";
 
@@ -91,7 +91,7 @@ const systemTabStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".value": {
-      fontFamily: "var(--fontFamilyMonospace)",
+      fontFamily: "var(--fontFamily2)",
       color: theme.vars.palette.grey[100],
       wordBreak: "break-all",
       flex: 1
@@ -129,70 +129,119 @@ export default function SystemTab() {
     let cancelled = false;
     async function load() {
       try {
-        const [infoRes, healthRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/system/`, {
-            headers: { Accept: "application/json" }
-          }),
-          fetch(`${BASE_URL}/api/system/health`, {
-            headers: { Accept: "application/json" }
-          })
+        // Since /api/system/ endpoint doesn't exist, we'll create a basic system info
+        // and fetch what we can from available endpoints
+        const [healthResult, ollamaPathResult, hfPathResult] = await Promise.all([
+          // Use the available /health endpoint instead of /api/system/health
+          client.GET("/health", {}),
+          client.GET("/api/models/ollama_base_path", {}),
+          client.GET("/api/models/huggingface_base_path", {})
         ]);
 
-        if (!infoRes.ok) {
-          throw new Error(
-            `Failed to load system info: ${infoRes.status} ${infoRes.statusText}`
-          );
-        }
-        if (!healthRes.ok) {
-          throw new Error(
-            `Failed to load health info: ${healthRes.status} ${healthRes.statusText}`
-          );
-        }
+        console.log("Health result:", healthResult);
+        console.log("Ollama path result:", ollamaPathResult);
+        console.log("HF path result:", hfPathResult);
 
-        const infoJson = (await infoRes.json()) as SystemInfoResponse;
-        const healthJson = (await healthRes.json()) as HealthResponse;
+        // Create a basic system info structure since the endpoint doesn't exist
+        const basicSystemInfo: SystemInfoResponse = {
+          os: {
+            platform: navigator.platform || "Unknown",
+            release: "Unknown",
+            arch: "Unknown"
+          },
+          versions: {
+            python: null,
+            nodetool_core: null,
+            nodetool_base: null,
+            cuda: null,
+            gpu_name: null,
+            vram_total_gb: null,
+            driver_version: null
+          },
+          paths: {
+            settings_path: "Not available",
+            secrets_path: "Not available", 
+            data_dir: "Not available",
+            core_logs_dir: "Not available",
+            core_log_file: "Not available",
+            ollama_models_dir: (ollamaPathResult.data as any)?.path || "Not available",
+            huggingface_cache_dir: (hfPathResult.data as any)?.path || "Not available",
+            electron_user_data: "Not available",
+            electron_log_file: "Not available",
+            electron_logs_dir: "Not available"
+          }
+        };
 
-        // Fallback: fetch Ollama/HF paths from existing endpoints if missing
-        try {
-          const updates: Partial<PathsInfo> = {};
-          if (!infoJson.paths.ollama_models_dir) {
-            const res = await fetch(`${BASE_URL}/api/models/ollama_base_path`, {
-              headers: { Accept: "application/json" }
-            });
-            if (res.ok) {
-              const data = (await res.json()) as OllamaBasePathResponse;
-              if (data?.path) {
-                updates.ollama_models_dir = data.path;
-              }
+        // Create a basic health response since the system health endpoint doesn't exist
+        const hasHealthError = !healthResult.data;
+        const basicHealthInfo: HealthResponse = {
+          checks: [
+            {
+              id: "api_connection",
+              status: hasHealthError ? "error" : "ok",
+              details: hasHealthError ? "API connection failed" : "API connection successful",
+              fix_hint: hasHealthError ? "Check if the server is running" : null
             }
+          ],
+          summary: {
+            ok: hasHealthError ? 0 : 1,
+            warn: 0,
+            error: hasHealthError ? 1 : 0
           }
-          if (!infoJson.paths.huggingface_cache_dir) {
-            const res = await fetch(
-              `${BASE_URL}/api/models/huggingface_base_path`,
-              {
-                headers: { Accept: "application/json" }
-              }
-            );
-            if (res.ok) {
-              const data = (await res.json()) as HuggingFaceBasePathResponse;
-              if (data?.path) {
-                updates.huggingface_cache_dir = data.path;
-              }
-            }
-          }
-          if (Object.keys(updates).length > 0) {
-            infoJson.paths = { ...infoJson.paths, ...updates };
-          }
-        } catch (e) {
-          // ignore fallback errors
-        }
+        };
+
         if (!cancelled) {
-          setInfo(infoJson);
-          setHealth(healthJson);
+          setInfo(basicSystemInfo);
+          setHealth(basicHealthInfo);
         }
       } catch (e) {
         console.error("Failed to load system info/health:", e);
-        // You could set an error state here to show user-friendly error messages
+        // Create fallback info even on error
+        if (!cancelled) {
+          const fallbackInfo: SystemInfoResponse = {
+            os: {
+              platform: navigator.platform || "Unknown",
+              release: "Unknown", 
+              arch: "Unknown"
+            },
+            versions: {
+              python: null,
+              nodetool_core: null,
+              nodetool_base: null,
+              cuda: null,
+              gpu_name: null,
+              vram_total_gb: null,
+              driver_version: null
+            },
+            paths: {
+              settings_path: "Not available",
+              secrets_path: "Not available",
+              data_dir: "Not available", 
+              core_logs_dir: "Not available",
+              core_log_file: "Not available",
+              ollama_models_dir: "Not available",
+              huggingface_cache_dir: "Not available",
+              electron_user_data: "Not available",
+              electron_log_file: "Not available",
+              electron_logs_dir: "Not available"
+            }
+          };
+          
+          const fallbackHealth: HealthResponse = {
+            checks: [
+              {
+                id: "system_check",
+                status: "error",
+                details: "Unable to retrieve system information",
+                fix_hint: "Check server connection and try again"
+              }
+            ],
+            summary: { ok: 0, warn: 0, error: 1 }
+          };
+          
+          setInfo(fallbackInfo);
+          setHealth(fallbackHealth);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
