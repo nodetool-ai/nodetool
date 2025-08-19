@@ -116,6 +116,7 @@ export const Composer: React.FC<ComposerProps> = ({
     models,
     selectedModelId,
     setSelectedModel,
+    stopGeneration,
   } = useChatStore();
   const shellBg = "bg1";
   const shellBorder = "border";
@@ -254,6 +255,20 @@ export const Composer: React.FC<ComposerProps> = ({
         onDragOver={(e) => e.preventDefault()}
         backdropFilter="saturate(140%) blur(10px)"
       >
+        {/* Stop button when loading */}
+        {status === "loading" && (
+          <IconButton
+            aria-label="Stop"
+            size="sm"
+            variant="ghost"
+            onClick={() => stopGeneration()}
+            position="absolute"
+            right={2}
+            top={2}
+          >
+            <FaStop />
+          </IconButton>
+        )}
         {droppedFiles.length > 0 && (
           <HStack
             position="absolute"
