@@ -120,23 +120,37 @@ export default function useConnectionHandlers() {
       }
       const sourceMetadata = getMetadata(sourceNode.type || "");
       const targetMetadata = getMetadata(targetNode.type || "");
-      
+
       if (!sourceMetadata || !targetMetadata) {
         console.warn("Missing metadata for source or target node");
         return;
       }
 
-      const sourceHandleMetadata = findOutputHandle(sourceNode, sourceHandle, sourceMetadata);
-      const targetHandleMetadata = findInputHandle(targetNode, targetHandle, targetMetadata);
-      
+      const sourceHandleMetadata = findOutputHandle(
+        sourceNode,
+        sourceHandle,
+        sourceMetadata
+      );
+      const targetHandleMetadata = findInputHandle(
+        targetNode,
+        targetHandle,
+        targetMetadata
+      );
+
       if (!sourceHandleMetadata || !targetHandleMetadata) {
         console.warn(
           `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
         );
         return;
       }
-      
-      if (isConnectable(sourceHandleMetadata.type, targetHandleMetadata.type, true)) {
+
+      if (
+        isConnectable(
+          sourceHandleMetadata.type,
+          targetHandleMetadata.type,
+          true
+        )
+      ) {
         connectionCreated.current = true;
         // Add className based on the source handle type
         const connectionWithClassName = {
@@ -247,9 +261,7 @@ export default function useConnectionHandlers() {
       endConnecting,
       findNode,
       getMetadata,
-      edges,
       handleOnConnect,
-      addNotification,
       openContextMenu,
       updateNodeData
     ]

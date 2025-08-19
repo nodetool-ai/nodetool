@@ -46,8 +46,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties as Record<string, any>
   );
 
-  console.log(nodeMetadata);
-
   return (
     <>
       <NodeInputs
