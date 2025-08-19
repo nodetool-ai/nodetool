@@ -106,6 +106,8 @@ export const isConnectable = (
   target: TypeMetadata,
   allowAny: boolean = true
 ): boolean => {
+  console.log("isConnectable", source, target);
+
   // Safety check for undefined types
   if (!source || !target || !source.type || !target.type) {
     return false;

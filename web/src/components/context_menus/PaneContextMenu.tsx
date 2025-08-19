@@ -16,7 +16,6 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import TextsmsIcon from "@mui/icons-material/Textsms";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -119,50 +118,12 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
   );
 
-  const addLLMNode = useCallback(
+  const addToolResultNode = useCallback(
     (event: React.MouseEvent | undefined) => {
       if (!event) return;
       const metadata = useMetadataStore
         .getState()
-        .getMetadata(`nodetool.agents.Agent`);
-      if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-      closeContextMenu();
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
-  const addDataGeneratorNode = useCallback(
-    (event: React.MouseEvent | undefined) => {
-      if (!event) return;
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.generators.DataGenerator`);
-      if (metadata) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: menuPosition?.x || event.clientX,
-          y: menuPosition?.y || event.clientY
-        });
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-      closeContextMenu();
-    },
-    [createNode, addNode, reactFlowInstance, menuPosition, closeContextMenu]
-  );
-
-  const addTaskPlannerNode = useCallback(
-    (event: React.MouseEvent | undefined) => {
-      if (!event) return;
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.agents.TaskPlanner`);
+        .getMetadata(`nodetool.workflows.base_node.ToolResult`);
       if (metadata) {
         const position = reactFlowInstance.screenToFlowPosition({
           x: menuPosition?.x || event.clientX,
@@ -240,16 +201,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         tooltip="Add an Agent node"
       />
       <ContextMenuItem
-        onClick={addTaskPlannerNode}
-        label="Add Task Planner"
-        IconComponent={<TextsmsIcon />}
-        tooltip="Add a Task Planner node"
-      />
-      <ContextMenuItem
-        onClick={addDataGeneratorNode}
-        label="Add Data Generator"
+        onClick={addToolResultNode}
+        label="Add Tool Result"
         IconComponent={<DataObjectIcon />}
-        tooltip="Add a data generator node"
+        tooltip="Add a tool result node"
       />
       <Divider />
       <ContextMenuItem
