@@ -1,5 +1,16 @@
 import { create } from "zustand";
-import { Message, ToolCall, MessageContent as WorkflowMessageContent } from "../types/workflow";
+import {
+  Message,
+  ToolCall,
+  MessageContent as WorkflowMessageContent,
+} from "../types/workflow";
+
+type LocalThread = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+};
 
 type ChatStatus =
   | "disconnected"
@@ -22,6 +33,18 @@ interface ChatState {
   setSelectedModel: (modelId: string | null) => void;
   currentNode: string;
   chunks: string;
+  // Local threads
+  threads: Record<string, LocalThread>;
+  currentThreadId: string | null;
+  initializeFromStorage: () => void;
+  createThread: (title?: string) => string;
+  switchThread: (id: string) => void;
+  deleteThread: (id: string) => void;
+  renameThread: (id: string, title: string) => void;
+  persistCurrentThreadMessages: () => void;
+  // Abort controller for stopping generation
+  abortController: AbortController | null;
+  stopGeneration: () => void;
   // Models cache
   models: Array<{ id: string; name: string; provider?: string }>;
   isFetchingModels: boolean;
@@ -33,11 +56,42 @@ interface ChatState {
   appendMessage: (message: Message) => void;
   setDroppedFiles: (files: File[]) => void;
   setSelectedTools: (tools: string[]) => void;
-  fetchModels: (force?: boolean, authToken?: string) => Promise<
-    Array<{ id: string; name: string; provider?: string }>
-  >;
+  fetchModels: (
+    force?: boolean,
+    authToken?: string
+  ) => Promise<Array<{ id: string; name: string; provider?: string }>>;
 }
 
+const THREADS_KEY = "apps_chat_threads";
+const CURRENT_THREAD_KEY = "apps_chat_current_thread_id";
+const messagesKey = (threadId: string) => `apps_chat_messages_${threadId}`;
+
+function readJSON<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJSON(key: string, value: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+function uuid(): string {
+  // Simple UUID v4-ish generator
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0,
+      v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 const useChatStore = create<ChatState>((set, get) => ({
   status: "disconnected",
@@ -47,10 +101,13 @@ const useChatStore = create<ChatState>((set, get) => ({
   progress: { current: 0, total: 0 },
   currentNode: "",
   error: null,
-  chatUrl: "http://127.0.0.1:8000/v1/chat/completions",
+  chatUrl: `http://${window.location.hostname}:8000/v1/chat/completions`,
   droppedFiles: [],
   selectedTools: [],
   selectedModelId: null,
+  threads: {},
+  currentThreadId: null,
+  abortController: null,
   models: [],
   isFetchingModels: false,
   modelsError: null,
@@ -59,12 +116,136 @@ const useChatStore = create<ChatState>((set, get) => ({
   appendMessage: (message: Message) =>
     set((state) => ({ messages: [...state.messages, message] })),
 
+  initializeFromStorage: () => {
+    const storedThreads = readJSON<Record<string, LocalThread>>(
+      THREADS_KEY,
+      {}
+    );
+    const storedCurrent = readJSON<string | null>(CURRENT_THREAD_KEY, null);
+    // Migration: if no threads but existing messages in store, create default thread
+    const now = new Date().toISOString();
+    let threads = storedThreads;
+    let currentThreadId = storedCurrent;
+    if (!threads || Object.keys(threads).length === 0) {
+      const id = uuid();
+      threads = {
+        [id]: {
+          id,
+          title: "New Conversation",
+          created_at: now,
+          updated_at: now,
+        },
+      };
+      writeJSON(THREADS_KEY, threads);
+      writeJSON(CURRENT_THREAD_KEY, id);
+      // Seed messages with current in-memory store if any
+      const existing = get().messages;
+      writeJSON(messagesKey(id), existing || []);
+      currentThreadId = id;
+    }
+    // Load messages of current thread
+    const activeId = currentThreadId || Object.keys(threads)[0];
+    const msgs = readJSON<(Message | ToolCall)[]>(messagesKey(activeId), []);
+    set({ threads, currentThreadId: activeId, messages: msgs });
+  },
+
+  createThread: (title?: string) => {
+    const id = uuid();
+    const now = new Date().toISOString();
+    const thread: LocalThread = {
+      id,
+      title:
+        title && title.trim().length > 0 ? title.trim() : "New Conversation",
+      created_at: now,
+      updated_at: now,
+    };
+    const threads = { ...get().threads, [id]: thread };
+    writeJSON(THREADS_KEY, threads);
+    writeJSON(CURRENT_THREAD_KEY, id);
+    writeJSON(messagesKey(id), []);
+    set({ threads, currentThreadId: id, messages: [] });
+    return id;
+  },
+
+  switchThread: (id: string) => {
+    const threads = get().threads;
+    if (!threads[id]) return;
+    const msgs = readJSON<(Message | ToolCall)[]>(messagesKey(id), []);
+    writeJSON(CURRENT_THREAD_KEY, id);
+    set({ currentThreadId: id, messages: msgs });
+  },
+
+  deleteThread: (id: string) => {
+    const { threads, currentThreadId } = get();
+    if (!threads[id]) return;
+    const updated = { ...threads };
+    delete updated[id];
+    writeJSON(THREADS_KEY, updated);
+    // Remove messages
+    if (typeof window !== "undefined") localStorage.removeItem(messagesKey(id));
+    let nextId: string | null = currentThreadId;
+    if (currentThreadId === id) {
+      const remaining = Object.keys(updated);
+      nextId = remaining.length > 0 ? remaining[0] : null;
+    }
+    if (nextId) {
+      writeJSON(CURRENT_THREAD_KEY, nextId);
+      const msgs = readJSON<(Message | ToolCall)[]>(messagesKey(nextId), []);
+      set({ threads: updated, currentThreadId: nextId, messages: msgs });
+    } else {
+      // Create a new empty thread
+      set({ threads: updated, currentThreadId: null, messages: [] });
+      const newId = get().createThread();
+      get().switchThread(newId);
+    }
+  },
+
+  renameThread: (id: string, title: string) => {
+    const { threads } = get();
+    if (!threads[id]) return;
+    const updated: Record<string, LocalThread> = {
+      ...threads,
+      [id]: {
+        ...threads[id],
+        title: title.trim(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+    writeJSON(THREADS_KEY, updated);
+    set({ threads: updated });
+  },
+
+  persistCurrentThreadMessages: () => {
+    const { currentThreadId, messages } = get();
+    if (!currentThreadId) return;
+    writeJSON(messagesKey(currentThreadId), messages);
+    // Also update thread updated_at
+    const t = get().threads[currentThreadId];
+    if (t) {
+      const updated = {
+        ...get().threads,
+        [currentThreadId]: { ...t, updated_at: new Date().toISOString() },
+      };
+      writeJSON(THREADS_KEY, updated);
+      set({ threads: updated });
+    }
+  },
+
   sendMessage: async (message: Message) => {
     const stateBefore = get();
     const apiUrl = get().chatUrl;
 
     // Append the user message immediately
-    set((state) => ({ messages: [...state.messages, message], status: "loading", error: null }));
+    // Ensure a thread exists
+    if (!get().currentThreadId) {
+      get().createThread();
+    }
+    set((state) => ({
+      messages: [...state.messages, message],
+      status: "loading",
+      error: null,
+    }));
+    get().persistCurrentThreadMessages();
 
     // Create a placeholder assistant message to stream into
     const assistantMessage: Message = {
@@ -74,6 +255,7 @@ const useChatStore = create<ChatState>((set, get) => ({
       name: "assistant",
     };
     set((state) => ({ messages: [...state.messages, assistantMessage] }));
+    get().persistCurrentThreadMessages();
 
     // Determine index of the assistant message we just appended
     const assistantIndex = get().messages.length - 1;
@@ -86,12 +268,18 @@ const useChatStore = create<ChatState>((set, get) => ({
       const chunkSize = 0x8000;
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode.apply(null, Array.from(chunk) as unknown as number[]);
+        binary += String.fromCharCode.apply(
+          null,
+          Array.from(chunk) as unknown as number[]
+        );
       }
       return btoa(binary);
     };
 
-    const buildImageUrl = (data?: Uint8Array | null, uri?: string | null): Promise<string | null> => {
+    const buildImageUrl = (
+      data?: Uint8Array | null,
+      uri?: string | null
+    ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (data && data instanceof Uint8Array) {
           const b64 = uint8ToBase64(data);
@@ -113,7 +301,10 @@ const useChatStore = create<ChatState>((set, get) => ({
       });
     };
 
-    const buildAudioData = async (data?: Uint8Array | null, uri?: string | null): Promise<{ dataUrl: string | null; format: string } > => {
+    const buildAudioData = async (
+      data?: Uint8Array | null,
+      uri?: string | null
+    ): Promise<{ dataUrl: string | null; format: string }> => {
       let bytes: Uint8Array | null = null;
       if (data && data instanceof Uint8Array) {
         bytes = data;
@@ -127,7 +318,10 @@ const useChatStore = create<ChatState>((set, get) => ({
       }
       const b64 = uint8ToBase64(bytes || undefined);
       // Default to mp3 when unknown
-      return { dataUrl: b64 ? `data:audio/mpeg;base64,${b64}` : null, format: "mp3" };
+      return {
+        dataUrl: b64 ? `data:audio/mpeg;base64,${b64}` : null,
+        format: "mp3",
+      };
     };
 
     // Transform our internal messages to OpenAI chat format (string or array of parts)
@@ -146,15 +340,27 @@ const useChatStore = create<ChatState>((set, get) => ({
             if (c?.type === "text") {
               parts.push({ type: "text", text: c.text || "" });
             } else if (c?.type === "image_url") {
-              const url = await buildImageUrl(c.image?.data as Uint8Array | undefined, c.image?.uri);
+              const url = await buildImageUrl(
+                c.image?.data as Uint8Array | undefined,
+                c.image?.uri
+              );
               if (url) {
                 parts.push({ type: "image_url", image_url: { url } });
               }
             } else if (c?.type === "audio") {
-              const audio = await buildAudioData(c.audio?.data as Uint8Array | undefined, c.audio?.uri);
+              const audio = await buildAudioData(
+                c.audio?.data as Uint8Array | undefined,
+                c.audio?.uri
+              );
               if (audio.dataUrl) {
                 // Not officially supported in chat.completions, but many compatible servers accept input_audio
-                parts.push({ type: "input_audio", audio: { data: audio.dataUrl.split(",")[1], format: audio.format } });
+                parts.push({
+                  type: "input_audio",
+                  audio: {
+                    data: audio.dataUrl.split(",")[1],
+                    format: audio.format,
+                  },
+                });
               }
             } else if (c?.type === "video") {
               // Skip videos for now
@@ -177,7 +383,8 @@ const useChatStore = create<ChatState>((set, get) => ({
     const openAiMessages = await toOpenAIMessages(get().messages);
 
     // Build request payload
-    const model = (message as any).model || get().selectedModelId || "gpt-4o-mini";
+    const model =
+      (message as any).model || get().selectedModelId || "gpt-4o-mini";
     const body = {
       model,
       messages: openAiMessages,
@@ -188,16 +395,21 @@ const useChatStore = create<ChatState>((set, get) => ({
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
-    const isLocalhost = apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1")  
+    const isLocalhost =
+      apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1");
     if (message.auth_token && !isLocalhost) {
       headers["Authorization"] = `Bearer ${message.auth_token}`;
     }
 
     try {
+      // Setup abort controller for stop
+      const controller = new AbortController();
+      set({ abortController: controller });
       const response = await fetch(apiUrl, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
 
       if (!response.ok || !response.body) {
@@ -217,11 +429,13 @@ const useChatStore = create<ChatState>((set, get) => ({
           if (!existing) {
             return { messages: updated, status: "loading" };
           }
-          const prevContent = typeof existing.content === "string" ? existing.content : "";
+          const prevContent =
+            typeof existing.content === "string" ? existing.content : "";
           const merged: Message = { ...existing, content: prevContent + delta };
           updated[assistantIndex] = merged;
           return { messages: updated, status: "loading" };
         });
+        get().persistCurrentThreadMessages();
       };
 
       // SSE parsing loop
@@ -241,7 +455,12 @@ const useChatStore = create<ChatState>((set, get) => ({
             const dataStr = trimmed.replace(/^data:\s*/, "");
             if (dataStr === "[DONE]") {
               // Stream finished
-              set({ status: "connected", statusMessage: "" });
+              set({
+                status: "connected",
+                statusMessage: "",
+                abortController: null,
+              });
+              get().persistCurrentThreadMessages();
               return;
             }
             try {
@@ -262,15 +481,36 @@ const useChatStore = create<ChatState>((set, get) => ({
       }
 
       // Finalize after stream ends without explicit [DONE]
-      set({ status: "connected", statusMessage: "" });
+      set({ status: "connected", statusMessage: "", abortController: null });
+      get().persistCurrentThreadMessages();
     } catch (err: any) {
-      set({ status: "error", error: err?.message || "Network error" });
+      if (err && err.name === "AbortError") {
+        set({ status: "connected", statusMessage: "", abortController: null });
+      } else {
+        set({
+          status: "error",
+          error: err?.message || "Network error",
+          abortController: null,
+        });
+      }
     }
   },
 
-  resetMessages: () => set({ messages: [] }),
+  resetMessages: () => {
+    set({ messages: [] });
+    get().persistCurrentThreadMessages();
+  },
   setDroppedFiles: (files) => set({ droppedFiles: files }),
   setSelectedTools: (tools) => set({ selectedTools: tools }),
+  stopGeneration: () => {
+    const controller = get().abortController;
+    if (controller) {
+      try {
+        controller.abort();
+      } catch {}
+    }
+    set({ status: "connected", statusMessage: "", abortController: null });
+  },
   fetchModels: async (force = false, authToken?: string) => {
     const { chatUrl, models, modelsLastFetched, isFetchingModels } = get();
     const cacheIsFresh =

@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, Button as CkButton, HStack } from "@chakra-ui/react";
+import { Alert } from "./ui/alert";
+import { DrawerRoot, DrawerTrigger, DrawerContent } from "./ui/drawer";
+import { Button } from "./ui/button";
+import { FaBars } from "react-icons/fa";
 import { ProgressRoot, ProgressBar, ProgressValueText } from "./ui/progress";
 import styled from "@emotion/styled";
 import ReactMarkdown from "react-markdown";
@@ -7,12 +11,13 @@ import ReactMarkdown from "react-markdown";
 
 // import { useColorModeValue } from "./ui/color-mode";
 import useChatStore from "../stores/ChatStore";
-import { Button } from "./ui/button";
+// Button imported above for consistency across UI
 import { Message, MessageContent, ToolCall } from "../types/workflow";
 import { ImageDisplay } from "./ImageDisplay";
 import { AudioPlayer } from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { Composer } from "./Composer";
+import ThreadList from "./chat/ThreadList";
 // model selector moved into Composer
 
 interface ChatInterfaceProps {
@@ -84,6 +89,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
     sendMessage,
     setDroppedFiles,
     selectedTools,
+    initializeFromStorage,
+    createThread,
+    currentThreadId,
   } = useChatStore();
 
   // Advanced scroll handling (ported from ChatThreadView)
@@ -97,8 +105,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   const [showScrollToBottomButton, setShowScrollToBottomButton] = useState(false);
 
   useEffect(() => {
+    // Hydrate threads/messages from localStorage on mount
+    initializeFromStorage();
     lastUserScrollTimeRef.current = Date.now();
-  }, []);
+  }, [initializeFromStorage]);
 
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
@@ -428,102 +438,118 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ workflowId, token }) => {
   );
 
   return (
-    <Box
-      height="100vh"
-      maxH="100vh"
-      display="flex"
-      flexDirection="column"
-      overflow="hidden"
-    >
-      {/* Main Chat Area */}
-      <Box
-        position="relative"
-        flex={1}
-        display="flex"
-        flexDirection="column"
-        height="100%"
-        maxH="100%"
-      >
-        <Box 
-          className="chat-container"
-          minH={0}
-          flex={1}
-          overflow="hidden"
-        >
-          <Flex 
-            direction="column" 
-            h="100%" 
-            maxH="100%" 
-            overflow="hidden"
-            color="text"
-            px={{ base: 3, md: 6 }}
-            pt={{ base: 4, md: 6 }}
-          >
-            <Box
-              ref={scrollRef}
-              onScroll={handleScroll}
-              flex="1"
-              overflowY="auto"
-              pr={1}
-              pb={{ base: 28, md: 32 }}
-            >
-              {messages.map((msg, index) => {
-                return renderMessage(msg as Message, index);
-              })}
-              {status === "loading" && (
-                <Box textAlign="center" py={2} maxW="48" mx="auto">
-                  <LoadingDots>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </LoadingDots>
-                  <Text>{statusMessage}</Text>
-                </Box>
-              )}
-              <Box ref={bottomRef} h="1px" />
-            </Box>
-
-            {progress.current > 0 && (
-              <ProgressRoot
-                value={(progress.current * 100.0) / progress.total}
-                size="xs"
-                colorScheme="blue"
-                marginLeft="2"
-                marginRight="2"
-              >
-                <ProgressBar />
-                <ProgressValueText>
-                  {progress.current} / {progress.total}
-                </ProgressValueText>
-              </ProgressRoot>
-            )}
-          </Flex>
-
-          <Box position="sticky" bottom={0} zIndex={1} bg="bg0" px={{ base: 3, md: 6 }} pt={2} pb={{ base: 2, md: 3 }} borderTop="1px solid" borderColor="borderSubtle">
-            <Composer
-              onSubmit={handleSubmit}
-              handleAudioChange={handleAudioChange}
-              disabled={status === "loading"}
-              droppedFiles={droppedFiles}
-              setDroppedFiles={setDroppedFiles}
-            />
-          </Box>
-          {showScrollToBottomButton && (
-            <Button
-              onClick={scrollToBottom}
-              position="absolute"
-              right={{ base: 3, md: 6 }}
-              bottom={{ base: 32, md: 40 }}
-              size="sm"
-              borderRadius="full"
-              boxShadow="md"
-              variant="solid"
-            >
-              ↓
-            </Button>
-          )}
-        </Box>
+    <Box height="100vh" maxH="100vh" display="flex" flexDirection="column" overflow="hidden">
+      {/* Mobile top bar with Threads drawer trigger */}
+      <Box display={{ base: "block", md: "none" }} borderBottom="1px" borderColor="border" bg="secondary" p={3}>
+        <Flex align="center" justify="space-between">
+          <Text fontWeight="semibold">Chat</Text>
+          <DrawerRoot>
+            <DrawerTrigger asChild>
+              <Button size="sm" variant="outline">
+                <FaBars />
+                <Box as="span" ml={2}>Threads</Box>
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent width="320px" p={3}>
+              <ThreadList />
+            </DrawerContent>
+          </DrawerRoot>
+        </Flex>
       </Box>
+
+      {/* Main area with optional desktop sidebar */}
+      <Flex position="relative" flex={1} height="100%" maxH="100%" overflow="hidden" direction={{ base: "column", md: "row" }}>
+        {/* Desktop sidebar */}
+        <Box display={{ base: "none", md: "block" }} w={{ md: "320px" }} flexShrink={0} borderRight="1px" borderColor="border" bg="secondary" p={4} overflowY="auto">
+          <ThreadList />
+        </Box>
+
+        {/* Chat content */}
+        <Box flex={1} display="flex" flexDirection="column" minH={0} position="relative">
+          {/* Status Alert */}
+          {status === "error" && (
+            <Alert
+              status="error"
+              m={3}
+              title={statusMessage || "An error occurred while sending the message."}
+            />
+          )}
+          <Box className="chat-container" minH={0} flex={1} overflow="hidden" position="relative">
+            <Flex 
+              direction="column" 
+              h="100%" 
+              maxH="100%" 
+              overflow="hidden"
+              color="text"
+              px={{ base: 3, md: 6 }}
+              pt={{ base: 4, md: 6 }}
+            >
+              <Box
+                ref={scrollRef}
+                onScroll={handleScroll}
+                flex="1"
+                overflowY="auto"
+                pr={1}
+                pb={{ base: 28, md: 32 }}
+              >
+                {messages.map((msg, index) => {
+                  return renderMessage(msg as Message, index);
+                })}
+                {status === "loading" && (
+                  <Box textAlign="center" py={2} maxW="48" mx="auto">
+                    <LoadingDots>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </LoadingDots>
+                    <Text>{statusMessage}</Text>
+                  </Box>
+                )}
+                <Box ref={bottomRef} h="1px" />
+              </Box>
+
+              {progress.current > 0 && (
+                <ProgressRoot
+                  value={(progress.current * 100.0) / progress.total}
+                  size="xs"
+                  colorScheme="blue"
+                  marginLeft="2"
+                  marginRight="2"
+                >
+                  <ProgressBar />
+                  <ProgressValueText>
+                    {progress.current} / {progress.total}
+                  </ProgressValueText>
+                </ProgressRoot>
+              )}
+            </Flex>
+
+             <Box bg="bg0" px={{ base: 3, md: 6 }} pt={2} pb={{ base: 2, md: 3 }} borderTop="1px solid" borderColor="borderSubtle">
+               <Composer
+                 onSubmit={handleSubmit}
+                 handleAudioChange={handleAudioChange}
+                 disabled={status === "loading"}
+                 droppedFiles={droppedFiles}
+                 setDroppedFiles={setDroppedFiles}
+               />
+             </Box>
+            {showScrollToBottomButton && (
+              <Button
+                onClick={scrollToBottom}
+                position="absolute"
+                right={{ base: 3, md: 6 }}
+                bottom={{ base: 32, md: 40 }}
+                size="sm"
+                borderRadius="full"
+                boxShadow="md"
+                variant="solid"
+              >
+                ↓
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Flex>
     </Box>
   );
 };

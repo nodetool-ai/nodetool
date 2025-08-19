@@ -26,6 +26,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     host: true,
+    allowedHosts: [".nodetool.ai"]
   },
   // optimizeDeps: {
   //   include: ["@chakra-ui/react", "@emotion/react"],
