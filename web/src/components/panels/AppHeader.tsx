@@ -9,6 +9,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import Logo from "../Logo";
 
 const styles = (theme: Theme) =>
   css({
@@ -100,6 +101,11 @@ const styles = (theme: Theme) =>
     ".nav-button-text": {
       display: "inline"
     },
+    ".logo-container": {
+      display: "flex",
+      alignItems: "center",
+      marginRight: "16px"
+    },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
@@ -112,7 +118,7 @@ const styles = (theme: Theme) =>
     // Mobile styles handled via separate CSS file
   });
 
-// Removed logo button from header; logo now lives in the editor tabs bar
+// Logo is now part of the header on all devices
 
 const DashboardButton = memo(function DashboardButton({
   isActive
@@ -183,6 +189,9 @@ const AppHeader: React.FC = memo(function AppHeader() {
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
+          <div className="logo-container">
+            <Logo small />
+          </div>
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />
             <ExamplesButton isActive={path.startsWith("/examples")} />

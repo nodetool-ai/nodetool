@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { IconButton, Fab, Box } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -12,13 +12,15 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ControlPointIcon from "@mui/icons-material/ControlPoint";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MobilePaneMenu from "../menus/MobilePaneMenu";
 
 const styles = (theme: Theme) =>
   css({
     position: "fixed",
     bottom: "20px",
     right: "20px",
-    zIndex: 1100,
+    zIndex: 21000,
     display: "flex",
     flexDirection: "row",
     gap: "12px",
@@ -72,6 +74,7 @@ const styles = (theme: Theme) =>
 const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
   const theme = useTheme();
   const path = useLocation().pathname;
+  const [paneMenuOpen, setPaneMenuOpen] = useState(false);
   
   const { workflow, nodes, edges } = useNodes((state) => ({
     workflow: state.workflow,
@@ -123,6 +126,7 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
       isMenuOpen: state.isMenuOpen
     })
   );
+
   const handleToggleNodeMenu = useCallback(() => {
     if (isMenuOpen) {
       closeNodeMenu();
@@ -134,38 +138,60 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
+  const handleOpenPaneMenu = useCallback(() => {
+    setPaneMenuOpen(true);
+  }, []);
+
+  const handleClosePaneMenu = useCallback(() => {
+    setPaneMenuOpen(false);
+  }, []);
+
   // Only show in editor view (visibility toggled by CSS for mobile)
   if (!path.startsWith("/editor")) {
     return null;
   }
 
   return (
-    <Box css={styles(theme)} className="mobile-floating-toolbar">
-      <Fab
-        className={`floating-action-button`}
-        onClick={handleToggleNodeMenu}
-        aria-label="Open node menu"
-      >
-        <ControlPointIcon />
-      </Fab>
-      <Fab
-        className={`floating-action-button ${isWorkflowRunning ? "running" : ""} ${isWorkflowRunning ? "disabled" : ""}`}
-        onClick={handleRun}
-        disabled={isWorkflowRunning}
-        aria-label="Run workflow"
-      >
-        <PlayArrow />
-      </Fab>
+    <>
+      <Box css={styles(theme)} className="mobile-floating-toolbar">
+        <Fab
+          className={`floating-action-button`}
+          onClick={handleOpenPaneMenu}
+          aria-label="Open canvas menu"
+        >
+          <MoreHorizIcon />
+        </Fab>
+        <Fab
+          className={`floating-action-button`}
+          onClick={handleToggleNodeMenu}
+          aria-label="Open node menu"
+        >
+          <ControlPointIcon />
+        </Fab>
+        <Fab
+          className={`floating-action-button ${isWorkflowRunning ? "running" : ""} ${isWorkflowRunning ? "disabled" : ""}`}
+          onClick={handleRun}
+          disabled={isWorkflowRunning}
+          aria-label="Run workflow"
+        >
+          <PlayArrow />
+        </Fab>
+        
+        <Fab
+          className={`floating-action-button ${!isWorkflowRunning ? "disabled" : ""}`}
+          onClick={handleStop}
+          disabled={!isWorkflowRunning}
+          aria-label="Stop workflow"
+        >
+          <StopIcon />
+        </Fab>
+      </Box>
       
-      <Fab
-        className={`floating-action-button ${!isWorkflowRunning ? "disabled" : ""}`}
-        onClick={handleStop}
-        disabled={!isWorkflowRunning}
-        aria-label="Stop workflow"
-      >
-        <StopIcon />
-      </Fab>
-    </Box>
+      <MobilePaneMenu 
+        open={paneMenuOpen} 
+        onClose={handleClosePaneMenu}
+      />
+    </>
   );
 });
 

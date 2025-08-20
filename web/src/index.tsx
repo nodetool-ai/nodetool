@@ -130,8 +130,21 @@ function getRoutes() {
       path: "/chat/:thread_id?",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
-          <GlobalChat />
+          <>
+            {/* Fixed application header at the very top */}
+            <AppHeader />
+            {/* Main chat area beneath the header */}
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <GlobalChat />
+            </div>
+          </>
         </ProtectedRoute>
       )
     },

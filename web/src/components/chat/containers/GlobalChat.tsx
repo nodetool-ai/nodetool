@@ -15,7 +15,6 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
-import AppHeader from "../../panels/AppHeader";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 
@@ -192,7 +191,7 @@ const GlobalChat: React.FC = () => {
         );
       };
     }
-  }, []);
+  }, [isMobile]);
 
   // model persistence is handled inside the store's setter
 
@@ -279,8 +278,7 @@ const GlobalChat: React.FC = () => {
         maxWidth: "100vw",
         display: "flex",
         flexDirection: "column",
-        // Keep top padding on desktop to match overall layout; remove on mobile
-        paddingTop: isMobile ? 0 : "40px",
+        // No top padding needed since AppHeader is external now
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
           ? 0
@@ -298,7 +296,6 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
-      <AppHeader />
       {/* Main Chat Area */}
       <Box
         css={mainAreaStyles(theme)}

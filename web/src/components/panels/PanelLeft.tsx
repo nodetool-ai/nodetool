@@ -478,7 +478,7 @@ const PanelLeft: React.FC = () => {
   return (
     <div
       css={styles(theme)}
-      className="panel-container"
+      className={`panel-container ${isVisible ? "panel-visible" : ""}`}
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
       <PanelResizeButton
