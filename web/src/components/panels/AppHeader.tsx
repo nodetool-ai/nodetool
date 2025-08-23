@@ -190,7 +190,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
           <div className="logo-container">
-            <Logo small />
+            <Logo
+              small
+              width="20px"
+              height="20px"
+              fontSize="1em"
+              borderRadius="4px"
+            />
           </div>
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />

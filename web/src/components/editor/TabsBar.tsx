@@ -221,33 +221,6 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   return (
     <div className="tabs-container">
       <button
-        tabIndex={-1}
-        className="tabs-logo-button"
-        onClick={handleLogoClick}
-        title="Open Welcome Screen"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          backgroundColor: "transparent",
-          padding: 0,
-          margin: 0,
-          marginLeft: logoLeftMargin,
-          marginRight: 15,
-          border: "none",
-          cursor: "pointer",
-          zIndex: 1001
-        }}
-      >
-        <Logo
-          width="20px"
-          height="20px"
-          fontSize="1em"
-          borderRadius="4px"
-          small={true}
-          singleLine={true}
-        />
-      </button>
-      <button
         className="scroll-button"
         onClick={handleScrollLeft}
         disabled={!canScrollLeft}
