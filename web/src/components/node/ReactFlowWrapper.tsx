@@ -17,7 +17,7 @@ import {
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import useContextMenu from "../../stores/ContextMenuStore";
 // components
 import NodeContextMenu from "../context_menus/NodeContextMenu";
 import PaneContextMenu from "../context_menus/PaneContextMenu";
@@ -71,7 +71,7 @@ interface ReactFlowWrapperProps {
 
 // Create a new component for context menus
 const ContextMenus = memo(function ContextMenus() {
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const { openMenuType } = useContextMenu();
 
   return (
     <>
@@ -222,7 +222,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   /* CONTEXT MENUS */
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenu();
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -292,6 +292,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     },
     [onNodesChange]
   );
+
 
   // EDGE HANDLER
   const {

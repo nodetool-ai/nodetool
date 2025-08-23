@@ -4,12 +4,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
+import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    minHeight: "120px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -18,17 +19,24 @@ const styles = (theme: Theme) =>
     padding: "1.5em 0.5em",
     marginTop: "auto",
     flexShrink: 0,
+    // Mobile styles handled via separate CSS file
 
     ".chat-controls": {
-      maxWidth: "1100px",
+      maxWidth: "100%",
       width: "100%",
-      display: "flex",
-      alignItems: "flex-end",
-      gap: "8px"
+      flexShrink: 0
     },
     ".chat-composer-wrapper": {
       flex: 1,
-      minWidth: 0
+      minWidth: 0,
+      width: "100%",
+      order: 1,
+      minHeight: "44px",
+      maxHeight: "120px",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "visible",
+      contain: "none"
     }
   });
 
@@ -76,34 +84,48 @@ const ChatInputSection = ({
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   return (
     <div className="chat-input-section" css={styles(theme)}>
       <div className="chat-controls">
-        <ChatToolBar
-          selectedTools={selectedTools}
-          onToolsChange={onToolsChange}
-          selectedCollections={selectedCollections}
-          onCollectionsChange={onCollectionsChange}
-          selectedModel={selectedModel}
-          onModelChange={onModelChange}
-          agentMode={agentMode}
-          onAgentModeToggle={onAgentModeToggle}
-        />
-        <div className="chat-composer-wrapper">
-          <ChatComposer
-            status={status}
-            onSendMessage={onSendMessage}
-            onStop={onStop}
-            onNewChat={onNewChat}
-            disabled={
-              status === "loading" ||
-              status === "streaming" ||
-              status === "error" ||
-              isDisconnected
-            }
+        {isMobile ? (
+          <MobileChatToolbar
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={onCollectionsChange}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
             agentMode={agentMode}
+            onAgentModeToggle={onAgentModeToggle}
           />
-        </div>
+        ) : (
+          <ChatToolBar
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={onCollectionsChange}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            agentMode={agentMode}
+            onAgentModeToggle={onAgentModeToggle}
+          />
+        )}
+      </div>
+      <div className="chat-composer-wrapper">
+        <ChatComposer
+          status={status}
+          onSendMessage={onSendMessage}
+          onStop={onStop}
+          onNewChat={onNewChat}
+          disabled={
+            status === "loading" ||
+            status === "streaming" ||
+            status === "error" ||
+            isDisconnected
+          }
+          agentMode={agentMode}
+        />
       </div>
     </div>
   );

@@ -23,8 +23,8 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
-import { CircularProgress } from "@mui/material";
-import { ThemeProvider } from "@mui/material/styles";
+import { CircularProgress, useMediaQuery } from "@mui/material";
+import { ThemeProvider, useTheme } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
 import { CssBaseline } from "@mui/material";
 
@@ -34,6 +34,7 @@ import "./styles/vars.css";
 import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
+import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
@@ -69,6 +70,8 @@ import GlobalChat from "./components/chat/containers/GlobalChat";
 import LayoutTest from "./components/LayoutTest";
 import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
+import MobileClassProvider from "./components/MobileClassProvider";
+import AppHeader from "./components/panels/AppHeader";
 
 (window as any).log = log;
 
@@ -127,8 +130,21 @@ function getRoutes() {
       path: "/chat/:thread_id?",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
-          <GlobalChat />
+          <>
+            {/* Fixed application header at the very top */}
+            <AppHeader />
+            {/* Main chat area beneath the header */}
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <GlobalChat />
+            </div>
+          </>
         </ProtectedRoute>
       )
     },
@@ -159,18 +175,23 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <FetchCurrentWorkflow>
-            <div
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <TabsNodeEditor />
-              <PanelRight />
-              <Alert />
-            </div>
+            <>
+              {/* Fixed application header at the very top */}
+              <AppHeader />
+              {/* Main editor area beneath the header */}
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <PanelLeft />
+                <TabsNodeEditor />
+                <PanelRight />
+                <Alert />
+              </div>
+            </>
           </FetchCurrentWorkflow>
         </ProtectedRoute>
       )
@@ -236,9 +257,10 @@ const AppWrapper = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
-          <MenuProvider>
-            <WorkflowManagerProvider queryClient={queryClient}>
-              <KeyboardProvider active={true}>
+          <MobileClassProvider>
+            <MenuProvider>
+              <WorkflowManagerProvider queryClient={queryClient}>
+                <KeyboardProvider active={true}>
                 {status === "pending" && (
                   <div
                     style={{
@@ -272,9 +294,10 @@ const AppWrapper = () => {
                     <DownloadManagerDialog />
                   </>
                 )}
-              </KeyboardProvider>
-            </WorkflowManagerProvider>
-          </MenuProvider>{" "}
+                </KeyboardProvider>
+              </WorkflowManagerProvider>
+            </MenuProvider>
+          </MobileClassProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>

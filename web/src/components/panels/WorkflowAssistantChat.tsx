@@ -36,7 +36,7 @@ const containerStyles = css({
   ".chat-controls": {
     flexDirection: "column",
     gap: "0",
-    alignItems: "flex-start"
+    alignItems: "center"
   },
   ".chat-composer-wrapper": {
     width: "100%",

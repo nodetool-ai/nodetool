@@ -18,7 +18,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
-import TabsNodeEditor from "../editor/TabsNodeEditor";
 import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
@@ -550,7 +549,6 @@ const ExampleGrid = () => {
 
   return (
     <Box css={styles(theme)}>
-      <TabsNodeEditor hideContent />
       <Box
         className="actions-container"
         sx={{

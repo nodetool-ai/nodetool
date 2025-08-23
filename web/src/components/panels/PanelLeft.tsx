@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Box, Button } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Box, Button, useMediaQuery } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
@@ -449,6 +449,7 @@ const PanelContent = memo(function PanelContent({
 
 const PanelLeft: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     ref: panelRef,
     size: panelSize,
@@ -477,7 +478,7 @@ const PanelLeft: React.FC = () => {
   return (
     <div
       css={styles(theme)}
-      className="panel-container"
+      className={`panel-container ${isVisible ? "panel-visible" : ""}`}
       style={{ width: isVisible ? `${panelSize}px` : "60px" }}
     >
       <PanelResizeButton
@@ -504,7 +505,12 @@ const PanelLeft: React.FC = () => {
               : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
-            width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED
+            width: isVisible ? `${isMobile ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75)) : panelSize}px` : PANEL_WIDTH_COLLAPSED,
+            maxWidth: isMobile ? "75vw" : "none",
+            maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 40px)", // Use dynamic viewport height when available
+            contain: isMobile ? "layout style" : "none",
+            boxSizing: "border-box",
+            overflow: "hidden" // Prevent panel content from overflowing
           }
         }}
         variant="persistent"

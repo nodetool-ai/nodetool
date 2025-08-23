@@ -24,7 +24,7 @@ export default class PanelErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // eslint-disable-next-line no-console
+     
     console.error("Panel crashed:", error, errorInfo);
   }
 

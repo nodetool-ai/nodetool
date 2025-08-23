@@ -10,6 +10,8 @@ import NodeDescription from "./node/NodeDescription";
 import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { TypeMetadata } from "../stores/ApiTypes";
+import { findOutputHandle } from "../utils/handleUtils";
 
 const styles = (theme: Theme) =>
   css({
@@ -217,29 +219,47 @@ const Inspector: React.FC = () => {
 
           {/* Dynamic properties, if any */}
           {Object.entries(selectedNode.data.dynamic_properties || {}).map(
-            ([name, value], index) => (
-              <PropertyField
-                key={`inspector-dynamic-${name}-${selectedNode.id}`}
-                id={selectedNode.id}
-                value={value}
-                property={
-                  {
-                    name,
-                    type: {
-                      type: "any",
-                      optional: false,
-                      type_args: []
-                    }
-                  } as any
+            ([name, value], index) => {
+              // Infer type from incoming edge
+              const incoming = edges.find(
+                (edge) => edge.target === selectedNode.id && edge.targetHandle === name
+              );
+              let resolvedType: TypeMetadata = {
+                type: "any",
+                type_args: [],
+                optional: false
+              } as any;
+              if (incoming) {
+                const sourceNode = findNode(incoming.source);
+                if (sourceNode) {
+                  const sourceMeta = getMetadata(sourceNode.type || "");
+                  const handle = sourceMeta
+                    ? findOutputHandle(
+                        sourceNode,
+                        incoming.sourceHandle || "",
+                        sourceMeta
+                      )
+                    : undefined;
+                  if (handle?.type) {
+                    resolvedType = handle.type;
+                  }
                 }
-                propertyIndex={`dynamic-${index}`}
-                showHandle={false}
-                isInspector={true}
-                nodeType="inspector"
-                layout=""
-                isDynamicProperty={true}
-              />
-            )
+              }
+              return (
+                <PropertyField
+                  key={`inspector-dynamic-${name}-${selectedNode.id}`}
+                  id={selectedNode.id}
+                  value={value}
+                  property={{ name, type: resolvedType } as any}
+                  propertyIndex={`dynamic-${index}`}
+                  showHandle={false}
+                  isInspector={true}
+                  nodeType="inspector"
+                  layout=""
+                  isDynamicProperty={true}
+                />
+              );
+            }
           )}
         </Box>
       </Box>

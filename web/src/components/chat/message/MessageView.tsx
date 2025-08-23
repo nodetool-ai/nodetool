@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Message,
   MessageContent,
@@ -26,7 +26,6 @@ export const MessageView: React.FC<MessageViewProps> = ({
   // Add error class if message has error flag
   const baseClass = getMessageClass(message.role);
   const messageClass = message.error_type ? `${baseClass} error-message` : baseClass;
-  const [isHovered, setIsHovered] = useState(false);
 
   const handleCopy = () => {
     let textToCopy = "";
@@ -67,39 +66,20 @@ export const MessageView: React.FC<MessageViewProps> = ({
     | Array<MessageTextContent | MessageImageContent>
     | string;
 
-  const copyButtonStyle: React.CSSProperties = {
-    position: "absolute",
-    zIndex: 1
-  };
-
-  let showCopyButton = false;
-
-  if (message.role === "user") {
-    copyButtonStyle.bottom = ".5em";
-    copyButtonStyle.right = "0.5em";
-    showCopyButton = isHovered;
-  } else if (message.role === "assistant") {
-    copyButtonStyle.bottom = "-15px";
-    copyButtonStyle.left = "-5px";
-    showCopyButton = true;
-  }
+  // Copy button is positioned via CSS in ChatThreadView.styles
 
   return (
     <li
       className={messageClass}
       style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "8px" }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div style={{ flex: 1, minWidth: 0, overflow: "hidden", wordBreak: "break-word", overflowWrap: "anywhere" }}>
-        {showCopyButton && (
-          <CopyToClipboardButton
-            textToCopy={handleCopy()}
-            size="small"
-            style={copyButtonStyle}
-            title="Copy to clipboard"
-          />
-        )}
+        <CopyToClipboardButton
+          className="copy-button"
+          textToCopy={handleCopy()}
+          size="small"
+          title="Copy to clipboard"
+        />
         {typeof message.content === "string" &&
           renderContent(
             message.content,

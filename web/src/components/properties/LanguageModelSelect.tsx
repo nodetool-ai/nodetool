@@ -1,5 +1,16 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import { Typography, Tooltip, Button } from "@mui/material";
+import {
+  Typography,
+  Tooltip,
+  Button,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl
+} from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
@@ -63,6 +74,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const theme = useTheme();
 
   const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
   const {
@@ -110,12 +122,13 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
 
   const handleDialogModelSelect = useCallback(
     (model: LanguageModel) => {
-      onChange({
-        type: "language_model",
+      const modelToPass = {
+        type: "language_model" as const,
         id: model.id,
         provider: model.provider,
         name: model.name || ""
-      });
+      };
+      onChange(modelToPass);
       addRecent({
         provider: model.provider || "",
         id: model.id || "",
@@ -161,7 +174,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       >
         <Button
           ref={buttonRef}
-          className={`select-model-button ${value ? "active" : ""}`}
+          className={`select-model-button language-model-button ${
+            value ? "active" : ""
+          }`}
           sx={{
             fontSize: "var(--fontSizeTiny)",
             border: "1px solid transparent",

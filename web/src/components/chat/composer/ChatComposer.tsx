@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect, Fragment } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -133,37 +133,39 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {droppedFiles.length > 0 && (
-          <div className="file-preview-container">
-            {droppedFiles.map((file, index) => (
-              <FilePreview
-                key={index}
-                file={file}
-                onRemove={() => removeFile(index)}
-              />
-            ))}
-          </div>
-        )}
-        <MessageInput
-          ref={textareaRef}
-          value={prompt}
-          onChange={handleOnChange}
-          onKeyDown={handleKeyDown}
-          disabled={isDisabled}
-          placeholder={
-            status === "disconnected" || status === "connecting"
-              ? "Connection required to send messages..."
-              : "Type your message..."
-          }
-        />
-        <ActionButtons
-          status={status}
-          onSend={handleSend}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          isDisabled={isDisabled}
-          hasContent={prompt.trim() !== ""}
-        />
+        <>
+          {droppedFiles.length > 0 && (
+            <div className="file-preview-container">
+              {droppedFiles.map((file, index) => (
+                <FilePreview
+                  key={index}
+                  file={file}
+                  onRemove={() => removeFile(index)}
+                />
+              ))}
+            </div>
+          )}
+          <MessageInput
+            ref={textareaRef}
+            value={prompt}
+            onChange={handleOnChange}
+            onKeyDown={handleKeyDown}
+            disabled={isDisabled}
+            placeholder={
+              status === "disconnected" || status === "connecting"
+                ? "Connection required to send messages..."
+                : "Type your message..."
+            }
+          />
+          <ActionButtons
+            status={status}
+            onSend={handleSend}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            isDisabled={isDisabled}
+            hasContent={prompt.trim() !== ""}
+          />
+        </>
       </div>
     </div>
   );

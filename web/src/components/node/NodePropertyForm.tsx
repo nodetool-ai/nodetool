@@ -24,6 +24,7 @@ interface NodePropertyFormProps {
   isDynamic: boolean;
   supportsDynamicOutputs: boolean;
   dynamicOutputs: Record<string, TypeMetadata>;
+  // onAddProperty retained for compatibility but unused; dynamic inputs are created via connections
   onAddProperty: (propertyName: string) => void;
 }
 
@@ -35,8 +36,6 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   onAddProperty
 }) => {
   const theme = useTheme();
-  const [showPropertyDialog, setShowPropertyDialog] = useState(false);
-  const [newPropertyName, setNewPropertyName] = useState("");
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
   const [showOutputDialog, setShowOutputDialog] = useState(false);
   const [newOutputName, setNewOutputName] = useState("");
@@ -54,13 +53,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     setShowOutputDialog(false);
   }, [newOutputName, newOutputType, handleAddOutput]);
 
-  const onSubmitProperty = useCallback(() => {
-    const name = newPropertyName.trim();
-    if (!name) return;
-    onAddProperty(name);
-    setNewPropertyName("");
-    setShowPropertyDialog(false);
-  }, [newPropertyName, onAddProperty]);
+  // Dynamic property creation is handled by dropping a connection onto the node
 
   return (
     <Box
@@ -70,64 +63,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         position: "relative"
       })}
     >
-      {isDynamic && (
-        <>
-          <Box
-            css={css({
-              display: "flex",
-              alignItems: "center",
-              gap: 8
-            })}
-          >
-            <Tooltip title="Add property">
-              <IconButton
-                size="small"
-                onClick={() => setShowPropertyDialog(true)}
-              >
-                <Add fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-
-          <Dialog
-            open={showPropertyDialog}
-            onClose={() => setShowPropertyDialog(false)}
-            maxWidth="xs"
-            fullWidth
-          >
-            <DialogTitle>Add Property</DialogTitle>
-            <DialogContent>
-              <TextField
-                autoFocus
-                label="Name"
-                size="small"
-                value={newPropertyName}
-                onChange={(e) => setNewPropertyName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onSubmitProperty();
-                }}
-                sx={{ mt: 1, width: "100%" }}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setShowPropertyDialog(false)}
-                variant="text"
-                size="small"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={onSubmitProperty}
-                variant="contained"
-                size="small"
-              >
-                Add
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </>
-      )}
+      {/* Dynamic input properties no longer have an Add button; they are created by dropping a connection. */}
 
       {supportsDynamicOutputs && (
         <>

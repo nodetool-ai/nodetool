@@ -3,10 +3,10 @@ import type { Theme } from "@mui/material/styles";
 
 export const createStyles = (theme: Theme) =>
   css({
-    "& ": {
-      width: "100%",
-      display: "flex"
-    },
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "44px",
     ".compose-message": {
       height: "auto",
       width: "100%",
@@ -15,11 +15,15 @@ export const createStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.grey[700],
       display: "flex",
       alignItems: "center",
-      borderRadius: 20,
-      marginLeft: "0.5em",
-      marginRight: "0.5em",
+      borderRadius: 16,
       boxShadow: "0 1px 0 rgba(0,0,0,0.25)",
-      padding: "6px 8px 6px 12px",
+      padding: "8px 12px",
+      minHeight: "44px",
+      maxHeight: "120px",
+      boxSizing: "border-box",
+      position: "relative",
+      visibility: "visible",
+      opacity: 1,
 
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
@@ -60,6 +64,8 @@ export const createStyles = (theme: Theme) =>
         position: "relative",
         borderRadius: 12
       }
+
+      // Mobile styles handled via separate CSS file
     },
 
     ".file-preview-container": {
@@ -67,12 +73,17 @@ export const createStyles = (theme: Theme) =>
       flexWrap: "wrap",
       gap: "6px",
       padding: "6px 8px"
+
+      // Mobile styles handled via separate CSS file
     },
 
     ".file-preview": {
       position: "relative",
       maxWidth: "24px",
       maxHeight: "24px",
+      flexShrink: 0,
+
+      // Mobile styles handled via separate CSS file
 
       ".remove-button": {
         position: "absolute",
