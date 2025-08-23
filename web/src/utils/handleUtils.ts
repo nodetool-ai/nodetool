@@ -87,7 +87,7 @@ export function findInputHandle(
     };
   }
 
-  // Then check dynamic properties (for dynamic nodes)
+
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     if (dynamicProperties[handleName] !== undefined) {
@@ -99,11 +99,11 @@ export function findInputHandle(
           values: null,
           type_args: [],
           type_name: null
-        },
-        isDynamic: true
-      };
+          },
+          isDynamic: true
+        };
+      }
     }
-  }
 
   return undefined;
 }
@@ -166,7 +166,7 @@ export function getAllInputHandles(
       handles.push({
         name,
         type: {
-          type: "str", // Dynamic properties default to string type
+          type: "any", // Dynamic properties take on the type of their incoming connection
           optional: false,
           values: null,
           type_args: [],

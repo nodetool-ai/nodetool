@@ -28,7 +28,6 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { PANEL_CONFIG } from "./panelConfig";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
-import TabsNodeEditor from "../editor/TabsNodeEditor";
 import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
@@ -325,7 +324,6 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box css={styles(theme)}>
-      <TabsNodeEditor hideContent />
       <Box
         className="actions-container"
         sx={{

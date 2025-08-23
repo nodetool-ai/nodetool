@@ -57,8 +57,7 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
-      position: "relative",
-      overflow: "hidden"
+      position: "relative"
     },
 
     "li.user": {
@@ -84,7 +83,17 @@ export const createStyles = (theme: Theme) => ({
       top: "8px",
       right: "8px",
       zIndex: 1,
-      cursor: "pointer"
+      cursor: "pointer",
+      opacity: 0,
+      pointerEvents: "none",
+      transition: "opacity 0.2s ease"
+    },
+    "li.chat-message:hover .copy-button": {
+      opacity: 0.7,
+      pointerEvents: "auto"
+    },
+    "li.chat-message .copy-button:hover": {
+      opacity: 1
     },
 
     "li.chat-message p": {

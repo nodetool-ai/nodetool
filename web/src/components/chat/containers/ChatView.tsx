@@ -14,24 +14,32 @@ import {
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
-import { Provider } from "../../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
-      position: "absolute",
-      right: "0px",
+      position: "relative",
       height: "100%",
-      width: "calc(100% - 100px)",
+      maxHeight: "100%",
+      width: "100%",
       display: "flex",
-      flexGrow: 1,
       flexDirection: "column",
-      overflow: "hidden"
+      overflow: "hidden",
+      minHeight: 0
+    },
+    ".chat-thread-container": {
+      flex: 1,
+      overflow: "auto",
+      minHeight: 0,
+      paddingBottom: "16px",
+      // Prevent scroll jumping on mobile keyboard
+      WebkitOverflowScrolling: "touch",
+      scrollBehavior: "smooth"
     },
     ".chat-controls": {
-      padding: "0 1em",
+      padding: "0 16px 0 0",
       marginTop: "auto",
-      zIndex: 1,
+      zIndex: 10,
       display: "flex",
       alignItems: "center",
       gap: "8px"
@@ -146,19 +154,21 @@ const ChatView = ({
 
   return (
     <div className="chat-view" css={styles(theme)}>
-      {messages.length > 0 ? (
-        <ChatThreadView
-          messages={messages}
-          status={status}
-          progress={progress}
-          total={total}
-          progressMessage={progressMessage}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-        />
-      ) : (
-        noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
-      )}
+      <div className="chat-thread-container">
+        {messages.length > 0 ? (
+          <ChatThreadView
+            messages={messages}
+            status={status}
+            progress={progress}
+            total={total}
+            progressMessage={progressMessage}
+            currentPlanningUpdate={currentPlanningUpdate}
+            currentTaskUpdate={currentTaskUpdate}
+          />
+        ) : (
+          noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+        )}
+      </div>
 
       <ChatInputSection
         status={status}

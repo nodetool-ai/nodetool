@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
 import PropertyField from "./PropertyField";
-import { NodeMetadata, Property } from "../../stores/ApiTypes";
+import { NodeMetadata, Property, TypeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
@@ -65,9 +67,11 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   basicFields,
   isDynamicProperty
 }) {
-  const { edges } = useNodes((state) => ({
-    edges: state.edges
+  const { edges, findNode } = useNodes((state) => ({
+    edges: state.edges,
+    findNode: state.findNode
   }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const isConstantNode = property.type.type.startsWith("nodetool.constant");
   const isConnected = useMemo(() => {
@@ -170,28 +174,47 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   });
 
   const dynamicInputElements = Object.entries(dynamicProperties).map(
-    ([name, value], index) => (
-      <NodeInput
-        key={`dynamic-${name}-${id}`}
-        id={id}
-        nodeType={nodeType}
-        layout={layout}
-        property={{
-          name,
-          type: {
-            type: "any",
-            type_args: [],
-            optional: false
+    ([name], index) => {
+      // Determine type from incoming edge's source handle
+      const incoming = edges.find(
+        (edge) => edge.target === id && edge.targetHandle === name
+      );
+      let resolvedType: TypeMetadata = {
+        type: "any",
+        type_args: [],
+        optional: false
+      } as any;
+      if (incoming) {
+        const sourceNode = findNode(incoming.source);
+        if (sourceNode) {
+          const sourceMeta = getMetadata(sourceNode.type || "");
+          const handle = sourceMeta
+            ? findOutputHandle(sourceNode, incoming.sourceHandle || "", sourceMeta)
+            : undefined;
+          if (handle?.type) {
+            resolvedType = handle.type;
           }
-        }}
-        propertyIndex={`dynamic-${index}`}
-        data={data}
-        showFields={true}
-        showHandle={true}
-        tabIndex={-1}
-        isDynamicProperty={true}
-      />
-    )
+        }
+      }
+      return (
+        <NodeInput
+          key={`dynamic-${name}-${id}`}
+          id={id}
+          nodeType={nodeType}
+          layout={layout}
+          property={{
+            name,
+            type: resolvedType
+          }}
+          propertyIndex={`dynamic-${index}`}
+          data={data}
+          showFields={true}
+          showHandle={true}
+          tabIndex={-1}
+          isDynamicProperty={true}
+        />
+      );
+    }
   );
 
   return (

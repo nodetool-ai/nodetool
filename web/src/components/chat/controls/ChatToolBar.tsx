@@ -16,14 +16,35 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    marginBottom: ".5em",
-    gap: 0,
+    width: "100%",
+    gap: "8px",
+    flexWrap: "wrap",
+    
+    // Row styling
+    ".controls-row": {
+      display: "flex",
+      alignItems: "center",
+      width: "100%",
+      gap: "6px",
+      minHeight: "36px"
+    },
+    
+    ".model-select": {
+      flex: "0 0 auto"
+    },
+    
+    ".tools-container": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      flex: 1,
+      justifyContent: "flex-end"
+    },
+    
+    // Button styling (desktop defaults; mobile overrides in CSS)
     "& .MuiButton-root, & .MuiIconButton-root": {
       padding: "6px",
       margin: "0"
-    },
-    "& .MuiButton-startIcon": {
-      marginRight: "0"
     }
   });
 
@@ -49,6 +70,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onCollectionsChange
 }) => {
   const theme = useTheme();
+
+  // Desktop layout (unchanged)
   return (
     <div className="chat-tool-bar" css={styles(theme)}>
       {onModelChange && (

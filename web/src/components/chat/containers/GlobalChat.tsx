@@ -1,8 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useRef, useMemo, useState } from "react";
-import { Box, Alert, Typography } from "@mui/material";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import React, {
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  useCallback
+} from "react";
+import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,8 +15,8 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
-import AppHeader from "../../panels/AppHeader";
-import TabsNodeEditor from "../../editor/TabsNodeEditor";
+import { usePanelStore } from "../../../stores/PanelStore";
+import { useRightPanelStore } from "../../../stores/RightPanelStore";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -53,9 +58,14 @@ const GlobalChat: React.FC = () => {
     (s) => s.setSelectedCollections
   );
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // Side panel states (for desktop spacing)
+  const leftPanel = usePanelStore((s) => s.panel);
+  const rightPanel = useRightPanelStore((s) => s.panel);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -140,8 +150,46 @@ const GlobalChat: React.FC = () => {
 
   // Close the drawer automatically when switching to desktop view
   useEffect(() => {
-    if (!isMobile) {
-      setDrawerOpen(false);
+    setDrawerOpen(false);
+  }, []);
+
+  // Handle mobile keyboard behavior and maintain scroll position
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleViewportChange = () => {
+      // Maintain scroll position when virtual keyboard appears/disappears
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          const chatArea = chatContainerRef.current.querySelector(
+            ".chat-thread-container"
+          );
+          if (chatArea) {
+            // Check if user was at bottom before viewport change
+            const wasAtBottom =
+              chatArea.scrollTop + chatArea.clientHeight >=
+              chatArea.scrollHeight - 100;
+            if (wasAtBottom) {
+              // Keep scrolled to bottom
+              chatArea.scrollTop = chatArea.scrollHeight;
+            }
+          }
+        }
+      }, 150);
+    };
+
+    // Use Visual Viewport API for better keyboard handling
+    if ((window as any).visualViewport) {
+      (window as any).visualViewport.addEventListener(
+        "resize",
+        handleViewportChange
+      );
+      return () => {
+        (window as any).visualViewport.removeEventListener(
+          "resize",
+          handleViewportChange
+        );
+      };
     }
   }, [isMobile]);
 
@@ -169,18 +217,21 @@ const GlobalChat: React.FC = () => {
       flex: 1,
       display: "flex",
       flexDirection: "column",
-
-      ".chat-header": {
-        position: "absolute",
-        top: 0,
-        left: "40px",
-        zIndex: 1000
-      },
+      height: "100%",
+      minHeight: 0,
+      maxHeight: "100%",
 
       ".chat-container": {
         flex: 1,
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        maxHeight: "100%",
+        position: "relative"
       }
+
+      // Mobile styles handled via separate CSS file
     });
 
   // Show loading state if threads are still loading
@@ -219,14 +270,30 @@ const GlobalChat: React.FC = () => {
 
   return (
     <Box
+      ref={chatContainerRef}
+      className="global-chat-container"
       sx={{
-        height: "100vh",
-        maxHeight: "100vh",
+        height: "100dvh", // Dynamic viewport height
+        maxHeight: "100dvh",
+        maxWidth: "100vw",
         display: "flex",
         flexDirection: "column",
-        paddingLeft: { xs: "0.5rem", md: "0" },
-        paddingRight: { xs: "0.5rem", md: "0" },
-        overflow: "hidden"
+        // No top padding needed since AppHeader is external now
+        // Add horizontal padding on desktop to avoid side panes
+        paddingLeft: isMobile
+          ? 0
+          : leftPanel.isVisible
+          ? `${leftPanel.panelSize}px`
+          : `${leftPanel.minWidth}px`,
+        paddingRight: isMobile
+          ? 0
+          : rightPanel.isVisible
+          ? `${rightPanel.panelSize}px`
+          : 0,
+        overflow: "hidden",
+        position: "relative",
+        boxSizing: "border-box"
+        // Mobile styles handled via separate CSS file
       }}
     >
       {/* Main Chat Area */}
@@ -234,25 +301,12 @@ const GlobalChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        <TabsNodeEditor hideContent />
-        <Box
-          className="actions-container"
-          sx={{
-            position: "absolute",
-            top: "32px",
-            left: 0,
-            right: 0,
-            zIndex: 1000
-          }}
-        >
-          <AppHeader />
-        </Box>
-
         {(error ||
           status === "reconnecting" ||
           status === "disconnected" ||
           status === "failed") && (
           <Alert
+            className="global-chat-status-alert"
             severity={
               status === "reconnecting"
                 ? "info"

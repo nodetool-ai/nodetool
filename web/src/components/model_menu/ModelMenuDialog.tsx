@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import React, { useCallback, useState } from "react";
 import {
   Dialog,
@@ -43,7 +44,13 @@ const containerStyles = css({
   gridTemplateColumns: "275px 300px 300px",
   gap: 4,
   minHeight: 480,
-  gridTemplateRows: "auto auto 1fr"
+  gridTemplateRows: "auto auto 1fr",
+  "@media (max-width: 900px)": {
+    gridTemplateColumns: "1fr",
+    gridTemplateRows: "auto auto auto 1fr",
+    minHeight: "auto",
+    gap: 8
+  }
 });
 
 export default function ModelMenuDialog({
@@ -55,6 +62,7 @@ export default function ModelMenuDialog({
   onModelChange
 }: ModelMenuDialogProps) {
   const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const setSearch = useModelMenuStore((s) => s.setSearch);
   const activeSidebarTab = useModelMenuStore((s) => s.activeSidebarTab);
   const setActiveSidebarTab = useModelMenuStore((s) => s.setActiveSidebarTab);
@@ -106,11 +114,14 @@ export default function ModelMenuDialog({
       open={open}
       onClose={onClose}
       className="model-menu__dialog"
+      transitionDuration={isSmall ? 0 : undefined}
       slotProps={{
         backdrop: {
           style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
+            backdropFilter: isSmall ? "none" : theme.vars.palette.glass.blur,
+            backgroundColor: isSmall
+              ? theme.vars.palette.background.default
+              : theme.vars.palette.glass.backgroundDialog
           }
         },
         paper: {
@@ -123,8 +134,8 @@ export default function ModelMenuDialog({
       }}
       sx={{
         "& .MuiDialog-paper": {
-          width: "92%",
-          maxWidth: "1200px",
+          width: { xs: "98%", sm: "92%" },
+          maxWidth: { xs: "100%", sm: "1200px" },
           margin: "auto",
           borderRadius: 1.5,
           background: "transparent",
@@ -204,7 +215,7 @@ export default function ModelMenuDialog({
           </Box>
           <Box
             className="model-menu__model-list-container"
-            sx={{ maxWidth: 300, height: "100%", overflow: "hidden" }}
+            sx={{ maxWidth: { xs: "100%", sm: 300 }, height: "100%", minHeight: 320, overflow: "hidden" }}
           >
             <ModelList
               models={filteredModelsAdvanced}

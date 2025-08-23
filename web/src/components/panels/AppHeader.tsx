@@ -9,6 +9,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import Logo from "../Logo";
 
 const styles = (theme: Theme) =>
   css({
@@ -16,7 +17,11 @@ const styles = (theme: Theme) =>
       width: "100%",
       overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
-      paddingLeft: "8px"
+      paddingLeft: "8px",
+      position: "fixed",
+      top: 0,
+      left: 0,
+      zIndex: 1100
     },
     ".toolbar": {
       backgroundColor: theme.vars.palette.grey[900],
@@ -49,7 +54,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".navigate": {
-      display: "flex",
+      display: "flex !important",
       alignItems: "center",
       flex: "1 1 auto",
       gap: "8px"
@@ -60,15 +65,15 @@ const styles = (theme: Theme) =>
       gap: "6px",
       padding: "2px 4px",
       borderRadius: "10px",
-      backgroundColor: theme.vars.palette.action.hover,
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
-      padding: "4px 8px",
+      padding: "0px 8px",
       borderRadius: "8px",
       fontWeight: 600,
       letterSpacing: "0.01em",
       color: theme.vars.palette.grey[100],
+      minWidth: "auto",
       "& svg": {
         marginRight: "6px"
       },
@@ -93,6 +98,14 @@ const styles = (theme: Theme) =>
         opacity: 0.85
       }
     },
+    ".nav-button-text": {
+      display: "inline"
+    },
+    ".logo-container": {
+      display: "flex",
+      alignItems: "center",
+      marginRight: "16px"
+    },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
@@ -102,9 +115,10 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       marginRight: "4px"
     }
+    // Mobile styles handled via separate CSS file
   });
 
-// Removed logo button from header; logo now lives in the editor tabs bar
+// Logo is now part of the header on all devices
 
 const DashboardButton = memo(function DashboardButton({
   isActive
@@ -130,7 +144,7 @@ const DashboardButton = memo(function DashboardButton({
         aria-current={isActive ? "page" : undefined}
       >
         <DashboardIcon />
-        Dashboard
+        <span className="nav-button-text">Dashboard</span>
       </IconButton>
     </Tooltip>
   );
@@ -161,7 +175,7 @@ const ExamplesButton = memo(function ExamplesButton({
         aria-current={isActive ? "page" : undefined}
       >
         <ExamplesIcon />
-        Examples
+        <span className="nav-button-text">Examples</span>
       </IconButton>
     </Tooltip>
   );
@@ -175,6 +189,9 @@ const AppHeader: React.FC = memo(function AppHeader() {
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate">
+          <div className="logo-container">
+            <Logo small />
+          </div>
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />
             <ExamplesButton isActive={path.startsWith("/examples")} />

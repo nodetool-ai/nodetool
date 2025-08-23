@@ -3,7 +3,24 @@ html, body, #root {
   width: 100%;
   margin: 0;
   padding: 0;
+  /* Modern viewport units with fallback */
+  height: 100vh;
+  height: 100dvh; /* Use dynamic viewport height when available */
+  overflow: hidden;
+  position: relative;
+  /* Prevent content from exceeding viewport */
+  max-height: 100vh;
+  max-height: 100dvh;
+  max-width: 100vw;
 }
+
+#root {
+  /* Ensure root container uses flexbox for proper containment */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile viewport containment moved to mobile.css */
 
 @property --gradient-angle {
   syntax: '<angle>';
@@ -14,6 +31,13 @@ html, body, #root {
 .hidden {
   display: none;
   visibility: hidden;
+}
+
+/* Desktop default: hide mobile-only components */
+.mobile-chat-toolbar,
+.mobile-floating-toolbar,
+.language-model-select {
+  display: none;
 }
 
 a {
@@ -228,6 +252,24 @@ img::selection {
   display: flex;
   flex-direction: column;
 }
+
+/* Universal viewport containment utilities */
+.viewport-container {
+  max-width: 100vw;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.viewport-content {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* Mobile viewport containment utilities moved to mobile.css */
 
 /* ERROR MESSAGE */
 .error-message {
