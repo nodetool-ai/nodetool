@@ -41,7 +41,7 @@ import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
-import { SVGElement } from "../../stores/ApiTypes";
+import { SVGElement, Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 export type OutputRendererProps = {
   value: any;
@@ -398,6 +398,46 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             );
           }
           if (typeof value[0] === "object") {
+            if (value[0].type === "chunk") {
+              const chunks = value as Chunk[];
+              const allText = chunks.every((c) => c.content_type === "text");
+              if (allText) {
+                const text = chunks.map((c) => c.content).join("");
+                return (
+                  <div
+                    className="output value nodrag noscroll"
+                    css={styles(theme)}
+                  >
+                    {text !== "" && (
+                      <>
+                        <ButtonGroup className="actions">
+                          <Tooltip
+                            title="Copy to Clipboard"
+                            enterDelay={TOOLTIP_ENTER_DELAY}
+                          >
+                            <Button
+                              size="small"
+                              onClick={() => handleCopyToClipboard(text)}
+                            >
+                              Copy
+                            </Button>
+                          </Tooltip>
+                        </ButtonGroup>
+                        <MarkdownRenderer content={text} />
+                      </>
+                    )}
+                  </div>
+                );
+              }
+              // Mixed or non-text chunks: render each chunk individually
+              return (
+                <Container>
+                  {chunks.map((c, i) => (
+                    <OutputRenderer key={i} value={c} />
+                  ))}
+                </Container>
+              );
+            }
             if (value[0].type === "svg_element") {
               return renderSVGDocument(value);
             }
@@ -500,6 +540,57 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             </div>
           </div>
         );
+      case "chunk": {
+        const chunk = value as Chunk;
+        switch (chunk.content_type) {
+          case "image":
+            return <ImageView source={chunk.content} />;
+          case "audio":
+            return (
+              <div className="audio" style={{ padding: "1em" }}>
+                <AudioPlayer source={chunk.content} />
+              </div>
+            );
+          case "video":
+            return (
+              <video src={chunk.content} controls style={{ width: "100%" }} />
+            );
+          case "document":
+            return (
+              <div className="output value nodrag noscroll" css={styles(theme)}>
+                <a href={chunk.content} target="_blank" rel="noreferrer">
+                  Open document
+                </a>
+              </div>
+            );
+          case "text":
+          default: {
+            const text = chunk.content ?? "";
+            return (
+              <div className="output value nodrag noscroll" css={styles(theme)}>
+                {text !== "" && (
+                  <>
+                    <ButtonGroup className="actions">
+                      <Tooltip
+                        title="Copy to Clipboard"
+                        enterDelay={TOOLTIP_ENTER_DELAY}
+                      >
+                        <Button
+                          size="small"
+                          onClick={() => handleCopyToClipboard(text)}
+                        >
+                          Copy
+                        </Button>
+                      </Tooltip>
+                    </ButtonGroup>
+                    <MarkdownRenderer content={text} />
+                  </>
+                )}
+              </div>
+            );
+          }
+        }
+      }
       default:
         return (
           <div className="output value nodrag noscroll" css={styles(theme)}>

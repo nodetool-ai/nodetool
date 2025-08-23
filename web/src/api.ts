@@ -3923,6 +3923,8 @@ export interface components {
             node_id: string;
             /** Node Name */
             node_name: string;
+            /** Node Type */
+            node_type: string;
             /** Status */
             status: string;
             /** Error */

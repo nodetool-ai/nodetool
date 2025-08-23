@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 //mui
-import { Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Divider, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import ViewWeekIcon from "@mui/icons-material/ViewWeek";
@@ -15,7 +15,6 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
-import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -50,6 +49,7 @@ const OutputContextMenu: React.FC = () => {
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
   const {
     showMenu,
+    typeMetadata,
     setSourceHandle,
     setTargetHandle,
     setNodeId,
@@ -57,6 +57,7 @@ const OutputContextMenu: React.FC = () => {
     setConnectableType
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
+    typeMetadata: state.typeMetadata,
     setSourceHandle: state.setSourceHandle,
     setTargetHandle: state.setTargetHandle,
     setNodeId: state.setNodeId,
@@ -106,7 +107,12 @@ const OutputContextMenu: React.FC = () => {
   }, [sourceType, fetchMetadata]);
 
   const createNodeWithEdge = useCallback(
-    (metadata: any, position: { x: number; y: number }, nodeType: string) => {
+    (
+      metadata: any,
+      position: { x: number; y: number },
+      nodeType: string,
+      targetHandle: string | null = null
+    ) => {
       if (!metadata) {
         log.info("Metadata is undefined, cannot create node.");
         return;
@@ -119,6 +125,10 @@ const OutputContextMenu: React.FC = () => {
           y: position.y
         })
       );
+
+      if (targetHandle) {
+        newNode.data.dynamic_properties[targetHandle] = true;
+      }
 
       if (metadata.style) {
         newNode.style = metadata.style;
@@ -135,13 +145,15 @@ const OutputContextMenu: React.FC = () => {
             : parseInt(newNode.style?.height as string, 10) || 200
       };
 
-      newNode.data.properties.name =
-        sourceType?.type && sourceHandle
-          ? `${sourceType.type}_${sourceHandle}`
-          : "";
+      if (!targetHandle) {
+        targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
+      }
+
+      if (newNode.data.properties.name) {
+        newNode.data.properties.name = targetHandle;
+      }
 
       addNode(newNode);
-      const targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
       addEdge({
         id: generateEdgeId(),
         source: nodeId || "",
@@ -188,6 +200,28 @@ const OutputContextMenu: React.FC = () => {
       );
     },
     [getMetadata, createNodeWithEdge]
+  );
+
+  const createToolResultNode = useCallback(
+    (event: React.MouseEvent) => {
+      const metadata = getMetadata("nodetool.workflows.base_node.ToolResult");
+      if (!metadata) {
+        return;
+      }
+      const targetHandle =
+        sourceHandle === "output" ? sourceType?.type : sourceHandle;
+
+      createNodeWithEdge(
+        metadata,
+        {
+          x: event.clientX - 230,
+          y: event.clientY - 220
+        },
+        "tool_result",
+        targetHandle
+      );
+    },
+    [getMetadata, createNodeWithEdge, sourceHandle, sourceType]
   );
 
   const createOutputNode = useCallback(
@@ -256,6 +290,17 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleCreateToolResultNode = (
+    event?: React.MouseEvent<HTMLElement>
+  ) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      createToolResultNode(event);
+    }
+    closeContextMenu();
+  };
+
   const handleCreateSaveNode = (event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
@@ -319,6 +364,12 @@ const OutputContextMenu: React.FC = () => {
             IconComponent={<LogoutIcon />}
           />
         )}
+        <ContextMenuItem
+          onClick={handleCreateToolResultNode}
+          label="Create Tool Result Node"
+          addButtonClassName="create-tool-result-node"
+          IconComponent={<LogoutIcon />}
+        />
         {saveNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateSaveNode}

@@ -42,7 +42,12 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable } from "../utils/TypeHandler";
-import { findOutputHandle, findInputHandle, hasOutputHandle, hasInputHandle } from "../utils/handleUtils";
+import {
+  findOutputHandle,
+  findInputHandle,
+  hasOutputHandle,
+  hasInputHandle
+} from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
@@ -103,6 +108,11 @@ const isValidEdge = (
 
   // Basic validation: nodes must exist
   if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
+    console.log("isValidEdge failed: missing nodes or types", {
+      sourceNode,
+      targetNode,
+      edge
+    });
     return false;
   }
 
@@ -121,16 +131,28 @@ const isValidEdge = (
   }
 
   if (!edge.sourceHandle || !edge.targetHandle) {
+    console.log("isValidEdge failed: missing handles", {
+      edge
+    });
     return false;
   }
 
   // Validate source handle
   if (!hasOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata)) {
+    console.log("isValidEdge failed: missing source handle", {
+      edge
+    });
     return false;
   }
 
   // Validate target handle
-  if (!hasInputHandle(targetNode, edge.targetHandle, targetMetadata)) {
+  if (
+    !targetMetadata.is_dynamic &&
+    !hasInputHandle(targetNode, edge.targetHandle, targetMetadata)
+  ) {
+    console.log("isValidEdge failed: missing target handle", {
+      edge
+    });
     return false;
   }
 
@@ -276,8 +298,16 @@ const sanitizeGraph = (
         return false;
       }
 
-      const sourceHasValidHandle = hasOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata);
-      const targetHasValidHandle = hasInputHandle(targetNode, edge.targetHandle, targetMetadata);
+      const sourceHasValidHandle = hasOutputHandle(
+        sourceNode,
+        edge.sourceHandle,
+        sourceMetadata
+      );
+      const targetHasValidHandle = hasInputHandle(
+        targetNode,
+        edge.targetHandle,
+        targetMetadata
+      );
 
       if (!sourceHasValidHandle) {
         const sourceDynamicOutputs = sourceNode.data.dynamic_outputs || {};
@@ -523,10 +553,19 @@ export const createNodeStore = (
           onConnect: (connection: Connection): void => {
             const srcNode = get().findNode(connection.source);
             const targetNode = get().findNode(connection.target);
+            if (!connection.targetHandle) {
+              return;
+            }
+            const isDynamicProperty =
+              targetNode?.data.dynamic_properties[connection.targetHandle] !==
+              undefined;
             if (
               !srcNode ||
               !targetNode ||
-              !get().validateConnection(connection, srcNode, targetNode)
+              !(
+                isDynamicProperty ||
+                get().validateConnection(connection, srcNode, targetNode)
+              )
             ) {
               return;
             }
@@ -703,7 +742,10 @@ export const createNodeStore = (
             const nodeMap = new Map(get().nodes.map((n) => [n.id, n]));
 
             if (!isValidEdge(edge, nodeMap, metadata)) {
-              log.warn(`Cannot add edge ${edge.id}: edge validation failed`);
+              log.warn(
+                `Cannot add edge ${edge.id}: edge validation failed`,
+                edge
+              );
               return;
             }
 
@@ -914,13 +956,21 @@ export const createNodeStore = (
             }
 
             // Validate source handle exists
-            const srcHandle = findOutputHandle(srcNode, connection.sourceHandle, srcMetadata);
+            const srcHandle = findOutputHandle(
+              srcNode,
+              connection.sourceHandle,
+              srcMetadata
+            );
             if (!srcHandle) {
               return false;
             }
 
             // Validate target handle exists
-            const targetHandle = findInputHandle(targetNode, connection.targetHandle, targetMetadata);
+            const targetHandle = findInputHandle(
+              targetNode,
+              connection.targetHandle,
+              targetMetadata
+            );
             if (!targetHandle) {
               return false;
             }
