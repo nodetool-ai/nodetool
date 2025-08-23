@@ -130,9 +130,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
-  const { edges } = useNodes((state) => ({
-    edges: state.edges
+  const { edges, findNode } = useNodes((state) => ({
+    edges: state.edges,
+    findNode: state.findNode
   }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const isConnected = useCallback(
     (handle: string) => {
       return edges.some(
@@ -189,7 +191,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         if (sourceNode) {
           const sourceMeta = getMetadata(sourceNode.type || "");
           const handle = sourceMeta
-            ? findOutputHandle(sourceNode, incoming.sourceHandle || "", sourceMeta)
+            ? findOutputHandle(
+                sourceNode,
+                incoming.sourceHandle || "",
+                sourceMeta
+              )
             : undefined;
           if (handle?.type) {
             resolvedType = handle.type;

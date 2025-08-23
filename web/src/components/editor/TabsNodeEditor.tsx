@@ -270,12 +270,6 @@ const styles = (theme: Theme) =>
     },
     "& .window-control-button#close-button:hover": {
       backgroundColor: "var(--c_delete)"
-    },
-    "& .actions-container": {
-      flexShrink: 0,
-      width: "100%",
-      backgroundColor: theme.vars.palette.grey[900],
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
     }
   });
 
@@ -421,9 +415,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                     <ContextMenuProvider>
                       <ConnectableNodesProvider>
                         <KeyboardProvider>
-                          <div className="actions-container">
-                            <AppToolbar setWorkflowToEdit={setWorkflowToEdit} />
-                          </div>
                           <div className="status-message-container">
                             <StatusMessage />
                           </div>
@@ -442,7 +433,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                             />
                           </div>
 
-                          {/* Mobile Floating Toolbar - needs to be inside NodeContext */}
                           <MobileFloatingToolbar />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
