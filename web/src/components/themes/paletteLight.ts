@@ -124,103 +124,103 @@ declare module "@mui/material/styles" {
 
 export const paletteLight: PaletteOptions = {
   error: {
-    main: "#EF4444",
-    light: "#FF8A80",
-    dark: "#C62828",
+    main: "#D8615B",
+    light: "#F29D99",
+    dark: "#A8443F",
     contrastText: "#fff"
   },
   warning: {
-    main: "#F59E0B",
-    light: "#FFD591",
-    dark: "#FF9800",
+    main: "#D99A3B",
+    light: "#F2C46E",
+    dark: "#B07A2E",
     contrastText: "#000"
   },
   info: {
-    main: "#2563EB",
-    light: "#60A5FA",
-    dark: "#1E40AF",
+    main: "#3F7D8C",
+    light: "#7FA8B3",
+    dark: "#2E5F6A",
     contrastText: "#fff"
   },
   success: {
-    main: "#10B981",
-    light: "#80E27E",
-    dark: "#229A16",
+    main: "#6BAA75",
+    light: "#9FD2A6",
+    dark: "#4E8557",
     contrastText: "#fff"
   },
   grey: {
     0: "#000000",
-    50: "#111827",
-    100: "#1F2937",
-    200: "#374151",
-    300: "#4B5563",
-    400: "#6B7280",
-    500: "#9CA3AF",
-    600: "#D1D5DB",
-    700: "#E5E7EB",
-    800: "#F1F1F1",
-    900: "#F8F8F8",
+    50: "#1E1C1A",
+    100: "#2C2A27",
+    200: "#4A4743",
+    300: "#6A6660",
+    400: "#8A857E",
+    500: "#A59F97",
+    600: "#C7C0B7",
+    700: "#DED8D0",
+    800: "#ECE6DE",
+    900: "#F6F2EC",
     1000: "#FFFFFF"
   },
-  c_black: "#0B1220",
-  c_bg_comment: "#111827",
+  c_black: "#1A1715",
+  c_bg_comment: "#1E1C1A",
   c_brightest: "#FFFFFF",
   c_white: "#FFFFFF",
-  c_background: "#EAF0F7",
-  c_node_menu: "#E6EBF3",
-  c_selection: "#5B9DFF33",
-  c_input: "#E8F1FF",
-  c_output: "#F3E8FF",
-  c_attention: "#7C3AED",
-  c_delete: "#EF4444",
-  c_debug: "#F43F5E",
-  c_job: "#2563EB",
-  c_node: "#0EA5E9",
-  c_folder: "#EAB308",
-  c_progress: "#22C55E",
-  c_link: "#2563EB",
-  c_link_visited: "#7C3AED",
+  c_background: "#FAF7F2",
+  c_node_menu: "#F4EFE7",
+  c_selection: "#5E9A8F33",
+  c_input: "#F6EFE7",
+  c_output: "#EFF5EF",
+  c_attention: "#C96E51",
+  c_delete: "#D8615B",
+  c_debug: "#B35E7A",
+  c_job: "#5E9A8F",
+  c_node: "#5E9A8F",
+  c_folder: "#D99A3B",
+  c_progress: "#6BAA75",
+  c_link: "#3F7D75",
+  c_link_visited: "#6A8C88",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#cfcfcf",
-  c_scroll_thumb: "#b5b5b5",
+  c_scroll_hover: "#D9D2C9",
+  c_scroll_thumb: "#C7BEB3",
   c_node_bg: "#FFFFFF",
-  c_node_bg_group: "#F8FAFC",
-  c_node_header_bg: "#F2F4F7",
-  c_node_header_bg_group: "#E5E7EB",
-  c_bg_loop: "#2563EB14",
-  c_bg_group: "#A1A4AD30",
-  c_editor_bg_color: "#F8FAFC",
-  c_editor_grid_color: "#E5E7EB",
-  c_editor_axis_color: "#D1D5DB",
-  c_selection_rect: "rgba(37, 99, 235, 0.12)",
-  c_provider_api: "#1E3A8A",
-  c_provider_local: "#14532D",
-  c_provider_hf: "#5B21B6",
+  c_node_bg_group: "#FBF8F2",
+  c_node_header_bg: "#F3EEE6",
+  c_node_header_bg_group: "#E9E1D8",
+  c_bg_loop: "#5E9A8F14",
+  c_bg_group: "#A59F9730",
+  c_editor_bg_color: "#FAF7F2",
+  c_editor_grid_color: "#E7DFD6",
+  c_editor_axis_color: "#D4CCC3",
+  c_selection_rect: "rgba(94, 154, 143, 0.12)",
+  c_provider_api: "#2C415A",
+  c_provider_local: "#2E5B4E",
+  c_provider_hf: "#6D4B6F",
 
   // Provider badge colors (light) - single token per provider type
-  providerApi: "#1E3A8A",
-  providerLocal: "#14532D",
-  providerHf: "#5B21B6",
+  providerApi: "#2C415A",
+  providerLocal: "#2E5B4E",
+  providerHf: "#6D4B6F",
 
   primary: {
-    main: "#2563EB",
-    light: "#60A5FA",
-    dark: "#1E40AF",
+    main: "#5E9A8F",
+    light: "#8DC2BA",
+    dark: "#3E7F77",
     contrastText: "#fff"
   },
   secondary: {
-    main: "#7C3AED",
-    light: "#A78BFA",
-    dark: "#5B21B6",
+    main: "#C97C5D",
+    light: "#E0A58C",
+    dark: "#99573F",
     contrastText: "#fff"
   },
   background: {
-    default: "#F8FAFC",
-    paper: "#FFFFFF"
+    default: "#FAF7F2",
+    paper: "#FFFEFC"
   },
   text: {
-    primary: "#0B1220",
-    secondary: "#3B4351",
-    disabled: "#9AA4B2"
+    primary: "#2A2A2A",
+    secondary: "#5B5751",
+    disabled: "#A59F97"
   },
   action: {
     // Icons, enabled interactive elements, "on" state indicators
@@ -251,12 +251,12 @@ export const paletteLight: PaletteOptions = {
   Paper: {
     default: "#FFFFFF",
     paper: "#FFFFFF",
-    overlay: "#F2F4F7"
+    overlay: "#F0EBE4"
   },
-  divider: "#E5E7EB",
+  divider: "#E7DFD6",
   glass: {
     blur: "blur(50px)",
-    backgroundDialog: "rgba(255, 255, 255, 0.27)",
-    backgroundDialogContent: "rgba(255, 255, 255, 0.6)"
+    backgroundDialog: "rgba(255, 248, 240, 0.27)",
+    backgroundDialogContent: "rgba(255, 250, 245, 0.6)"
   }
 };

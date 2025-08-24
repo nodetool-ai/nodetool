@@ -12,6 +12,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
+import { hexToRgba } from "../../utils/ColorUtils";
 import type { Theme } from "@mui/material/styles";
 import { Button, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -52,7 +53,7 @@ const styles = (theme: Theme) =>
       ".preview-node-content": {
         height: "100%",
         width: "100%",
-        backgroundColor: theme.vars.palette.c_node_bg
+        backgroundColor: "transparent"
       },
       ".node-header": {
         width: "100%",
@@ -318,13 +319,28 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       sx={{
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
-        border: "1px solid #ccc",
+        border: "none",
         bgcolor: hasParent
           ? theme.vars.palette.c_node_bg_group
-          : theme.vars.palette.c_node_bg,
-        ...theme.applyStyles("dark", {
-          border: "none"
-        })
+          : undefined,
+        backgroundColor: hasParent
+          ? undefined
+          : (theme.vars.palette.c_node_bg as any)
+          ? (theme.vars.palette.c_node_bg as string)
+          : undefined,
+        // Glass look (only outside groups)
+        ...(hasParent
+          ? {}
+          : {
+              backgroundColor: hexToRgba(
+                theme.vars.palette.c_node_bg as string,
+                0.6
+              ),
+              backdropFilter: theme.vars.palette.glass.blur,
+              WebkitBackdropFilter: theme.vars.palette.glass.blur,
+              boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
+              borderRadius: "var(--rounded-node)"
+            })
       }}
       className={`preview-node nopan nodwheel node-drag-handle ${
         hasParent ? "hasParent" : ""
@@ -334,7 +350,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         className={`preview-node-content ${result?.output ? "nowheel" : ""}`}
       >
         <Handle
-          style={{ top: "50%", backgroundColor: "white" }}
+          style={{ top: "50%" }}
           id="value"
           type="target"
           position={Position.Left}
@@ -348,6 +364,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Preview"
             selected={props.selected}
+            backgroundColor={theme.vars.palette.primary.main}
+            iconType={"any"}
+            iconBaseColor={theme.vars.palette.primary.main}
           />
           {!result?.output && (
             <Typography className="hint">
@@ -377,7 +396,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         </>
 
         <Handle
-          style={{ top: "50%", backgroundColor: "white" }}
+          style={{ top: "50%" }}
           id="value"
           type="target"
           position={Position.Left}

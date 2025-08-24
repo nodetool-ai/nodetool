@@ -19,6 +19,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import { isLocalhost } from "../../stores/ApiClient";
+// keep existing colors; add only subtle shine overlays
 
 const styles = (theme: Theme) =>
   css({
@@ -33,18 +34,20 @@ const styles = (theme: Theme) =>
     ".floating-action-button": {
       width: "56px",
       height: "56px",
-      backgroundColor: theme.vars.palette.grey[800],
-      color: "var(--palette-primary-main)",
-      border: `2px solid ${theme.vars.palette.grey[600]}`,
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+      position: "relative",
+      overflow: "hidden",
+      backgroundColor: theme.vars.palette.grey[900],
+      color: theme.vars.palette.grey[200],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
       backdropFilter: "blur(2px)",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
 
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700],
-        borderColor: "var(--palette-primary-main)",
+        backgroundColor: theme.vars.palette.grey[800],
+        borderColor: theme.vars.palette.grey[600],
         transform: "scale(1.05)",
-        boxShadow: `0 6px 20px rgba(0, 0, 0, 0.5), 0 0 20px ${"var(--palette-primary-main)"}30`,
+        boxShadow: `0 4px 12px rgba(0, 0, 0, 0.35)`,
         color: theme.vars.palette.grey[0]
       },
 
@@ -56,6 +59,29 @@ const styles = (theme: Theme) =>
         fontSize: "28px",
         position: "relative",
         zIndex: 1
+      },
+
+      // subtle glass shine (top highlight) — keep colors intact
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "55%",
+        background:
+          "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+        pointerEvents: "none",
+        zIndex: 0
+      },
+      // inner hairline highlight
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+        pointerEvents: "none"
       },
 
       "&.running": {
@@ -75,69 +101,43 @@ const styles = (theme: Theme) =>
     ".floating-action-button.run-workflow": {
       position: "relative",
       overflow: "hidden",
-      backgroundImage: [
-        `linear-gradient(135deg, ${"var(--palette-primary-main)"}33, ${
-          theme.vars.palette.grey[800]
-        } 50%, ${"var(--palette-secondary-main)"}33)`,
-        "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.25) 1px, transparent 2px)",
-        "radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 1px, transparent 2px)",
-        `repeating-linear-gradient(135deg, ${"var(--palette-primary-main)"}10 0px, ${"var(--palette-primary-main)"}10 2px, transparent 2px, transparent 8px)`
-      ].join(","),
-      backgroundSize: "auto, 140px 140px, 120px 120px, 300px 300px",
-      backgroundPosition: "center, 0 0, 60px 40px, 0 0",
-      backgroundBlendMode: "soft-light, normal, normal, soft-light",
-      boxShadow: `0 0 0 0 ${"var(--palette-primary-main)"}40`,
-      filter: "none",
+      backgroundColor: "var(--palette-primary-main)",
+      color: "#0b1220",
+      borderColor: "var(--palette-primary-main)",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-primary-main)20`,
+      filter: "saturate(1.1)",
       "&:hover": {
-        boxShadow: `0 10px 28px ${"var(--palette-primary-main)"}40, 0 0 36px ${"var(--palette-secondary-main)"}30`,
-        filter: "none",
-        transform: "scale(1.06)",
-        "&::before": { left: "120%" }
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-primary-main)30`,
+        transform: "scale(1.06)"
       },
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: "-150%",
-        width: "120%",
-        height: "100%",
-        background:
-          "linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent)",
-        transform: "skewX(-20deg)",
-        transition: "left 0.6s ease",
-        pointerEvents: "none"
-      },
+      // lean on base shine overlay
+      "&::before": {},
       "&.running": {
-        animation:
-          "pulse-glow 1.8s ease-in-out infinite, twinkle-shift 6s linear infinite",
-        boxShadow: `0 0 18px 3px ${"var(--palette-primary-main)"}55, 0 0 42px ${"var(--palette-secondary-main)"}45`,
-        borderColor: "var(--palette-primary-main)",
-        filter: "saturate(1.25) brightness(1.1)",
-        "&::before": {
-          animation: "shine-sweep 1.8s linear infinite"
-        },
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: -3,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          background: [
-            `conic-gradient(from 0deg, ${"var(--palette-primary-main)"} 0deg, ${"var(--palette-secondary-main)"} 60deg, ${"var(--palette-primary-main)"} 120deg, ${"var(--palette-secondary-main)"} 180deg, ${"var(--palette-primary-main)"} 240deg, ${"var(--palette-secondary-main)"} 300deg, ${"var(--palette-primary-main)"} 360deg)`,
-            "radial-gradient(circle at 35% 45%, rgba(255,255,255,0.5) 1px, transparent 2px)",
-            "radial-gradient(circle at 65% 70%, rgba(255,255,255,0.5) 1px, transparent 2px)"
-          ].join(","),
-          backgroundSize: "auto, 120px 120px, 140px 140px",
-          backgroundPosition: "center, 0 0, 80px 60px",
-          opacity: 0.6,
-          zIndex: 0,
-          willChange: "transform, opacity",
-          transform: "translateZ(0)",
-          animation:
-            "rotate-halo 3.5s linear infinite, sparkle 1.6s linear infinite",
-          mixBlendMode: "screen",
-          filter: "saturate(1.35) brightness(1.1)"
-        }
+        animation: "pulse-glow 1.8s ease-in-out infinite",
+        filter: "saturate(1.2) brightness(1.05)"
+      }
+    },
+
+    /* Subtle buttons (secondary actions) */
+    ".floating-action-button.subtle": {
+      backgroundColor: theme.vars.palette.grey[900],
+      color: theme.vars.palette.grey[400],
+      borderColor: theme.vars.palette.grey[800],
+      boxShadow: "0 1px 4px rgba(0,0,0,.25)",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[200]
+      }
+    },
+    
+    /* Node menu button: secondary prominent, distinct color */
+    ".floating-action-button.node-menu": {
+      backgroundColor: theme.vars.palette.secondary.main,
+      color: theme.vars.palette.secondary.contrastText,
+      borderColor: theme.vars.palette.secondary.main,
+      "&:hover": {
+        boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.secondary.main}25`,
+        transform: "scale(1.05)"
       }
     },
 
@@ -170,7 +170,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
+const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const theme = useTheme();
   const path = useLocation().pathname;
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
@@ -296,10 +296,10 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
 
   return (
     <>
-      <Box css={styles(theme)} className="mobile-floating-toolbar">
+      <Box css={styles(theme)} className="floating-toolbar">
         {isMobile && (
           <Fab
-            className={`floating-action-button`}
+            className={`floating-action-button subtle`}
             onClick={handleOpenPaneMenu}
             aria-label="Open canvas menu"
           >
@@ -307,28 +307,28 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
           </Fab>
         )}
         <Fab
-          className={`floating-action-button`}
+          className={`floating-action-button node-menu`}
           onClick={handleToggleNodeMenu}
           aria-label="Open node menu"
         >
           <ControlPointIcon />
         </Fab>
         <Fab
-          className={`floating-action-button`}
+          className={`floating-action-button subtle`}
           onClick={handleAutoLayout}
           aria-label="Auto layout nodes"
         >
           <LayoutIcon />
         </Fab>
         <Fab
-          className={`floating-action-button`}
+          className={`floating-action-button subtle`}
           onClick={handleSave}
           aria-label="Save workflow"
         >
           <SaveIcon />
         </Fab>
         <Fab
-          className={`floating-action-button`}
+          className={`floating-action-button subtle`}
           onClick={handleDownload}
           aria-label="Download workflow JSON"
         >
@@ -346,7 +346,7 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
         </Fab>
 
         <Fab
-          className={`floating-action-button ${
+          className={`floating-action-button subtle ${
             !isWorkflowRunning ? "disabled" : ""
           }`}
           onClick={handleStop}
@@ -357,7 +357,7 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
         </Fab>
         {isLocalhost && workflow?.run_mode === "app" && (
           <Fab
-            className={`floating-action-button`}
+            className={`floating-action-button subtle`}
             onClick={handleRunAsApp}
             aria-label="Run as App"
           >
@@ -371,4 +371,4 @@ const MobileFloatingToolbar: React.FC = memo(function MobileFloatingToolbar() {
   );
 });
 
-export default MobileFloatingToolbar;
+export default FloatingToolBar;

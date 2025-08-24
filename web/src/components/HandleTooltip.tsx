@@ -18,7 +18,7 @@ const tooltipStyles = css`
   transition: opacity 150ms ease-in-out;
   z-index: 999;
   &.show {
-    opacity: 1;
+    opacity: 0.85;
     transition: opacity 150ms ease-in-out 500ms;
   }
 `;
