@@ -273,6 +273,9 @@ const GlobalChat: React.FC = () => {
       ref={chatContainerRef}
       className="global-chat-container"
       sx={{
+        flex: 1,
+        width: "100%",
+        minWidth: 0,
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",

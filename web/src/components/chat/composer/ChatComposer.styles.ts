@@ -10,6 +10,7 @@ export const createStyles = (theme: Theme) =>
     ".compose-message": {
       height: "auto",
       width: "100%",
+      marginTop: "12px",
       backgroundColor: theme.vars.palette.grey[800],
       border: "1px solid",
       borderColor: theme.vars.palette.grey[700],

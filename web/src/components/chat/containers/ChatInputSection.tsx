@@ -16,7 +16,7 @@ const styles = (theme: Theme) =>
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    padding: "1.5em 0.5em",
+    padding: "1.5em 20px",
     marginTop: "auto",
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
@@ -119,10 +119,7 @@ const ChatInputSection = ({
           onStop={onStop}
           onNewChat={onNewChat}
           disabled={
-            status === "loading" ||
-            status === "streaming" ||
-            status === "error" ||
-            isDisconnected
+            status === "loading" || status === "streaming" || isDisconnected
           }
           agentMode={agentMode}
         />

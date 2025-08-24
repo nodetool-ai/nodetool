@@ -22,4 +22,9 @@ declare module "react-syntax-highlighter/dist/esm/prism" {
 
 declare module "react-syntax-highlighter/dist/esm/styles/prism" {
   export const okaidia: any;
+  export const gruvboxDark: any;
+  export const oneDark: any;
+  export const oneLight: any;
+  export const materialDark: any;
+  export const materialLight: any;
 }
