@@ -13,12 +13,12 @@ export const inputStyles = (theme: Theme) =>
   css({
     /* MuiInputBase */
     ".MuiInputBase-root": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: "1.1em",
       margin: 0,
-      padding: 0,
+      padding: "0 !important",
       width: "100%",
-
+      minHeight: "unset",
       "&::placeholder": {
         opacity: 0,
         visibility: "hidden" as const
@@ -61,10 +61,20 @@ export const inputStyles = (theme: Theme) =>
         cursor: "auto"
       },
 
+      ".MuiOutlinedInput-root": {
+        minHeight: "unset"
+      },
+
       ".MuiOutlinedInput-notchedOutline legend": {
         display: "none"
       }
     },
+
+    /* Specific MUI generated class override */
+    ".css-1vcww86-MuiFormControl-root-MuiTextField-root .MuiOutlinedInput-root":
+      {
+        minHeight: "unset"
+      },
 
     /* MuiInputLabel */
     ".MuiInputLabel-root": {
