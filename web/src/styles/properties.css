@@ -439,6 +439,10 @@
   line-height: 0.86em;
 }
 
+.number-input .slider-value {
+  outline: none !important;
+}
+
 .number-input .slider-value .value {
   position: absolute;
   color: var(--palette-grey-100);
