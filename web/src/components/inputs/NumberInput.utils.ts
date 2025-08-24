@@ -19,8 +19,8 @@ export const calculateStep = (
 
     if (inputType === "float") {
       if (range <= 1) baseStep = 0.01;
-      else if (range <= 20) baseStep = 0.5;
-      else if (range > 20 && range <= 100) baseStep = 0.5;
+      else if (range <= 50) baseStep = 0.1;
+      else if (range <= 100) baseStep = 0.5;
       else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
     } else {
       if (range <= 20) baseStep = 0.1;
