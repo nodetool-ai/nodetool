@@ -94,6 +94,9 @@ export const useDragHandling = (
         props.inputType || "float"
       );
 
+      // Use smaller step size when Shift is pressed for finer control
+      const effectiveStep = e.shiftKey ? baseStep / 10 : baseStep;
+
       // Always use incremental dragging logic to prevent value jumping
       const deltaX = e.clientX - lastClientX;
 
@@ -113,14 +116,11 @@ export const useDragHandling = (
 
         // Step 2: Convert to raw value change
         let rawValueChange: number;
-        if (
-          typeof props.min === "number" &&
-          typeof props.max === "number"
-        ) {
+        if (typeof props.min === "number" && typeof props.max === "number") {
           const range = props.max - props.min;
           rawValueChange = visualPercentage * range;
         } else {
-          rawValueChange = deltaX * baseStep * UNBOUNDED_DRAG_SCALE;
+          rawValueChange = deltaX * effectiveStep * UNBOUNDED_DRAG_SCALE;
         }
 
         // Step 3: Apply modifiers (speedFactor for vertical slowdown + shift)
@@ -134,7 +134,7 @@ export const useDragHandling = (
 
       // Apply decimal places and value constraints
       const newDecimalPlaces =
-        props.inputType === "float" ? calculateDecimalPlaces(baseStep) : 0;
+        props.inputType === "float" ? calculateDecimalPlaces(effectiveStep) : 0;
       if (newDecimalPlaces !== decimalPlaces) {
         dragStateRef.current.decimalPlaces = newDecimalPlaces;
       }
@@ -145,7 +145,7 @@ export const useDragHandling = (
         props.max,
         props.inputType || "float",
         newDecimalPlaces,
-        isWithinDeadZone ? baseStep : undefined
+        isWithinDeadZone ? effectiveStep : undefined
       );
 
       if (newValue !== currentDragValue) {
