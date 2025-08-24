@@ -16,7 +16,7 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import WorkflowFormModal from "../workflows/WorkflowFormModal";
-import MobileFloatingToolbar from "../panels/MobileFloatingToolbar";
+import FloatingToolBar from "../panels/FloatingToolBar";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -34,27 +34,27 @@ const styles = (theme: Theme) =>
     minWidth: 0,
     "& .tabs-container": {
       display: "flex",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.grey[900],
       alignItems: "center",
       position: "relative",
       padding: "0",
-      height: "32px",
+      height: "40",
       width: "100%",
-      WebkitAppRegion: "drag"
+      WebkitAppRegion: "drag",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     "& .tabs": {
       flex: 1,
       zIndex: 1000,
       display: "flex",
       flexWrap: "nowrap",
-      minHeight: "32px",
+      minHeight: "40px",
       overflowX: "auto",
       overflowY: "hidden",
-      padding: "0 5px",
       whiteSpace: "nowrap",
       scrollbarWidth: "none",
       msOverflowStyle: "none",
-      backdropFilter: "blur(8px)",
+      // backdropFilter: "blur(8px)",
       position: "relative",
       WebkitAppRegion: "drag",
 
@@ -64,8 +64,8 @@ const styles = (theme: Theme) =>
     },
     "& .tab": {
       WebkitAppRegion: "no-drag",
-      padding: "4px 16px",
-      height: "32px",
+      padding: "0px 20px",
+      height: "40px",
       display: "flex",
       flexWrap: "nowrap",
       lineHeight: "1.1em",
@@ -77,7 +77,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       background: "transparent",
       borderRadius: "8px 8px 0 0",
-      border: `1px solid transparent`,
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
       fontSize: "13px",
       letterSpacing: "0.3px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
 
       "&.active": {
         color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.grey[900],
+        backgroundColor: theme.vars.palette.grey[800],
         borderColor: theme.vars.palette.grey[700],
         // Overlap the strip divider so the active tab looks connected
         marginBottom: "-1px",
@@ -143,12 +143,8 @@ const styles = (theme: Theme) =>
       top: "20%",
       bottom: "20%",
       width: "2px",
-      background: `linear-gradient(to bottom, 
-        transparent 0%, 
-        ${"var(--palette-primary-main)"} 50%, 
-        transparent 100%
-      )`,
-      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
+      background: `${"var(--palette-primary-main)"}`,
+      boxShadow: "none"
     },
     "& .tab.drop-target-right::after": {
       content: '""',
@@ -157,12 +153,8 @@ const styles = (theme: Theme) =>
       top: "20%",
       bottom: "20%",
       width: "2px",
-      background: `linear-gradient(to bottom, 
-        transparent 0%, 
-        ${"var(--palette-primary-main)"} 50%, 
-        transparent 100%
-      )`,
-      boxShadow: `0 0 8px ${"var(--palette-primary-main)"}`
+      background: `${"var(--palette-primary-main)"}`,
+      boxShadow: "none"
     },
     "& .editor-container": {
       flex: 1,
@@ -433,7 +425,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                             />
                           </div>
 
-                          <MobileFloatingToolbar />
+                          <FloatingToolBar />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>

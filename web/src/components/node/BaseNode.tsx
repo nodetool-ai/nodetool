@@ -101,6 +101,7 @@ const getNodeStyles = (colors: string[]) =>
     "&.loading": {
       position: "relative",
       "--glow-offset": "-4px",
+      "--ring": "3px",
 
       "&::before": {
         opacity: 0,
@@ -121,6 +122,15 @@ const getNodeStyles = (colors: string[]) =>
       )`,
         borderRadius: "var(--rounded-node)",
         zIndex: -20,
+        pointerEvents: "none",
+        // Show only a thin ring (border area), not full fill
+        // by excluding the content box via masks
+        WebkitMask:
+          "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+        WebkitMaskComposite: "xor",
+        maskComposite: "exclude",
+        padding: "var(--ring)",
+        backgroundClip: "border-box",
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
         transition: "opacity 0.5s ease-in-out"
       }
@@ -140,7 +150,7 @@ const getStyleProps = (
 ) => {
   const hasParent = Boolean(parentId);
   return {
-    className: `node-body 
+    className: `base-node node-body 
       ${hasParent ? "has-parent" : ""}
       ${nodeType.isInputNode ? " input-node" : ""} 
       ${nodeType.isOutputNode ? " output-node" : ""}
@@ -180,13 +190,14 @@ const getNodeColors = (metadata: any): string[] => {
 };
 
 const getHeaderColors = (metadata: NodeMetadata, theme: Theme) => {
-  const firstOutputColor = metadata?.outputs?.[0]?.type?.type;
-  if (!firstOutputColor) return { headerColor: "" };
+  const firstOutputType = metadata?.outputs?.[0]?.type?.type as string | undefined;
+  if (!firstOutputType) return { headerColor: "", baseColor: "" };
 
-  const baseColor = colorForType(firstOutputColor);
+  const baseColor = colorForType(firstOutputType);
 
   return {
-    headerColor: darkenHexColor(baseColor, 200)
+    headerColor: darkenHexColor(baseColor, 200),
+    baseColor
   };
 };
 
@@ -281,7 +292,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
-  const { headerColor } = useMemo(
+  const { headerColor, baseColor } = useMemo(
     () => getHeaderColors(metadata, theme),
     [metadata, theme]
   );
@@ -306,12 +317,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       sx={{
         display: "flex",
         minHeight: styleProps.minHeight,
-        border: selected ? "1px solid #000" : "1px solid #ccc",
+        border: isLoading ? "none" : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`,
         ...theme.applyStyles("dark", {
-          border: "none"
+          border: isLoading ? "none" : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`
         }),
         backgroundColor:
-          hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg
+          hasParent && !isLoading
+            ? parentColor
+            : hexToRgba(theme.vars.palette.c_node_bg as string, 0.6),
+        backdropFilter: theme.vars.palette.glass.blur,
+        WebkitBackdropFilter: theme.vars.palette.glass.blur,
+        boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
+        borderRadius: "var(--rounded-node)",
+        // Set custom CSS property for dynamic selection color
+        "--node-primary-color": baseColor || "var(--palette-primary-main)"
       }}
     >
       {selected && <Toolbar id={id} selected={selected} />}
@@ -322,6 +341,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         backgroundColor={headerColor}
         metadataTitle={metadata.title}
         hasParent={hasParent}
+        iconType={metadata?.outputs?.[0]?.type?.type}
+        iconBaseColor={baseColor}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
