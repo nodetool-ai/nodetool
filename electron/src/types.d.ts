@@ -30,7 +30,7 @@ declare global {
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       startServer: () => Promise<void>;
       restartServer: () => Promise<void>;
-      showPackageManager: () => void;
+      showPackageManager: (nodeSearch?: string) => void;
       installToLocation: (
         location: string,
         packages: PythonPackages
@@ -49,6 +49,7 @@ declare global {
         listInstalled: () => Promise<InstalledPackageListResponse>;
         install: (repoId: string) => Promise<PackageResponse>;
         uninstall: (repoId: string) => Promise<PackageResponse>;
+        searchNodes?: (query: string) => Promise<PackageNode[]>;
       };
       openExternal: (url: string) => void;
     };
@@ -98,6 +99,43 @@ export interface Node {
   id: string;
   type: string;
   data: Record<string, any>;
+}
+
+// Node metadata/types from package registry
+export interface NodeProperty {
+  name: string;
+  label?: string;
+  type?: any;
+  default?: any;
+  required?: boolean;
+  description?: string;
+  [key: string]: any;
+}
+
+export interface NodeOutputSlot {
+  type: any;
+  name: string;
+  stream?: boolean;
+}
+
+export interface PackageNode {
+  title: string;
+  description: string;
+  namespace: string;
+  node_type: string;
+  layout?: string;
+  properties?: NodeProperty[];
+  outputs?: NodeOutputSlot[];
+  the_model_info?: Record<string, any>;
+  recommended_models?: any[];
+  basic_fields?: string[];
+  is_dynamic?: boolean;
+  is_streaming?: boolean;
+  expose_as_tool?: boolean;
+  supports_dynamic_outputs?: boolean;
+  // Augmented fields when fetched from registry
+  package?: string; // repo_id like "owner/project"
+  installed?: boolean;
 }
 
 export interface Edge {
@@ -174,6 +212,7 @@ export enum IpcChannels {
   PACKAGE_UNINSTALL = "package-uninstall",
   PACKAGE_UPDATE = "package-update",
   PACKAGE_OPEN_EXTERNAL = "package-open-external",
+  PACKAGE_SEARCH_NODES = "package-search-nodes",
 }
 
 export interface InstallToLocationData {
@@ -190,7 +229,7 @@ export interface IpcRequest {
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
-  [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
+  [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -206,6 +245,7 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_UNINSTALL]: PackageUninstallRequest;
   [IpcChannels.PACKAGE_UPDATE]: string; // repo_id
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
+  [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
 }
 
 export interface IpcResponse {
@@ -232,6 +272,7 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_UNINSTALL]: PackageResponse;
   [IpcChannels.PACKAGE_UPDATE]: PackageResponse;
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
+  [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
 }
 
 // Event types for each IPC channel
@@ -279,7 +320,7 @@ export interface PackageModel {
   version: string;
   authors: string[];
   repo_id: string;
-  nodes?: any[];
+  nodes?: PackageNode[];
   examples?: any[];
   assets?: any[];
   source_folder?: string;

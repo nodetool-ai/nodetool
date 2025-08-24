@@ -72,13 +72,13 @@ function createWindow(): BrowserWindow {
 /**
  * Creates a window that opens the app in Package Manager mode
  * Loads: index.html?package-manager
+ * @param {string} nodeSearch - Optional search query to prefill node search
  * @returns {BrowserWindow} The created window instance
  */
-function createPackageManagerWindow(): BrowserWindow {
+function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
   const window = new BrowserWindow({
     width: 1200,
     height: 900,
-    titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -89,10 +89,15 @@ function createPackageManagerWindow(): BrowserWindow {
   });
 
   window.setBackgroundColor("#111111");
-
-  window.loadFile(path.join("dist-web", "index.html"), {
-    search: "package-manager",
-  });
+  
+  // Load the page with optional search query
+  if (nodeSearch) {
+    window.loadFile(path.join("dist-web", "pages", "packages.html"), {
+      query: { nodeSearch }
+    });
+  } else {
+    window.loadFile(path.join("dist-web", "pages", "packages.html"));
+  }
 
   window.webContents.on("before-input-event", (_event, input) => {
     if (

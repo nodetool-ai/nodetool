@@ -30,20 +30,26 @@ const HuggingFaceModelSelect = ({
   const downloadStore = useModelDownloadStore();
 
   const models = useMemo(() => {
-    if (!modelType || hfLoading || hfIsFetching || hfError || modelType.startsWith("hf.lora_sd")) {
+    if (
+      !modelType ||
+      hfLoading ||
+      hfIsFetching ||
+      hfError ||
+      modelType.startsWith("hf.lora_sd")
+    ) {
       return null;
     }
 
     if (modelType.startsWith("hf.text_to_image")) {
       const textToImages = hfModels?.filter(
-        (model) => model.pipeline_tag === "text-to-image" && model.has_model_index
+        (model) =>
+          model.pipeline_tag === "text-to-image" && model.has_model_index
       );
-      return textToImages
-        ?.map((textToImage) => ({
-          type: modelType,
-          repo_id: textToImage.repo_id || "",
-          path: textToImage.path || ""
-        }));
+      return textToImages?.map((textToImage) => ({
+        type: modelType,
+        repo_id: textToImage.repo_id || "",
+        path: textToImage.path || ""
+      }));
     } else if (modelType.startsWith("hf.image_to_image")) {
       const imageToImages = hfModels?.filter(
         (model) =>
@@ -51,12 +57,11 @@ const HuggingFaceModelSelect = ({
           (model.pipeline_tag === "image-to-image" ||
             model.pipeline_tag === "text-to-image")
       );
-      return imageToImages
-        ?.map((imageToImage) => ({
-          type: modelType,
-          repo_id: imageToImage.repo_id || "",
-          path: imageToImage.path || ""
-        }));
+      return imageToImages?.map((imageToImage) => ({
+        type: modelType,
+        repo_id: imageToImage.repo_id || "",
+        path: imageToImage.path || ""
+      }));
     } else {
       const recommended =
         modelType === "hf.checkpoint_model"
@@ -85,26 +90,34 @@ const HuggingFaceModelSelect = ({
         }, [] as HuggingFaceModel[]) || []
       );
     }
-  }, [modelType, hfModels, hfLoading, hfIsFetching, hfError, recommendedModels]);
+  }, [
+    modelType,
+    hfModels,
+    hfLoading,
+    hfIsFetching,
+    hfError,
+    recommendedModels
+  ]);
 
   const options = useMemo(() => {
-    const isLoadingModels = hfLoading || hfIsFetching || (modelType.startsWith("hf.lora_sd") && loraIsLoading);
-    
+    const isLoadingModels =
+      hfLoading ||
+      hfIsFetching ||
+      (modelType.startsWith("hf.lora_sd") && loraIsLoading);
+
     // Use loraModels for lora model types, otherwise use models from useMemo
-    const currentModels = modelType.startsWith("hf.lora_sd") ? loraModels : models;
-    
+    const currentModels = modelType.startsWith("hf.lora_sd")
+      ? loraModels
+      : models;
+
     if (!currentModels || isLoadingModels || hfError) return [];
 
     const modelOptions = (currentModels as HuggingFaceModel[]).map((model) => ({
       value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
       label: model.path ? (
         <div className="model-label">
-          <div className="model-label-repo-id">
-            {model.repo_id}
-          </div>
-          <div className="model-label-path">
-            {model.path}
-          </div>
+          <div className="model-label-repo-id">{model.repo_id}</div>
+          <div className="model-label-path">{model.path}</div>
         </div>
       ) : (
         model.repo_id || ""
@@ -119,7 +132,15 @@ const HuggingFaceModelSelect = ({
       { value: "", label: "None", sortKey: "" },
       ...modelOptions.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
     ];
-  }, [models, hfLoading, hfIsFetching, hfError, loraIsLoading, modelType, loraModels]);
+  }, [
+    models,
+    hfLoading,
+    hfIsFetching,
+    hfError,
+    loraIsLoading,
+    modelType,
+    loraModels
+  ]);
 
   const handleChange = useCallback(
     (selectedValue: string) => {
@@ -144,7 +165,10 @@ const HuggingFaceModelSelect = ({
     selectValue && !options.some((opt) => opt.value === selectValue);
 
   const placeholder = useMemo(() => {
-    const isLoadingModels = hfLoading || hfIsFetching || (modelType.startsWith("hf.lora_sd") && loraIsLoading);
+    const isLoadingModels =
+      hfLoading ||
+      hfIsFetching ||
+      (modelType.startsWith("hf.lora_sd") && loraIsLoading);
     if (isLoadingModels) return "Loading models...";
     if (hfError) return "Error loading models";
     if (options.length === 1)
@@ -184,17 +208,22 @@ const HuggingFaceModelSelect = ({
           keys: ["value"]
         }}
       />
-      {!isProduction && isValueMissing && !hfLoading && !hfIsFetching && !hfError && value?.repo_id && (
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<DownloadIcon />}
-          onClick={handleDownload}
-          sx={{ mt: 1, width: "100%" }}
-        >
-          Download {value.repo_id}
-        </Button>
-      )}
+      {!isProduction &&
+        isValueMissing &&
+        !hfLoading &&
+        !hfIsFetching &&
+        !hfError &&
+        value?.repo_id && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownload}
+            sx={{ mt: 1, width: "100%" }}
+          >
+            Download {value.repo_id}
+          </Button>
+        )}
     </Box>
   );
 };

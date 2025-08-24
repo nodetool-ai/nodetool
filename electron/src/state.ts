@@ -7,6 +7,7 @@ export interface ServerState {
   logs: string[];
   serverPort?: number;
   ollamaPort?: number;
+  ollamaExternalManaged?: boolean;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -18,6 +19,7 @@ const serverState: ServerState = {
   logs: [],
   serverPort: 8000,
   ollamaPort: 11435,
+  ollamaExternalManaged: false,
 };
 
 export function getMainWindow(): BrowserWindow | null {

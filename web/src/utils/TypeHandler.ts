@@ -16,8 +16,8 @@ export const typeToString = (type: TypeMetadata): string => {
     case "dict":
       return type.type_args && type.type_args.length === 2
         ? `{ ${typeToString(type.type_args[0])}: ${typeToString(
-            type.type_args[1]
-          )} }`
+          type.type_args[1]
+        )} }`
         : "dict";
     case "union":
       return type.type_args
@@ -106,8 +106,6 @@ export const isConnectable = (
   target: TypeMetadata,
   allowAny: boolean = true
 ): boolean => {
-  console.log("isConnectable", source, target);
-
   // Safety check for undefined types
   if (!source || !target || !source.type || !target.type) {
     return false;

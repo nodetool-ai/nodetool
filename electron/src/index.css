@@ -463,13 +463,14 @@ html {
   top: 0;
   left: 0;
   right: 0;
-  height: 32px;
-  background: #1a1a1a;
+  height: 36px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 60%), #1a1a1a;
   display: none; /* Hidden by default */
   justify-content: space-between;
   align-items: center;
   z-index: 100;
   -webkit-app-region: drag;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 /* Show title bar only on Windows */
@@ -482,6 +483,26 @@ body.platform-win32 .title-bar {
   display: flex;
   -webkit-app-region: no-drag;
   height: 100%;
+}
+
+.title-spacer { min-width: 138px; height: 100%; }
+.title-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.title-bar-text {
+  color: #e6e8ec;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.95;
 }
 
 .window-control-button {
@@ -503,9 +524,7 @@ body.platform-win32 .title-bar {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-#close-button:hover {
-  background-color: #e81123;
-}
+.window-control-button.close-button:hover { background-color: #e81123; }
 
 /* Adjust main content to account for title bar */
 body.platform-win32 #boot-message,

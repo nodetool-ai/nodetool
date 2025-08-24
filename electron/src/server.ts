@@ -81,6 +81,7 @@ async function startOllamaServer(): Promise<void> {
   const existingPort = 11434;
   if (await isOllamaResponsive(existingPort)) {
     serverState.ollamaPort = existingPort;
+    serverState.ollamaExternalManaged = true;
     logMessage(`Detected running Ollama instance on port ${existingPort}`);
     return;
   }
@@ -88,6 +89,7 @@ async function startOllamaServer(): Promise<void> {
   const basePort = serverState.ollamaPort ?? 11435;
   const selectedPort = await findAvailablePort(basePort);
   serverState.ollamaPort = selectedPort;
+  serverState.ollamaExternalManaged = false;
 
   const ollamaExecutablePath = await ensureOllamaInstalled();
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
@@ -98,8 +100,7 @@ async function startOllamaServer(): Promise<void> {
     logMessage(`Ensured OLLAMA_MODELS directory exists at: ${modelsPath}`);
   } catch (error) {
     logMessage(
-      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${
-        (error as Error).message
+      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${(error as Error).message
       }`,
       "error"
     );
@@ -120,22 +121,6 @@ async function startOllamaServer(): Promise<void> {
   });
 
   await ollamaWatchdog.start();
-}
-
-/**
- * Writes the server process ID to a file for process management
- * @param pid - Process ID to write to file
- */
-async function writePidFile(pid: number): Promise<void> {
-  try {
-    await fs.writeFile(PID_FILE_PATH, pid.toString());
-    logMessage(`Written PID ${pid} to ${PID_FILE_PATH}`);
-  } catch (error) {
-    logMessage(
-      `Failed to write PID file: ${(error as Error).message}`,
-      "error"
-    );
-  }
 }
 
 /**
@@ -296,6 +281,14 @@ async function isServerRunning(): Promise<boolean> {
 }
 
 /**
+ * Checks if the Ollama server process is currently running
+ * @returns true if Ollama is running, false otherwise
+ */
+function isOllamaRunning(): boolean {
+  return ollamaWatchdog !== null;
+}
+
+/**
  * Initializes the backend server, performing necessary checks and startup procedures
  * Handles server health checks, port availability, and process management
  */
@@ -344,8 +337,7 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
       );
       if (response.ok) {
         logMessage(
-          `Server endpoint is available at http://127.0.0.1:${
-            serverState.serverPort ?? 8000
+          `Server endpoint is available at http://127.0.0.1:${serverState.serverPort ?? 8000
           }/health`
         );
         emitServerStarted();
@@ -413,4 +405,5 @@ export {
   stopServer,
   webPath,
   isServerRunning,
+  isOllamaRunning,
 };
