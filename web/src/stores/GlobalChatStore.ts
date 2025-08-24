@@ -1215,7 +1215,10 @@ if (typeof window !== "undefined") {
   // Listen for online/offline events
   window.addEventListener("online", () => {
     const state = useGlobalChatStore.getState();
-    if (state.status === "disconnected" && state.wsManager) {
+    if (
+      (state.status === "disconnected" || state.status === "failed") &&
+      state.wsManager
+    ) {
       log.info("Network came online, attempting to reconnect...");
       state.connect(state.workflowId || undefined).catch((error) => {
         log.error("Failed to reconnect after network online:", error);
@@ -1232,7 +1235,10 @@ if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       const state = useGlobalChatStore.getState();
-      if (state.status === "disconnected" && state.wsManager) {
+      if (
+        (state.status === "disconnected" || state.status === "failed") &&
+        state.wsManager
+      ) {
         log.info("Tab became visible, checking connection...");
         state.connect(state.workflowId || undefined).catch((error) => {
           log.error("Failed to reconnect after tab visible:", error);
