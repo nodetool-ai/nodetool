@@ -65,8 +65,8 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       padding: "2px 4px",
-      borderRadius: "10px",
-      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
+      borderRadius: "10px"
+      // boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
       padding: "0px 8px",
@@ -80,7 +80,6 @@ const styles = (theme: Theme) =>
       },
       position: "relative",
       "&.active": {
-        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.primary.main,
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}55 inset, 0 6px 22px ${theme.vars.palette.primary.main}10`,
         "& svg": {

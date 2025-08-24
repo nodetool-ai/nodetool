@@ -1,14 +1,14 @@
-import { EventEmitter } from 'events';
-import { encode, decode } from '@msgpack/msgpack';
-import log from 'loglevel';
+import { EventEmitter } from "events";
+import { encode, decode } from "@msgpack/msgpack";
+import log from "loglevel";
 
-export type ConnectionState = 
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnecting'
-  | 'failed';
+export type ConnectionState =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
 
 export interface WebSocketConfig {
   url: string;
@@ -34,35 +34,37 @@ interface ConnectionStateTransition {
 
 const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
   connect: {
-    from: ['disconnected', 'failed'],
-    to: 'connecting'
+    from: ["disconnected", "failed"],
+    to: "connecting"
   },
   connected: {
-    from: ['connecting', 'reconnecting'],
-    to: 'connected'
+    from: ["connecting", "reconnecting"],
+    to: "connected"
   },
   disconnect: {
-    from: ['connected', 'connecting', 'reconnecting'],
-    to: 'disconnecting'
+    from: ["connected", "connecting", "reconnecting"],
+    to: "disconnecting"
   },
   disconnected: {
-    from: ['disconnecting', 'connecting', 'connected', 'reconnecting'],
-    to: 'disconnected'
+    from: ["disconnecting", "connecting", "connected", "reconnecting"],
+    to: "disconnected"
   },
   reconnect: {
-    from: ['disconnected', 'failed'],
-    to: 'reconnecting'
+    from: ["disconnected", "failed"],
+    to: "reconnecting"
   },
   failed: {
-    from: ['connecting', 'reconnecting'],
-    to: 'failed'
+    from: ["connecting", "reconnecting"],
+    to: "failed"
   }
 };
 
 export class WebSocketManager extends EventEmitter {
-  private config: Required<Omit<WebSocketConfig, 'protocols'>> & { protocols?: string | string[] };
+  private config: Required<Omit<WebSocketConfig, "protocols">> & {
+    protocols?: string | string[];
+  };
   private ws: WebSocket | null = null;
-  private state: ConnectionState = 'disconnected';
+  private state: ConnectionState = "disconnected";
   private reconnectTimer: NodeJS.Timeout | null = null;
   private connectionTimer: NodeJS.Timeout | null = null;
   private reconnectAttempt = 0;
@@ -82,7 +84,7 @@ export class WebSocketManager extends EventEmitter {
       reconnectDecay: config.reconnectDecay ?? 1.5,
       reconnectAttempts: config.reconnectAttempts ?? 10,
       timeoutInterval: config.timeoutInterval ?? 30000,
-      binaryType: config.binaryType ?? 'arraybuffer'
+      binaryType: config.binaryType ?? "arraybuffer"
     };
   }
 
@@ -99,13 +101,15 @@ export class WebSocketManager extends EventEmitter {
     }
 
     if (transition.guard && !transition.guard()) {
-      log.warn(`Guard prevented transition from ${this.state} to ${transition.to}`);
+      log.warn(
+        `Guard prevented transition from ${this.state} to ${transition.to}`
+      );
       return false;
     }
 
     const previousState = this.state;
     this.state = transition.to;
-    this.emit('stateChange', this.state, previousState);
+    this.emit("stateChange", this.state, previousState);
     log.debug(`State transition: ${previousState} -> ${this.state}`);
     return true;
   }
@@ -115,7 +119,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   public isConnected(): boolean {
-    return this.state === 'connected' && this.ws?.readyState === WebSocket.OPEN;
+    return this.state === "connected" && this.ws?.readyState === WebSocket.OPEN;
   }
 
   public getWebSocket(): WebSocket | null {
@@ -127,8 +131,8 @@ export class WebSocketManager extends EventEmitter {
       return this.connectionPromise;
     }
 
-    if (!this.transitionTo('connect')) {
-      if (this.state === 'connected') {
+    if (!this.transitionTo("connect")) {
+      if (this.state === "connected") {
         return Promise.resolve();
       }
       throw new Error(`Cannot connect from state: ${this.state}`);
@@ -143,21 +147,24 @@ export class WebSocketManager extends EventEmitter {
     this.clearTimers();
     this.messageQueue = [];
 
-    if (!this.transitionTo('disconnect')) {
+    if (!this.transitionTo("disconnect")) {
       return;
     }
 
     if (this.ws) {
-      this.ws.close(1000, 'Client disconnect');
+      this.ws.close(1000, "Client disconnect");
     } else {
-      this.transitionTo('disconnected');
+      this.transitionTo("disconnected");
     }
   }
 
   public send(message: WebSocketMessage): void {
     if (!this.isConnected()) {
-      if (this.config.reconnect && (this.state === 'connecting' || this.state === 'reconnecting')) {
-        log.debug('Queueing message while connecting');
+      if (
+        this.config.reconnect &&
+        (this.state === "connecting" || this.state === "reconnecting")
+      ) {
+        log.debug("Queueing message while connecting");
         this.messageQueue.push(message);
         return;
       }
@@ -167,10 +174,10 @@ export class WebSocketManager extends EventEmitter {
     try {
       const encoded = encode(message);
       this.ws!.send(encoded);
-      this.emit('messageSent', message);
+      this.emit("messageSent", message);
     } catch (error) {
-      log.error('Failed to send message:', error);
-      this.emit('error', error);
+      log.error("Failed to send message:", error);
+      this.emit("error", error);
       throw error;
     }
   }
@@ -183,8 +190,8 @@ export class WebSocketManager extends EventEmitter {
     try {
       this.ws!.send(data);
     } catch (error) {
-      log.error('Failed to send raw data:', error);
-      this.emit('error', error);
+      log.error("Failed to send raw data:", error);
+      this.emit("error", error);
       throw error;
     }
   }
@@ -199,16 +206,16 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private handleOpen(): void {
-    log.info('WebSocket connection opened');
+    log.info("WebSocket connection opened");
     this.clearConnectionTimeout();
     this.reconnectAttempt = 0;
-    
-    if (!this.transitionTo('connected')) {
+
+    if (!this.transitionTo("connected")) {
       return;
     }
 
-    this.emit('open');
-    
+    this.emit("open");
+
     // Process queued messages
     this.processMessageQueue();
 
@@ -225,69 +232,76 @@ export class WebSocketManager extends EventEmitter {
     try {
       let data: any;
 
-      if (this.config.binaryType === 'arraybuffer') {
+      if (this.config.binaryType === "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
           const decoded = decode(new Uint8Array(event.data));
           data = decoded;
         } else if (
           event.data instanceof Blob ||
-          (event.data && typeof (event.data as any).arrayBuffer === 'function')
+          (event.data && typeof (event.data as any).arrayBuffer === "function")
         ) {
           const buf = await (event.data as Blob).arrayBuffer();
           data = decode(new Uint8Array(buf));
-        } else if (typeof event.data === 'string') {
+        } else if (typeof event.data === "string") {
           data = JSON.parse(event.data);
         } else {
           data = event.data;
         }
-      } else if (typeof event.data === 'string') {
+      } else if (typeof event.data === "string") {
         data = JSON.parse(event.data);
       } else {
         data = event.data;
       }
 
-      this.emit('message', data);
+      this.emit("message", data);
     } catch (error) {
-      log.error('Failed to process message:', error);
-      this.emit('error', error);
+      log.error("Failed to process message:", error);
+      this.emit("error", error);
     }
   }
 
   private handleError(event: Event): void {
-    log.error('WebSocket error:', event);
-    this.emit('error', new Error('WebSocket error occurred'));
+    log.error("WebSocket error:", event);
+    this.emit("error", new Error("WebSocket error occurred"));
   }
 
   private handleClose(event: CloseEvent): void {
-    log.info(`WebSocket closed: code=${event.code}, reason=${event.reason}, clean=${event.wasClean}, intentional=${this.intentionalDisconnect}`);
-    
+    log.info(
+      `WebSocket closed: code=${event.code}, reason=${event.reason}, clean=${event.wasClean}, intentional=${this.intentionalDisconnect}`
+    );
+
     this.ws = null;
     this.clearConnectionTimeout();
 
-    const wasConnecting = this.state === 'connecting' || this.state === 'reconnecting';
-    
-    if (!this.transitionTo('disconnected')) {
+    const wasConnecting =
+      this.state === "connecting" || this.state === "reconnecting";
+
+    if (!this.transitionTo("disconnected")) {
       return;
     }
 
     // Handle connection promise rejection
     if (wasConnecting && this.connectionRejector) {
-      this.connectionRejector(new Error(`Connection failed: ${event.reason || 'Unknown reason'}`));
+      this.connectionRejector(
+        new Error(`Connection failed: ${event.reason || "Unknown reason"}`)
+      );
       this.connectionResolver = null;
       this.connectionRejector = null;
       this.connectionPromise = null;
     }
 
-    this.emit('close', event.code, event.reason, event.wasClean);
+    this.emit("close", event.code, event.reason, event.wasClean);
 
     // Handle reconnection
     const shouldReconnect = this.shouldReconnect(event);
-    log.info(`Should reconnect: ${shouldReconnect}, attempts: ${this.reconnectAttempt}/${this.config.reconnectAttempts}`);
-    
+    log.info(
+      `Should reconnect: ${shouldReconnect}, attempts: ${this.reconnectAttempt}/${this.config.reconnectAttempts}`
+    );
+
     if (shouldReconnect) {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
-      this.transitionTo('failed');
+      this.transitionTo("failed");
     }
   }
 
@@ -298,14 +312,16 @@ export class WebSocketManager extends EventEmitter {
     // 3. Max reconnection attempts reached
     // 4. Specific error codes that shouldn't trigger reconnection
     const noReconnectCodes = [
-      1001, // Going away (user navigating away)
+      // Note: 1001 (Going away) is intentionally NOT blocked to allow reconnect
+      // when servers restart or proxies roll connections. We still avoid
+      // reconnecting on policy/auth/server errors.
       1008, // Policy violation
       1009, // Message too big
       1010, // Mandatory extension
       1011, // Internal server error
       4000, // Custom: Authentication required
       4001, // Custom: Unauthorized
-      4003  // Custom: Forbidden
+      4003 // Custom: Forbidden
     ];
 
     // Special case: if it was an intentional disconnect via close(1000), don't reconnect
@@ -329,7 +345,9 @@ export class WebSocketManager extends EventEmitter {
     const delay = this.getReconnectDelay();
     this.reconnectAttempt++;
 
-    log.info(`Scheduling reconnection attempt ${this.reconnectAttempt}/${this.config.reconnectAttempts} in ${delay}ms`);
+    log.info(
+      `Scheduling reconnection attempt ${this.reconnectAttempt}/${this.config.reconnectAttempts} in ${delay}ms`
+    );
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -341,17 +359,21 @@ export class WebSocketManager extends EventEmitter {
 
   private async reconnect(): Promise<void> {
     log.info(`Attempting to reconnect (attempt ${this.reconnectAttempt})`);
-    
-    if (!this.transitionTo('reconnect')) {
+
+    if (!this.transitionTo("reconnect")) {
       log.warn(`Failed to transition to reconnect state from ${this.state}`);
       return;
     }
 
-    this.emit('reconnecting', this.reconnectAttempt, this.config.reconnectAttempts);
+    this.emit(
+      "reconnecting",
+      this.reconnectAttempt,
+      this.config.reconnectAttempts
+    );
 
     try {
       await this.establishConnection();
-      log.info('Reconnection successful');
+      log.info("Reconnection successful");
     } catch (error) {
       log.error(`Reconnection attempt ${this.reconnectAttempt} failed:`, error);
       // The close handler will schedule the next attempt if needed
@@ -380,7 +402,8 @@ export class WebSocketManager extends EventEmitter {
 
   private getReconnectDelay(): number {
     const delay = Math.min(
-      this.config.reconnectInterval * Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
+      this.config.reconnectInterval *
+        Math.pow(this.config.reconnectDecay, this.reconnectAttempt - 1),
       30000 // Max 30 seconds
     );
     return delay;
@@ -388,9 +411,9 @@ export class WebSocketManager extends EventEmitter {
 
   private startConnectionTimeout(): void {
     this.connectionTimer = setTimeout(() => {
-      if (this.state === 'connecting' || this.state === 'reconnecting') {
-        log.error('Connection timeout');
-        this.handleConnectionError(new Error('Connection timeout'));
+      if (this.state === "connecting" || this.state === "reconnecting") {
+        log.error("Connection timeout");
+        this.handleConnectionError(new Error("Connection timeout"));
         if (this.ws) {
           this.ws.close();
         }
@@ -414,9 +437,9 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private handleConnectionError(error: Error): void {
-    log.error('Connection error:', error);
-    this.emit('error', error);
-    
+    log.error("Connection error:", error);
+    this.emit("error", error);
+
     if (this.connectionRejector) {
       this.connectionRejector(error);
       this.connectionResolver = null;
@@ -436,8 +459,8 @@ export class WebSocketManager extends EventEmitter {
       try {
         this.send(message);
       } catch (error) {
-        log.error('Failed to send queued message:', error);
-        this.emit('error', error);
+        log.error("Failed to send queued message:", error);
+        this.emit("error", error);
       }
     }
   }
@@ -446,14 +469,14 @@ export class WebSocketManager extends EventEmitter {
     this.intentionalDisconnect = true;
     this.clearTimers();
     this.removeAllListeners();
-    
+
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
-    
+
     this.messageQueue = [];
-    this.state = 'disconnected';
+    this.state = "disconnected";
   }
 }
 
