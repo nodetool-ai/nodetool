@@ -115,7 +115,11 @@
   }
 
   /* Hide provider chip and file explorer button on mobile */
-  .mobile .models-manager-dialog .model-list-item .model-details .MuiChip-root:not(.pipeline-tag) {
+  .mobile
+    .models-manager-dialog
+    .model-list-item
+    .model-details
+    .MuiChip-root:not(.pipeline-tag) {
     display: none !important;
   }
   .mobile .models-manager-dialog .model-list-item .show-in-explorer-button {
@@ -248,7 +252,7 @@
     max-height: 100dvh !important;
     padding-top: 40px !important; /* Add padding for header */
     /* Leave space for the left panel/resize handle */
-    margin-left: 60px !important;
+    margin-left: 40px !important;
     max-width: calc(100vw - 60px) !important;
     contain: layout style !important;
   }
@@ -318,14 +322,16 @@
     min-width: 100vw !important;
     left: 0 !important;
     background-color: var(--palette-grey-900) !important;
-    max-height: calc(100vh - 100px) !important; /* Account for floating toolbar */
+    max-height: calc(
+      100vh - 100px
+    ) !important; /* Account for floating toolbar */
     top: 0 !important;
     bottom: 100px !important; /* Leave space for floating toolbar */
   }
 
   /* Add backdrop overlay for mobile node menu */
   .mobile .floating-node-menu::before {
-    content: '';
+    content: "";
     position: fixed;
     top: 0;
     left: 0;
@@ -440,7 +446,6 @@
     left: auto !important;
     width: auto !important;
   }
-
 }
 
 /* Ensure ReactFlow receives touch gestures on mobile */

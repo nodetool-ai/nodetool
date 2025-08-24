@@ -1,5 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useState, useCallback, useEffect, Fragment } from "react";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useEffect,
+  Fragment
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -80,7 +86,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       status !== "streaming" &&
       status !== "disconnected" &&
       status !== "connecting" &&
-      status !== "error" &&
       prompt.length > 0
     ) {
       const content: MessageContent[] = [
@@ -121,7 +126,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     disabled ||
     status === "loading" ||
     status === "streaming" ||
-    status === "error" ||
     status === "disconnected" ||
     status === "connecting";
 

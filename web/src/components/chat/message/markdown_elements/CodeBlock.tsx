@@ -3,9 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import { okaidia } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  oneDark,
+  oneLight
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
 import { CopyToClipboardButton } from "../../../common/CopyToClipboardButton";
+import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 
 interface CodeBlockProps {
   node?: any;
@@ -34,6 +38,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const theme = useTheme();
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
+  const isDarkMode = useIsDarkMode();
 
   let renderAsBlock = false;
 
@@ -52,10 +57,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
   if (renderAsBlock) {
     const language = match ? match[1] : "plaintext";
-    const customizedOkaidia = {
-      ...okaidia,
+    const codeTheme = isDarkMode ? oneDark : oneLight;
+    const customizedTheme = {
+      ...codeTheme,
       'pre[class*="language-"]': {
-        ...okaidia['pre[class*="language-"]'],
+        ...codeTheme['pre[class*="language-"]'],
         margin: 0,
         borderRadius: 0
       }
@@ -69,11 +75,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         </div>
         <SyntaxHighlighter
           className="code-block-content"
-          style={customizedOkaidia}
+          style={customizedTheme}
           language={language}
           PreTag="div"
           customStyle={{
-            background: "var(--palette-grey-900)",
+            // background: "var(--palette-grey-900)",
             fontFamily: '"JetBrains Mono", monospace',
             marginTop: 0,
             padding: "1em",

@@ -9,6 +9,7 @@ export const createStyles = (theme: Theme) => ({
     display: "flex",
     flexDirection: "column",
     padding: "2em 0",
+    marginRight: "20px",
     minHeight: 0
   }),
   scrollableMessageWrapper: css({
@@ -21,7 +22,7 @@ export const createStyles = (theme: Theme) => ({
     overflowX: "hidden",
     padding: "0 .5em",
     marginTop: ".2em",
-    marginRight: ".1em",
+    // marginRight: "10px",
     position: "relative",
     scrollbarWidth: "auto",
     scrollbarColor: "var(--palette-grey-600) transparent",
@@ -65,7 +66,7 @@ export const createStyles = (theme: Theme) => ({
       margin: "4em 0 2em auto",
       padding: "0.2em",
       color: theme.vars.palette.grey[100],
-      backgroundColor: theme.vars.palette.grey[600],
+      backgroundColor: theme.vars.palette.grey[800],
       opacity: 0.9,
       borderRadius: "20px"
     },
@@ -153,7 +154,7 @@ export const createStyles = (theme: Theme) => ({
 
     ".loading-dots": {
       display: "flex",
-      justifyContent: "center",
+      justifyContent: "left",
       alignItems: "center"
     },
 
