@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
-    left: 0,
+    marginLeft: "40px",
     display: "flex",
     flexDirection: "column",
     width: "100%",
@@ -37,11 +37,10 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       alignItems: "center",
       position: "relative",
-      padding: "0",
-      height: "40",
+      padding: "4px 0px",
       width: "100%",
-      WebkitAppRegion: "drag",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      WebkitAppRegion: "drag"
+      // borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     "& .tabs": {
       flex: 1,
@@ -65,7 +64,7 @@ const styles = (theme: Theme) =>
     "& .tab": {
       WebkitAppRegion: "no-drag",
       padding: "0px 20px",
-      height: "40px",
+      height: "32px",
       display: "flex",
       flexWrap: "nowrap",
       lineHeight: "1.1em",
@@ -75,9 +74,10 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
-      background: "transparent",
+      background: theme.vars.palette.grey[800],
       borderRadius: "8px 8px 0 0",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderBottom: "none",
       fontSize: "13px",
       letterSpacing: "0.3px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -110,19 +110,9 @@ const styles = (theme: Theme) =>
 
       "&.active": {
         color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.grey[800],
-        borderColor: theme.vars.palette.grey[700],
-        // Overlap the strip divider so the active tab looks connected
-        marginBottom: "-1px",
+        background: theme.vars.palette.c_editor_bg_color,
         zIndex: 2,
-        // Hide the bottom edge to avoid a double divider
-        borderBottomColor: theme.vars.palette.grey[900],
-        boxShadow: "0 1px 0 rgba(0,0,0,0), 0 -1px 0 rgba(0,0,0,0.2)",
-        "&::before": {
-          // Hide the underline when active; the tab border is the affordance
-          opacity: 0,
-          transform: "scaleX(1)"
-        }
+        borderColor: theme.vars.palette.grey[700]
       },
 
       "& .close-icon": {
@@ -210,18 +200,20 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       width: "30px",
       height: "30px",
-      background: theme.vars.palette.grey[700],
+      background: theme.vars.palette.primary.main,
       border: "none",
-      color: theme.vars.palette.grey[200],
       cursor: "pointer",
       marginTop: "1px",
       borderRadius: "5px 5px 0 0",
       padding: 0,
-      marginLeft: "2px",
+      marginLeft: "10px",
       transition: "all 0.1s ease-in-out",
       WebkitAppRegion: "no-drag",
       position: "relative",
       zIndex: 1001,
+      "& svg path": {
+        color: theme.vars.palette.grey[900]
+      },
 
       "&:hover": {
         color: theme.vars.palette.grey[0],
@@ -231,11 +223,6 @@ const styles = (theme: Theme) =>
       "& svg": {
         fontSize: "20px"
       }
-    },
-    "& .tabs-logo-button": {
-      WebkitAppRegion: "no-drag",
-      position: "relative",
-      zIndex: 1001
     },
     "& .window-controls": {
       display: "flex",

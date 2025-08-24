@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useState } from "react";
-import { IconButton, Fab, Box, useMediaQuery } from "@mui/material";
+import { IconButton, Fab, Box, useMediaQuery, Tooltip } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useLocation } from "react-router-dom";
@@ -19,6 +19,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import { isLocalhost } from "../../stores/ApiClient";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { getShortcutTooltip } from "../../config/shortcuts";
 // keep existing colors; add only subtle shine overlays
 
 const styles = (theme: Theme) =>
@@ -129,11 +131,11 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.grey[200]
       }
     },
-    
+
     /* Node menu button: secondary prominent, distinct color */
     ".floating-action-button.node-menu": {
       backgroundColor: theme.vars.palette.secondary.main,
-      color: theme.vars.palette.secondary.contrastText,
+      color: theme.vars.palette.grey[900],
       borderColor: theme.vars.palette.secondary.main,
       "&:hover": {
         boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.secondary.main}25`,
@@ -298,71 +300,119 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     <>
       <Box css={styles(theme)} className="floating-toolbar">
         {isMobile && (
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleOpenPaneMenu}
-            aria-label="Open canvas menu"
+          <Tooltip
+            title="Open canvas menu"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            placement="top"
           >
-            <MoreHorizIcon />
-          </Fab>
+            <Fab
+              className={`floating-action-button subtle`}
+              onClick={handleOpenPaneMenu}
+              aria-label="Open canvas menu"
+            >
+              <MoreHorizIcon />
+            </Fab>
+          </Tooltip>
         )}
-        <Fab
-          className={`floating-action-button node-menu`}
-          onClick={handleToggleNodeMenu}
-          aria-label="Open node menu"
+        <Tooltip
+          title={getShortcutTooltip("openNodeMenu")}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
         >
-          <ControlPointIcon />
-        </Fab>
-        <Fab
-          className={`floating-action-button subtle`}
-          onClick={handleAutoLayout}
-          aria-label="Auto layout nodes"
+          <Fab
+            className={`floating-action-button node-menu`}
+            onClick={handleToggleNodeMenu}
+            aria-label="Open node menu"
+          >
+            <ControlPointIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
+          title="Auto-arrange nodes in the workspace"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
         >
-          <LayoutIcon />
-        </Fab>
-        <Fab
-          className={`floating-action-button subtle`}
-          onClick={handleSave}
-          aria-label="Save workflow"
-        >
-          <SaveIcon />
-        </Fab>
-        <Fab
-          className={`floating-action-button subtle`}
-          onClick={handleDownload}
-          aria-label="Download workflow JSON"
-        >
-          <DownloadIcon />
-        </Fab>
-        <Fab
-          className={`floating-action-button run-workflow ${
-            isWorkflowRunning ? "running" : ""
-          } ${isWorkflowRunning ? "disabled" : ""}`}
-          onClick={handleRun}
-          disabled={isWorkflowRunning}
-          aria-label="Run workflow"
-        >
-          <PlayArrow />
-        </Fab>
-
-        <Fab
-          className={`floating-action-button subtle ${
-            !isWorkflowRunning ? "disabled" : ""
-          }`}
-          onClick={handleStop}
-          disabled={!isWorkflowRunning}
-          aria-label="Stop workflow"
-        >
-          <StopIcon />
-        </Fab>
-        {isLocalhost && workflow?.run_mode === "app" && (
           <Fab
             className={`floating-action-button subtle`}
-            onClick={handleRunAsApp}
-            aria-label="Run as App"
+            onClick={handleAutoLayout}
+            aria-label="Auto layout nodes"
           >
-            <RocketLaunchIcon />
+            <LayoutIcon />
           </Fab>
+        </Tooltip>
+        <Tooltip
+          title={getShortcutTooltip("saveWorkflow")}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleSave}
+            aria-label="Save workflow"
+          >
+            <SaveIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
+          title="Download workflow as JSON file"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleDownload}
+            aria-label="Download workflow JSON"
+          >
+            <DownloadIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
+          title={getShortcutTooltip("runWorkflow")}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button run-workflow ${
+              isWorkflowRunning ? "running" : ""
+            } ${isWorkflowRunning ? "disabled" : ""}`}
+            onClick={handleRun}
+            disabled={isWorkflowRunning}
+            aria-label="Run workflow"
+          >
+            <PlayArrow />
+          </Fab>
+        </Tooltip>
+
+        <Tooltip
+          title={getShortcutTooltip("stopWorkflow")}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle ${
+              !isWorkflowRunning ? "disabled" : ""
+            }`}
+            onClick={handleStop}
+            disabled={!isWorkflowRunning}
+            aria-label="Stop workflow"
+          >
+            <StopIcon />
+          </Fab>
+        </Tooltip>
+        {isLocalhost && workflow?.run_mode === "app" && (
+          <Tooltip
+            title="Run workflow as standalone app"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            placement="top"
+          >
+            <Fab
+              className={`floating-action-button subtle`}
+              onClick={handleRunAsApp}
+              aria-label="Run as App"
+            >
+              <RocketLaunchIcon />
+            </Fab>
+          </Tooltip>
         )}
       </Box>
 
