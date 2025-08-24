@@ -25,6 +25,7 @@ import {
   uninstallPackage,
   updatePackage,
   validateRepoId,
+  searchNodes,
 } from "./packageManager";
 
 /**
@@ -141,9 +142,9 @@ export function initializeIpcHandlers(): void {
   });
 
   // Show Package Manager window
-  createIpcMainHandler(IpcChannels.SHOW_PACKAGE_MANAGER, async () => {
-    logMessage("Opening Package Manager window");
-    createPackageManagerWindow();
+  createIpcMainHandler(IpcChannels.SHOW_PACKAGE_MANAGER, async (_event, nodeSearch) => {
+    logMessage(`Opening Package Manager window${nodeSearch ? ` with search: ${nodeSearch}` : ''}`);
+    createPackageManagerWindow(nodeSearch);
   });
 
   //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
@@ -266,6 +267,19 @@ export function initializeIpcHandlers(): void {
     }
     return await updatePackage(repoId);
   });
+
+  createIpcMainHandler(
+    IpcChannels.PACKAGE_SEARCH_NODES,
+    async (_event, query) => {
+      try {
+        const results = await searchNodes(query || "");
+        return results;
+      } catch (e) {
+        logMessage(`Error in PACKAGE_SEARCH_NODES: ${String(e)}`, "warn");
+        return [];
+      }
+    }
+  );
 
   createIpcMainHandler(
     IpcChannels.PACKAGE_OPEN_EXTERNAL,

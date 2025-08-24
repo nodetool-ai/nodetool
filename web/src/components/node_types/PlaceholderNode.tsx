@@ -78,13 +78,42 @@ const styles = (theme: Theme) =>
       // }
     },
     ".install-button": {
-      backgroundColor: "var(--palette-grey-400)",
+      position: "relative",
       fontSize: "var(--fontSizeTiny)",
       lineHeight: "1.1em",
       minWidth: "unset",
-      padding: "2px 6px",
+      padding: "6px 12px",
+      borderRadius: 10,
+      color: (theme as any).vars?.palette?.primary?.contrastText || "#fff",
+      backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
+      backgroundSize: "200% 200%",
+      border: "1px solid rgba(255,255,255,0.15)",
+      boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+      transition:
+        "transform 200ms ease, box-shadow 200ms ease, background-position 300ms ease",
+      overflow: "hidden",
+      "&::before": {
+        content: "''",
+        position: "absolute",
+        top: 0,
+        left: "-150%",
+        width: "50%",
+        height: "100%",
+        background:
+          "linear-gradient(120deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))",
+        transform: "skewX(-20deg)",
+        transition: "left 400ms ease"
+      },
       "&:hover": {
-        backgroundColor: "var(--palette-grey-200)"
+        transform: "translateY(-1px)",
+        boxShadow: "0 10px 24px rgba(0,0,0,0.32)",
+        backgroundPosition: "100% 0"
+      },
+      "&:hover::before": {
+        left: "150%"
+      },
+      "&:active": {
+        transform: "translateY(0) scale(0.99)"
       }
     }
     // ".open-menu-button": {
@@ -141,81 +170,24 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
   }, [resolvedType]);
 
-  const parentColor = useMemo(() => {
-    if (!hasParent) return "";
-    return theme.vars.palette.c_node_bg;
-  }, [hasParent, theme]);
-
-  // Add state for node search and package info
-  const [isSearching, setIsSearching] = useState(false);
-  const [nodeFound, setNodeFound] = useState(false);
   const [packageInfo, setPackageInfo] = useState<{
     node_type: string;
     package: string;
   } | null>(null);
 
   const installPackage = useCallback(() => {
-    window.api.showPackageManager();
-  }, []);
-
-  // Function to search for the node on the server
-  const searchForNode = useCallback(async () => {
-    const originalType = (nodeData as any)?.originalType;
-    const nodeTypeToSearch = originalType || nodeType;
-    if (!nodeTypeToSearch) return;
-
-    setIsSearching(true);
-    try {
-      const { data, error } = await client.GET("/api/packages/nodes/package", {
-        params: { query: { node_type: nodeTypeToSearch } }
-      });
-      if (error) throw error;
-
-      setNodeFound(data.found);
-      if (data.found) {
-        setPackageInfo({
-          node_type: data.node_type,
-          package: data.package || ""
-        });
-      }
-    } catch (error) {
-      console.error("Error searching for node:", error);
-      setNodeFound(false);
-    } finally {
-      setIsSearching(false);
+    // Pass the node type to the package manager to pre-fill the search
+    const nodeTypeToSearch = (nodeData as any)?.originalType || nodeType || "";
+    if (window.api?.showPackageManager) {
+      // Use the Electron API with node search if available
+      (window.api.showPackageManager as (nodeSearch?: string) => void)(
+        nodeTypeToSearch
+      );
+    } else {
+      // Fallback for non-Electron environments
+      window.api?.showPackageManager?.();
     }
   }, [nodeData, nodeType]);
-
-  // Open the Node Menu prefilled with the missing node's type
-  const handleSearchClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const originalType = (nodeData as any)?.originalType || nodeType || "";
-      const parts = originalType.split(".").filter(Boolean);
-      const selectedPath = parts.slice(0, -1);
-      const searchTerm = parts.slice(-1)[0] || originalType;
-      searchForNode();
-      openNodeMenu({ x: e.clientX, y: e.clientY, searchTerm, selectedPath });
-      setTimeout(() => {
-        const getState = (useNodeMenuStore as any).getState;
-        if (typeof getState === "function") {
-          const state = getState();
-        }
-      }, 0);
-    },
-    [nodeData, nodeType, openNodeMenu, searchForNode]
-  );
-
-  // Trigger server search without bubbling to React Flow
-  const handleServerSearchClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      searchForNode();
-    },
-    [searchForNode]
-  );
 
   const mockProperties = useMemo(() => {
     const props = Object.entries(nodeData.properties).map(([key, value]) => ({
@@ -265,6 +237,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       is_dynamic: false,
       is_streaming: false,
       expose_as_tool: false,
+      supports_dynamic_outputs: false,
       outputs: [
         {
           name: "output",
@@ -323,55 +296,22 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       </Tooltip>
 
       <div className="node-actions">
-        {!isSearching && !nodeFound && (
-          <>
-            <Tooltip
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              title="Open the Node Menu prefilled with this node's type"
-            >
-              <Button
-                variant="contained"
-                size="small"
-                className="search-button"
-                onClick={handleSearchClick}
-                startIcon={<ManageSearchIcon />}
-              >
-                Open Node Menu
-              </Button>
-            </Tooltip>
-            <Tooltip title="Search installed/available packs on the server for a matching node">
-              <Button
-                variant="contained"
-                size="small"
-                className="search-button"
-                onClick={handleServerSearchClick}
-                startIcon={<SearchIcon />}
-              >
-                Server Search
-              </Button>
-            </Tooltip>
-          </>
-        )}
-
-        {isSearching && <CircularProgress size={24} />}
-
-        {nodeFound && packageInfo && (
-          <Tooltip title={`Install package ${packageInfo.package}`}>
-            <Button
-              variant="contained"
-              size="small"
-              className="install-button"
-              onClick={installPackage}
-              startIcon={<CloudDownloadIcon />}
-            >
-              Install Package
-            </Button>
-          </Tooltip>
-        )}
+        <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+          <Button
+            variant="contained"
+            size="small"
+            className="install-button"
+            onClick={installPackage}
+            startIcon={<CloudDownloadIcon />}
+          >
+            Search Package Manager
+          </Button>
+        </Tooltip>
       </div>
 
       {mockProperties.length > 0 && (
         <NodeInputs
+          nodeMetadata={mockMetadata}
           basicFields={basicFields}
           id={props.id}
           nodeType={nodeType || ""}

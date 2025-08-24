@@ -15,7 +15,7 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => void;
       onUpdateWorkflow: (workflow: Workflow) => void;
       onDeleteWorkflow: (workflow: Workflow) => void;
-      showPackageManager: () => void;
+      showPackageManager: (nodeSearch?: string) => void;
       windowControls: WindowControls;
       platform: string;
     };

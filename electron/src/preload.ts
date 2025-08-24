@@ -97,8 +97,8 @@ contextBridge.exposeInMainWorld("api", {
   continueToApp: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
   startServer: () => ipcRenderer.invoke(IpcChannels.START_SERVER),
   restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
-  showPackageManager: () =>
-    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER),
+  showPackageManager: (nodeSearch?: string) =>
+    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
   onCreateWorkflow: (workflow: Workflow) =>
@@ -147,6 +147,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke(IpcChannels.PACKAGE_UNINSTALL, { repo_id }),
     update: (repo_id: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_UPDATE, repo_id),
+    searchNodes: (query: string) =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_SEARCH_NODES, query),
   },
   openExternal: (url: string) => {
     ipcRenderer.invoke(IpcChannels.PACKAGE_OPEN_EXTERNAL, url);

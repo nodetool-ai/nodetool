@@ -1,18 +1,11 @@
-import { Tray, Menu, app, BrowserWindow, dialog, shell } from "electron";
+import { Tray, Menu, app, BrowserWindow, shell } from "electron";
 import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createWindow } from "./window";
 import { execSync } from "child_process";
-import { stopServer } from "./server";
-import { initializeBackendServer } from "./server";
-import {
-  fetchWorkflows,
-  isConnected,
-  startPeriodicHealthCheck,
-  stopPeriodicHealthCheck,
-} from "./api";
-import { Workflow } from "./types";
+import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning } from "./server";
+import { fetchWorkflows } from "./api";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -94,18 +87,12 @@ async function createTray(): Promise<Electron.Tray> {
   } else {
     // On macOS/Linux, show the context menu on click and right-click
     trayInstance.on("click", () => {
-      startPeriodicHealthCheck(async () => {
-        await updateTrayMenu();
-      });
+      void updateTrayMenu();
       trayInstance?.popUpContextMenu();
-      setTimeout(() => stopPeriodicHealthCheck(), 30000);
     });
     trayInstance.on("right-click", () => {
-      startPeriodicHealthCheck(async () => {
-        await updateTrayMenu();
-      });
+      void updateTrayMenu();
       trayInstance?.popUpContextMenu();
-      setTimeout(() => stopPeriodicHealthCheck(), 30000);
     });
   }
   // Initialize the tray menu immediately so it responds on first click
@@ -131,19 +118,13 @@ function setupWindowsTrayEvents(tray: Electron.Tray): void {
   });
 
   tray.on("click", () => {
-    startPeriodicHealthCheck(async () => {
-      await updateTrayMenu();
-    });
+    void updateTrayMenu();
     tray.popUpContextMenu();
-    setTimeout(() => stopPeriodicHealthCheck(), 30000);
   });
 
   tray.on("right-click", () => {
-    startPeriodicHealthCheck(async () => {
-      await updateTrayMenu();
-    });
+    void updateTrayMenu();
     tray.popUpContextMenu();
-    setTimeout(() => stopPeriodicHealthCheck(), 30000);
   });
 }
 
@@ -180,16 +161,31 @@ function focusNodeTool(): void {
 async function updateTrayMenu(): Promise<void> {
   if (!trayInstance) return;
 
-  const statusIndicator = isConnected ? "🟢" : "🔴";
+  const connected = await isServerRunning();
+  const statusIndicator = connected ? "🟢" : "🔴";
+  const ollamaRunning = isOllamaRunning();
+  const state = getServerState();
+  const backendLabel = connected
+    ? `${statusIndicator} NodeTool: ${state.serverPort ?? "unknown"}`
+    : `${statusIndicator} NodeTool: stopped`;
+  const ollamaLabel = ollamaRunning
+    ? `🟢 Ollama: ${state.ollamaPort ?? "unknown"}`
+    : state.ollamaExternalManaged
+      ? `🟢 Ollama (external): ${state.ollamaPort ?? "unknown"}`
+      : "🔴 Ollama: stopped";
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: `${statusIndicator} NodeTool Service`,
+      label: backendLabel,
+      enabled: false,
+    },
+    {
+      label: ollamaLabel,
       enabled: false,
     },
     {
       label: "Start Service",
-      enabled: !isConnected,
+      enabled: !connected,
       click: async () => {
         await initializeBackendServer();
         updateTrayMenu();
@@ -197,10 +193,11 @@ async function updateTrayMenu(): Promise<void> {
     },
     {
       label: "Stop Service",
-      enabled: isConnected,
+      enabled: connected,
       click: async () => {
         try {
           await stopServer();
+          await updateTrayMenu();
         } catch (error) {
           if (error instanceof Error) {
             logMessage(`Failed to stop service: ${error.message}`, "error");

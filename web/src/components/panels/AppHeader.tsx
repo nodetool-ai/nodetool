@@ -10,6 +10,7 @@ import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
 import Logo from "../Logo";
+import TitleBar from "../TitleBar";
 
 const styles = (theme: Theme) =>
   css({
@@ -184,11 +185,21 @@ const ExamplesButton = memo(function ExamplesButton({
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
+  const isWindows =
+    (typeof window !== "undefined" &&
+      (window as any)?.api?.platform === "win32") ||
+    (typeof navigator !== "undefined" &&
+      /Windows/i.test(navigator.userAgent || ""));
+  const isElectron =
+    typeof window !== "undefined" &&
+    (!!(window as any)?.api?.windowControls ||
+      (typeof navigator !== "undefined" &&
+        /electron/i.test(navigator.userAgent || "")));
 
   return (
     <div css={styles(theme)} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
-        <div className="navigate">
+        <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
           <div className="logo-container">
             <Logo
               small
@@ -204,7 +215,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
-        <RightSideButtons />
+        <div
+          className="buttons-right"
+          style={{ WebkitAppRegion: "no-drag" } as any}
+        >
+          <RightSideButtons />
+          {isWindows && isElectron ? <TitleBar /> : null}
+        </div>
       </Toolbar>
     </div>
   );

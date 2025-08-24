@@ -14,35 +14,59 @@ body {
   overflow: hidden;
 }
 
+/* Page title */
+h1 {
+  padding: 12px 16px 0;
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  background: linear-gradient(90deg, #ffffff, #cfe6f8 55%, #9bc8eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 8px 22px rgba(90,159,212,0.15);
+}
+
 .container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding-top: 36px; /* account for title bar on Windows */
 }
 
 .search-container {
-  padding: 16px;
-  background-color: #2a2a2a;
-  border-bottom: 1px solid #444;
+  padding: 14px 16px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.0));
+  border-bottom: 1px solid #2e2e2e;
   position: sticky;
-  top: 0;
+  top: 36px; /* under title bar */
   z-index: 10;
+  backdrop-filter: blur(4px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 12px 10px 36px;
-  background-color: #1a1a1a;
+  padding: 12px 12px 12px 40px;
+  background-color: #141414;
   color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 4px;
+  border: 1px solid #333;
+  border-radius: 12px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
 }
 
 .search-input:focus {
-  border-color: #666;
+  border-color: #5a9fd4;
+  box-shadow: 0 0 0 2px rgba(90, 159, 212, 0.28), 0 8px 24px rgba(0,0,0,0.35);
+  background-color: #121212;
 }
 
 .search-input:disabled {
@@ -50,9 +74,14 @@ body {
   cursor: not-allowed;
 }
 
+.search-input::placeholder {
+  color: #9aa0a6;
+  opacity: 0.9;
+}
+
 .search-icon {
   position: absolute;
-  left: 28px;
+  left: 24px;
   top: 50%;
   transform: translateY(-50%);
   color: #888;
@@ -62,20 +91,26 @@ body {
 .package-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px 12px 16px;
 }
 
 .package-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #333;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background-color 0.2s, opacity 0.2s;
+  transition: background-color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0) 40%), #1f1f1f;
+  border: 1px solid #2c2c2c;
+  border-radius: 12px;
+  margin: 8px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
 .package-item:hover {
-  background-color: #2a2a2a;
+  background-color: #262626;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.28);
 }
 
 .package-item.processing {
@@ -89,7 +124,7 @@ body {
 
 .package-name {
   font-weight: 500;
-  font-size: 16px;
+  font-size: 15px;
   color: #fff;
   display: flex;
   align-items: center;
@@ -97,7 +132,7 @@ body {
 }
 
 .package-repo {
-  font-size: 14px;
+  font-size: 13px;
   color: #888;
   margin-top: 4px;
 }
@@ -114,16 +149,16 @@ body {
 .package-action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn {
-  padding: 6px 16px;
-  border: 1px solid #444;
-  background-color: transparent;
+  padding: 8px 16px;
+  border: 1px solid #3a3a3a;
+  background-color: rgba(255,255,255,0.02);
   color: #e0e0e0;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   min-width: 100px;
@@ -134,8 +169,10 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-  background-color: #333;
-  border-color: #666;
+  background-color: rgba(255,255,255,0.06);
+  border-color: #5a9fd4;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(90,159,212,0.25);
 }
 
 .btn:disabled {
@@ -145,27 +182,33 @@ body {
 
 .btn-primary {
   border-color: #5a9fd4;
-  color: #5a9fd4;
+  color: #cfe6f8;
+  background: linear-gradient(135deg, rgba(90,159,212,0.22), rgba(90,159,212,0.06));
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #5a9fd4;
+  background: linear-gradient(135deg, rgba(90,159,212,0.35), rgba(90,159,212,0.12));
   color: #fff;
 }
 
 .btn-secondary {
   border-color: #d45a5a;
-  color: #d45a5a;
+  color: #ffd7d7;
+  background: linear-gradient(135deg, rgba(212,90,90,0.22), rgba(212,90,90,0.06));
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #d45a5a;
+  background: linear-gradient(135deg, rgba(212,90,90,0.35), rgba(212,90,90,0.12));
   color: #fff;
 }
 
 .installed-badge {
-  color: #4CAF50;
-  font-size: 20px;
+  color: #76e5b8;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(118,229,184,0.12);
+  border: 1px solid rgba(118,229,184,0.35);
 }
 
 .loading-container, .error-container {
@@ -227,8 +270,43 @@ body {
 .empty-state {
   text-align: center;
   color: #888;
-  padding: 32px;
+  padding: 20px;
 }
+
+/* Node result styles */
+.node-results-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  margin: 8px 0 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0) 40%), #1f1f1f;
+  border: 1px solid #2c2c2c;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.node-results-header {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.node-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+.node-result-row + .node-result-row {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.node-result-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+.node-title { font-weight: 600; font-size: 14px; }
+.node-desc { opacity: 0.8; font-size: 12px; }
+.node-pkg { opacity: 0.7; font-size: 11px; margin-top: 2px; }
 
 /* Tooltip styles */
 .tooltip {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const TitleBar: React.FC = () => {
   const handleMinimize = () => {
@@ -15,15 +15,30 @@ const TitleBar: React.FC = () => {
 
   return (
     <div className="title-bar">
-      <div style={{ flex: 1 }}></div>
+      <div className="title-spacer" />
+      <div className="title-center">
+        <div className="title-bar-text">NodeTool Package Manager</div>
+      </div>
       <div className="window-controls">
-        <button className="window-control-button" onClick={handleMinimize}>
+        <button
+          className="window-control-button"
+          onClick={handleMinimize}
+          title="Minimize"
+        >
           &#x2014;
         </button>
-        <button className="window-control-button" onClick={handleMaximize}>
+        <button
+          className="window-control-button"
+          onClick={handleMaximize}
+          title="Maximize"
+        >
           &#x2610;
         </button>
-        <button className="window-control-button" id="close-button" onClick={handleClose}>
+        <button
+          className="window-control-button close-button"
+          onClick={handleClose}
+          title="Close"
+        >
           &#x2715;
         </button>
       </div>
