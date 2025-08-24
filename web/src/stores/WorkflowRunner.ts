@@ -25,7 +25,10 @@ import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { supabase } from "../lib/supabaseClient";
-import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
+import {
+  WebSocketManager,
+  ConnectionState
+} from "../lib/websocket/WebSocketManager";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -101,54 +104,54 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
     const wsManager = new WebSocketManager({
       url,
-      binaryType: 'arraybuffer',
+      binaryType: "arraybuffer",
       reconnect: true,
       reconnectInterval: 1000,
       reconnectAttempts: 5
     });
 
-    wsManager.on('open', () => {
+    wsManager.on("open", () => {
       log.info("WebSocket connected");
       set({ state: "connected" });
     });
 
-    wsManager.on('message', (data: any) => {
+    wsManager.on("message", (data: any) => {
       const workflow = get().workflow;
-      console.log("data", data);
+      // console.log("data", data);
 
       if (workflow) {
         get().readMessage(workflow, data);
       }
     });
 
-    wsManager.on('error', (error: Error) => {
+    wsManager.on("error", (error: Error) => {
       log.error("WebSocket error:", error);
       set({ state: "error" });
     });
 
-    wsManager.on('close', () => {
+    wsManager.on("close", () => {
       log.info("WebSocket disconnected");
       set({ wsManager: null, state: "idle" });
     });
 
-    wsManager.on('reconnecting', (attempt: number, maxAttempts: number) => {
+    wsManager.on("reconnecting", (attempt: number, maxAttempts: number) => {
       log.info(`Reconnecting attempt ${attempt}/${maxAttempts}`);
       set({ state: "connecting" });
     });
 
-    wsManager.on('stateChange', (newState: ConnectionState) => {
+    wsManager.on("stateChange", (newState: ConnectionState) => {
       switch (newState) {
-        case 'connecting':
-        case 'reconnecting':
+        case "connecting":
+        case "reconnecting":
           set({ state: "connecting" });
           break;
-        case 'connected':
+        case "connected":
           set({ state: "connected" });
           break;
-        case 'disconnected':
+        case "disconnected":
           set({ state: "idle" });
           break;
-        case 'failed':
+        case "failed":
           set({ state: "error" });
           break;
       }
@@ -159,7 +162,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     try {
       await wsManager.connect();
     } catch (error) {
-      log.error('Failed to connect WebSocket:', error);
+      log.error("Failed to connect WebSocket:", error);
       set({ state: "error" });
       throw error;
     }
@@ -261,7 +264,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       }
     };
 
-    console.log(req);
+    log.info("Running job", req);
 
     wsManager.send({
       type: "run_job",

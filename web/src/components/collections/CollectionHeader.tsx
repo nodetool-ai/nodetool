@@ -14,9 +14,6 @@ const CollectionHeader = () => {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        File Indexing with MarkItDown
-      </Typography>
       <Typography
         variant="subtitle2"
         sx={{
@@ -29,7 +26,7 @@ const CollectionHeader = () => {
         onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
       >
         <InfoIcon sx={{ mr: 1, fontSize: "1rem" }} />
-        Supported Formats
+        What are collections?
       </Typography>
       <Popover
         open={Boolean(formatInfoAnchor)}
@@ -40,7 +37,8 @@ const CollectionHeader = () => {
       >
         <Box sx={{ p: 2, maxWidth: 400 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Supported file formats:
+            Collections are used to store and search documents. Following file
+            formats are supported:
           </Typography>
           <List dense sx={{ mt: 1, pl: 2 }}>
             <ListItem sx={{ display: "list-item" }}>
@@ -55,14 +53,6 @@ const CollectionHeader = () => {
           </List>
         </Box>
       </Popover>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mt: 1, fontSize: "0.8em" }}
-      >
-        All files will be analyzed and added to the collection for semantic
-        search.
-      </Typography>
     </Box>
   );
 };
