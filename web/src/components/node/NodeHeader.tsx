@@ -8,6 +8,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 
 export interface NodeHeaderProps {
   id: string;
@@ -37,7 +38,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const updateNode = useNodes((state) => state.updateNode);
 
   const handleOpenContextMenu = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
       openContextMenu(
         "node-context-menu",
@@ -72,7 +73,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         (theme as any).vars?.palette?.glass?.blur || "blur(24px)",
       // Remove top inner highlight to avoid double border effect with wrapper outline
       boxShadow: `0 10px 24px -18px ${hexToRgba(tint, 0.6)}`,
-      borderRadius: "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0"
+      borderRadius:
+        "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0"
     } as React.CSSProperties;
   }, [backgroundColor, hasParent, theme]);
 
@@ -108,7 +110,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   return (
     <div
-      className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""}`}
+      className={`node-drag-handle node-header ${
+        hasParent ? "has-parent" : ""
+      }`}
       onClick={handleHeaderClick}
       style={{
         ...(glassyStyle || { backgroundColor }),
@@ -120,41 +124,55 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     >
       <div
         className="header-left"
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 4px" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 4px"
+        }}
       >
         {hasIcon && (
-          <div
+          <Box
+            className="header-icon"
+            onClick={handleOpenContextMenu}
             style={{
-              width: 28,
-              height: 28,
+              width: 24,
+              height: 24,
+              position: "absolute",
+              right: 6,
               borderRadius: 10,
               display: "grid",
               placeItems: "center",
-              background: iconBaseColor ? hexToRgba(iconBaseColor, 0.22) : "rgba(255,255,255,0.08)",
-              border: `1px solid ${iconBaseColor ? hexToRgba(iconBaseColor, 0.35) : "rgba(255,255,255,0.12)"}`,
+              background: iconBaseColor
+                ? hexToRgba(iconBaseColor, 0.22)
+                : "rgba(255,255,255,0.08)",
+              // border: `1px solid ${
+              //   iconBaseColor
+              //     ? hexToRgba(iconBaseColor, 0.35)
+              //     : "rgba(255,255,255,0.12)"
+              // }`,
               boxShadow: iconBaseColor
                 ? `0 0 24px -8px ${hexToRgba(iconBaseColor, 0.5)}`
                 : "none"
             }}
           >
-            <IconForType iconName={iconType!} showTooltip={false} svgProps={{ width: 16, height: 16 }} />
-          </div>
+            <IconForType
+              iconName={iconType!}
+              showTooltip={false}
+              svgProps={{ width: 16, height: 16 }}
+            />
+          </Box>
         )}
         <span
           className="node-title"
-          style={{ color: "var(--palette-text-primary)", paddingLeft: hasIcon ? 0 : undefined }}
+          style={{
+            color: "var(--palette-text-primary)",
+            paddingLeft: hasIcon ? 0 : undefined
+          }}
         >
           {metadataTitle}
         </span>
       </div>
-      {showMenu && (
-        <div className="menu-button-container" tabIndex={-1}>
-          <button className="menu-button" tabIndex={-1} onClick={handleOpenContextMenu}>
-            {/* Custom subtle three-dots with wider spacing */}
-            <DotsIcon />
-          </button>
-        </div>
-      )}
     </div>
   );
 };
