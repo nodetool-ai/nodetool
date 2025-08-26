@@ -377,16 +377,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
-          <Fab
-            className={`floating-action-button run-workflow ${
-              isWorkflowRunning ? "running" : ""
-            }`}
-            onClick={handleRun}
-            disabled={isWorkflowRunning}
-            aria-label="Run workflow"
-          >
-            <PlayArrow />
-          </Fab>
+          <span>
+            <Fab
+              className={`floating-action-button run-workflow ${
+                isWorkflowRunning ? "running" : ""
+              }`}
+              onClick={handleRun}
+              disabled={isWorkflowRunning}
+              aria-label="Run workflow"
+            >
+              <PlayArrow />
+            </Fab>
+          </span>
         </Tooltip>
 
         <Tooltip
@@ -394,16 +396,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
-          <Fab
-            className={`floating-action-button subtle ${
-              !isWorkflowRunning ? "disabled" : ""
-            }`}
-            onClick={handleStop}
-            disabled={!isWorkflowRunning}
-            aria-label="Stop workflow"
-          >
-            <StopIcon />
-          </Fab>
+          <span>
+            <Fab
+              className={`floating-action-button subtle ${
+                !isWorkflowRunning ? "disabled" : ""
+              }`}
+              onClick={handleStop}
+              disabled={!isWorkflowRunning}
+              aria-label="Stop workflow"
+            >
+              <StopIcon />
+            </Fab>
+          </span>
         </Tooltip>
         {isLocalhost && workflow?.run_mode === "app" && (
           <Tooltip
