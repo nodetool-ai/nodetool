@@ -6,6 +6,7 @@ import {
   MessageImageContent
 } from "../../../stores/ApiTypes";
 import ChatMarkdown from "./ChatMarkdown";
+import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
 import { ThoughtSection } from "./thought/ThoughtSection";
 import { MessageContentRenderer } from "./MessageContentRenderer";
 import { parseThoughtContent, getMessageClass } from "../utils/messageUtils";
@@ -16,16 +17,21 @@ interface MessageViewProps {
   message: Message;
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
+  onInsertCode?: (text: string, language?: string) => void;
 }
 
 export const MessageView: React.FC<MessageViewProps> = ({
   message,
   expandedThoughts,
-  onToggleThought
+  onToggleThought,
+  onInsertCode
 }) => {
+  const insertIntoEditor = useEditorInsertion();
   // Add error class if message has error flag
   const baseClass = getMessageClass(message.role);
-  const messageClass = message.error_type ? `${baseClass} error-message` : baseClass;
+  const messageClass = message.error_type
+    ? `${baseClass} error-message`
+    : baseClass;
 
   const handleCopy = () => {
     let textToCopy = "";
@@ -59,7 +65,10 @@ export const MessageView: React.FC<MessageViewProps> = ({
       );
     }
 
-    return <ChatMarkdown content={content} />;
+    const handler =
+      onInsertCode ||
+      (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
+    return <ChatMarkdown content={content} onInsertCode={handler} />;
   };
 
   const content = message.content as
@@ -71,9 +80,22 @@ export const MessageView: React.FC<MessageViewProps> = ({
   return (
     <li
       className={messageClass}
-      style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "8px" }}
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "8px"
+      }}
     >
-      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          wordBreak: "break-word",
+          overflowWrap: "anywhere"
+        }}
+      >
         <CopyToClipboardButton
           className="copy-button"
           textToCopy={handleCopy()}

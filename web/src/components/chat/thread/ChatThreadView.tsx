@@ -36,6 +36,7 @@ interface ChatThreadViewProps {
   progressMessage: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
+  onInsertCode?: (text: string, language?: string) => void;
 }
 
 const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
@@ -63,7 +64,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     expandedThoughts,
     onToggleThought,
     bottomRef,
-    componentStyles
+    componentStyles,
+    onInsertCode
   }) => {
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
@@ -73,6 +75,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             message={msg}
             expandedThoughts={expandedThoughts}
             onToggleThought={onToggleThought}
+            onInsertCode={onInsertCode}
           />
         ))}
         {status === "loading" && progress === 0 && (
@@ -124,7 +127,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   total,
   progressMessage,
   currentPlanningUpdate,
-  currentTaskUpdate
+  currentTaskUpdate,
+  onInsertCode
 }) => {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -273,6 +277,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           onToggleThought={handleToggleThought}
           bottomRef={bottomRef}
           componentStyles={componentStyles}
+          onInsertCode={onInsertCode}
         />
       </div>
       <ScrollToBottomButton
