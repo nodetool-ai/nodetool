@@ -8,6 +8,19 @@ import CloseIcon from "@mui/icons-material/Close";
 import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import SummarizeIcon from "@mui/icons-material/Summarize";
+import TranslateIcon from "@mui/icons-material/Translate";
+import ShortTextIcon from "@mui/icons-material/ShortText";
+import SpellcheckIcon from "@mui/icons-material/Spellcheck";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import DownloadIcon from "@mui/icons-material/Download";
+import FindInPageIcon from "@mui/icons-material/FindInPage";
+import WrapTextIcon from "@mui/icons-material/WrapText";
+import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import { CircularProgress, Tooltip } from "@mui/material";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -86,22 +99,41 @@ const styles = (theme: Theme) =>
       width: "calc(100vw - 51px)",
       height: "fit-content",
       padding: ".5em .5em 0 .5em",
-      backgroundColor: "var(--palette-background-default)",
+      backgroundColor: theme.vars.palette.glass.backgroundDialog,
+      backdropFilter: theme.vars.palette.glass.blur,
       zIndex: 10000,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start"
     },
+    ".modal-overlay.fullscreen": {
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      padding: 0
+    },
     ".modal-content": {
-      backgroundColor: theme.vars.palette.grey[800],
+      background: theme.vars.palette.glass.backgroundDialogContent,
       color: theme.vars.palette.grey[100],
       fontSize: "var(--fontSizeBigger)",
-      width: "100%",
+      width: "92%",
+      maxWidth: "1200px",
       height: "100%",
+      margin: "auto",
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: theme.vars.rounded.dialog
+    },
+    ".modal-content.fullscreen": {
+      width: "100%",
+      maxWidth: "100%",
+      height: "100%",
+      borderRadius: 0,
+      borderLeft: 0,
+      borderRight: 0
     },
     ".modal-header": {
       display: "flex",
@@ -109,7 +141,11 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       padding: ".5em 3.5em .5em 1em",
       minHeight: "2em",
-      backgroundColor: theme.vars.palette.grey[800],
+      background: "transparent",
+      position: "sticky",
+      top: 0,
+      zIndex: 5,
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
       h4: {
         cursor: "default",
         fontWeight: "600",
@@ -124,6 +160,31 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "baseline",
       gap: "1em"
+    },
+    ".toolbar-group": {
+      display: "flex",
+      alignItems: "center",
+      gap: ".25em",
+      "& + .toolbar-group": {
+        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+        marginLeft: ".5em",
+        paddingLeft: ".5em"
+      }
+    },
+    ".code-tools": {
+      display: "flex",
+      alignItems: "center",
+      gap: ".25em",
+      marginRight: "0.5em"
+    },
+    ".language-select": {
+      background: "transparent",
+      color: theme.vars.palette.grey[0],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderRadius: "8px",
+      padding: "4px 6px",
+      fontSize: "var(--fontSizeSmaller)",
+      outline: "none"
     },
     ".description": {
       width: "calc(100% - 100px)",
@@ -147,7 +208,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       padding: "1em 2em 1em 1em",
-      backgroundColor: theme.vars.palette.background.default,
+      background: "transparent",
       height: "100%",
       overflow: "hidden",
       ".editor": {
@@ -159,15 +220,15 @@ const styles = (theme: Theme) =>
         // backgroundColor: theme.vars.palette.grey[600],
         outline: "none",
         overflow: "auto !important",
-        height: "100vh",
+        height: "100%",
         borderRadius: "4px",
         pre: {
-          height: "100vh",
+          height: "100%",
           overflowWrap: "break-word"
         },
         textarea: {
           overflowWrap: "break-word",
-          height: "100vh !important",
+          height: "100% !important",
           width: "100% !important"
         },
         "&.word-wrap": {
@@ -212,8 +273,9 @@ const styles = (theme: Theme) =>
     },
     ".actions": {
       display: "flex",
-      gap: "1em",
-      alignItems: "flex-start",
+      gap: ".5em",
+      alignItems: "center",
+      flexWrap: "wrap",
       marginTop: "0",
       marginRight: "0"
     },
@@ -236,34 +298,61 @@ const styles = (theme: Theme) =>
       }
     },
     ".button": {
-      padding: "10px 14px",
+      padding: "6px 8px",
       cursor: "pointer",
-      backgroundColor: theme.vars.palette.grey[600],
       color: theme.vars.palette.grey[0],
       textTransform: "uppercase",
-      border: "none",
-      borderRadius: "4px",
+      borderRadius: "8px",
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "500",
+      fontWeight: "600",
       transition: "all 0.2s ease",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: "44px",
-      minHeight: "44px",
+      minWidth: "34px",
+      minHeight: "34px",
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%)",
+      backdropFilter: theme.vars.palette.glass.blur,
+      WebkitBackdropFilter: theme.vars.palette.glass.blur,
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      boxShadow:
+        "inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.25)",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[500]
+        transform: "translateY(-1px)",
+        borderColor: theme.vars.palette.grey[600]
+      },
+      "&:active": {
+        transform: "translateY(0)",
+        boxShadow:
+          "inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 10px rgba(0,0,0,0.2)"
       }
     },
     ".button-close": {
-      backgroundColor: "transparent",
       position: "absolute",
       padding: "5px",
       right: ".5em",
       minWidth: "32px",
       minHeight: "32px",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        transform: "translateY(-1px)"
+      }
+    },
+    ".button-ghost": {
+      padding: "6px 8px",
+      cursor: "pointer",
+      color: theme.vars.palette.grey[0],
+      fontSize: "var(--fontSizeSmaller)",
+      borderRadius: "8px",
+      background: "transparent",
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      minWidth: "34px",
+      minHeight: "34px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[700]
       }
     },
     ".resize-handle": {
@@ -273,6 +362,7 @@ const styles = (theme: Theme) =>
       cursor: "row-resize",
       // borderRadius: "4px",
       backgroundColor: theme.vars.palette.grey[600],
+      borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
       "&:hover": {
         // backgroundColor: theme.vars.palette.grey[800]
       },
@@ -289,6 +379,42 @@ const styles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       backgroundColor: theme.vars.palette.grey[400],
       borderRadius: "4px"
+    },
+    "@media (max-width: 1200px)": {
+      ".modal-content": {
+        width: "96%"
+      },
+      ".assistant-pane": {
+        width: "36%",
+        minWidth: "300px"
+      }
+    },
+    "@media (max-width: 900px)": {
+      ".title-and-description": {
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: ".25em"
+      },
+      ".description": {
+        width: "100%",
+        maxWidth: "100%"
+      },
+      ".modal-body": {
+        flexDirection: "column"
+      },
+      ".assistant-pane": {
+        width: "100%",
+        minWidth: "unset",
+        maxWidth: "unset",
+        marginLeft: 0,
+        marginTop: "1em",
+        borderLeft: "none",
+        borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+      },
+      ".button": {
+        minWidth: "40px",
+        minHeight: "40px"
+      }
     }
   });
 
@@ -377,6 +503,74 @@ const TextEditorModal = ({
       setMonacoLoadError("Failed to load code editor");
     }
   }, [MonacoEditor, monacoLoadError]);
+
+  // Fullscreen toggle
+  const FULLSCREEN_KEY = "textEditorModal_fullscreen";
+  const getInitialFullscreen = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(FULLSCREEN_KEY);
+      if (saved === "true" || saved === "false") return saved === "true";
+    } catch {
+      /* empty */
+    }
+    return false;
+  }, []);
+  const [isFullscreen, setIsFullscreen] =
+    useState<boolean>(getInitialFullscreen);
+  useEffect(() => {
+    try {
+      localStorage.setItem(FULLSCREEN_KEY, isFullscreen ? "true" : "false");
+    } catch {
+      /* empty */
+    }
+  }, [isFullscreen]);
+
+  // Assistant pane toggle
+  const ASSIST_TOGGLE_KEY = "textEditorModal_assistantVisible";
+  const getInitialAssistantVisible = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(ASSIST_TOGGLE_KEY);
+      if (saved === "true" || saved === "false") return saved === "true";
+    } catch {
+      /* empty */
+    }
+    return true;
+  }, []);
+  const [assistantVisible, setAssistantVisible] = useState<boolean>(
+    getInitialAssistantVisible
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        ASSIST_TOGGLE_KEY,
+        assistantVisible ? "true" : "false"
+      );
+    } catch {
+      /* empty */
+    }
+  }, [assistantVisible]);
+
+  // Code language override (for Monaco)
+  const CODE_LANGUAGE_KEY = "textEditorModal_codeLanguage";
+  const getInitialCodeLanguage = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(CODE_LANGUAGE_KEY);
+      if (saved && typeof saved === "string") return saved;
+    } catch {
+      /* empty */
+    }
+    return language;
+  }, [language]);
+  const [codeLanguage, setCodeLanguage] = useState<string>(
+    getInitialCodeLanguage
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(CODE_LANGUAGE_KEY, codeLanguage);
+    } catch {
+      /* empty */
+    }
+  }, [codeLanguage]);
 
   const handleToggleEditorMode = useCallback(() => {
     setIsCodeEditor((prev) => {
@@ -589,6 +783,57 @@ const TextEditorModal = ({
     monacoRef.current = editor;
   }, []);
 
+  const handleMonacoFind = useCallback(() => {
+    try {
+      const editor = monacoRef.current;
+      editor?.getAction?.("actions.find")?.run?.();
+    } catch {
+      /* empty */
+    }
+  }, []);
+
+  const handleMonacoFormat = useCallback(() => {
+    try {
+      const editor = monacoRef.current;
+      // Try format document; if no formatter, ignore silently
+      editor?.getAction?.("editor.action.formatDocument")?.run?.();
+    } catch {
+      /* empty */
+    }
+  }, []);
+
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([currentText || ""], {
+      type: "text/plain;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const extMap: Record<string, string> = {
+      plaintext: "txt",
+      markdown: "md",
+      javascript: "js",
+      typescript: "ts",
+      python: "py",
+      json: "json",
+      yaml: "yml",
+      html: "html",
+      css: "css",
+      sql: "sql",
+      shell: "sh",
+      bash: "sh"
+    };
+    const ext = (extMap[codeLanguage] || "txt").replace(/^\./, "");
+    const safeName = (propertyName || "document")
+      .toString()
+      .replace(/[^a-z0-9-_]+/gi, "_");
+    link.href = url;
+    link.download = `${safeName}.${ext}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [currentText, codeLanguage, propertyName]);
+
   const insertIntoLexical = useCallback(
     (text: string) => {
       if (insertTextFnRef.current) {
@@ -618,85 +863,126 @@ const TextEditorModal = ({
     [isCodeEditor, insertIntoLexical]
   );
 
-  const handleImproveSelection = useCallback(async () => {
-    // Get selected text from the active editor
-    let selected = "";
-    let hadSelection = false;
-    let monacoRange: any | null = null;
-    if (isCodeEditor && monacoRef.current) {
-      try {
-        const editor = monacoRef.current;
-        const selection = editor.getSelection();
-        if (selection) {
-          selected = editor.getModel().getValueInRange(selection) || "";
-          hadSelection = !!selected && selected.trim().length > 0;
-          monacoRange = selection;
+  const handleAITransform = useCallback(
+    async (instruction: string, options?: { shouldReplace?: boolean }) => {
+      const shouldReplace = options?.shouldReplace ?? true;
+      // Get selected text from the active editor
+      let selected = "";
+      let hadSelection = false;
+      let monacoRange: any | null = null;
+      if (isCodeEditor && monacoRef.current) {
+        try {
+          const editor = monacoRef.current;
+          const selection = editor.getSelection();
+          if (selection) {
+            selected = editor.getModel().getValueInRange(selection) || "";
+            hadSelection = !!selected && selected.trim().length > 0;
+            monacoRange = selection;
+          }
+        } catch {
+          /* empty */
         }
-      } catch {
-        /* empty */
+      } else if (getSelectedTextFnRef.current) {
+        try {
+          selected = getSelectedTextFnRef.current() || "";
+          hadSelection = !!selected && selected.trim().length > 0;
+        } catch {
+          /* empty */
+        }
       }
-    } else if (getSelectedTextFnRef.current) {
+
+      const textToProcess =
+        selected && selected.trim().length > 0 ? selected : currentText;
+
+      if (!textToProcess || textToProcess.trim().length === 0) {
+        return;
+      }
+
+      const composed = `${instruction}\n\n${textToProcess}`;
+
+      const content: MessageContent[] = [
+        { type: "text", text: composed } as MessageContent
+      ];
+
       try {
-        selected = getSelectedTextFnRef.current() || "";
-        hadSelection = !!selected && selected.trim().length > 0;
+        const baseCount = getCurrentMessagesSync().length || 0;
+        if (shouldReplace) {
+          improvePendingRef.current = {
+            active: true,
+            baseCount,
+            hadSelection,
+            isCodeEditor,
+            monacoRange
+          };
+        }
+        await sendMessage({
+          type: "message",
+          name: "",
+          role: "user",
+          provider: (selectedModel as any)?.provider,
+          model: (selectedModel as any)?.id,
+          content,
+          tools: selectedTools.length > 0 ? selectedTools : undefined,
+          collections:
+            selectedCollections.length > 0 ? selectedCollections : undefined,
+          agent_mode: false,
+          help_mode: true,
+          workflow_assistant: true
+        } as any);
       } catch {
         /* empty */
       }
-    }
+    },
+    [
+      isCodeEditor,
+      monacoRef,
+      getSelectedTextFnRef,
+      currentText,
+      sendMessage,
+      selectedModel,
+      selectedTools,
+      selectedCollections,
+      getCurrentMessagesSync
+    ]
+  );
 
-    const textToImprove =
-      selected && selected.trim().length > 0 ? selected : currentText;
+  const handleImproveSelection = useCallback(async () => {
+    await handleAITransform(
+      "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:"
+    );
+  }, [handleAITransform]);
 
-    if (!textToImprove || textToImprove.trim().length === 0) {
-      return;
-    }
+  const handleSummarizeSelection = useCallback(async () => {
+    await handleAITransform(
+      "Summarize the following text in 3-5 bullet points. Return only the summary:",
+      { shouldReplace: false }
+    );
+  }, [handleAITransform]);
 
-    const instruction =
-      "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:\n\n";
+  const handleExplainSelection = useCallback(async () => {
+    await handleAITransform(
+      "Explain the following text simply and clearly. Return only the explanation:",
+      { shouldReplace: false }
+    );
+  }, [handleAITransform]);
 
-    const composed = `${instruction}${textToImprove}`;
+  const handleShortenSelection = useCallback(async () => {
+    await handleAITransform(
+      "Rewrite the following text to be more concise while preserving meaning. Return only the shortened text:"
+    );
+  }, [handleAITransform]);
 
-    const content: MessageContent[] = [
-      { type: "text", text: composed } as MessageContent
-    ];
+  const handleFixGrammarSelection = useCallback(async () => {
+    await handleAITransform(
+      "Fix grammar, spelling, and punctuation in the following text without changing its meaning. Return only the corrected text:"
+    );
+  }, [handleAITransform]);
 
-    try {
-      const baseCount = getCurrentMessagesSync().length || 0;
-      improvePendingRef.current = {
-        active: true,
-        baseCount,
-        hadSelection,
-        isCodeEditor,
-        monacoRange
-      };
-      await sendMessage({
-        type: "message",
-        name: "",
-        role: "user",
-        provider: (selectedModel as any)?.provider,
-        model: (selectedModel as any)?.id,
-        content,
-        tools: selectedTools.length > 0 ? selectedTools : undefined,
-        collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined,
-        agent_mode: false,
-        help_mode: true,
-        workflow_assistant: true
-      } as any);
-    } catch (err) {
-      // Surface no error UI; rely on existing error handling in chat view/store
-    }
-  }, [
-    isCodeEditor,
-    monacoRef,
-    getSelectedTextFnRef,
-    currentText,
-    sendMessage,
-    selectedModel,
-    selectedTools,
-    selectedCollections,
-    getCurrentMessagesSync
-  ]);
+  const handleTranslateSelection = useCallback(async () => {
+    await handleAITransform(
+      "Translate the following text to English. Return only the translation:"
+    );
+  }, [handleAITransform]);
 
   useEffect(() => {
     const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
@@ -824,6 +1110,14 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
+  // Shortcuts: fullscreen, assistant pane, editor mode
+  useCombo(["ctrl", "shift", "f"], () => setIsFullscreen((v) => !v), false);
+  useCombo(["meta", "shift", "f"], () => setIsFullscreen((v) => !v), false);
+  useCombo(["ctrl", "shift", "a"], () => setAssistantVisible((v) => !v), false);
+  useCombo(["meta", "shift", "a"], () => setAssistantVisible((v) => !v), false);
+  useCombo(["ctrl", "shift", "e"], handleToggleEditorMode, false);
+  useCombo(["meta", "shift", "e"], handleToggleEditorMode, false);
+
   // Close signal from other properties so only one modal active
   useEffect(() => {
     const handler = () => {
@@ -839,16 +1133,16 @@ const TextEditorModal = ({
       css={styles(theme)}
     >
       <div
-        className="modal-overlay"
+        className={`modal-overlay ${isFullscreen ? "fullscreen" : ""}`}
         role="presentation"
         onClick={handleOverlayClick}
         ref={modalOverlayRef}
       >
         <div
-          className="modal-content"
+          className={`modal-content ${isFullscreen ? "fullscreen" : ""}`}
           role="dialog"
           aria-modal="true"
-          style={{ height: modalHeight }}
+          style={{ height: isFullscreen ? "100vh" : modalHeight }}
         >
           <div className="modal-header">
             <div className="title-and-description">
@@ -867,38 +1161,171 @@ const TextEditorModal = ({
               )}
             </div>
             <div className="actions">
-              {!readOnly && (
+              {isCodeEditor && (
+                <div className="toolbar-group code-tools">
+                  <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Find">
+                    <button className="button-ghost" onClick={handleMonacoFind}>
+                      <FindInPageIcon />
+                    </button>
+                  </Tooltip>
+                  {!readOnly && (
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Format">
+                      <button
+                        className="button-ghost"
+                        onClick={handleMonacoFormat}
+                      >
+                        <FormatAlignLeftIcon />
+                      </button>
+                    </Tooltip>
+                  )}
+                  <Tooltip
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
+                  >
+                    <button
+                      className="button-ghost"
+                      onClick={handleToggleWordWrap}
+                    >
+                      <WrapTextIcon />
+                    </button>
+                  </Tooltip>
+                  <select
+                    className="language-select"
+                    value={codeLanguage}
+                    onChange={(e) => setCodeLanguage(e.target.value)}
+                  >
+                    {[
+                      "plaintext",
+                      "markdown",
+                      "javascript",
+                      "typescript",
+                      "python",
+                      "json",
+                      "yaml",
+                      "html",
+                      "css",
+                      "sql",
+                      "bash"
+                    ].map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="toolbar-group">
+                {!readOnly && (
+                  <Tooltip
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                    title={
+                      isCodeEditor
+                        ? "Switch to Rich Text"
+                        : "Switch to Code Editor"
+                    }
+                  >
+                    <button className="button" onClick={handleToggleEditorMode}>
+                      {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
+                    </button>
+                  </Tooltip>
+                )}
+                {!readOnly && (
+                  <>
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Improve">
+                      <button
+                        className="button"
+                        onClick={handleImproveSelection}
+                      >
+                        <AutoFixHighIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Summarize">
+                      <button
+                        className="button"
+                        onClick={handleSummarizeSelection}
+                      >
+                        <SummarizeIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Explain">
+                      <button
+                        className="button"
+                        onClick={handleExplainSelection}
+                      >
+                        <HelpOutlineIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Shorten">
+                      <button
+                        className="button"
+                        onClick={handleShortenSelection}
+                      >
+                        <ShortTextIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip
+                      enterDelay={TOOLTIP_ENTER_DELAY}
+                      title="Fix Grammar"
+                    >
+                      <button
+                        className="button"
+                        onClick={handleFixGrammarSelection}
+                      >
+                        <SpellcheckIcon />
+                      </button>
+                    </Tooltip>
+                    <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Translate">
+                      <button
+                        className="button"
+                        onClick={handleTranslateSelection}
+                      >
+                        <TranslateIcon />
+                      </button>
+                    </Tooltip>
+                  </>
+                )}
+              </div>
+              <div className="toolbar-group">
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
-                  title={
-                    isCodeEditor
-                      ? "Switch to Rich Text"
-                      : "Switch to Code Editor"
-                  }
+                  title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
-                  <button className="button" onClick={handleToggleEditorMode}>
-                    {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
+                  <button
+                    className="button"
+                    onClick={() => setAssistantVisible((v) => !v)}
+                  >
+                    {assistantVisible ? (
+                      <ChatBubbleIcon />
+                    ) : (
+                      <ChatBubbleOutlineIcon />
+                    )}
                   </button>
                 </Tooltip>
-              )}
-              {!readOnly && (
+                <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Download">
+                  <button className="button" onClick={handleDownload}>
+                    <DownloadIcon />
+                  </button>
+                </Tooltip>
                 <Tooltip
                   enterDelay={TOOLTIP_ENTER_DELAY}
-                  title="Improve Selection"
+                  title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
-                  <button className="button" onClick={handleImproveSelection}>
-                    <AutoFixHighIcon />
+                  <button
+                    className="button"
+                    onClick={() => setIsFullscreen((v) => !v)}
+                  >
+                    {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>
-              )}
-              <Tooltip
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                title="Close Editor | Esc"
-              >
-                <button className="button button-close" onClick={onClose}>
-                  <CloseIcon />
-                </button>
-              </Tooltip>
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title="Close Editor | Esc"
+                >
+                  <button className="button button-close" onClick={onClose}>
+                    <CloseIcon />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
           </div>
           {showToolbar && !isCodeEditor && (
@@ -955,7 +1382,7 @@ const TextEditorModal = ({
                             setCurrentText(next);
                             debouncedExternalOnChange(next);
                           }}
-                          language={language}
+                          language={codeLanguage}
                           theme={"vs-dark"}
                           width="100%"
                           height="100%"
@@ -1049,32 +1476,36 @@ const TextEditorModal = ({
                     </LexicalComposer>
                   )}
                 </div>
-                <div className="assistant-pane">
-                  <ChatView
-                    status={status === "stopping" ? "loading" : (status as any)}
-                    progress={progress.current}
-                    total={progress.total}
-                    messages={getCurrentMessagesSync()}
-                    sendMessage={sendMessage}
-                    progressMessage={statusMessage}
-                    model={
-                      (selectedModel as LanguageModel) || {
-                        type: "language_model",
-                        provider: "empty",
-                        id: DEFAULT_MODEL,
-                        name: DEFAULT_MODEL
+                {assistantVisible && (
+                  <div className="assistant-pane">
+                    <ChatView
+                      status={
+                        status === "stopping" ? "loading" : (status as any)
                       }
-                    }
-                    selectedTools={selectedTools}
-                    selectedCollections={selectedCollections}
-                    onModelChange={setSelectedModel}
-                    helpMode={true}
-                    workflowAssistant={true}
-                    onStop={stopGeneration}
-                    onNewChat={createNewThread}
-                    onInsertCode={(text) => insertIntoEditor(text)}
-                  />
-                </div>
+                      progress={progress.current}
+                      total={progress.total}
+                      messages={getCurrentMessagesSync()}
+                      sendMessage={sendMessage}
+                      progressMessage={statusMessage}
+                      model={
+                        (selectedModel as LanguageModel) || {
+                          type: "language_model",
+                          provider: "empty",
+                          id: DEFAULT_MODEL,
+                          name: DEFAULT_MODEL
+                        }
+                      }
+                      selectedTools={selectedTools}
+                      selectedCollections={selectedCollections}
+                      onModelChange={setSelectedModel}
+                      helpMode={true}
+                      workflowAssistant={true}
+                      onStop={stopGeneration}
+                      onNewChat={createNewThread}
+                      onInsertCode={(text) => insertIntoEditor(text)}
+                    />
+                  </div>
+                )}
               </EditorInsertionProvider>
             )}
           </div>
