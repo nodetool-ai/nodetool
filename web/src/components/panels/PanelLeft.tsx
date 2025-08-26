@@ -2,7 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Box, Button, useMediaQuery } from "@mui/material";
+import {
+  Drawer,
+  IconButton,
+  Tooltip,
+  Box,
+  Button,
+  useMediaQuery
+} from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
@@ -15,7 +22,6 @@ import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import PackageList from "../packages/PackageList";
 import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -505,7 +511,13 @@ const PanelLeft: React.FC = () => {
               : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
-            width: isVisible ? `${isMobile ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75)) : panelSize}px` : PANEL_WIDTH_COLLAPSED,
+            width: isVisible
+              ? `${
+                  isMobile
+                    ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75))
+                    : panelSize
+                }px`
+              : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
             maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 40px)", // Use dynamic viewport height when available
             contain: isMobile ? "layout style" : "none",
