@@ -255,45 +255,45 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={ThemeNodetool}>
+        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
           <MobileClassProvider>
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
-                {status === "pending" && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      height: "100vh"
-                    }}
-                  >
-                    <CircularProgress />
-                  </div>
-                )}
-                {status === "error" && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      height: "100vh",
-                      flexDirection: "column"
-                    }}
-                  >
-                    <div>Error loading application metadata.</div>
-                    <div>Please try refreshing the page.</div>
-                  </div>
-                )}
-                {/* Render RouterProvider only when metadata is successfully loaded */}
-                {status !== "pending" && status !== "error" && (
-                  <>
-                    <RouterProvider router={router} />
-                    <DownloadManagerDialog />
-                  </>
-                )}
+                  {status === "pending" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100vh"
+                      }}
+                    >
+                      <CircularProgress />
+                    </div>
+                  )}
+                  {status === "error" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100vh",
+                        flexDirection: "column"
+                      }}
+                    >
+                      <div>Error loading application metadata.</div>
+                      <div>Please try refreshing the page.</div>
+                    </div>
+                  )}
+                  {/* Render RouterProvider only when metadata is successfully loaded */}
+                  {status !== "pending" && status !== "error" && (
+                    <>
+                      <RouterProvider router={router} />
+                      <DownloadManagerDialog />
+                    </>
+                  )}
                 </KeyboardProvider>
               </WorkflowManagerProvider>
             </MenuProvider>
