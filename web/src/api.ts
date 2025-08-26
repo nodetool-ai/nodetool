@@ -264,51 +264,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/jobs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get
-         * @description Returns the status of a job.
-         */
-        get: operations["get_api_jobs__id__get"];
-        /**
-         * Update
-         * @description Update a job.
-         */
-        put: operations["update_api_jobs__id__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Index
-         * @description Returns all assets for a given user or workflow.
-         */
-        get: operations["index_api_jobs__get"];
-        put?: never;
-        /** Create */
-        post: operations["create_api_jobs__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/messages/": {
         parameters: {
             query?: never;
@@ -766,44 +721,6 @@ export interface paths {
          * @description Returns the status of the Replicate model.
          */
         get: operations["replicate_status_api_nodes_replicate_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Index
-         * @description Returns all assets for a given user or workflow.
-         */
-        get: operations["index_api_predictions__get"];
-        put?: never;
-        /** Create */
-        post: operations["create_api_predictions__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get */
-        get: operations["get_api_predictions__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1276,121 +1193,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/packages/available": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Available Packages
-         * @description List all available packages from the registry.
-         */
-        get: operations["list_available_packages_api_packages_available_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/nodes/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Search Nodes
-         * @description Search for nodes across all available packages.
-         *
-         *     Args:
-         *         query: Optional search string to filter nodes by name or description
-         *
-         *     Returns:
-         *         NodeSearchResponse: List of nodes matching the search query
-         */
-        get: operations["search_nodes_api_packages_nodes_search_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/nodes/package": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Package For Node
-         * @description Get the package that provides a specific node type.
-         *
-         *     Args:
-         *         node_type: The type identifier of the node
-         *
-         *     Returns:
-         *         PackageForNodeResponse: Information about the package providing the node
-         */
-        get: operations["get_package_for_node_api_packages_nodes_package_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/installed": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Installed Packages
-         * @description List all installed packages.
-         */
-        get: operations["list_installed_packages_api_packages_installed_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/packages/nodes/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get All Nodes
-         * @description Get all available nodes from all packages.
-         *
-         *     Returns:
-         *         NodeSearchResponse: List of all available nodes
-         */
-        get: operations["get_all_nodes_api_packages_nodes_all_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/health": {
         parameters: {
             query?: never;
@@ -1462,28 +1264,6 @@ export interface components {
         AssetDownloadRequest: {
             /** Asset Ids */
             asset_ids: string[];
-        };
-        /**
-         * AssetInfo
-         * @description Asset information model for nodetool packages.
-         *     Represents files provided by packages in their assets directories.
-         */
-        AssetInfo: {
-            /**
-             * Package Name
-             * @description Name of the package providing the asset
-             */
-            package_name: string;
-            /**
-             * Name
-             * @description Asset file name
-             */
-            name: string;
-            /**
-             * Path
-             * @description Full path to the asset file
-             */
-            path: string;
         };
         /** AssetList */
         AssetList: {
@@ -1914,20 +1694,6 @@ export interface components {
             type: "error";
             /** Error */
             error: string;
-        };
-        /**
-         * ExampleMetadata
-         * @description Metadata for an example workflow.
-         */
-        ExampleMetadata: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string;
-            /** Tags */
-            tags: string[];
         };
         /** FileInfo */
         FileInfo: {
@@ -3258,39 +3024,6 @@ export interface components {
              */
             model_id: string;
         };
-        /** InstalledPackageListResponse */
-        InstalledPackageListResponse: {
-            /** Packages */
-            packages: components["schemas"]["PackageModel"][];
-            /** Count */
-            count: number;
-        };
-        /** Job */
-        Job: {
-            /** Id */
-            id: string;
-            /** Job Type */
-            job_type: string;
-            /** Status */
-            status: string;
-            /** Workflow Id */
-            workflow_id: string;
-            /** Started At */
-            started_at: string;
-            /** Finished At */
-            finished_at: string | null;
-            /** Error */
-            error: string | null;
-            /** Cost */
-            cost: number | null;
-        };
-        /** JobList */
-        JobList: {
-            /** Next */
-            next: string | null;
-            /** Jobs */
-            jobs: components["schemas"]["Job"][];
-        };
         /** JobUpdate */
         JobUpdate: {
             /**
@@ -3407,60 +3140,7 @@ export interface components {
          * @description Abstract representation for a chat message.
          *     Independent of the underlying chat system, such as OpenAI or Anthropic.
          */
-        "Message-Input": {
-            /**
-             * Type
-             * @default message
-             */
-            type: string;
-            /** Id */
-            id?: string | null;
-            /** Workflow Id */
-            workflow_id?: string | null;
-            graph?: components["schemas"]["Graph-Input"] | null;
-            /** Thread Id */
-            thread_id?: string | null;
-            /** Tools */
-            tools?: string[] | null;
-            /** Tool Call Id */
-            tool_call_id?: string | null;
-            /**
-             * Role
-             * @default
-             */
-            role: string;
-            /** Name */
-            name?: string | null;
-            /** Content */
-            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
-            /** Error Type */
-            error_type?: string | null;
-            /** Tool Calls */
-            tool_calls?: components["schemas"]["ToolCall"][] | null;
-            /** Collections */
-            collections?: string[] | null;
-            /** Input Files */
-            input_files?: components["schemas"]["MessageFile"][] | null;
-            /** Output Files */
-            output_files?: components["schemas"]["MessageFile"][] | null;
-            /** Created At */
-            created_at?: string | null;
-            provider?: components["schemas"]["Provider"] | null;
-            /** Model */
-            model?: string | null;
-            /** Agent Mode */
-            agent_mode?: boolean | null;
-            /** Workflow Assistant */
-            workflow_assistant?: boolean | null;
-            /** Help Mode */
-            help_mode?: boolean | null;
-        };
-        /**
-         * Message
-         * @description Abstract representation for a chat message.
-         *     Independent of the underlying chat system, such as OpenAI or Anthropic.
-         */
-        "Message-Output": {
+        Message: {
             /**
              * Type
              * @default message
@@ -3593,7 +3273,7 @@ export interface components {
             /** Next */
             next: string | null;
             /** Messages */
-            messages: components["schemas"]["Message-Output"][];
+            messages: components["schemas"]["Message"][];
         };
         /** MessageTextContent */
         MessageTextContent: {
@@ -3896,15 +3576,6 @@ export interface components {
              */
             id: string;
         };
-        /** NodeSearchResponse */
-        NodeSearchResponse: {
-            /** Nodes */
-            nodes: {
-                [key: string]: unknown;
-            }[];
-            /** Count */
-            count: number;
-        };
         /**
          * NodeUpdate
          * @description A message representing a general update from a node.
@@ -4006,104 +3677,6 @@ export interface components {
             /** Assets */
             assets: components["schemas"]["PackageAsset"][];
         };
-        /** PackageForNodeResponse */
-        PackageForNodeResponse: {
-            /** Node Type */
-            node_type: string;
-            /** Package */
-            package?: string | null;
-            /** Found */
-            found: boolean;
-        };
-        /**
-         * PackageInfo
-         * @description Package information model for nodetool.
-         *     This is the model for the package index in the registry.
-         */
-        PackageInfo: {
-            /** Name */
-            name: string;
-            /** Description */
-            description: string;
-            /**
-             * Repo Id
-             * @description Repository ID in the format <owner>/<project>
-             */
-            repo_id: string;
-            /**
-             * Namespaces
-             * @description Namespaces provided by this package
-             */
-            namespaces?: string[];
-        };
-        /** PackageListResponse */
-        PackageListResponse: {
-            /** Packages */
-            packages: components["schemas"]["PackageInfo"][];
-            /** Count */
-            count: number;
-        };
-        /**
-         * PackageModel
-         * @description Metadata model for a node package.
-         */
-        PackageModel: {
-            /**
-             * Name
-             * @description Unique name of the package
-             */
-            name: string;
-            /**
-             * Description
-             * @description Description of the package and its functionality
-             */
-            description: string;
-            /**
-             * Version
-             * @description Version of the package (semver format)
-             */
-            version: string;
-            /**
-             * Authors
-             * @description Authors of the package
-             */
-            authors: string[];
-            /**
-             * Namespaces
-             * @description Namespaces provided by this package
-             */
-            namespaces?: string[];
-            /**
-             * Repo Id
-             * @description Repository ID in the format <owner>/<project>
-             */
-            repo_id?: string | null;
-            /**
-             * Nodes
-             * @description List of nodes provided by this package
-             */
-            nodes?: components["schemas"]["NodeMetadata"][] | null;
-            /**
-             * Git Hash
-             * @description Git commit hash of the package
-             */
-            git_hash?: string | null;
-            /**
-             * Assets
-             * @description List of assets provided by this package
-             */
-            assets?: components["schemas"]["AssetInfo"][] | null;
-            /**
-             * Examples
-             * @description List of examples provided by this package
-             */
-            examples?: components["schemas"]["ExampleMetadata"][] | null;
-            /**
-             * Source Folder
-             * @description Source folder of the package
-             */
-            source_folder?: string | null;
-        };
         /**
          * PlanningUpdate
          * @description A message representing a planning update from a node.
@@ -4198,32 +3771,6 @@ export interface components {
             completed_at?: string | null;
         };
         /**
-         * PredictionCreateRequest
-         * @description The request body for creating a prediction.
-         */
-        PredictionCreateRequest: {
-            provider: components["schemas"]["Provider"];
-            /** Model */
-            model: string;
-            /** Node Id */
-            node_id: string;
-            /** Params */
-            params?: {
-                [key: string]: unknown;
-            };
-            /** Version */
-            version?: string | null;
-            /** Workflow Id */
-            workflow_id?: string | null;
-        };
-        /** PredictionList */
-        PredictionList: {
-            /** Next */
-            next: string | null;
-            /** Predictions */
-            predictions: components["schemas"]["Prediction"][];
-        };
-        /**
          * Property
          * @description Property of a node.
          *
@@ -4271,67 +3818,6 @@ export interface components {
              * @default false
              */
             downloaded: boolean;
-        };
-        /**
-         * RunJobRequest
-         * @description A request model for running a workflow.
-         *
-         *     Attributes:
-         *         type: The type of request, always "run_job_request".
-         *         job_type: The type of job to run, defaults to "workflow".
-         *         params: Optional parameters for the job.
-         *         messages: Optional list of messages associated with the job.
-         *         workflow_id: The ID of the workflow to run.
-         *         user_id: The ID of the user making the request.
-         *         auth_token: Authentication token for the request.
-         *         api_url: Optional API URL to use for the job.
-         *         env: Optional environment variables for the job.
-         *         graph: Optional graph data for the job.
-         *         explicit_types: Whether to use explicit types, defaults to False.
-         */
-        RunJobRequest: {
-            /**
-             * Type
-             * @default run_job_request
-             * @constant
-             */
-            type: "run_job_request";
-            /**
-             * Job Type
-             * @default workflow
-             */
-            job_type: string;
-            /** Params */
-            params?: unknown | null;
-            /** Messages */
-            messages?: components["schemas"]["Message-Input"][] | null;
-            /**
-             * Workflow Id
-             * @default
-             */
-            workflow_id: string;
-            /**
-             * User Id
-             * @default
-             */
-            user_id: string;
-            /**
-             * Auth Token
-             * @default
-             */
-            auth_token: string;
-            /** Api Url */
-            api_url?: string | null;
-            /** Env */
-            env?: {
-                [key: string]: unknown;
-            } | null;
-            graph?: components["schemas"]["Graph-Input"] | null;
-            /**
-             * Explicit Types
-             * @default false
-             */
-            explicit_types: boolean | null;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
@@ -5407,154 +4893,6 @@ export interface operations {
             };
         };
     };
-    get_api_jobs__id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Job"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_api_jobs__id__put: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JobUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Job"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    index_api_jobs__get: {
-        parameters: {
-            query?: {
-                workflow_id?: string | null;
-                cursor?: string | null;
-                page_size?: number | null;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_api_jobs__post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RunJobRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     index_api_messages__get: {
         parameters: {
             query: {
@@ -5616,7 +4954,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Message-Output"];
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Validation Error */
@@ -5651,7 +4989,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Message-Output"];
+                    "application/json": components["schemas"]["Message"];
                 };
             };
             /** @description Validation Error */
@@ -6464,114 +5802,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    index_api_predictions__get: {
-        parameters: {
-            query?: {
-                cursor?: string | null;
-                page_size?: number | null;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PredictionList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_api_predictions__post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PredictionCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_api_predictions__id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Prediction"];
                 };
             };
             /** @description Validation Error */
@@ -7701,175 +6931,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IndexResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_available_packages_api_packages_available_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    search_nodes_api_packages_nodes_search_get: {
-        parameters: {
-            query?: {
-                query?: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSearchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_package_for_node_api_packages_nodes_package_get: {
-        parameters: {
-            query: {
-                node_type: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PackageForNodeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_installed_packages_api_packages_installed_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstalledPackageListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_all_nodes_api_packages_nodes_all_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSearchResponse"];
                 };
             };
             /** @description Validation Error */
