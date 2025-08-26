@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { IconButton, IconButtonProps } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Tooltip } from "@mui/material";
 
@@ -25,6 +26,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
 }) => {
   const { writeClipboard } = useClipboard();
   const [isCopied, setIsCopied] = useState(false);
+  const [showError, setShowError] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -40,6 +42,21 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       clearTimeout(timeoutRef.current);
     }
 
+    // Reset states
+    setIsCopied(false);
+    setShowError(false);
+
+    const hasTextToCopy = textToCopy && textToCopy.trim() !== "";
+
+    // Don't attempt to copy if there's nothing to copy
+    if (!hasTextToCopy) {
+      setShowError(true);
+      timeoutRef.current = setTimeout(() => {
+        setShowError(false);
+      }, CHECKMARK_TIMEOUT);
+      return;
+    }
+
     const sanitized = textToCopy.replace(/\u00A0/g, " ");
     writeClipboard(sanitized, true)
       .then(() => {
@@ -47,8 +64,6 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         if (onCopySuccess) {
           onCopySuccess();
         }
-        console.log("Text copied to clipboard!");
-
         timeoutRef.current = setTimeout(() => {
           setIsCopied(false);
         }, CHECKMARK_TIMEOUT);
@@ -61,8 +76,10 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       });
   };
 
+  const tooltipText = showError ? "Nothing to copy" : title;
+
   return (
-    <Tooltip title={title} placement={tooltipPlacement}>
+    <Tooltip title={tooltipText} placement={tooltipPlacement}>
       <IconButton
         tabIndex={-1}
         className="copy-to-clipboard-button"
@@ -71,7 +88,11 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         sx={{ color: "var(--palette-grey-100)" }}
         {...props}
       >
-        {isCopied ? (
+        {showError ? (
+          <CloseIcon
+            sx={{ fontSize: "0.875rem", color: "var(--palette-error-main)" }}
+          />
+        ) : isCopied ? (
           <CheckIcon
             sx={{ fontSize: "0.875rem", color: "var(--palette-success-main)" }}
           />
