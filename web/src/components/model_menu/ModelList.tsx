@@ -21,7 +21,10 @@ import { isProviderAvailable } from "../../stores/ModelMenuStore";
 import useModelMenuStore from "../../stores/ModelMenuStore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as VirtualList, ListChildComponentProps } from "react-window";
+import {
+  FixedSizeList as VirtualList,
+  ListChildComponentProps
+} from "react-window";
 
 const listStyles = css({
   overflowY: "auto",
@@ -112,6 +115,15 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
                         m.provider || ""
                       )} · Activate provider & setup`
                 }
+                primaryTypographyProps={{
+                  noWrap: true,
+                  sx: {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: "100%"
+                  }
+                }}
               />
             </ListItemButton>
           </Tooltip>
@@ -144,46 +156,50 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
             const safeHeight = Math.max(height || 0, 320);
             const safeWidth = Math.max(width || 0, 250);
             return (
-            <List
-              dense
-              css={listStyles}
-              className="model-menu__models-list"
-              sx={{
-                overflowX: "hidden",
-                height: safeHeight,
-                width: safeWidth,
-                "& .MuiListItemButton-root": { py: 0.4 },
-                "& .MuiListItemText-primary": {
-                  fontSize: theme.vars.fontSizeNormal
-                },
-                "& .MuiListItemText-secondary": {
-                  color: theme.vars.palette.text.secondary,
-                  fontSize: theme.vars.fontSizeSmaller
-                },
-                // Grey out unavailable/disabled models
-                "& .model-menu__model-item.is-unavailable": {
-                  opacity: 0.55,
-                  cursor: "not-allowed"
-                },
-                "& .model-menu__model-item.is-unavailable .MuiListItemText-primary": {
-                  color: theme.vars.palette.text.disabled
-                },
-                "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
-                  color: theme.vars.palette.text.disabled
-                },
-                // Reveal star on parent row hover
-                "& .MuiListItemButton-root:hover .favorite-star": { opacity: 1 }
-              }}
-            >
-              <VirtualList
-                height={safeHeight}
-                width={safeWidth}
-                itemCount={models.length}
-                itemSize={ITEM_HEIGHT}
+              <List
+                dense
+                css={listStyles}
+                className="model-menu__models-list"
+                sx={{
+                  overflowX: "hidden",
+                  height: safeHeight,
+                  width: safeWidth,
+                  "& .MuiListItemButton-root": { py: 0.4 },
+                  "& .MuiListItemText-primary": {
+                    fontSize: theme.vars.fontSizeNormal
+                  },
+                  "& .MuiListItemText-secondary": {
+                    color: theme.vars.palette.text.secondary,
+                    fontSize: theme.vars.fontSizeSmaller
+                  },
+                  // Grey out unavailable/disabled models
+                  "& .model-menu__model-item.is-unavailable": {
+                    opacity: 0.55,
+                    cursor: "not-allowed"
+                  },
+                  "& .model-menu__model-item.is-unavailable .MuiListItemText-primary":
+                    {
+                      color: theme.vars.palette.text.disabled
+                    },
+                  "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary":
+                    {
+                      color: theme.vars.palette.text.disabled
+                    },
+                  // Reveal star on parent row hover
+                  "& .MuiListItemButton-root:hover .favorite-star": {
+                    opacity: 1
+                  }
+                }}
               >
-                {renderRow}
-              </VirtualList>
-            </List>
+                <VirtualList
+                  height={safeHeight}
+                  width={safeWidth}
+                  itemCount={models.length}
+                  itemSize={ITEM_HEIGHT}
+                >
+                  {renderRow}
+                </VirtualList>
+              </List>
             );
           }}
         </AutoSizer>
