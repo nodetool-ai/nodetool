@@ -110,12 +110,18 @@
 }
 
 /* Keep selected edges fully visible */
-.react-flow .react-flow__edges .react-flow__edge.selected .react-flow__edge-path {
+.react-flow
+  .react-flow__edges
+  .react-flow__edge.selected
+  .react-flow__edge-path {
   opacity: 1;
 }
 
 /* While connecting, dim all static edges further to make the in-progress line pop */
-.react-flow.is-connecting .react-flow__edges .react-flow__edge .react-flow__edge-path {
+.react-flow.is-connecting
+  .react-flow__edges
+  .react-flow__edge
+  .react-flow__edge-path {
   opacity: 0.25;
 }
 
@@ -158,7 +164,7 @@
   width: var(--handle_width);
   height: var(--handle_height);
   /* Subtle, darker base so it doesn't pop over glass */
-  background-color: var(--palette-grey-900);
+  background-color: var(--palette-grey-700);
   border: 0;
   z-index: 999;
   /* Softer shadow to reduce visual prominence */
