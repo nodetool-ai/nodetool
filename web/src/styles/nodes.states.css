@@ -1,0 +1,104 @@
+/* NODE STATE STYLES (selection, hover, loading) */
+
+/* --------------------------------------------- */
+/* Selection and highlighting                     */
+/* --------------------------------------------- */
+.react-flow__node.selected {
+  outline-color: var(
+    --node-primary-color,
+    var(--palette-text-primary)
+  ) !important;
+  box-shadow: 0 0 0 2px var(--node-primary-color, var(--palette-text-primary)),
+    0.1em 0.1em 8px 0px rgba(0, 0, 0, 0.6);
+}
+
+.react-flow__node:not(.selected) {
+  /* Match outline to header background color */
+  outline: 1px solid var(--c_node_header_bg) !important;
+  /* Increase brightness and add slight saturation toward primary */
+  outline-color: color-mix(
+    in srgb,
+    var(--c_node_header_bg) 82%,
+    var(--palette-primary-main) 18%
+  ) !important;
+  /* outline-offset: 1px; */
+}
+
+/* Grouped nodes: use group header color for outline */
+.react-flow__node:has(.node-header.has-parent):not(.selected) {
+  outline-color: var(--c_node_header_bg_group) !important; /* fallback */
+  outline-color: color-mix(
+    in srgb,
+    var(--c_node_header_bg_group) 82%,
+    var(--palette-primary-main) 18%
+  ) !important;
+}
+
+.react-flow__node:hover:not(.selected) {
+  outline: 1px solid var(--c_node_header_bg) !important;
+  outline-color: color-mix(
+    in srgb,
+    var(--c_node_header_bg) 82%,
+    var(--palette-primary-main) 18%
+  ) !important;
+  outline-offset: 1px;
+}
+
+/* Hover for grouped nodes keeps group header color */
+.react-flow__node:has(.node-header.has-parent):hover:not(.selected) {
+  outline: 1px solid var(--c_node_header_bg_group) !important;
+  outline-color: color-mix(
+    in srgb,
+    var(--c_node_header_bg_group) 82%,
+    var(--palette-primary-main) 18%
+  ) !important;
+}
+
+/* --------------------------------------------- */
+/* Loading states                                  */
+/* --------------------------------------------- */
+.react-flow .selected .process-timer {
+  color: var(--palette-grey-1000);
+  background-color: transparent;
+}
+
+/* Loading styles */
+.base-node.loading {
+  position: relative;
+  --glow-offset: -4px;
+}
+
+.base-node.loading::before {
+  opacity: 0;
+  content: "";
+  position: absolute;
+  top: var(--glow-offset);
+  left: var(--glow-offset);
+  right: var(--glow-offset);
+  bottom: var(--glow-offset);
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--color-1),
+    var(--color-2),
+    var(--color-3),
+    var(--color-4),
+    var(--color-5),
+    var(--color-1)
+  );
+  z-index: -20;
+  animation: gradientAnimation 5s ease-in-out infinite;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.base-node.loading.is-loading::before {
+  opacity: 1;
+}
+
+@keyframes gradientAnimation {
+  from {
+    --gradient-angle: 90deg;
+  }
+  to {
+    --gradient-angle: 450deg;
+  }
+}

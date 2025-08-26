@@ -1,0 +1,29 @@
+/* NODE RESIZER STYLES */
+
+/* --------------------------------------------- */
+/* Resizer lines and handles                      */
+/* --------------------------------------------- */
+.base-node .node-resizer .react-flow__resize-control.top.line,
+.base-node .node-resizer .react-flow__resize-control.bottom.line {
+  display: none;
+}
+
+.base-node .node-resizer .react-flow__resize-control.handle {
+  opacity: 0;
+}
+
+.base-node .node-resizer .react-flow__resize-control.line {
+  opacity: 0;
+  border-width: 1px;
+  border-color: var(--c-gray2);
+  transition: all 0.15s ease-in-out;
+}
+
+.base-node .node-resizer .react-flow__resize-control.line:hover {
+  opacity: 1;
+}
+
+/* Right-side resize cursor */
+.base-node .react-flow__resize-control.handle.right {
+  cursor: ew-resize;
+}
