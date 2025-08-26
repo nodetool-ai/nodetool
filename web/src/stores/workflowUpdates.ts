@@ -173,7 +173,9 @@ export const handleUpdate = (
       useWorkflowRunner.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
-      setLogs(workflow.id, update.node_id, update.logs || "");
+      if (update.logs) {
+        setLogs(workflow.id, update.node_id, update.logs);
+      }
       setStatus(workflow.id, update.node_id, update.status);
     }
 

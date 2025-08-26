@@ -89,8 +89,7 @@ const styles = (theme: Theme) =>
       "&.running": {
         borderColor: "var(--palette-primary-main)",
         "& svg": {
-          animation: "spin 2s linear infinite",
-          color: "var(--palette-primary-main)"
+          animation: "spin 2s linear infinite"
         }
       },
 
@@ -115,9 +114,16 @@ const styles = (theme: Theme) =>
       // lean on base shine overlay
       "&::before": {},
       "&.running": {
-        animation: "pulse-glow 1.8s ease-in-out infinite",
-        filter: "saturate(1.2) brightness(1.05)"
+        animation:
+          "pulse-glow 1.8s ease-in-out infinite, theme-shift 6s ease infinite",
+        background: `radial-gradient(circle at center, ${theme.vars.palette.primary.dark} 0%, ${theme.vars.palette.primary.light} 100%)`,
+        boxShadow:
+          "0 0 18px var(--palette-primary-main)60, 0 0 36px var(--palette-secondary-main)40, inset 0 0 12px var(--palette-primary-main)40"
       }
+    },
+    // Ensure disabled state doesn't dim the running run-workflow button
+    ".floating-action-button.run-workflow.Mui-disabled.running": {
+      opacity: 1
     },
 
     /* Subtle buttons (secondary actions) */
@@ -148,18 +154,18 @@ const styles = (theme: Theme) =>
       "100%": { transform: "rotate(360deg)" }
     },
     "@keyframes pulse-glow": {
-      "0%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` },
-      "50%": { boxShadow: `0 0 24px ${"var(--palette-primary-main)"}70` },
-      "100%": { boxShadow: `0 0 8px ${"var(--palette-primary-main)"}30` }
+      "0%": { boxShadow: `0 0 14px ${"var(--palette-primary-main)"}60` },
+      "50%": { boxShadow: `0 0 40px ${"var(--palette-primary-main)"}90` },
+      "100%": { boxShadow: `0 0 14px ${"var(--palette-primary-main)"}60` }
+    },
+    "@keyframes theme-shift": {
+      "0%": { backgroundSize: "80% 120%", backgroundPosition: "50% 50%" },
+      "50%": { backgroundSize: "120% 120%", backgroundPosition: "50% 50%" },
+      "100%": { backgroundSize: "80% 120%", backgroundPosition: "50% 50%" }
     },
     "@keyframes rotate-halo": {
       "0%": { transform: "rotate(0deg)" },
       "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes sparkle": {
-      "0%": { opacity: 0.35 },
-      "50%": { opacity: 0.55 },
-      "100%": { opacity: 0.35 }
     },
     "@keyframes shine-sweep": {
       "0%": { left: "-150%" },
@@ -374,7 +380,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <Fab
             className={`floating-action-button run-workflow ${
               isWorkflowRunning ? "running" : ""
-            } ${isWorkflowRunning ? "disabled" : ""}`}
+            }`}
             onClick={handleRun}
             disabled={isWorkflowRunning}
             aria-label="Run workflow"
