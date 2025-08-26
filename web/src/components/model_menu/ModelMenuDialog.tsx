@@ -41,7 +41,7 @@ export interface ModelMenuDialogProps {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "275px 300px 300px",
+  gridTemplateColumns: "275px 360px 240px",
   gap: 4,
   minHeight: 480,
   gridTemplateRows: "auto auto 1fr",
@@ -215,7 +215,12 @@ export default function ModelMenuDialog({
           </Box>
           <Box
             className="model-menu__model-list-container"
-            sx={{ maxWidth: { xs: "100%", sm: 300 }, height: "100%", minHeight: 320, overflow: "hidden" }}
+            sx={{
+              maxWidth: { xs: "100%", sm: 420 },
+              height: "100%",
+              minHeight: 320,
+              overflow: "hidden"
+            }}
           >
             <ModelList
               models={filteredModelsAdvanced}

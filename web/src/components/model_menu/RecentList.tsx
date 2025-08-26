@@ -104,6 +104,15 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
                   ? toTitleCase(m.provider || "")
                   : `${toTitleCase(m.provider || "")} · Setup required`
               }
+              primaryTypographyProps={{
+                noWrap: true,
+                sx: {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "100%"
+                }
+              }}
             />
           </ListItemButton>
         );

@@ -187,6 +187,17 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "CheckBoxOutlineBlank"
   },
   {
+    value: "chunk",
+    label: "Chunk",
+    description: "A chunk of data from a chat message stream",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Message"
+  },
+  {
     value: "dataframe",
     label: "Dataframe",
     description: "Structured data in a tabular format",
