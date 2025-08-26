@@ -25,10 +25,12 @@ import SelectionContextMenu from "../context_menus/SelectionContextMenu";
 import PropertyContextMenu from "../context_menus/PropertyContextMenu";
 import OutputContextMenu from "../context_menus/OutputContextMenu";
 import InputContextMenu from "../context_menus/InputContextMenu";
+import EdgeContextMenu from "../context_menus/EdgeContextMenu";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import LoopNode from "../node/LoopNode";
+import RerouteNode from "../node/RerouteNode";
 //utils
 
 //hooks
@@ -81,6 +83,7 @@ const ContextMenus = memo(function ContextMenus() {
       {openMenuType === "selection-context-menu" && <SelectionContextMenu />}
       {openMenuType === "output-context-menu" && <OutputContextMenu />}
       {openMenuType === "input-context-menu" && <InputContextMenu />}
+      {openMenuType === "edge-context-menu" && <EdgeContextMenu />}
     </>
   );
 });
@@ -167,6 +170,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
+  nodeTypes["nodetool.control.Reroute"] = RerouteNode;
   nodeTypes["default"] = PlaceholderNode;
   // debug removed: too noisy
 
@@ -292,7 +296,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     },
     [onNodesChange]
   );
-
 
   // EDGE HANDLER
   const {
