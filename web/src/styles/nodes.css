@@ -69,14 +69,14 @@
   gap: 0;
   flex-grow: 1;
   text-align: left;
-  /* max-width: 170px; */
+  max-width: 170px;
   word-wrap: break-word;
   line-height: 1em;
   color: var(--palette-grey-200);
   font-size: var(--fontSizeSmaller);
   font-weight: 600;
   font-feature-settings: "smcp";
-  padding: 0.75em 24px 0.75em 0.75em;
+  padding: 0.75em 0 0.75em 0.75em;
 }
 
 .react-flow__node .title-container {
@@ -222,10 +222,7 @@
 
 /* Node selection and highlighting */
 .react-flow__node.selected {
-  outline-color: var(
-    --node-primary-color,
-    var(--palette-text-primary)
-  ) !important;
+  outline-color: var(--node-primary-color, var(--palette-text-primary)) !important;
   box-shadow: 0 0 0 2px var(--node-primary-color, var(--palette-text-primary)),
     0.1em 0.1em 8px 0px rgba(0, 0, 0, 0.6);
 }
@@ -238,42 +235,26 @@
   /* Match outline to header background color */
   outline: 1px solid var(--c_node_header_bg) !important;
   /* Increase brightness and add slight saturation toward primary */
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg) 82%, var(--palette-primary-main) 18%) !important;
   /* outline-offset: 1px; */
 }
 
 /* Grouped nodes: use group header color for outline */
 .react-flow__node:has(.node-header.has-parent):not(.selected) {
   outline-color: var(--c_node_header_bg_group) !important; /* fallback */
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg_group) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg_group) 82%, var(--palette-primary-main) 18%) !important;
 }
 
 .react-flow__node:hover:not(.selected) {
   outline: 1px solid var(--c_node_header_bg) !important;
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg) 82%, var(--palette-primary-main) 18%) !important;
   outline-offset: 1px;
 }
 
 /* Hover for grouped nodes keeps group header color */
 .react-flow__node:has(.node-header.has-parent):hover:not(.selected) {
   outline: 1px solid var(--c_node_header_bg_group) !important;
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg_group) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg_group) 82%, var(--palette-primary-main) 18%) !important;
 }
 
 /* Compact nodes */
@@ -367,21 +348,12 @@
 /* Zoomed-out: lighten node outline a touch */
 .react-flow.zoomed-out .react-flow__node:not(.selected) {
   outline-color: var(--c_node_header_bg) !important; /* fallback */
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg) 82%, var(--palette-primary-main) 18%) !important;
 }
 
-.react-flow.zoomed-out
-  .react-flow__node:has(.node-header.has-parent):not(.selected) {
+.react-flow.zoomed-out .react-flow__node:has(.node-header.has-parent):not(.selected) {
   outline-color: var(--c_node_header_bg_group) !important; /* fallback */
-  outline-color: color-mix(
-    in srgb,
-    var(--c_node_header_bg_group) 82%,
-    var(--palette-primary-main) 18%
-  ) !important;
+  outline-color: color-mix(in srgb, var(--c_node_header_bg_group) 82%, var(--palette-primary-main) 18%) !important;
 }
 
 /* Zoomed-out: apply same opacity simplification to PreviewNode root */
