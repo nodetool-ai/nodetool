@@ -1,6 +1,7 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 
 export default function useEdgeHandlers() {
   const {
@@ -16,6 +17,8 @@ export default function useEdgeHandlers() {
     edgeUpdateSuccessful: state.edgeUpdateSuccessful,
     setEdgeUpdateSuccessful: state.setEdgeUpdateSuccessful
   }));
+
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback(
@@ -64,13 +67,18 @@ export default function useEdgeHandlers() {
     [findEdge, updateEdge]
   );
 
-  // delete edge on right click
+  // open context menu on right click
   const onEdgeContextMenu = useCallback(
     (event: ReactMouseEvent, edge: Edge) => {
       event.preventDefault();
-      deleteEdge(edge.id);
+      openContextMenu(
+        "edge-context-menu",
+        edge.id, // Using nodeId field for edgeId
+        event.clientX,
+        event.clientY
+      );
     },
-    [deleteEdge]
+    [openContextMenu]
   );
 
   const onEdgeUpdateStart = useCallback(() => {
