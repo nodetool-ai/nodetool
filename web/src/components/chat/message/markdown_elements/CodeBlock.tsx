@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   oneDark,
   oneLight
@@ -17,6 +17,7 @@ interface CodeBlockProps {
   className?: string;
   children?: React.ReactNode;
   _isFromPre?: boolean;
+  onInsert?: (text: string, language?: string) => void;
   [key: string]: any;
 }
 
@@ -39,6 +40,12 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
+  const handleInsert = useCallback(() => {
+    if (typeof props.onInsert === "function") {
+      const language = match ? match[1] : undefined;
+      props.onInsert(codeContent, language);
+    }
+  }, [props, codeContent, match]);
 
   let renderAsBlock = false;
 
@@ -71,7 +78,27 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
       <div css={styles(theme)} className="code-block-container">
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
-          <CopyToClipboardButton textToCopy={codeContent} />
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {typeof props.onInsert === "function" && (
+              <button
+                className="button"
+                onClick={handleInsert}
+                title="Insert into editor"
+                style={{
+                  padding: "6px 10px",
+                  fontSize: "var(--fontSizeSmaller)",
+                  borderRadius: "4px",
+                  border: "1px solid var(--palette-grey-700)",
+                  background: "var(--palette-grey-700)",
+                  color: "var(--palette-grey-50)",
+                  cursor: "pointer"
+                }}
+              >
+                Insert into editor
+              </button>
+            )}
+            <CopyToClipboardButton textToCopy={codeContent} />
+          </div>
         </div>
         <SyntaxHighlighter
           className="code-block-content"

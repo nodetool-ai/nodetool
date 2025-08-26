@@ -14,6 +14,7 @@ import "../../../styles/markdown/github-markdown-dark.css";
 
 interface ChatMarkdownProps {
   content: string;
+  onInsertCode?: (text: string, language?: string) => void;
 }
 
 const styles = (theme: Theme) =>
@@ -47,7 +48,10 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
+const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
+  content,
+  onInsertCode
+}) => {
   const theme = useTheme();
   return (
     <div css={styles(theme)} className="markdown markdown-body">
@@ -55,8 +59,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          code: (props) => <CodeBlock {...props} />,
-          pre: (props) => <PreRenderer {...props} />
+          code: (props) => <CodeBlock {...props} onInsert={onInsertCode} />,
+          pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />
         }}
       >
         {content || ""}

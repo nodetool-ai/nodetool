@@ -5,6 +5,7 @@ import { CodeBlock } from "./CodeBlock";
 interface PreRendererProps {
   node?: any;
   children?: React.ReactNode;
+  onInsert?: (text: string, language?: string) => void;
   [key: string]: any;
 }
 
@@ -31,7 +32,13 @@ export const PreRenderer: React.FC<PreRendererProps> = ({
     // If it's a <pre><code> structure, render our CodeBlock with the _isFromPre flag
     // We pass along the original props intended for the <code> element (which are in codeBlockChild.props)
     // and add our special flag.
-    return <CodeBlock {...codeBlockChild.props} _isFromPre={true} />;
+    return (
+      <CodeBlock
+        {...codeBlockChild.props}
+        _isFromPre={true}
+        onInsert={props.onInsert}
+      />
+    );
   } else {
     // Otherwise, render a standard <pre> tag with its children
     // This handles cases like <pre>Some plain text</pre> or <pre><span>Text</span><code>code</code></pre>

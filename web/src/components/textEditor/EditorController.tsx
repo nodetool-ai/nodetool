@@ -38,6 +38,10 @@ interface EditorControllerProps {
     }
   ) => void;
   onFormatCodeCommand: (fn: () => void) => void;
+  onInsertTextCommand?: (fn: (text: string) => void) => void;
+  onReplaceSelectionCommand?: (fn: (text: string) => void) => void;
+  onSetAllTextCommand?: (fn: (text: string) => void) => void;
+  onGetSelectedTextCommand?: (fn: () => string) => void;
   onIsCodeBlockChange: (isCodeBlock: boolean) => void;
   initialContent?: string;
   wordWrapEnabled?: boolean;
@@ -53,6 +57,10 @@ const EditorController = ({
   onReplaceCommand,
   onNavigateCommand,
   onFormatCodeCommand,
+  onInsertTextCommand,
+  onReplaceSelectionCommand,
+  onSetAllTextCommand,
+  onGetSelectedTextCommand,
   onIsCodeBlockChange,
   initialContent,
   wordWrapEnabled = true
@@ -294,6 +302,75 @@ const EditorController = ({
         }
       }
     });
+  }, [editor]);
+
+  // Set up insert text function
+  const insertTextFn = useCallback(
+    (text: string) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          selection.insertText(text);
+        } else {
+          const root = $getRoot();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode(text);
+          paragraph.append(textNode);
+          root.append(paragraph);
+        }
+      });
+    },
+    [editor]
+  );
+
+  // Replace current selection (or insert at caret)
+  const replaceSelectionFn = useCallback(
+    (text: string) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          selection.insertText(text);
+        } else {
+          const root = $getRoot();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode(text);
+          paragraph.append(textNode);
+          root.append(paragraph);
+        }
+      });
+    },
+    [editor]
+  );
+
+  // Replace entire document text
+  const setAllTextFn = useCallback(
+    (text: string) => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        const textNode = $createTextNode(text);
+        paragraph.append(textNode);
+        root.append(paragraph);
+      });
+    },
+    [editor]
+  );
+
+  // Selected text getter
+  const getSelectedTextFn = useCallback((): string => {
+    try {
+      const editorState = editor.getEditorState();
+      return editorState.read(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          return selection.getTextContent();
+        }
+        return "";
+      });
+    } catch {
+      return "";
+    }
   }, [editor]);
 
   /**
@@ -596,6 +673,18 @@ const EditorController = ({
     onReplaceCommand(replaceFn);
     onNavigateCommand(navigateFn);
     onFormatCodeCommand(formatCodeBlockFn);
+    if (onInsertTextCommand) {
+      onInsertTextCommand(insertTextFn);
+    }
+    if (onReplaceSelectionCommand) {
+      onReplaceSelectionCommand(replaceSelectionFn);
+    }
+    if (onSetAllTextCommand) {
+      onSetAllTextCommand(setAllTextFn);
+    }
+    if (onGetSelectedTextCommand) {
+      onGetSelectedTextCommand(getSelectedTextFn);
+    }
   }, [
     undoFn,
     redoFn,
@@ -603,12 +692,20 @@ const EditorController = ({
     replaceFn,
     navigateFn,
     formatCodeBlockFn,
+    insertTextFn,
+    replaceSelectionFn,
+    setAllTextFn,
+    getSelectedTextFn,
     onUndoCommand,
     onRedoCommand,
     onFindCommand,
     onReplaceCommand,
     onNavigateCommand,
-    onFormatCodeCommand
+    onFormatCodeCommand,
+    onInsertTextCommand,
+    onReplaceSelectionCommand,
+    onSetAllTextCommand,
+    onGetSelectedTextCommand
   ]);
 
   // Handle search highlighting

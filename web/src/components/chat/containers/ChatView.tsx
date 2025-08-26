@@ -88,6 +88,7 @@ type ChatViewProps = {
    * Optional React node to display when there are no messages yet.
    */
   noMessagesPlaceholder?: React.ReactNode;
+  onInsertCode?: (text: string, language?: string) => void;
 };
 
 const ChatView = ({
@@ -112,7 +113,8 @@ const ChatView = ({
   currentPlanningUpdate,
   currentTaskUpdate,
   noMessagesPlaceholder,
-  graph
+  graph,
+  onInsertCode
 }: ChatViewProps) => {
   const theme = useTheme();
   const handleSendMessage = useCallback(
@@ -164,6 +166,7 @@ const ChatView = ({
             progressMessage={progressMessage}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
+            onInsertCode={onInsertCode}
           />
         ) : (
           noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

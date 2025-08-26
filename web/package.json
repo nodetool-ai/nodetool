@@ -19,6 +19,7 @@
     "@lexical/rich-text": "^0.32.1",
     "@lexical/selection": "^0.32.1",
     "@mantine/hooks": "^7.14.3",
+    "@monaco-editor/react": "^4.7.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",

@@ -5,6 +5,9 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/Close";
+import CodeIcon from "@mui/icons-material/Code";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { CircularProgress, Tooltip } from "@mui/material";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -27,6 +30,11 @@ import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
+import ChatView from "../chat/containers/ChatView";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { DEFAULT_MODEL } from "../../config/constants";
+import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
+import type { MessageContent, LanguageModel } from "../../stores/ApiTypes";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -61,6 +69,7 @@ interface TextEditorModalProps {
   onClose: () => void;
   propertyName: string;
   propertyDescription?: string;
+  language?: string;
   readOnly?: boolean;
   isLoading?: boolean;
   showToolbar?: boolean;
@@ -98,7 +107,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "flex-start",
-      padding: ".5em 1em",
+      padding: ".5em 3.5em .5em 1em",
       minHeight: "2em",
       backgroundColor: theme.vars.palette.grey[800],
       h4: {
@@ -136,7 +145,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: 1,
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       padding: "1em 2em 1em 1em",
       backgroundColor: theme.vars.palette.background.default,
       height: "100%",
@@ -180,6 +189,25 @@ const styles = (theme: Theme) =>
           }
         },
         ...codeHighlightTokenStyles(theme)
+      },
+      ".editor-pane": {
+        flex: 1,
+        minWidth: 0,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden"
+      },
+      ".assistant-pane": {
+        width: "40%",
+        minWidth: "320px",
+        maxWidth: "560px",
+        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+        marginLeft: "1em",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden"
       }
     },
     ".actions": {
@@ -187,7 +215,7 @@ const styles = (theme: Theme) =>
       gap: "1em",
       alignItems: "flex-start",
       marginTop: "0",
-      marginRight: "-18px"
+      marginRight: "0"
     },
     ".copy-to-clipboard-button": {
       position: "absolute",
@@ -270,6 +298,7 @@ const TextEditorModal = ({
   onClose,
   propertyName,
   propertyDescription,
+  language = "python",
   readOnly = false,
   isLoading = false,
   showToolbar = true,
@@ -279,6 +308,99 @@ const TextEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
+  const {
+    connect,
+    status,
+    sendMessage,
+    progress,
+    statusMessage,
+    getCurrentMessagesSync,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    selectedCollections,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    stopGeneration,
+    createNewThread
+  } = useGlobalChatStore();
+
+  // Editor mode toggle
+  const CODE_EDITOR_TOGGLE_KEY = "textEditorModal_useCodeEditor";
+  const getInitialIsCodeEditor = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(CODE_EDITOR_TOGGLE_KEY);
+      if (saved === "true" || saved === "false") {
+        return saved === "true";
+      }
+    } catch {
+      /* empty */
+    }
+    return false;
+  }, []);
+  const [isCodeEditor, setIsCodeEditor] = useState<boolean>(
+    getInitialIsCodeEditor
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        CODE_EDITOR_TOGGLE_KEY,
+        isCodeEditor ? "true" : "false"
+      );
+    } catch {
+      /* empty */
+    }
+  }, [isCodeEditor]);
+
+  // Monaco dynamic import (loaded on demand)
+  const [MonacoEditor, setMonacoEditor] = useState<
+    | ((props: {
+        value: string;
+        onChange?: (val?: string) => void;
+        language?: string;
+        theme?: string;
+        options?: Record<string, unknown>;
+        width?: string | number;
+        height?: string | number;
+        onMount?: (editor: unknown, monaco: unknown) => void;
+      }) => JSX.Element)
+    | null
+  >(null);
+  const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
+  const loadMonacoIfNeeded = useCallback(async () => {
+    if (MonacoEditor || monacoLoadError) return;
+    try {
+      const mod = await import("@monaco-editor/react");
+      // default export is Editor component
+      setMonacoEditor(() => mod.default as unknown as typeof MonacoEditor);
+    } catch (err) {
+      setMonacoLoadError("Failed to load code editor");
+    }
+  }, [MonacoEditor, monacoLoadError]);
+
+  const handleToggleEditorMode = useCallback(() => {
+    setIsCodeEditor((prev) => {
+      const next = !prev;
+      if (next) {
+        // switching to code editor - lazy load Monaco
+        // fire and forget
+        void loadMonacoIfNeeded();
+      }
+      return next;
+    });
+  }, [loadMonacoIfNeeded]);
+
+  // If we start in code mode, ensure Monaco loads immediately
+  useEffect(() => {
+    if (isCodeEditor) {
+      void loadMonacoIfNeeded();
+    }
+  }, [isCodeEditor, loadMonacoIfNeeded]);
+
+  // Ensure chat is connected for assistant pane
+  useEffect(() => {
+    connect().catch(() => undefined);
+  }, [connect]);
 
   // Resizable modal height state
   const DEFAULT_HEIGHT = Math.min(600, window.innerHeight - 200);
@@ -394,6 +516,24 @@ const TextEditorModal = ({
     | null
   >(null);
   const formatCodeBlockFnRef = useRef<(() => void) | null>(null);
+  const insertTextFnRef = useRef<((text: string) => void) | null>(null);
+  const replaceSelectionFnRef = useRef<((text: string) => void) | null>(null);
+  const setAllTextFnRef = useRef<((text: string) => void) | null>(null);
+  const getSelectedTextFnRef = useRef<(() => string) | null>(null);
+
+  const improvePendingRef = useRef<{
+    active: boolean;
+    baseCount: number;
+    hadSelection: boolean;
+    isCodeEditor: boolean;
+    monacoRange: any | null;
+  }>({
+    active: false,
+    baseCount: 0,
+    hadSelection: false,
+    isCodeEditor: false,
+    monacoRange: null
+  });
 
   // Search state
   const [searchResults, setSearchResults] = useState({
@@ -443,6 +583,186 @@ const TextEditorModal = ({
     },
     [debouncedExternalOnChange, readOnly]
   );
+  // Insertion handlers for both editors
+  const monacoRef = useRef<any>(null);
+  const monacoOnMount = useCallback((editor: any) => {
+    monacoRef.current = editor;
+  }, []);
+
+  const insertIntoLexical = useCallback(
+    (text: string) => {
+      if (insertTextFnRef.current) {
+        insertTextFnRef.current(text);
+      } else {
+        setCurrentText((prev) => (prev ? prev + "\n" + text : text));
+        debouncedExternalOnChange(text);
+      }
+    },
+    [debouncedExternalOnChange]
+  );
+
+  const insertIntoEditor = useCallback(
+    (text: string) => {
+      if (isCodeEditor && monacoRef.current) {
+        const editor = monacoRef.current;
+        const selection = editor.getSelection();
+        const range = selection || editor.getModel().getFullModelRange();
+        editor.executeEdits("insert-from-chat", [
+          { range, text, forceMoveMarkers: true }
+        ]);
+        editor.focus();
+      } else {
+        insertIntoLexical(text);
+      }
+    },
+    [isCodeEditor, insertIntoLexical]
+  );
+
+  const handleImproveSelection = useCallback(async () => {
+    // Get selected text from the active editor
+    let selected = "";
+    let hadSelection = false;
+    let monacoRange: any | null = null;
+    if (isCodeEditor && monacoRef.current) {
+      try {
+        const editor = monacoRef.current;
+        const selection = editor.getSelection();
+        if (selection) {
+          selected = editor.getModel().getValueInRange(selection) || "";
+          hadSelection = !!selected && selected.trim().length > 0;
+          monacoRange = selection;
+        }
+      } catch {
+        /* empty */
+      }
+    } else if (getSelectedTextFnRef.current) {
+      try {
+        selected = getSelectedTextFnRef.current() || "";
+        hadSelection = !!selected && selected.trim().length > 0;
+      } catch {
+        /* empty */
+      }
+    }
+
+    const textToImprove =
+      selected && selected.trim().length > 0 ? selected : currentText;
+
+    if (!textToImprove || textToImprove.trim().length === 0) {
+      return;
+    }
+
+    const instruction =
+      "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:\n\n";
+
+    const composed = `${instruction}${textToImprove}`;
+
+    const content: MessageContent[] = [
+      { type: "text", text: composed } as MessageContent
+    ];
+
+    try {
+      const baseCount = getCurrentMessagesSync().length || 0;
+      improvePendingRef.current = {
+        active: true,
+        baseCount,
+        hadSelection,
+        isCodeEditor,
+        monacoRange
+      };
+      await sendMessage({
+        type: "message",
+        name: "",
+        role: "user",
+        provider: (selectedModel as any)?.provider,
+        model: (selectedModel as any)?.id,
+        content,
+        tools: selectedTools.length > 0 ? selectedTools : undefined,
+        collections:
+          selectedCollections.length > 0 ? selectedCollections : undefined,
+        agent_mode: false,
+        help_mode: true,
+        workflow_assistant: true
+      } as any);
+    } catch (err) {
+      // Surface no error UI; rely on existing error handling in chat view/store
+    }
+  }, [
+    isCodeEditor,
+    monacoRef,
+    getSelectedTextFnRef,
+    currentText,
+    sendMessage,
+    selectedModel,
+    selectedTools,
+    selectedCollections,
+    getCurrentMessagesSync
+  ]);
+
+  useEffect(() => {
+    const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
+      const pending = improvePendingRef.current;
+      if (!pending.active) return;
+
+      const threadId = state.currentThreadId;
+      if (!threadId) return;
+
+      const messages = state.messageCache?.[threadId] || [];
+      if (messages.length <= pending.baseCount) return;
+
+      if (state.status === "streaming") return;
+
+      const last = messages[messages.length - 1];
+      if (!last || last.role !== "assistant") return;
+
+      let responseText = "";
+      const content = last.content as any;
+      if (typeof content === "string") {
+        responseText = content;
+      } else if (Array.isArray(content)) {
+        const textItem = content.find((c: any) => c?.type === "text");
+        responseText = textItem?.text || "";
+      }
+
+      if (!responseText) return;
+
+      if (pending.isCodeEditor && monacoRef.current) {
+        const editor = monacoRef.current;
+        try {
+          if (pending.hadSelection && pending.monacoRange) {
+            editor.executeEdits("improve-replace", [
+              {
+                range: pending.monacoRange,
+                text: responseText,
+                forceMoveMarkers: true
+              }
+            ]);
+          } else {
+            editor.setValue(responseText);
+          }
+          editor.focus();
+        } catch {
+          /* empty */
+        }
+      } else {
+        if (pending.hadSelection && replaceSelectionFnRef.current) {
+          replaceSelectionFnRef.current(responseText);
+        } else if (setAllTextFnRef.current) {
+          setAllTextFnRef.current(responseText);
+        } else {
+          setCurrentText(responseText);
+        }
+      }
+
+      improvePendingRef.current.active = false;
+    });
+    return () => {
+      try {
+        unsubscribe?.();
+      } catch {
+        /* empty */
+      }
+    };
+  }, [monacoRef]);
 
   // Clean-up the debounced function when the component unmounts
   useEffect(() => {
@@ -547,6 +867,30 @@ const TextEditorModal = ({
               )}
             </div>
             <div className="actions">
+              {!readOnly && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title={
+                    isCodeEditor
+                      ? "Switch to Rich Text"
+                      : "Switch to Code Editor"
+                  }
+                >
+                  <button className="button" onClick={handleToggleEditorMode}>
+                    {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
+                  </button>
+                </Tooltip>
+              )}
+              {!readOnly && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title="Improve Selection"
+                >
+                  <button className="button" onClick={handleImproveSelection}>
+                    <AutoFixHighIcon />
+                  </button>
+                </Tooltip>
+              )}
               <Tooltip
                 enterDelay={TOOLTIP_ENTER_DELAY}
                 title="Close Editor | Esc"
@@ -557,7 +901,7 @@ const TextEditorModal = ({
               </Tooltip>
             </div>
           </div>
-          {showToolbar && (
+          {showToolbar && !isCodeEditor && (
             <EditorToolbar
               onUndo={handleUndo}
               onRedo={handleRedo}
@@ -572,7 +916,7 @@ const TextEditorModal = ({
             />
           )}
 
-          {showFindReplace && findReplaceVisible && (
+          {showFindReplace && !isCodeEditor && findReplaceVisible && (
             <FindReplaceBar
               onFind={handleFind}
               onReplace={handleReplace}
@@ -598,49 +942,140 @@ const TextEditorModal = ({
                 <CircularProgress />
               </div>
             ) : (
-              <>
-                <CopyToClipboardButton textToCopy={value || ""} />
-                <LexicalComposer initialConfig={editorConfig}>
-                  <div
-                    style={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column"
-                    }}
-                  >
-                    <EditorController
-                      onCanUndoChange={setCanUndo}
-                      onCanRedoChange={setCanRedo}
-                      onTextChange={setCurrentText}
-                      onUndoCommand={(fn) => {
-                        undoFnRef.current = fn;
-                      }}
-                      onRedoCommand={(fn) => {
-                        redoFnRef.current = fn;
-                      }}
-                      onFindCommand={(fn) => {
-                        findFnRef.current = fn;
-                      }}
-                      onReplaceCommand={(fn) => {
-                        replaceFnRef.current = fn;
-                      }}
-                      onNavigateCommand={(fn) => {
-                        navigateFnRef.current = fn;
-                      }}
-                      onFormatCodeCommand={(fn) => {
-                        formatCodeBlockFnRef.current = fn;
-                      }}
-                      onIsCodeBlockChange={setIsCodeBlock}
-                      wordWrapEnabled={wordWrapEnabled}
-                      initialContent={value}
-                    />
-                    <LexicalPlugins
-                      onChange={handleEditorChange}
-                      wordWrapEnabled={wordWrapEnabled}
-                    />
-                  </div>
-                </LexicalComposer>
-              </>
+              <EditorInsertionProvider value={insertIntoEditor}>
+                <div className="editor-pane">
+                  <CopyToClipboardButton textToCopy={value || ""} />
+                  {isCodeEditor ? (
+                    <div style={{ height: "100%" }}>
+                      {MonacoEditor ? (
+                        <MonacoEditor
+                          value={currentText}
+                          onChange={(v) => {
+                            const next = v ?? "";
+                            setCurrentText(next);
+                            debouncedExternalOnChange(next);
+                          }}
+                          language={language}
+                          theme={"vs-dark"}
+                          width="100%"
+                          height="100%"
+                          onMount={monacoOnMount}
+                          options={{
+                            readOnly,
+                            wordWrap: wordWrapEnabled ? "on" : "off",
+                            minimap: { enabled: false },
+                            automaticLayout: true,
+                            renderWhitespace: "selection",
+                            scrollBeyondLastLine: false
+                          }}
+                        />
+                      ) : monacoLoadError ? (
+                        <div
+                          style={{
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: theme.vars.palette.warning.main
+                          }}
+                        >
+                          {monacoLoadError}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}
+                        >
+                          <CircularProgress />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <LexicalComposer initialConfig={editorConfig}>
+                      <div
+                        style={{
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column"
+                        }}
+                      >
+                        <EditorController
+                          onCanUndoChange={setCanUndo}
+                          onCanRedoChange={setCanRedo}
+                          onTextChange={setCurrentText}
+                          onUndoCommand={(fn) => {
+                            undoFnRef.current = fn;
+                          }}
+                          onRedoCommand={(fn) => {
+                            redoFnRef.current = fn;
+                          }}
+                          onFindCommand={(fn) => {
+                            findFnRef.current = fn;
+                          }}
+                          onReplaceCommand={(fn) => {
+                            replaceFnRef.current = fn;
+                          }}
+                          onNavigateCommand={(fn) => {
+                            navigateFnRef.current = fn;
+                          }}
+                          onFormatCodeCommand={(fn) => {
+                            formatCodeBlockFnRef.current = fn;
+                          }}
+                          onIsCodeBlockChange={setIsCodeBlock}
+                          initialContent={value}
+                          onInsertTextCommand={(fn) => {
+                            // Save the inserter for Lexical
+                            (insertTextFnRef as any).current = fn;
+                          }}
+                          onReplaceSelectionCommand={(fn) => {
+                            (replaceSelectionFnRef as any).current = fn;
+                          }}
+                          onSetAllTextCommand={(fn) => {
+                            (setAllTextFnRef as any).current = fn;
+                          }}
+                          onGetSelectedTextCommand={(fn) => {
+                            (getSelectedTextFnRef as any).current = fn;
+                          }}
+                        />
+                        <LexicalPlugins
+                          onChange={handleEditorChange}
+                          wordWrapEnabled={wordWrapEnabled}
+                        />
+                      </div>
+                    </LexicalComposer>
+                  )}
+                </div>
+                <div className="assistant-pane">
+                  <ChatView
+                    status={status === "stopping" ? "loading" : (status as any)}
+                    progress={progress.current}
+                    total={progress.total}
+                    messages={getCurrentMessagesSync()}
+                    sendMessage={sendMessage}
+                    progressMessage={statusMessage}
+                    model={
+                      (selectedModel as LanguageModel) || {
+                        type: "language_model",
+                        provider: "empty",
+                        id: DEFAULT_MODEL,
+                        name: DEFAULT_MODEL
+                      }
+                    }
+                    selectedTools={selectedTools}
+                    selectedCollections={selectedCollections}
+                    onModelChange={setSelectedModel}
+                    helpMode={true}
+                    workflowAssistant={true}
+                    onStop={stopGeneration}
+                    onNewChat={createNewThread}
+                    onInsertCode={(text) => insertIntoEditor(text)}
+                  />
+                </div>
+              </EditorInsertionProvider>
             )}
           </div>
 
