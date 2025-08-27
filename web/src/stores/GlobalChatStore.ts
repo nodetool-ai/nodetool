@@ -403,8 +403,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           agent_mode: agentMode
         };
 
+        console.log("sendMessage", messageToSend);
+
         // Check if this is the first user message BEFORE adding to cache
-        const thread = get().threads[threadId];
         const existingMessages = get().messageCache[threadId] || [];
         const userMessageCount = existingMessages.filter(
           (msg) => msg.role === "user"

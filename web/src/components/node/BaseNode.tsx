@@ -190,7 +190,9 @@ const getNodeColors = (metadata: any): string[] => {
 };
 
 const getHeaderColors = (metadata: NodeMetadata, theme: Theme) => {
-  const firstOutputType = metadata?.outputs?.[0]?.type?.type as string | undefined;
+  const firstOutputType = metadata?.outputs?.[0]?.type?.type as
+    | string
+    | undefined;
   if (!firstOutputType) return { headerColor: "", baseColor: "" };
 
   const baseColor = colorForType(firstOutputType);
@@ -317,9 +319,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       sx={{
         display: "flex",
         minHeight: styleProps.minHeight,
-        border: isLoading ? "none" : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`,
+        border: isLoading
+          ? "none"
+          : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`,
         ...theme.applyStyles("dark", {
-          border: isLoading ? "none" : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`
+          border: isLoading
+            ? "none"
+            : `1px solid ${hexToRgba(baseColor || "#666", 0.4)}`
         }),
         backgroundColor:
           hasParent && !isLoading
