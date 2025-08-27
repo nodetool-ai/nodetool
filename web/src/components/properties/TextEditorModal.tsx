@@ -316,8 +316,6 @@ const styles = (theme: Theme) =>
       backdropFilter: theme.vars.palette.glass.blur,
       WebkitBackdropFilter: theme.vars.palette.glass.blur,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      boxShadow:
-        "inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.25)",
       "&:hover": {
         transform: "translateY(-1px)",
         borderColor: theme.vars.palette.grey[600]
@@ -926,7 +924,7 @@ const TextEditorModal = ({
           collections:
             selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: false,
-          help_mode: true,
+          help_mode: false,
           workflow_assistant: true
         } as any);
       } catch {
@@ -1498,7 +1496,7 @@ const TextEditorModal = ({
                       selectedTools={selectedTools}
                       selectedCollections={selectedCollections}
                       onModelChange={setSelectedModel}
-                      helpMode={true}
+                      helpMode={false}
                       workflowAssistant={true}
                       onStop={stopGeneration}
                       onNewChat={createNewThread}
