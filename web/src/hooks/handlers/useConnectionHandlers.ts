@@ -173,6 +173,13 @@ export default function useConnectionHandlers() {
     (event: any) => {
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
+      if (!connectNodeId || !connectHandleId || !connectType) {
+        return;
+      }
+      const connectNode = findNode(connectNodeId);
+      if (!connectNode) {
+        return;
+      }
       const targetIsGroup = findClassNameinElementOrParents(
         event.target,
         "loop-node"
@@ -194,6 +201,37 @@ export default function useConnectionHandlers() {
         const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
           console.warn(`Metadata for node type ${node.type} not found`);
+          return;
+        }
+
+        if (
+          nodeMetadata.supports_dynamic_outputs &&
+          connectDirection === "target"
+        ) {
+          const sourceNodeType = connectNode.type?.split(".").pop();
+          const dynamicOutputs = node.data?.dynamic_outputs || {};
+          const sourceHandle = sourceNodeType || connectHandleId || "";
+          const dynamicOutput = {
+            type: connectType?.type || "",
+            optional: false,
+            type_args: [],
+            type_name: ""
+          };
+          updateNodeData(nodeId, {
+            dynamic_outputs: {
+              ...dynamicOutputs,
+              [sourceHandle]: dynamicOutput
+            }
+          });
+          const newConnection = {
+            source: nodeId,
+            sourceHandle: sourceHandle,
+            target: connectNodeId || "",
+            targetHandle: connectHandleId || "",
+            className: Slugify(connectType?.type || "")
+          };
+          onConnect(newConnection);
+          endConnecting();
           return;
         }
 
