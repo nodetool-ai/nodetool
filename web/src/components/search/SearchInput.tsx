@@ -3,12 +3,14 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
+import { Tooltip } from "@mui/material";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { isMac } from "../../utils/platform";
 
 const styles = (theme: Theme) =>
   css({
@@ -36,7 +38,7 @@ const styles = (theme: Theme) =>
     },
     ".search-input": {
       width: "100%",
-      flexShrink: "0",
+      flexShrink: "0"
     },
     "input[type='text']": {
       outline: "none",
@@ -265,18 +267,32 @@ const SearchInput: React.FC<SearchInputProps> = ({
         data-testid="search-input-field"
       />
 
-      <button
-        className={`clear-search-btn ${
-          localSearchTerm.trim() === "" ? "disabled" : ""
-        }`}
-        tabIndex={-1}
-        aria-label="Clear search"
-        title="Clear (⌘⌫)"
-        onClick={clearSearch}
-        data-testid="search-clear-btn"
+      <Tooltip
+        placement="bottom"
+        title={
+          isMac() ? (
+            <span>
+              <kbd>⌘</kbd> + <kbd>⌫</kbd>
+            </span>
+          ) : (
+            <span>
+              <kbd>CTRL</kbd> + <kbd>⌫</kbd>
+            </span>
+          )
+        }
       >
-        <BackspaceIcon />
-      </button>
+        <button
+          className={`clear-search-btn ${
+            localSearchTerm.trim() === "" ? "disabled" : ""
+          }`}
+          tabIndex={-1}
+          aria-label="Clear search"
+          onClick={clearSearch}
+          data-testid="search-clear-btn"
+        >
+          <BackspaceIcon />
+        </button>
+      </Tooltip>
     </div>
   );
 };

@@ -659,7 +659,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches,
     hoveredNode,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    setSelectedPath
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
@@ -667,7 +668,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    setSelectedPath: state.setSelectedPath
   }));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -705,6 +707,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     return Object.values(allMetadata).length;
   }, [allMetadata]);
 
+  const handleResetNamespacePath = useCallback(() => {
+    setSelectedPath([]);
+  }, [setSelectedPath]);
+
   return (
     <div
       css={namespaceStyles(theme)}
@@ -720,6 +726,25 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       <Box className="list-box">
         <div className={`namespace-panel-container`} id="namespace-panel">
           <List className="namespace-list">
+            <div className="namespaces">
+              <div
+                className={`list-item ${selectedPathString ? "" : "selected"}`}
+                onClick={handleResetNamespacePath}
+                role="button"
+                tabIndex={0}
+                title={
+                  searchTerm.length > minSearchTermLength
+                    ? "Show all results"
+                    : "Home"
+                }
+              >
+                <div className="namespace-item">
+                  {searchTerm.length > minSearchTermLength
+                    ? "All results"
+                    : "Home"}
+                </div>
+              </div>
+            </div>
             <div className="namespace-list-enabled">
               <RenderNamespaces tree={enabledTree} />
             </div>
