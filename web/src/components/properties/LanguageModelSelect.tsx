@@ -1,16 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import {
-  Typography,
-  Tooltip,
-  Button,
-  IconButton,
-  Select,
-  MenuItem,
-  FormControl
-} from "@mui/material";
+import { Typography, Tooltip, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
@@ -182,7 +172,14 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
             border: "1px solid transparent",
             borderRadius: "0.25em",
             color: "var(--palette-grey-0)",
-            padding: "0em 0.75em !important",
+            textTransform: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: 1,
+            height: "18px",
+            minHeight: 0,
+            padding: "0 0.5em !important",
             "&:hover": {
               backgroundColor: "var(--palette-grey-500)"
             }
@@ -190,7 +187,14 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
           onClick={handleClick}
           size="small"
         >
-          <Typography variant="body2" sx={{ color: "var(--palette-grey-200)" }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "var(--palette-grey-200)",
+              lineHeight: 1,
+              display: "block"
+            }}
+          >
             {currentSelectedModelDetails?.name || value || "Select Model"}
           </Typography>
         </Button>

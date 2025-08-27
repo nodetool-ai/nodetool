@@ -14,10 +14,8 @@ export const buttonStyles = (_theme: Theme) =>
       minWidth: "36px"
     },
     ".MuiButton-sizeSmall": {
-      margin: "0.5em 0 0 0",
-      padding: "0.2em 0.6em",
-      lineHeight: "1.1em",
-      minWidth: "20px",
+      lineHeight: "1.5em",
+      minWidth: "24px",
       fontSize: "0.8em"
       // backgroundColor: _theme.vars.palette.grey[800]
     },

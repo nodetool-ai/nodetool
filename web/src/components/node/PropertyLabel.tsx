@@ -9,6 +9,7 @@ interface PropertyLabelProps {
   id: string;
   name: string;
   description?: string | null;
+  isDynamicProperty?: boolean;
   /**
    * Whether to display the tooltip. Defaults to true. When set to false the
    * tooltip content is omitted so nothing is rendered when the user hovers
@@ -21,11 +22,15 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   id,
   name,
   description,
-  showTooltip = true
+  showTooltip = true,
+  isDynamicProperty = false
 }) => {
   const formattedName = useMemo(() => {
+    if (isDynamicProperty) {
+      return name;
+    }
     return titleizeString(name);
-  }, [name]);
+  }, [name, isDynamicProperty]);
 
   return (
     <div className="property-label">

@@ -317,6 +317,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     function renderArrayPreview(array: NPArray): React.ReactNode {
       return <ArrayView array={array} />;
     }
+    console.log("value", value);
 
     let config: PlotlyConfig | undefined;
     switch (type) {
