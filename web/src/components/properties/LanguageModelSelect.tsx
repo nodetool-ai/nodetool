@@ -1,16 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import {
-  Typography,
-  Tooltip,
-  Button,
-  IconButton,
-  Select,
-  MenuItem,
-  FormControl
-} from "@mui/material";
+import { Typography, Tooltip, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
 import useModelStore from "../../stores/ModelStore";
