@@ -8,7 +8,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 // icons
-import stc from "string-to-color";
 import any from "../icons/any.svg?react";
 import notype from "../icons/notype.svg?react";
 import asset from "../icons/asset.svg?react";
@@ -35,29 +34,17 @@ import database from "../icons/database.svg?react";
 import task from "../icons/task.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
+import {
+  clamp as clampUtil,
+  getLuminance as getLuminanceUtil,
+  hexToRgb as hexToRgbUtil,
+  parseOklch as parseOklchUtil,
+  generateOKLCHFromSlug,
+  round2 as round2Util,
+  stableHash as stableHashUtil
+} from "../utils/ColorUtils";
 
-/**
- * SpectraNode palette — core "500" tone for each conceptual category
- * Most node types are mapped to these category buckets.
- */
-const SpectraNode = {
-  // Cyan / blue family aligns with app primary for technical types
-  scalar: "#22D3EE", // cyan 400 — numbers
-  boolean: "#10B981", // emerald 500 — booleans / flags
-  vector: "#06B6D4", // cyan 500 — vectors
-  matrix: "#6366F1", // indigo 500 — tensors / matrices
-  // Accents
-  spatial: "#A3E635", // lime 400 — geometry
-  texture: "#D946EF", // fuchsia 500 — images / textures / video
-  textual: "#F59E0B", // amber 500 — text / strings
-  collection: "#FACC15", // yellow 400 — list / dict / dataframe / enum
-  reference: "#3B82F6", // blue 500 — file‑like / objects / models / assets
-  event: "#F43F5E", // rose 500 — events / tasks
-  audio: "#0EA5E9", // sky/cyan 500 — audio / sound
-  execution: "#64748B" // slate 500 — misc / execution
-} as const;
-
-type SpectraKey = keyof typeof SpectraNode;
+// SpectraNode category palette removed in favor of OKLCH generator
 
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -97,305 +84,80 @@ export interface DataType {
   name: string;
   slug: string;
   description: string;
+  category?: Category;
   /**
-   * Core 500 tone for this type as HEX.
+   * Core tone for this type as a CSS color string (OKLCH).
    * (Light / dark variants are derived in CSS).
    */
   color: string;
   /**
-   * Fallback text colour. Re‑evaluated later for WCAG contrast.
+   * Text color derived from background contrast (e.g., from OKLCH lightness).
    */
-  textColor: "#fff" | "dark" | "var(--palette-action-active)";
+  textColor: string;
   icon?: string;
 }
 
-/**
- * Helper that assigns a palette colour to a node by conceptual bucket.
- */
-function colour(k: SpectraKey) {
-  return SpectraNode[k];
-}
+const OKLCH_SPREAD_DEG = 16; // maximum hue deviation around the category anchor
+const OKLCH_C_JITTER = 0.025; // chroma jitter amplitude for subtle within-category variation
+const OKLCH_L_JITTER = 0.02; // lightness jitter amplitude to avoid banding while staying uniform
+const OKLCH_EXECUTION_L_JITTER = 0.015; // smaller L jitter for neutral/execution types
+const OKLCH_L_MIN = 0.58; // lower bound for lightness
+const OKLCH_L_MAX = 0.88; // upper bound for lightness
+const OKLCH_C_MIN = 0.06; // lower bound for chroma
+const OKLCH_C_MAX = 0.22; // upper bound for chroma
 
 /**
- * NODETOOL built‑in data types with SpectraNode colours applied.
+ * Manual color overrides for specific datatypes (stable, human-picked).
+ * Values must be valid OKLCH strings.
  */
-const NODETOOL_DATA_TYPES: DataType[] = [
+const COLOR_OVERRIDES: Record<string, string> = {
+  any: "oklch(0.75 0.03 250)",
+  notype: "oklch(0.65 0 0)"
+};
+
+export type Category =
+  | "scalar"
+  | "boolean"
+  | "vector"
+  | "matrix"
+  | "spatial"
+  | "texture"
+  | "textual"
+  | "collection"
+  | "reference"
+  | "event"
+  | "audio"
+  | "execution"
+  | "comfy";
+
+const CATEGORY_ANCHORS: Record<
+  Category,
   {
-    value: "any",
-    label: "Any",
-    description: "Nodes using the TypeScript 'any' datatype",
-    color: colour("execution"),
-    textColor: "dark",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "QuestionMark"
-  },
-  {
-    value: "notype",
-    label: "No Type",
-    description: "No output type",
-    color: "#A7B1BF", // neutral grey
-    textColor: "dark",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "NotType"
-  },
-  {
-    value: "asset",
-    label: "Asset",
-    description: "Media files or documents",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "DataObject"
-  },
-  {
-    value: "audio",
-    label: "Audio",
-    description: "Audio data",
-    color: colour("audio"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Audiotrack"
-  },
-  {
-    value: "video",
-    label: "Video",
-    description: "Video data",
-    color: colour("texture"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Videocam"
-  },
-  {
-    value: "bool",
-    label: "Boolean",
-    description: "True or false values",
-    color: colour("boolean"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "CheckBoxOutlineBlank"
-  },
-  {
-    value: "chunk",
-    label: "Chunk",
-    description: "A chunk of data from a chat message stream",
-    color: colour("collection"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Message"
-  },
-  {
-    value: "dataframe",
-    label: "Dataframe",
-    description: "Structured data in a tabular format",
-    color: colour("collection"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "TableChart"
-  },
-  {
-    value: "dict",
-    label: "Dictionary",
-    description: "Key‑Value pairs collection",
-    color: colour("collection"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "List"
-  },
-  {
-    value: "enum",
-    label: "Enumeration",
-    description: "A set of named constants",
-    color: colour("collection"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "ShortText"
-  },
-  {
-    value: "file",
-    label: "File",
-    description: "Uploaded files",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "InsertDriveFile"
-  },
-  {
-    value: "float",
-    label: "Float",
-    description: "Real numbers with fractional parts",
-    color: colour("scalar"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Numbers"
-  },
-  {
-    value: "folder",
-    label: "Folder",
-    description: "Refers to a folder from the asset library",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Folder"
-  },
-  {
-    value: "image",
-    label: "Image",
-    description: "Image data",
-    color: colour("texture"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Image"
-  },
-  {
-    value: "int",
-    label: "Integer",
-    description: "Whole numbers",
-    color: colour("scalar"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Numbers"
-  },
-  {
-    value: "list",
-    label: "List",
-    description: "An ordered collection of items",
-    color: colour("collection"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "List"
-  },
-  {
-    value: "str",
-    label: "String",
-    description: "A sequence of characters",
-    color: colour("textual"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Abc"
-  },
-  {
-    value: "tensor",
-    label: "Tensor",
-    description: "Multi‑dimensional arrays",
-    color: colour("matrix"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "DataObject"
-  },
-  {
-    value: "text",
-    label: "Text",
-    description: "Used for longer blocks of textual data",
-    color: colour("textual"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "TextSnippet"
-  },
-  {
-    value: "union",
-    label: "Union",
-    description: "Represents a value that could be one of several types",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "MergeType"
-  },
-  {
-    value: "language_model",
-    label: "Language Model",
-    description: "Language model",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "ModelTraining"
-  },
-  {
-    value: "message",
-    label: "Message",
-    description: "A Chat Message",
-    color: colour("textual"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Message"
-  },
-  {
-    value: "taesd",
-    label: "TAESD",
-    description: "Tiny Autoencoder",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "ModelTraining"
-  },
-  {
-    value: "database",
-    label: "Database",
-    description: "Database",
-    color: colour("reference"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Database"
-  },
-  {
-    value: "task",
-    label: "Task",
-    description: "Used for agent tasks",
-    color: colour("event"),
-    textColor: "var(--palette-action-active)",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "Task"
+    H: number;
+    C: number;
+    baseL?: number;
   }
-];
+> = {
+  scalar: { H: 200, C: 0.14, baseL: 0.72 },
+  boolean: { H: 150, C: 0.14, baseL: 0.72 },
+  vector: { H: 220, C: 0.14, baseL: 0.72 },
+  matrix: { H: 270, C: 0.16, baseL: 0.72 },
+  spatial: { H: 120, C: 0.12, baseL: 0.72 },
+  texture: { H: 320, C: 0.18, baseL: 0.72 },
+  textual: { H: 70, C: 0.14, baseL: 0.72 },
+  collection: { H: 95, C: 0.1, baseL: 0.72 },
+  reference: { H: 250, C: 0.18, baseL: 0.72 },
+  event: { H: 25, C: 0.18, baseL: 0.72 },
+  audio: { H: 210, C: 0.14, baseL: 0.72 },
+  comfy: { H: 180, C: 0.14, baseL: 0.72 },
+  execution: {
+    H: 0,
+    C: 0.0,
+    baseL: 0.62
+  }
+};
+
+import { NODETOOL_DATA_TYPES } from "./nodetool_data_types";
 
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
 
@@ -495,7 +257,11 @@ isEqual);
 
 export function colorForType(type: string): string {
   const foundType = DATA_TYPES.find((dt) => dt.value === type);
-  return foundType?.color || stc(type);
+  if (foundType?.color) return foundType.color;
+  const { slug, name } = getNames(type);
+  const overrideColor =
+    COLOR_OVERRIDES[type] || COLOR_OVERRIDES[slug] || COLOR_OVERRIDES[name];
+  return overrideColor || generateOKLCHFromSlug(slug);
 }
 
 export function textColorForType(type: string): string {
@@ -515,34 +281,6 @@ export function labelForType(type: string): string {
 
 // Alphabetical ordering for ease of lookup
 DATA_TYPES.sort((a, b) => a.value.localeCompare(b.value));
-
-/** Utilities ------------------------------------------------------------- */
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      }
-    : null;
-}
-
-function getLuminance({
-  r,
-  g,
-  b
-}: {
-  r: number;
-  g: number;
-  b: number;
-}): number {
-  const a = [r, g, b].map(function (v) {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
-}
 
 function getNames(value: string): {
   namespace: string;
@@ -570,12 +308,61 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
 });
 
 // Auto‑derive text colour + register CSS variables
+
+export const CATEGORY_ORDER: Category[] = [
+  "scalar",
+  "boolean",
+  "vector",
+  "matrix",
+  "spatial",
+  "texture",
+  "textual",
+  "collection",
+  "reference",
+  "event",
+  "audio",
+  "comfy",
+  "execution"
+];
+
+export function categoryForType(value: string): Category | "other" {
+  return "other";
+}
+
 DATA_TYPES = DATA_TYPES.map((type: any) => {
-  const color = type.color || stc(type.value);
   const { namespace, name, slug } = getNames(type.value);
-  const rgbColor = hexToRgb(color);
-  const luminance = rgbColor ? getLuminance(rgbColor) : 0;
-  const textColor = luminance > 0.4 ? "#111" : "#eee";
+  const overrideColor =
+    COLOR_OVERRIDES[type.value] ||
+    COLOR_OVERRIDES[slug] ||
+    COLOR_OVERRIDES[name];
+  const category = (type.category as Category | undefined) ?? undefined;
+  const opts = category
+    ? {
+        anchorH: CATEGORY_ANCHORS[category]?.H,
+        anchorC: CATEGORY_ANCHORS[category]?.C,
+        baseL: CATEGORY_ANCHORS[category]?.baseL,
+        spreadDeg: OKLCH_SPREAD_DEG,
+        cJitter: OKLCH_C_JITTER,
+        lJitter: OKLCH_L_JITTER,
+        lMin: OKLCH_L_MIN,
+        lMax: OKLCH_L_MAX,
+        cMin: OKLCH_C_MIN,
+        cMax: OKLCH_C_MAX
+      }
+    : undefined;
+  const color: string = overrideColor || generateOKLCHFromSlug(slug, opts);
+
+  let textColor = "#eee";
+  const oklch = parseOklchUtil(color);
+  if (oklch) {
+    // Use OKLCH lightness directly for contrast decision
+    textColor = oklch.l > 0.7 ? "#111" : "#eee";
+  } else {
+    const rgbColor = hexToRgbUtil(color);
+    const luminance = rgbColor ? getLuminanceUtil(rgbColor) : 0;
+    textColor = luminance > 0.4 ? "#111" : "#eee";
+  }
+
   return {
     ...type,
     color,
@@ -587,7 +374,26 @@ DATA_TYPES = DATA_TYPES.map((type: any) => {
 });
 
 DATA_TYPES.forEach((type) => {
-  const color: string = type.color || stc(type.value);
+  const overrideColor =
+    COLOR_OVERRIDES[type.value] ||
+    COLOR_OVERRIDES[type.slug] ||
+    COLOR_OVERRIDES[type.name];
+  const category = (type.category as Category | undefined) ?? undefined;
+  const opts = category
+    ? {
+        anchorH: CATEGORY_ANCHORS[category]?.H,
+        anchorC: CATEGORY_ANCHORS[category]?.C,
+        baseL: CATEGORY_ANCHORS[category]?.baseL,
+        spreadDeg: OKLCH_SPREAD_DEG,
+        cJitter: OKLCH_C_JITTER,
+        lJitter: OKLCH_L_JITTER,
+        lMin: OKLCH_L_MIN,
+        lMax: OKLCH_L_MAX,
+        cMin: OKLCH_C_MIN,
+        cMax: OKLCH_C_MAX
+      }
+    : undefined;
+  const color: string = overrideColor || generateOKLCHFromSlug(type.slug, opts);
   document.documentElement.style.setProperty(`--c_${type.slug}`, color);
   document.documentElement.style.setProperty(
     `--c_${type.slug}_text`,

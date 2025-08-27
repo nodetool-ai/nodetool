@@ -10,7 +10,13 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
-import { DataType, IconForType } from "../../../config/data_types";
+import {
+  DataType,
+  IconForType,
+  categoryForType,
+  CATEGORY_ORDER,
+  Category
+} from "../../../config/data_types";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 interface DataTypesListProps {
@@ -27,7 +33,16 @@ const DataTypesList = ({
   onChange
 }: DataTypesListProps) => {
   const theme = useTheme();
-  const types = dataTypes;
+  const types = [...dataTypes].sort((a, b) => {
+    const ca = a.category ?? categoryForType(a.value);
+    const cb = b.category ?? categoryForType(b.value);
+    const ia = CATEGORY_ORDER.indexOf(ca as Category);
+    const ib = CATEGORY_ORDER.indexOf(cb as Category);
+    if (ia !== -1 && ib !== -1 && ia !== ib) return ia - ib;
+    if (ia !== -1 && ib === -1) return -1;
+    if (ia === -1 && ib !== -1) return 1;
+    return a.value.localeCompare(b.value);
+  });
 
   const styles = (theme: Theme) =>
     css({
@@ -127,8 +142,8 @@ const DataTypesList = ({
                   iconName={type.value}
                   containerStyle={{
                     fill: type.textColor,
-                    width: "24px",
-                    height: "24px"
+                    width: "32px",
+                    height: "32px"
                   }}
                   bgStyle={{
                     backgroundColor: type.color,
