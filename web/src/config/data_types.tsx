@@ -41,7 +41,13 @@ import {
   generateOKLCHFromSlug
 } from "../utils/ColorUtils";
 
-// SpectraNode category palette removed in favor of OKLCH generator
+const OKLCH_SPREAD_DEG = 30; // maximum hue deviation around the category anchor
+const OKLCH_C_JITTER = 0.05; // chroma jitter amplitude for subtle within-category variation
+const OKLCH_L_JITTER = 0.05; // lightness jitter amplitude to avoid banding while staying uniform
+const OKLCH_L_MIN = 0.58; // lower bound for lightness
+const OKLCH_L_MAX = 0.88; // upper bound for lightness
+const OKLCH_C_MIN = 0.06; // lower bound for chroma
+const OKLCH_C_MAX = 0.22; // upper bound for chroma
 
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
@@ -93,15 +99,6 @@ export interface DataType {
   textColor: string;
   icon?: string;
 }
-
-const OKLCH_SPREAD_DEG = 16; // maximum hue deviation around the category anchor
-const OKLCH_C_JITTER = 0.025; // chroma jitter amplitude for subtle within-category variation
-const OKLCH_L_JITTER = 0.02; // lightness jitter amplitude to avoid banding while staying uniform
-const OKLCH_EXECUTION_L_JITTER = 0.015; // smaller L jitter for neutral/execution types
-const OKLCH_L_MIN = 0.58; // lower bound for lightness
-const OKLCH_L_MAX = 0.88; // upper bound for lightness
-const OKLCH_C_MIN = 0.06; // lower bound for chroma
-const OKLCH_C_MAX = 0.22; // upper bound for chroma
 
 /**
  * Manual color overrides for specific datatypes (stable, human-picked).
