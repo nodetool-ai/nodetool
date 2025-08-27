@@ -169,8 +169,9 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => {
     },
     selectedPath: [],
     setSelectedPath: (path: string[]) => {
-      const currentPath = get().selectedPath;
-      const newPath = currentPath.join(".") === path.join(".") ? [] : path;
+      // Always set the provided path; do not toggle to empty on re-select.
+      // Use the explicit "All" control to clear the selection.
+      const newPath = path;
       const searchTerm = get().searchTerm;
       const selectedInputType = get().selectedInputType;
       const selectedOutputType = get().selectedOutputType;

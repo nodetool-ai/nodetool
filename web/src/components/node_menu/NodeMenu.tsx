@@ -194,10 +194,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     if (searchResults.length > 0) return;
     try {
       const state: any = (useNodeMenuStore as any).getState?.();
-      const path = state?.selectedPath || [];
-      if (path.length > 0) {
-        state?.setSelectedPath?.([]);
-      }
+      // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {
       console.error("Error performing search:", error);
