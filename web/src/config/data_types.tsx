@@ -26,7 +26,7 @@ import model from "../icons/model.svg?react";
 import str from "../icons/str.svg?react";
 import tensor from "../icons/tensor.svg?react";
 import text from "../icons/text.svg?react";
-import thread from "../icons/thread.svg?react";
+// import thread from "../icons/thread.svg?react";
 import thread_message from "../icons/thread_message.svg?react";
 import union from "../icons/union.svg?react";
 import video from "../icons/video.svg?react";
@@ -35,13 +35,10 @@ import task from "../icons/task.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 import {
-  clamp as clampUtil,
   getLuminance as getLuminanceUtil,
   hexToRgb as hexToRgbUtil,
   parseOklch as parseOklchUtil,
-  generateOKLCHFromSlug,
-  round2 as round2Util,
-  stableHash as stableHashUtil
+  generateOKLCHFromSlug
 } from "../utils/ColorUtils";
 
 // SpectraNode category palette removed in favor of OKLCH generator
@@ -261,7 +258,23 @@ export function colorForType(type: string): string {
   const { slug, name } = getNames(type);
   const overrideColor =
     COLOR_OVERRIDES[type] || COLOR_OVERRIDES[slug] || COLOR_OVERRIDES[name];
-  return overrideColor || generateOKLCHFromSlug(slug);
+  // Generate with same category/rails as initialization for consistent results
+  const category = foundType?.category as Category | undefined;
+  const opts = category
+    ? {
+        anchorH: CATEGORY_ANCHORS[category]?.H,
+        anchorC: CATEGORY_ANCHORS[category]?.C,
+        baseL: CATEGORY_ANCHORS[category]?.baseL,
+        spreadDeg: OKLCH_SPREAD_DEG,
+        cJitter: OKLCH_C_JITTER,
+        lJitter: OKLCH_L_JITTER,
+        lMin: OKLCH_L_MIN,
+        lMax: OKLCH_L_MAX,
+        cMin: OKLCH_C_MIN,
+        cMax: OKLCH_C_MAX
+      }
+    : undefined;
+  return overrideColor || generateOKLCHFromSlug(slug, opts);
 }
 
 export function textColorForType(type: string): string {
@@ -270,11 +283,13 @@ export function textColorForType(type: string): string {
 }
 
 export function descriptionForType(type: string): string {
+  // Helper used by UI surfaces (e.g., Help/DataTypesList) to render descriptions
   const foundType = DATA_TYPES.find((dt) => dt.value === type);
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
+  // Helper used by UI surfaces to render human‑readable labels
   const foundType = DATA_TYPES.find((dt) => dt.value === type);
   return foundType?.label || "";
 }
@@ -306,8 +321,6 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
     slug
   };
 });
-
-// Auto‑derive text colour + register CSS variables
 
 export const CATEGORY_ORDER: Category[] = [
   "scalar",
@@ -373,32 +386,35 @@ DATA_TYPES = DATA_TYPES.map((type: any) => {
   };
 });
 
-DATA_TYPES.forEach((type) => {
-  const overrideColor =
-    COLOR_OVERRIDES[type.value] ||
-    COLOR_OVERRIDES[type.slug] ||
-    COLOR_OVERRIDES[type.name];
-  const category = (type.category as Category | undefined) ?? undefined;
-  const opts = category
-    ? {
-        anchorH: CATEGORY_ANCHORS[category]?.H,
-        anchorC: CATEGORY_ANCHORS[category]?.C,
-        baseL: CATEGORY_ANCHORS[category]?.baseL,
-        spreadDeg: OKLCH_SPREAD_DEG,
-        cJitter: OKLCH_C_JITTER,
-        lJitter: OKLCH_L_JITTER,
-        lMin: OKLCH_L_MIN,
-        lMax: OKLCH_L_MAX,
-        cMin: OKLCH_C_MIN,
-        cMax: OKLCH_C_MAX
-      }
-    : undefined;
-  const color: string = overrideColor || generateOKLCHFromSlug(type.slug, opts);
-  document.documentElement.style.setProperty(`--c_${type.slug}`, color);
-  document.documentElement.style.setProperty(
-    `--c_${type.slug}_text`,
-    type.textColor
-  );
-});
+if (typeof document !== "undefined") {
+  DATA_TYPES.forEach((type) => {
+    const overrideColor =
+      COLOR_OVERRIDES[type.value] ||
+      COLOR_OVERRIDES[type.slug] ||
+      COLOR_OVERRIDES[type.name];
+    const category = (type.category as Category | undefined) ?? undefined;
+    const opts = category
+      ? {
+          anchorH: CATEGORY_ANCHORS[category]?.H,
+          anchorC: CATEGORY_ANCHORS[category]?.C,
+          baseL: CATEGORY_ANCHORS[category]?.baseL,
+          spreadDeg: OKLCH_SPREAD_DEG,
+          cJitter: OKLCH_C_JITTER,
+          lJitter: OKLCH_L_JITTER,
+          lMin: OKLCH_L_MIN,
+          lMax: OKLCH_L_MAX,
+          cMin: OKLCH_C_MIN,
+          cMax: OKLCH_C_MAX
+        }
+      : undefined;
+    const color: string =
+      overrideColor || generateOKLCHFromSlug(type.slug, opts);
+    document.documentElement.style.setProperty(`--c_${type.slug}`, color);
+    document.documentElement.style.setProperty(
+      `--c_${type.slug}_text`,
+      type.textColor
+    );
+  });
+}
 
 export { DATA_TYPES };
