@@ -40,6 +40,8 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const [showOutputDialog, setShowOutputDialog] = useState(false);
   const [newOutputName, setNewOutputName] = useState("");
   const [newOutputType, setNewOutputType] = useState("string");
+  const [showInputDialog, setShowInputDialog] = useState(false);
+  const [newInputName, setNewInputName] = useState("");
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
     if (!name) return;
@@ -63,7 +65,25 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         position: "relative"
       })}
     >
-      {/* Dynamic input properties no longer have an Add button; they are created by dropping a connection. */}
+      {/* Add dynamic input property (+) when node is dynamic */}
+      {isDynamic && (
+        <Box
+          css={css({
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            justifyContent: "flex-start",
+            width: "100%",
+            position: "relative"
+          })}
+        >
+          <Tooltip title="Add input">
+            <IconButton size="small" onClick={() => setShowInputDialog(true)}>
+              <Add fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
 
       {supportsDynamicOutputs && (
         <>
@@ -145,6 +165,64 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           </Dialog>
         </>
       )}
+
+      <Dialog
+        open={showInputDialog}
+        onClose={() => setShowInputDialog(false)}
+        maxWidth="xs"
+        fullWidth
+        sx={{
+          "& .MuiDialog-paper": {
+            borderRadius: "12px",
+            backgroundColor: theme.vars.palette.grey[1000]
+          }
+        }}
+      >
+        <DialogTitle>Add Input</DialogTitle>
+        <DialogContent>
+          <Box css={css({ display: "flex", gap: 12, marginTop: 8 })}>
+            <TextField
+              autoFocus
+              label="Name"
+              size="small"
+              value={newInputName}
+              onChange={(e) => setNewInputName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const name = newInputName.trim();
+                  if (!name) return;
+                  onAddProperty(name);
+                  setNewInputName("");
+                  setShowInputDialog(false);
+                }
+              }}
+              sx={{ flex: 1 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowInputDialog(false)}
+            variant="text"
+            size="small"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              const name = newInputName.trim();
+              if (!name) return;
+              onAddProperty(name);
+              setNewInputName("");
+              setShowInputDialog(false);
+            }}
+            variant="contained"
+            size="small"
+          >
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

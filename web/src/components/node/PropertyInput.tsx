@@ -55,6 +55,7 @@ export type PropertyProps = {
   isInspector?: boolean;
   onChange: (value: any) => void;
   tabIndex?: number;
+  isDynamicProperty?: boolean;
 };
 
 function InputProperty(props: PropertyProps) {
@@ -298,6 +299,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     nodeId: id,
     onChange: onChange,
     tabIndex: tabIndex,
+    isDynamicProperty: isDynamicProperty,
     isInspector: isInspector
   };
 
@@ -421,10 +423,24 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   } else {
     inputField = <div>Unsupported property type</div>;
   }
+  const handleDoubleClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDynamicProperty) return;
+      const target = e.target as HTMLElement;
+      if (target && target.closest && target.closest(".property-label")) {
+        e.stopPropagation();
+        setEditedName(property.name);
+        setIsEditingName(true);
+      }
+    },
+    [isDynamicProperty, property.name]
+  );
+
   return (
     <div
       className={`${className} property-input-container`}
       onContextMenu={onContextMenu}
+      onDoubleClick={handleDoubleClick}
     >
       {inputField}
       {isDynamicProperty && (
