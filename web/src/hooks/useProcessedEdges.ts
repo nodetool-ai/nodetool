@@ -28,6 +28,77 @@ export function useProcessedEdges({
   return useMemo(() => {
     const activeGradientKeys = new Set<string>();
 
+    const REROUTE_TYPE = "nodetool.control.Reroute";
+    const REROUTE_INPUT = "input_value";
+    const REROUTE_OUTPUT = "output";
+
+    function typeInfoFromTypeString(typeString: string | undefined): {
+      slug: string;
+      color: string;
+    } {
+      if (!typeString) {
+        const anyType = dataTypes.find((dt) => dt.slug === "any");
+        return {
+          slug: anyType?.slug || "any",
+          color: anyType?.color || "#888"
+        };
+      }
+      const typeInfoFromDataTypes = dataTypes.find(
+        (dt) =>
+          dt.value === typeString ||
+          dt.name === typeString ||
+          dt.slug === typeString
+      );
+      return {
+        slug: typeInfoFromDataTypes?.slug || "any",
+        color:
+          typeInfoFromDataTypes?.color ||
+          dataTypes.find((dt) => dt.slug === "any")?.color ||
+          "#888"
+      };
+    }
+
+    function getEffectiveSourceType(
+      startNodeId: string,
+      startHandle: string | null | undefined
+    ): { slug: string; color: string } {
+      // Walk upstream through chained reroute nodes to find the originating output type
+      let currentNode = getNode(startNodeId);
+      let currentHandle = startHandle || "";
+      const visited = new Set<string>();
+
+      while (
+        currentNode &&
+        currentNode.type === REROUTE_TYPE &&
+        currentHandle === REROUTE_OUTPUT
+      ) {
+        if (visited.has(currentNode.id)) break;
+        visited.add(currentNode.id);
+        const incoming = edges.find(
+          (e) =>
+            e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
+        );
+        if (!incoming) break;
+        currentNode = getNode(incoming.source);
+        currentHandle = incoming.sourceHandle || "";
+      }
+
+      if (currentNode && currentHandle) {
+        const sourceMetadata = getMetadata(currentNode.type || "");
+        if (sourceMetadata) {
+          const outputHandle = findOutputHandle(
+            currentNode as any,
+            currentHandle,
+            sourceMetadata
+          );
+          if (outputHandle && outputHandle.type && outputHandle.type.type) {
+            return typeInfoFromTypeString(outputHandle.type.type);
+          }
+        }
+      }
+      return typeInfoFromTypeString("any");
+    }
+
     const processedResultEdges = edges.map((edge) => {
       const sourceNode = getNode(edge.source);
       const targetNode = getNode(edge.target);
@@ -37,42 +108,43 @@ export function useProcessedEdges({
         dataTypes.find((dt) => dt.slug === "any")?.color || "#888";
       let targetTypeSlug = "any";
 
-      // --- Source Type Detection ---
-      if (sourceNode && sourceNode.type && edge.sourceHandle) {
-        const sourceMetadata = getMetadata(sourceNode.type);
-        if (sourceMetadata) {
-          const outputHandle = findOutputHandle(sourceNode, edge.sourceHandle, sourceMetadata);
-          if (outputHandle && outputHandle.type && outputHandle.type.type) {
-            const typeString = outputHandle.type.type;
-            const typeInfoFromDataTypes = dataTypes.find(
-              (dt) =>
-                dt.value === typeString ||
-                dt.name === typeString ||
-                dt.slug === typeString
-            );
-            if (typeInfoFromDataTypes) {
-              sourceTypeSlug = typeInfoFromDataTypes.slug;
-              sourceColor = typeInfoFromDataTypes.color;
-            }
-          }
-        }
+      // --- Source Type Detection (with reroute propagation) ---
+      if (sourceNode && edge.sourceHandle) {
+        const effective = getEffectiveSourceType(
+          sourceNode.id,
+          edge.sourceHandle
+        );
+        sourceTypeSlug = effective.slug;
+        sourceColor = effective.color;
       }
 
-      // --- Target Type Detection ---
-      if (targetNode && targetNode.type && edge.targetHandle) {
-        const targetMetadata = getMetadata(targetNode.type);
-        if (targetMetadata) {
-          const inputHandle = findInputHandle(targetNode, edge.targetHandle, targetMetadata);
-          if (inputHandle && inputHandle.type && inputHandle.type.type) {
-            const typeString = inputHandle.type.type;
-            const typeInfoFromDataTypes = dataTypes.find(
-              (dt) =>
-                dt.value === typeString ||
-                dt.name === typeString ||
-                dt.slug === typeString
+      // --- Target Type Detection (treat reroute input as passthrough) ---
+      if (targetNode && edge.targetHandle) {
+        if (
+          targetNode.type === REROUTE_TYPE &&
+          edge.targetHandle === REROUTE_INPUT
+        ) {
+          // Ensure same color on incoming edge to reroute
+          targetTypeSlug = sourceTypeSlug;
+        } else if (targetNode.type) {
+          const targetMetadata = getMetadata(targetNode.type);
+          if (targetMetadata) {
+            const inputHandle = findInputHandle(
+              targetNode as any,
+              edge.targetHandle,
+              targetMetadata
             );
-            if (typeInfoFromDataTypes) {
-              targetTypeSlug = typeInfoFromDataTypes.slug;
+            if (inputHandle && inputHandle.type && inputHandle.type.type) {
+              const typeString = inputHandle.type.type;
+              const typeInfoFromDataTypes = dataTypes.find(
+                (dt) =>
+                  dt.value === typeString ||
+                  dt.name === typeString ||
+                  dt.slug === typeString
+              );
+              if (typeInfoFromDataTypes) {
+                targetTypeSlug = typeInfoFromDataTypes.slug;
+              }
             }
           }
         }

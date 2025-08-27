@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo } from "react";
-import { NodeProps, Node, Handle, Position } from "@xyflow/react";
+import { memo, useMemo } from "react";
+import { NodeProps, Handle, Position } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -9,6 +9,9 @@ import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import useMetadataStore from "../../stores/MetadataStore";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { useNodes } from "../../contexts/NodeContext";
+import { DATA_TYPES } from "../../config/data_types";
+import { findOutputHandle } from "../../utils/handleUtils";
 
 const styles = (theme: Theme) =>
   css({
@@ -38,14 +41,49 @@ interface RerouteNodeProps extends NodeProps {
 
 const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   const theme = useTheme();
-  const { selected, id, type, data } = props;
+  const { selected, id, type } = props;
 
   // Get metadata for this node type
   const metadata = useMetadataStore((state) => state.getMetadata(type));
 
-  if (!metadata) {
-    return <div>Loading...</div>;
-  }
+  const { edges, findNode } = useNodes((state) => ({
+    edges: state.edges,
+    findNode: state.findNode
+  }));
+
+  // Determine effective type from upstream connection
+  const { slug: upstreamSlug, color: upstreamColor } = useMemo(() => {
+    // Default to 'any'
+    const anyType = DATA_TYPES.find((dt) => dt.slug === "any");
+    const fallback = {
+      slug: anyType?.slug || "any",
+      color: anyType?.color || "#888"
+    };
+
+    // Find incoming edge to input_value
+    const incoming = edges.find(
+      (e) => e.target === id && e.targetHandle === "input_value"
+    );
+    if (!incoming) return fallback;
+
+    const sourceNode = findNode(incoming.source);
+    if (!sourceNode) return fallback;
+    const sourceMeta = useMetadataStore
+      .getState()
+      .getMetadata(sourceNode.type || "");
+    if (!sourceMeta) return fallback;
+    const outHandle = findOutputHandle(
+      sourceNode as any,
+      incoming.sourceHandle || "",
+      sourceMeta
+    );
+    const typeStr = outHandle?.type?.type;
+    const match = DATA_TYPES.find(
+      (dt) => dt.value === typeStr || dt.name === typeStr || dt.slug === typeStr
+    );
+    if (match) return { slug: match.slug, color: match.color };
+    return fallback;
+  }, [edges, findNode, id]);
 
   return (
     <Container
@@ -67,13 +105,23 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
         id="input_value"
         type="target"
         position={Position.Left}
-        style={{ top: "50%", transform: "translateY(-50%)" }}
+        className={upstreamSlug}
+        style={{
+          top: "50%",
+          transform: "translateY(-50%)",
+          backgroundColor: upstreamColor
+        }}
       />
       <Handle
         id="output"
         type="source"
         position={Position.Right}
-        style={{ top: "50%", transform: "translateY(-50%)" }}
+        className={upstreamSlug}
+        style={{
+          top: "50%",
+          transform: "translateY(-50%)",
+          backgroundColor: upstreamColor
+        }}
       />
     </Container>
   );
