@@ -2,7 +2,7 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { css, Divider, Menu } from "@mui/material";
+import { css, Divider, Menu, useTheme } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -37,6 +37,7 @@ interface PaneContextMenuProps {
 const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
+  const theme = useTheme();
   const { isClipboardValid } = useClipboard();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
@@ -154,7 +155,11 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       slotProps={{
         paper: {
           sx: {
-            borderRadius: "8px"
+            border: `1px solid ${theme.vars.palette.grey[700]}`,
+            borderRadius: "8px",
+            width: "200px",
+            boxShadow: "0 0 30px 0 rgba(0, 0, 0, 0.2)",
+            backgroundColor: theme.vars.palette.grey[900]
           }
         }
       }}
