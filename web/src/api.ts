@@ -610,24 +610,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Open In Explorer
-         * @description Opens the specified path in the system's default file explorer.
-         *
-         *     Security measures:
-         *     - The requested path must be within a pre-configured list of safe root directories
-         *       (e.g., Ollama models directory, Hugging Face cache).
-         *     - The input path is sanitized using `shlex.quote` for non-Windows platforms before
-         *       being passed to subprocess commands to prevent command injection.
-         *
-         *     Args:
-         *         path (str): The path to open in the file explorer.
-         *         user (str): The current user, injected by FastAPI dependency.
-         *
-         *     Returns:
-         *         dict: A dictionary indicating success (e.g., {"status": "success", "path": "/validated/path"})
-         *               or an error (e.g., {"status": "error", "message": "..."}).
-         */
+        /** Open In Explorer */
         post: operations["open_in_explorer_api_models_open_in_explorer_post"];
         delete?: never;
         options?: never;
@@ -3771,6 +3754,22 @@ export interface components {
             completed_at?: string | null;
         };
         /**
+         * PreviewUpdate
+         * @description A message representing a preview update from a node.
+         */
+        PreviewUpdate: {
+            /**
+             * Type
+             * @default preview_update
+             * @constant
+             */
+            type: "preview_update";
+            /** Node Id */
+            node_id: string;
+            /** Value */
+            value: unknown;
+        };
+        /**
          * Property
          * @description Property of a node.
          *
@@ -3818,6 +3817,67 @@ export interface components {
              * @default false
              */
             downloaded: boolean;
+        };
+        /**
+         * RunJobRequest
+         * @description A request model for running a workflow.
+         *
+         *     Attributes:
+         *         type: The type of request, always "run_job_request".
+         *         job_type: The type of job to run, defaults to "workflow".
+         *         params: Optional parameters for the job.
+         *         messages: Optional list of messages associated with the job.
+         *         workflow_id: The ID of the workflow to run.
+         *         user_id: The ID of the user making the request.
+         *         auth_token: Authentication token for the request.
+         *         api_url: Optional API URL to use for the job.
+         *         env: Optional environment variables for the job.
+         *         graph: Optional graph data for the job.
+         *         explicit_types: Whether to use explicit types, defaults to False.
+         */
+        RunJobRequest: {
+            /**
+             * Type
+             * @default run_job_request
+             * @constant
+             */
+            type: "run_job_request";
+            /**
+             * Job Type
+             * @default workflow
+             */
+            job_type: string;
+            /** Params */
+            params?: unknown | null;
+            /** Messages */
+            messages?: components["schemas"]["Message"][] | null;
+            /**
+             * Workflow Id
+             * @default
+             */
+            workflow_id: string;
+            /**
+             * User Id
+             * @default
+             */
+            user_id: string;
+            /**
+             * Auth Token
+             * @default
+             */
+            auth_token: string;
+            /** Api Url */
+            api_url?: string | null;
+            /** Env */
+            env?: {
+                [key: string]: unknown;
+            } | null;
+            graph?: components["schemas"]["Graph-Output"] | null;
+            /**
+             * Explicit Types
+             * @default false
+             */
+            explicit_types: boolean | null;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
@@ -5759,7 +5819,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
                 };
             };
         };

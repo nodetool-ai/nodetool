@@ -4,16 +4,13 @@ import {
   Prediction,
   NodeProgress,
   NodeUpdate,
-  AssetRef,
-  Message,
   TaskUpdate,
   ToolCallUpdate,
   PlanningUpdate,
   OutputUpdate,
-  ImageRef
+  PreviewUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
-import { useAssetStore } from "./AssetStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
@@ -26,15 +23,17 @@ export const handleUpdate = (
   data: MsgpackData
 ) => {
   const runner = useWorkflowRunner.getState();
-  const getAsset = useAssetStore.getState().get;
   const setResult = useResultsStore.getState().setResult;
   const setStatus = useStatusStore.getState().setStatus;
   const setLogs = useLogsStore.getState().setLogs;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
+  const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
+
+  console.log("handleUpdate", data);
 
   if (data.type === "planning_update") {
     const planningUpdate = data as PlanningUpdate;
@@ -149,6 +148,11 @@ export const handleUpdate = (
       progress.progress,
       progress.total
     );
+  }
+
+  if (data.type === "preview_update") {
+    const preview = data as PreviewUpdate;
+    setPreview(workflow.id, preview.node_id, preview.value, true);
   }
 
   if (data.type === "node_update") {

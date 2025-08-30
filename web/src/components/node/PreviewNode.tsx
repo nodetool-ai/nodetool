@@ -163,19 +163,13 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   //   )
   // );
   const result = useResultsStore((state) =>
-    state.getResult(props.data.workflow_id, props.id)
+    state.getPreview(props.data.workflow_id, props.id)
   );
 
+  console.log("result", result);
+
   const memoizedOutputRenderer = useMemo(() => {
-    return result !== undefined ? (
-      <OutputRenderer
-        value={
-          Array.isArray(result)
-            ? result.map((i: any) => i.output)
-            : result.output
-        }
-      />
-    ) : null;
+    return result !== undefined ? <OutputRenderer value={result} /> : null;
   }, [result]);
 
   // const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
@@ -320,9 +314,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         // display: parentIsCollapsed ? "none" : "flex",
         display: "flex",
         border: "none",
-        bgcolor: hasParent
-          ? theme.vars.palette.c_node_bg_group
-          : undefined,
+        bgcolor: hasParent ? theme.vars.palette.c_node_bg_group : undefined,
         backgroundColor: hasParent
           ? undefined
           : (theme.vars.palette.c_node_bg as any)
