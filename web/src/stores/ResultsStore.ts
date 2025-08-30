@@ -8,6 +8,7 @@ type ResultsStore = {
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
   planningUpdates: Record<string, PlanningUpdate>;
+  previews: Record<string, any>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
   clearProgress: (workflowId: string) => void;
@@ -15,6 +16,14 @@ type ResultsStore = {
   clearTasks: (workflowId: string) => void;
   clearChunks: (workflowId: string) => void;
   clearPlanningUpdates: (workflowId: string) => void;
+  clearPreviews: (workflowId: string) => void;
+  setPreview: (
+    workflowId: string,
+    nodeId: string,
+    preview: any,
+    append?: boolean
+  ) => void;
+  getPreview: (workflowId: string, nodeId: string) => any;
   setResult: (
     workflowId: string,
     nodeId: string,
@@ -66,6 +75,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   tasks: {},
   toolCalls: {},
   planningUpdates: {},
+  previews: {},
   /**
    * Set the planning update for a node.
    * The planning update is stored in the planningUpdates map.
@@ -81,6 +91,42 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         [hashKey(workflowId, nodeId)]: planningUpdate
       }
     });
+  },
+  /**
+   * Set the preview for a node.
+   * The preview is stored in the previews map.
+   */
+  setPreview: (
+    workflowId: string,
+    nodeId: string,
+    preview: any,
+    append?: boolean
+  ) => {
+    if (get().previews[hashKey(workflowId, nodeId)] === undefined || !append) {
+      set({
+        previews: { ...get().previews, [hashKey(workflowId, nodeId)]: preview }
+      });
+    } else {
+      let currentPreview = get().previews[hashKey(workflowId, nodeId)];
+      if (Array.isArray(currentPreview)) {
+        currentPreview = [...currentPreview, preview];
+      } else {
+        currentPreview = [currentPreview, preview];
+      }
+      set({
+        previews: {
+          ...get().previews,
+          [hashKey(workflowId, nodeId)]: currentPreview
+        }
+      });
+    }
+  },
+  /**
+   * Get the preview for a node.
+   * The preview is stored in the previews map.
+   */
+  getPreview: (workflowId: string, nodeId: string) => {
+    return get().previews[hashKey(workflowId, nodeId)];
   },
   /**
    * Get the planning update for a node.
@@ -160,6 +206,18 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
     }
     set({ progress });
+  },
+  /**
+   * Clear the previews for a workflow.
+   */
+  clearPreviews: (workflowId: string) => {
+    const previews = get().previews;
+    for (const key in previews) {
+      if (key.startsWith(workflowId)) {
+        delete previews[key];
+      }
+    }
+    set({ previews });
   },
   /**
    * Clear the tool calls for a workflow.

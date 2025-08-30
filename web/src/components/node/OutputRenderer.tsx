@@ -47,49 +47,90 @@ export type OutputRendererProps = {
   value: any;
 };
 
+// Heuristic to detect if a string likely contains Markdown
+const isLikelyMarkdown = (text: string): boolean => {
+  if (!text) return false;
+  // Quick rejects: very short strings or strings without markdown-y chars
+  if (text.length < 6) return false;
+
+  // Common Markdown patterns
+  const patterns = [
+    /(^|\n)\s{0,3}#{1,6}\s+\S/, // headings
+    /(^|\n)```/, // fenced code blocks
+    /(^|\n)\s{0,3}[-*+]\s+\S/, // unordered list
+    /(^|\n)\s{0,3}\d+\.\s+\S/, // ordered list
+    /\[[^\]]+\]\([^\)]+\)/, // links
+    /!\[[^\]]*\]\([^\)]+\)/, // images
+    /(^|\n)\s{0,3}>\s+\S/, // blockquote
+    /(^|\n)\|[^\n]*\|/, // tables with pipes
+    /`[^`]+`/, // inline code
+    /(^|\n)\s*([-*_]\s*){3,}\s*(\n|$)/, // hr --- *** ___
+    /\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_/ // emphasis
+  ];
+
+  return patterns.some((re) => re.test(text));
+};
+
+// Render text as Markdown when appropriate, else as plain text
+const renderMaybeMarkdown = (text: string): React.ReactNode =>
+  isLikelyMarkdown(text) ? (
+    <MarkdownRenderer content={text} />
+  ) : (
+    <div style={{ padding: "1em", whiteSpace: "pre-wrap" }}>{text}</div>
+  );
+
 function generateAssetGridContent(
   value: AssetRef[],
   onDoubleClick: (asset: Asset) => void
 ) {
-  const assets: Asset[] = value.map((item: AssetRef, index: number) => {
-    let contentType: string;
-    let name: string;
-    switch (item.type) {
-      case "image":
-        contentType = "image/png";
-        break;
-      case "audio":
-        contentType = "audio/mp3";
-        break;
-      case "video":
-        contentType = "video/mp4";
-        break;
-      default:
-        contentType = "application/octet-stream";
+  const assets: (Asset | null)[] = value.map(
+    (item: AssetRef, index: number) => {
+      let contentType: string;
+      if (item === undefined || item === null) {
+        return null;
+      }
+      switch (item.type) {
+        case "image":
+          contentType = "image/png";
+          break;
+        case "audio":
+          contentType = "audio/mp3";
+          break;
+        case "video":
+          contentType = "video/mp4";
+          break;
+        default:
+          contentType = "application/octet-stream";
+      }
+
+      if (item.data && !(item.data instanceof Uint8Array)) {
+        throw new Error("Data is not a Uint8Array");
+      }
+
+      const get_url =
+        item.uri || uint8ArrayToDataUri(item.data as Uint8Array, contentType);
+
+      return {
+        id: `output-${item.type}-${index}`,
+        user_id: "",
+        workflow_id: null,
+        parent_id: "",
+        name: `output-${item.type}-${index}`,
+        content_type: contentType,
+        metadata: {},
+        created_at: new Date().toISOString(),
+        get_url: get_url,
+        thumb_url: get_url
+      } as Asset;
     }
+  );
 
-    if (item.data && !(item.data instanceof Uint8Array)) {
-      throw new Error("Data is not a Uint8Array");
-    }
-
-    const get_url =
-      item.uri || uint8ArrayToDataUri(item.data as Uint8Array, contentType);
-
-    return {
-      id: `output-${item.type}-${index}`,
-      user_id: "",
-      workflow_id: null,
-      parent_id: "",
-      name: `output-${item.type}-${index}`,
-      content_type: contentType,
-      metadata: {},
-      created_at: new Date().toISOString(),
-      get_url: get_url,
-      thumb_url: get_url
-    } as Asset;
-  });
-
-  return <AssetGridContent assets={assets} onDoubleClick={onDoubleClick} />;
+  return (
+    <AssetGridContent
+      assets={assets.filter((a) => a !== null)}
+      onDoubleClick={onDoubleClick}
+    />
+  );
 }
 
 const convertStyleStringToObject = (
@@ -317,7 +358,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     function renderArrayPreview(array: NPArray): React.ReactNode {
       return <ArrayView array={array} />;
     }
-    console.log("value", value);
 
     let config: PlotlyConfig | undefined;
     switch (type) {
@@ -340,9 +380,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             <ImageView key={i} source={v} />
           ));
         } else {
-          return (
-            <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
-          );
+          return <ImageView source={value?.uri ? value?.uri : value?.data} />;
         }
       case "audio":
         return (
@@ -387,10 +425,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             return null;
           }
           if (typeof value[0] === "string") {
-            return (
-              <MarkdownRenderer
-                content={value.map((v: any) => v.toString()).join("")}
-              />
+            return renderMaybeMarkdown(
+              value.map((v: any) => v.toString()).join("")
             );
           }
           if (typeof value[0] === "number") {
@@ -403,7 +439,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => c.content_type === "text");
               if (allText) {
-                const text = chunks.map((c) => c.content).join("");
+                const text = chunks
+                  .filter((c) => !!c)
+                  .map((c) => c.content)
+                  .join("");
                 return (
                   <div
                     className="output value nodrag noscroll"
@@ -424,7 +463,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                             </Button>
                           </Tooltip>
                         </ButtonGroup>
-                        <MarkdownRenderer content={text} />
+                        {renderMaybeMarkdown(text)}
                       </>
                     )}
                   </div>
@@ -537,7 +576,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               </p>
             </div>
             <div className="email-body">
-              <MarkdownRenderer content={value.body} />
+              {renderMaybeMarkdown(value.body)}
             </div>
           </div>
         );
@@ -584,7 +623,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                         </Button>
                       </Tooltip>
                     </ButtonGroup>
-                    <MarkdownRenderer content={text} />
+                    {renderMaybeMarkdown(text)}
                   </>
                 )}
               </div>
@@ -612,7 +651,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                       </Button>
                     </Tooltip>
                   </ButtonGroup>
-                  <MarkdownRenderer content={value?.toString()} />
+                  {renderMaybeMarkdown(value?.toString())}
                 </>
               )}
           </div>

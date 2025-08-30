@@ -20,7 +20,6 @@ import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
-import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -202,6 +201,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
     const clearResults = useResultsStore.getState().clearResults;
+    const clearPreviews = useResultsStore.getState().clearPreviews;
     const clearProgress = useResultsStore.getState().clearProgress;
     const clearToolCalls = useResultsStore.getState().clearToolCalls;
     const clearTasks = useResultsStore.getState().clearTasks;
@@ -238,6 +238,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     clearLogs(workflow.id);
     clearErrors(workflow.id);
     clearResults(workflow.id);
+    clearPreviews(workflow.id);
     clearProgress(workflow.id);
     clearToolCalls(workflow.id);
     clearTasks(workflow.id);
