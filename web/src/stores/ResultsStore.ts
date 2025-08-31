@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { PlanningUpdate, Task, ToolCall, ToolCallUpdate } from "./ApiTypes";
+import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
+  edges: Record<string, string>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
@@ -17,6 +18,9 @@ type ResultsStore = {
   clearChunks: (workflowId: string) => void;
   clearPlanningUpdates: (workflowId: string) => void;
   clearPreviews: (workflowId: string) => void;
+  clearEdges: (workflowId: string) => void;
+  setEdge: (workflowId: string, edgeId: string, status: string) => void;
+  getEdge: (workflowId: string, edgeId: string) => string | undefined;
   setPreview: (
     workflowId: string,
     nodeId: string,
@@ -74,8 +78,18 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   chunks: {},
   tasks: {},
   toolCalls: {},
+  edges: {},
   planningUpdates: {},
   previews: {},
+  clearEdges: (workflowId: string) => {
+    const edges = get().edges;
+    for (const key in edges) {
+      if (key.startsWith(workflowId)) {
+        delete edges[key];
+      }
+    }
+    set({ edges });
+  },
   /**
    * Set the planning update for a node.
    * The planning update is stored in the planningUpdates map.
@@ -134,6 +148,25 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   getPlanningUpdate: (workflowId: string, nodeId: string) => {
     return get().planningUpdates[hashKey(workflowId, nodeId)];
+  },
+  /**
+   * Set the status for an edge.
+   * The edge is stored in the edges map.
+   */
+  setEdge: (workflowId: string, edgeId: string, status: string) => {
+    set({
+      edges: {
+        ...get().edges,
+        [hashKey(workflowId, edgeId)]: status
+      }
+    });
+  },
+  /**
+   * Get the status for an edge.
+   * The edge is stored in the edges map.
+   */
+  getEdge: (workflowId: string, edgeId: string) => {
+    return get().edges[hashKey(workflowId, edgeId)];
   },
   /**
    * Set the tool call for a node.

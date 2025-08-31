@@ -8,7 +8,8 @@ import {
   ToolCallUpdate,
   PlanningUpdate,
   OutputUpdate,
-  PreviewUpdate
+  PreviewUpdate,
+  EdgeUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -32,8 +33,13 @@ export const handleUpdate = (
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
-
+  const setEdge = useResultsStore.getState().setEdge;
   console.log("handleUpdate", data);
+
+  if (data.type === "edge_update") {
+    const edgeUpdate = data as EdgeUpdate;
+    setEdge(workflow.id, edgeUpdate.edge_id, edgeUpdate.status);
+  }
 
   if (data.type === "planning_update") {
     const planningUpdate = data as PlanningUpdate;

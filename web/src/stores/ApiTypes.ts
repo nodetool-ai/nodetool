@@ -50,7 +50,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
   };
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message-Output"];
+export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
   components["schemas"]["MessageCreateRequest"];
@@ -132,3 +132,4 @@ export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
 export type ThreadSummarizeRequest =
   components["schemas"]["ThreadSummarizeRequest"];
 export type ThreadList = components["schemas"]["ThreadList"];
+export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
