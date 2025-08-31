@@ -158,7 +158,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
-  const { getNode } = useReactFlow();
 
   /* USE STORE */
   const { close: closeSelect } = useSelect();
@@ -322,7 +321,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
-    getNode,
     dataTypes: DATA_TYPES,
     getMetadata
   });

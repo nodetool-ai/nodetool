@@ -8,7 +8,6 @@ import { NodeData } from "../stores/NodeData";
 interface ProcessedEdgesOptions {
   edges: Edge[];
   nodes: Node<NodeData>[];
-  getNode: (id: string) => Node<NodeData> | undefined;
   dataTypes: DataType[];
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
 }
@@ -21,11 +20,11 @@ interface ProcessedEdgesResult {
 export function useProcessedEdges({
   edges,
   nodes,
-  getNode,
   dataTypes,
   getMetadata
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
   return useMemo(() => {
+    const getNode = (id: string) => nodes.find((node) => node.id === id);
     const activeGradientKeys = new Set<string>();
 
     const REROUTE_TYPE = "nodetool.control.Reroute";
@@ -173,5 +172,5 @@ export function useProcessedEdges({
     // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
     // fully populated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edges, nodes, getNode, dataTypes, getMetadata]);
+  }, [edges, nodes, dataTypes, getMetadata]);
 }
