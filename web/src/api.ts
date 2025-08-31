@@ -1612,6 +1612,22 @@ export interface components {
                 [key: string]: string;
             } | null;
         };
+        /**
+         * EdgeUpdate
+         * @description A message representing an update to an edge.
+         */
+        EdgeUpdate: {
+            /**
+             * Type
+             * @default edge_update
+             * @constant
+             */
+            type: "edge_update";
+            /** Edge Id */
+            edge_id: string;
+            /** Status */
+            status: string;
+        };
         /** Email */
         Email: {
             /**
@@ -4323,6 +4339,24 @@ export interface components {
             message?: string | null;
         };
         /**
+         * ToolResultUpdate
+         * @description A message representing a tool result from a node.
+         */
+        ToolResultUpdate: {
+            /**
+             * Type
+             * @default tool_result_update
+             * @constant
+             */
+            type: "tool_result_update";
+            /** Node Id */
+            node_id: string;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * TypeMetadata
          * @description Metadata for a type.
          */
@@ -5819,7 +5853,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
                 };
             };
         };

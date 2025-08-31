@@ -10,6 +10,8 @@ interface ProcessedEdgesOptions {
   nodes: Node<NodeData>[];
   dataTypes: DataType[];
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
+  workflowId?: string;
+  edgeStatuses?: Record<string, string>;
 }
 
 interface ProcessedEdgesResult {
@@ -21,7 +23,9 @@ export function useProcessedEdges({
   edges,
   nodes,
   dataTypes,
-  getMetadata
+  getMetadata,
+  workflowId,
+  edgeStatuses
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
   return useMemo(() => {
     const getNode = (id: string) => nodes.find((node) => node.id === id);
@@ -157,8 +161,24 @@ export function useProcessedEdges({
         activeGradientKeys.add(gradientKey);
       }
 
+      // Build edge CSS class names (type slugs + transient statuses)
+      const classes: string[] = [];
+      if (sourceTypeSlug) classes.push(sourceTypeSlug);
+      if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug)
+        classes.push(targetTypeSlug);
+
+      // If we have a status for this edge and it's a message_sent, tag it
+      const statusKey =
+        workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
+      const status = statusKey ? edgeStatuses?.[statusKey] : undefined;
+      if (status === "message_sent") {
+        classes.push("message-sent");
+      }
+      console.log("status", status);
+
       return {
         ...edge,
+        className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,
           stroke: strokeStyle,
@@ -172,5 +192,5 @@ export function useProcessedEdges({
     // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
     // fully populated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edges, nodes, dataTypes, getMetadata]);
+  }, [edges, nodes, dataTypes, getMetadata, workflowId, edgeStatuses]);
 }

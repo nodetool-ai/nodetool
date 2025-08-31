@@ -58,6 +58,7 @@ import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import useResultsStore from "../../stores/ResultsStore";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -318,11 +319,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
+  const edgeStatuses = useResultsStore((state) => state.edges);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
-    getMetadata
+    getMetadata,
+    workflowId,
+    edgeStatuses
   });
   const activeGradientKeysArray = useMemo(
     () => Array.from(activeGradientKeys),

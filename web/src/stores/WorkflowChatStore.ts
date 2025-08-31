@@ -17,13 +17,18 @@ import {
   WorkflowAttributes,
   Chunk,
   SubTaskResult,
-  Thread
+  Thread,
+  EdgeUpdate,
+  PreviewUpdate
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
 import { handleUpdate } from "./workflowUpdates";
 import { supabase } from "../lib/supabaseClient";
-import { WebSocketManager, ConnectionState } from "../lib/websocket/WebSocketManager";
+import {
+  WebSocketManager,
+  ConnectionState
+} from "../lib/websocket/WebSocketManager";
 import { uuidv4 } from "./uuidv4";
 
 // Include additional runtime statuses used during message streaming
@@ -47,32 +52,32 @@ type WorkflowChatState = {
   statusMessage: string | null;
   progress: { current: number; total: number };
   error: string | null;
-  
+
   // Thread management
   threads: Record<string, WorkflowThread>;
   currentThreadId: string | null;
-  
+
   // Agent mode
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
-  
+
   // Planning updates
   currentPlanningUpdate: PlanningUpdate | null;
   setPlanningUpdate: (update: PlanningUpdate | null) => void;
-  
+
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
   setTaskUpdate: (update: TaskUpdate | null) => void;
-  
+
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
-  
+
   // Actions
   connect: (workflow: WorkflowAttributes) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
-  
+
   // Thread actions
   createNewThread: () => string;
   switchThread: (threadId: string) => void;
@@ -94,7 +99,10 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | SubTaskResult
-  | WorkflowCreatedUpdate;
+  | WorkflowCreatedUpdate
+  | WorkflowUpdatedUpdate
+  | PreviewUpdate
+  | EdgeUpdate;
 
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
@@ -152,23 +160,25 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
   statusMessage: null,
   progress: { current: 0, total: 0 },
   error: null,
-  
+
   // Thread state
   threads: {} as Record<string, WorkflowThread>,
   currentThreadId: null as string | null,
-  
+
   // Agent mode - NOT SUPPORTED IN WORKFLOW CHAT
   agentMode: false,
   setAgentMode: (enabled: boolean) => {}, // No-op for workflow chat
-  
+
   // Planning updates
   currentPlanningUpdate: null,
-  setPlanningUpdate: (update: PlanningUpdate | null) => set({ currentPlanningUpdate: update }),
-  
+  setPlanningUpdate: (update: PlanningUpdate | null) =>
+    set({ currentPlanningUpdate: update }),
+
   // Task updates
   currentTaskUpdate: null,
-  setTaskUpdate: (update: TaskUpdate | null) => set({ currentTaskUpdate: update }),
-  
+  setTaskUpdate: (update: TaskUpdate | null) =>
+    set({ currentTaskUpdate: update }),
+
   // Workflow graph updates
   lastWorkflowGraphUpdate: null,
   connect: async (workflow: WorkflowAttributes) => {
@@ -209,7 +219,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
 
     const wsManager = new WebSocketManager({
       url: wsUrl,
-      binaryType: 'arraybuffer',
+      binaryType: "arraybuffer",
       reconnect: true,
       reconnectInterval: 1000,
       reconnectAttempts: 5,
@@ -217,21 +227,21 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
     });
 
     // Handle state changes
-    wsManager.on('stateChange', (newState: ConnectionState) => {
+    wsManager.on("stateChange", (newState: ConnectionState) => {
       // Don't override loading status when WebSocket connects
       const currentState = get();
-      if (newState === 'connected' && currentState.status === 'loading') {
+      if (newState === "connected" && currentState.status === "loading") {
         // Keep loading status if we're waiting for a response
-        set({ 
-          error: null, 
+        set({
+          error: null,
           statusMessage: null
         });
       } else {
         set({ status: newState });
-        
-        if (newState === 'connected') {
-          set({ 
-            error: null, 
+
+        if (newState === "connected") {
+          set({
+            error: null,
             statusMessage: null
           });
         }
@@ -239,33 +249,32 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
     });
 
     // Handle connection open
-    wsManager.on('open', () => {
+    wsManager.on("open", () => {
       log.info("Chat WebSocket connected");
       set({ socket: wsManager.getWebSocket() });
     });
 
     // Handle messages
-    wsManager.on('message', (data: MsgpackData) => {
+    wsManager.on("message", (data: MsgpackData) => {
       handleWebSocketMessage(data, set, get);
-
     });
 
     // Handle errors
-    wsManager.on('error', (error: Error) => {
+    wsManager.on("error", (error: Error) => {
       log.error("Chat WebSocket error:", error);
       let errorMessage = error.message;
-      
+
       if (!isLocalhost) {
         errorMessage += " This may be due to an authentication issue.";
       }
-      
+
       set({
         error: errorMessage
       });
     });
 
     // Handle close
-    wsManager.on('close', (code: number, reason: string) => {
+    wsManager.on("close", (code: number, reason: string) => {
       set({ socket: null });
       if (code === 1008 || code === 4001 || code === 4003) {
         // Authentication errors
@@ -276,7 +285,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
     });
 
     // Handle reconnection attempts
-    wsManager.on('reconnecting', (attempt: number, maxAttempts: number) => {
+    wsManager.on("reconnecting", (attempt: number, maxAttempts: number) => {
       set({
         statusMessage: `Reconnecting... (attempt ${attempt}/${maxAttempts})`
       });
@@ -294,7 +303,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
 
   disconnect: () => {
     const { wsManager } = get();
-    
+
     if (wsManager) {
       wsManager.disconnect();
       wsManager.destroy();
@@ -345,11 +354,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
     if (thread) {
       // Auto-generate title from first user message if not set
       let title = thread.title;
-      if (
-        !title &&
-        thread.messages.length === 0 &&
-        message.role === "user"
-      ) {
+      if (!title && thread.messages.length === 0 && message.role === "user") {
         const content =
           typeof message.content === "string"
             ? message.content
@@ -357,8 +362,7 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
               message.content[0]?.type === "text"
             ? (message.content[0] as any).text
             : "New conversation";
-        title =
-          content.substring(0, 50) + (content.length > 50 ? "..." : "");
+        title = content.substring(0, 50) + (content.length > 50 ? "..." : "");
       }
 
       set((state) => ({
@@ -379,7 +383,9 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
       wsManager.send(messageToSend);
     } catch (error) {
       log.error("Failed to send message:", error);
-      set({ error: error instanceof Error ? error.message : "Failed to send message" });
+      set({
+        error: error instanceof Error ? error.message : "Failed to send message"
+      });
       throw error;
     }
   },
@@ -505,11 +511,15 @@ const useWorkflowChatStore = create<WorkflowChatState>()((set, get) => ({
 // WebSocket message handler
 function handleWebSocketMessage(
   data: MsgpackData,
-  set: (state: Partial<WorkflowChatState> | ((state: WorkflowChatState) => Partial<WorkflowChatState>)) => void,
+  set: (
+    state:
+      | Partial<WorkflowChatState>
+      | ((state: WorkflowChatState) => Partial<WorkflowChatState>)
+  ) => void,
   get: () => WorkflowChatState
 ) {
   console.log(data);
-  
+
   const workflow = get().workflow;
   if (!workflow) {
     log.error("No workflow connected");
@@ -559,7 +569,11 @@ function handleWebSocketMessage(
   } else if (data.type === "node_update") {
     const update = data as NodeUpdate;
     if (update.status === "completed") {
-      set({ status: "connected", progress: { current: 0, total: 0 }, statusMessage: null });
+      set({
+        status: "connected",
+        progress: { current: 0, total: 0 },
+        statusMessage: null
+      });
     } else {
       set({ statusMessage: update.node_name });
     }
@@ -597,11 +611,11 @@ function handleWebSocketMessage(
             updatedContent = [
               {
                 type: "text",
-                text: (lastMessage.content as string || "") + chunk.content
+                text: ((lastMessage.content as string) || "") + chunk.content
               }
             ];
           }
-          
+
           const updatedMessage: Message = {
             ...lastMessage,
             content: updatedContent
@@ -640,7 +654,12 @@ function handleWebSocketMessage(
           }));
         }
         if (chunk.done) {
-          set({ status: "connected", statusMessage: null, currentPlanningUpdate: null, currentTaskUpdate: null });
+          set({
+            status: "connected",
+            statusMessage: null,
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null
+          });
         }
       }
     }
@@ -658,7 +677,7 @@ function handleWebSocketMessage(
             if (update.value === "<nodetool_end_of_stream>") {
               return;
             }
-            
+
             // Handle mixed content types - preserve array structure if it exists
             let updatedContent: string | MessageContent[];
             if (Array.isArray(lastMessage.content)) {
@@ -681,9 +700,11 @@ function handleWebSocketMessage(
               updatedContent = contentArray;
             } else {
               // If content is a string, append to it
-              updatedContent = (lastMessage.content as string || "") + (update.value as string);
+              updatedContent =
+                ((lastMessage.content as string) || "") +
+                (update.value as string);
             }
-            
+
             const updatedMessage: Message = {
               ...lastMessage,
               content: updatedContent
@@ -720,9 +741,7 @@ function handleWebSocketMessage(
               }
             }));
           }
-        } else if (
-          ["image", "audio", "video"].includes(update.output_type)
-        ) {
+        } else if (["image", "audio", "video"].includes(update.output_type)) {
           const message: Message = {
             role: "assistant",
             type: "message",
@@ -771,10 +790,10 @@ function handleWebSocketMessage(
   } else if (data.type === "workflow_updated") {
     const update = data as WorkflowUpdatedUpdate;
     const threadId = get().currentThreadId;
-    
+
     // Store the workflow graph update
     set({ lastWorkflowGraphUpdate: update });
-    
+
     if (threadId) {
       // Add a message to the thread about the updated workflow
       const message: Message = {
@@ -782,7 +801,7 @@ function handleWebSocketMessage(
         type: "message",
         content: "Workflow updated successfully!",
         workflow_id: workflow.id,
-        graph: update.graph 
+        graph: update.graph
       };
       set((state) => {
         const thread = state.threads[threadId];
@@ -806,10 +825,10 @@ function handleWebSocketMessage(
   } else if (data.type === "workflow_created") {
     const update = data as WorkflowCreatedUpdate;
     const threadId = get().currentThreadId;
-    
+
     // Store the workflow graph update
     set({ lastWorkflowGraphUpdate: update });
-    
+
     if (threadId) {
       // Add a message to the thread about the created workflow
       const message: Message = {
@@ -817,9 +836,9 @@ function handleWebSocketMessage(
         type: "message",
         content: "Workflow created successfully!",
         workflow_id: workflow.id,
-        graph: update.graph 
+        graph: update.graph
       };
-      
+
       set((state) => {
         const thread = state.threads[threadId];
         if (thread) {
@@ -843,14 +862,14 @@ function handleWebSocketMessage(
     // Handle error messages
     const errorData = data as any;
     const threadId = get().currentThreadId;
-    
+
     // Set error state
     set({
       error: errorData.message || "An error occurred",
       status: "error",
       statusMessage: errorData.message
     });
-    
+
     // Add error message to thread
     if (threadId) {
       const errorMessage: Message = {
@@ -860,7 +879,7 @@ function handleWebSocketMessage(
         workflow_id: workflow.id,
         error_type: errorData.error_type || "unknown"
       };
-      
+
       set((state) => {
         const thread = state.threads[threadId];
         if (thread) {
