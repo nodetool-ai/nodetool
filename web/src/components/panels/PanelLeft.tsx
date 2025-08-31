@@ -43,7 +43,8 @@ const styles = (theme: Theme) =>
     left: "0",
     ".panel-container": {
       flexShrink: 0,
-      position: "absolute"
+      position: "absolute",
+      backgroundColor: theme.vars.palette.background.default
     },
     ".panel-left": {
       border: "none",
@@ -53,7 +54,8 @@ const styles = (theme: Theme) =>
       width: "100%",
       padding: "0",
       top: "72px",
-      height: "calc(-72px + 100vh)"
+      height: "calc(100vh - 72px)",
+      backgroundColor: theme.vars.palette.background.default
     },
 
     ".panel-button": {
@@ -519,7 +521,8 @@ const PanelLeft: React.FC = () => {
                 }px`
               : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
-            maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 40px)", // Use dynamic viewport height when available
+            // Match the panel height to avoid any gap beneath the drawer
+            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 72px)",
             contain: isMobile ? "layout style" : "none",
             boxSizing: "border-box",
             overflow: "hidden" // Prevent panel content from overflowing

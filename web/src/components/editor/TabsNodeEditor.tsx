@@ -25,7 +25,6 @@ const styles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
-    marginLeft: "40px",
     display: "flex",
     flexDirection: "column",
     width: "100%",
@@ -37,17 +36,16 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       alignItems: "center",
       position: "relative",
-      padding: "4px 0px",
+      padding: "4px 0px 0px 10px",
       width: "100%",
       WebkitAppRegion: "drag"
-      // borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     "& .tabs": {
       flex: 1,
       zIndex: 1000,
       display: "flex",
       flexWrap: "nowrap",
-      minHeight: "40px",
+      minHeight: "32px",
       overflowX: "auto",
       overflowY: "hidden",
       whiteSpace: "nowrap",
