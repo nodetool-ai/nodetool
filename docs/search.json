@@ -1,0 +1,14 @@
+---
+layout: null
+---
+[
+  {% for page in site.pages %}
+  {% if page.url != '/search.json' %}
+  {
+    "title": {{ page.title | jsonify }},
+    "url": {{ page.url | relative_url | jsonify }},
+    "content": {{ page.content | strip_html | strip_newlines | jsonify }}
+  }{% unless forloop.last %},{% endunless %}
+  {% endif %}
+  {% endfor %}
+]
