@@ -168,6 +168,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   },
 
   disconnect: () => {
+    console.log("Disconnecting WebSocket");
     const { wsManager } = get();
     if (wsManager) {
       wsManager.disconnect();

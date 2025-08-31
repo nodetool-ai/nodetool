@@ -166,8 +166,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     state.getPreview(props.data.workflow_id, props.id)
   );
 
-  console.log("result", result);
-
   const memoizedOutputRenderer = useMemo(() => {
     return result !== undefined ? <OutputRenderer value={result} /> : null;
   }, [result]);
