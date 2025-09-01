@@ -9,10 +9,14 @@ import {
   MenuItem,
   OutlinedInput,
   Paper,
+  IconButton,
   Select,
   SelectChangeEvent,
   Typography
 } from "@mui/material";
+import Tooltip from "@mui/material/Tooltip";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
@@ -30,9 +34,33 @@ const containerStyles = (theme: Theme) =>
     padding: "8px 10px 10px 10px",
     boxSizing: "border-box",
     gap: 8,
+    "&.fullscreen": {
+      position: "fixed",
+      inset: 0,
+      zIndex: theme.zIndex.modal,
+      backgroundColor: theme.vars.palette.background.default,
+      padding: 12
+    },
     ".filters": {
+      position: "relative",
+      display: "block",
+      paddingRight: 48,
+      rowGap: 8,
+      minHeight: 40
+    },
+    ".filters-left": {
       display: "flex",
       gap: 10,
+      rowGap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      minWidth: 0
+    },
+    ".filters-right": {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      display: "flex",
       alignItems: "center"
     },
     ".table": {
@@ -113,6 +141,7 @@ const LogPanel: React.FC = () => {
   const theme = useTheme();
   const logs = useLogsStore((s) => s.logs);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Map workflow id -> name for quick lookup
   const wfName = useMemo(() => {
@@ -170,45 +199,65 @@ const LogPanel: React.FC = () => {
   }, [rows, selectedSeverities, selectedWorkflows]);
 
   return (
-    <Box css={containerStyles(theme)}>
+    <Box
+      css={containerStyles(theme)}
+      className={isFullscreen ? "fullscreen" : undefined}
+    >
       <Box className="filters">
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel id="severity-label">Severity</InputLabel>
-          <Select
-            labelId="severity-label"
-            multiple
-            value={selectedSeverities as unknown as string[]}
-            onChange={handleSeverityChange}
-            input={<OutlinedInput label="Severity" />}
-            renderValue={(selected) =>
-              (selected as string[]).map((s) => s.toUpperCase()).join(", ")
-            }
-          >
-            {SEVERITIES.map((s) => (
-              <MenuItem key={s} value={s}>
-                <Chip size="small" label={s} sx={{ mr: 1 }} /> {s}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box className="filters-left">
+          <FormControl size="small" sx={{ flex: "1" }}>
+            <InputLabel id="severity-label">Severity</InputLabel>
+            <Select
+              labelId="severity-label"
+              multiple
+              value={selectedSeverities as unknown as string[]}
+              onChange={handleSeverityChange}
+              input={<OutlinedInput label="Severity" />}
+              renderValue={(selected) =>
+                (selected as string[]).map((s) => s.toUpperCase()).join(", ")
+              }
+            >
+              {SEVERITIES.map((s) => (
+                <MenuItem key={s} value={s}>
+                  <Chip size="small" label={s} sx={{ mr: 1 }} /> {s}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel id="workflow-label">Workflow</InputLabel>
-          <Select
-            labelId="workflow-label"
-            multiple
-            value={selectedWorkflows}
-            onChange={handleWorkflowChange}
-            input={<OutlinedInput label="Workflow" />}
-            renderValue={(selected) => (selected as string[]).join(", ")}
-          >
-            {workflowOptions.map((w) => (
-              <MenuItem key={w} value={w}>
-                {w}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl size="small" sx={{ flex: "1" }}>
+            <InputLabel id="workflow-label">Workflow</InputLabel>
+            <Select
+              labelId="workflow-label"
+              multiple
+              value={selectedWorkflows}
+              onChange={handleWorkflowChange}
+              input={<OutlinedInput label="Workflow" />}
+              renderValue={(selected) => (selected as string[]).join(", ")}
+            >
+              {workflowOptions.map((w) => (
+                <MenuItem key={w} value={w}>
+                  {w}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+        <Box className="filters-right">
+          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+            <IconButton
+              size="small"
+              onClick={() => setIsFullscreen((v) => !v)}
+              aria-label="Toggle fullscreen"
+            >
+              {isFullscreen ? (
+                <FullscreenExitIcon fontSize="small" />
+              ) : (
+                <FullscreenIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <LogsTable rows={filtered} showWorkflow height={undefined} />
