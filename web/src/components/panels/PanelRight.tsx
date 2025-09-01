@@ -16,8 +16,10 @@ import { ReactFlowProvider } from "@xyflow/react";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import ArticleIcon from "@mui/icons-material/Article";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
+import LogPanel from "./LogPanel";
 import PanelResizeButton from "./PanelResizeButton";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
@@ -39,19 +41,19 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "72px",
-      height: "calc(100vh - 72px)"
+      top: "80px",
+      height: "calc(100vh - 80px)"
     },
 
     ".panel-button": {
       width: "30px",
       position: "absolute",
       zIndex: 1200,
-      height: "calc(100vh - 75px)",
+      height: "calc(100vh - 83px)",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "72px",
+      top: "80px",
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
 
@@ -107,12 +109,14 @@ const styles = (theme: Theme) =>
 const VerticalToolbar = memo(function VerticalToolbar({
   handleInspectorToggle,
   handleAssistantToggle,
+  handleLogsToggle,
   activeView,
   panelVisible
 }: {
   handleInspectorToggle: () => void;
   handleAssistantToggle: () => void;
-  activeView: "inspector" | "assistant";
+  handleLogsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs";
   panelVisible: boolean;
 }) {
   return (
@@ -171,6 +175,30 @@ const VerticalToolbar = memo(function VerticalToolbar({
           />
         </IconButton>
       </Tooltip>
+
+      {/* Logs Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Logs</div>
+            <div className="tooltip-key">
+              <kbd>L</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleLogsToggle}
+          className={
+            activeView === "logs" && panelVisible ? "logs active" : "logs"
+          }
+        >
+          <ArticleIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -213,8 +241,14 @@ const PanelRight: React.FC = () => {
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
           style: {
             width: isVisible ? `${panelSize}px` : PANEL_WIDTH_COLLAPSED,
-            height: isVisible ? "calc(100vh - 72px)" : "150px",
+            height: isVisible ? "calc(100vh - 80px)" : "150px",
             borderWidth: isVisible ? "1px" : "0px",
+            borderLeft: isVisible
+              ? `1px solid ${theme.vars.palette.grey[800]}`
+              : "none",
+            borderTop: isVisible
+              ? `1px solid ${theme.vars.palette.grey[800]}`
+              : "none",
             backgroundColor: isVisible
               ? "var(--palette-background-default)"
               : "transparent",
@@ -229,17 +263,22 @@ const PanelRight: React.FC = () => {
           <VerticalToolbar
             handleInspectorToggle={() => handlePanelToggle("inspector")}
             handleAssistantToggle={() => handlePanelToggle("assistant")}
+            handleLogsToggle={() => handlePanelToggle("logs")}
             activeView={activeView}
             panelVisible={isVisible}
           />
           {isVisible && (
             <ContextMenuProvider>
               <ReactFlowProvider>
-                {activeNodeStore && (
-                  <NodeContext.Provider value={activeNodeStore}>
-                    {activeView === "inspector" && <Inspector />}
-                    {activeView === "assistant" && <WorkflowAssistantChat />}
-                  </NodeContext.Provider>
+                {activeView === "logs" ? (
+                  <LogPanel />
+                ) : (
+                  activeNodeStore && (
+                    <NodeContext.Provider value={activeNodeStore}>
+                      {activeView === "inspector" && <Inspector />}
+                      {activeView === "assistant" && <WorkflowAssistantChat />}
+                    </NodeContext.Provider>
+                  )
                 )}
               </ReactFlowProvider>
             </ContextMenuProvider>

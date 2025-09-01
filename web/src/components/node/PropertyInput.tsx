@@ -269,7 +269,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     (value: any) => {
       if (isDynamicProperty) {
         const node = findNode(id);
-        const dynamicProperties = node?.data.dynamic_properties;
+        if (!node || !node.data) return;
+
+        const dynamicProperties = node.data.dynamic_properties || {};
         const updatedDynamicProperties = {
           ...dynamicProperties,
           [property.name]: value
@@ -331,7 +333,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       if (controlKeyPressed) {
         // Reset to default value with Ctrl+Right-click
         const node = findNode(id);
-        if (!node) return;
+        if (!node || !node.data) return;
 
         if (isDynamicProperty) {
           // For dynamic properties, get default from metadata
@@ -388,7 +390,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
     id,
-    data.dynamic_properties as Record<string, any>
+    (data?.dynamic_properties as Record<string, any>) || {}
   );
 
   const handleNameSubmit = useCallback(
