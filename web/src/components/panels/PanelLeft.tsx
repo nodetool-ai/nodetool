@@ -53,8 +53,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "72px",
-      height: "calc(100vh - 72px)",
+      top: "80px",
+      height: "calc(100vh - 80px)",
       backgroundColor: theme.vars.palette.background.default
     },
 
@@ -64,11 +64,11 @@ const styles = (theme: Theme) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: "calc(100vh - 75px)",
+      height: "calc(100vh - 83px)",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "72px",
+      top: "80px",
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
@@ -509,7 +509,10 @@ const PanelLeft: React.FC = () => {
               ? "var(--palette-background-default)"
               : "transparent",
             borderRight: isVisible
-              ? `1px solid ${theme.vars.palette.divider}`
+              ? `1px solid ${theme.vars.palette.grey[800]}`
+              : "none",
+            borderTop: isVisible
+              ? `1px solid ${theme.vars.palette.grey[800]}`
               : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
@@ -522,7 +525,7 @@ const PanelLeft: React.FC = () => {
               : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
             // Match the panel height to avoid any gap beneath the drawer
-            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 72px)",
+            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 80px)",
             contain: isMobile ? "layout style" : "none",
             boxSizing: "border-box",
             overflow: "hidden" // Prevent panel content from overflowing

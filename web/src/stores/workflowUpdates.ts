@@ -9,7 +9,8 @@ import {
   PlanningUpdate,
   OutputUpdate,
   PreviewUpdate,
-  EdgeUpdate
+  EdgeUpdate,
+  LogUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -18,6 +19,8 @@ import useErrorStore from "./ErrorStore";
 import log from "loglevel";
 import useWorkflowRunner from "./WorkflowRunner";
 import { MsgpackData } from "./WorkflowChatStore";
+import { Notification } from "./ApiTypes";
+import { useNotificationStore } from "./NotificationStore";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
@@ -26,7 +29,7 @@ export const handleUpdate = (
   const runner = useWorkflowRunner.getState();
   const setResult = useResultsStore.getState().setResult;
   const setStatus = useStatusStore.getState().setStatus;
-  const setLogs = useLogsStore.getState().setLogs;
+  const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const setPreview = useResultsStore.getState().setPreview;
@@ -34,7 +37,29 @@ export const handleUpdate = (
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
+  const addNotification = useNotificationStore.getState().addNotification;
+
   console.log("handleUpdate", data);
+
+  if (data.type === "log_update") {
+    const logUpdate = data as LogUpdate;
+    appendLog({
+      workflowId: workflow.id,
+      nodeId: logUpdate.node_id,
+      nodeName: logUpdate.node_name,
+      content: logUpdate.content,
+      severity: logUpdate.severity,
+      timestamp: Date.now()
+    });
+  }
+
+  if (data.type === "notification") {
+    const notification = data as Notification;
+    addNotification({
+      type: notification.severity,
+      content: notification.content
+    });
+  }
 
   if (data.type === "edge_update") {
     const edgeUpdate = data as EdgeUpdate;
@@ -140,7 +165,14 @@ export const handleUpdate = (
 
   if (data.type === "prediction") {
     const pred = data as Prediction;
-    setLogs(workflow.id, pred.node_id, pred.logs || "");
+    appendLog({
+      workflowId: workflow.id,
+      nodeId: pred.node_id,
+      nodeName: "",
+      content: pred.logs || "",
+      severity: "info",
+      timestamp: Date.now()
+    });
     if (pred.status === "booting") {
       setStatus(workflow.id, pred.node_id, "booting");
     }
@@ -179,14 +211,34 @@ export const handleUpdate = (
       useWorkflowRunner.setState({ state: "error" });
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
+      appendLog({
+        workflowId: workflow.id,
+        nodeId: update.node_id,
+        nodeName: update.node_name || update.node_id,
+        content: `${update.node_name || update.node_id} error: ${update.error}`,
+        severity: "error",
+        timestamp: Date.now()
+      });
     } else {
       useWorkflowRunner.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
-      if (update.logs) {
-        setLogs(workflow.id, update.node_id, update.logs);
-      }
       setStatus(workflow.id, update.node_id, update.status);
+      // Record notable state transitions
+      if (
+        ["started", "running", "completed", "queued"].includes(
+          update.status as string
+        )
+      ) {
+        appendLog({
+          workflowId: workflow.id,
+          nodeId: update.node_id,
+          nodeName: update.node_name || update.node_id,
+          content: `${update.node_name || update.node_id} ${update.status}`,
+          severity: update.status === "completed" ? "info" : "info",
+          timestamp: Date.now()
+        });
+      }
     }
 
     if (update.status === "completed") {

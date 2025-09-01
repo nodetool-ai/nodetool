@@ -199,7 +199,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   ) => {
     set({ workflow, nodes, edges });
     const clearStatuses = useStatusStore.getState().clearStatuses;
-    const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
     const clearResults = useResultsStore.getState().clearResults;
     const clearPreviews = useResultsStore.getState().clearPreviews;
@@ -236,7 +235,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     }
 
     clearStatuses(workflow.id);
-    clearLogs(workflow.id);
     clearErrors(workflow.id);
     clearResults(workflow.id);
     clearPreviews(workflow.id);

@@ -1,56 +1,49 @@
 import { create } from "zustand";
 
-type LogsStore = {
-  logs: Record<string, string>;
-  setLogs: (workflowId: string, nodeId: string, log: any) => void;
-  getLogs: (workflowId: string, nodeId: string) => any;
-  clearLogs: (workflowId: string) => void;
+type Log = {
+  workflowId: string;
+  nodeId: string;
+  nodeName: string;
+  content: string;
+  severity: "info" | "warning" | "error";
+  timestamp: number;
 };
 
-export const hashKey = (workflowId: string, nodeId: string) =>
-  `${workflowId}:${nodeId}`;
+type LogsStore = {
+  logs: Log[];
+  getLogs: (workflowId: string, nodeId: string) => Log[];
+  appendLog: (log: Log) => void;
+  clearLogs: () => void;
+};
 
 const useLogsStore = create<LogsStore>((set, get) => ({
-  logs: {},
-
-  /**
-   * Clear the Logs for a workflow.
-   *
-   * @param workflowId The id of the workflow.
-   */
-  clearLogs: (workflowId: string) => {
-    const logs = get().logs;
-    for (const key in logs) {
-      if (key.startsWith(workflowId)) {
-        delete logs[key];
-      }
-    }
-    set({ logs });
-  },
-  /**
-   * Set the Logs for a node.
-   * The Log is stored in the Logs map.
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeId The id of the node.
-   * @param Log The Log to set.
-   */
-  setLogs: (workflowId: string, nodeId: string, log: any) => {
-    const key = hashKey(workflowId, nodeId);
-    set({ logs: { ...get().logs, [key]: log } });
-  },
-
+  logs: [],
   /**
    * Get the Logs for a node.
    *
    * @param workflowId The id of the workflow.
    * @param nodeId The id of the node.
-   * @returns The Log for the node.
+   * @returns The Logs for the node.
    */
   getLogs: (workflowId: string, nodeId: string) => {
-    const logs = get().logs;
-    const key = hashKey(workflowId, nodeId);
-    return logs[key];
+    return get().logs.filter(
+      (log) => log.workflowId === workflowId && log.nodeId === nodeId
+    );
+  },
+  /**
+   * Append a log to the Logs for a node.
+   *
+   * @param log The log to append.
+   */
+  appendLog: (log: Log) => {
+    set({ logs: [...get().logs, log] });
+  },
+
+  /**
+   * Clear the Logs.
+   */
+  clearLogs: () => {
+    set({ logs: [] });
   }
 }));
 

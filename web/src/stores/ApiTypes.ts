@@ -133,3 +133,5 @@ export type ThreadSummarizeRequest =
   components["schemas"]["ThreadSummarizeRequest"];
 export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
+export type Notification = components["schemas"]["Notification"];
+export type LogUpdate = components["schemas"]["LogUpdate"];

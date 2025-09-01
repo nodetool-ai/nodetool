@@ -17,9 +17,10 @@ import {
   WorkflowAttributes,
   Chunk,
   SubTaskResult,
-  Thread,
+  Notification,
   EdgeUpdate,
-  PreviewUpdate
+  PreviewUpdate,
+  LogUpdate
 } from "./ApiTypes";
 import { CHAT_URL, isLocalhost } from "./ApiClient";
 import log from "loglevel";
@@ -94,6 +95,7 @@ export type MsgpackData =
   | NodeProgress
   | NodeUpdate
   | Message
+  | LogUpdate
   | ToolCallUpdate
   | TaskUpdate
   | PlanningUpdate
@@ -102,7 +104,8 @@ export type MsgpackData =
   | WorkflowCreatedUpdate
   | WorkflowUpdatedUpdate
   | PreviewUpdate
-  | EdgeUpdate;
+  | EdgeUpdate
+  | Notification;
 
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
