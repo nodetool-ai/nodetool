@@ -27,7 +27,8 @@ const styles = (theme: Theme) =>
   css({
     position: "fixed",
     bottom: "20px",
-    right: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
     zIndex: 21000,
     display: "flex",
     flexDirection: "row",
@@ -282,9 +283,16 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     if (isMenuOpen) {
       closeNodeMenu();
     } else {
-      // Open as a bottom sheet (full-width) near the top for full-height layout
-      const x = 0;
-      const y = Math.max(8, Math.floor(window.innerHeight * 0.06));
+      // Open centered in the viewport
+      const FALLBACK_MENU_WIDTH = 950;
+      const FALLBACK_MENU_HEIGHT = 900;
+      const CURSOR_ANCHOR_OFFSET_Y = 40; // compensate for store's anchor shift
+      const x = Math.floor(window.innerWidth / 2 - FALLBACK_MENU_WIDTH / 2);
+      const y = Math.floor(
+        window.innerHeight / 2 -
+          FALLBACK_MENU_HEIGHT / 2 +
+          CURSOR_ANCHOR_OFFSET_Y
+      );
       openNodeMenu({ x, y });
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
