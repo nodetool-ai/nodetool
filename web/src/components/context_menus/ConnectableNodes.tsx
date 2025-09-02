@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useState, useRef, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   Menu,
   MenuItem,
@@ -17,6 +17,7 @@ import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
 import { useNodes } from "../../contexts/NodeContext";
@@ -44,7 +45,11 @@ const menuStyles = (theme: Theme) =>
       height: "70vh",
       display: "flex",
       flexDirection: "column",
-      width: "300px"
+      width: "300px",
+      borderRadius: 8,
+      boxShadow: theme.shadows[6],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      overflow: "hidden"
     }
   });
 
@@ -61,8 +66,8 @@ const scrollableContentStyles = (theme: Theme) =>
     },
     ".namespace": {
       backgroundColor: "transparent",
-
-      padding: "1em 0 0 .3em"
+      padding: "1em 0 .25em .3em",
+      borderTop: `1px solid ${theme.vars.palette.grey[700]}`
     },
     ".node": {
       display: "flex",
@@ -113,8 +118,9 @@ const fixedHeaderStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.paper,
     zIndex: theme.zIndex.modal + 1,
     "&.connectable-nodes-header": {
-      padding: ".5em 0",
-      backgroundColor: theme.vars.palette.background.paper
+      padding: ".5em .5em",
+      backgroundColor: theme.vars.palette.background.paper,
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     }
   });
 
@@ -157,21 +163,20 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     nodeId: state.nodeId
   }));
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const filteredNodes = useMemo(
+    () =>
+      searchTerm
+        ? searchNodesHelper(connectableNodes, searchTerm)
+        : connectableNodes,
+    [connectableNodes, searchTerm]
+  );
 
-  useEffect(() => {
-    if (isVisible) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isVisible]);
+  const groupedNodes = useMemo(
+    () => groupNodesByNamespace(filteredNodes),
+    [filteredNodes]
+  );
 
-  const filteredNodes = searchTerm
-    ? searchNodesHelper(connectableNodes, searchTerm)
-    : connectableNodes;
-
-  const groupedNodes = groupNodesByNamespace(filteredNodes);
+  const totalCount = filteredNodes.length;
 
   const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
     (state) => ({
@@ -279,11 +284,22 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
         <MenuItem disabled>
-          <Typography variant="body1">Connectable Nodes</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%"
+            }}
+          >
+            <Typography variant="body1">Connectable Nodes</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {totalCount}
+            </Typography>
+          </Box>
         </MenuItem>
         <MenuItem>
           <TextField
-            inputRef={searchInputRef}
             className="connectable-nodes-search"
             size="small"
             fullWidth
@@ -298,8 +314,18 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                 e.stopPropagation();
               }
             }}
+            autoFocus={isVisible}
+            aria-label="Search nodes"
             slotProps={{
               input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon
+                      fontSize="small"
+                      sx={{ color: theme.vars.palette.grey[400] }}
+                    />
+                  </InputAdornment>
+                ),
                 endAdornment: searchTerm ? (
                   <InputAdornment position="end">
                     <IconButton
@@ -319,49 +345,71 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       </Box>
 
       <Box css={scrollableContentStyles} className="connectable-nodes-content">
-        {Object.entries(groupedNodes).map(([namespace, nodes]) => (
-          <React.Fragment key={namespace}>
-            <MenuItem className="namespace" disabled>
-              <Typography
-                variant="h4"
-                color="textSecondary"
-                fontSize={theme.fontSizeSmaller}
-                padding={0}
-                margin={0}
-              >
-                {namespace}
-              </Typography>
-            </MenuItem>
-            {nodes.map((nodeMetadata: NodeMetadata) => (
-              <Tooltip
-                leaveDelay={10}
-                enterDelay={200}
-                key={nodeMetadata.node_type}
-                TransitionProps={{ timeout: 0 }}
-                placement="left"
-                sx={{ padding: "0" }}
-                title={
-                  <NodeInfo
-                    nodeMetadata={nodeMetadata}
-                    showConnections={false}
-                  />
-                }
-              >
-                <div className="node-item-container">
-                  <NodeItem
-                    key={nodeMetadata.node_type}
-                    node={nodeMetadata}
-                    onDragStart={() => {}}
-                    onClick={() => {
-                      createConnectableNode(nodeMetadata);
-                      hideMenu();
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            ))}
-          </React.Fragment>
-        ))}
+        {totalCount === 0 ? (
+          <Box sx={{ p: 2, color: "text.secondary" }}>
+            <Typography variant="body2">
+              No nodes match &quot;{searchTerm}&quot;.
+            </Typography>
+          </Box>
+        ) : (
+          Object.entries(groupedNodes).map(([namespace, nodes]) => (
+            <React.Fragment key={namespace}>
+              <MenuItem className="namespace" disabled>
+                <Typography
+                  variant="h4"
+                  color="textSecondary"
+                  fontSize={theme.fontSizeSmaller}
+                  padding={0}
+                  margin={0}
+                >
+                  {namespace} ({nodes.length})
+                </Typography>
+              </MenuItem>
+              {nodes.map((nodeMetadata: NodeMetadata) => (
+                <Tooltip
+                  leaveDelay={10}
+                  enterDelay={200}
+                  key={nodeMetadata.node_type}
+                  TransitionProps={{ timeout: 0 }}
+                  placement="right"
+                  disableInteractive
+                  sx={{ padding: "0" }}
+                  slotProps={{
+                    popper: {
+                      sx: { zIndex: theme.zIndex.tooltip + 2 },
+                      modifiers: [
+                        { name: "offset", options: { offset: [0, 8] } },
+                        { name: "preventOverflow", options: { padding: 8 } },
+                        {
+                          name: "flip",
+                          options: { fallbackPlacements: ["left", "right"] }
+                        }
+                      ]
+                    }
+                  }}
+                  title={
+                    <NodeInfo
+                      nodeMetadata={nodeMetadata}
+                      showConnections={false}
+                    />
+                  }
+                >
+                  <div className="node-item-container">
+                    <NodeItem
+                      key={nodeMetadata.node_type}
+                      node={nodeMetadata}
+                      onDragStart={() => {}}
+                      onClick={() => {
+                        createConnectableNode(nodeMetadata);
+                        hideMenu();
+                      }}
+                    />
+                  </div>
+                </Tooltip>
+              ))}
+            </React.Fragment>
+          ))
+        )}
       </Box>
     </Menu>
   );
