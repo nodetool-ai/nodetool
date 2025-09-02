@@ -5,6 +5,7 @@ export type NodeData = {
   selectable: boolean | undefined;
   dynamic_properties: any;
   dynamic_outputs?: Record<string, TypeMetadata>;
+  sync_mode?: string;
   workflow_id: string;
   title?: string;
   color?: string;
