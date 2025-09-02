@@ -44,6 +44,8 @@ const NodeContextMenu: React.FC = () => {
     updateNodeData: state.updateNodeData
   }));
 
+  const currentSyncMode = (nodeData?.sync_mode as string) || "on_any";
+
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
@@ -119,6 +121,7 @@ const NodeContextMenu: React.FC = () => {
         IconComponent={<SearchIcon />}
         tooltip="Find Examples using this node"
       />
+      {/* Sync mode selection moved to header icon menu */}
       <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}
         label="Copy NodeData"
