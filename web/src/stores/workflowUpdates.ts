@@ -224,21 +224,6 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
-      // Record notable state transitions
-      if (
-        ["started", "running", "completed", "queued"].includes(
-          update.status as string
-        )
-      ) {
-        appendLog({
-          workflowId: workflow.id,
-          nodeId: update.node_id,
-          nodeName: update.node_name || update.node_id,
-          content: `${update.node_name || update.node_id} ${update.status}`,
-          severity: update.status === "completed" ? "info" : "info",
-          timestamp: Date.now()
-        });
-      }
     }
 
     if (update.status === "completed") {
