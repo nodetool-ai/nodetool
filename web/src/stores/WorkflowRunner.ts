@@ -15,10 +15,8 @@ import {
   PlanningUpdate
 } from "./ApiTypes";
 import { uuidv4 } from "./uuidv4";
-import { useAuth } from "./useAuth";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
-import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
@@ -200,6 +198,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     set({ workflow, nodes, edges });
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearErrors = useErrorStore.getState().clearErrors;
+    const clearEdges = useResultsStore.getState().clearEdges;
     const clearResults = useResultsStore.getState().clearResults;
     const clearPreviews = useResultsStore.getState().clearPreviews;
     const clearProgress = useResultsStore.getState().clearProgress;
@@ -235,6 +234,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     }
 
     clearStatuses(workflow.id);
+    clearEdges(workflow.id);
     clearErrors(workflow.id);
     clearResults(workflow.id);
     clearPreviews(workflow.id);
@@ -299,9 +299,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     console.log("Cancelling job", job_id);
 
     const clearStatuses = useStatusStore.getState().clearStatuses;
+    const clearEdges = useResultsStore.getState().clearEdges;
 
     if (workflow) {
       clearStatuses(workflow.id);
+      clearEdges(workflow.id);
     }
 
     if (!wsManager || !job_id) {

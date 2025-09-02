@@ -174,7 +174,6 @@ export function useProcessedEdges({
       if (status === "message_sent") {
         classes.push("message-sent");
       }
-      console.log("status", status);
 
       return {
         ...edge,

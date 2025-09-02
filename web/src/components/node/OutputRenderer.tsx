@@ -47,6 +47,108 @@ export type OutputRendererProps = {
   value: any;
 };
 
+// Shared Web Audio context and scheduler for streaming PCM16 audio chunks
+let sharedAudioContext: AudioContext | null = null;
+let sharedNextStartTime = 0;
+
+function getAudioContext(): AudioContext {
+  if (typeof window === "undefined") throw new Error("No window");
+  // @ts-ignore Safari
+  const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!sharedAudioContext) {
+    sharedAudioContext = new Ctx();
+  }
+  return sharedAudioContext;
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const cleaned = (base64 || "")
+    .replace(/^data:[^;]*;base64,/, "")
+    .replace(/\s/g, "");
+  const binaryString = atob(cleaned);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+  return bytes;
+}
+
+function int16ToFloat32(int16Array: Int16Array): Float32Array {
+  const float32 = new Float32Array(int16Array.length);
+  for (let i = 0; i < int16Array.length; i++) {
+    const s = int16Array[i];
+    float32[i] = s < 0 ? s / 32768 : s / 32767;
+  }
+  return float32;
+}
+
+function playPcm16Base64(
+  base64: string,
+  opts?: { sampleRate?: number; channels?: number }
+) {
+  const sampleRate = opts?.sampleRate ?? 22000;
+  const channels = opts?.channels ?? 1;
+
+  const ctx = getAudioContext();
+  ctx.resume().catch(() => {});
+
+  const u8 = base64ToUint8Array(base64);
+  const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const frameCount = Math.floor(u8.byteLength / 2 / channels);
+  const buffer = ctx.createBuffer(channels, frameCount, sampleRate);
+
+  for (let ch = 0; ch < channels; ch++) {
+    const channelData = new Int16Array(frameCount);
+    let srcIndex = ch * 2;
+    for (let i = 0; i < frameCount; i++) {
+      const sample = view.getInt16(srcIndex, true);
+      channelData[i] = sample;
+      srcIndex += channels * 2;
+    }
+    const floatData = int16ToFloat32(channelData);
+    buffer.copyToChannel(floatData, ch);
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+
+  const startTime = Math.max(sharedNextStartTime, ctx.currentTime);
+  try {
+    source.start(startTime);
+    sharedNextStartTime = startTime + buffer.duration;
+  } catch {
+    source.start();
+    sharedNextStartTime = ctx.currentTime + buffer.duration;
+  }
+  source.onended = () => {
+    source.disconnect();
+  };
+}
+
+const StreamPcm16Player: React.FC<{
+  base64: string;
+  sampleRate?: number;
+  channels?: number;
+}> = ({ base64, sampleRate = 16000, channels = 1 }) => {
+  const lastPlayedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      typeof base64 === "string" &&
+      base64 &&
+      base64 !== lastPlayedRef.current
+    ) {
+      try {
+        playPcm16Base64(base64, { sampleRate, channels });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("PCM16 chunk playback failed", e);
+      }
+      lastPlayedRef.current = base64;
+    }
+  }, [base64, sampleRate, channels]);
+  return null;
+};
+
 // Heuristic to detect if a string likely contains Markdown
 const isLikelyMarkdown = (text: string): boolean => {
   if (!text) return false;
@@ -575,9 +677,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                 <strong>Subject:</strong> {value.subject}
               </p>
             </div>
-            <div className="email-body">
-              {renderMaybeMarkdown(value.body)}
-            </div>
+            <div className="email-body">{renderMaybeMarkdown(value.body)}</div>
           </div>
         );
       case "chunk": {
@@ -586,10 +686,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           case "image":
             return <ImageView source={chunk.content} />;
           case "audio":
+            // Otherwise assume base64 PCM16 16k and stream via Web Audio without UI
             return (
-              <div className="audio" style={{ padding: "1em" }}>
-                <AudioPlayer source={chunk.content} />
-              </div>
+              <StreamPcm16Player
+                base64={chunk.content as string}
+                sampleRate={22000}
+                channels={1}
+              />
             );
           case "video":
             return (
