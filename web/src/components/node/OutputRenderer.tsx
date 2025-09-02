@@ -527,8 +527,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             return null;
           }
           if (typeof value[0] === "string") {
-            return renderMaybeMarkdown(
-              value.map((v: any) => v.toString()).join("")
+            return (
+              <div
+                style={{
+                  padding: "0.5em"
+                }}
+              >
+                {value.map((v: any) => (
+                  <div key={v}>{v}</div>
+                ))}
+              </div>
             );
           }
           if (typeof value[0] === "number") {
