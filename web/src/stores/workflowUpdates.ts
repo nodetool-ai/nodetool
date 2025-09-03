@@ -28,15 +28,19 @@ export const handleUpdate = (
 ) => {
   const runner = useWorkflowRunner.getState();
   const setResult = useResultsStore.getState().setResult;
+  const clearResults = useResultsStore.getState().clearResults;
   const setStatus = useStatusStore.getState().setStatus;
+  const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
+  const clearProgress = useResultsStore.getState().clearProgress;
   const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
+  const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
 
   console.log("handleUpdate", data);
@@ -144,6 +148,10 @@ export const handleUpdate = (
           }`,
           timeout: job.status === "failed" ? 30000 : undefined
         });
+        clearStatuses(workflow.id);
+        clearEdges(workflow.id);
+        clearResults(workflow.id);
+        clearProgress(workflow.id);
         runner.disconnect();
         break;
       case "queued":

@@ -9,7 +9,8 @@ import {
   Typography,
   Autocomplete,
   TextField,
-  MenuItem
+  MenuItem,
+  FormHelperText
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -273,6 +274,18 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     }));
   }, []);
 
+  const handleToolNameChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const rawValue = event.target.value || "";
+      const sanitizedValue = rawValue.replace(/[^A-Za-z0-9_]/g, "");
+      setLocalWorkflow((prev: Workflow) => ({
+        ...prev,
+        tool_name: sanitizedValue
+      }));
+    },
+    []
+  );
+
   return (
     <div css={styles(theme)} className="workflow-form">
       <Box sx={{ pl: 2, pr: 2 }}>
@@ -290,6 +303,22 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             value={localWorkflow.name}
             onChange={handleChange}
           />
+        </FormControl>
+        <FormControl>
+          <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
+          <OutlinedInput
+            fullWidth
+            name="tool_name"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            value={localWorkflow.tool_name || ""}
+            onChange={handleToolNameChange}
+            placeholder="letters_numbers_or_underscores"
+          />
+          <FormHelperText>
+            Only letters, numbers, and underscores are allowed.
+          </FormHelperText>
         </FormControl>
         <FormControl>
           <FormLabel htmlFor="description">Description</FormLabel>
@@ -350,7 +379,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             )}
           />
         </FormControl>
-        <FormControl fullWidth>
+        {/* <FormControl fullWidth>
           <FormLabel htmlFor="shortcut">
             Keyboard Shortcut for Running Workflow
           </FormLabel>
@@ -379,7 +408,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               </Button>
             )}
           </div>
-        </FormControl>
+        </FormControl> */}
         <FormControl fullWidth sx={{ mt: 2 }}>
           <FormLabel>Run Mode</FormLabel>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>

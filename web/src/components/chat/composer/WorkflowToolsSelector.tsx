@@ -21,21 +21,8 @@ import {
   CheckBoxOutlineBlank
 } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import { Workflow } from "../../../stores/ApiTypes";
-import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
+import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
-
-// Helper functions for toolId logic
-const generateToolIdFromWorkflowName = (workflowName: string): string => {
-  return `workflow_${workflowName
-    .toLowerCase()
-    .replace(/ /g, "_")
-    .replace(/-/g, "_")}`;
-};
-
-const workflowMatchesToolId = (workflow: Workflow, toolId: string): boolean => {
-  return generateToolIdFromWorkflowName(workflow.name) === toolId;
-};
 
 const menuStyles = (theme: Theme) =>
   css({
@@ -92,18 +79,17 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
-  const selectedTools = useMemo(() => value || [], [value]);
+  const selectedTools = useMemo(
+    () => value.filter((tool) => tool !== "workflow_null") || [],
+    [value]
+  );
   const theme = useTheme();
-  // Get workflow tools from context
+  // Get workflow tools via React Query hook
   const {
     workflowTools,
     workflowToolsLoading: isLoading,
     workflowToolsError
-  } = useWorkflowManager((state) => ({
-    workflowTools: state.workflowTools,
-    workflowToolsLoading: state.workflowToolsLoading,
-    workflowToolsError: state.workflowToolsError
-  }));
+  } = useWorkflowTools();
   const isError = Boolean(workflowToolsError);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -124,20 +110,14 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     [selectedTools, onChange]
   );
 
-  // Count of selected workflow tools
-  const selectedWorkflowToolsCount = useMemo(() => {
-    if (!workflowTools) return 0;
-    return selectedTools.filter((toolId) =>
-      workflowTools.some((wf) => workflowMatchesToolId(wf, toolId))
-    ).length;
-  }, [selectedTools, workflowTools]);
+  console.log(selectedTools, workflowTools);
 
   return (
     <>
       <Tooltip
         title={
-          selectedWorkflowToolsCount > 0
-            ? `${selectedWorkflowToolsCount} workflow tools selected`
+          selectedTools.length > 0
+            ? `${selectedTools.length} workflow tools selected`
             : "Select Workflow Tools"
         }
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -145,16 +125,16 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
         <Button
           ref={buttonRef}
           className={`workflow-tools-button ${
-            selectedWorkflowToolsCount > 0 ? "active" : ""
+            selectedTools.length > 0 ? "active" : ""
           }`}
           onClick={handleClick}
           size="small"
           startIcon={<AccountTree fontSize="small" />}
           endIcon={
-            selectedWorkflowToolsCount > 0 && (
+            selectedTools.length > 0 && (
               <Chip
                 size="small"
-                label={selectedWorkflowToolsCount}
+                label={selectedTools.length}
                 className="selected-count"
               />
             )
@@ -205,12 +185,15 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
           </Typography>
         ) : (
           workflowTools.map((workflow) => {
-            const toolId = generateToolIdFromWorkflowName(workflow.name);
+            const toolId = `workflow_${workflow.tool_name}`;
             const isSelected = selectedTools.includes(toolId);
+            if (workflow.tool_name === null) {
+              return null;
+            }
 
             return (
               <MenuItem
-                key={workflow.id}
+                key={workflow.tool_name}
                 onClick={() => handleToggleTool(toolId)}
                 className={`workflow-tool-item ${isSelected ? "selected" : ""}`}
               >

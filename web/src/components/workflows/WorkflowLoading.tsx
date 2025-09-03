@@ -1,7 +1,7 @@
 import React from "react";
 import { CircularProgress, Typography, Box } from "@mui/material";
 import { ErrorOutlineRounded } from "@mui/icons-material";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkflow } from "../../serverState/useWorkflow";
 
 interface WorkflowLoadingProps {
   workflowId: string;
@@ -10,15 +10,7 @@ interface WorkflowLoadingProps {
 export const WorkflowLoading: React.FC<WorkflowLoadingProps> = ({
   workflowId
 }) => {
-  const loadingState = useWorkflowManager((state) =>
-    state.getLoadingState(workflowId)
-  );
-
-  if (!loadingState) {
-    return null;
-  }
-
-  const { isLoading, error } = loadingState;
+  const { isLoading, error } = useWorkflow(workflowId);
 
   if (!isLoading && !error) {
     return null;
@@ -35,7 +27,7 @@ export const WorkflowLoading: React.FC<WorkflowLoadingProps> = ({
       {error && (
         <>
           <ErrorOutlineRounded color="error" />
-          <Typography color="error">{error.message}</Typography>
+          <Typography color="error">{(error as Error).message}</Typography>
         </>
       )}
     </Box>

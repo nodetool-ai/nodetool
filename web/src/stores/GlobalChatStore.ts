@@ -384,6 +384,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
+        console.log("sendMessage", message);
+
         if (!wsManager || !wsManager.isConnected()) {
           set({ error: "Not connected to chat service" });
           return;
