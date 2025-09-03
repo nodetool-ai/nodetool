@@ -209,6 +209,17 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "TableChart"
   },
   {
+    value: "document",
+    label: "Document",
+    description: "Document file",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Document"
+  },
+  {
     value: "dict",
     label: "Dictionary",
     description: "Key‑Value pairs collection",

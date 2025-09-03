@@ -54,6 +54,7 @@ import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkflow } from "../../serverState/useWorkflow";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
@@ -142,9 +143,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [setViewport]
   );
 
-  const { loadingState } = useWorkflowManager((state) => ({
-    loadingState: state.getLoadingState(workflowId)
-  }));
+  const { isLoading, error } = useWorkflow(workflowId);
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
@@ -362,18 +361,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
   }, [nodes.length, fitView, storedViewport]);
 
-  if (loadingState?.isLoading) {
+  if (isLoading) {
     return (
       <div className="loading-overlay">
         <CircularProgress /> Loading workflow...
       </div>
     );
   }
-  if (loadingState?.error) {
+  if (error) {
     return (
       <div className="loading-overlay">
         <Typography variant="body1" color="error">
-          {loadingState.error.message}
+          {(error as Error).message}
         </Typography>
       </div>
     );

@@ -18,9 +18,11 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import EditIcon from "@mui/icons-material/Edit";
 import { isLocalhost } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { Workflow } from "../../stores/ApiTypes";
 // keep existing colors; add only subtle shine overlays
 
 const styles = (theme: Theme) =>
@@ -179,7 +181,9 @@ const styles = (theme: Theme) =>
     }
   });
 
-const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
+const FloatingToolBar: React.FC<{
+  setWorkflowToEdit: (workflow: Workflow) => void;
+}> = memo(function FloatingToolBar({ setWorkflowToEdit }) {
   const theme = useTheme();
   const path = useLocation().pathname;
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
@@ -194,6 +198,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       workflowJSON: state.workflowJSON
     })
   );
+  const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
   const { run, state, isWorkflowRunning, cancel } = useWorkflowRunner(
     (state) => ({
@@ -204,17 +209,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     })
   );
 
-  const { getWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
-    getWorkflow: state.getWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
+    (state) => ({
+      getWorkflow: state.getWorkflow,
+      saveWorkflow: state.saveWorkflow
+    })
+  );
 
   const handleRun = useCallback(() => {
     if (!isWorkflowRunning) {
       run({}, workflow, nodes, edges);
     }
     setTimeout(() => {
-      const w = getWorkflow(workflow.id);
+      const w = getWorkflowById(workflow.id);
       if (w) {
         saveWorkflow(w);
       }
@@ -225,7 +232,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     workflow,
     nodes,
     edges,
-    getWorkflow,
+    getWorkflowById,
     saveWorkflow
   ]);
 
@@ -235,9 +242,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const handleSave = useCallback(() => {
     if (!workflow) return;
-    const w = getWorkflow(workflow.id);
+    const w = getWorkflowById(workflow.id);
     if (w) saveWorkflow(w);
-  }, [getWorkflow, saveWorkflow, workflow]);
+  }, [getWorkflowById, saveWorkflow, workflow]);
 
   const handleDownload = useCallback(() => {
     if (!workflow) return;
@@ -269,6 +276,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       }
     }
   }, [path]);
+
+  const handleEditWorkflow = useCallback(() => {
+    setWorkflowToEdit(getCurrentWorkflow());
+  }, [getCurrentWorkflow, setWorkflowToEdit]);
 
   // Node menu open/close for mobile
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
@@ -339,6 +350,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             aria-label="Open node menu"
           >
             <ControlPointIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
+          title="Edit Workflow Settings"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleEditWorkflow}
+            aria-label="Edit workflow settings"
+          >
+            <EditIcon />
           </Fab>
         </Tooltip>
         <Tooltip

@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
@@ -295,12 +296,10 @@ type TabsNodeEditorProps = {
 };
 
 const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
-  const { openWorkflows, currentWorkflowId, loadingStates } =
-    useWorkflowManager((state) => ({
-      openWorkflows: state.openWorkflows,
-      currentWorkflowId: hideContent ? undefined : state.currentWorkflowId,
-      loadingStates: state.loadingStates
-    }));
+  const { openWorkflows, currentWorkflowId } = useWorkflowManager((state) => ({
+    openWorkflows: state.openWorkflows,
+    currentWorkflowId: hideContent ? undefined : state.currentWorkflowId
+  }));
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -315,31 +314,71 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
-  // Create a combined list of tabs to render
-  const tabsToRender = useMemo(() => {
-    const tabMap = new Map<string, WorkflowAttributes>();
+  // Determine tab ids: storage open ids + currently loaded ones + active id
+  const storageOpenIds: string[] = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("openWorkflows");
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  }, []);
 
-    // Add open workflows
-    openWorkflows.forEach((workflow) => {
-      tabMap.set(workflow.id, workflow);
-    });
+  const idsForTabs = useMemo(() => {
+    const ids = new Set<string>();
+    storageOpenIds.forEach((id) => ids.add(id));
+    openWorkflows.forEach((w) => ids.add(w.id));
+    if (currentWorkflowId) ids.add(currentWorkflowId);
+    return Array.from(ids);
+  }, [storageOpenIds, openWorkflows, currentWorkflowId]);
 
-    // Add loading placeholders
-    Object.keys(loadingStates).forEach((id) => {
-      if (!tabMap.has(id)) {
-        tabMap.set(id, {
-          id,
-          name: "Loading...",
-          access: "private",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          description: ""
+  // Build a quick map for loaded workflows
+  const openMap = useMemo(() => {
+    const map = new Map<string, WorkflowAttributes>();
+    openWorkflows.forEach((w) => map.set(w.id, w));
+    return map;
+  }, [openWorkflows]);
+
+  // Fire queries for ids not yet in openWorkflows
+  const queryResults = useQueries({
+    queries: idsForTabs.map((id) => ({
+      queryKey: ["workflow", id],
+      queryFn: async () => {
+        const { client } = await import("../../stores/ApiClient");
+        const { createErrorMessage } = await import(
+          "../../utils/errorHandling"
+        );
+        const { data, error } = await client.GET("/api/workflows/{id}", {
+          params: { path: { id } }
         });
-      }
-    });
+        if (error) {
+          throw createErrorMessage(error, "Failed to load workflow");
+        }
+        return data;
+      },
+      enabled: !openMap.has(id)
+    }))
+  });
 
-    return Array.from(tabMap.values());
-  }, [openWorkflows, loadingStates]);
+  const tabsToRender = useMemo(() => {
+    return idsForTabs.map((id, index) => {
+      const loaded = openMap.get(id);
+      if (loaded) return loaded;
+      const res = queryResults[index];
+      if (res && res.data) {
+        const { graph, ...attrs } = res.data as any;
+        return attrs as WorkflowAttributes;
+      }
+      return {
+        id,
+        name: res?.isError ? "Error" : "Loading...",
+        access: "private",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        description: ""
+      } as WorkflowAttributes;
+    });
+  }, [idsForTabs, openMap, queryResults]);
 
   const theme = useTheme();
 
@@ -410,7 +449,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                             />
                           </div>
 
-                          <FloatingToolBar />
+                          <FloatingToolBar
+                            setWorkflowToEdit={(wf) => setWorkflowToEdit(wf)}
+                          />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>
