@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { client, BASE_URL, authHeader } from "../stores/ApiClient";
+import { client, authHeader } from "../stores/ApiClient";
+import { BASE_URL } from "./BASE_URL";
 import { Asset, AssetList, AssetSearchResult } from "../stores/ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";

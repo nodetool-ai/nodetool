@@ -112,7 +112,6 @@ const AssetExplorer: React.FC = () => {
         <AppHeader />
       </Box>
       <Box className="asset-explorer">
-        <Typography variant="h2">Assets</Typography>
         <ContextMenuProvider>
           <AssetGrid
             maxItemSize={10}
