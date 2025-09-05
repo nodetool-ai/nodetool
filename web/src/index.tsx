@@ -38,6 +38,7 @@ import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
+import CollectionsExplorer from "./components/collections/CollectionsExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
@@ -72,6 +73,9 @@ import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
 import AppHeader from "./components/panels/AppHeader";
+
+// Register frontend tools
+import "./lib/tools/builtin/addNode";
 
 (window as any).log = log;
 
@@ -162,6 +166,14 @@ function getRoutes() {
       )
     },
     {
+      path: "collections",
+      element: (
+        <ProtectedRoute>
+          <CollectionsExplorer />
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "examples",
       element: (
         <ProtectedRoute>
@@ -244,13 +256,6 @@ const AppWrapper = () => {
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
   }, []); // Empty dependency array ensures this runs only once on mount
-
-  // Helper to navigate to the newly created workflow
-  // This function seems unused in the current context of AppWrapper's return,
-  // but keeping it in case it's used by other parts or intended for future use.
-  const handleWorkflowCreated = (workflowId: string) => {
-    window.location.href = `/editor/${workflowId}`;
-  };
 
   return (
     <React.StrictMode>

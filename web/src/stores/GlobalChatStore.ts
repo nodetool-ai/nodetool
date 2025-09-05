@@ -23,16 +23,18 @@ import {
   ThreadList,
   LanguageModel
 } from "./ApiTypes";
-import { CHAT_URL, isLocalhost } from "./ApiClient";
+import { isLocalhost } from "./ApiClient";
+import { CHAT_URL } from "./BASE_URL";
 import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
-import { uuidv4 } from "./uuidv4";
 import { DEFAULT_MODEL } from "../config/constants";
+import { NodeStore } from "../stores/NodeStore";
 import {
   WebSocketManager,
   ConnectionState
 } from "../lib/websocket/WebSocketManager";
+import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -54,9 +56,13 @@ interface GlobalChatState {
   wsManager: WebSocketManager | null;
   socket: WebSocket | null;
 
+  // Active node store for tool calls
+  activeNodeStore: NodeStore | null;
+
   // Thread management
   threads: Record<string, Thread>;
   currentThreadId: string | null;
+  lastUsedThreadId: string | null;
   isLoadingThreads: boolean;
   threadsLoaded: boolean;
 
@@ -89,7 +95,7 @@ interface GlobalChatState {
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
 
   // Actions
-  connect: (workflowId?: string) => Promise<void>;
+  connect: (workflowId?: string, nodeStore?: NodeStore) => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
@@ -99,6 +105,7 @@ interface GlobalChatState {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
+  setLastUsedThreadId: (threadId: string | null) => void;
   getCurrentMessages: () => Promise<Message[]>;
   getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
@@ -129,7 +136,27 @@ export type MsgpackData =
   | OutputUpdate
   | SubTaskResult
   | WorkflowCreatedUpdate
-  | GenerationStoppedUpdate;
+  | GenerationStoppedUpdate
+  | ToolCallMessage
+  | ToolResultMessage;
+
+interface ToolCallMessage {
+  type: "tool_call";
+  tool_call_id: string;
+  name: string;
+  args: any;
+  thread_id: string;
+}
+
+interface ToolResultMessage {
+  type: "tool_result";
+  tool_call_id: string;
+  thread_id: string;
+  ok: boolean;
+  result?: any;
+  error?: string;
+  elapsed_ms?: number;
+}
 
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
@@ -196,10 +223,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
       workflowId: null,
       wsManager: null,
       socket: null,
+      activeNodeStore: null,
 
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
+      lastUsedThreadId: null as string | null,
       isLoadingThreads: false,
       threadsLoaded: false,
 
@@ -236,7 +265,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
 
-      connect: async (workflowId?: string) => {
+      connect: async (workflowId?: string, nodeStore?: NodeStore) => {
         log.info("Connecting to global chat");
 
         const state = get();
@@ -321,6 +350,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         wsManager.on("open", () => {
           set({ socket: wsManager.getWebSocket() });
+          // Send client tools manifest after connection opens
+          const manifest = FrontendToolRegistry.getManifest();
+          if (manifest.length > 0) {
+            wsManager.send({
+              type: "client_tools_manifest",
+              tools: manifest
+            });
+          }
         });
 
         wsManager.on("error", (error: Error) => {
@@ -346,11 +383,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
         });
 
+        // Preserve existing activeNodeStore if none provided (e.g., reconnects)
+        const effectiveNodeStore = nodeStore || state.activeNodeStore || null;
+
         // Store the manager and connect
         set({
           wsManager,
           workflowId: workflowId || null,
-          error: null
+          error: null,
+          activeNodeStore: effectiveNodeStore
         });
 
         try {
@@ -502,7 +543,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
               ...state.threads,
               [data.id]: data
             },
-            currentThreadId: data.id
+            currentThreadId: data.id,
+            lastUsedThreadId: data.id
           }));
 
           // Initialize empty message cache for new thread
@@ -521,7 +563,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       switchThread: (threadId: string) => {
-        set({ currentThreadId: threadId });
+        set({ currentThreadId: threadId, lastUsedThreadId: threadId });
         get().loadMessages(threadId);
       },
 
@@ -558,12 +600,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
               if (threadIds.length > 0) {
                 const newCurrentThreadId = threadIds[threadIds.length - 1];
                 newState.currentThreadId = newCurrentThreadId;
+                newState.lastUsedThreadId = newCurrentThreadId;
                 // Auto-load messages for the new current thread
                 setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
               } else {
                 // No threads left, clear current thread (new one will be created as needed)
                 newState.currentThreadId = null;
+                newState.lastUsedThreadId = null;
               }
+            }
+            // If the deleted thread was the last used, but not current, pick another if available
+            else if (state.lastUsedThreadId === threadId) {
+              const threadIds = Object.keys(remainingThreads);
+              newState.lastUsedThreadId = threadIds.length
+                ? threadIds[threadIds.length - 1]
+                : null;
             }
 
             return newState as GlobalChatState;
@@ -573,6 +624,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           throw error;
         }
       },
+
+      setLastUsedThreadId: (threadId: string | null) =>
+        set({ lastUsedThreadId: threadId }),
 
       getCurrentMessages: async () => {
         const { currentThreadId } = get();
@@ -790,6 +844,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           status
         });
 
+        // Abort any active frontend tools
+        FrontendToolRegistry.abortAll();
+
         if (!wsManager) {
           console.log("No WebSocket manager available");
           return;
@@ -835,6 +892,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Persist minimal subset incl. selections; do not persist message cache
       partialize: (state): any => ({
         threads: state.threads || {},
+        lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
@@ -870,6 +928,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (!state.selectedCollections) state.selectedCollections = [];
           if (!state.selectedModel)
             state.selectedModel = buildDefaultLanguageModel();
+          if (typeof state.lastUsedThreadId === "undefined")
+            state.lastUsedThreadId = null;
         }
       }
     }
@@ -877,7 +937,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 );
 
 // WebSocket message handler
-function handleWebSocketMessage(
+async function handleWebSocketMessage(
   data: MsgpackData,
   set: (
     state:
@@ -1096,6 +1156,117 @@ function handleWebSocketMessage(
   } else if (data.type === "tool_call_update") {
     const update = data as ToolCallUpdate;
     set({ statusMessage: update.message });
+  } else if (data.type === "message") {
+    // Persist assistant/tool messages (e.g., assistant with tool_calls, tool role results)
+    const msg = data as Message;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      const thread = get().threads[threadId];
+      if (thread) {
+        const messages = get().messageCache[threadId] || [];
+        const last = messages[messages.length - 1];
+
+        // Always append tool role messages and assistant tool-call messages
+        const isAssistantToolCall =
+          msg.role === "assistant" &&
+          Array.isArray(msg.tool_calls) &&
+          msg.tool_calls.length > 0;
+        if (msg.role === "tool" || isAssistantToolCall) {
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, msg]
+            },
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                updated_at: new Date().toISOString()
+              }
+            }
+          }));
+          return;
+        }
+
+        // For final assistant messages, de-duplicate with streamed content
+        if (msg.role === "assistant") {
+          const incomingText =
+            typeof msg.content === "string"
+              ? msg.content
+              : Array.isArray(msg.content)
+              ? msg.content
+                  .map((c: any) => (c?.type === "text" ? c.text : ""))
+                  .join("")
+              : "";
+          const lastText =
+            last &&
+            last.role === "assistant" &&
+            typeof last.content === "string"
+              ? (last.content as string)
+              : null;
+
+          set((state) => {
+            const current = state.messageCache[threadId] || [];
+            const currentLast = current[current.length - 1];
+            const currentLastText =
+              currentLast &&
+              currentLast.role === "assistant" &&
+              typeof currentLast.content === "string"
+                ? (currentLast.content as string)
+                : null;
+
+            // If the final assistant message has the same text as the last streamed assistant message, skip adding
+            if (
+              currentLast &&
+              currentLast.role === "assistant" &&
+              currentLastText === incomingText
+            ) {
+              return {
+                messageCache: state.messageCache,
+                threads: {
+                  ...state.threads,
+                  [threadId]: {
+                    ...thread,
+                    updated_at: new Date().toISOString()
+                  }
+                }
+              } as Partial<GlobalChatState>;
+            }
+
+            // Otherwise, append the assistant message
+            return {
+              messageCache: {
+                ...state.messageCache,
+                [threadId]: [...current, msg]
+              },
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            } as Partial<GlobalChatState>;
+          });
+          return;
+        }
+
+        // Default: append
+        set((state) => ({
+          messageCache: {
+            ...state.messageCache,
+            [threadId]: [...messages, msg]
+          },
+          threads: {
+            ...state.threads,
+            [threadId]: {
+              ...thread,
+              updated_at: new Date().toISOString()
+            }
+          }
+        }));
+      }
+    }
   } else if (data.type === "node_progress") {
     const progress = data as NodeProgress;
     set({
@@ -1189,6 +1360,59 @@ function handleWebSocketMessage(
           };
         }
         return state;
+      });
+    }
+  } else if (data.type === "tool_call") {
+    // Handle tool call from server
+    const toolCallData = data as ToolCallMessage;
+    const { tool_call_id, name, args, thread_id } = toolCallData;
+
+    // Check if tool exists
+    if (!FrontendToolRegistry.has(name)) {
+      log.warn(`Unknown tool: ${name}`);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: `Unsupported tool: ${name}`
+      });
+      return;
+    }
+
+    // Execute the tool
+    const startTime = Date.now();
+    try {
+      const nodeStoreState = currentState.activeNodeStore?.getState();
+      if (!nodeStoreState) {
+        throw new Error("No active node store available");
+      }
+
+      const result = await FrontendToolRegistry.call(name, args, tool_call_id, {
+        getState: () => ({
+          nodeStore: nodeStoreState
+        })
+      });
+
+      const elapsedMs = Date.now() - startTime;
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: true,
+        result,
+        elapsed_ms: elapsedMs
+      });
+    } catch (error) {
+      const elapsedMs = Date.now() - startTime;
+      log.error(`Tool execution failed for ${name}:`, error);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        elapsed_ms: elapsedMs
       });
     }
   } else if (data.type === "generation_stopped") {
