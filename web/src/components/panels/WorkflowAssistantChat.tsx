@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -10,10 +10,11 @@ import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/thread";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, NodeContext } from "../../contexts/NodeContext";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
+import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import SvgFileIcon from "../SvgFileIcon";
 
 const containerStyles = css({
@@ -69,6 +70,9 @@ const WorkflowAssistantChat: React.FC = () => {
     messageCache,
     isLoadingMessages
   } = useGlobalChatStore();
+
+  // Get the node store from context
+  const nodeStore = useContext(NodeContext);
 
   // Subscribe to workflow graph updates from chat messages
   useWorkflowGraphUpdater();
@@ -168,12 +172,8 @@ const WorkflowAssistantChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Connect once on mount and clean up on unmount
-  useEffect(() => {
-    connect().catch((err) => console.error("Failed to connect:", err));
-    return () => disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Ensure chat connection while assistant chat is visible (with nodeStore)
+  useEnsureChatConnected({ nodeStore: nodeStore || null });
 
   // Ensure a thread exists after connection
   useEffect(() => {
