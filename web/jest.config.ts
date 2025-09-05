@@ -7,7 +7,10 @@ export default {
     "\\.svg\\?react$": "<rootDir>/src/__mocks__/svgReactMock.ts",
     "^.*components/themes/ThemeNodetool$":
       "<rootDir>/src/__mocks__/themeMock.ts",
-    "^.*stores/ApiClient$": "<rootDir>/src/__mocks__/apiClientMock.ts"
+    "^.*stores/ApiClient$": "<rootDir>/src/__mocks__/apiClientMock.ts",
+    "^.*stores/BASE_URL$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
+    "^.*stores/BASE_URL.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
+    "^.*lib/supabaseClient$": "<rootDir>/src/__mocks__/supabaseClientMock.ts"
   },
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   transform: {
