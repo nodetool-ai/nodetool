@@ -25,6 +25,7 @@ import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { PANEL_CONFIG } from "./panelConfig";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
@@ -35,21 +36,23 @@ const styles = (theme: Theme) =>
     ".dashboard": {
       width: "calc(100vw - 64px)",
       height: "calc(100vh - 64px)",
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       top: "64px",
       left: "64px"
     },
     "& .dockview-container": {
-      paddingTop: "2rem"
+      paddingTop: "2rem",
+      flex: 1,
+      minHeight: 0,
+      height: "100%"
     },
     // CONTENT
     "& .dv-react-part": {
       paddingTop: ".2rem"
     },
     // CHAT
-    "& .chat-view": {
-      height: "fit-content"
-    },
     "& .chat-input-section": {
       marginTop: 0,
       paddingTop: 0
@@ -64,24 +67,14 @@ const Dashboard: React.FC = () => {
   const theme = useTheme();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
   const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
 
   const isMountedRef = useRef(true);
 
-  // Ensure WebSocket connection is established when Dashboard mounts
-  useEffect(() => {
-    const { status, connect } = useGlobalChatStore.getState();
-    if (status === "disconnected" || status === "failed") {
-      connect().catch((error) => {
-        console.error("Dashboard: Failed to establish chat connection:", error);
-      });
-    }
-  }, []);
+  // Ensure WebSocket connection while dashboard is visible
+  useEnsureChatConnected({ disconnectOnUnmount: false });
 
   const tryParseModel = (model: string) => {
     try {

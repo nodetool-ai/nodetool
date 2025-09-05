@@ -7,7 +7,7 @@ import {
   Tooltip
 } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
