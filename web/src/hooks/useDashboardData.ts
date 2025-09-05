@@ -32,13 +32,13 @@ export const useDashboardData = () => {
       queryFn: loadWorkflows
     });
 
-  const { data: examplesData, isLoading: isLoadingExamples } =
+  const { data: examplesData, isLoading: isLoadingTemplates } =
     useQuery<WorkflowList>({
-      queryKey: ["examples"],
+      queryKey: ["templates"],
       queryFn: loadExamples
     });
 
-  const startExamples = useMemo(() => {
+  const startTemplates = useMemo(() => {
     return (
       examplesData?.workflows.filter(
         (workflow: Workflow) =>
@@ -62,7 +62,7 @@ export const useDashboardData = () => {
   return {
     isLoadingWorkflows,
     sortedWorkflows,
-    isLoadingExamples,
-    startExamples
+    isLoadingTemplates,
+    startTemplates
   };
 };

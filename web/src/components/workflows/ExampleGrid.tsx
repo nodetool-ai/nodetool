@@ -329,11 +329,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ExampleGrid = () => {
+const TemplateGrid = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const loadWorkflows = useWorkflowManager((state) => state.loadExamples);
-  const searchExamples = useWorkflowManager((state) => state.searchExamples);
+  const loadWorkflows = useWorkflowManager((state) => state.loadTemplates);
+  const searchTemplates = useWorkflowManager((state) => state.searchTemplates);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [inputValue, setInputValue] = useState("");
@@ -363,11 +363,11 @@ const ExampleGrid = () => {
 
   const {
     data,
-    isLoading: isLoadingExamples,
+    isLoading: isLoadingTemplates,
     isError,
     error
   } = useQuery<WorkflowList, Error>({
-    queryKey: ["examples"],
+    queryKey: ["templates"],
     queryFn: loadWorkflows
   });
 
@@ -378,7 +378,7 @@ const ExampleGrid = () => {
     isFetching: isFetchingSearchData
   } = useQuery<WorkflowList>({
     queryKey: ["", searchQuery],
-    queryFn: () => searchExamples(searchQuery),
+    queryFn: () => searchTemplates(searchQuery),
     enabled: searchQuery.trim().length > 1 && nodesOnlySearch,
     placeholderData: (previousData, previousQueryInstance) => {
       if (
@@ -474,7 +474,7 @@ const ExampleGrid = () => {
     );
   }, [searchQuery, searchResults, data, selectedTag, groupedWorkflows]);
 
-  const copyExampleWorkflow = useCallback(
+  const copyTemplateWorkflow = useCallback(
     async (workflow: Workflow) => {
       const tags = workflow.tags || [];
       if (!tags.includes("example")) {
@@ -508,14 +508,14 @@ const ExampleGrid = () => {
 
       setLoadingWorkflowId(workflow.id);
       try {
-        const newWorkflow = await copyExampleWorkflow(workflow);
+        const newWorkflow = await copyTemplateWorkflow(workflow);
         navigate("/editor/" + newWorkflow.id);
       } catch (error) {
         console.error("Error copying workflow:", error);
         setLoadingWorkflowId(null);
       }
     },
-    [copyExampleWorkflow, navigate, loadingWorkflowId]
+    [copyTemplateWorkflow, navigate, loadingWorkflowId]
   );
 
   useEffect(() => {
@@ -575,13 +575,13 @@ const ExampleGrid = () => {
           onClear={handleClearSearch}
         />
         <Box className="container">
-          {(isLoadingExamples || isFetchingSearchData) && (
+          {(isLoadingTemplates || isFetchingSearchData) && (
             <div className="loading-indicator">
               <CircularProgress />
               <Typography variant="h4">
                 {isFetchingSearchData && nodesOnlySearch
-                  ? "Searching for Examples"
-                  : "Loading Examples"}
+                  ? "Searching for Templates"
+                  : "Loading Templates"}
               </Typography>
             </div>
           )}
@@ -631,7 +631,7 @@ const ExampleGrid = () => {
                 </Typography>
 
                 <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
-                  Help us improve the examples
+                  Help us improve the templates
                 </Typography>
                 <Typography variant="body1" sx={{ marginBottom: "1em" }}>
                   Let us know what you&apos;re missing!
@@ -685,4 +685,4 @@ const ExampleGrid = () => {
   );
 };
 
-export default ExampleGrid;
+export default TemplateGrid;

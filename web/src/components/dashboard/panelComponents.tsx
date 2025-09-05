@@ -9,13 +9,13 @@ import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 
 export const createPanelComponents = () => ({
-  examples: (props: IDockviewPanelProps<PanelProps>) => (
+  templates: (props: IDockviewPanelProps<PanelProps>) => (
     <ExamplesList
-      startExamples={props.params?.startExamples || []}
-      isLoadingExamples={props.params?.isLoadingExamples ?? true}
+      startExamples={props.params?.startTemplates || []}
+      isLoadingExamples={props.params?.isLoadingTemplates ?? true}
       loadingExampleId={props.params?.loadingExampleId || null}
       handleExampleClick={props.params?.handleExampleClick || (() => {})}
-      handleViewAllExamples={props.params?.handleViewAllExamples || (() => {})}
+      handleViewAllExamples={props.params?.handleViewAllTemplates || (() => {})}
     />
   ),
   workflows: (props: IDockviewPanelProps<PanelProps>) => (

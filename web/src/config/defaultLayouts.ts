@@ -61,10 +61,10 @@ export const defaultLayout: SerializedDockview = {
     orientation: Orientation.HORIZONTAL
   },
   panels: {
-    examples: {
-      id: "examples",
-      contentComponent: "examples",
-      title: "Examples"
+    templates: {
+      id: "templates",
+      contentComponent: "templates",
+      title: "Templates"
     },
     workflows: {
       id: "workflows",

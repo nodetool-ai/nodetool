@@ -98,8 +98,8 @@ const Dashboard: React.FC = () => {
   const {
     isLoadingWorkflows,
     sortedWorkflows,
-    isLoadingExamples,
-    startExamples
+    isLoadingTemplates,
+    startTemplates
   } = useDashboardData();
 
   const {
@@ -107,7 +107,7 @@ const Dashboard: React.FC = () => {
     handleCreateNewWorkflow,
     handleWorkflowClick,
     handleExampleClick,
-    handleViewAllExamples
+    handleViewAllTemplates
   } = useWorkflowActions();
 
   const {
@@ -145,12 +145,12 @@ const Dashboard: React.FC = () => {
 
   const panelParams = useMemo(() => {
     return {
-      examples: {
-        startExamples,
-        isLoadingExamples,
+      templates: {
+        startTemplates,
+        isLoadingTemplates,
         loadingExampleId,
         handleExampleClick,
-        handleViewAllExamples
+        handleViewAllTemplates
       },
       workflows: {
         sortedWorkflows,
@@ -186,11 +186,11 @@ const Dashboard: React.FC = () => {
       }
     };
   }, [
-    startExamples,
-    isLoadingExamples,
+    startTemplates,
+    isLoadingTemplates,
     loadingExampleId,
     handleExampleClick,
-    handleViewAllExamples,
+    handleViewAllTemplates,
     sortedWorkflows,
     isLoadingWorkflows,
     settings,
