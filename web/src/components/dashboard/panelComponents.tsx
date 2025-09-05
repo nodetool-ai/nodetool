@@ -60,6 +60,7 @@ export const createPanelComponents = () => ({
       onNewChat={props.params?.onNewChat || (() => {})}
       agentMode={props.params?.agentMode || false}
       onAgentModeToggle={props.params?.onAgentModeToggle || (() => {})}
+      showToolbar={false}
       currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
       currentTaskUpdate={props.params?.currentTaskUpdate || null}
     />

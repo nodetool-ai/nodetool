@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
-import { BASE_URL } from "../../stores/ApiClient";
+import { BASE_URL } from "../../stores/BASE_URL";
 
 interface ExamplesListProps {
   startExamples: Workflow[];
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
           left: "50%",
           marginLeft: "-5px",
           borderWidth: "5px",
-          borderStyle: "solid",
+          borderStyle: "solid"
         }
       },
       ":hover .example-description-tooltip": {
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
     ".example-image": {
       width: "100%",
       height: "180px",
-      objectFit: "cover",
+      objectFit: "cover"
     },
     ".example-name": {
       padding: ".2em .5em .5em 0",
