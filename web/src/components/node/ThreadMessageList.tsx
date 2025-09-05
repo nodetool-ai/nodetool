@@ -3,7 +3,7 @@ import React, { memo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Message } from "../../stores/ApiTypes";
+import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { isEqual } from "lodash";
 
@@ -13,6 +13,35 @@ const styles = (theme: Theme) =>
       maxHeight: "500px",
       width: "100%",
       overflow: "auto"
+    },
+    ".messages li .tool-calls": {
+      marginTop: "0.5em",
+      marginBottom: "0.5em",
+      padding: "0.5em 0.6em",
+      borderLeft: `3px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.grey[1000]
+    },
+    ".messages li .tool-call": {
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.grey[200],
+      margin: "0.25em 0"
+    },
+    ".messages li .tool-call .name": {
+      color: "var(--palette-primary-main)",
+      fontWeight: 600,
+      marginRight: "0.35em"
+    },
+    ".messages li .tool-call .args": {
+      color: theme.vars.palette.grey[400],
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word"
+    },
+    ".messages li .tool-call .message": {
+      color: theme.vars.palette.grey[300],
+      display: "block",
+      marginTop: "0.15em",
+      marginBottom: "0.15em"
     },
     ".messages": {
       listStyleType: "none",
@@ -59,6 +88,22 @@ type ChatViewProps = {
   messages: Array<Message>;
 };
 
+const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
+  toolCalls
+}) => {
+  if (!toolCalls || toolCalls.length === 0) return null;
+  return (
+    <div className="tool-calls">
+      {toolCalls.map((tc, idx) => (
+        <div key={tc.id || idx} className="tool-call">
+          <span className="name">{tc.name}</span>
+          <span className="message">{tc.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const MessageView = (msg: Message) => {
   let messageClass = "chat-message";
 
@@ -71,6 +116,9 @@ const MessageView = (msg: Message) => {
   }
   return (
     <li className={messageClass} key={msg.id}>
+      {msg.role === "assistant" && msg.tool_calls && (
+        <ToolCallsView toolCalls={msg.tool_calls as ToolCall[]} />
+      )}
       {typeof msg.content === "string" && (
         <MarkdownRenderer key={msg.id} content={msg.content} />
       )}
