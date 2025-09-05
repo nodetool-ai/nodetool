@@ -9,7 +9,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Divider
+  Divider,
+  Fab
 } from "@mui/material";
 import { memo, useEffect } from "react";
 import CollectionForm from "./CollectionForm";
@@ -71,14 +72,60 @@ const CollectionList = () => {
                 {totalCount} {totalCount === 1 ? "collection" : "collections"}
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
+            <Fab
+              variant="extended"
               onClick={() => setShowForm(true)}
-              sx={{ borderRadius: 2, boxShadow: 3 }}
+              aria-label="Create Collection"
+              sx={{
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 2.5,
+                px: 2,
+                backgroundColor: (theme) => theme.vars.palette.primary.main,
+                color: "#0b1220",
+                border: (theme) =>
+                  `1px solid ${theme.vars.palette.primary.main}`,
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
+                backdropFilter: "blur(2px)",
+                textTransform: "none",
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                "&:hover": {
+                  boxShadow: (theme) =>
+                    `0 4px 12px rgba(0, 0, 0, 0.35), 0 0 16px ${theme.vars.palette.primary.main}20`,
+                  transform: "scale(1.03)"
+                },
+                "&:active": {
+                  transform: "scale(0.98)"
+                },
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "55%",
+                  background:
+                    "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+                  pointerEvents: "none",
+                  zIndex: 0
+                },
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "inherit",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+                  pointerEvents: "none"
+                },
+                "& .MuiSvgIcon-root": {
+                  mr: 1,
+                  position: "relative",
+                  zIndex: 1
+                }
+              }}
             >
-              Create Collection
-            </Button>
+              <AddIcon /> Create Collection
+            </Fab>
           </Box>
 
           <CollectionHeader />
