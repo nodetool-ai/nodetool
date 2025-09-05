@@ -22,7 +22,8 @@ import {
   PreviewUpdate,
   LogUpdate
 } from "./ApiTypes";
-import { CHAT_URL, isLocalhost } from "./ApiClient";
+import { isLocalhost } from "./ApiClient";
+import { CHAT_URL } from "./BASE_URL";
 import log from "loglevel";
 import { handleUpdate } from "./workflowUpdates";
 import { supabase } from "../lib/supabaseClient";
