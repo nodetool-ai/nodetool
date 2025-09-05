@@ -1,4 +1,5 @@
 import {
+  Box,
   List,
   ListItem,
   Paper,
@@ -7,7 +8,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button
+  Button,
+  Divider
 } from "@mui/material";
 import { memo, useEffect } from "react";
 import CollectionForm from "./CollectionForm";
@@ -46,32 +48,62 @@ const CollectionList = () => {
     setDeleteTarget(collectionName);
   };
 
+  const totalCount = collections?.collections.length || 0;
+
   return (
     <>
-      <Button
-        variant="outlined"
-        startIcon={<AddIcon />}
-        onClick={() => setShowForm(true)}
-        sx={{ mb: 2 }}
-      >
-        Create Collection
-      </Button>
       {!showForm && (
         <>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2,
+              mt: 1
+            }}
+          >
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                Collections
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {totalCount} {totalCount === 1 ? "collection" : "collections"}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowForm(true)}
+              sx={{ borderRadius: 2, boxShadow: 3 }}
+            >
+              Create Collection
+            </Button>
+          </Box>
+
           <CollectionHeader />
           {error && (
-            <Typography color="error" sx={{ marginTop: 2 }}>
+            <Typography color="error" sx={{ mt: 2 }}>
               Error loading collections
             </Typography>
           )}
           {isLoading ? (
-            <Typography sx={{ marginTop: 2 }}>
-              Loading collections...
-            </Typography>
+            <Typography sx={{ mt: 2 }}>Loading collections...</Typography>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (
-            <Paper sx={{ marginTop: 2 }}>
+            <Paper
+              sx={{
+                mt: 2,
+                borderRadius: 2,
+                p: 1,
+                backgroundColor: "var(--palette-background-default)",
+                boxShadow: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
+                    : "0 8px 24px rgba(16,24,40,0.08), 0 0 0 1px rgba(16,24,40,0.06)"
+              }}
+            >
               <List>
                 {collections?.collections.map((collection) => (
                   <CollectionItem
@@ -120,11 +152,7 @@ const CollectionList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelDelete}>Cancel</Button>
-          <Button
-            onClick={confirmDelete}
-            color="error"
-            variant="contained"
-          >
+          <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
           </Button>
         </DialogActions>
