@@ -50,6 +50,7 @@ interface MemoizedMessageListContentProps
   bottomRef: React.RefObject<HTMLDivElement>; // Pass the ref here
   // Add componentStyles if needed directly, or rely on ChatThreadView's styles
   componentStyles: ReturnType<typeof createStyles>;
+  toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
 }
 
 const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
@@ -65,19 +66,24 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     onToggleThought,
     bottomRef,
     componentStyles,
-    onInsertCode
+    onInsertCode,
+    toolResultsByCallId
   }) => {
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
-        {messages.map((msg, index) => (
-          <MessageView
-            key={msg.id || `msg-${index}`}
-            message={msg}
-            expandedThoughts={expandedThoughts}
-            onToggleThought={onToggleThought}
-            onInsertCode={onInsertCode}
-          />
-        ))}
+        {messages
+          .filter((m) => m.role !== "tool")
+          .map((msg, index) => (
+            <MessageView
+              key={msg.id || `msg-${index}`}
+              message={msg}
+              expandedThoughts={expandedThoughts}
+              onToggleThought={onToggleThought}
+              onInsertCode={onInsertCode}
+              toolResultsByCallId={toolResultsByCallId}
+              componentStyles={componentStyles}
+            />
+          ))}
         {status === "loading" && progress === 0 && (
           <li key="loading-indicator" className="chat-message-list-item">
             <LoadingIndicator />
@@ -146,6 +152,21 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const SCROLL_THRESHOLD = 50;
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
+
+  const toolResultsByCallId = useMemo(() => {
+    const map: Record<string, { name?: string | null; content: any }> = {};
+    for (const m of messages) {
+      // Tool result messages carry tool_call_id to link back to the originating tool call
+      const anyMsg: any = m as any;
+      if (m.role === "tool" && anyMsg.tool_call_id) {
+        map[String(anyMsg.tool_call_id)] = {
+          name: anyMsg.name ?? undefined,
+          content: m.content as any
+        };
+      }
+    }
+    return map;
+  }, [messages]);
 
   useEffect(() => {
     lastUserScrollTimeRef.current = Date.now();
@@ -254,6 +275,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  console.log("messages", messages);
+
   return (
     <div
       css={componentStyles.chatThreadViewRoot}
@@ -278,6 +301,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           bottomRef={bottomRef}
           componentStyles={componentStyles}
           onInsertCode={onInsertCode}
+          toolResultsByCallId={toolResultsByCallId}
         />
       </div>
       <ScrollToBottomButton

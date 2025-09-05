@@ -3,7 +3,6 @@ import type { Theme } from "@mui/material/styles";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
-    width: "100%",
     flexGrow: 1,
     position: "relative",
     display: "flex",
@@ -58,7 +57,10 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
-      position: "relative"
+      position: "relative",
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "8px"
     },
 
     "li.user": {
@@ -183,6 +185,64 @@ export const createStyles = (theme: Theme) => ({
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
+    },
+
+    ".message-content": {
+      flex: 1,
+      minWidth: 0,
+      overflow: "hidden",
+      wordBreak: "break-word",
+      overflowWrap: "anywhere"
+    },
+
+    ".tool-call-card": {
+      border: "1px solid var(--palette-grey-800)",
+      borderRadius: 10,
+      background: "var(--palette-grey-1100, #0f0f0f)",
+      padding: "8px 12px",
+      marginBottom: 8
+    },
+
+    ".tool-call-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    },
+
+    ".tool-chip": {
+      fontWeight: 600
+    },
+
+    ".tool-message": {
+      color: "var(--palette-grey-300)"
+    },
+
+    ".expand-icon": {
+      transition: "transform 0.15s ease"
+    },
+
+    ".expand-icon.expanded": {
+      transform: "rotate(180deg)"
+    },
+
+    ".tool-section-title": {
+      color: "var(--palette-grey-400)"
+    },
+
+    ".pretty-json": {
+      margin: 0,
+      padding: "10px 12px",
+      background: "var(--palette-grey-1000)",
+      borderRadius: 8,
+      color: "var(--palette-grey-200)",
+      overflowX: "auto"
+    },
+
+    ".error-icon": {
+      color: theme.vars.palette.error.main,
+      fontSize: 20,
+      marginTop: 4,
+      flexShrink: 0
     },
 
     "li.chat-message-list-item": {

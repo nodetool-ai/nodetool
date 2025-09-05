@@ -18,7 +18,6 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
-import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -258,21 +257,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <IconForType iconName="asset" showTooltip={false} />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("toggleCollections")}
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("collections")}
-          className={
-            activeView === "collections" && panelVisible ? "active" : ""
-          }
-        >
-          <IconForType iconName="database" showTooltip={false} />
-        </IconButton>
-      </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
@@ -438,19 +422,6 @@ const PanelContent = memo(function PanelContent({
           <WorkflowList />
         </Box>
       )}
-      {activeView === "collections" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden auto",
-            margin: "0 20px"
-          }}
-        >
-          <h3>Collections</h3>
-          <CollectionList />
-        </Box>
-      )}
     </>
   );
 });
@@ -470,7 +441,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], () => handlePanelToggle("chat"), false);
   useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["3"], () => handlePanelToggle("assets"), false);
-  useCombo(["4"], () => handlePanelToggle("collections"), false);
+
   useCombo(["5"], () => handlePanelToggle("packs"), false);
 
   const activeView =

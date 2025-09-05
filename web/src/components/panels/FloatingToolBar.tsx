@@ -3,7 +3,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useState } from "react";
-import { IconButton, Fab, Box, useMediaQuery, Tooltip } from "@mui/material";
+import {
+  IconButton,
+  Fab,
+  Box,
+  useMediaQuery,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
+} from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useLocation } from "react-router-dom";
@@ -19,6 +29,9 @@ import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { isLocalhost } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -187,7 +200,13 @@ const FloatingToolBar: React.FC<{
   const theme = useTheme();
   const path = useLocation().pathname;
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
+  const [actionsMenuAnchor, setActionsMenuAnchor] =
+    useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isLeftPanelVisible = usePanelStore((state) => state.panel.isVisible);
+  const isRightPanelVisible = useRightPanelStore(
+    (state) => state.panel.isVisible
+  );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -316,8 +335,23 @@ const FloatingToolBar: React.FC<{
     setPaneMenuOpen(false);
   }, []);
 
-  // Only show in editor view (visibility toggled by CSS for mobile)
-  if (!path.startsWith("/editor")) {
+  const handleOpenActionsMenu = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      setActionsMenuAnchor(e.currentTarget);
+    },
+    []
+  );
+
+  const handleCloseActionsMenu = useCallback(() => {
+    setActionsMenuAnchor(null);
+  }, []);
+
+  // Only show in editor view and when side panels are hidden
+  if (
+    !path.startsWith("/editor") ||
+    isLeftPanelVisible ||
+    isRightPanelVisible
+  ) {
     return null;
   }
 
@@ -353,55 +387,16 @@ const FloatingToolBar: React.FC<{
           </Fab>
         </Tooltip>
         <Tooltip
-          title="Edit Workflow Settings"
+          title="More actions"
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
           <Fab
             className={`floating-action-button subtle`}
-            onClick={handleEditWorkflow}
-            aria-label="Edit workflow settings"
+            onClick={handleOpenActionsMenu}
+            aria-label="More actions"
           >
-            <EditIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title="Auto-arrange nodes in the workspace"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleAutoLayout}
-            aria-label="Auto layout nodes"
-          >
-            <LayoutIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title={getShortcutTooltip("saveWorkflow")}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleSave}
-            aria-label="Save workflow"
-          >
-            <SaveIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title="Download workflow as JSON file"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleDownload}
-            aria-label="Download workflow JSON"
-          >
-            <DownloadIcon />
+            <MoreVertIcon />
           </Fab>
         </Tooltip>
         <Tooltip
@@ -441,22 +436,73 @@ const FloatingToolBar: React.FC<{
             </Fab>
           </span>
         </Tooltip>
-        {isLocalhost && workflow?.run_mode === "app" && (
-          <Tooltip
-            title="Run workflow as standalone app"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            placement="top"
-          >
-            <Fab
-              className={`floating-action-button subtle`}
-              onClick={handleRunAsApp}
-              aria-label="Run as App"
-            >
-              <RocketLaunchIcon />
-            </Fab>
-          </Tooltip>
-        )}
       </Box>
+
+      <Menu
+        anchorEl={actionsMenuAnchor}
+        open={Boolean(actionsMenuAnchor)}
+        onClose={handleCloseActionsMenu}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <MenuItem
+          onClick={() => {
+            handleEditWorkflow();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Edit workflow settings" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleAutoLayout();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <LayoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Auto layout nodes" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleSave();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <SaveIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Save workflow" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleDownload();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Download JSON" />
+        </MenuItem>
+        {isLocalhost && workflow?.run_mode === "app" && (
+          <MenuItem
+            onClick={() => {
+              handleRunAsApp();
+              handleCloseActionsMenu();
+            }}
+          >
+            <ListItemIcon>
+              <RocketLaunchIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Run as standalone app" />
+          </MenuItem>
+        )}
+      </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
     </>
