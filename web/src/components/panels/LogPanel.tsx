@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   Box,
   Chip,
@@ -22,6 +22,7 @@ import type { Theme } from "@mui/material/styles";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import useLogsStore from "../../stores/LogStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
 
@@ -142,6 +143,7 @@ const LogPanel: React.FC = () => {
   const logs = useLogsStore((s) => s.logs);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const addNotification = useNotificationStore((s) => s.addNotification);
 
   // Map workflow id -> name for quick lookup
   const wfName = useMemo(() => {
@@ -197,6 +199,8 @@ const LogPanel: React.FC = () => {
       )
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [rows, selectedSeverities, selectedWorkflows]);
+
+  // Export action moved to Settings menu
 
   return (
     <Box

@@ -103,6 +103,7 @@
     "start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
     "build": "vite build",
     "build:staging": "vite build --mode staging",
+    "build:debug": "NODE_OPTIONS=--max-old-space-size=16384 vite build --mode debug --sourcemap --minify false",
     "preview": "vite preview",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

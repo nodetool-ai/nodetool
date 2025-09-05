@@ -6,6 +6,7 @@ declare global {
       clipboardWriteText: (text: string) => void;
       clipboardReadText: () => string;
       openLogFile: () => Promise<void>;
+      showItemInFolder: (fullPath: string) => Promise<void>;
       openExternal: (url: string) => void;
       onUpdateProgress: (
         callback: (data: {
@@ -169,20 +170,21 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-  | "cut"
-  | "copy"
-  | "paste"
-  | "selectAll"
-  | "undo"
-  | "redo"
-  | "close"
-  | "fitView";
+    | "cut"
+    | "copy"
+    | "paste"
+    | "selectAll"
+    | "undo"
+    | "redo"
+    | "close"
+    | "fitView";
 }
 
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
   OPEN_LOG_FILE = "open-log-file",
+  SHOW_ITEM_IN_FOLDER = "show-item-in-folder",
   INSTALL_TO_LOCATION = "install-to-location",
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
@@ -224,6 +226,7 @@ export interface InstallToLocationData {
 export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
   [IpcChannels.OPEN_LOG_FILE]: void;
+  [IpcChannels.SHOW_ITEM_IN_FOLDER]: string; // full path
   [IpcChannels.INSTALL_TO_LOCATION]: InstallToLocationData;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
@@ -250,7 +253,6 @@ export interface IpcRequest {
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
-  [IpcChannels.OPEN_LOG_FILE]: void;
   [IpcChannels.INSTALL_TO_LOCATION]: void;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;
