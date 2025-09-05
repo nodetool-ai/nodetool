@@ -14,8 +14,8 @@ export const defaultLayout: SerializedDockview = {
                 {
                   type: "leaf",
                   data: {
-                    views: ["examples"],
-                    activeView: "examples",
+                    views: ["templates"],
+                    activeView: "templates",
                     id: "2"
                   },
                   size: 472

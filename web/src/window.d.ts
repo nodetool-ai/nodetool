@@ -10,6 +10,9 @@ declare global {
       runApp: (workflowId: string) => void;
       clipboardWriteText: (text: string) => void;
       clipboardReadText: () => string;
+      openFolder: (fullPath: string) => void;
+      openLogFile: () => void;
+      showItemInFolder: (fullPath: string) => void;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       onCreateWorkflow: (workflow: Workflow) => void;

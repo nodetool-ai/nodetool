@@ -11,11 +11,13 @@ import { PanelProps } from "./panelConfig";
 export const createPanelComponents = () => ({
   templates: (props: IDockviewPanelProps<PanelProps>) => (
     <ExamplesList
-      startExamples={props.params?.startTemplates || []}
-      isLoadingExamples={props.params?.isLoadingTemplates ?? true}
+      startTemplates={props.params?.startTemplates || []}
+      isLoadingTemplates={props.params?.isLoadingTemplates ?? true}
       loadingExampleId={props.params?.loadingExampleId || null}
       handleExampleClick={props.params?.handleExampleClick || (() => {})}
-      handleViewAllExamples={props.params?.handleViewAllTemplates || (() => {})}
+      handleViewAllTemplates={
+        props.params?.handleViewAllTemplates || (() => {})
+      }
     />
   ),
   workflows: (props: IDockviewPanelProps<PanelProps>) => (

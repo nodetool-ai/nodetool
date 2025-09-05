@@ -27,7 +27,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isProduction } from "../../stores/ApiClient";
+import { client, isLocalhost, isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent, {
   getRemoteSidebarSections as getApiServicesSidebarSections
 } from "./RemoteSettingsMenu";
@@ -35,8 +35,12 @@ import FoldersSettings, {
   getFoldersSidebarSections
 } from "./FoldersSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import SettingsSidebar from "./SettingsSidebar";
+import { useMutation } from "@tanstack/react-query";
+import { authHeader, BASE_URL } from "../../stores/ApiClient";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import path from "path";
 
 export const settingsStyles = (theme: Theme): any =>
   css({
@@ -400,6 +404,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   }));
 
   const [activeSection, setActiveSection] = useState("editor");
+  const [lastExportPath, setLastExportPath] = useState<string | null>(null);
+  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
@@ -455,6 +461,53 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       }
     }, 10);
   };
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        workflow_id: currentWorkflowId || undefined,
+        errors: [],
+        preferred_save: "desktop"
+      };
+      const { error, data } = await client.POST("/api/debug/export", {
+        body: payload
+      });
+      if (error) {
+        throw new Error(error.detail?.[0]?.msg || "Unknown error");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      addNotification({
+        type: "success",
+        content: `Debug bundle saved: ${data.file_path}`,
+        alert: true
+      });
+      setLastExportPath(data.file_path);
+      if (typeof window.api?.showItemInFolder === "function") {
+        window.api.showItemInFolder(data.file_path);
+      } else {
+        addNotification({
+          type: "info",
+          content:
+            "Electron not available to open folder. Please open it manually.",
+          dismissable: true
+        });
+      }
+    },
+    onError: (err: any) => {
+      addNotification({
+        type: "error",
+        content: `Export failed: ${err?.message || "Unknown error"}`,
+        dismissable: true
+      });
+    }
+  });
+
+  const handleExport = useCallback(() => {
+    if (exportMutation.isPending) return;
+    exportMutation.mutate();
+  }, [exportMutation]);
 
   const generalSidebarSections = [
     {
@@ -569,6 +622,65 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     <Typography variant="h3" id="editor">
                       Editor
                     </Typography>
+
+                    <div className="settings-section">
+                      <div className="settings-item">
+                        <div className="settings-header">
+                          <Typography id="debug-tools" variant="h3">
+                            Debug Tools
+                          </Typography>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "1em",
+                            flexWrap: "wrap"
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={handleExport}
+                            disabled={exportMutation.isPending}
+                          >
+                            Export Debug Bundle
+                          </Button>
+                          {lastExportPath && (
+                            <a
+                              href={
+                                (typeof window === "undefined" ||
+                                  !(window as any)?.api ||
+                                  typeof (window as any).api.openPath !==
+                                    "function") &&
+                                lastExportPath
+                                  ? `file://${lastExportPath}`
+                                  : "#"
+                              }
+                              onClick={(e) => {
+                                const api = (window as any)?.api;
+                                if (api && typeof api.openPath === "function") {
+                                  e.preventDefault();
+                                  api.openPath(lastExportPath);
+                                }
+                              }}
+                              style={{
+                                color: "var(--palette-primary-main)",
+                                textDecoration: "underline",
+                                wordBreak: "break-all"
+                              }}
+                              title={lastExportPath}
+                            >
+                              {lastExportPath}
+                            </a>
+                          )}
+                        </div>
+                        <Typography className="description">
+                          Collect logs, environment info, and the last workflow
+                          context into a ZIP on your Desktop.
+                        </Typography>
+                      </div>
+                    </div>
 
                     <div className="settings-section">
                       <div className="settings-item">

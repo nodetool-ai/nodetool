@@ -19,6 +19,7 @@ import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { defaultLayout } from "../../config/defaultLayouts";
+import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 import LayoutMenu from "./LayoutMenu";
 import { useLayoutStore } from "../../stores/LayoutStore";
 import { useDashboardData } from "../../hooks/useDashboardData";
@@ -229,9 +230,9 @@ const Dashboard: React.FC = () => {
       const activeLayout = (layouts || []).find((l) => l.id === activeLayoutId);
 
       if (activeLayout) {
-        api.fromJSON(activeLayout.layout);
+        applyDockviewLayoutSafely(api, activeLayout.layout);
       } else {
-        api.fromJSON(defaultLayout);
+        applyDockviewLayoutSafely(api, defaultLayout);
       }
     },
 

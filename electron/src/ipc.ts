@@ -8,6 +8,7 @@ import {
 import {
   getServerState,
   openLogFile,
+  showItemInFolder,
   runApp,
   initializeBackendServer,
   stopServer,
@@ -115,6 +116,12 @@ export function initializeIpcHandlers(): void {
     openLogFile();
   });
 
+  createIpcMainHandler(
+    IpcChannels.SHOW_ITEM_IN_FOLDER,
+    async (_event, fullPath) => {
+      showItemInFolder(fullPath);
+    }
+  );
   // Continue to app handler
   createIpcMainHandler(IpcChannels.START_SERVER, async () => {
     logMessage("User continued to app from package manager");
@@ -142,10 +149,17 @@ export function initializeIpcHandlers(): void {
   });
 
   // Show Package Manager window
-  createIpcMainHandler(IpcChannels.SHOW_PACKAGE_MANAGER, async (_event, nodeSearch) => {
-    logMessage(`Opening Package Manager window${nodeSearch ? ` with search: ${nodeSearch}` : ''}`);
-    createPackageManagerWindow(nodeSearch);
-  });
+  createIpcMainHandler(
+    IpcChannels.SHOW_PACKAGE_MANAGER,
+    async (_event, nodeSearch) => {
+      logMessage(
+        `Opening Package Manager window${
+          nodeSearch ? ` with search: ${nodeSearch}` : ""
+        }`
+      );
+      createPackageManagerWindow(nodeSearch);
+    }
+  );
 
   //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
   //     await installUpdate();

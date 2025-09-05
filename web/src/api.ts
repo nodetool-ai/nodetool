@@ -1009,6 +1009,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/debug/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Debug Bundle */
+        post: operations["export_debug_bundle_api_debug_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -1572,6 +1589,31 @@ export interface components {
              * @default 0
              */
             utc_offset: number;
+        };
+        /** DebugBundleRequest */
+        DebugBundleRequest: {
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Graph */
+            graph?: {
+                [key: string]: unknown;
+            } | null;
+            /** Errors */
+            errors?: string[] | null;
+            /**
+             * Preferred Save
+             * @description desktop or downloads preference
+             */
+            preferred_save?: string | null;
+        };
+        /** DebugBundleResponse */
+        DebugBundleResponse: {
+            /** File Path */
+            file_path: string;
+            /** Filename */
+            filename: string;
+            /** Message */
+            message: string;
         };
         /**
          * DocumentRef
@@ -6707,6 +6749,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FontResponse"];
+                };
+            };
+        };
+    };
+    export_debug_bundle_api_debug_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DebugBundleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugBundleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
