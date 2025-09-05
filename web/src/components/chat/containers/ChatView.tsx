@@ -65,6 +65,7 @@ type ChatViewProps = {
   total: number;
   messages: Array<Message>;
   model?: LanguageModel;
+  showToolbar?: boolean;
   graph?: {
     nodes: Node[];
     edges: Edge[];
@@ -100,6 +101,7 @@ const ChatView = ({
   sendMessage,
   progressMessage,
   selectedTools = [],
+  showToolbar = true,
   onToolsChange,
   selectedCollections = [],
   onCollectionsChange,
@@ -175,6 +177,7 @@ const ChatView = ({
 
       <ChatInputSection
         status={status}
+        showToolbar={showToolbar}
         onSendMessage={handleSendMessage}
         onStop={onStop}
         onNewChat={onNewChat}

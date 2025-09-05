@@ -17,6 +17,7 @@ import useGlobalChatStore, {
 } from "../../../stores/GlobalChatStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
+import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -70,20 +71,8 @@ const GlobalChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
 
-  // Connect once on mount and clean up on unmount
-  useEffect(() => {
-    if (status === "disconnected") {
-      connect().catch((error) => {
-        console.error("Failed to connect to global chat:", error);
-      });
-    }
-
-    return () => {
-      // Only disconnect on actual unmount, not on thread changes
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
+  // Ensure chat connection while GlobalChat is visible (do not disconnect on unmount)
+  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {

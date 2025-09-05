@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { IconButton } from "@mui/material";
 
 interface SendMessageButtonProps {
@@ -22,25 +22,29 @@ export const SendMessageButton = forwardRef<
       size="small"
       disableRipple={isDisabled}
       disabled={isDisabled}
-      sx={{
-        width: 30,
-        height: 30,
-        borderRadius: "50%",
-        backgroundColor: "#ffffff",
-        transition: "background-color 0.2s, box-shadow 0.2s",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.1)",
+      sx={(theme) => ({
+        width: 36,
+        height: 36,
+        transition: "background-color 0.15s ease, transform 0.1s ease",
+        boxShadow: "none",
         "&:hover": {
-          backgroundColor: "var(--palette-primary-main)"
+          backgroundColor: theme.vars.palette.grey[600]
+        },
+        "&:active": {
+          transform: "translateY(1px)"
+        },
+        "&:disabled": {
+          opacity: 0.5
         }
-      }}
+      })}
     >
-      <ArrowUpwardIcon
+      <SendRoundedIcon
         fontSize="small"
-        sx={{
+        sx={(theme) => ({
           color: isDisabled
-            ? "var(--palette-text-disabled)"
-            : "var(--palette-grey-800)"
-        }}
+            ? theme.vars.palette.grey[500]
+            : theme.vars.palette.grey[0]
+        })}
       />
     </IconButton>
   );

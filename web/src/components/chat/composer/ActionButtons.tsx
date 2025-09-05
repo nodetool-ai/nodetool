@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import { Tooltip, Typography } from "@mui/material";
@@ -32,7 +32,13 @@ const styles = (theme: Theme) =>
     position: "relative",
     marginRight: "0.25em",
     display: "flex",
-    alignItems: "center"
+    alignItems: "center",
+    gap: 8,
+    padding: "6px",
+    "& .button-wrapper": {
+      display: "inline-flex",
+      alignItems: "center"
+    }
   });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -47,19 +53,19 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const showStopButton =
     (status === "loading" || status === "streaming") && onStop;
   const theme = useTheme();
-  
+
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
       {onNewChat && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
-          <span className="new-chat-button-wrapper" style={{ display: "inline-flex" }}>
+          <span className="new-chat-button-wrapper button-wrapper">
             <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />
           </span>
         </Tooltip>
       )}
       {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
-          <span style={{ display: "inline-flex" }}>
+          <span className="button-wrapper">
             <StopGenerationButton
               onClick={() => {
                 onStop?.();
@@ -78,7 +84,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             </div>
           }
         >
-          <span style={{ display: "inline-flex" }}>
+          <span className="button-wrapper">
             <SendMessageButton
               disabled={isDisabled}
               hasContent={hasContent}
