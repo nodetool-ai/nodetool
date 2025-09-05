@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { BASE_URL, isLocalhost, WORKER_URL } from "./ApiClient";
+import { isLocalhost } from "./ApiClient";
+import { WORKER_URL } from "./BASE_URL";
+import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
