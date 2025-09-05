@@ -22,8 +22,35 @@ const mockTheme = createTheme({
     c_hl1: "#77b4e6",
     c_white: "#FCFCFC",
     c_gray1: "#242424"
-  } as any // Use 'as any' to bypass TypeScript checking for custom properties
+  } as any, // Use 'as any' to bypass TypeScript checking for custom properties
+  shape: { borderRadius: 4 },
+  components: {
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {}
+      }
+    }
+  }
 });
+
+// Add vars property directly to the theme object
+(mockTheme as any).vars = {
+  palette: {
+    grey: {
+      0: "#000000",
+      50: "#fafafa",
+      100: "#f5f5f5",
+      200: "#eeeeee",
+      300: "#e0e0e0",
+      400: "#bdbdbd",
+      500: "#9e9e9e",
+      600: "#757575",
+      700: "#616161",
+      800: "#424242",
+      900: "#212121"
+    }
+  }
+};
 
 // Mock the stores and hooks
 jest.mock("../../../stores/AssetGridStore", () => ({

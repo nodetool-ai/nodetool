@@ -10,7 +10,12 @@ import {
   InputHandle
 } from "../handleUtils";
 import { NodeData } from "../../stores/NodeData";
-import { NodeMetadata, OutputSlot, Property, TypeMetadata } from "../../stores/ApiTypes";
+import {
+  NodeMetadata,
+  OutputSlot,
+  Property,
+  TypeMetadata
+} from "../../stores/ApiTypes";
 
 // Test data setup
 const mockTypeMetadata: TypeMetadata = {
@@ -98,7 +103,7 @@ const mockDynamicNodeMetadata: NodeMetadata = {
 };
 
 const createMockNode = (
-  id: string = "test-node", 
+  id: string = "test-node",
   dynamicOutputs: Record<string, TypeMetadata> = {},
   dynamicProperties: Record<string, any> = {}
 ): Node<NodeData> => ({
@@ -130,9 +135,13 @@ describe("handleUtils", () => {
     });
 
     it("should find dynamic output handles", () => {
-      const dynamicOutputs = { "dynamic_output": mockDynamicTypeMetadata };
+      const dynamicOutputs = { dynamic_output: mockDynamicTypeMetadata };
       const node = createMockNode("test", dynamicOutputs);
-      const handle = findOutputHandle(node, "dynamic_output", mockDynamicNodeMetadata);
+      const handle = findOutputHandle(
+        node,
+        "dynamic_output",
+        mockDynamicNodeMetadata
+      );
 
       expect(handle).toEqual({
         name: "dynamic_output",
@@ -150,7 +159,7 @@ describe("handleUtils", () => {
     });
 
     it("should prioritize static outputs over dynamic ones", () => {
-      const dynamicOutputs = { "output": mockDynamicTypeMetadata };
+      const dynamicOutputs = { output: mockDynamicTypeMetadata };
       const node = createMockNode("test", dynamicOutputs);
       const handle = findOutputHandle(node, "output", mockNodeMetadata);
 
@@ -176,14 +185,18 @@ describe("handleUtils", () => {
     });
 
     it("should find dynamic input handles for dynamic nodes", () => {
-      const dynamicProperties = { "dynamic_input": "test_value" };
+      const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
-      const handle = findInputHandle(node, "dynamic_input", mockDynamicNodeMetadata);
+      const handle = findInputHandle(
+        node,
+        "dynamic_input",
+        mockDynamicNodeMetadata
+      );
 
       expect(handle).toEqual({
         name: "dynamic_input",
         type: {
-          type: "str",
+          type: "any",
           optional: false,
           values: null,
           type_args: [],
@@ -194,7 +207,7 @@ describe("handleUtils", () => {
     });
 
     it("should return undefined for dynamic properties on non-dynamic nodes", () => {
-      const dynamicProperties = { "dynamic_input": "test_value" };
+      const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
       const handle = findInputHandle(node, "dynamic_input", mockNodeMetadata); // Non-dynamic metadata
 
@@ -209,7 +222,7 @@ describe("handleUtils", () => {
     });
 
     it("should prioritize static properties over dynamic ones", () => {
-      const dynamicProperties = { "input": "test_value" };
+      const dynamicProperties = { input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
       const handle = findInputHandle(node, "input", mockDynamicNodeMetadata);
 
@@ -244,15 +257,15 @@ describe("handleUtils", () => {
     });
 
     it("should return static and dynamic output handles", () => {
-      const dynamicOutputs = { 
-        "dynamic1": mockDynamicTypeMetadata,
-        "dynamic2": mockFloatTypeMetadata
+      const dynamicOutputs = {
+        dynamic1: mockDynamicTypeMetadata,
+        dynamic2: mockFloatTypeMetadata
       };
       const node = createMockNode("test", dynamicOutputs);
       const handles = getAllOutputHandles(node, mockNodeMetadata);
 
       expect(handles).toHaveLength(4); // 2 static + 2 dynamic
-      
+
       // Check static handles
       expect(handles.slice(0, 2)).toEqual([
         {
@@ -291,7 +304,7 @@ describe("handleUtils", () => {
       const handles = getAllOutputHandles(node, mockNodeMetadata);
 
       expect(handles).toHaveLength(2);
-      expect(handles.every(h => !h.isDynamic)).toBe(true);
+      expect(handles.every((h) => !h.isDynamic)).toBe(true);
     });
   });
 
@@ -316,9 +329,9 @@ describe("handleUtils", () => {
     });
 
     it("should return static and dynamic input handles for dynamic nodes", () => {
-      const dynamicProperties = { 
-        "dynamic1": "value1",
-        "dynamic2": "value2"
+      const dynamicProperties = {
+        dynamic1: "value1",
+        dynamic2: "value2"
       };
       const node = createMockNode("test", {}, dynamicProperties);
       const handles = getAllInputHandles(node, mockDynamicNodeMetadata);
@@ -344,7 +357,7 @@ describe("handleUtils", () => {
         {
           name: "dynamic1",
           type: {
-            type: "str",
+            type: "any",
             optional: false,
             values: null,
             type_args: [],
@@ -355,7 +368,7 @@ describe("handleUtils", () => {
         {
           name: "dynamic2",
           type: {
-            type: "str",
+            type: "any",
             optional: false,
             values: null,
             type_args: [],
@@ -367,12 +380,12 @@ describe("handleUtils", () => {
     });
 
     it("should not return dynamic handles for non-dynamic nodes", () => {
-      const dynamicProperties = { "dynamic1": "value1" };
+      const dynamicProperties = { dynamic1: "value1" };
       const node = createMockNode("test", {}, dynamicProperties);
       const handles = getAllInputHandles(node, mockNodeMetadata); // Non-dynamic metadata
 
       expect(handles).toHaveLength(2); // Only static handles
-      expect(handles.every(h => !h.isDynamic)).toBe(true);
+      expect(handles.every((h) => !h.isDynamic)).toBe(true);
     });
   });
 
@@ -384,14 +397,18 @@ describe("handleUtils", () => {
     });
 
     it("should return true for existing dynamic output handles", () => {
-      const dynamicOutputs = { "dynamic_output": mockDynamicTypeMetadata };
+      const dynamicOutputs = { dynamic_output: mockDynamicTypeMetadata };
       const node = createMockNode("test", dynamicOutputs);
-      expect(hasOutputHandle(node, "dynamic_output", mockDynamicNodeMetadata)).toBe(true);
+      expect(
+        hasOutputHandle(node, "dynamic_output", mockDynamicNodeMetadata)
+      ).toBe(true);
     });
 
     it("should return false for non-existent handles", () => {
       const node = createMockNode();
-      expect(hasOutputHandle(node, "nonexistent", mockNodeMetadata)).toBe(false);
+      expect(hasOutputHandle(node, "nonexistent", mockNodeMetadata)).toBe(
+        false
+      );
     });
   });
 
@@ -403,15 +420,19 @@ describe("handleUtils", () => {
     });
 
     it("should return true for existing dynamic input handles on dynamic nodes", () => {
-      const dynamicProperties = { "dynamic_input": "test_value" };
+      const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
-      expect(hasInputHandle(node, "dynamic_input", mockDynamicNodeMetadata)).toBe(true);
+      expect(
+        hasInputHandle(node, "dynamic_input", mockDynamicNodeMetadata)
+      ).toBe(true);
     });
 
     it("should return false for dynamic properties on non-dynamic nodes", () => {
-      const dynamicProperties = { "dynamic_input": "test_value" };
+      const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
-      expect(hasInputHandle(node, "dynamic_input", mockNodeMetadata)).toBe(false);
+      expect(hasInputHandle(node, "dynamic_input", mockNodeMetadata)).toBe(
+        false
+      );
     });
 
     it("should return false for non-existent handles", () => {
@@ -437,14 +458,18 @@ describe("handleUtils", () => {
       const node = createMockNode();
       delete (node.data as any).dynamic_outputs;
       expect(hasOutputHandle(node, "output", mockNodeMetadata)).toBe(true);
-      expect(hasOutputHandle(node, "nonexistent", mockNodeMetadata)).toBe(false);
+      expect(hasOutputHandle(node, "nonexistent", mockNodeMetadata)).toBe(
+        false
+      );
     });
 
     it("should handle missing dynamic_properties property", () => {
       const node = createMockNode();
       delete (node.data as any).dynamic_properties;
       expect(hasInputHandle(node, "input", mockNodeMetadata)).toBe(true);
-      expect(hasInputHandle(node, "nonexistent", mockDynamicNodeMetadata)).toBe(false);
+      expect(hasInputHandle(node, "nonexistent", mockDynamicNodeMetadata)).toBe(
+        false
+      );
     });
   });
 });
