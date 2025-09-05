@@ -42,7 +42,7 @@ import CollectionsExplorer from "./components/collections/CollectionsExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
-import ExampleGrid from "./components/workflows/ExampleGrid";
+import TemplateGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
@@ -174,11 +174,11 @@ function getRoutes() {
       )
     },
     {
-      path: "examples",
+      path: "templates",
       element: (
         <ProtectedRoute>
           <PanelLeft />
-          <ExampleGrid />
+          <TemplateGrid />
         </ProtectedRoute>
       )
     },

@@ -156,7 +156,7 @@ const DashboardButton = memo(function DashboardButton({
   );
 });
 
-const ExamplesButton = memo(function ExamplesButton({
+const TemplatesButton = memo(function TemplatesButton({
   isActive
 }: {
   isActive: boolean;
@@ -165,23 +165,23 @@ const ExamplesButton = memo(function ExamplesButton({
   const theme = useTheme();
 
   const handleClick = useCallback(() => {
-    navigate("/examples");
+    navigate("/templates");
   }, [navigate]);
 
   return (
     <Tooltip
-      title="Explore Examples"
+      title="Explore Templates"
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
       <IconButton
-        className={`nav-button examples-button ${isActive ? "active" : ""}`}
+        className={`nav-button templates-button ${isActive ? "active" : ""}`}
         onClick={handleClick}
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
         <ExamplesIcon />
-        <span className="nav-button-text">Examples</span>
+        <span className="nav-button-text">Templates</span>
       </IconButton>
     </Tooltip>
   );
@@ -361,7 +361,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <ChatButton isActive={path.startsWith("/chat")} />
             <AssetsButton isActive={path.startsWith("/assets")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
-            <ExamplesButton isActive={path.startsWith("/examples")} />
+            <TemplatesButton isActive={path.startsWith("/templates")} />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>

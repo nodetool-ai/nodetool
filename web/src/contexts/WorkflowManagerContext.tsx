@@ -110,8 +110,8 @@ type WorkflowManagerState = {
   load: (cursor?: string, limit?: number) => Promise<any>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
-  loadExamples: () => Promise<any>;
-  searchExamples: (query: string) => Promise<any>;
+  loadTemplates: () => Promise<any>;
+  searchTemplates: (query: string) => Promise<any>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
@@ -348,17 +348,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      // Loads example workflows.
-      loadExamples: async () => {
+      // Loads template workflows.
+      loadTemplates: async () => {
         const { data, error } = await client.GET("/api/workflows/examples", {});
         if (error) {
-          throw createErrorMessage(error, "Failed to load examples");
+          throw createErrorMessage(error, "Failed to load templates");
         }
         return data;
       },
 
-      // Searches example workflows using the backend search API.
-      searchExamples: async (query: string) => {
+      // Searches template workflows using the backend search API.
+      searchTemplates: async (query: string) => {
         const { data, error } = await client.GET(
           "/api/workflows/examples/search",
           {
@@ -371,10 +371,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         );
         if (error) {
           console.error(
-            "[WorkflowManagerContext] searchExamples error:",
+            "[WorkflowManagerContext] searchTemplates error:",
             error
           );
-          throw createErrorMessage(error, "Failed to search examples");
+          throw createErrorMessage(error, "Failed to search templates");
         }
         return data;
       },

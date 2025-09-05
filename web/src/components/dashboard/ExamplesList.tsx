@@ -8,12 +8,12 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { BASE_URL } from "../../stores/BASE_URL";
 
-interface ExamplesListProps {
-  startExamples: Workflow[];
-  isLoadingExamples: boolean;
+interface TemplatesListProps {
+  startTemplates: Workflow[];
+  isLoadingTemplates: boolean;
   loadingExampleId: string | null;
   handleExampleClick: (example: Workflow) => void;
-  handleViewAllExamples: () => void;
+  handleViewAllTemplates: () => void;
 }
 
 const styles = (theme: Theme) =>
@@ -106,12 +106,12 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ExamplesList: React.FC<ExamplesListProps> = ({
-  startExamples,
-  isLoadingExamples,
+const ExamplesList: React.FC<TemplatesListProps> = ({
+  startTemplates,
+  isLoadingTemplates,
   loadingExampleId,
   handleExampleClick,
-  handleViewAllExamples
+  handleViewAllTemplates
 }) => {
   const theme = useTheme();
   return (
@@ -124,17 +124,17 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
         }}
       >
         <Typography variant="h3" className="section-title">
-          Examples
+          Templates
         </Typography>
       </Box>
       <Box className="content-scrollable">
-        {isLoadingExamples ? (
+        {isLoadingTemplates ? (
           <Box className="loading-container">
             <CircularProgress />
           </Box>
         ) : (
           <Box className="example-grid">
-            {startExamples.map((example) => (
+            {startTemplates.map((example) => (
               <Box
                 key={example.id}
                 className="example-card"
@@ -165,10 +165,10 @@ const ExamplesList: React.FC<ExamplesListProps> = ({
         )}
       </Box>
       <Button
-        onClick={handleViewAllExamples}
+        onClick={handleViewAllTemplates}
         sx={{ marginTop: 2, alignSelf: "center" }}
       >
-        View All Examples
+        View All Templates
       </Button>
     </Box>
   );

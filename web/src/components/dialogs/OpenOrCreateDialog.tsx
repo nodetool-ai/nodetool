@@ -313,7 +313,7 @@ const OpenOrCreateDialog = () => {
             Create New
           </Button>
           <Button color="primary" onClick={handleNavigateExampleWorkflows}>
-            Examples
+            Templates
           </Button>
           <Button color="primary" onClick={handleOpenHelp}>
             Shortcuts

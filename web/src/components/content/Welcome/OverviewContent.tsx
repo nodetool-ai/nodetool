@@ -38,7 +38,7 @@ export const overviewContents: Section[] = [
           </li>
         </ul>
         <b>
-          Explore <ExamplesIcon /> Examples to get started fast.
+          Explore <ExamplesIcon /> Templates to get started fast.
         </b>
       </Typography>
     )
@@ -193,12 +193,12 @@ export const overviewContents: Section[] = [
         <Typography>Built‑in Asset Manager for all your media:</Typography>
         <ul>
           <li>
-            <b>Smart Import & Organization:</b> Drag and drop files. Auto‑organized
-            by type, project, or tags.
+            <b>Smart Import & Organization:</b> Drag and drop files.
+            Auto‑organized by type, project, or tags.
           </li>
           <li>
-            <b>Preview Everything:</b> Instant previews for images, audio, video,
-            and documents.
+            <b>Preview Everything:</b> Instant previews for images, audio,
+            video, and documents.
           </li>
           <li>
             <b>Workflow Integration:</b> Drag assets onto the canvas to create
@@ -297,7 +297,9 @@ export const overviewContents: Section[] = [
     title: "Agent Tools",
     content: (
       <>
-        <Typography>Extensible tools for AI agents to interact with the world:</Typography>
+        <Typography>
+          Extensible tools for AI agents to interact with the world:
+        </Typography>
         <ul>
           <li>
             <b>Web & Search:</b> Browser automation, scraping, Google Search,
