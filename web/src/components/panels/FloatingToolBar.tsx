@@ -137,6 +137,24 @@ const styles = (theme: Theme) =>
           "0 0 18px var(--palette-primary-main)60, 0 0 36px var(--palette-secondary-main)40, inset 0 0 12px var(--palette-primary-main)40"
       }
     },
+
+    ".floating-action-button.save-workflow": {
+      position: "relative",
+      overflow: "hidden",
+      backgroundColor: "var(--palette-grey-700)",
+      color: "var(--palette-grey-200)",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-grey-700)25`,
+      filter: "saturate(1.1)",
+      "&:hover": {
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-success-main)35`,
+        transform: "scale(1.06)"
+      },
+      "&::before": {},
+      "&.disabled": {
+        opacity: 0.6,
+        pointerEvents: "none"
+      }
+    },
     // Ensure disabled state doesn't dim the running run-workflow button
     ".floating-action-button.run-workflow.Mui-disabled.running": {
       opacity: 1
@@ -400,6 +418,19 @@ const FloatingToolBar: React.FC<{
           </Fab>
         </Tooltip>
         <Tooltip
+          title={getShortcutTooltip("saveWorkflow")}
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button save-workflow`}
+            onClick={handleSave}
+            aria-label="Save workflow"
+          >
+            <SaveIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
           title={getShortcutTooltip("runWorkflow")}
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
@@ -466,17 +497,6 @@ const FloatingToolBar: React.FC<{
             <LayoutIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Auto layout nodes" />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleSave();
-            handleCloseActionsMenu();
-          }}
-        >
-          <ListItemIcon>
-            <SaveIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Save workflow" />
         </MenuItem>
         <MenuItem
           onClick={() => {
