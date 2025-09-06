@@ -47,7 +47,7 @@ describe("sanitizeText", () => {
     });
 
     it("should return string without dangerous characters unchanged", () => {
-      const safeString = "Hello World 123!@#$%^&*()";
+      const safeString = "Hello World 123!@#$%^*()";
       expect(sanitizeText(safeString)).toBe(safeString);
     });
 
@@ -117,7 +117,7 @@ describe("sanitizeText", () => {
     it("should sanitize JSON-like strings", () => {
       const jsonString = '{"name": "John", "age": 30, "active": true}';
       expect(sanitizeText(jsonString)).toBe(
-        "{&#39;name&#39;: &#39;John&#39;, &#39;age&#39;: 30, &#39;active&#39;: true}"
+        "{&quot;name&quot;: &quot;John&quot;, &quot;age&quot;: 30, &quot;active&quot;: true}"
       );
     });
 

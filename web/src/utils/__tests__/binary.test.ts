@@ -24,14 +24,13 @@ describe("binary utilities", () => {
     global.btoa = originalBtoa;
   });
 
-  it("throws when data uri creation fails", () => {
+  it("returns fallback data URI when conversion fails", () => {
     const originalBtoa = global.btoa;
     (global as any).btoa = () => {
       throw new Error("fail");
     };
-    expect(() =>
-      uint8ArrayToDataUri(new Uint8Array([1]), "text/plain")
-    ).toThrow("Failed to create data URI");
+    const result = uint8ArrayToDataUri(new Uint8Array([1]), "text/plain");
+    expect(result).toBe(`data:text/plain;base64,${base64ErrorImage}`);
     global.btoa = originalBtoa;
   });
 });
