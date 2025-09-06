@@ -39,8 +39,12 @@ describe("ConnectionStore", () => {
     position: { x: 0, y: 0 },
     data: {
       properties: {},
-      dynamic_properties: {}
-    },
+      collapsed: false,
+      selectable: true,
+      workflow_id: "test-workflow",
+      dynamic_properties: {},
+      dynamic_outputs: {}
+    } as NodeData,
     width: 100,
     height: 100
   });
@@ -53,7 +57,13 @@ describe("ConnectionStore", () => {
     layout: "default",
     properties: [],
     outputs: [],
-    is_dynamic: false
+    is_dynamic: false,
+    supports_dynamic_outputs: false,
+    expose_as_tool: false,
+    the_model_info: {},
+    recommended_models: [],
+    basic_fields: [],
+    is_streaming: false
   });
 
   describe("initial state", () => {

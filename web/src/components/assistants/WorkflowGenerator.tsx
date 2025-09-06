@@ -7,6 +7,7 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { createErrorMessage } from "../../utils/errorHandling";
 
 const WorkflowGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -27,28 +28,26 @@ const WorkflowGenerator: React.FC = () => {
       setIsLoading(true);
       try {
         const { data, error } = await client.POST(
-          "/api/workflows/create-smart",
-          {
-            body: { prompt: prompt.trim() }
-          }
+          "/api/workflows/create-smart" as any,
+          { body: { prompt: prompt.trim() } }
         );
 
         if (error) {
-          console.error("Error creating workflow:", error);
-          const errorMessage = error.detail
-            ? Array.isArray(error.detail)
-              ? error.detail.map((d) => d.msg).join(", ")
-              : String(error.detail)
-            : "Failed to create workflow";
-          throw new Error(errorMessage);
+          const errorMsg = createErrorMessage(
+            error,
+            "Failed to create workflow"
+          );
+          throw new Error(
+            typeof errorMsg === "string" ? errorMsg : errorMsg.message
+          );
         }
 
-        if (data && data.nodes && data.edges && workflow) {
+        if (data && (data as any).nodes && (data as any).edges && workflow) {
           setPrompt("");
-          const nodes = data.nodes.map((node) =>
+          const nodes = (data as any).nodes.map((node: any) =>
             graphNodeToReactFlowNode(workflow, node)
           );
-          const edges = data.edges.map((edge) =>
+          const edges = (data as any).edges.map((edge: any) =>
             graphEdgeToReactFlowEdge(edge)
           );
           setNodes(nodes);

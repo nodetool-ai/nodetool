@@ -11,18 +11,7 @@ export const defaultLocalUrl =
     ? `${window.location.protocol}//${window.location.hostname}:8000`
     : "http://localhost:8000"; /** WebSocket URL for the prediction worker endpoint. */
 
-let viteEnv: any;
-try {
-  // Using Function constructor avoids syntax errors in CommonJS environments
-  // where `import.meta` is not supported.
-  viteEnv = new Function(
-    "return typeof import !== 'undefined' ? import.meta.env : undefined"
-  )();
-} catch {
-  viteEnv = undefined;
-}
-
-const apiEnv = process.env.VITE_API_URL || viteEnv?.VITE_API_URL;
+const apiEnv = import.meta.env.VITE_API_URL;
 
 export const BASE_URL = apiEnv || defaultLocalUrl;
 

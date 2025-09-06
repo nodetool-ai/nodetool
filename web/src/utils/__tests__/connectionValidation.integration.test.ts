@@ -93,8 +93,11 @@ const textProcessorMetadata: NodeMetadata = {
   ],
   is_dynamic: false,
   supports_dynamic_outputs: false,
-  is_output: false,
-  expose_as_tool: false
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_streaming: false
 };
 
 const mathCalculatorMetadata: NodeMetadata = {
@@ -128,8 +131,11 @@ const mathCalculatorMetadata: NodeMetadata = {
   ],
   is_dynamic: false,
   supports_dynamic_outputs: false,
-  is_output: false,
-  expose_as_tool: false
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_streaming: false
 };
 
 const dynamicProcessorMetadata: NodeMetadata = {
@@ -156,8 +162,11 @@ const dynamicProcessorMetadata: NodeMetadata = {
   ],
   is_dynamic: true,
   supports_dynamic_outputs: true,
-  is_output: false,
-  expose_as_tool: false
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_streaming: false
 };
 
 const createTestNode = (

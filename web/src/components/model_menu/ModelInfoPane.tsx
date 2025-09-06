@@ -2,23 +2,28 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
-const paneStyles = css(({ theme }) => ({
-  overflowY: "auto",
-  maxHeight: 520,
-  fontSize: theme.vars.fontSizeNormal
-}));
+const paneStyles = (theme: Theme) =>
+  css({
+    overflowY: "auto",
+    maxHeight: 520,
+    fontSize: theme.vars.fontSizeNormal
+  });
 
 export interface ModelInfoPaneProps {
   model: LanguageModel | null;
 }
 
 const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
+  const theme = useTheme();
+
   if (!model) {
     return (
       <Box
-        css={paneStyles}
+        css={paneStyles(theme)}
         className="model-menu__info-pane is-empty"
         sx={{ color: "var(--palette-grey-300)" }}
       >
@@ -27,7 +32,7 @@ const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
     );
   }
   return (
-    <Box css={paneStyles} className="model-menu__info-pane">
+    <Box css={paneStyles(theme)} className="model-menu__info-pane">
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         {model.name}
       </Typography>

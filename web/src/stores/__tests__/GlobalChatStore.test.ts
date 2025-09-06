@@ -97,7 +97,7 @@ describe("GlobalChatStore", () => {
       currentThreadId: null,
       status: "disconnected",
       error: null,
-      progress: { current: 0, total: 0 },
+      progress: { current: 0, total: 0 }
     } as any);
   });
 
@@ -396,6 +396,7 @@ describe("GlobalChatStore", () => {
       const nodeUpdate: NodeUpdate = {
         type: "node_update",
         node_id: "test-node",
+        node_type: "test.node",
         status: "completed",
         node_name: "Test Node"
       };
@@ -410,6 +411,7 @@ describe("GlobalChatStore", () => {
       const nodeUpdate: NodeUpdate = {
         type: "node_update",
         node_id: "test-node",
+        node_type: "test.node",
         status: "running",
         node_name: "Test Node"
       };
@@ -700,7 +702,12 @@ describe("GlobalChatStore", () => {
     });
 
     it("sendMessage does nothing when socket is not connected", async () => {
-      store.setState({ socket: null, wsManager: null, currentThreadId: null, threads: {} } as any);
+      store.setState({
+        socket: null,
+        wsManager: null,
+        currentThreadId: null,
+        threads: {}
+      } as any);
       const message: Message = {
         role: "user",
         type: "message",

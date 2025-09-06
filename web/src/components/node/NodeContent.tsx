@@ -95,9 +95,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
       {renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-      {logs.length > 0 && (
-        <NodeLogs id={id} workflowId={workflowId} logs={logs} />
-      )}
+      <NodeLogs id={id} workflowId={workflowId} />
     </>
   );
 };
