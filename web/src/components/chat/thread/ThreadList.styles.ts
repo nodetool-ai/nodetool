@@ -16,57 +16,7 @@ export const createStyles = (theme: Theme) =>
       padding: theme.spacing(1.5)
     },
 
-    ".new-chat-button": {
-      width: "calc(100% - 10px)",
-      textAlign: "center",
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: 12,
-      backgroundColor: theme.vars.palette.primary.main,
-      color: "#0b1220",
-      border: `1px solid ${theme.vars.palette.primary.main}`,
-      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)",
-      backdropFilter: "blur(2px)",
-      textTransform: "none",
-      justifyContent: "center",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease",
-
-      "&:hover": {
-        boxShadow: `0 4px 12px rgba(0, 0, 0, 0.35), 0 0 16px ${theme.vars.palette.primary.main}20`,
-        transform: "scale(1.03)"
-      },
-
-      "&:active": {
-        transform: "scale(0.98)"
-      },
-
-      "& svg": {
-        position: "relative",
-        zIndex: 1
-      },
-
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "55%",
-        background:
-          "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
-        pointerEvents: "none",
-        zIndex: 0
-      },
-
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
-        pointerEvents: "none"
-      }
-    },
+    ".new-chat-button": {},
 
     ".thread-list": {
       flex: 1,
