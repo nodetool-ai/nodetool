@@ -13,6 +13,10 @@ jest.mock("../ApiClient", () => ({
   CHAT_URL: "ws://test/chat",
   isLocalhost: true
 }));
+jest.mock("../BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000",
+  CHAT_URL: "ws://test/chat"
+}));
 jest.mock("../../lib/supabaseClient", () => ({
   supabase: {
     auth: {

@@ -22,8 +22,11 @@ jest.mock("../AssetGridStore", () => ({
   }))
 }));
 
-jest.mock("../utils/errorHandling", () => ({
+jest.mock("../../utils/errorHandling", () => ({
   createErrorMessage: jest.fn((error) => `Error: ${error.message}`)
+}));
+jest.mock("../BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000"
 }));
 
 import axios from "axios";

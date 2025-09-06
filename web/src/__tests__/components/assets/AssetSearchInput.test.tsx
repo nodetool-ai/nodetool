@@ -1,56 +1,18 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import AssetSearchInput from "../../../components/assets/AssetSearchInput";
+import mockTheme from "../../../__mocks__/themeMock";
 
-// Create a simple mock theme for testing
-const mockTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: "#77b4e6"
-    },
-    background: {
-      default: "#202020",
-      paper: "#232323"
-    },
-    text: {
-      primary: "#fff"
-    },
-    // Add the custom palette properties
-    c_hl1: "#77b4e6",
-    c_white: "#FCFCFC",
-    c_gray1: "#242424"
-  } as any, // Use 'as any' to bypass TypeScript checking for custom properties
-  shape: { borderRadius: 4 },
-  components: {
-    MuiTooltip: {
-      styleOverrides: {
-        tooltip: {}
-      }
-    }
-  }
+// Simplify Tooltip to avoid theme.styleOverrides access during unit tests
+jest.mock("@mui/material", () => {
+  const actual = jest.requireActual("@mui/material");
+  return {
+    ...actual,
+    Tooltip: ({ children }: any) => <>{children}</>
+  };
 });
-
-// Add vars property directly to the theme object
-(mockTheme as any).vars = {
-  palette: {
-    grey: {
-      0: "#000000",
-      50: "#fafafa",
-      100: "#f5f5f5",
-      200: "#eeeeee",
-      300: "#e0e0e0",
-      400: "#bdbdbd",
-      500: "#9e9e9e",
-      600: "#757575",
-      700: "#616161",
-      800: "#424242",
-      900: "#212121"
-    }
-  }
-};
 
 // Mock the stores and hooks
 jest.mock("../../../stores/AssetGridStore", () => ({

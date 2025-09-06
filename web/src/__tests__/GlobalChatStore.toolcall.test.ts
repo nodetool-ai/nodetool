@@ -14,6 +14,10 @@ jest.mock("../stores/ApiClient", () => ({
   CHAT_URL: "ws://localhost:1234",
   isLocalhost: true
 }));
+jest.mock("../stores/BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000",
+  CHAT_URL: "ws://localhost:1234"
+}));
 
 jest.mock("../lib/supabaseClient", () => ({
   supabase: {
