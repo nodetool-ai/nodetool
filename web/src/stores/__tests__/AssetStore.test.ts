@@ -43,8 +43,7 @@ describe("AssetStore", () => {
 
     // Reset store state
     useAssetStore.setState({
-      queryClient: null,
-      currentFolderId: null
+      queryClient: null
     });
 
     jest.clearAllMocks();
@@ -68,11 +67,11 @@ describe("AssetStore", () => {
         content_type: "image/jpeg",
         size: 1024,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: null,
-        file_path: "/test/path",
-        thumbnail_url: "/thumbnail.jpg",
+        thumb_url: "/thumbnail.jpg",
         metadata: {}
       };
 
@@ -116,11 +115,11 @@ describe("AssetStore", () => {
         content_type: "image/jpeg",
         size: 1024,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: null,
-        file_path: "/test/path",
-        thumbnail_url: "/thumbnail.jpg",
+        thumb_url: "/thumbnail.jpg",
         metadata: {}
       };
 
@@ -156,15 +155,15 @@ describe("AssetStore", () => {
         content_type: "image/jpeg",
         size: 1024,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: "test-workflow",
-        file_path: "/test/path",
-        thumbnail_url: "/thumbnail.jpg",
+        thumb_url: "/thumbnail.jpg",
         metadata: {}
       };
 
-      mockedAxios.mockResolvedValue({ data: mockAsset });
+      (mockedAxios as any).mockResolvedValue({ data: mockAsset });
 
       const { createAsset } = useAssetStore.getState();
       const result = await createAsset(mockFile, "test-workflow");
@@ -183,21 +182,21 @@ describe("AssetStore", () => {
         content_type: "image/jpeg",
         size: 1024,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: null,
-        file_path: "/test/path",
-        thumbnail_url: "/thumbnail.jpg",
+        thumb_url: "/thumbnail.jpg",
         metadata: {}
       };
 
-      mockedAxios.mockResolvedValue({ data: mockAsset });
+      (mockedAxios as any).mockResolvedValue({ data: mockAsset });
 
       const mockOnUploadProgress = jest.fn();
       const { createAsset } = useAssetStore.getState();
       await createAsset(mockFile, undefined, undefined, mockOnUploadProgress);
 
-      const axiosCall = mockedAxios.mock.calls[0][0];
+      const axiosCall = (mockedAxios as any).mock.calls[0][0];
       expect(axiosCall.onUploadProgress).toBe(mockOnUploadProgress);
     });
 
@@ -207,7 +206,7 @@ describe("AssetStore", () => {
       });
       const mockError = new Error("Upload failed");
 
-      mockedAxios.mockRejectedValue(mockError);
+      (mockedAxios as any).mockRejectedValue(mockError);
 
       const { createAsset } = useAssetStore.getState();
 
@@ -218,6 +217,7 @@ describe("AssetStore", () => {
   describe("load", () => {
     it("should load assets with query parameters", async () => {
       const mockAssetList: AssetList = {
+        next: null,
         assets: [
           {
             id: "asset1",
@@ -225,16 +225,14 @@ describe("AssetStore", () => {
             content_type: "image/jpeg",
             size: 1024,
             created_at: "2023-01-01T00:00:00Z",
-            updated_at: "2023-01-01T00:00:00Z",
-            parent_id: null,
+            parent_id: "",
+            user_id: "test-user",
+            get_url: "/assets/test-asset-id",
             workflow_id: null,
-            file_path: "/test/path1",
-            thumbnail_url: "/thumbnail1.jpg",
+            thumb_url: "/thumbnail1.jpg",
             metadata: {}
           }
-        ],
-        cursor: "next-cursor",
-        total: 1
+        ]
       };
 
       const { client } = require("../ApiClient");
@@ -261,6 +259,8 @@ describe("AssetStore", () => {
   describe("search", () => {
     it("should search assets with query parameters", async () => {
       const mockSearchResult: AssetSearchResult = {
+        total_count: 1,
+        is_global_search: false,
         assets: [
           {
             id: "asset1",
@@ -268,16 +268,17 @@ describe("AssetStore", () => {
             content_type: "image/jpeg",
             size: 1024,
             created_at: "2023-01-01T00:00:00Z",
-            updated_at: "2023-01-01T00:00:00Z",
-            parent_id: null,
+            parent_id: "",
+            user_id: "test-user",
+            get_url: "/assets/test-asset-id",
             workflow_id: null,
-            file_path: "/test/path1",
-            thumbnail_url: "/thumbnail1.jpg",
+            thumb_url: "/thumbnail1.jpg",
             metadata: {},
-            score: 0.95
+            folder_name: "test-folder",
+            folder_path: "/test/path",
+            folder_id: "folder1"
           }
-        ],
-        total: 1
+        ]
       };
 
       const { client } = require("../ApiClient");
@@ -309,11 +310,11 @@ describe("AssetStore", () => {
         content_type: "image/jpeg",
         size: 2048,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-02T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: null,
-        file_path: "/updated/path",
-        thumbnail_url: "/updated-thumbnail.jpg",
+        thumb_url: "/updated-thumbnail.jpg",
         metadata: { updated: true }
       };
 
@@ -372,11 +373,11 @@ describe("AssetStore", () => {
         content_type: "application/x-directory",
         size: 0,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
         parent_id: "parent1",
         workflow_id: null,
-        file_path: "/new/folder",
-        thumbnail_url: null,
+        user_id: "test-user",
+        get_url: "/assets/folder1",
+        thumb_url: null,
         metadata: {}
       };
 
@@ -402,11 +403,11 @@ describe("AssetStore", () => {
         content_type: "application/x-directory",
         size: 0,
         created_at: "2023-01-01T00:00:00Z",
-        updated_at: "2023-01-01T00:00:00Z",
-        parent_id: null,
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
         workflow_id: null,
-        file_path: "/root/folder",
-        thumbnail_url: null,
+        thumb_url: null,
         metadata: {}
       };
 
@@ -418,7 +419,9 @@ describe("AssetStore", () => {
 
       expect(client.POST).toHaveBeenCalledWith("/api/assets/folder", {
         body: {
-          parent_id: null,
+          parent_id: "",
+          user_id: "test-user",
+          get_url: "/assets/test-asset-id",
           name: "Root Folder"
         }
       });

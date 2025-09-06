@@ -138,13 +138,13 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
     >
       <ContextMenuItem
         onClick={handleInsertReroute}
-        icon={<RouteIcon />}
+        IconComponent={<RouteIcon />}
         label="Insert Reroute"
         tooltip="Insert a reroute node at this position"
       />
       <ContextMenuItem
         onClick={handleDeleteEdge}
-        icon={<DeleteIcon />}
+        IconComponent={<DeleteIcon />}
         label="Delete Edge"
         tooltip="Delete this connection"
       />

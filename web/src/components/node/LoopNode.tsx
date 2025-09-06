@@ -211,6 +211,7 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <NodeInputs
           id={props.id}
           nodeType={props.type}
+          nodeMetadata={nodeMetadata}
           properties={nodeMetadata.properties}
           data={props.data}
           showFields={false}
