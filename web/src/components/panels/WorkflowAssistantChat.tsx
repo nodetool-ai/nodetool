@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -52,6 +54,8 @@ const containerStyles = css({
  * currently active workflow and with help mode enabled by default.
  */
 const WorkflowAssistantChat: React.FC = () => {
+  const theme = useTheme();
+  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     connect,
     disconnect,
@@ -99,8 +103,6 @@ const WorkflowAssistantChat: React.FC = () => {
     const saved = localStorage.getItem("selectedModel");
     return saved ? tryParseModel(saved) : DEFAULT_MODEL;
   });
-  const [selectedTools] = useState<string[]>([]); // immutable; no selector UI
-  const [selectedCollections] = useState<string[]>([]);
 
   // Modal state for thread list
   const [isThreadListOpen, setIsThreadListOpen] = useState(false);
@@ -255,12 +257,12 @@ const WorkflowAssistantChat: React.FC = () => {
           padding: "4px 8px"
         }}
       >
+        <NewChatButton onNewThread={handleNewChat} />
         <Tooltip title="Chat History">
           <IconButton onClick={() => setIsThreadListOpen(true)} size="small">
             <ListIcon />
           </IconButton>
         </Tooltip>
-        <NewChatButton onNewThread={handleNewChat} />
       </div>
       {/* Thread List Modal */}
       <Dialog
@@ -268,6 +270,31 @@ const WorkflowAssistantChat: React.FC = () => {
         onClose={() => setIsThreadListOpen(false)}
         maxWidth="xs"
         fullWidth
+        transitionDuration={isSmall ? 0 : undefined}
+        slotProps={{
+          backdrop: {
+            style: {
+              backdropFilter: isSmall ? "none" : theme.vars.palette.glass.blur,
+              backgroundColor: isSmall
+                ? theme.vars.palette.background.default
+                : theme.vars.palette.glass.backgroundDialog
+            }
+          },
+          paper: {
+            style: {
+              borderRadius: theme.vars.rounded.dialog,
+              background: theme.vars.palette.glass.backgroundDialogContent
+            }
+          }
+        }}
+        sx={{
+          "& .MuiDialog-paper": {
+            margin: "auto",
+            borderRadius: 1.5,
+            background: "transparent",
+            border: `1px solid ${theme.vars.palette.grey[700]}`
+          }
+        }}
       >
         <DialogContent style={{ padding: 0, height: "70vh" }}>
           <ThreadList
@@ -306,8 +333,8 @@ const WorkflowAssistantChat: React.FC = () => {
         sendMessage={sendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
-        selectedTools={selectedTools}
-        selectedCollections={selectedCollections}
+        selectedTools={[]}
+        selectedCollections={[]}
         onModelChange={setSelectedModel}
         helpMode={true}
         workflowAssistant={true}

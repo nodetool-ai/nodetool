@@ -56,13 +56,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
-      {onNewChat && (
+      {/* {onNewChat && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
           <span className="new-chat-button-wrapper button-wrapper">
             <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />
           </span>
         </Tooltip>
-      )}
+      )} */}
       {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">

@@ -16,7 +16,7 @@ const styles = (theme: Theme) =>
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    padding: "1.5em 20px",
+    padding: "1.5em",
     marginTop: "auto",
     flexShrink: 0,
     // Mobile styles handled via separate CSS file

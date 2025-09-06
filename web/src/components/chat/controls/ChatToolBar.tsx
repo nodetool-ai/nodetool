@@ -19,7 +19,8 @@ const styles = (theme: Theme) =>
     width: "100%",
     gap: "8px",
     flexWrap: "wrap",
-    
+    minHeight: "36px",
+
     // Row styling
     ".controls-row": {
       display: "flex",
@@ -28,11 +29,11 @@ const styles = (theme: Theme) =>
       gap: "6px",
       minHeight: "36px"
     },
-    
+
     ".model-select": {
       flex: "0 0 auto"
     },
-    
+
     ".tools-container": {
       display: "flex",
       alignItems: "center",
@@ -40,7 +41,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       justifyContent: "flex-end"
     },
-    
+
     // Button styling (desktop defaults; mobile overrides in CSS)
     "& .MuiButton-root, & .MuiIconButton-root": {
       padding: "6px",
