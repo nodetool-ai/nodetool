@@ -22,6 +22,8 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import CircularProgress from "@mui/material/CircularProgress";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 interface MessageViewProps {
   message: Message;
@@ -111,23 +113,33 @@ export const MessageView: React.FC<
     result?: { name?: string | null; content: any };
   }> = ({ tc, result }) => {
     const [open, setOpen] = useState(false);
+    const runningToolCallId = useGlobalChatStore(
+      (s) => s.currentRunningToolCallId
+    );
+    const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
     const hasArgs =
       (tc as any)?.args && Object.keys((tc as any).args).length > 0;
     const hasDetails = !!(hasArgs || tc.message || result);
+    const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
     return (
-      <Box className="tool-call-card">
+      <Box
+        className="tool-call-card"
+        sx={isRunning ? { borderColor: "#42a5f5" } : undefined}
+      >
         <Box className="tool-call-header">
           <Chip
             label={tc.name || "Tool"}
             color="default"
             size="small"
+            variant="outlined"
             className="tool-chip"
           />
-          {tc.message && (
+          {(isRunning || tc.message) && (
             <Typography variant="body2" className="tool-message">
-              {tc.message}
+              {isRunning ? runningToolMessage || tc.message : tc.message}
             </Typography>
           )}
+          {isRunning && <CircularProgress size={16} sx={{ ml: 1 }} />}
           <Box sx={{ flex: 1 }} />
           {hasDetails && (
             <Tooltip title={open ? "Hide details" : "Show details"}>

@@ -1,0 +1,46 @@
+import { FrontendToolRegistry } from "../frontendTools";
+
+FrontendToolRegistry.register({
+  name: "ui_connect_nodes",
+  description:
+    "Connect two nodes by handles. Requires source/target ids and handles.",
+  parameters: {
+    type: "object",
+    properties: {
+      source_id: { type: "string" },
+      source_handle: { type: "string" },
+      target_id: { type: "string" },
+      target_handle: { type: "string" }
+    },
+    required: ["source_id", "source_handle", "target_id", "target_handle"]
+  },
+  async execute({ source_id, source_handle, target_id, target_handle }, ctx) {
+    const { nodeStore } = ctx.getState();
+    const src = nodeStore.findNode(source_id);
+    const tgt = nodeStore.findNode(target_id);
+    if (!src) throw new Error(`Source node not found: ${source_id}`);
+    if (!tgt) throw new Error(`Target node not found: ${target_id}`);
+
+    const connection = {
+      source: source_id,
+      target: target_id,
+      sourceHandle: source_handle,
+      targetHandle: target_handle
+    } as any;
+
+    const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
+    if (!ok) throw new Error("Invalid connection");
+
+    const edgeId = nodeStore.generateEdgeId();
+    nodeStore.addEdge({
+      id: edgeId,
+      source: source_id,
+      target: target_id,
+      sourceHandle: source_handle,
+      targetHandle: target_handle
+    } as any);
+
+    return { ok: true, edge_id: edgeId };
+  }
+});
+

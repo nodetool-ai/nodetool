@@ -1,3 +1,4 @@
+import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeStoreState } from "../../stores/NodeStore";
 
 export type JsonSchema = Record<string, any>;
@@ -14,6 +15,7 @@ export interface FrontendToolContext {
   abortSignal: AbortSignal;
   getState: () => {
     nodeStore: NodeStoreState;
+    nodeMetadata: Record<string, NodeMetadata>;
   };
 }
 

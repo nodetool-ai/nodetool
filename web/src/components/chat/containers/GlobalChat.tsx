@@ -45,6 +45,10 @@ const GlobalChat: React.FC = () => {
     isLoadingMessages,
     threadsLoaded
   } = useGlobalChatStore();
+  const runningToolCallId = useGlobalChatStore(
+    (s) => s.currentRunningToolCallId
+  );
+  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
@@ -335,6 +339,8 @@ const GlobalChat: React.FC = () => {
             progress={progress.current}
             total={progress.total}
             progressMessage={statusMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
             model={selectedModel}
             selectedTools={selectedTools}
             onToolsChange={setSelectedTools}

@@ -35,6 +35,7 @@ import {
   ConnectionState
 } from "../lib/websocket/WebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
+import useMetadataStore from "./MetadataStore";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -51,6 +52,10 @@ interface GlobalChatState {
   progress: { current: number; total: number };
   error: string | null;
   workflowId: string | null;
+
+  // Tool call runtime UI state
+  currentRunningToolCallId: string | null;
+  currentToolMessage: string | null;
 
   // WebSocket manager
   wsManager: WebSocketManager | null;
@@ -224,6 +229,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       wsManager: null,
       socket: null,
       activeNodeStore: null,
+      currentRunningToolCallId: null,
+      currentToolMessage: null,
 
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
@@ -1155,7 +1162,12 @@ async function handleWebSocketMessage(
     }
   } else if (data.type === "tool_call_update") {
     const update = data as ToolCallUpdate;
-    set({ statusMessage: update.message });
+    // Capture tool-specific running state for UI
+    set({
+      statusMessage: update.message,
+      currentRunningToolCallId: (update as any).tool_call_id || null,
+      currentToolMessage: update.message || null
+    });
   } else if (data.type === "message") {
     // Persist assistant/tool messages (e.g., assistant with tool_calls, tool role results)
     const msg = data as Message;
@@ -1183,7 +1195,15 @@ async function handleWebSocketMessage(
                 ...thread,
                 updated_at: new Date().toISOString()
               }
-            }
+            },
+            // Clear running tool indicator when a tool result arrives
+            ...(msg.role === "tool"
+              ? {
+                  currentRunningToolCallId: null,
+                  currentToolMessage: null,
+                  statusMessage: null
+                }
+              : {})
           }));
           return;
         }
@@ -1384,12 +1404,14 @@ async function handleWebSocketMessage(
     const startTime = Date.now();
     try {
       const nodeStoreState = currentState.activeNodeStore?.getState();
+      const nodeMetadata = useMetadataStore.getState().metadata;
       if (!nodeStoreState) {
         throw new Error("No active node store available");
       }
 
       const result = await FrontendToolRegistry.call(name, args, tool_call_id, {
         getState: () => ({
+          nodeMetadata: nodeMetadata,
           nodeStore: nodeStoreState
         })
       });

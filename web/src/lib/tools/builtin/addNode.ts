@@ -1,3 +1,4 @@
+import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
 
 FrontendToolRegistry.register({
@@ -16,21 +17,8 @@ FrontendToolRegistry.register({
             properties: { x: { type: "number" }, y: { type: "number" } },
             required: ["x", "y"]
           },
-          data: {
+          properties: {
             type: "object",
-            properties: {
-              properties: { type: "object", additionalProperties: true },
-              dynamic_properties: {
-                type: "object",
-                additionalProperties: true
-              },
-              dynamic_outputs: { type: "object", additionalProperties: true },
-              sync_mode: {
-                type: "string",
-                default: "on_any",
-                enum: ["on_any", "zip_all"]
-              }
-            },
             additionalProperties: true
           }
         },
@@ -41,7 +29,52 @@ FrontendToolRegistry.register({
   },
   async execute({ node }, ctx) {
     const state = ctx.getState();
-    state.nodeStore.addNode(node);
+    const metadata = state.nodeMetadata[node.type];
+    if (!metadata) throw new Error(`Node type not found: ${node.type}`);
+    if (node.id === undefined) {
+      throw new Error("Node is missing id");
+    }
+    if (node.position === undefined) {
+      throw new Error("Node is missing position");
+    }
+    if (node.properties === undefined) {
+      node.properties = {};
+    }
+    for (const property of metadata.properties) {
+      const value = node.properties[property.name];
+      if (value === undefined) {
+        node.properties[property.name] = property.default;
+      } else {
+        const matches = valueMatchesType(value, property.type);
+        if (!matches) {
+          throw new Error(
+            `Value for property ${property.name} does not match type ${property.type}`
+          );
+        }
+      }
+    }
+    state.nodeStore.addNode({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      parentId: "",
+      selected: false,
+      dragHandle: "",
+      expandParent: true,
+      style: {
+        width: 200,
+        height: undefined
+      },
+      zIndex: 0,
+      data: {
+        properties: node.properties,
+        dynamic_properties: {},
+        dynamic_outputs: {},
+        sync_mode: "on_any",
+        workflow_id: "",
+        selectable: true
+      }
+    });
     return { ok: true };
   }
 });
