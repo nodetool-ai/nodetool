@@ -196,29 +196,32 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
-      border: "1px solid var(--palette-grey-800)",
-      borderRadius: 10,
-      background: "var(--palette-grey-1100, #0f0f0f)",
-      padding: "8px 12px",
-      marginBottom: 8
+      border: "1px solid var(--palette-grey-900)",
+      borderRadius: 8,
+      background: "transparent",
+      padding: "6px 10px",
+      marginBottom: 6
     },
 
     ".tool-call-header": {
       display: "flex",
       alignItems: "center",
-      gap: 8
+      gap: 6
     },
 
     ".tool-chip": {
-      fontWeight: 600
+      fontWeight: 600,
+      color: "var(--palette-grey-200)",
+      borderColor: "var(--palette-grey-900)"
     },
 
     ".tool-message": {
-      color: "var(--palette-grey-300)"
+      color: "var(--palette-grey-400)"
     },
 
     ".expand-icon": {
-      transition: "transform 0.15s ease"
+      transition: "transform 0.15s ease",
+      color: "var(--palette-grey-500)"
     },
 
     ".expand-icon.expanded": {
@@ -226,15 +229,16 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-section-title": {
-      color: "var(--palette-grey-400)"
+      color: "var(--palette-grey-500)"
     },
 
     ".pretty-json": {
       margin: 0,
-      padding: "10px 12px",
-      background: "var(--palette-grey-1000)",
-      borderRadius: 8,
-      color: "var(--palette-grey-200)",
+      padding: "8px 10px",
+      background: "var(--palette-grey-1100, #0f0f0f)",
+      borderRadius: 6,
+      color: "var(--palette-grey-300)",
+      border: "1px solid var(--palette-grey-900)",
       overflowX: "auto"
     },
 

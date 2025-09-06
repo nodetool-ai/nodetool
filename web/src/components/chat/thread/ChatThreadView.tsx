@@ -34,6 +34,8 @@ interface ChatThreadViewProps {
   progress: number;
   total: number;
   progressMessage: string | null;
+  runningToolCallId?: string | null;
+  runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
@@ -60,6 +62,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     progress,
     total,
     progressMessage,
+    runningToolCallId,
+    runningToolMessage,
     currentPlanningUpdate,
     currentTaskUpdate,
     expandedThoughts,
@@ -94,7 +98,8 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             <Progress progress={progress} total={total} />
           </li>
         )}
-        {progressMessage && (
+        {/* Hide global progress message if a tool call is running */}
+        {progressMessage && !runningToolCallId && (
           <li
             key="progress-message"
             className="node-status chat-message-list-item"
@@ -109,6 +114,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             </span>
           </li>
         )}
+        {/* Reserve area for future non-animated hints when a tool is running, if needed */}
         {currentPlanningUpdate && (
           <li key="planning-update" className="chat-message-list-item">
             <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
@@ -132,6 +138,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   progress,
   total,
   progressMessage,
+  runningToolCallId,
+  runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
   onInsertCode
@@ -294,6 +302,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           progress={progress}
           total={total}
           progressMessage={progressMessage}
+          runningToolCallId={runningToolCallId}
+          runningToolMessage={runningToolMessage}
           currentPlanningUpdate={currentPlanningUpdate}
           currentTaskUpdate={currentTaskUpdate}
           expandedThoughts={expandedThoughts}

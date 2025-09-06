@@ -76,6 +76,21 @@ import AppHeader from "./components/panels/AppHeader";
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
+import "./lib/tools/builtin/setSelectionMode";
+import "./lib/tools/builtin/setAutoLayout";
+import "./lib/tools/builtin/setNodeSyncMode";
+import "./lib/tools/builtin/connectNodes";
+import "./lib/tools/builtin/deleteNode";
+import "./lib/tools/builtin/deleteEdge";
+import "./lib/tools/builtin/updateNodeData";
+import "./lib/tools/builtin/moveNode";
+import "./lib/tools/builtin/autoLayout";
+import "./lib/tools/builtin/setNodeTitle";
+import "./lib/tools/builtin/setNodeColor";
+import "./lib/tools/builtin/alignNodes";
+import "./lib/tools/builtin/duplicateNode";
+import "./lib/tools/builtin/selectNodes";
+import "./lib/tools/builtin/fitView";
 
 (window as any).log = log;
 

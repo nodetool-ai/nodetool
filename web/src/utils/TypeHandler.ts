@@ -16,8 +16,8 @@ export const typeToString = (type: TypeMetadata): string => {
     case "dict":
       return type.type_args && type.type_args.length === 2
         ? `{ ${typeToString(type.type_args[0])}: ${typeToString(
-          type.type_args[1]
-        )} }`
+            type.type_args[1]
+          )} }`
         : "dict";
     case "union":
       return type.type_args
@@ -87,6 +87,118 @@ const isEnumConnectable = (a: TypeMetadata, b: TypeMetadata): boolean => {
     );
   }
   return false;
+};
+
+/**
+ * Checks if a JavaScript value matches the given TypeMetadata.
+ */
+export const valueMatchesType = (
+  value: unknown,
+  meta: TypeMetadata | undefined
+): boolean => {
+  if (!meta || !meta.type) {
+    return false;
+  }
+
+  // Handle optional
+  if (value === undefined) {
+    return !!meta.optional;
+  }
+
+  // Helper to identify plain objects (non-null, non-array)
+  const isPlainObject = (v: unknown): v is Record<string, unknown> => {
+    return typeof v === "object" && v !== null && !Array.isArray(v);
+  };
+
+  const matchesKeyType = (key: string, keyType: TypeMetadata): boolean => {
+    switch (keyType.type) {
+      case "any":
+      case "str":
+        return true;
+      case "number": {
+        const n = Number(key);
+        return Number.isFinite(n);
+      }
+      case "boolean":
+        return key === "true" || key === "false";
+      case "enum":
+        return keyType.values ? keyType.values.includes(key) : true;
+      case "union":
+        return keyType.type_args?.some((t) => matchesKeyType(key, t)) ?? false;
+      default:
+        // Keys are strings in JS; for other key types, accept as best-effort
+        return true;
+    }
+  };
+
+  const matches = (v: unknown, t: TypeMetadata): boolean => {
+    switch (t.type) {
+      case "any":
+        return true;
+      case "null":
+        return v === null;
+      case "str":
+        return typeof v === "string";
+      case "number":
+        return typeof v === "number" && Number.isFinite(v);
+      case "boolean":
+        return typeof v === "boolean";
+      case "enum":
+        if (!t.values || t.values.length === 0) {
+          return typeof v === "string";
+        }
+        return typeof v === "string" && t.values.includes(v);
+      case "list": {
+        if (!Array.isArray(v)) return false;
+        const elementType = t.type_args && t.type_args[0];
+        if (!elementType) return true; // untyped list
+        return v.every((item) => matches(item, elementType));
+      }
+      case "tuple": {
+        if (!Array.isArray(v)) return false;
+        const argCount = t.type_args?.length ?? 0;
+        if (argCount === 0) return true; // treat as any[]
+        if (v.length !== argCount) return false;
+        for (let i = 0; i < argCount; i++) {
+          const argType = t.type_args![i];
+          if (!matches(v[i], argType)) return false;
+        }
+        return true;
+      }
+      case "dict": {
+        // Support both plain objects and Map-like values
+        const keyType = t.type_args && t.type_args[0];
+        const valueType = t.type_args && t.type_args[1];
+
+        if (v instanceof Map) {
+          for (const [k, val] of v.entries()) {
+            const keyStr = String(k);
+            if (keyType && !matchesKeyType(keyStr, keyType)) return false;
+            if (valueType && !matches(val, valueType)) return false;
+          }
+          return true;
+        }
+
+        if (!isPlainObject(v)) return false;
+        for (const [k, val] of Object.entries(v)) {
+          if (keyType && !matchesKeyType(k, keyType)) return false;
+          if (valueType && !matches(val, valueType)) return false;
+        }
+        return true;
+      }
+      case "union": {
+        if (!t.type_args || t.type_args.length === 0) return false;
+        return t.type_args.some((opt) => matches(v, opt));
+      }
+      case "object":
+        return isPlainObject(v);
+      default:
+        // Treat all other named types as object-like references
+        return isPlainObject(v);
+    }
+  };
+
+  return matches(value, meta);
 };
 
 const nonObjectTypes = [

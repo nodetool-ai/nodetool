@@ -2,8 +2,8 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // Generated from openapi-typescript
 import { supabase } from "../lib/supabaseClient";
 import log from "loglevel";
-import { BASE_URL } from "./BASE_URL.js";
-export { BASE_URL } from "./BASE_URL.js";
+import { BASE_URL } from "./BASE_URL";
+export { BASE_URL } from "./BASE_URL";
 
 /**
  * Checks if the current hostname indicates a local development environment.
