@@ -190,7 +190,12 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   }, [nodeData, nodeType]);
 
   const mockProperties = useMemo(() => {
-    const props = Object.entries(nodeData.properties).map(([key, value]) => ({
+    const safeProperties =
+      (nodeData as any)?.properties &&
+      typeof (nodeData as any).properties === "object"
+        ? (nodeData as any).properties
+        : {};
+    const props = Object.entries(safeProperties).map(([key, value]) => ({
       name: key,
       type: typeForValue(value),
       default: value,
@@ -205,7 +210,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       });
     });
     return props;
-  }, [nodeData.properties, incomingEdges]);
+  }, [nodeData, incomingEdges]);
 
   // Compute a better header title for missing node
   const computedHeaderTitle = useMemo(() => {

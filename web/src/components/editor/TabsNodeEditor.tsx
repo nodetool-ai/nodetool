@@ -7,7 +7,6 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import AppToolbar from "../panels/AppToolbar";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";

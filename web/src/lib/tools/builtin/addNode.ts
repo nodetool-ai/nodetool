@@ -16,7 +16,23 @@ FrontendToolRegistry.register({
             properties: { x: { type: "number" }, y: { type: "number" } },
             required: ["x", "y"]
           },
-          data: { type: "object", additionalProperties: true }
+          data: {
+            type: "object",
+            properties: {
+              properties: { type: "object", additionalProperties: true },
+              dynamic_properties: {
+                type: "object",
+                additionalProperties: true
+              },
+              dynamic_outputs: { type: "object", additionalProperties: true },
+              sync_mode: {
+                type: "string",
+                default: "on_any",
+                enum: ["on_any", "zip_all"]
+              }
+            },
+            additionalProperties: true
+          }
         },
         required: ["id", "position"]
       }
@@ -25,10 +41,7 @@ FrontendToolRegistry.register({
   },
   async execute({ node }, ctx) {
     const state = ctx.getState();
-    const nodes = Array.isArray(state.nodes) ? (state.nodes as any[]) : [];
-    const edges = Array.isArray(state.edges) ? (state.edges as any[]) : [];
-    const newNodes = [...nodes, node];
-    state.updateGraph?.({ nodes: newNodes, edges });
-    return { ok: true, nodes: newNodes.length };
+    state.nodeStore.addNode(node);
+    return { ok: true };
   }
 });

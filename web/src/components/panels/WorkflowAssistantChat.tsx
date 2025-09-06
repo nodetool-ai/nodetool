@@ -260,7 +260,7 @@ const WorkflowAssistantChat: React.FC = () => {
             <ListIcon />
           </IconButton>
         </Tooltip>
-        <NewChatButton onNewThread={createNewThread} />
+        <NewChatButton onNewThread={handleNewChat} />
       </div>
       {/* Thread List Modal */}
       <Dialog
