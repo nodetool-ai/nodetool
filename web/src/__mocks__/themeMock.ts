@@ -46,8 +46,29 @@ const mockTheme = createTheme({
       700: "#616161",
       800: "#424242",
       900: "#212121"
+    },
+    // Add missing palette properties used by components
+    primary: { main: "#77b4e6" },
+    info: { main: "#2196f3" },
+    error: { main: "#f44336" },
+    warning: { main: "#ff9800" },
+    success: { main: "#4caf50" }
+  }
+};
+
+// Add tooltip property to theme
+(mockTheme as any).tooltip = {};
+
+// Ensure components overrides exist for MUI that reference theme.components
+(mockTheme as any).components = {
+  ...((mockTheme as any).components || {}),
+  MuiTooltip: {
+    styleOverrides: {
+      tooltip: {}
     }
   }
 };
+
+// Ensure theme shape matches MUI v7 expectations without forcing internal flags
 
 export default mockTheme;

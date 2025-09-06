@@ -3,6 +3,11 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).TextDecoder = TextDecoder;
 (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
 
+jest.mock("../BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000",
+  CHAT_URL: "ws://test/chat"
+}));
+
 import { encode, decode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
@@ -20,7 +25,14 @@ import { supabase } from "../../lib/supabaseClient";
 
 jest.mock("../ApiClient", () => ({
   CHAT_URL: "ws://test/chat",
-  isLocalhost: true
+  isLocalhost: true,
+  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" })),
+  client: {
+    GET: jest.fn(async () => ({ data: {}, error: null })),
+    POST: jest.fn(async () => ({ data: {}, error: null })),
+    PUT: jest.fn(async () => ({ data: {}, error: null })),
+    DELETE: jest.fn(async () => ({ data: {}, error: null }))
+  }
 }));
 
 jest.mock("../../lib/supabaseClient", () => ({

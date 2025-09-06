@@ -1,9 +1,10 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import NotificationsList from "../NotificationsList";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
+import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../hooks/browser/useClipboard");
@@ -12,42 +13,6 @@ const mockWriteClipboard = jest.fn();
 (useClipboard as unknown as jest.Mock).mockReturnValue({
   writeClipboard: mockWriteClipboard
 });
-const theme = createTheme({
-  palette: {
-    c_gray4: "#000",
-    info: { main: "#2196f3" },
-    c_debug: "#666666"
-  } as any,
-  shape: { borderRadius: 4 },
-  components: {
-    MuiTooltip: {
-      styleOverrides: {
-        tooltip: {}
-      }
-    }
-  }
-});
-
-// Add vars property directly to the theme object
-(theme as any).vars = {
-  palette: {
-    grey: {
-      0: "#000000",
-      50: "#fafafa",
-      100: "#f5f5f5",
-      200: "#eeeeee",
-      300: "#e0e0e0",
-      400: "#bdbdbd",
-      500: "#9e9e9e",
-      600: "#757575",
-      700: "#616161",
-      800: "#424242",
-      900: "#212121"
-    },
-    info: { main: "#2196f3" },
-    c_debug: "#666666"
-  }
-};
 
 describe("NotificationsList", () => {
   beforeEach(() => {
@@ -74,7 +39,7 @@ describe("NotificationsList", () => {
       (sel: any) => sel({ notifications })
     );
     render(
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={mockTheme}>
         <NotificationsList />
       </ThemeProvider>
     );
@@ -88,7 +53,7 @@ describe("NotificationsList", () => {
       (sel: any) => sel({ notifications })
     );
     render(
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={mockTheme}>
         <NotificationsList />
       </ThemeProvider>
     );

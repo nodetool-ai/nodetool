@@ -319,6 +319,19 @@ describe("useConnectionHandlers", () => {
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
 
+      // Mock getMetadata to return proper metadata for both source and target
+      mockGetMetadata.mockReturnValueOnce(mockNodeMetadata); // Source metadata
+      mockGetMetadata.mockReturnValueOnce({
+        node_type: "test.dynamic",
+        title: "Dynamic Node",
+        description: "A dynamic node",
+        namespace: "test",
+        layout: "default",
+        properties: [],
+        outputs: [],
+        is_dynamic: true
+      }); // Target metadata
+
       // Mock the handle finding functions to return proper handle objects
       mockFindOutputHandle.mockReturnValue({
         name: "output",
@@ -336,24 +349,6 @@ describe("useConnectionHandlers", () => {
       mockFindInputHandle.mockReturnValue(undefined); // Dynamic property, so input handle is undefined
 
       mockIsConnectable.mockReturnValue(true);
-
-      // Mock getMetadata to return a proper metadata object
-      const mockMetadataStore = {
-        getMetadata: jest.fn().mockReturnValue({
-          node_type: "test.dynamic",
-          title: "Dynamic Node",
-          description: "A dynamic node",
-          namespace: "test",
-          layout: "default",
-          properties: [],
-          outputs: [],
-          is_dynamic: true
-        })
-      };
-
-      jest.mock("../../../stores/MetadataStore", () => ({
-        useMetadataStore: jest.fn(() => mockMetadataStore)
-      }));
 
       const connection: Connection = {
         source: "source",
