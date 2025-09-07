@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -314,14 +314,33 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
   // Determine tab ids: storage open ids + currently loaded ones + active id
-  const storageOpenIds: string[] = useMemo(() => {
+  // Seed from localStorage on mount to show placeholders during hydration,
+  // then keep this in sync with store updates so UI reflects removals immediately.
+  const [storageOpenIds, setStorageOpenIds] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem("openWorkflows");
       return raw ? (JSON.parse(raw) as string[]) : [];
     } catch {
       return [];
     }
-  }, []);
+  });
+
+  // When openWorkflows/currentWorkflowId change, update our local id list
+  // to avoid stale tabs lingering after removal.
+  const hasHydratedRef = useRef(false);
+  useEffect(() => {
+    const isHydrating = openWorkflows.length === 0 && !currentWorkflowId;
+    if (!hasHydratedRef.current && isHydrating) return;
+
+    const ids = new Set<string>();
+    openWorkflows.forEach((w) => ids.add(w.id));
+    if (currentWorkflowId) ids.add(currentWorkflowId);
+    setStorageOpenIds(Array.from(ids));
+
+    if (!hasHydratedRef.current && !isHydrating) {
+      hasHydratedRef.current = true;
+    }
+  }, [openWorkflows, currentWorkflowId]);
 
   const idsForTabs = useMemo(() => {
     const ids = new Set<string>();
