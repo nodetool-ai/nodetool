@@ -122,14 +122,15 @@ interface WorkflowUpdatedUpdate {
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
-  // const dataUri = URL.createObjectURL(new Blob([data]));
+  // Create a blob URL so consumers can render media content in tests and runtime
+  const dataUri = URL.createObjectURL(new Blob([data]));
   if (type === "image") {
     return {
       type: "image_url",
       image: {
         type: "image",
-        data: data,
-        uri: ""
+        data,
+        uri: dataUri
       }
     } as MessageImageContent;
   } else if (type === "audio") {
@@ -137,8 +138,8 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
       type: "audio",
       audio: {
         type: "audio",
-        data: data,
-        uri: ""
+        data,
+        uri: dataUri
       }
     } as MessageAudioContent;
   } else if (type === "video") {
@@ -146,8 +147,8 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
       type: "video",
       video: {
         type: "video",
-        data: data,
-        uri: ""
+        data,
+        uri: dataUri
       }
     } as MessageVideoContent;
   } else {
