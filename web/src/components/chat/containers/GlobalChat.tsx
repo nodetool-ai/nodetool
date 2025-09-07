@@ -15,6 +15,7 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
+import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
@@ -324,6 +325,21 @@ const GlobalChat: React.FC = () => {
               : error}
           </Alert>
         )}
+
+        {/* Controls row */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 0.5,
+            px: 1,
+            pt: 1,
+            mt: 10
+          }}
+        >
+          <NewChatButton onNewThread={handleNewChat} />
+        </Box>
 
         <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
           <ChatView
