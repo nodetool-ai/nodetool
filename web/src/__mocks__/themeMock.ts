@@ -49,11 +49,39 @@ const mockTheme = createTheme({
     },
     // Add missing palette properties used by components
     primary: { main: "#77b4e6" },
+    secondary: { main: "#9c27b0" },
     info: { main: "#2196f3" },
     error: { main: "#f44336" },
     warning: { main: "#ff9800" },
-    success: { main: "#4caf50" }
-  }
+    success: { main: "#4caf50" },
+    divider: "#2f2f2f",
+    action: {
+      hover: "rgba(255,255,255,0.08)",
+      selected: "rgba(255,255,255,0.16)",
+      disabled: "rgba(255,255,255,0.3)",
+      disabledBackground: "rgba(255,255,255,0.12)",
+      active: "rgba(255,255,255,0.54)"
+    },
+    // Provide text palette when MUI Typography reads from theme.vars
+    text: {
+      primary: "#ffffff",
+      secondary: "#bdbdbd",
+      disabled: "#9e9e9e"
+    }
+  },
+  // Provide spacing variables expected by MUI components (e.g., Button)
+  // Indexes map to multiples of 8px by default spacing scale
+  spacing: [
+    "0px",   // 0
+    "8px",   // 1
+    "16px",  // 2
+    "24px",  // 3
+    "32px",  // 4
+    "40px",  // 5
+    "48px",  // 6
+    "56px",  // 7
+    "64px"   // 8
+  ]
 };
 
 // Add tooltip property to theme
@@ -70,5 +98,11 @@ const mockTheme = createTheme({
 };
 
 // Ensure theme shape matches MUI v7 expectations without forcing internal flags
+(mockTheme as any).shape = {
+  borderRadius: 4
+};
+(mockTheme as any).vars.shape = {
+  borderRadius: 4
+};
 
 export default mockTheme;

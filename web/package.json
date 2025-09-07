@@ -108,6 +108,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "test": "jest",
+    "test:summary": "jest --reporters=\"summary\"",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "release": "ts-node release.ts",
