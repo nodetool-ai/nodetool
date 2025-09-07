@@ -17,7 +17,6 @@ import {
   SubTaskResult,
   MessageList,
   Thread,
-  ThreadCreateRequest,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
   LanguageModel
@@ -37,6 +36,7 @@ import {
   FrontendToolRegistry,
   FrontendToolState
 } from "../lib/tools/frontendTools";
+import { uuidv4 } from "./uuidv4";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -113,7 +113,7 @@ interface GlobalChatState {
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
   setLastUsedThreadId: (threadId: string | null) => void;
-  getCurrentMessages: () => Promise<Message[]>;
+  getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
@@ -463,12 +463,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = await get().createNewThread();
         }
 
-        // Prepare message
-        const messageToSend = {
-          ...message,
+        // Prepare messages for cache and wire (workflow_id only on wire)
+        const messageForCache: Message = {
+          ...(message as any),
           thread_id: threadId,
           agent_mode: agentMode
-        };
+        } as any;
+
+        const messageToSend = {
+          ...(message as any),
+          workflow_id: workflowId ?? null,
+          thread_id: threadId,
+          agent_mode: agentMode
+        } as any;
 
         console.log("sendMessage", messageToSend);
 
@@ -480,7 +487,37 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const isFirstUserMessage =
           message.role === "user" && userMessageCount === 0;
         // Add message to cache optimistically
-        get().addMessageToCache(threadId, messageToSend);
+        get().addMessageToCache(threadId, messageForCache);
+
+        // Auto-generate title from first user message if not set
+        if (isFirstUserMessage) {
+          const state = get();
+          const thread = state.threads[threadId];
+          if (thread) {
+            let contentText = "";
+            if (typeof message.content === "string") {
+              contentText = message.content as string;
+            } else if (Array.isArray(message.content)) {
+              const firstText = (message.content as any[]).find(
+                (c: any) => c?.type === "text" && typeof c.text === "string"
+              );
+              contentText = firstText?.text || "";
+            }
+            const titleBase = contentText || "New conversation";
+            const newTitle =
+              titleBase.substring(0, 50) + (titleBase.length > 50 ? "..." : "");
+            set((s) => ({
+              threads: {
+                ...s.threads,
+                [threadId]: {
+                  ...s.threads[threadId],
+                  title: newTitle,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            }));
+          }
+        }
 
         set({ status: "loading" }); // Waiting for response
 
@@ -517,7 +554,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
       resetMessages: () => {
         const threadId = get().currentThreadId;
         if (threadId) {
-          get().clearMessageCache(threadId);
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: []
+            }
+          }));
         }
       },
 
@@ -547,46 +589,35 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       createNewThread: async (title?: string) => {
-        const request: ThreadCreateRequest = {
-          title: title || "New Conversation"
-        };
+        // Create thread locally; server will auto-create on first message
+        const id = uuidv4();
+        const now = new Date().toISOString();
+        const localThread: Thread = {
+          id,
+          title: title || "New conversation",
+          created_at: now as any,
+          updated_at: now as any
+        } as any;
 
-        try {
-          const { data, error } = await client.POST("/api/threads/", {
-            body: request
-          });
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to create thread"
-            );
+        set((state) => ({
+          threads: {
+            ...state.threads,
+            [id]: localThread
+          },
+          currentThreadId: id,
+          lastUsedThreadId: id,
+          messageCache: {
+            ...state.messageCache,
+            [id]: []
           }
+        }));
 
-          // Add to local state
-          set((state) => ({
-            threads: {
-              ...state.threads,
-              [data.id]: data
-            },
-            currentThreadId: data.id,
-            lastUsedThreadId: data.id
-          }));
-
-          // Initialize empty message cache for new thread
-          set((state) => ({
-            messageCache: {
-              ...state.messageCache,
-              [data.id]: []
-            }
-          }));
-
-          return data.id;
-        } catch (error) {
-          log.error("Failed to create new thread:", error);
-          throw error;
-        }
+        return id;
       },
 
       switchThread: (threadId: string) => {
+        const exists = !!get().threads[threadId];
+        if (!exists) return;
         set({ currentThreadId: threadId, lastUsedThreadId: threadId });
         get().loadMessages(threadId);
       },
@@ -628,7 +659,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 // Auto-load messages for the new current thread
                 setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
               } else {
-                // No threads left, clear current thread (new one will be created as needed)
+                // No threads left, clear current thread (we will create a new one below)
                 newState.currentThreadId = null;
                 newState.lastUsedThreadId = null;
               }
@@ -643,6 +674,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
             return newState as GlobalChatState;
           });
+
+          // If no threads remain, create a new one immediately
+          const { threads, currentThreadId } = get();
+          if (!currentThreadId && Object.keys(threads).length === 0) {
+            await get().createNewThread();
+          }
         } catch (error) {
           log.error("Failed to delete thread:", error);
           throw error;
@@ -652,13 +689,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setLastUsedThreadId: (threadId: string | null) =>
         set({ lastUsedThreadId: threadId }),
 
-      getCurrentMessages: async () => {
-        const { currentThreadId } = get();
+      getCurrentMessages: () => {
+        const { currentThreadId, messageCache } = get();
         if (!currentThreadId) {
           return [];
         }
-
-        return await get().loadMessages(currentThreadId);
+        return messageCache[currentThreadId] || [];
       },
 
       // Get current messages synchronously from cache
@@ -742,37 +778,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       updateThreadTitle: async (threadId: string, title: string) => {
-        const request: ThreadUpdateRequest = { title };
+        // Optimistically update local state
+        set((state) => {
+          const thread = state.threads[threadId];
+          if (thread) {
+            return {
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  title,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            } as Partial<GlobalChatState>;
+          }
+          return state;
+        });
+
+        // Best-effort server update
         try {
-          const { data, error } = await client.PUT("/api/threads/{thread_id}", {
+          const request: ThreadUpdateRequest = { title };
+          await client.PUT("/api/threads/{thread_id}", {
             params: { path: { thread_id: threadId } },
             body: request
           });
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to update thread title"
-            );
-          }
-
-          set((state) => {
-            const thread = state.threads[threadId];
-            if (thread) {
-              return {
-                threads: {
-                  ...state.threads,
-                  [threadId]: {
-                    ...thread,
-                    title: data.title,
-                    updated_at: data.updated_at
-                  }
-                }
-              };
-            }
-            return state;
-          });
         } catch (error) {
           log.error("Failed to update thread title:", error);
-          throw error;
+          // Do not throw to keep optimistic UI
         }
       },
 
@@ -892,11 +925,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           wsManager.send({ type: "stop", thread_id: currentThreadId });
 
-          // Immediately update UI to show stopping state
+          // Immediately reset to connected state
           set({
-            status: "stopping",
+            status: "connected",
             progress: { current: 0, total: 0 },
-            statusMessage: "Stopping generation...",
+            statusMessage: null,
             currentPlanningUpdate: null,
             currentTaskUpdate: null
           });
