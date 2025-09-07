@@ -17,6 +17,23 @@ Run on your laptop or your own cloud.
 
 > **🎯 Privacy by design** • **🔓 Own your stack** • **🚀 Production ready**
 
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Built Different](#built-different)
+- [Quick Start](#quick-start)
+- [Bring Your Own Providers](#bring-your-own-providers)
+- [Agent Tools](#agent-tools)
+- [Install Node Packs in the App](#install-node-packs-in-the-app)
+- [Community](#community)
+- [🛠️ Development Setup](#development-setup)
+- [Run Backend & Web UI](#4-run-nodetool-backend--web-ui)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Get in Touch](#get-in-touch)
+
 ## How It Works
 
 Get from idea to production in three simple steps:
@@ -62,6 +79,18 @@ Get from idea to production in three simple steps:
 - Your keys, your costs—no markup
 - OpenAI-compatible API for easy integration
 
+### Provider Keys
+
+Set provider API keys in Settings → Providers, or export environment variables:
+
+```bash
+# Optional .env or shell exports
+OPENAI_API_KEY=...
+ANTHROPIC_API_KEY=...
+HUGGINGFACE_HUB_TOKEN=...
+REPLICATE_API_TOKEN=...
+```
+
 ## Agent Tools
 
 **Extensible tools for AI agents to interact with the world:**
@@ -74,6 +103,19 @@ Get from idea to production in three simple steps:
 
 **Tool Categories:** Browser Tools • Search & SERP • Google APIs • OpenAI Tools • PDF Processing • Email Management • Math & Statistics • Vector Search • File System • Workflow Management • Asset Tools • HTTP Client • Code Tools
 
+## Install Node Packs in the App
+
+Install and manage packs directly from the desktop app without using the CLI.
+
+- Open Package Manager: Launch the Electron desktop app, then open the Package Manager from the Tools menu.
+- Browse and search packages: Use the top search box to filter by package name, description, or repo id.
+- Install or uninstall: Click Install to add a pack, Uninstall to remove it. An overlay shows progress; after a successful install, the backend restarts automatically to apply changes.
+- View installed status: Installed packs show a ✓ badge and an Uninstall button.
+- Search nodes across packs: Use the “Search nodes” field to find nodes by title, description, or type. You can install the required pack directly from node results.
+- Deep-link to node search: Append `?nodeSearch=your+query` to the Package Manager URL to prefill the node search.
+
+If you plan to use GPU‑accelerated nodes (for example, Hugging Face models), complete the CUDA/PyTorch steps in the Windows & Linux (NVIDIA GPUs) section first.
+
 ## Community
 
 **Open source on GitHub. Star and contribute.**
@@ -85,8 +127,6 @@ Get from idea to production in three simple steps:
 🚀 **Contribute** — Help shape the future of visual AI development
 
 ---
-
-## Development
 
 ## 🛠️ Development Setup
 
@@ -122,6 +162,15 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-core
 uv pip install git+https://github.com/nodetool-ai/nodetool-base
 ```
 
+If you're working in this monorepo and want live-editable installs:
+
+```bash
+# From the repository root
+conda activate nodetool
+uv pip install -e ./nodetool-core
+uv pip install -e ./nodetool-base
+```
+
 ### 3. Install Optional Node Packs (As Needed)
 
 NodeTool's functionality is extended via packs. Install only the ones you need.
@@ -130,6 +179,8 @@ NOTE:
 
 - Activate the conda environment first
 - Use uv for faster installs.
+
+> Prefer the in‑app Package Manager for a guided experience. See [Install Node Packs in the App](#install-node-packs-in-the-app). The commands below are for advanced/CI usage.
 
 ```bash
 # List available packs (optional)
@@ -142,7 +193,7 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-elevenlabs
 ```
 
 _Note:_ Some packs like `nodetool-huggingface` may require specific PyTorch versions or CUDA drivers.
-Use `-index-url` to install:
+Use `--index-url` to install:
 
 ### Windows & Linux (NVIDIA GPUs)
 
@@ -207,6 +258,8 @@ nodetool serve --reload
 Run frontend in web folder:
 
 ```bash
+cd web
+npm install
 npm start
 ```
 
@@ -257,6 +310,41 @@ npm start  # launches the desktop app using the previously built UI
 ```
 
 The Electron app will launch, automatically starting the backend and frontend.
+
+## Testing
+
+### Python (core, packs)
+
+```bash
+pytest -q
+```
+
+### Web UI
+
+```bash
+cd web
+npm test
+npm run lint
+npm run typecheck
+```
+
+### Electron
+
+```bash
+cd electron
+npm run lint
+npm run typecheck
+```
+
+## Troubleshooting
+
+- **Node/npm versions**: use Node.js LTS (≥18). If switching versions:
+  ```bash
+  rm -rf node_modules && npm install
+  ```
+- **Port in use (3000/8000)**: stop other processes or choose another port for the web UI.
+- **CLI not found (`nodetool`)**: ensure the Conda env is active and packages are installed; restart your shell.
+- **GPU/PyTorch issues**: follow the CUDA-specific steps above and prefer `--extra-index-url` for mixed sources.
 
 ## Contributing
 
