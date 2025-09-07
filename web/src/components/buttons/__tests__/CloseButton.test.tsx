@@ -4,6 +4,18 @@ import { ThemeProvider } from "@mui/material/styles";
 import CloseButton from "../CloseButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
+// Mock MUI Button to avoid reliance on theme.vars internals in tests
+jest.mock("@mui/material/Button", () => ({
+  __esModule: true,
+  default: ({ children, ...rest }: any) => <button {...rest}>{children}</button>
+}));
+
+// Mock icon to a simple element
+jest.mock("@mui/icons-material/Clear", () => ({
+  __esModule: true,
+  default: () => <span data-testid="clear-icon" />
+}));
+
 describe("CloseButton", () => {
   it("renders correctly", () => {
     const mockOnClick = jest.fn();

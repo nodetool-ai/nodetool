@@ -225,8 +225,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
 
   loadFolderTree: async (sortBy?: string) => {
-    const { assets } = await get().load({ content_type: "folder" });
-    return buildFolderTree(assets, (sortBy as "name" | "updated_at") || "name");
+    const { data } = await client.GET("/api/assets/folders", {
+      params: { query: { sort_by: sortBy || "name" } }
+    } as any);
+    return data as Record<string, any>;
   },
 
   /**
