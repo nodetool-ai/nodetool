@@ -2,14 +2,14 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CloseButton from "../CloseButton";
-import mockTheme from "../../../__mocks__/mockThemeMock";
+import mockTheme from "../../../__mocks__/themeMock";
 
 describe("CloseButton", () => {
   it("renders correctly", () => {
     const mockOnClick = jest.fn();
 
     render(
-      <ThemeProvider mockTheme={mockTheme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} />
       </ThemeProvider>
     );
@@ -24,7 +24,7 @@ describe("CloseButton", () => {
     const customClass = "custom-class";
 
     render(
-      <ThemeProvider mockTheme={mockTheme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton className={customClass} onClick={mockOnClick} />
       </ThemeProvider>
     );
@@ -38,7 +38,7 @@ describe("CloseButton", () => {
     const mockOnClick = jest.fn();
 
     render(
-      <ThemeProvider mockTheme={mockTheme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} />
       </ThemeProvider>
     );

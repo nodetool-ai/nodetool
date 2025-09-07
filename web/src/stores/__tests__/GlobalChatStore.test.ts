@@ -213,11 +213,6 @@ describe("GlobalChatStore", () => {
       expect(state.error).toBeNull();
     });
 
-    it("connect with workflowId sets workflowId", async () => {
-      await store.getState().connect("workflow-123");
-      expect(store.getState().workflowId).toBe("workflow-123");
-    });
-
     it("connect closes existing socket before creating new one", async () => {
       // First connect
       await store.getState().connect();

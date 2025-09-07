@@ -23,26 +23,20 @@ const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
   const {
-    connect,
-    disconnect,
     status,
     sendMessage,
     progress,
-    resetMessages,
     statusMessage,
     error,
     currentThreadId,
     getCurrentMessagesSync,
     createNewThread,
-    threads,
     switchThread,
-    deleteThread,
     stopGeneration,
     agentMode,
     setAgentMode,
     currentPlanningUpdate,
     currentTaskUpdate,
-    isLoadingMessages,
     threadsLoaded
   } = useGlobalChatStore();
   const runningToolCallId = useGlobalChatStore(

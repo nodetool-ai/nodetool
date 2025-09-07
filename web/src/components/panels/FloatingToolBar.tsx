@@ -222,8 +222,11 @@ const FloatingToolBar: React.FC<{
     useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isLeftPanelVisible = usePanelStore((state) => state.panel.isVisible);
-  const isRightPanelVisible = useRightPanelStore(
-    (state) => state.panel.isVisible
+  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
+    (state) => ({
+      isRightPanelVisible: state.panel.isVisible,
+      rightPanelSize: state.panel.panelSize
+    })
   );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
@@ -364,18 +367,26 @@ const FloatingToolBar: React.FC<{
     setActionsMenuAnchor(null);
   }, []);
 
-  // Only show in editor view and when side panels are hidden
-  if (
-    !path.startsWith("/editor") ||
-    isLeftPanelVisible ||
-    isRightPanelVisible
-  ) {
+  // Only show in editor view; keep visible when right panel is open
+  if (!path.startsWith("/editor") || isLeftPanelVisible) {
     return null;
   }
 
   return (
     <>
-      <Box css={styles(theme)} className="floating-toolbar">
+      <Box
+        css={styles(theme)}
+        className="floating-toolbar"
+        style={
+          isRightPanelVisible
+            ? {
+                left: "auto",
+                transform: "none",
+                right: `${Math.max(rightPanelSize + 20, 72)}px`
+              }
+            : undefined
+        }
+      >
         {isMobile && (
           <Tooltip
             title="Open canvas menu"
@@ -402,6 +413,19 @@ const FloatingToolBar: React.FC<{
             aria-label="Open node menu"
           >
             <ControlPointIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
+          title="Auto layout nodes"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleAutoLayout}
+            aria-label="Auto layout nodes"
+          >
+            <LayoutIcon />
           </Fab>
         </Tooltip>
         <Tooltip
@@ -486,17 +510,6 @@ const FloatingToolBar: React.FC<{
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Edit workflow settings" />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleAutoLayout();
-            handleCloseActionsMenu();
-          }}
-        >
-          <ListItemIcon>
-            <LayoutIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Auto layout nodes" />
         </MenuItem>
         <MenuItem
           onClick={() => {

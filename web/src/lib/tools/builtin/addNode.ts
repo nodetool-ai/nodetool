@@ -23,12 +23,18 @@ FrontendToolRegistry.register({
           }
         },
         required: ["id", "position"]
-      }
+      },
+      workflow_id: { type: "string" }
     },
     required: ["node"]
   },
-  async execute({ node }, ctx) {
+  async execute({ node, workflow_id }, ctx) {
     const state = ctx.getState();
+    const workflowId = workflow_id ?? state.currentWorkflowId;
+    if (!workflowId) throw new Error("No current workflow selected");
+    const nodeStore = state.getNodeStore(workflowId)?.getState();
+    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+
     const metadata = state.nodeMetadata[node.type];
     if (!metadata) throw new Error(`Node type not found: ${node.type}`);
     if (node.id === undefined) {
@@ -53,7 +59,7 @@ FrontendToolRegistry.register({
         }
       }
     }
-    state.nodeStore.addNode({
+    nodeStore.addNode({
       id: node.id,
       type: node.type,
       position: node.position,
@@ -71,7 +77,7 @@ FrontendToolRegistry.register({
         dynamic_properties: {},
         dynamic_outputs: {},
         sync_mode: "on_any",
-        workflow_id: "",
+        workflow_id: workflowId,
         selectable: true
       }
     });
