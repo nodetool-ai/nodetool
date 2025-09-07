@@ -10,12 +10,18 @@ FrontendToolRegistry.register({
       source_id: { type: "string" },
       source_handle: { type: "string" },
       target_id: { type: "string" },
-      target_handle: { type: "string" }
+      target_handle: { type: "string" },
+      workflow_id: { type: "string" }
     },
     required: ["source_id", "source_handle", "target_id", "target_handle"]
   },
-  async execute({ source_id, source_handle, target_id, target_handle }, ctx) {
-    const { nodeStore } = ctx.getState();
+  async execute({ source_id, source_handle, target_id, target_handle, workflow_id }, ctx) {
+    const state = ctx.getState();
+    const workflowId = workflow_id ?? state.currentWorkflowId;
+    if (!workflowId) throw new Error("No current workflow selected");
+    const nodeStore = state.getNodeStore(workflowId)?.getState();
+    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+
     const src = nodeStore.findNode(source_id);
     const tgt = nodeStore.findNode(target_id);
     if (!src) throw new Error(`Source node not found: ${source_id}`);
@@ -43,4 +49,3 @@ FrontendToolRegistry.register({
     return { ok: true, edge_id: edgeId };
   }
 });
-

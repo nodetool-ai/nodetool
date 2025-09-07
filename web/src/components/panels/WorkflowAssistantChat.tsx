@@ -6,7 +6,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../chat/containers/ChatView";
 import { DEFAULT_MODEL } from "../../config/constants";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { LanguageModel, Message } from "../../stores/ApiTypes";
+import { LanguageModel, Message, Workflow } from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
 import { Dialog, DialogContent, IconButton, Tooltip } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
@@ -18,6 +18,8 @@ import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode"
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import SvgFileIcon from "../SvgFileIcon";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useMetadataStore from "../../stores/MetadataStore";
 
 const containerStyles = css({
   flex: 1,
@@ -57,8 +59,6 @@ const WorkflowAssistantChat: React.FC = () => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const {
-    connect,
-    disconnect,
     status,
     sendMessage,
     progress,
@@ -71,12 +71,83 @@ const WorkflowAssistantChat: React.FC = () => {
     threads,
     switchThread,
     deleteThread,
-    messageCache,
-    isLoadingMessages
+    messageCache
   } = useGlobalChatStore();
 
   // Get the node store from context
   const nodeStore = useContext(NodeContext);
+  const {
+    currentWorkflowId,
+    getWorkflow,
+    addWorkflow,
+    removeWorkflow,
+    getNodeStore,
+    updateWorkflow,
+    saveWorkflow,
+    getCurrentWorkflow,
+    setCurrentWorkflowId,
+    fetchWorkflow,
+    newWorkflow,
+    createNew,
+    searchTemplates,
+    copy
+  } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId,
+    getWorkflow: state.getWorkflow,
+    addWorkflow: state.addWorkflow,
+    removeWorkflow: state.removeWorkflow,
+    getNodeStore: state.getNodeStore,
+    updateWorkflow: state.updateWorkflow,
+    saveWorkflow: state.saveWorkflow,
+    getCurrentWorkflow: state.getCurrentWorkflow,
+    setCurrentWorkflowId: state.setCurrentWorkflowId,
+    fetchWorkflow: state.fetchWorkflow,
+    newWorkflow: state.newWorkflow,
+    createNew: state.createNew,
+    searchTemplates: state.searchTemplates,
+    copy: state.copy
+  }));
+  const nodeMetadata = useMetadataStore((state) => state.metadata);
+  const setFrontendToolState = useGlobalChatStore(
+    (state) => state.setFrontendToolState
+  );
+
+  useEffect(() => {
+    setFrontendToolState({
+      nodeMetadata: nodeMetadata,
+      currentWorkflowId: currentWorkflowId,
+      getWorkflow: getWorkflow,
+      addWorkflow: addWorkflow,
+      removeWorkflow: removeWorkflow,
+      getNodeStore: getNodeStore,
+      updateWorkflow: updateWorkflow,
+      saveWorkflow: saveWorkflow,
+      getCurrentWorkflow: getCurrentWorkflow,
+      setCurrentWorkflowId: setCurrentWorkflowId,
+      fetchWorkflow: fetchWorkflow,
+      newWorkflow: newWorkflow,
+      createNew: createNew,
+      searchTemplates: searchTemplates,
+      copy: copy
+    });
+  }, [
+    nodeMetadata,
+    getWorkflow,
+    addWorkflow,
+    removeWorkflow,
+    getNodeStore,
+    updateWorkflow,
+    saveWorkflow,
+    getCurrentWorkflow,
+    setCurrentWorkflowId,
+    fetchWorkflow,
+    newWorkflow,
+    createNew,
+    searchTemplates,
+    copy,
+    setFrontendToolState,
+    currentWorkflowId
+  ]);
 
   // Subscribe to workflow graph updates from chat messages
   useWorkflowGraphUpdater();

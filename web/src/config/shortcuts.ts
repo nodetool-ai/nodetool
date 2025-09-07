@@ -372,22 +372,6 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: false
   },
   {
-    title: "Collections",
-    slug: "toggleCollections",
-    keyCombo: ["4"],
-    category: "panel",
-    description: "Toggle Collections panel",
-    registerCombo: false
-  },
-  {
-    title: "Packs",
-    slug: "togglePacks",
-    keyCombo: ["5"],
-    category: "panel",
-    description: "Toggle Packs panel",
-    registerCombo: false
-  },
-  {
     title: "Inspector",
     slug: "toggleInspector",
     keyCombo: ["I"],

@@ -26,12 +26,21 @@ FrontendToolRegistry.register({
           "horizontal_center"
         ]
       },
-      node_ids: { type: "array", items: { type: "string" } }
+      node_ids: { type: "array", items: { type: "string" } },
+      workflow_id: { type: "string" }
     },
     required: ["direction"]
   },
-  async execute({ direction, node_ids }: { direction: Direction; node_ids?: string[] }, ctx) {
-    const { nodeStore } = ctx.getState();
+  async execute(
+    { direction, node_ids, workflow_id }: { direction: Direction; node_ids?: string[]; workflow_id?: string },
+    ctx
+  ) {
+    const state = ctx.getState();
+    const workflowId = workflow_id ?? state.currentWorkflowId;
+    if (!workflowId) throw new Error("No current workflow selected");
+    const nodeStore = state.getNodeStore(workflowId)?.getState();
+    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+
     const all = nodeStore.getSelectedNodes();
     const nodes = (node_ids && node_ids.length
       ? node_ids
@@ -76,4 +85,3 @@ FrontendToolRegistry.register({
     return { ok: true, count: nodes.length, direction };
   }
 });
-

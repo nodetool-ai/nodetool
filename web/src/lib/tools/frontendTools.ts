@@ -1,5 +1,6 @@
-import { NodeMetadata } from "../../stores/ApiTypes";
-import { NodeStoreState } from "../../stores/NodeStore";
+import { WorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
+import { NodeMetadata, Workflow } from "../../stores/ApiTypes";
+import { NodeStore, NodeStoreState } from "../../stores/NodeStore";
 
 export type JsonSchema = Record<string, any>;
 
@@ -11,12 +12,27 @@ export interface FrontendToolDefinition<Args = any, Result = any> {
   execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
 }
 
+export interface FrontendToolState {
+  nodeMetadata: Record<string, NodeMetadata>;
+  currentWorkflowId: string | null;
+  getWorkflow: (workflowId: string) => Workflow | undefined;
+  addWorkflow: (workflow: Workflow) => void;
+  removeWorkflow: (workflowId: string) => void;
+  getNodeStore: (workflowId: string) => NodeStore | undefined;
+  updateWorkflow: (workflow: Workflow) => void;
+  saveWorkflow: (workflow: Workflow) => Promise<void>;
+  getCurrentWorkflow: () => Workflow | undefined;
+  setCurrentWorkflowId: (workflowId: string) => void;
+  fetchWorkflow: (workflowId: string) => Promise<void>;
+  newWorkflow: () => Workflow;
+  createNew: () => Promise<Workflow>;
+  searchTemplates: (query: string) => Promise<any>;
+  copy: (originalWorkflow: Workflow) => Promise<Workflow>;
+}
+
 export interface FrontendToolContext {
   abortSignal: AbortSignal;
-  getState: () => {
-    nodeStore: NodeStoreState;
-    nodeMetadata: Record<string, NodeMetadata>;
-  };
+  getState: () => FrontendToolState;
 }
 
 type ActiveCall = { controller: AbortController };

@@ -11,12 +11,18 @@ FrontendToolRegistry.register({
         type: "object",
         properties: { x: { type: "number" }, y: { type: "number" } },
         default: { x: 20, y: 20 }
-      }
+      },
+      workflow_id: { type: "string" }
     },
     required: ["node_id"]
   },
-  async execute({ node_id, offset }, ctx) {
-    const { nodeStore } = ctx.getState();
+  async execute({ node_id, offset, workflow_id }, ctx) {
+    const state = ctx.getState();
+    const workflowId = workflow_id ?? state.currentWorkflowId;
+    if (!workflowId) throw new Error("No current workflow selected");
+    const nodeStore = state.getNodeStore(workflowId)?.getState();
+    if (!nodeStore) throw new Error(`No node store for workflow ${workflowId}`);
+
     const src = nodeStore.findNode(node_id) as any;
     if (!src) throw new Error(`Node not found: ${node_id}`);
 
@@ -35,4 +41,3 @@ FrontendToolRegistry.register({
     return { ok: true, node_id: newId };
   }
 });
-

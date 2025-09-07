@@ -23,7 +23,7 @@ export function useEnsureChatConnected(
     if (!autoConnect) return;
 
     if (status === "disconnected" || status === "failed") {
-      connect(undefined, nodeStore || undefined).catch((error) => {
+      connect().catch((error) => {
         console.error("Failed to connect to global chat:", error);
       });
     }

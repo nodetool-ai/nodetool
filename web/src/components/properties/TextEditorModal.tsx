@@ -443,8 +443,6 @@ const TextEditorModal = ({
     setSelectedModel,
     selectedTools,
     selectedCollections,
-    currentPlanningUpdate,
-    currentTaskUpdate,
     stopGeneration,
     createNewThread
   } = useGlobalChatStore();

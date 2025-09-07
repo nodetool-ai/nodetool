@@ -20,7 +20,6 @@ import {
   ThreadCreateRequest,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
-  ThreadList,
   LanguageModel
 } from "./ApiTypes";
 import { isLocalhost } from "./ApiClient";
@@ -34,8 +33,10 @@ import {
   WebSocketManager,
   ConnectionState
 } from "../lib/websocket/WebSocketManager";
-import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import useMetadataStore from "./MetadataStore";
+import {
+  FrontendToolRegistry,
+  FrontendToolState
+} from "../lib/tools/frontendTools";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -60,9 +61,6 @@ interface GlobalChatState {
   // WebSocket manager
   wsManager: WebSocketManager | null;
   socket: WebSocket | null;
-
-  // Active node store for tool calls
-  activeNodeStore: NodeStore | null;
 
   // Thread management
   threads: Record<string, Thread>;
@@ -99,8 +97,12 @@ interface GlobalChatState {
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
 
+  // Frontend tool state
+  frontendToolState: FrontendToolState;
+  setFrontendToolState: (state: FrontendToolState) => void;
+
   // Actions
-  connect: (workflowId?: string, nodeStore?: NodeStore) => Promise<void>;
+  connect: () => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
@@ -228,7 +230,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       workflowId: null,
       wsManager: null,
       socket: null,
-      activeNodeStore: null,
       currentRunningToolCallId: null,
       currentToolMessage: null,
 
@@ -264,6 +265,28 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setPlanningUpdate: (update: PlanningUpdate | null) =>
         set({ currentPlanningUpdate: update }),
 
+      // Frontend tool state
+      frontendToolState: {
+        nodeMetadata: {},
+        currentWorkflowId: null,
+        getWorkflow: () => undefined,
+        addWorkflow: () => {},
+        removeWorkflow: () => {},
+        getNodeStore: () => undefined,
+        updateWorkflow: () => {},
+        saveWorkflow: () => Promise.resolve(),
+        getCurrentWorkflow: () => undefined,
+        setCurrentWorkflowId: () => {},
+        fetchWorkflow: () => Promise.resolve(),
+        newWorkflow: () => {
+          throw new Error("Not initialized");
+        },
+        createNew: () => Promise.reject(new Error("Not initialized")),
+        searchTemplates: () => Promise.reject(new Error("Not initialized")),
+        copy: () => Promise.reject(new Error("Not initialized"))
+      },
+      setFrontendToolState: (state: FrontendToolState) =>
+        set({ frontendToolState: state }),
       // Task updates
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) =>
@@ -272,7 +295,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
 
-      connect: async (workflowId?: string, nodeStore?: NodeStore) => {
+      connect: async () => {
         log.info("Connecting to global chat");
 
         const state = get();
@@ -390,15 +413,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
         });
 
-        // Preserve existing activeNodeStore if none provided (e.g., reconnects)
-        const effectiveNodeStore = nodeStore || state.activeNodeStore || null;
-
         // Store the manager and connect
         set({
           wsManager,
-          workflowId: workflowId || null,
-          error: null,
-          activeNodeStore: effectiveNodeStore
+          error: null
         });
 
         try {
@@ -448,7 +466,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Prepare message
         const messageToSend = {
           ...message,
-          workflow_id: workflowId || undefined,
           thread_id: threadId,
           agent_mode: agentMode
         };
@@ -1025,8 +1042,7 @@ async function handleWebSocketMessage(
           const message: Message = {
             role: "assistant" as const,
             type: "message" as const,
-            content: chunk.content,
-            workflow_id: get().workflowId
+            content: chunk.content
           };
           set((state) => ({
             status: "streaming",
@@ -1111,8 +1127,7 @@ async function handleWebSocketMessage(
             const message: Message = {
               role: "assistant" as const,
               type: "message" as const,
-              content: update.value as string,
-              workflow_id: get().workflowId
+              content: update.value as string
             };
             set((state) => ({
               status: "streaming",
@@ -1139,7 +1154,6 @@ async function handleWebSocketMessage(
                 (update.value as { data: Uint8Array }).data
               )
             ],
-            workflow_id: get().workflowId,
             name: "assistant"
           } as Message;
           const messages = get().messageCache[threadId] || [];
@@ -1303,85 +1317,6 @@ async function handleWebSocketMessage(
   } else if (data.type === "subtask_result") {
     const update = data as SubTaskResult;
     // TODO: update the thread with the subtask result
-  } else if (data.type === "workflow_updated") {
-    const update = data as WorkflowUpdatedUpdate;
-    const threadId = get().currentThreadId;
-
-    // Store the workflow graph update
-    set({ lastWorkflowGraphUpdate: update });
-
-    if (threadId) {
-      // Add a message to the thread about the created workflow
-      const message: Message = {
-        role: "assistant",
-        type: "message",
-        content: "Workflow updated successfully!",
-        workflow_id: get().workflowId,
-        graph: update.graph
-      };
-      const messages = get().messageCache[threadId] || [];
-      set((state) => {
-        const thread = state.threads[threadId];
-        if (thread) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            status: "connected",
-            statusMessage: null
-          };
-        }
-        return state;
-      });
-    }
-  } else if (data.type === "workflow_created") {
-    const update = data as WorkflowCreatedUpdate;
-    const threadId = get().currentThreadId;
-
-    // Store the workflow graph update
-    set({ lastWorkflowGraphUpdate: update });
-
-    if (threadId) {
-      // Add a message to the thread about the created workflow
-      const message: Message = {
-        role: "assistant",
-        type: "message",
-        content: "Workflow created successfully!",
-        workflow_id: get().workflowId,
-        graph: update.graph
-      };
-
-      const messages = get().messageCache[threadId] || [];
-      set((state) => {
-        const thread = state.threads[threadId];
-        if (thread) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            status: "connected",
-            statusMessage: null
-          };
-        }
-        return state;
-      });
-    }
   } else if (data.type === "tool_call") {
     // Handle tool call from server
     const toolCallData = data as ToolCallMessage;
@@ -1403,17 +1338,8 @@ async function handleWebSocketMessage(
     // Execute the tool
     const startTime = Date.now();
     try {
-      const nodeStoreState = currentState.activeNodeStore?.getState();
-      const nodeMetadata = useMetadataStore.getState().metadata;
-      if (!nodeStoreState) {
-        throw new Error("No active node store available");
-      }
-
       const result = await FrontendToolRegistry.call(name, args, tool_call_id, {
-        getState: () => ({
-          nodeMetadata: nodeMetadata,
-          nodeStore: nodeStoreState
-        })
+        getState: () => get().frontendToolState
       });
 
       const elapsedMs = Date.now() - startTime;
@@ -1469,7 +1395,7 @@ if (typeof window !== "undefined") {
       state.wsManager
     ) {
       log.info("Network came online, attempting to reconnect...");
-      state.connect(state.workflowId || undefined).catch((error) => {
+      state.connect().catch((error) => {
         log.error("Failed to reconnect after network online:", error);
       });
     }
@@ -1489,7 +1415,7 @@ if (typeof window !== "undefined") {
         state.wsManager
       ) {
         log.info("Tab became visible, checking connection...");
-        state.connect(state.workflowId || undefined).catch((error) => {
+        state.connect().catch((error) => {
           log.error("Failed to reconnect after tab visible:", error);
         });
       }
