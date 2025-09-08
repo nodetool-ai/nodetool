@@ -1,5 +1,5 @@
 import argparse
-import logging
+from nodetool.config.logging_config import get_logger
 import shutil
 import subprocess
 import sys
@@ -15,10 +15,9 @@ import json
 import os
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+from nodetool.config.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
