@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_install",
+      "mcp__playwright__browser_close",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "mcp__playwright__browser_resize"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,40 +1,43 @@
 # Test Coverage Improvement Plan
 
-## Current Coverage Summary
-- Overall coverage is very low (almost 0%)
-- Many files have 0% coverage
-- Tests are failing due to canvas module dependency issue
+## Current Coverage Analysis
+- Overall coverage: ~14% lines, ~5% branches, ~6% functions
+- Tests are running but many areas have 0% coverage
 
-## Priority Areas to Test (0% Coverage)
+## Priority Areas (0% coverage, high impact):
+1. **Stores** (src/stores/) - Critical state management with 0% coverage
+   - ApiClient.ts
+   - NodeStore.ts (35KB - largest store)
+   - GlobalChatStore.ts (24KB)
+   - AssetStore.ts
+   - WorkflowRunner.ts
 
-### High Priority - Core Utilities
-1. **Utils** (src/utils/)
-   - formatDateAndTime.ts - Date/time formatting
-   - getFileExtension.ts - Simple utility
-   - truncateString.ts - String manipulation
-   - formatUtils.ts - General formatting
-   - groupByDate.ts - Date grouping logic
+2. **Hooks** (src/hooks/) - Core functionality with minimal coverage
+   - useWorkflowActions.ts
+   - useNodeEditorShortcuts.ts
+   - useCreateNode.ts
+   - useDuplicate.ts
 
-### Medium Priority - Stores (State Management)
-2. **Simple Stores** (src/stores/)
-   - AppHeaderStore.ts - UI state
-   - NotificationStore.ts - Notification state
-   - ErrorStore.ts - Error handling
-   - LogStore.ts - Logging state
+3. **Components** (src/components/) - UI components need testing
+   - Chat components
+   - Node editor components
+   - Asset management components
 
-### Components with Existing Tests
-3. **Components** (src/components/)
-   - Logo.tsx - has test but low coverage
-   - ProtectedRoute.tsx - has test but low coverage
-   - InfiniteScroll.tsx - has test but low coverage
+4. **Utils** (src/utils/) - ~7% coverage
+   - formatUtils.ts (100% - good!)
+   - ColorUtils.ts (0%)
+   - NodeTypeMapping.ts (0%)
+   - TypeHandler.ts (0%)
 
-## Testing Strategy
-1. Start with simple utility functions (quick wins)
-2. Move to simple stores with minimal dependencies
-3. Focus on components that already have test files
-4. Ensure each test file works independently
+## Test Strategy
+1. Start with pure utility functions (easiest to test)
+2. Move to hooks (testable with renderHook)
+3. Test critical stores (Zustand stores)
+4. Add component tests for high-use components
 
-## Canvas Module Issue
-- Tests fail due to missing canvas.node binary
-- This is related to jsdom/jest-environment-jsdom dependency
-- Need to mock or bypass canvas-related functionality
+## Files to Test First
+1. src/utils/ColorUtils.ts - Pure functions, easy wins
+2. src/utils/truncateString.ts - Simple utility
+3. src/utils/titleizeString.ts - Simple utility
+4. src/hooks/useDelayedHover.ts - Simple hook
+5. src/stores/KeyPressedStore.ts - Simple state management
