@@ -74,24 +74,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {renderedResult && (
-        <Typography
-          variant="caption"
-          sx={{
-            px: 1,
-            pt: 0.5,
-            pb: 0,
-            display: "block",
-            color: (theme) => theme.vars.palette.grey[400],
-            fontFamily: (theme) => theme.fontFamily2,
-            textTransform: "none"
-          }}
-        >
-          <code style={{ fontFamily: "inherit", fontSize: "inherit" }}>
-            {nodeType}
-          </code>
-        </Typography>
-      )}
       {renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}

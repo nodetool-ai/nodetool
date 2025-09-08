@@ -98,33 +98,7 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    const assetTypes = ["image", "audio", "video", "document"];
-    if (update.output_type === "string") {
-      // String updates are handled in WorkflowChatStore directly
-    } else if (assetTypes.includes(update.output_type)) {
-      const value = update.value as { uri: string; data: Uint8Array };
-      setResult(
-        workflow.id,
-        update.node_id,
-        {
-          output: {
-            type: update.output_type,
-            uri: value.uri,
-            data: value.data
-          }
-        },
-        true
-      );
-    } else {
-      setResult(
-        workflow.id,
-        update.node_id,
-        {
-          output: update.value
-        },
-        true
-      );
-    }
+    setResult(workflow.id, update.node_id, update.value, true);
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
@@ -150,7 +124,6 @@ export const handleUpdate = (
         });
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
-        clearResults(workflow.id);
         clearProgress(workflow.id);
         runner.disconnect();
         break;
@@ -232,32 +205,6 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);
-    }
-
-    if (update.status === "completed") {
-      setResult(workflow.id, update.node_id, update.result, true);
-
-      // This should happen in output renderer.
-      // if (update.result) {
-      //   Object.entries(update.result).forEach(([key, value]) => {
-      //     const ref = value as AssetRef;
-      //     if (typeof ref === "object" && ref !== null && "asset_id" in ref) {
-      //       const asset_id = ref.asset_id;
-      //       if (asset_id) {
-      //         getAsset(asset_id).then((res) => {
-      //           if (res?.get_url) {
-      //             ref.uri = res.get_url;
-      //           }
-      //           setResult(workflow.id, update.node_id, { [key]: ref });
-      //         });
-      //       } else {
-      //         log.error(
-      //           `WorkflowRunner: Asset id is null or undefined for key: ${key}`
-      //         );
-      //       }
-      //     }
-      //   });
-      // }
     }
 
     // if (update.properties) {
