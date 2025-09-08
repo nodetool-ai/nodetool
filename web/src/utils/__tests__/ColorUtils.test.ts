@@ -188,6 +188,14 @@ describe("ColorUtils", () => {
       expect(gradient).toContain("to top");
     });
 
+    it("should handle invalid mode and use default", () => {
+      const gradient = createLinearGradient("#ff0000", 50, "to bottom", "invalid" as any);
+      expect(gradient).toContain("linear-gradient");
+      expect(gradient).toContain("to bottom");
+      // Should fall back to using original color
+      expect(gradient).toContain("rgba(255, 0, 0, 1)");
+    });
+
     it("should use default values", () => {
       const gradient = createLinearGradient("#ff0000", 50);
       expect(gradient).toContain("to bottom");
