@@ -75,6 +75,8 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
     }
   }, [logs]);
 
+  if (count === 0) return null;
+
   return (
     <div className="node-logs-container" css={styles(theme)}>
       <div className="node-logs">
