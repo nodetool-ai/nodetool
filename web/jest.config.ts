@@ -1,7 +1,11 @@
 export default {
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "jsdom",
+  testEnvironmentOptions: {
+    customExportConditions: ["node", "node-addons"]
+  },
   moduleNameMapper: {
+    "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.ts",
     "\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/src/__mocks__/fileMock.ts",
     "\\.svg\\?react$": "<rootDir>/src/__mocks__/svgReactMock.ts",
