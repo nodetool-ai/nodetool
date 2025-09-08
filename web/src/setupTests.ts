@@ -25,3 +25,4 @@ import { TextEncoder, TextDecoder } from "util";
 // Mock global.btoa and atob for base64 operations
 global.btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
 global.atob = (str: string) => Buffer.from(str, "base64").toString("binary");
+
