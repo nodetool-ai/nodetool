@@ -151,14 +151,14 @@ describe("nodeSearch", () => {
 
       const results = performGroupedSearch(entries, "math");
       expect(results.length).toBeGreaterThan(0);
-      // Since our mock Fuse searches all fields, it will find "math" in namespace
-      // and put it in the Name group
-      const nameGroup = results.find(g => g.title === "Name");
-      expect(nameGroup).toBeDefined();
-      if (nameGroup) {
-        expect(nameGroup.nodes.length).toBeGreaterThan(0);
+      // Since we're searching for "math" which is a namespace, it should be found
+      // in the "Namespace + Tags" group, not the "Name" group
+      const namespaceGroup = results.find(g => g.title === "Namespace + Tags");
+      expect(namespaceGroup).toBeDefined();
+      if (namespaceGroup) {
+        expect(namespaceGroup.nodes.length).toBeGreaterThan(0);
         // Should find both Add and Subtract nodes from math namespace
-        expect(nameGroup.nodes.some(n => n.namespace === "math")).toBe(true);
+        expect(namespaceGroup.nodes.some(n => n.namespace === "math")).toBe(true);
       }
     });
 
@@ -175,13 +175,13 @@ describe("nodeSearch", () => {
 
       const results = performGroupedSearch(entries, "numbers");
       expect(results.length).toBeGreaterThan(0);
-      // Since our mock Fuse searches all fields, it will find "numbers" in description
-      // and put it in the Name group
-      const nameGroup = results.find(g => g.title === "Name");
-      expect(nameGroup).toBeDefined();
-      if (nameGroup) {
+      // Since we're searching for "numbers" which appears in a description,
+      // it should be found in the "Description" group
+      const descriptionGroup = results.find(g => g.title === "Description");
+      expect(descriptionGroup).toBeDefined();
+      if (descriptionGroup) {
         // Should find Add node which has "numbers" in its description
-        expect(nameGroup.nodes.some(n => n.description?.includes("numbers"))).toBe(true);
+        expect(descriptionGroup.nodes.some(n => n.description?.includes("numbers"))).toBe(true);
       }
     });
 

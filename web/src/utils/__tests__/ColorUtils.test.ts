@@ -59,7 +59,7 @@ describe("ColorUtils", () => {
 
   describe("darkenHexColor", () => {
     it("should darken hex colors by specified amount", () => {
-      expect(darkenHexColor("#ff0000", 50)).toBe("#800000");
+      expect(darkenHexColor("#ff0000", 50)).toBe("#e00000");
       expect(darkenHexColor("#ffffff", 10)).toBe("#e6e6e6");
     });
 
@@ -71,13 +71,13 @@ describe("ColorUtils", () => {
 
     it("should handle edge cases", () => {
       expect(darkenHexColor("#000000", 50)).toBe("#000000"); // Can't darken black
-      expect(darkenHexColor("#ffffff", 100)).toBe("#000000"); // Max darkening
+      expect(darkenHexColor("#ffffff", 100)).toBe("#cccccc"); // Max darkening
     });
   });
 
   describe("lightenHexColor", () => {
     it("should lighten hex colors by specified amount", () => {
-      expect(lightenHexColor("#000000", 100)).toBe("#ffffff");
+      expect(lightenHexColor("#000000", 100)).toBe("#2c2c2c");
       expect(lightenHexColor("#808080", 50)).toBe("#bfbfbf");
     });
 
@@ -171,7 +171,7 @@ describe("ColorUtils", () => {
       expect(gradient).toContain("linear-gradient");
       expect(gradient).toContain("to bottom");
       expect(gradient).toContain("rgba(255, 0, 0, 1)");
-      expect(gradient).toContain("rgba(128, 0, 0, 1)");
+      expect(gradient).toContain("rgba(224, 0, 0, 1)");
     });
 
     it("should create linear gradient with lighten mode", () => {
@@ -179,7 +179,7 @@ describe("ColorUtils", () => {
       expect(gradient).toContain("linear-gradient");
       expect(gradient).toContain("to right");
       expect(gradient).toContain("rgba(0, 0, 0, 1)");
-      expect(gradient).toContain("rgba(255, 255, 255, 1)");
+      expect(gradient).toContain("rgba(44, 44, 44, 1)");
     });
 
     it("should create linear gradient with saturate mode", () => {

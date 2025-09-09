@@ -1,9 +1,20 @@
 import * as Sentry from "@sentry/react";
 
+// Helper function to get environment variables (works in both Vite and Jest environments)
+function getEnvMode(): string {
+  // Fallback to process.env - works in both Jest and Vite environments
+  return process.env.NODE_ENV || "development";
+}
+
+function getEnvVar(name: string): string | undefined {
+  // For Vite environment variables, they get compiled into process.env during build
+  return process.env[name];
+}
+
 export function initSentry() {
-  if (import.meta.env.MODE === "production") {
+  if (getEnvMode() === "production") {
     Sentry.init({
-      dsn: import.meta.env.VITE_SENTRY_DSN,
+      dsn: getEnvVar("VITE_SENTRY_DSN"),
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration()
