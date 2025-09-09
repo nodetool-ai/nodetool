@@ -6,12 +6,11 @@
 ![Docker](https://github.com/nodetool-ai/nodetool/actions/workflows/docker-publish.yaml/badge.svg)
 ![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
 
-# Build Agents Visually • Deploy Anywhere
+# The Local‑First Agent OS
 
-Design agents without writing code.  
-Run on your laptop or your own cloud.
-
-**For makers, researchers, and teams shipping AI workflows fast.**
+Your AI, your rules.
+Nodetool Agents run on your devices, where your data lives.
+Transparent. Portable. Under your control.
 
 ![Screenshot](screenshot.png)
 
@@ -21,9 +20,15 @@ Run on your laptop or your own cloud.
 
 - [How It Works](#how-it-works)
 - [Built Different](#built-different)
+- [Vision](#vision)
+- [Mission](#mission)
+- [Principles](#principles)
+- [What NodeTool Is](#what-nodetool-is-today)
+- [What NodeTool Is Not](#what-nodetool-is-not-today)
+- [Who It’s For](#who-its-for)
+- [Roadmap](#roadmap)
 - [Quick Start](#quick-start)
 - [Bring Your Own Providers](#bring-your-own-providers)
-- [Agent Tools](#agent-tools)
 - [Install Node Packs in the App](#install-node-packs-in-the-app)
 - [Community](#community)
 - [🛠️ Development Setup](#development-setup)
@@ -42,13 +47,41 @@ Get from idea to production in three simple steps:
 2. **⚡ Run** — Test locally. Your data stays on your machine by default.
 3. **🚀 Deploy** — Ship with one command to RunPod or your own cloud.
 
-## Built Different
+## Principles
 
-**Privacy by design** — Your data never leaves your machine unless you explicitly use cloud nodes. Full control over your AI pipeline.
+- **Local‑first, by design.**
+- **No data leaves without explicit consent.**
+- **Open and portable.** Graphs are open and run anywhere.
+- **One graph. One runtime.** Visual and headless share the same semantics.
+- **Typed tools.** Small, composable nodes with explicit I/O.
+- **Reproducible runs.** Seeds, inputs, and artifacts are captured.
+- **No black boxes.** Inspect every step as it runs.
+- **Fast on your hardware.** Optimized for small GPUs.
 
-**Own your stack** — Open source (AGPL). Fork, customize, and deploy however you want. No vendor lock-in.
+## What NodeTool Is (today)
 
-**Production ready** — Start local, scale globally. One-command deployment to enterprise infrastructure.
+- Visual graph editor + runnable runtime (desktop + headless)
+- Execute via CLI, HTTP API, or WebSocket; graphs in JSON/DSL
+- Local models (Ollama/HF) + optional cloud (OpenAI/Gemini/Anthropic/Replicate/Fal/Hugging Face Hub)
+- Deploy to laptop/server, Runpod, or Google Cloud
+
+## What NodeTool Is Not (today)
+
+- Managed SaaS with SLAs or multi‑tenant hosting
+- Compliance‑grade policy or audit tooling
+- An autoscaling orchestration platform
+- A one‑click content toy
+
+## Who It’s For
+
+Indie hackers, game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run their own pipelines—with control and local ownership of data and IP.
+
+## Roadmap
+
+- Creative pipelines: ready‑to‑use templates for thumbnails, game sprites, ad variants, research briefs.
+- Packaging: one‑click bundles for sharing pipelines with collaborators or clients.
+- Video tooling: timeline nodes, effects, and batch rendering.
+- Community packs: growing registry of open nodes for creative tasks (effects, generators, integrations).
 
 ## Quick Start
 
@@ -72,49 +105,141 @@ Get from idea to production in three simple steps:
 
 ✅ **Integrated Providers:** OpenAI • Anthropic • Hugging Face • Groq • Together • Replicate • Cohere • + 8 more
 
-**Flexible Architecture:**
+Set provider API keys in Settings → Providers.
 
-- Mix providers in one workflow
-- Switch models without code changes
-- Your keys, your costs—no markup
-- OpenAI-compatible API for easy integration
+## Supported Models
 
-### Provider Keys
+<details>
+<summary>Text Generation</summary>
 
-Set provider API keys in Settings → Providers, or export environment variables:
+- **Ollama** all models
+- **Huggingface** most transformers based models
+- **HuggingFace Hub** all inference providers with thousands of models
+- **OpenAI** all models
+- **Gemini** all models
+- **Anthropic** all models
+- and many others
 
-```bash
-# Optional .env or shell exports
-OPENAI_API_KEY=...
-ANTHROPIC_API_KEY=...
-HUGGINGFACE_HUB_TOKEN=...
-REPLICATE_API_TOKEN=...
-```
+</details>
 
-## Agent Tools
+<details>
+<summary>Text-to-Image</summary>
 
-**Extensible tools for AI agents to interact with the world:**
+- **Flux Dev**, **Flux Schnell** (Huggingface, FAL, Replicate)
+- **Flux V 1 Pro** (FAL, Replicate)
+- **Flux Subject** (FAL)
+- **Flux Lora**, **Flux Lora TTI**, **Flux Lora Inpainting** (FAL)
+- **Flux 360** (Replicate)
+- **Flux Black Light** (Replicate)
+- **Flux Canny Dev/Pro** (Replicate)
+- **Flux Cinestill** (Replicate)
+- **Flux Depth Dev/Pro** (Replicate)
+- **Flux Dev** (Replicate)
+- **Flux Dev Lora** (Replicate)
+- **Stable Diffusion XL** (Huggingface, Replicate, Fal)
+- **Stable Diffusion XL Turbo** (Replicate, Fal)
+- **Stable Diffusion Upscalersr** (HuggingFace)
+- **AuraFlow v0.3**, **Bria V1/V1 Fast/V1 HD**, **Fast SDXL** (FAL)
+- **Fast LCMDiffusion**, **Fast Lightning SDXL**, **Fast Turbo Diffusion** (FAL)
+- **Hyper SDXL** (FAL)
+- **Ideogram V 2**, **Ideogram V 2 Turbo** (FAL)
+- **Illusion Diffusion** (FAL)
+- **Kandinsky, Kandinsky 2.2** (Replicate)
+- **Zeroscope V 2 XL** (Huggingface, Replicate)
+- **Ad Inpaint** (Replicate)
+- **Consistent Character** (Replicate)
 
-🌐 **Web & Search** — Browser automation, web scraping, Google Search, SERP API, screenshot capture, HTTP requests
+</details>
 
-📄 **Content Processing** — PDF extraction, text to speech, image generation, email management, markdown conversion
+<details>
+<summary>Image Processing</summary>
 
-📊 **Data & Analytics** — Vector search, math calculations, statistics, geometry, unit conversion, ChromaDB indexing
+- **black-forest-labs/FLUX.1-Kontext-dev** (nodetool-base)
+- **google/vit-base-patch16-224** (image classification, nodetool-base)
+- **openmmlab/upernet-convnext-small** (image segmentation, nodetool-base)
+- **Diffusion Edge** (edge detection, FAL)
+- **Bria Background Remove/Replace/Eraser/Expand/GenFill/ProductShot** (FAL)
+- **Robust Video Matting** (video background removal, Replicate)
+- **nlpconnect/vit-gpt2-image-captioning** (image captioning, HuggingFace)
 
-**Tool Categories:** Browser Tools • Search & SERP • Google APIs • OpenAI Tools • PDF Processing • Email Management • Math & Statistics • Vector Search • File System • Workflow Management • Asset Tools • HTTP Client • Code Tools
+</details>
+
+<details>
+<summary>Audio Generation</summary>
+
+- **microsoft/speecht5_tts** (TTS, nodetool-base)
+- **F5-TTS, E2-TTS** (TTS, FAL)
+- **PlayAI Dialog TTS** (dialog TTS, FAL)
+- **MMAudio V2** (music and audio generation, FAL)
+- **ElevenLabs TTS models** (ElevenLabs)
+- **Stable Audio** (text-to-audio, FAL & HuggingFace)
+- **AudioLDM, AudioLDM2** (text-to-audio, HuggingFace)
+- **DanceDiffusion** (music generation, HuggingFace)
+- **MusicGen** (music generation, Replicate)
+- **Music 01** (music generation with vocals, Replicate)
+- **facebook/musicgen-small/medium/large/melody** (music generation, HuggingFace)
+- **facebook/musicgen-stereo-small/large** (stereo music generation, HuggingFace)
+
+</details>
+
+<details>
+<summary>Audio Processing</summary>
+
+- **Audio To Waveform** (audio visualization, Replicate)
+
+</details>
+
+<details>
+<summary>Video Generation</summary>
+
+- **Hotshot-XL** (text-to-GIF, Replicate)
+- **HunyuanVideo, LTX-Video** (text-to-video, Replicate)
+- **Kling Text To Video V 2**, **Kling Video V 2** (FAL)
+- **Pixverse Image To Video**, **Pixverse Text To Video**, **Pixverse Text To Video Fast** (FAL)
+- **Wan Pro Image To Video**, **Wan Pro Text To Video** (FAL)
+- **Wan V 2 1 13 BText To Video** (FAL)
+- **Cog Video X** (FAL)
+- **Haiper Image To Video** (FAL)
+- **Wan 2 1 1 3 B** (text-to-video, Replicate)
+- **Wan 2 1 I 2 V 480 p** (image-to-video, Replicate)
+- **Video 01**, **Video 01 Live** (video generation, Replicate)
+- **Ray** (video interpolation, Replicate)
+- **Wan-AI/Wan2.2-I2V-A14B-Diffusers** (image-to-video, HuggingFace)
+- **Wan-AI/Wan2.1-I2V-14B-480P-Diffusers** (image-to-video, HuggingFace)
+- **Wan-AI/Wan2.1-I2V-14B-720P-Diffusers** (image-to-video, HuggingFace)
+- **Wan-AI/Wan2.2-T2V-A14B-Diffusers** (text-to-video, HuggingFace)
+- **Wan-AI/Wan2.1-T2V-14B-Diffusers** (text-to-video, HuggingFace)
+- **Wan-AI/Wan2.2-TI2V-5B-Diffusers** (text+image-to-video, HuggingFace)
+
+</details>
+
+<details>
+<summary>Text Processing</summary>
+
+- **facebook/bart-large-cnn** (summarization, nodetool-base)
+- **distilbert/distilbert-base-uncased-finetuned-sst-2-english** (text classification, nodetool-base)
+- **google-t5/t5-base** (text processing, nodetool-base)
+- **facebook/bart-large-mnli** (zero-shot classification, HuggingFace)
+- **distilbert-base-uncased/cased-distilled-squad** (question answering, HuggingFace)
+
+</details>
+
+<details>
+<summary>Speech Recognition</summary>
+
+- **superb/hubert-base-superb-er** (audio classification, nodetool-base)
+- **openai/whisper-large-v3** (speech recognition, nodetool-base)
+- **openai/whisper-large-v3-turbo/large-v2/medium/small** (speech recognition, HuggingFace)
+
+</details>
 
 ## Install Node Packs in the App
 
-Install and manage packs directly from the desktop app without using the CLI.
+Install and manage packs directly from the desktop app.
 
 - Open Package Manager: Launch the Electron desktop app, then open the Package Manager from the Tools menu.
 - Browse and search packages: Use the top search box to filter by package name, description, or repo id.
-- Install or uninstall: Click Install to add a pack, Uninstall to remove it. An overlay shows progress; after a successful install, the backend restarts automatically to apply changes.
-- View installed status: Installed packs show a ✓ badge and an Uninstall button.
 - Search nodes across packs: Use the “Search nodes” field to find nodes by title, description, or type. You can install the required pack directly from node results.
-- Deep-link to node search: Append `?nodeSearch=your+query` to the Package Manager URL to prefill the node search.
-
-If you plan to use GPU‑accelerated nodes (for example, Hugging Face models), complete the CUDA/PyTorch steps in the Windows & Linux (NVIDIA GPUs) section first.
 
 ## Community
 
