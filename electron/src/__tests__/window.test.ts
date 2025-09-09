@@ -1,6 +1,6 @@
-import { BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, dialog, session } from 'electron';
 import path from 'path';
-import { createWindow, handleActivation, forceQuit } from '../window';
+import { createWindow, createPackageManagerWindow, handleActivation, forceQuit } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
 import { logMessage } from '../logger';
@@ -246,6 +246,213 @@ describe('Window Module', () => {
       expect(dialog.showErrorBox).toHaveBeenCalledWith('Critical Error', 'fatal');
       expect(exitSpy).toHaveBeenCalledWith(1);
       exitSpy.mockRestore();
+    });
+  });
+
+  describe('createPackageManagerWindow', () => {
+    it('should create a package manager window without search query', () => {
+      const result = createPackageManagerWindow();
+      
+      expect(BrowserWindow).toHaveBeenCalledWith({
+        width: 1200,
+        height: 900,
+        webPreferences: {
+          preload: '/home/claude/nodetool/electron/src/preload.js',
+          contextIsolation: true,
+          nodeIntegration: false,
+          devTools: true,
+          webSecurity: true,
+        },
+      });
+      
+      expect(mockWindow.setBackgroundColor).toHaveBeenCalledWith('#111111');
+      expect(mockWindow.loadFile).toHaveBeenCalledWith('dist-web/pages/packages.html');
+      expect(mockWindow.webContents.on).toHaveBeenCalledWith('before-input-event', expect.any(Function));
+      expect(result).toBe(mockWindow);
+    });
+
+    it('should create a package manager window with search query', () => {
+      const searchQuery = 'test-node';
+      
+      const result = createPackageManagerWindow(searchQuery);
+      
+      expect(mockWindow.loadFile).toHaveBeenCalledWith('dist-web/pages/packages.html', {
+        query: { nodeSearch: searchQuery }
+      });
+      expect(result).toBe(mockWindow);
+    });
+
+    it('should set up devtools shortcut for package manager window', () => {
+      createPackageManagerWindow();
+      
+      // Get the before-input-event handler
+      const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
+(call: any) => call[0] === 'before-input-event'
+      );
+      expect(beforeInputCall).toBeDefined();
+      
+      const handler = beforeInputCall![1];
+      
+      // Mock devtools is closed
+      mockWindow.webContents.isDevToolsOpened.mockReturnValue(false);
+      
+      // Test Ctrl+Shift+I (Windows/Linux)
+      handler({}, { control: true, shift: true, key: 'I' });
+      expect(mockWindow.webContents.openDevTools).toHaveBeenCalled();
+      
+      // Mock devtools is open
+      mockWindow.webContents.isDevToolsOpened.mockReturnValue(true);
+      mockWindow.webContents.openDevTools.mockClear();
+      
+      // Test Cmd+Shift+I (macOS)
+      handler({}, { meta: true, shift: true, key: 'i' });
+      expect(mockWindow.webContents.closeDevTools).toHaveBeenCalled();
+    });
+  });
+
+  describe('window event handlers', () => {
+    beforeEach(() => {
+      (getMainWindow as jest.Mock).mockReturnValue(null);
+    });
+
+    it('should handle devtools shortcut in main window', () => {
+      createWindow();
+      
+      // Get the before-input-event handler
+      const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
+(call: any) => call[0] === 'before-input-event'
+      );
+      expect(beforeInputCall).toBeDefined();
+      
+      const handler = beforeInputCall![1];
+      
+      // Mock devtools is closed
+      mockWindow.webContents.isDevToolsOpened.mockReturnValue(false);
+      
+      // Test Ctrl+Shift+I
+      handler({}, { control: true, shift: true, key: 'I' });
+      expect(mockWindow.webContents.openDevTools).toHaveBeenCalled();
+      
+      // Mock devtools is open
+      mockWindow.webContents.isDevToolsOpened.mockReturnValue(true);
+      mockWindow.webContents.openDevTools.mockClear();
+      
+      // Test again to close devtools
+      handler({}, { control: true, shift: true, key: 'i' });
+      expect(mockWindow.webContents.closeDevTools).toHaveBeenCalled();
+    });
+
+    it('should handle window close event when app is not quitting', () => {
+      // Mock isAppQuitting as false
+      (require('../main') as any).isAppQuitting = false;
+      
+      createWindow();
+      
+      // Get the close event handler
+      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      expect(closeCall).toBeDefined();
+      
+      const handler = closeCall![1];
+      const mockEvent = { preventDefault: jest.fn() };
+      
+      handler(mockEvent);
+      
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+      expect(mockWindow.destroy).toHaveBeenCalled();
+      expect(setMainWindow).toHaveBeenCalledWith(null);
+    });
+
+    it('should allow window to close when app is quitting', () => {
+      // Mock isAppQuitting as true
+      (require('../main') as any).isAppQuitting = true;
+      
+      createWindow();
+      
+      // Get the close event handler
+      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      expect(closeCall).toBeDefined();
+      
+      const handler = closeCall![1];
+      const mockEvent = { preventDefault: jest.fn() };
+      
+      handler(mockEvent);
+      
+      expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+      expect(mockWindow.destroy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('permission handlers', () => {
+    beforeEach(() => {
+      (getMainWindow as jest.Mock).mockReturnValue(null);
+    });
+
+    it('should initialize permission handlers when creating window', () => {
+      createWindow();
+      
+      expect(session.defaultSession.setPermissionRequestHandler).toHaveBeenCalled();
+      expect(session.defaultSession.setPermissionCheckHandler).toHaveBeenCalled();
+      expect(logMessage).toHaveBeenCalledWith('Permission handlers initialized with device enumeration support');
+    });
+
+    it('should handle permission requests correctly', () => {
+      createWindow();
+      
+      const setPermissionRequestHandlerCall = (session.defaultSession.setPermissionRequestHandler as jest.Mock).mock.calls[0];
+      const permissionHandler = setPermissionRequestHandlerCall[0];
+      
+      const mockCallback = jest.fn();
+      const mockWebContents = {};
+      const mockDetails = { requestingUrl: 'https://example.com' };
+      
+      // Test media permission (allowed)
+      permissionHandler(mockWebContents, 'media', mockCallback, mockDetails);
+      expect(mockCallback).toHaveBeenCalledWith(true);
+      expect(logMessage).toHaveBeenCalledWith('Permission requested: media from https://example.com');
+      expect(logMessage).toHaveBeenCalledWith('Granting media permission with all capabilities');
+      
+      mockCallback.mockClear();
+      
+      // Test enumerate-devices permission (allowed)
+      permissionHandler(mockWebContents, 'enumerate-devices', mockCallback, mockDetails);
+      expect(mockCallback).toHaveBeenCalledWith(true);
+      expect(logMessage).toHaveBeenCalledWith('Granting permission: enumerate-devices');
+      
+      mockCallback.mockClear();
+      
+      // Test mediaKeySystem permission (allowed)
+      permissionHandler(mockWebContents, 'mediaKeySystem', mockCallback, mockDetails);
+      expect(mockCallback).toHaveBeenCalledWith(true);
+      
+      mockCallback.mockClear();
+      
+      // Test denied permission
+      permissionHandler(mockWebContents, 'camera', mockCallback, mockDetails);
+      expect(mockCallback).toHaveBeenCalledWith(false);
+      expect(logMessage).toHaveBeenCalledWith('Denying permission: camera');
+    });
+
+    it('should handle permission checks correctly', () => {
+      createWindow();
+      
+      const setPermissionCheckHandlerCall = (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0];
+      const permissionCheckHandler = setPermissionCheckHandlerCall[0];
+      
+      // Test media permission (allowed)
+      const result1 = permissionCheckHandler(null, 'media', 'https://example.com');
+      expect(result1).toBe(true);
+      
+      // Test enumerate-devices permission (allowed)
+      const result2 = permissionCheckHandler(null, 'enumerate-devices', 'https://example.com');
+      expect(result2).toBe(true);
+      
+      // Test mediaKeySystem permission (allowed)
+      const result3 = permissionCheckHandler(null, 'mediaKeySystem', 'https://example.com');
+      expect(result3).toBe(true);
+      
+      // Test denied permission
+      const result4 = permissionCheckHandler(null, 'camera', 'https://example.com');
+      expect(result4).toBe(false);
     });
   });
 });
