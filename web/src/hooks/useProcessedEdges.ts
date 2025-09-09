@@ -190,6 +190,5 @@ export function useProcessedEdges({
     // `nodes` is a necessary dependency here to ensure correct edge type determination
     // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
     // fully populated.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, nodes, dataTypes, getMetadata, workflowId, edgeStatuses]);
 }

@@ -300,7 +300,8 @@ export default function useConnectionHandlers() {
       getMetadata,
       handleOnConnect,
       openContextMenu,
-      updateNodeData
+      updateNodeData,
+      onConnect
     ]
   );
 

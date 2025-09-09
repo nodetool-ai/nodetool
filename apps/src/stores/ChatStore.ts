@@ -81,7 +81,9 @@ function writeJSON(key: string, value: any) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
+  } catch {
+    console.warning("window undefined")
+  }
 }
 
 function uuid(): string {
@@ -507,7 +509,9 @@ const useChatStore = create<ChatState>((set, get) => ({
     if (controller) {
       try {
         controller.abort();
-      } catch {}
+      } catch {
+        // Ignore abort errors
+      }
     }
     set({ status: "connected", statusMessage: "", abortController: null });
   },

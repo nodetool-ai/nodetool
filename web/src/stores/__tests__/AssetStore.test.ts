@@ -134,7 +134,7 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockResolvedValue({ data: mockAsset });
 
       const { get } = useAssetStore.getState();
@@ -147,7 +147,7 @@ describe("AssetStore", () => {
     });
 
     it("should handle API errors", async () => {
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       const mockError = new Error("Asset not found");
       client.GET.mockRejectedValue(mockError);
 
@@ -248,7 +248,7 @@ describe("AssetStore", () => {
         ]
       };
 
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockResolvedValue({ data: mockAssetList });
 
       const { load } = useAssetStore.getState();
@@ -294,7 +294,7 @@ describe("AssetStore", () => {
         ]
       };
 
-      const { authHeader } = require("../ApiClient");
+      const { authHeader } = jest.requireActual("../ApiClient");
       (authHeader as jest.Mock).mockResolvedValue({});
       mockedAxios.get.mockResolvedValue({ data: mockSearchResult } as any);
 
@@ -325,7 +325,7 @@ describe("AssetStore", () => {
         metadata: { updated: true }
       };
 
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockResolvedValue({ data: { id: "asset1", parent_id: "" } });
       client.PUT.mockResolvedValue({ data: mockAsset });
 
@@ -351,7 +351,7 @@ describe("AssetStore", () => {
 
   describe("delete", () => {
     it("should delete an asset", async () => {
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.DELETE.mockResolvedValue({ data: { deleted_asset_ids: ["asset1"] } });
 
       const { delete: deleteAsset } = useAssetStore.getState();
@@ -366,7 +366,7 @@ describe("AssetStore", () => {
 
   describe("download", () => {
     it("should download assets", async () => {
-      const { authHeader } = require("../ApiClient");
+      const { authHeader } = jest.requireActual("../ApiClient");
       (authHeader as jest.Mock).mockResolvedValue({});
       (mockedAxios as any).mockResolvedValue({
         data: new ArrayBuffer(8),
@@ -444,7 +444,7 @@ describe("AssetStore", () => {
         }
       };
 
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockResolvedValue({ data: { assets: [] } });
 
       const { loadFolderTree } = useAssetStore.getState();
@@ -466,7 +466,7 @@ describe("AssetStore", () => {
         }
       };
 
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockResolvedValue({ data: { assets: [] } });
 
       const { loadFolderTree } = useAssetStore.getState();
@@ -481,7 +481,7 @@ describe("AssetStore", () => {
 
   describe("error handling", () => {
     it("should handle network errors gracefully", async () => {
-      const { client } = require("../ApiClient");
+      const { client } = jest.requireActual("../ApiClient");
       client.GET.mockRejectedValue(new Error("Network error"));
 
       const { get } = useAssetStore.getState();

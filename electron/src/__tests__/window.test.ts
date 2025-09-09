@@ -342,9 +342,10 @@ describe('Window Module', () => {
       expect(mockWindow.webContents.closeDevTools).toHaveBeenCalled();
     });
 
-    it('should handle window close event when app is not quitting', () => {
+    it('should handle window close event when app is not quitting', async () => {
       // Mock isAppQuitting as false
-      (require('../main') as any).isAppQuitting = false;
+      const mainModule = await import('../main');
+      (mainModule as any).isAppQuitting = false;
       
       createWindow();
       
@@ -362,9 +363,10 @@ describe('Window Module', () => {
       expect(setMainWindow).toHaveBeenCalledWith(null);
     });
 
-    it('should allow window to close when app is quitting', () => {
+    it('should allow window to close when app is quitting', async () => {
       // Mock isAppQuitting as true
-      (require('../main') as any).isAppQuitting = true;
+      const mainModule = await import('../main');
+      (mainModule as any).isAppQuitting = true;
       
       createWindow();
       
