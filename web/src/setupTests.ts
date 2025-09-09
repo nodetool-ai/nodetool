@@ -9,9 +9,11 @@ Object.defineProperty(globalThis, "import", {
   value: {
     meta: {
       env: {
+        MODE: "test",
         VITE_API_URL: "http://localhost:8000",
         VITE_SUPABASE_URL: "https://test.supabase.co",
-        VITE_SUPABASE_ANON_KEY: "test-anon-key"
+        VITE_SUPABASE_ANON_KEY: "test-anon-key",
+        VITE_SENTRY_DSN: "https://test@sentry.io/123456"
       }
     }
   }
