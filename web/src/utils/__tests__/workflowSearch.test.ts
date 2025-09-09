@@ -13,9 +13,6 @@ const mockWorkflows: Workflow[] = [
     updated_at: "2024-01-01",
     thumbnail: "",
     thumbnail_url: "",
-    author: "",
-    downloads: 0,
-    author_email: "",
     access: "private"
   },
   {
@@ -27,9 +24,6 @@ const mockWorkflows: Workflow[] = [
     updated_at: "2024-01-02",
     thumbnail: "",
     thumbnail_url: "",
-    author: "",
-    downloads: 0,
-    author_email: "",
     access: "private"
   },
   {
@@ -41,9 +35,6 @@ const mockWorkflows: Workflow[] = [
     updated_at: "2024-01-03",
     thumbnail: "",
     thumbnail_url: "",
-    author: "",
-    downloads: 0,
-    author_email: "",
     access: "private"
   },
   {
@@ -55,9 +46,6 @@ const mockWorkflows: Workflow[] = [
     updated_at: "2024-01-04",
     thumbnail: "",
     thumbnail_url: "",
-    author: "",
-    downloads: 0,
-    author_email: "",
     access: "private"
   }
 ];

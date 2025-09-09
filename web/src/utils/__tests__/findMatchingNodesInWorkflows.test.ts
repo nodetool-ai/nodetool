@@ -11,67 +11,67 @@ describe("findMatchingNodesInWorkflows", () => {
       name: "Math Workflow",
       created_at: "2024-01-01",
       updated_at: "2024-01-01",
-      user_id: "user-1",
       graph: {
-        nodes: {
-          "node-1": {
+        nodes: [
+          {
             id: "node-1",
             type: "math.add",
-            position: { x: 0, y: 0 },
-            data: { title: "Add Numbers" }
+            sync_mode: "sync"
           },
-          "node-2": {
+          {
             id: "node-2",
             type: "math.subtract",
-            position: { x: 100, y: 0 },
-            data: { title: "Subtract Values" }
+            sync_mode: "sync"
           }
-        },
+        ],
         edges: []
-      }
+      },
+      access: "private",
+      description: "Math operations workflow"
     },
     {
       id: "workflow-2",
       name: "String Workflow",
       created_at: "2024-01-01",
       updated_at: "2024-01-01",
-      user_id: "user-1",
       graph: {
-        nodes: {
-          "node-3": {
+        nodes: [
+          {
             id: "node-3",
             type: "string.concat",
-            position: { x: 0, y: 0 },
-            data: { title: "Concatenate Strings" }
+            sync_mode: "sync"
           },
-          "node-4": {
+          {
             id: "node-4",
             type: "string.split",
-            position: { x: 100, y: 0 },
-            data: { title: "Split Text" }
+            sync_mode: "sync"
           }
-        },
+        ],
         edges: []
-      }
+      },
+      access: "private",
+      description: "String operations workflow"
     },
     {
       id: "workflow-3",
       name: "Empty Workflow",
       created_at: "2024-01-01",
       updated_at: "2024-01-01",
-      user_id: "user-1",
       graph: {
-        nodes: {},
+        nodes: [],
         edges: []
-      }
+      },
+      access: "private",
+      description: "Test workflow"
     },
     {
       id: "workflow-4",
       name: "No Graph Workflow",
       created_at: "2024-01-01",
       updated_at: "2024-01-01",
-      user_id: "user-1",
-      graph: undefined as any
+      graph: undefined as any,
+      access: "private",
+      description: "No graph workflow"
     }
   ];
 
@@ -194,16 +194,16 @@ describe("findMatchingNodesInWorkflows", () => {
         name: "No Title Workflow",
         created_at: "2024-01-01",
         updated_at: "2024-01-01",
-        user_id: "user-1",
-        graph: {
-          nodes: {
-            "node-5": {
+        access: "private",
+        description: "No title workflow",
+          graph: {
+          nodes: [
+            {
               id: "node-5",
               type: "custom.node",
-              position: { x: 0, y: 0 },
-              data: {} // No title
+              sync_mode: "sync"
             }
-          },
+          ],
           edges: []
         }
       }];
@@ -220,16 +220,16 @@ describe("findMatchingNodesInWorkflows", () => {
         name: "Bad Node Workflow",
         created_at: "2024-01-01",
         updated_at: "2024-01-01",
-        user_id: "user-1",
-        graph: {
-          nodes: {
-            "node-6": {
+        access: "private",
+        description: "Bad node workflow",
+          graph: {
+          nodes: [
+            {
               id: "node-6",
               type: null as any,
-              position: { x: 0, y: 0 },
-              data: { title: "Test Node" }
+              sync_mode: "sync"
             }
-          },
+          ],
           edges: []
         }
       }];
@@ -248,22 +248,21 @@ describe("findMatchingNodesInWorkflows", () => {
         name: "Duplicate Nodes",
         created_at: "2024-01-01",
         updated_at: "2024-01-01",
-        user_id: "user-1",
-        graph: {
-          nodes: {
-            "node-7": {
+        access: "private",
+        description: "Duplicate nodes workflow",
+          graph: {
+          nodes: [
+            {
               id: "node-7",
               type: "math.add",
-              position: { x: 0, y: 0 },
-              data: { title: "math.add" } // Title same as type
+              sync_mode: "sync"
             },
-            "node-8": {
+            {
               id: "node-8",
               type: "math.add",
-              position: { x: 100, y: 0 },
-              data: { title: "Add Operation" }
+              sync_mode: "sync"
             }
-          },
+          ],
           edges: []
         }
       }];

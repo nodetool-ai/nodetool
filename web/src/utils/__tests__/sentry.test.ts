@@ -77,7 +77,7 @@ describe("sentry", () => {
       
       initSentry();
       
-      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0];
+      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0] as any;
       expect(initCall.dsn).toBe(customDsn);
       expect(initCall.tracesSampleRate).toBe(1.0);
       expect(initCall.replaysSessionSampleRate).toBe(0.1);
@@ -90,7 +90,7 @@ describe("sentry", () => {
       
       initSentry();
       
-      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0];
+      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0] as any;
       expect(initCall.dsn).toBeUndefined();
     });
 
@@ -100,7 +100,7 @@ describe("sentry", () => {
       
       initSentry();
       
-      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0];
+      const initCall = (Sentry.init as jest.Mock).mock.calls[0][0] as any;
       expect(initCall.dsn).toBe("");
     });
   });
