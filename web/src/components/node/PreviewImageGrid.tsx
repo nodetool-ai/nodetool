@@ -144,7 +144,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           if (typeof key !== "string" && url.startsWith("blob:")) {
             URL.revokeObjectURL(url);
           }
-        } catch {}
+        } catch {
+          // Ignore URL cleanup errors
+        }
         changed = true;
       }
     }
@@ -153,15 +155,19 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
     // Cleanup all on unmount
     return () => {
-      if (urlMapRef.current.size) {
-        for (const [key, url] of urlMapRef.current.entries()) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const urlMap = urlMapRef.current;
+      if (urlMap && urlMap.size) {
+        for (const [key, url] of urlMap.entries()) {
           try {
             if (typeof key !== "string" && url.startsWith("blob:")) {
               URL.revokeObjectURL(url);
             }
-          } catch {}
+          } catch {
+            // Ignore URL cleanup errors
+          }
         }
-        urlMapRef.current.clear();
+        urlMap.clear();
       }
     };
   }, [images]);

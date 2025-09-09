@@ -7,11 +7,15 @@ import React from "react";
 
 // Mock the SVG imports with proper React components
 jest.mock("../icons/enum.svg?react", () => {
-  return () => React.createElement('svg', { 'data-testid': 'any-icon' }, 'Any');
+  const MockEnumIcon = () => React.createElement('svg', { 'data-testid': 'any-icon' }, 'Any');
+  MockEnumIcon.displayName = 'MockEnumIcon';
+  return MockEnumIcon;
 });
 
 jest.mock("../icons/assistant.svg?react", () => {
-  return () => React.createElement('svg', { 'data-testid': 'assistant-icon' }, 'Assistant');
+  const MockAssistantIcon = () => React.createElement('svg', { 'data-testid': 'assistant-icon' }, 'Assistant');
+  MockAssistantIcon.displayName = 'MockAssistantIcon';
+  return MockAssistantIcon;
 });
 
 // Mock console.warn to test error handling

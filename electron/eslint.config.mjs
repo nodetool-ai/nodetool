@@ -29,6 +29,7 @@ export default [
       "dist-web/**/*",
       "jest.config.ts",
       "src/main.tsx",
+      "coverage/**/*",
     ],
   },
   {

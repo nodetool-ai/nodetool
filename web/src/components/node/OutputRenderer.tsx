@@ -138,7 +138,6 @@ const StreamPcm16Player: React.FC<{
       try {
         playPcm16Base64(base64, { sampleRate, channels });
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.error("PCM16 chunk playback failed", e);
       }
       lastPlayedRef.current = base64;
@@ -801,8 +800,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     type,
     onDoubleClickAsset,
     handleCopyToClipboard,
-    theme,
-    Math.random()
+    theme
   ]);
 
   if (!shouldRender) {
