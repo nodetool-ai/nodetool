@@ -128,19 +128,11 @@ const styles = (theme: Theme) =>
         "color 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease"
     },
     ".workflow:hover .description": {
+      // Expand without changing layout position
       WebkitLineClamp: "unset",
-      position: "absolute",
-      zIndex: 100,
-      width: "calc(100% + 10px)",
-      backgroundColor: theme.vars.palette.background.default,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
-      padding: "0 5px 1em 5px",
-      left: "-5px",
-      borderRadius: "4px",
       maxHeight: "none",
       height: "auto",
-      top: "100%",
-      color: "#fff"
+      color: theme.vars.palette.text.primary
     },
     ".loading-indicator": {
       display: "flex",

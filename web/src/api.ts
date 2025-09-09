@@ -802,7 +802,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Examples */
+        /**
+         * Examples
+         * @description List example workflows enriched with required providers and models.
+         *
+         *     Provider detection rules:
+         *     - If a node's namespace matches a known provider namespace
+         *       (gemini, openai, replicate, huggingface, huggingface_hub, fal, aime)
+         *     - Or if any node property is a LanguageModel (type == 'language_model')
+         *       which has a 'provider' field
+         *
+         *     Model detection rules:
+         *     - Collect ids from LanguageModel (id)
+         *     - Collect repo_id from HuggingFaceModel-like types (types starting with 'hf.')
+         *     - Collect model_id from InferenceProvider* types
+         */
         get: operations["examples_api_workflows_examples_get"];
         put?: never;
         post?: never;
@@ -4569,6 +4583,10 @@ export interface components {
             path?: string | null;
             /** Run Mode */
             run_mode?: string | null;
+            /** Required Providers */
+            required_providers?: string[] | null;
+            /** Required Models */
+            required_models?: string[] | null;
         };
         /** WorkflowList */
         WorkflowList: {
