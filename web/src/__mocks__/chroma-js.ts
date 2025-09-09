@@ -109,7 +109,7 @@ const chromaMock = jest.fn((color: string) => {
     }),
     rgba: jest.fn(() => [...rgbaValues, 1]),
   };
-});
+}) as any;
 
 chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, mode?: string) => ({
   hex: jest.fn(() => {

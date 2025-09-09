@@ -253,6 +253,8 @@ export interface IpcRequest {
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
+  [IpcChannels.OPEN_LOG_FILE]: void;
+  [IpcChannels.SHOW_ITEM_IN_FOLDER]: void;
   [IpcChannels.INSTALL_TO_LOCATION]: void;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;

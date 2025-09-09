@@ -7,162 +7,50 @@ describe("modelFilters", () => {
     {
       id: "llama-3.2-1b-instruct",
       name: "Llama 3.2 1B Instruct",
-      context_length: 131072,
-      architecture: {
-        modality: "text",
-        tokenizer: "llama3",
-        instruct_type: "llama3"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 131072
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "qwen-2.5-7b-instruct",
       name: "Qwen 2.5 7B Instruct",
-      context_length: 32768,
-      architecture: {
-        modality: "text",
-        tokenizer: "qwen",
-        instruct_type: "qwen"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 32768
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "mistral-7b-base",
       name: "Mistral 7B Base",
-      context_length: 8192,
-      architecture: {
-        modality: "text",
-        tokenizer: "mistral",
-        instruct_type: null
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 8192
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "deepseek-coder-33b-instruct",
       name: "DeepSeek Coder 33B Instruct",
-      context_length: 16384,
-      architecture: {
-        modality: "text",
-        tokenizer: "deepseek",
-        instruct_type: "deepseek"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 16384
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "qwq-32b-preview",
       name: "QwQ 32B Preview",
-      context_length: 32768,
-      architecture: {
-        modality: "text",
-        tokenizer: "qwq",
-        instruct_type: "qwq"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 32768
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "phi-3-mini-4k-math",
       name: "Phi 3 Mini 4K Math",
-      context_length: 4096,
-      architecture: {
-        modality: "text",
-        tokenizer: "phi",
-        instruct_type: "phi"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 4096
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "mixtral-8x7b-instruct",
       name: "Mixtral 8x7B Instruct",
-      context_length: 32768,
-      architecture: {
-        modality: "text",
-        tokenizer: "mistral",
-        instruct_type: "mistral"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 32768
-      }
+      type: "language_model",
+      provider: "local"
     },
     {
       id: "llama-3.3-70b-instruct",
       name: "Llama 3.3 70B Instruct",
-      context_length: 131072,
-      architecture: {
-        modality: "text",
-        tokenizer: "llama3",
-        instruct_type: "llama3"
-      },
-      pricing: {
-        prompt: "0.00",
-        completion: "0.00",
-        image: "0.00",
-        request: "0.00"
-      },
-      top_provider: {
-        is_moderated: false,
-        max_completion_tokens: 131072
-      }
+      type: "language_model",
+      provider: "local"
     }
   ];
 

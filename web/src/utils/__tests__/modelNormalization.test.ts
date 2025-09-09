@@ -6,12 +6,10 @@ describe("modelNormalization", () => {
   describe("normalizeModelMeta", () => {
     it("should extract size in billions from model name", () => {
       const model: LanguageModel = {
+        type: "language_model",
+        provider: "local", 
         id: "test-7b",
-        name: "Test Model 7B",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        name: "Test Model 7B"
       };
 
       const result = normalizeModelMeta(model);
@@ -21,12 +19,10 @@ describe("modelNormalization", () => {
 
     it("should extract size with decimals", () => {
       const model: LanguageModel = {
+        type: "language_model",
+        provider: "local",
         id: "test-1.5b",
-        name: "Test Model 1.5B",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        name: "Test Model 1.5B"
       };
 
       const result = normalizeModelMeta(model);
@@ -36,12 +32,10 @@ describe("modelNormalization", () => {
 
     it("should convert size from millions to billions", () => {
       const model: LanguageModel = {
+        type: "language_model",
+        provider: "local",
         id: "test-350m",
-        name: "Test Model 350M",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        name: "Test Model 350M"
       };
 
       const result = normalizeModelMeta(model);
@@ -67,12 +61,10 @@ describe("modelNormalization", () => {
 
       testCases.forEach(({ size, expected }) => {
         const model: LanguageModel = {
+          type: "language_model",
+          provider: "local",
           id: `test-${size}`,
-          name: `Test Model ${size.toUpperCase()}`,
-          context_length: 4096,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+          name: `Test Model ${size.toUpperCase()}`
         };
 
         const result = normalizeModelMeta(model);
@@ -101,10 +93,8 @@ describe("modelNormalization", () => {
         const model: LanguageModel = {
           id: "test",
           name,
-          context_length: 4096,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+          type: "language_model",
+          provider: "local"
         };
 
         const result = normalizeModelMeta(model);
@@ -131,10 +121,8 @@ describe("modelNormalization", () => {
         const model: LanguageModel = {
           id: "test",
           name,
-          context_length: 4096,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+          type: "language_model",
+          provider: "local"
         };
 
         const result = normalizeModelMeta(model);
@@ -144,12 +132,10 @@ describe("modelNormalization", () => {
 
     it("should handle model with no family match", () => {
       const model: LanguageModel = {
+        type: "language_model",
+        provider: "local",
         id: "unknown-model",
-        name: "Unknown Model 7B",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        name: "Unknown Model 7B"
       };
 
       const result = normalizeModelMeta(model);
@@ -168,10 +154,8 @@ describe("modelNormalization", () => {
         const model: LanguageModel = {
           id: "test",
           name,
-          context_length: 4096,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+          type: "language_model",
+          provider: "local"
         };
 
         const result = normalizeModelMeta(model);
@@ -181,12 +165,10 @@ describe("modelNormalization", () => {
 
     it("should handle model with no MOE configuration", () => {
       const model: LanguageModel = {
+        type: "language_model",
+        provider: "local",
         id: "llama-7b",
-        name: "Llama 7B",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        name: "Llama 7B"
       };
 
       const result = normalizeModelMeta(model);
@@ -197,10 +179,8 @@ describe("modelNormalization", () => {
       const model: LanguageModel = {
         id: "qwen-coder-7b",
         name: "Model Instruct",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        type: "language_model",
+        provider: "local",
       };
 
       const result = normalizeModelMeta(model);
@@ -214,10 +194,8 @@ describe("modelNormalization", () => {
       const model1: LanguageModel = {
         id: null as any,
         name: "Test 7B Instruct",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        type: "language_model",
+        provider: "local",
       };
 
       const result1 = normalizeModelMeta(model1);
@@ -227,10 +205,8 @@ describe("modelNormalization", () => {
       const model2: LanguageModel = {
         id: "test-7b",
         name: undefined as any,
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        type: "language_model",
+        provider: "local",
       };
 
       const result2 = normalizeModelMeta(model2);
@@ -241,10 +217,8 @@ describe("modelNormalization", () => {
       const model: LanguageModel = {
         id: "LLAMA-7B-INSTRUCT",
         name: "LLAMA MODEL 7B INSTRUCT",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        type: "language_model",
+        provider: "local",
       };
 
       const result = normalizeModelMeta(model);
@@ -260,18 +234,14 @@ describe("modelNormalization", () => {
         {
           id: "llama-7b",
           name: "Llama 7B",
-          context_length: 4096,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+          type: "language_model",
+          provider: "local"
         },
         {
           id: "mistral-7b-instruct",
           name: "Mistral 7B Instruct",
-          context_length: 8192,
-          architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-          pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-          top_provider: { is_moderated: false, max_completion_tokens: 8192 }
+          type: "language_model",
+          provider: "local"
         }
       ];
 
@@ -296,10 +266,8 @@ describe("modelNormalization", () => {
       const model: LanguageModel = {
         id: "test",
         name: "Test",
-        context_length: 4096,
-        architecture: { modality: "text", tokenizer: "test", instruct_type: null },
-        pricing: { prompt: "0", completion: "0", image: "0", request: "0" },
-        top_provider: { is_moderated: false, max_completion_tokens: 4096 }
+        type: "language_model",
+        provider: "local",
       };
 
       const result = buildMetaIndex([model]);
