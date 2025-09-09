@@ -302,7 +302,7 @@ describe("findMatchingNodesInWorkflows", () => {
 
   describe("score calculation", () => {
     it("should return higher scores for better matches", () => {
-      const results = findMatchingNodesInWorkflows(mockWorkflows, "Add Numbers");
+      const results = findMatchingNodesInWorkflows(mockWorkflows, "math.add");
       
       const exactMatch = results.find(r => r.workflow.id === "workflow-1");
       const noMatch = results.find(r => r.workflow.id === "workflow-3");

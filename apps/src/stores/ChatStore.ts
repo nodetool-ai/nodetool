@@ -82,7 +82,7 @@ function writeJSON(key: string, value: any) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    console.warning("window undefined")
+    console.log("window undefined")
   }
 }
 
