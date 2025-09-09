@@ -24,13 +24,39 @@ export default class Fuse {
         return String(value || '');
       }).join(" ").toLowerCase();
       
-      return searchableText.includes(lowerTerm);
+      // Handle multi-word searches - all words must be found
+      const searchWords = lowerTerm.split(/\s+/).filter(word => word.length > 0);
+      return searchWords.every(word => searchableText.includes(word));
     });
     
-    return results.map((item: any, index: number) => ({
-      item: item,
-      score: Math.min(0.3, index * 0.1), // Return scores less than 1 for matches
-      matches: []
-    }));
+    return results.map((item: any, index: number) => {
+      // Generate matches based on which fields matched the search term
+      const matches: any[] = [];
+      const keys = this.options?.keys || ['title', 'name', 'namespace', 'description', 'tags', 'searchText'];
+      const searchWords = lowerTerm.split(/\s+/).filter(word => word.length > 0);
+      
+      keys.forEach((key: string | {name: string, weight?: number}) => {
+        const keyName = typeof key === 'string' ? key : key.name;
+        const value = String(item[keyName] || '');
+        const lowerValue = value.toLowerCase();
+        
+        // Check if any search words are found in this field
+        const hasMatch = searchWords.some(word => lowerValue.includes(word));
+        if (hasMatch) {
+          matches.push({
+            indices: [[0, Math.min(value.length - 1, 10)]], // Mock indices
+            value: value,
+            key: keyName,
+            refIndex: index
+          });
+        }
+      });
+
+      return {
+        item: item,
+        score: Math.min(0.3, index * 0.1), // Return scores less than 1 for matches
+        matches: matches
+      };
+    });
   }
 }
