@@ -9,39 +9,41 @@ import {
 } from "../MousePosition";
 
 describe("MousePosition", () => {
-  let originalDocument: Document | undefined;
   let mockAddEventListener: jest.Mock;
   let mockRemoveEventListener: jest.Mock;
+  let mockDocument: Partial<Document>;
 
   beforeEach(() => {
-    // Store original document
-    originalDocument = (global as any).document;
+    // Clean up any existing timers
+    jest.clearAllTimers();
     
-    // Mock document with event listeners
+    // Create proper document mock
     mockAddEventListener = jest.fn();
     mockRemoveEventListener = jest.fn();
     
-    (global as any).document = {
+    mockDocument = {
       addEventListener: mockAddEventListener,
       removeEventListener: mockRemoveEventListener
     };
+    
+    // Set up global document mock
+    Object.defineProperty(global, 'document', {
+      value: mockDocument,
+      writable: true,
+      configurable: true
+    });
 
     // Reset state between tests
     resetWiggleDetection();
-    
-    // Reset module to trigger initialization
-    jest.resetModules();
   });
 
   afterEach(() => {
-    // Restore original document
-    if (originalDocument) {
-      (global as any).document = originalDocument;
-    } else {
-      delete (global as any).document;
-    }
-    
+    // Clean up timers and mocks
+    jest.clearAllTimers();
     jest.clearAllMocks();
+    
+    // Clean up document mock
+    delete (global as any).document;
   });
 
   describe("getMousePosition", () => {
@@ -241,21 +243,34 @@ describe("MousePosition", () => {
       expect(mockRemoveEventListener).toHaveBeenCalledWith("mousemove", expect.any(Function));
     });
 
-    it("should not throw when document is undefined", () => {
+    it("should handle cleanup safely when document is undefined", () => {
+      // Store current document
+      const currentDoc = (global as any).document;
+      
+      // Temporarily remove document
       delete (global as any).document;
+      
+      // Should not throw
       expect(() => cleanupMousePositionListener()).not.toThrow();
+      
+      // Restore document for cleanup
+      (global as any).document = currentDoc;
     });
   });
 
   describe("document event handling", () => {
     it("should not throw error when document is undefined", () => {
+      // Temporarily remove document
       delete (global as any).document;
       
-      // Re-import the module to trigger initialization without document
+      // Test that functions still work without document
       expect(() => {
-        jest.resetModules();
-        require("../MousePosition");
+        const position = getMousePosition();
+        expect(position).toEqual({ x: 0, y: 0 });
       }).not.toThrow();
+      
+      // Test cleanup function doesn't throw
+      expect(() => cleanupMousePositionListener()).not.toThrow();
     });
   });
 
