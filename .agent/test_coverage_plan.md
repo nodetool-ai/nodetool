@@ -41,3 +41,10 @@
 3. src/utils/titleizeString.ts - Simple utility
 4. src/hooks/useDelayedHover.ts - Simple hook
 5. src/stores/KeyPressedStore.ts - Simple state management
+
+## Progress
+- [ ] AudioBufferView.tsx
+- [ ] AudioPlayerView.tsx
+- [ ] LineChart.tsx
+- [ ] EdgeContextMenu.tsx
+- [ ] WorkflowContextMenu.tsx
