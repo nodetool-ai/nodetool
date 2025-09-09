@@ -33,9 +33,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
-import AssetGridContent from "../assets/AssetGridContent";
+import PreviewImageGrid from "./PreviewImageGrid";
 import AssetViewer from "../assets/AssetViewer";
-import { uint8ArrayToDataUri } from "../../utils/binary";
 import ArrayView from "./ArrayView"; // We'll create this component
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -53,7 +52,6 @@ let sharedNextStartTime = 0;
 
 function getAudioContext(): AudioContext {
   if (typeof window === "undefined") throw new Error("No window");
-  // @ts-ignore Safari
   const Ctx = window.AudioContext || (window as any).webkitAudioContext;
   if (!sharedAudioContext) {
     sharedAudioContext = new Ctx();
@@ -161,8 +159,8 @@ const isLikelyMarkdown = (text: string): boolean => {
     /(^|\n)```/, // fenced code blocks
     /(^|\n)\s{0,3}[-*+]\s+\S/, // unordered list
     /(^|\n)\s{0,3}\d+\.\s+\S/, // ordered list
-    /\[[^\]]+\]\([^\)]+\)/, // links
-    /!\[[^\]]*\]\([^\)]+\)/, // images
+    /\[[^\]]+\]\([^)]+\)/, // links
+    /!\[[^\]]*\]\([^)]+\)/, // images
     /(^|\n)\s{0,3}>\s+\S/, // blockquote
     /(^|\n)\|[^\n]*\|/, // tables with pipes
     /`[^`]+`/, // inline code
@@ -183,56 +181,16 @@ const renderMaybeMarkdown = (text: string): React.ReactNode =>
 
 function generateAssetGridContent(
   value: AssetRef[],
-  onDoubleClick: (asset: Asset) => void
+  onOpenIndex: (index: number) => void
 ) {
-  const assets: (Asset | null)[] = value.map(
-    (item: AssetRef, index: number) => {
-      let contentType: string;
-      if (item === undefined || item === null) {
-        return null;
-      }
-      switch (item.type) {
-        case "image":
-          contentType = "image/png";
-          break;
-        case "audio":
-          contentType = "audio/mp3";
-          break;
-        case "video":
-          contentType = "video/mp4";
-          break;
-        default:
-          contentType = "application/octet-stream";
-      }
+  // Filter to images and pass raw data or URI directly without base64 conversion
+  const images = value
+    .filter((item) => item && item.type === "image")
+    .map((item) =>
+      (item as any).uri ? (item as any).uri : ((item as any).data as Uint8Array)
+    );
 
-      if (item.data && !(item.data instanceof Uint8Array)) {
-        throw new Error("Data is not a Uint8Array");
-      }
-
-      const get_url =
-        item.uri || uint8ArrayToDataUri(item.data as Uint8Array, contentType);
-
-      return {
-        id: `output-${item.type}-${index}`,
-        user_id: "",
-        workflow_id: null,
-        parent_id: "",
-        name: `output-${item.type}-${index}`,
-        content_type: contentType,
-        metadata: {},
-        created_at: new Date().toISOString(),
-        get_url: get_url,
-        thumb_url: get_url
-      } as Asset;
-    }
-  );
-
-  return (
-    <AssetGridContent
-      assets={assets.filter((a) => a !== null)}
-      onDoubleClick={onDoubleClick}
-    />
-  );
+  return <PreviewImageGrid images={images} onDoubleClick={onOpenIndex} />;
 }
 
 const convertStyleStringToObject = (
@@ -421,12 +379,73 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
 
   const type = useMemo(() => typeFor(value), [value]);
 
+  // Prepare viewer assets and manage object URLs for image arrays
+  const computedViewer = useMemo(() => {
+    if (
+      !Array.isArray(value) ||
+      value.length === 0 ||
+      value[0]?.type !== "image"
+    ) {
+      return { assets: [] as Asset[], urls: [] as string[] };
+    }
+    const urls: string[] = [];
+    const assets: Asset[] = (value as AssetRef[]).map(
+      (item: AssetRef, index: number) => {
+        const contentType = "image/png";
+        let url = "";
+        if ((item as any).uri) {
+          url = (item as any).uri as string;
+        } else if ((item as any).data) {
+          try {
+            const blob = new Blob([(item as any).data as Uint8Array], {
+              type: contentType
+            });
+            url = URL.createObjectURL(blob);
+            urls.push(url);
+          } catch {
+            url = "";
+          }
+        }
+        return {
+          id: (item as any).id || `output-image-${index}`,
+          user_id: "",
+          workflow_id: null,
+          parent_id: "",
+          name: (item as any).name || `Image ${index + 1}.png`,
+          content_type: contentType,
+          metadata: {},
+          created_at: new Date().toISOString(),
+          get_url: url,
+          thumb_url: url,
+          duration: null
+        } as Asset;
+      }
+    );
+    return { assets, urls };
+  }, [value]);
+
+  useEffect(() => {
+    const urls = computedViewer.urls;
+    return () => {
+      urls.forEach((u) => {
+        try {
+          if (u && u.startsWith("blob:")) URL.revokeObjectURL(u);
+        } catch {
+          console.error("Error revoking blob URL", u);
+        }
+      });
+    };
+  }, [computedViewer.urls]);
+
   const onDoubleClickAsset = useCallback(
-    (asset: Asset) => {
-      setLocalOpenAsset(asset);
-      setOpenAsset(asset);
+    (index: number) => {
+      const asset = computedViewer.assets[index];
+      if (asset) {
+        setLocalOpenAsset(asset);
+        setOpenAsset(asset);
+      }
     },
-    [setOpenAsset]
+    [computedViewer.assets, setOpenAsset]
   );
 
   const handleCopyToClipboard = useCallback(
@@ -594,8 +613,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             if (value[0].type === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
             }
-            if (["image", "audio", "video"].includes(value[0].type)) {
+            if (value[0].type === "image") {
               return generateAssetGridContent(value, onDoubleClickAsset);
+            }
+            if (["audio", "video"].includes(value[0].type)) {
+              return (
+                <Container>
+                  {value.map((v: any, i: number) => (
+                    <OutputRenderer key={i} value={v} />
+                  ))}
+                </Container>
+              );
             }
             const columnType = (
               v: any
@@ -768,7 +796,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
     }
-  }, [value, type, onDoubleClickAsset, handleCopyToClipboard, theme]);
+  }, [
+    value,
+    type,
+    onDoubleClickAsset,
+    handleCopyToClipboard,
+    theme,
+    Math.random()
+  ]);
 
   if (!shouldRender) {
     return null;
@@ -780,51 +815,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         <AssetViewer
           asset={openAsset}
           sortedAssets={
-            Array.isArray(value) &&
-            value.every(
-              (item) =>
-                item.type && ["image", "audio", "video"].includes(item.type)
-            )
-              ? value.map((item: any, index: number) => {
-                  let contentType: string;
-                  let name: string;
-                  switch (item.type) {
-                    case "image":
-                      contentType = "image/png";
-                      name = item.name || `Image ${index + 1}.png`;
-                      break;
-                    case "audio":
-                      contentType = "audio/mp3";
-                      name = item.name || `Audio ${index + 1}.mp3`;
-                      break;
-                    case "video":
-                      contentType = "video/mp4";
-                      name = item.name || `Video ${index + 1}.mp4`;
-                      break;
-                    default:
-                      contentType = "application/octet-stream";
-                      name = item.name || `File ${index + 1}`;
-                  }
-
-                  const get_url =
-                    item.uri || uint8ArrayToDataUri(item.data, contentType);
-                  const thumb_url = item.thumb_url || get_url;
-
-                  return {
-                    id: item.id || `output-${item.type}-${index}`,
-                    user_id: "",
-                    workflow_id: null,
-                    parent_id: "",
-                    name: name,
-                    content_type: contentType,
-                    metadata: {},
-                    created_at: new Date().toISOString(),
-                    get_url: get_url,
-                    thumb_url: thumb_url,
-                    duration: item.duration || null
-                  } as Asset;
-                })
-              : undefined
+            computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
           onClose={() => setLocalOpenAsset(null)}
