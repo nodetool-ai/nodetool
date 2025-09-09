@@ -4,8 +4,11 @@ import {
   Typography,
   CircularProgress,
   Fade,
-  Tooltip
+  Tooltip,
+  useTheme,
+  Chip
 } from "@mui/material";
+import { chipsContainerSx, chipSx } from "./WorkflowCard.styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
@@ -26,6 +29,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   isLoading,
   onClick
 }) => {
+  const theme = useTheme();
   return (
     <Box
       className={`workflow ${isLoading ? "loading" : ""}`}
@@ -109,6 +113,45 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
       </Box>
 
       <Typography className="description">{workflow.description}</Typography>
+
+      {/* Required providers/models chips */}
+      <Box sx={chipsContainerSx}>
+        {Array.isArray((workflow as any).required_providers) &&
+          (workflow as any).required_providers.map((prov: string) => (
+            <Chip
+              key={`prov-${prov}`}
+              label={prov}
+              title={prov}
+              size="small"
+              variant="outlined"
+              sx={chipSx(theme, "secondary")}
+            />
+          ))}
+
+        {Array.isArray((workflow as any).required_models) &&
+          (workflow as any).required_models
+            .slice(0, 4)
+            .map((model: string) => (
+              <Chip
+                key={`model-${model}`}
+                label={model}
+                title={model}
+                size="small"
+                variant="outlined"
+                sx={chipSx(theme, "primary")}
+              />
+            ))}
+
+        {Array.isArray((workflow as any).required_models) &&
+          (workflow as any).required_models.length > 4 && (
+            <Chip
+              label={`+${(workflow as any).required_models.length - 4} more`}
+              size="small"
+              variant="outlined"
+              sx={chipSx(theme, "info", { uppercase: false })}
+            />
+          )}
+      </Box>
     </Box>
   );
 };
