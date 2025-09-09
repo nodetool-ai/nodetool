@@ -87,8 +87,14 @@ jest.mock('../state', () => ({
   getMainWindow: jest.fn(),
 }));
 
+// Create a controllable mock for isAppQuitting
+const mockIsAppQuitting = { value: false };
+
 jest.mock('../main', () => ({
-  isAppQuitting: false,
+  get isAppQuitting() {
+    return mockIsAppQuitting.value;
+  },
+  mainWindow: null,
 }));
 
 jest.mock('path', () => ({
@@ -343,9 +349,8 @@ describe('Window Module', () => {
     });
 
     it('should handle window close event when app is not quitting', async () => {
-      // Mock isAppQuitting as false
-      const mainModule = await import('../main');
-      (mainModule as any).isAppQuitting = false;
+      // Set isAppQuitting to false
+      mockIsAppQuitting.value = false;
       
       createWindow();
       
@@ -364,9 +369,8 @@ describe('Window Module', () => {
     });
 
     it('should allow window to close when app is quitting', async () => {
-      // Mock isAppQuitting as true
-      const mainModule = await import('../main');
-      (mainModule as any).isAppQuitting = true;
+      // Set isAppQuitting to true
+      mockIsAppQuitting.value = true;
       
       createWindow();
       

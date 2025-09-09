@@ -20,7 +20,7 @@ export const typeToString = (type: TypeMetadata): string => {
           )} }`
         : "dict";
     case "union":
-      return type.type_args
+      return type.type_args && type.type_args.length > 0
         ? type.type_args.map((t) => typeToString(t)).join(" | ")
         : "union";
     default:

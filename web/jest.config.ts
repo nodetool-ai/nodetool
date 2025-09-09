@@ -7,11 +7,6 @@ export default {
     // Add this to prevent canvas from being required by jsdom
     resources: "usable"
   },
-  globals: {
-    "ts-jest": {
-      useESM: true
-    }
-  },
   moduleNameMapper: {
     "canvas": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",

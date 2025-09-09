@@ -146,9 +146,10 @@ describe("GlobalChat", () => {
   });
 
   describe("Loading States", () => {
-    it("shows loading state when threads are loading", () => {
-      const { useThreadsQuery } = jest.requireActual("../../../../stores/GlobalChatStore");
-      useThreadsQuery.mockReturnValue({
+    it("shows loading state when threads are loading", async () => {
+      const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
+      const { useThreadsQuery } = GlobalChatStore;
+      (useThreadsQuery as jest.Mock).mockReturnValue({
         isLoading: true,
         error: null
       });
@@ -158,9 +159,10 @@ describe("GlobalChat", () => {
       expect(screen.getByText("Loading chat...")).toBeInTheDocument();
     });
 
-    it("shows error state when threads fail to load", () => {
-      const { useThreadsQuery } = jest.requireActual("../../../../stores/GlobalChatStore");
-      useThreadsQuery.mockReturnValue({
+    it("shows error state when threads fail to load", async () => {
+      const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
+      const { useThreadsQuery } = GlobalChatStore;
+      (useThreadsQuery as jest.Mock).mockReturnValue({
         isLoading: false,
         error: new Error("Failed to load threads")
       });
@@ -172,13 +174,12 @@ describe("GlobalChat", () => {
   });
 
   describe("Status Handling", () => {
-    it("shows error alert when connection status is failed", () => {
+    it("shows error alert when connection status is failed", async () => {
       // Mock the store to return failed status
-      const {
-        default: useGlobalChatStore,
-        useThreadsQuery
-      } = jest.requireActual("../../../../stores/GlobalChatStore");
-      useGlobalChatStore.mockReturnValueOnce({
+      const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
+      const useGlobalChatStore = GlobalChatStore.default;
+      const { useThreadsQuery } = GlobalChatStore;
+      (useGlobalChatStore as unknown as jest.Mock).mockReturnValueOnce({
         status: "failed",
         sendMessage: jest.fn(),
         progress: { current: 0, total: 0 },
@@ -203,7 +204,7 @@ describe("GlobalChat", () => {
         currentRunningToolCallId: null,
         currentToolMessage: null
       });
-      useThreadsQuery.mockReturnValueOnce({ isLoading: false, error: null });
+      (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       renderWithProviders(<GlobalChat />);
 
@@ -212,13 +213,12 @@ describe("GlobalChat", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows reconnecting alert when status is reconnecting", () => {
+    it("shows reconnecting alert when status is reconnecting", async () => {
       // Mock the store to return reconnecting status
-      const {
-        default: useGlobalChatStore,
-        useThreadsQuery
-      } = jest.requireActual("../../../../stores/GlobalChatStore");
-      useGlobalChatStore.mockReturnValueOnce({
+      const GlobalChatStore = await import("../../../../stores/GlobalChatStore");
+      const useGlobalChatStore = GlobalChatStore.default;
+      const { useThreadsQuery } = GlobalChatStore;
+      (useGlobalChatStore as unknown as jest.Mock).mockReturnValueOnce({
         status: "reconnecting",
         sendMessage: jest.fn(),
         progress: { current: 0, total: 0 },
@@ -243,7 +243,7 @@ describe("GlobalChat", () => {
         currentRunningToolCallId: null,
         currentToolMessage: null
       });
-      useThreadsQuery.mockReturnValueOnce({ isLoading: false, error: null });
+      (useThreadsQuery as jest.Mock).mockReturnValueOnce({ isLoading: false, error: null });
 
       renderWithProviders(<GlobalChat />);
 
