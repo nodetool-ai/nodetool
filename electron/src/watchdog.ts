@@ -57,10 +57,14 @@ export class Watchdog {
         }`
       );
     }
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, this.opts.gracefulStopTimeoutMs)
-    );
+    // Wait until the process exits, but don't wait longer than the graceful timeout
+    const start = Date.now();
+    const timeoutMs = this.opts.gracefulStopTimeoutMs as number;
+    while (Date.now() - start < timeoutMs) {
+      const stillAlive = await this.isPidAlive();
+      if (!stillAlive) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
 
     if (this.process && !this.process.killed) {
       try {

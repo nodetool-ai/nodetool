@@ -20,7 +20,7 @@ describe('Wheel-based Package Manager', () => {
       expect(info).toEqual({
         packageName: 'nodetool-base',
         repoId: 'nodetool-ai/nodetool-base',
-        wheelCommand: 'uv pip install --index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base',
+        wheelCommand: 'uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base',
         gitCommand: 'uv pip install git+https://github.com/nodetool-ai/nodetool-base.git',
         packageIndexUrl: 'https://nodetool-ai.github.io/nodetool-registry/simple/'
       });
@@ -38,13 +38,13 @@ describe('Wheel-based Package Manager', () => {
     test('returns correct wheel-based install command', () => {
       const command = getInstallCommandForPackage('nodetool-ai/nodetool-base');
       
-      expect(command).toBe('uv pip install --index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base');
+      expect(command).toBe('uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-base');
     });
 
     test('works with different package names', () => {
       const command = getInstallCommandForPackage('nodetool-ai/nodetool-huggingface');
       
-      expect(command).toBe('uv pip install --index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-huggingface');
+      expect(command).toBe('uv pip install --index-url https://pypi.org/simple --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ nodetool-huggingface');
     });
   });
 

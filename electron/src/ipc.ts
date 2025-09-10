@@ -138,6 +138,8 @@ export function initializeIpcHandlers(): void {
     } catch (e) {
       logMessage(`Error while stopping server for restart: ${e}`, "warn");
     }
+    // Small delay to ensure ports and resources are released before restart
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await initializeBackendServer();
     await setupWorkflowShortcuts();
   });

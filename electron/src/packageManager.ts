@@ -7,22 +7,26 @@ import {
   PackageListResponse,
   InstalledPackageListResponse,
   PackageResponse,
-  PackageNode
+  PackageNode,
 } from "./types";
 import * as https from "https";
 
 /**
  * Package Manager Module
- * 
+ *
  * This module handles Python package management operations using uv.
  * It provides functionality to list, install, and uninstall packages
  * directly through the Node.js process without relying on the Python API.
  */
 
-// New wheel-based package index (PEP 503 compliant)
-const PACKAGE_INDEX_URL = "https://nodetool-ai.github.io/nodetool-registry/simple/";
+// Nodetool wheel-based package index (PEP 503 compliant)
+const PACKAGE_INDEX_URL =
+  "https://nodetool-ai.github.io/nodetool-registry/simple/";
+// Primary PyPI simple index to resolve all other packages
+const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 // Legacy JSON registry for backward compatibility
-const REGISTRY_URL = "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
+const REGISTRY_URL =
+  "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
 
 // Simple in-memory cache for nodes
@@ -46,7 +50,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
           const packages = registryData.packages || [];
           resolve({
             packages: packages as PackageInfo[],
-            count: packages.length
+            count: packages.length,
           });
         } catch (error) {
           reject(new Error(`Failed to parse registry data: ${error}`));
@@ -95,7 +99,9 @@ async function fetchPackageNodes(repoId: string): Promise<PackageNode[]> {
   }
 }
 
-export async function fetchAllNodes(forceRefresh: boolean = false): Promise<PackageNode[]> {
+export async function fetchAllNodes(
+  forceRefresh: boolean = false
+): Promise<PackageNode[]> {
   if (nodeCache && !forceRefresh) {
     return nodeCache;
   }
@@ -125,7 +131,7 @@ export function clearNodeCache(): void {
 export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
   const [nodes, installed] = await Promise.all([
     fetchAllNodes(),
-    listInstalledPackages().catch(() => ({ packages: [], count: 0 }))
+    listInstalledPackages().catch(() => ({ packages: [], count: 0 })),
   ]);
   const installedRepoIds = new Set(
     (installed.packages || []).map((p) => p.repo_id)
@@ -142,7 +148,10 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
       return (a.title || "").localeCompare(b.title || "");
     });
     // Attach installed flag for consumers
-    return sorted.map((n) => ({ ...n, installed: installedRepoIds.has(n.package || "") }));
+    return sorted.map((n) => ({
+      ...n,
+      installed: installedRepoIds.has(n.package || ""),
+    }));
   }
 
   // --- Lightweight fuzzy matching similar to NodeMenuStore ---
@@ -200,11 +209,11 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     key: keyof PackageNode;
     weight: number;
   }> = [
-      { key: "title", weight: 1.0 },
-      { key: "namespace", weight: 0.85 },
-      { key: "node_type", weight: 0.8 },
-      { key: "description", weight: 0.6 }
-    ];
+    { key: "title", weight: 1.0 },
+    { key: "namespace", weight: 0.85 },
+    { key: "node_type", weight: 0.8 },
+    { key: "description", weight: 0.6 },
+  ];
 
   const tokens = tokenize(trimmed);
   const noSpace = normalize(trimmed.replace(/\s+/g, ""));
@@ -250,10 +259,15 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
       return (a.node.title || "").localeCompare(b.node.title || "");
     });
 
-  return scored.map((s) => ({ ...s.node, installed: installedRepoIds.has(s.node.package || "") }));
+  return scored.map((s) => ({
+    ...s.node,
+    installed: installedRepoIds.has(s.node.package || ""),
+  }));
 }
 
-export async function getPackageForNodeType(nodeType: string): Promise<string | null> {
+export async function getPackageForNodeType(
+  nodeType: string
+): Promise<string | null> {
   const nodes = await fetchAllNodes();
   const match = nodes.find((n) => n.node_type === nodeType);
   return match?.package ?? null;
@@ -262,7 +276,10 @@ export async function getPackageForNodeType(nodeType: string): Promise<string | 
 /**
  * Run a uv command
  */
-async function runUvCommand(args: string[], options?: { stdin?: string }): Promise<string> {
+async function runUvCommand(
+  args: string[],
+  options?: { stdin?: string }
+): Promise<string> {
   const uvPath = getUVPath();
   const command = [uvPath, ...args];
 
@@ -271,7 +288,7 @@ async function runUvCommand(args: string[], options?: { stdin?: string }): Promi
 
     const process = spawn(command[0], command.slice(1), {
       env: getProcessEnv(),
-      stdio: "pipe"
+      stdio: "pipe",
     });
 
     if (options?.stdin && process.stdin) {
@@ -323,19 +340,19 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
       .map((pkg: any) => {
         return {
           name: pkg.name,
-          description: "",  // uv pip list doesn't provide description
+          description: "", // uv pip list doesn't provide description
           version: pkg.version,
           authors: [],
           repo_id: "nodetool-ai/" + pkg.name,
           nodes: [],
           examples: [],
-          assets: []
+          assets: [],
         } as PackageModel;
       });
 
     return {
       packages: nodetoolPackages,
-      count: nodetoolPackages.length
+      count: nodetoolPackages.length,
     };
   } catch (error: any) {
     logMessage(`Failed to list installed packages: ${error.message}`, "error");
@@ -349,17 +366,20 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
 export async function installPackage(repoId: string): Promise<PackageResponse> {
   try {
     const packageName = repoId.split("/")[1];
-    
-    logMessage(`Installing ${packageName} from wheel index`);
-    
+
+    logMessage(`Installing ${packageName} with Nodetool extra index`);
+
     const args = [
       "pip",
       "install",
-      "--index-url", PACKAGE_INDEX_URL,
+      "--index-url",
+      PYPI_SIMPLE_INDEX_URL,
+      "--extra-index-url",
+      PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      packageName
+      packageName,
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -371,13 +391,16 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} installed successfully from wheel index`
+      message: `Package ${repoId} installed successfully from wheel index`,
     };
   } catch (error: any) {
-    logMessage(`Failed to install package ${repoId}: ${error.message}`, "error");
+    logMessage(
+      `Failed to install package ${repoId}: ${error.message}`,
+      "error"
+    );
     return {
       success: false,
-      message: `Failed to install package: ${error.message}`
+      message: `Failed to install package: ${error.message}`,
     };
   }
 }
@@ -385,7 +408,9 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 /**
  * Uninstall a package
  */
-export async function uninstallPackage(repoId: string): Promise<PackageResponse> {
+export async function uninstallPackage(
+  repoId: string
+): Promise<PackageResponse> {
   try {
     // Extract project name from repo_id (e.g., "owner/project" -> "project")
     const projectName = repoId.split("/")[1];
@@ -395,13 +420,16 @@ export async function uninstallPackage(repoId: string): Promise<PackageResponse>
 
     return {
       success: true,
-      message: `Package ${repoId} uninstalled successfully`
+      message: `Package ${repoId} uninstalled successfully`,
     };
   } catch (error: any) {
-    logMessage(`Failed to uninstall package ${repoId}: ${error.message}`, "error");
+    logMessage(
+      `Failed to uninstall package ${repoId}: ${error.message}`,
+      "error"
+    );
     return {
       success: false,
-      message: `Failed to uninstall package: ${error.message}`
+      message: `Failed to uninstall package: ${error.message}`,
     };
   }
 }
@@ -412,18 +440,21 @@ export async function uninstallPackage(repoId: string): Promise<PackageResponse>
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
   try {
     const packageName = repoId.split("/")[1];
-    
-    logMessage(`Updating ${packageName} from wheel index`);
-    
+
+    logMessage(`Updating ${packageName} with Nodetool extra index`);
+
     const args = [
       "pip",
       "install",
       "--upgrade",
-      "--index-url", PACKAGE_INDEX_URL,
+      "--index-url",
+      PYPI_SIMPLE_INDEX_URL,
+      "--extra-index-url",
+      PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      packageName
+      packageName,
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -435,13 +466,13 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} updated successfully from wheel index`
+      message: `Package ${repoId} updated successfully from wheel index`,
     };
   } catch (error: any) {
     logMessage(`Failed to update package ${repoId}: ${error.message}`, "error");
     return {
       success: false,
-      message: `Failed to update package: ${error.message}`
+      message: `Failed to update package: ${error.message}`,
     };
   }
 }
@@ -457,13 +488,13 @@ export function getPackageInstallationInfo(repoId: string): {
   packageIndexUrl: string;
 } {
   const packageName = repoId.split("/")[1];
-  
+
   return {
     packageName,
     repoId,
-    wheelCommand: `uv pip install --index-url ${PACKAGE_INDEX_URL} ${packageName}`,
+    wheelCommand: `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`,
     gitCommand: `uv pip install git+https://github.com/${repoId}.git`,
-    packageIndexUrl: PACKAGE_INDEX_URL
+    packageIndexUrl: PACKAGE_INDEX_URL,
   };
 }
 
@@ -472,7 +503,7 @@ export function getPackageInstallationInfo(repoId: string): {
  */
 export function getInstallCommandForPackage(repoId: string): string {
   const packageName = repoId.split("/")[1];
-  return `uv pip install --index-url ${PACKAGE_INDEX_URL} ${packageName}`;
+  return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
 /**
@@ -483,7 +514,10 @@ export { PACKAGE_INDEX_URL };
 /**
  * Validate repository ID format
  */
-export function validateRepoId(repoId: string): { valid: boolean; error?: string } {
+export function validateRepoId(repoId: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (!repoId) {
     return { valid: false, error: "Repository ID cannot be empty" };
   }
@@ -492,7 +526,7 @@ export function validateRepoId(repoId: string): { valid: boolean; error?: string
   if (!pattern.test(repoId)) {
     return {
       valid: false,
-      error: `Invalid repository ID format: ${repoId}. Must be in the format <owner>/<project>`
+      error: `Invalid repository ID format: ${repoId}. Must be in the format <owner>/<project>`,
     };
   }
 
