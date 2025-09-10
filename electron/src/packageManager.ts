@@ -19,6 +19,9 @@ import * as https from "https";
  * directly through the Node.js process without relying on the Python API.
  */
 
+// New wheel-based package index (PEP 503 compliant)
+const PACKAGE_INDEX_URL = "https://nodetool-ai.github.io/nodetool-registry/simple/";
+// Legacy JSON registry for backward compatibility
 const REGISTRY_URL = "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
 
@@ -341,19 +344,22 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
 }
 
 /**
- * Install a package
+ * Install a package using wheel-based package index
  */
 export async function installPackage(repoId: string): Promise<PackageResponse> {
   try {
-    const installUrl = `git+https://github.com/${repoId}.git`;
-
+    const packageName = repoId.split("/")[1];
+    
+    logMessage(`Installing ${packageName} from wheel index`);
+    
     const args = [
       "pip",
       "install",
+      "--index-url", PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      installUrl
+      packageName
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -365,7 +371,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} installed successfully`
+      message: `Package ${repoId} installed successfully from wheel index`
     };
   } catch (error: any) {
     logMessage(`Failed to install package ${repoId}: ${error.message}`, "error");
@@ -401,20 +407,23 @@ export async function uninstallPackage(repoId: string): Promise<PackageResponse>
 }
 
 /**
- * Update a package
+ * Update a package using wheel-based package index
  */
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
   try {
-    const installUrl = `git+https://github.com/${repoId}.git`;
-
+    const packageName = repoId.split("/")[1];
+    
+    logMessage(`Updating ${packageName} from wheel index`);
+    
     const args = [
       "pip",
       "install",
       "--upgrade",
+      "--index-url", PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      installUrl
+      packageName
     ];
 
     // Add extra index URL for CUDA packages on non-macOS platforms
@@ -426,7 +435,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 
     return {
       success: true,
-      message: `Package ${repoId} updated successfully`
+      message: `Package ${repoId} updated successfully from wheel index`
     };
   } catch (error: any) {
     logMessage(`Failed to update package ${repoId}: ${error.message}`, "error");
@@ -436,6 +445,40 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     };
   }
 }
+
+/**
+ * Get installation information for a package
+ */
+export function getPackageInstallationInfo(repoId: string): {
+  packageName: string;
+  repoId: string;
+  wheelCommand: string;
+  gitCommand: string;
+  packageIndexUrl: string;
+} {
+  const packageName = repoId.split("/")[1];
+  
+  return {
+    packageName,
+    repoId,
+    wheelCommand: `uv pip install --index-url ${PACKAGE_INDEX_URL} ${packageName}`,
+    gitCommand: `uv pip install git+https://github.com/${repoId}.git`,
+    packageIndexUrl: PACKAGE_INDEX_URL
+  };
+}
+
+/**
+ * Get the recommended install command for a package
+ */
+export function getInstallCommandForPackage(repoId: string): string {
+  const packageName = repoId.split("/")[1];
+  return `uv pip install --index-url ${PACKAGE_INDEX_URL} ${packageName}`;
+}
+
+/**
+ * Export package index URL for external use
+ */
+export { PACKAGE_INDEX_URL };
 
 /**
  * Validate repository ID format
