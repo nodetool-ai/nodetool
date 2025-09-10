@@ -20,9 +20,6 @@ Transparent. Portable. Under your control.
 ## Table of Contents
 
 - [How It Works](#how-it-works)
-- [Built Different](#built-different)
-- [Vision](#vision)
-- [Mission](#mission)
 - [Principles](#principles)
 - [What NodeTool Is](#what-nodetool-is-today)
 - [What NodeTool Is Not](#what-nodetool-is-not-today)
