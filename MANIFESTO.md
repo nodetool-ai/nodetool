@@ -1,56 +1,53 @@
 # NODETOOL MANIFESTO
 
-### The Local‑First Agent OS
+### The Local‑First Agent Workbench
 
 ## Vision
 
-Your AI, your rules.
-Nodetool Agents run on your devices, where your data lives.
-Transparent. Portable. Under your control.
+AI should be yours.
+Agents run locally, beside your data.
+They are transparent, portable, and under your control.
 
 ## Mission
 
-Ship an open‑source system for designing, running, and deploying agent graphs anywhere.
+Ship an open-source system to design and run agents as graphs on your machines. Cloud is opt-in.
 
 ## Principles
 
-- **Local‑first, by design.**
-- **No data leaves without explicit consent.**
-- **Open and portable.** Graphs are open and run anywhere.
-- **One graph. One runtime.** Visual and headless share the same semantics.
-- **Typed tools.** Small, composable nodes with explicit I/O.
-- **Reproducible runs.** Seeds, inputs, and artifacts are captured.
-- **No black boxes.** Inspect every step as it runs.
-- **Fast on your hardware.** Optimized for small GPUs.
+- **Local‑first. Always.**
+- **No data leaves without consent.**
+- **Open and portable.**&#x20;
+- **One graph. One runtime.** Visual and headless share semantics.
+- **Typed tools.** Small, composable, explicit I/O.
+- **Reproducible runs.** Seeds and inputs captured.
+- **No black boxes.** See every step while it runs.
+- **Fast on your hardware.** Cloud only when you choose.
 
 ## What NodeTool Is (today)
 
 - Visual graph editor + runnable runtime (desktop + headless)
-- Execute via CLI, HTTP API, or WebSocket; graphs in JSON/DSL
-- Local models (Ollama/HF) + optional cloud (OpenAI/Gemini/Anthropic/Replicate/Fal/Huggingface Hub)
-- Deploy to laptop/server, Runpod, or Google Cloud
+- Execute via CLI, API, WebSocket; graphs in JSON
+- Local models (Ollama/HF) + optional cloud (OpenAI/Anthropic/Replicate)
+- Deploy to laptop/server, Runpod, Google Cloud, AWS
 
 ## What NodeTool Is Not (today)
 
-- Managed SaaS with SLAs or multi‑tenant hosting
-- Compliance‑grade policy or audit tooling
-- An autoscaling orchestration platform
-- A one‑click content toy
+- Managed SaaS, SLAs, multi‑tenant
+- Compliance‑grade policy/audit
+- Autoscaling orchestrator
+- One‑click content toy
 
 ## Who It’s For
 
-Indie hackers, game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run their own pipelines—with control and local ownership of data and IP.
+Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run their own pipelines. They care about control, reproducibility, and keeping data and IP local.
 
 ## Roadmap
 
-- **Creative pipelines:** ready‑to‑use templates for thumbnails, game sprites, ad variants, research briefs.
-
-- **Packaging:** one‑click bundles for sharing pipelines with collaborators or clients.
-
-- **Video tooling:** timeline nodes, effects, and batch rendering.
-
-- **Community packs:** growing registry of open nodes for creative tasks (effects, generators, integrations).
+- **Creative pipelines:**\*\* templates for thumbnails, sprites, ad variants, research briefs.
+- **Timeline & Snapshots:** run history, diffs, and easy rollback.
+- **Render Queue & A/B:** batch runs and seeded comparisons.
+- **Packaging:** one‑click bundles for sharing with collaborators/clients; community packs registry.
 
 ## Promise
 
-Open core. Local‑first. You own the models, the workflows, and the data.
+Open core. Local‑first. Own the runtime, the workflows, and the outputs.
