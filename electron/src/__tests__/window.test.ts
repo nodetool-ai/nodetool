@@ -263,7 +263,7 @@ describe('Window Module', () => {
         width: 1200,
         height: 900,
         webPreferences: {
-          preload: '/home/claude/nodetool/electron/src/preload.js',
+          preload: expect.stringMatching(/.*\/src\/preload\.js$/),
           contextIsolation: true,
           nodeIntegration: false,
           devTools: true,
