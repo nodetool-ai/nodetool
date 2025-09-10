@@ -10,7 +10,7 @@ import { logMessage } from "./logger";
 function emitBootMessage(message: string): void {
   serverState.bootMsg = message;
   const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.BOOT_MESSAGE, message);
   } else {
     logMessage("No main window available to send boot message");
@@ -23,7 +23,7 @@ function emitBootMessage(message: string): void {
 function emitServerStarted(): void {
   serverState.isStarted = true;
   const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.SERVER_STARTED);
   }
 }
@@ -35,7 +35,7 @@ function emitServerStarted(): void {
 function emitServerLog(message: string): void {
   serverState.logs.push(message);
   const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.SERVER_LOG, message);
   }
 }
@@ -61,7 +61,7 @@ function emitUpdateProgress(
   eta?: string
 ): void {
   const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(IpcChannels.UPDATE_PROGRESS, {
       componentName,
       progress,
@@ -76,7 +76,7 @@ function emitUpdateProgress(
  */
 function emitShowPackageManager(): void {
   const mainWindow: BrowserWindow | null = getMainWindow();
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     logMessage("Sending SHOW_PACKAGE_MANAGER to renderer");
     mainWindow.webContents.send(IpcChannels.SHOW_PACKAGE_MANAGER);
   } else {
