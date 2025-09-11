@@ -415,7 +415,7 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "auto",
-            margin: "0"
+            margin: "10px 0"
           }}
         >
           <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
