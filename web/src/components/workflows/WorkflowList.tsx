@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, CircularProgress } from "@mui/material";
+import { Typography, CircularProgress, Box, Tooltip, Fab } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -28,7 +29,7 @@ const styles = (theme: Theme) =>
     "&": {
       marginLeft: "0px"
     },
-    
+
     ".toolbar-header": {
       position: "sticky",
       top: 0,
@@ -211,6 +212,9 @@ const WorkflowList = () => {
     copyWorkflow: state.copy,
     createWorkflow: state.create
   }));
+  const { createNew } = useWorkflowManager((state) => ({
+    createNew: state.createNew
+  }));
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
@@ -256,6 +260,11 @@ const WorkflowList = () => {
     setWorkflowToEdit(workflow);
   }, []);
 
+  const handleCreateWorkflowTop = useCallback(async () => {
+    const workflow = await createNew();
+    navigate(`/editor/${workflow.id}`);
+  }, [createNew, navigate]);
+
   return (
     <>
       <WorkflowDeleteDialog
@@ -271,21 +280,88 @@ const WorkflowList = () => {
         />
       )}
       <div css={styles(theme)}>
-        <div className="toolbar-header">
-          <WorkflowToolbar
-          workflows={workflows}
-          setFilterValue={setFilterValue}
-          selectedTag={selectedTag}
-          setSelectedTag={setSelectedTag}
-          showCheckboxes={showCheckboxes}
-          toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
-          selectedWorkflowsCount={selectedWorkflows.length}
-          onBulkDelete={() => {
-            setWorkflowsToDelete(
-              workflows.filter((w) => selectedWorkflows.includes(w.id))
-            );
-            setIsDeleteDialogOpen(true);
+        <Tooltip title="Create a new workflow">
+          <Fab
+            variant="extended"
+            onClick={handleCreateWorkflowTop}
+            aria-label="New Workflow"
+            sx={{
+              width: "calc(100% - 20px)",
+              margin: "10px",
+              textAlign: "center",
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: 12,
+              color: (theme as any).vars.palette.grey[200],
+              backgroundColor: "transparent",
+              border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
+              boxShadow: "none",
+              textTransform: "none",
+              justifyContent: "center",
+              transition:
+                "all 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease",
+              "&:hover": {
+                backgroundColor: `${
+                  (theme as any).vars.palette.primary.main
+                }14`,
+                borderColor: (theme as any).vars.palette.primary.main,
+                boxShadow: `0 2px 8px rgba(0, 0, 0, 0.25)`
+              },
+              "&:active": {
+                transform: "scale(0.99)"
+              },
+              "& svg": {
+                position: "relative",
+                zIndex: 1
+              },
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "55%",
+                background:
+                  "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+                pointerEvents: "none",
+                zIndex: 0
+              },
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                borderRadius: "inherit",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+                pointerEvents: "none"
+              }
+            }}
+          >
+            <AddIcon sx={{ mr: 1 }} /> New Workflow
+          </Fab>
+        </Tooltip>
+        <div
+          className="toolbar-header"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75em",
+            justifyContent: "space-between"
           }}
+        >
+          <WorkflowToolbar
+            workflows={workflows}
+            setFilterValue={setFilterValue}
+            selectedTag={selectedTag}
+            setSelectedTag={setSelectedTag}
+            showCheckboxes={showCheckboxes}
+            toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
+            selectedWorkflowsCount={selectedWorkflows.length}
+            onBulkDelete={() => {
+              setWorkflowsToDelete(
+                workflows.filter((w) => selectedWorkflows.includes(w.id))
+              );
+              setIsDeleteDialogOpen(true);
+            }}
           />
         </div>
         <div className="status">
@@ -312,17 +388,17 @@ const WorkflowList = () => {
               </Typography>
             </div>
           ) : (
-          <WorkflowListView
-            workflows={finalWorkflows}
-            onOpenWorkflow={handleOpenWorkflow}
-            onDuplicateWorkflow={duplicateWorkflow}
-            onDelete={onDelete}
-            onEdit={handleEdit}
-            onSelect={onSelect}
-            selectedWorkflows={selectedWorkflows}
-            workflowCategory="user"
-            showCheckboxes={showCheckboxes}
-          />
+            <WorkflowListView
+              workflows={finalWorkflows}
+              onOpenWorkflow={handleOpenWorkflow}
+              onDuplicateWorkflow={duplicateWorkflow}
+              onDelete={onDelete}
+              onEdit={handleEdit}
+              onSelect={onSelect}
+              selectedWorkflows={selectedWorkflows}
+              workflowCategory="user"
+              showCheckboxes={showCheckboxes}
+            />
           )}
         </div>
       </div>
