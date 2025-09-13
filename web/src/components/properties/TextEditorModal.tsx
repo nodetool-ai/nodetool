@@ -48,6 +48,10 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
 import type { MessageContent, LanguageModel } from "../../stores/ApiTypes";
+import { useEditorMode } from "../../hooks/editor/useEditorMode";
+import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
+import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
+import { useModalResize } from "../../hooks/editor/useModalResize";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -447,32 +451,14 @@ const TextEditorModal = ({
     createNewThread
   } = useGlobalChatStore();
 
-  // Editor mode toggle
-  const CODE_EDITOR_TOGGLE_KEY = "textEditorModal_useCodeEditor";
-  const getInitialIsCodeEditor = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(CODE_EDITOR_TOGGLE_KEY);
-      if (saved === "true" || saved === "false") {
-        return saved === "true";
-      }
-    } catch {
-      /* empty */
+  // Editor mode toggle (extracted hook)
+  const { isCodeEditor, setIsCodeEditor, toggleEditorMode } = useEditorMode({
+    storageKey: "textEditorModal_useCodeEditor",
+    onCodeEnabled: () => {
+      // if switching to code editor, ensure Monaco is loaded
+      void loadMonacoIfNeeded();
     }
-    return false;
-  }, []);
-  const [isCodeEditor, setIsCodeEditor] = useState<boolean>(
-    getInitialIsCodeEditor
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        CODE_EDITOR_TOGGLE_KEY,
-        isCodeEditor ? "true" : "false"
-      );
-    } catch {
-      /* empty */
-    }
-  }, [isCodeEditor]);
+  });
 
   // Monaco dynamic import (loaded on demand)
   const [MonacoEditor, setMonacoEditor] = useState<
@@ -500,51 +486,16 @@ const TextEditorModal = ({
     }
   }, [MonacoEditor, monacoLoadError]);
 
-  // Fullscreen toggle
-  const FULLSCREEN_KEY = "textEditorModal_fullscreen";
-  const getInitialFullscreen = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(FULLSCREEN_KEY);
-      if (saved === "true" || saved === "false") return saved === "true";
-    } catch {
-      /* empty */
-    }
-    return false;
-  }, []);
-  const [isFullscreen, setIsFullscreen] =
-    useState<boolean>(getInitialFullscreen);
-  useEffect(() => {
-    try {
-      localStorage.setItem(FULLSCREEN_KEY, isFullscreen ? "true" : "false");
-    } catch {
-      /* empty */
-    }
-  }, [isFullscreen]);
+  // Fullscreen toggle (hook)
+  const { isFullscreen, toggleFullscreen } = useFullscreenMode({
+    storageKey: "textEditorModal_fullscreen"
+  });
 
-  // Assistant pane toggle
-  const ASSIST_TOGGLE_KEY = "textEditorModal_assistantVisible";
-  const getInitialAssistantVisible = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(ASSIST_TOGGLE_KEY);
-      if (saved === "true" || saved === "false") return saved === "true";
-    } catch {
-      /* empty */
-    }
-    return true;
-  }, []);
-  const [assistantVisible, setAssistantVisible] = useState<boolean>(
-    getInitialAssistantVisible
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        ASSIST_TOGGLE_KEY,
-        assistantVisible ? "true" : "false"
-      );
-    } catch {
-      /* empty */
-    }
-  }, [assistantVisible]);
+  // Assistant pane visibility (hook)
+  const { assistantVisible, toggleAssistantVisible } = useAssistantVisibility({
+    storageKey: "textEditorModal_assistantVisible",
+    defaultVisible: true
+  });
 
   // Code language override (for Monaco)
   const CODE_LANGUAGE_KEY = "textEditorModal_codeLanguage";
@@ -569,16 +520,8 @@ const TextEditorModal = ({
   }, [codeLanguage]);
 
   const handleToggleEditorMode = useCallback(() => {
-    setIsCodeEditor((prev) => {
-      const next = !prev;
-      if (next) {
-        // switching to code editor - lazy load Monaco
-        // fire and forget
-        void loadMonacoIfNeeded();
-      }
-      return next;
-    });
-  }, [loadMonacoIfNeeded]);
+    toggleEditorMode();
+  }, [toggleEditorMode]);
 
   // If we start in code mode, ensure Monaco loads immediately
   useEffect(() => {
@@ -592,91 +535,10 @@ const TextEditorModal = ({
     connect().catch(() => undefined);
   }, [connect]);
 
-  // Resizable modal height state
-  const DEFAULT_HEIGHT = Math.min(600, window.innerHeight - 200);
-  const MIN_HEIGHT = 250;
-  const MAX_HEIGHT = window.innerHeight - 120;
-  const STORAGE_KEY = "textEditorModal_height";
-
-  // Get initial height from localStorage or use default
-  const getInitialHeight = useCallback(() => {
-    try {
-      const savedHeight = localStorage.getItem(STORAGE_KEY);
-      if (savedHeight) {
-        const height = parseInt(savedHeight, 10);
-        // Validate the saved height is within bounds
-        if (height >= MIN_HEIGHT && height <= MAX_HEIGHT) {
-          return height;
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to read modal height from localStorage:", error);
-    }
-    return DEFAULT_HEIGHT;
-  }, [DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT]);
-
-  const [modalHeight, setModalHeight] = useState<number>(getInitialHeight);
-
-  // Debounced function to save height to localStorage
-  const saveHeightToStorage = useMemo(
-    () =>
-      debounce((height: number) => {
-        try {
-          localStorage.setItem(STORAGE_KEY, height.toString());
-        } catch (error) {
-          console.warn("Failed to save modal height to localStorage:", error);
-        }
-      }, 500), // Save after 500ms of no height changes
-    []
-  );
-
-  // Update modal height and persist to storage
-  const updateModalHeight = useCallback(
-    (newHeight: number) => {
-      const clampedHeight = Math.max(
-        MIN_HEIGHT,
-        Math.min(newHeight, MAX_HEIGHT)
-      );
-      setModalHeight(clampedHeight);
-      saveHeightToStorage(clampedHeight);
-    },
-    [MIN_HEIGHT, MAX_HEIGHT, saveHeightToStorage]
-  );
-
-  // refs for drag logic
-  const dragStartY = useRef(0);
-  const startHeight = useRef(0);
-
-  const handleResizeMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      dragStartY.current = event.clientY;
-      startHeight.current = modalHeight;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const delta = e.clientY - dragStartY.current;
-        const newHeight = startHeight.current + delta;
-        updateModalHeight(newHeight);
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-
-      event.preventDefault();
-    },
-    [modalHeight, updateModalHeight]
-  );
-
-  // Clean up debounced function on unmount
-  useEffect(() => {
-    return () => {
-      saveHeightToStorage.cancel();
-    };
-  }, [saveHeightToStorage]);
+  // Resizable modal height state (hook)
+  const { modalHeight, handleResizeMouseDown } = useModalResize({
+    storageKey: "textEditorModal_height"
+  });
 
   // Editor state management
   const [canUndo, setCanUndo] = useState(false);
@@ -1107,10 +969,10 @@ const TextEditorModal = ({
   useCombo(["escape"], onClose);
 
   // Shortcuts: fullscreen, assistant pane, editor mode
-  useCombo(["ctrl", "shift", "f"], () => setIsFullscreen((v) => !v), false);
-  useCombo(["meta", "shift", "f"], () => setIsFullscreen((v) => !v), false);
-  useCombo(["ctrl", "shift", "a"], () => setAssistantVisible((v) => !v), false);
-  useCombo(["meta", "shift", "a"], () => setAssistantVisible((v) => !v), false);
+  useCombo(["ctrl", "shift", "f"], toggleFullscreen, false);
+  useCombo(["meta", "shift", "f"], toggleFullscreen, false);
+  useCombo(["ctrl", "shift", "a"], toggleAssistantVisible, false);
+  useCombo(["meta", "shift", "a"], toggleAssistantVisible, false);
   useCombo(["ctrl", "shift", "e"], handleToggleEditorMode, false);
   useCombo(["meta", "shift", "e"], handleToggleEditorMode, false);
 
@@ -1286,10 +1148,7 @@ const TextEditorModal = ({
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
-                  <button
-                    className="button"
-                    onClick={() => setAssistantVisible((v) => !v)}
-                  >
+                  <button className="button" onClick={toggleAssistantVisible}>
                     {assistantVisible ? (
                       <ChatBubbleIcon />
                     ) : (
@@ -1306,10 +1165,7 @@ const TextEditorModal = ({
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
-                  <button
-                    className="button"
-                    onClick={() => setIsFullscreen((v) => !v)}
-                  >
+                  <button className="button" onClick={toggleFullscreen}>
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>
