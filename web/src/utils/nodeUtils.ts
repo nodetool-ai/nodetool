@@ -18,7 +18,6 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,
-  is_streaming: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false
 };
@@ -38,7 +37,6 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
   recommended_models: [],
   basic_fields: [],
   is_dynamic: false,
-  is_streaming: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false
 };

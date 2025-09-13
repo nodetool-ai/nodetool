@@ -79,6 +79,7 @@ describe('formatDateAndTime utilities', () => {
 
     test('handles numeric timestamp input', () => {
       const timestamp = new Date('2023-01-02T03:04:05Z').getTime();
+      // Since we set timezone to UTC in jest.setup.js, expect UTC time
       expect(prettyDate(timestamp)).toBe('2023-01-02 | 03:04:05 AM');
     });
 

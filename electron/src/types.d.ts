@@ -131,7 +131,6 @@ export interface PackageNode {
   recommended_models?: any[];
   basic_fields?: string[];
   is_dynamic?: boolean;
-  is_streaming?: boolean;
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   // Augmented fields when fetched from registry

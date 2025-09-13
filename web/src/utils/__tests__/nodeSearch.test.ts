@@ -50,7 +50,6 @@ describe("nodeSearch", () => {
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
-      is_streaming: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false
     },
@@ -66,7 +65,6 @@ describe("nodeSearch", () => {
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
-      is_streaming: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false
     },
@@ -82,7 +80,6 @@ describe("nodeSearch", () => {
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
-      is_streaming: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false
     },
@@ -98,7 +95,6 @@ describe("nodeSearch", () => {
       recommended_models: [],
       basic_fields: [],
       is_dynamic: false,
-      is_streaming: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false
     }
@@ -106,7 +102,7 @@ describe("nodeSearch", () => {
 
   describe("performGroupedSearch", () => {
     it("should return empty array for no matches", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -121,7 +117,7 @@ describe("nodeSearch", () => {
     });
 
     it("should find nodes by title", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -139,7 +135,7 @@ describe("nodeSearch", () => {
     });
 
     it("should find nodes by namespace", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -153,17 +149,21 @@ describe("nodeSearch", () => {
       expect(results.length).toBeGreaterThan(0);
       // Since we're searching for "math" which is a namespace, it should be found
       // in the "Namespace + Tags" group, not the "Name" group
-      const namespaceGroup = results.find(g => g.title === "Namespace + Tags");
+      const namespaceGroup = results.find(
+        (g) => g.title === "Namespace + Tags"
+      );
       expect(namespaceGroup).toBeDefined();
       if (namespaceGroup) {
         expect(namespaceGroup.nodes.length).toBeGreaterThan(0);
         // Should find both Add and Subtract nodes from math namespace
-        expect(namespaceGroup.nodes.some(n => n.namespace === "math")).toBe(true);
+        expect(namespaceGroup.nodes.some((n) => n.namespace === "math")).toBe(
+          true
+        );
       }
     });
 
     it("should find nodes by description", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -177,16 +177,18 @@ describe("nodeSearch", () => {
       expect(results.length).toBeGreaterThan(0);
       // Since we're searching for "numbers" which appears in a description,
       // it should be found in the "Description" group
-      const descriptionGroup = results.find(g => g.title === "Description");
+      const descriptionGroup = results.find((g) => g.title === "Description");
       expect(descriptionGroup).toBeDefined();
       if (descriptionGroup) {
         // Should find Add node which has "numbers" in its description
-        expect(descriptionGroup.nodes.some(n => n.description?.includes("numbers"))).toBe(true);
+        expect(
+          descriptionGroup.nodes.some((n) => n.description?.includes("numbers"))
+        ).toBe(true);
       }
     });
 
     it("should not duplicate nodes across groups", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -197,14 +199,14 @@ describe("nodeSearch", () => {
       }));
 
       const results = performGroupedSearch(entries, "Add");
-      const allNodes = results.flatMap(g => g.nodes);
-      const nodeTypes = allNodes.map(n => n.node_type);
+      const allNodes = results.flatMap((g) => g.nodes);
+      const nodeTypes = allNodes.map((n) => n.node_type);
       const uniqueNodeTypes = [...new Set(nodeTypes)];
       expect(nodeTypes.length).toBe(uniqueNodeTypes.length);
     });
 
     it("should handle search with spaces", () => {
-      const entries = mockNodeMetadata.map(node => ({
+      const entries = mockNodeMetadata.map((node) => ({
         title: node.title,
         node_type: node.node_type,
         namespace: node.namespace,
@@ -258,7 +260,9 @@ describe("nodeSearch", () => {
       );
 
       expect(results.sortedResults).toHaveLength(2);
-      expect(results.sortedResults.every(n => n.namespace === "math")).toBe(true);
+      expect(results.sortedResults.every((n) => n.namespace === "math")).toBe(
+        true
+      );
     });
 
     it("should perform search when term is provided", () => {
@@ -300,8 +304,10 @@ describe("nodeSearch", () => {
       for (let i = 1; i < results.sortedResults.length; i++) {
         const prev = results.sortedResults[i - 1];
         const curr = results.sortedResults[i];
-        const namespaceComparison = prev.namespace.localeCompare(curr.namespace);
-        
+        const namespaceComparison = prev.namespace.localeCompare(
+          curr.namespace
+        );
+
         if (namespaceComparison > 0) {
           fail("Results not sorted by namespace");
         } else if (namespaceComparison === 0) {
@@ -345,7 +351,7 @@ describe("nodeSearch", () => {
   describe("filterNodesUtil", () => {
     const searchResults: NodeMetadata[] = [
       mockNodeMetadata[0], // Add node
-      mockNodeMetadata[1]  // Subtract node
+      mockNodeMetadata[1] // Subtract node
     ];
 
     it("should return empty array for null nodes", () => {
@@ -386,7 +392,7 @@ describe("nodeSearch", () => {
       );
 
       expect(results).toHaveLength(2);
-      expect(results.every(n => n.namespace === "math")).toBe(true);
+      expect(results.every((n) => n.namespace === "math")).toBe(true);
     });
 
     it("should handle special characters in search term", () => {
@@ -404,8 +410,8 @@ describe("nodeSearch", () => {
 
     it("should handle operators in search term", () => {
       const testCases = ["+", "-", "*", "/"];
-      
-      testCases.forEach(operator => {
+
+      testCases.forEach((operator) => {
         const results = filterNodesUtil(
           mockNodeMetadata,
           operator,
@@ -419,20 +425,15 @@ describe("nodeSearch", () => {
     });
 
     it("should sort results by namespace and title", () => {
-      const results = filterNodesUtil(
-        mockNodeMetadata,
-        "",
-        [],
-        "",
-        "",
-        []
-      );
+      const results = filterNodesUtil(mockNodeMetadata, "", [], "", "", []);
 
       for (let i = 1; i < results.length; i++) {
         const prev = results[i - 1];
         const curr = results[i];
-        const namespaceComparison = prev.namespace.localeCompare(curr.namespace);
-        
+        const namespaceComparison = prev.namespace.localeCompare(
+          curr.namespace
+        );
+
         if (namespaceComparison > 0) {
           fail("Results not sorted by namespace");
         } else if (namespaceComparison === 0) {
@@ -479,11 +480,12 @@ describe("nodeSearch", () => {
         []
       );
 
-      const expectedNodes = nestedNodes.filter(n => 
-        n.namespace === "math.operations" ||
-        n.namespace.startsWith("math.operations.")
+      const expectedNodes = nestedNodes.filter(
+        (n) =>
+          n.namespace === "math.operations" ||
+          n.namespace.startsWith("math.operations.")
       );
-      
+
       expect(results.length).toBe(expectedNodes.length);
     });
   });

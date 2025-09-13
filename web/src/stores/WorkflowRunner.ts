@@ -70,6 +70,9 @@ export type WorkflowRunner = {
   ) => Promise<void>;
   connect: (url: string) => Promise<void>;
   disconnect: () => void;
+  // Streaming inputs
+  streamInput: (inputName: string, value: any, handle?: string) => void;
+  endInputStream: (inputName: string, handle?: string) => void;
 };
 
 type MsgpackData =
@@ -174,6 +177,34 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       wsManager.disconnect();
       set({ wsManager: null, current_url: "", state: "idle" });
     }
+  },
+
+  // Push a streaming item to a streaming InputNode by name
+  streamInput: (inputName: string, value: any, handle?: string) => {
+    const { wsManager } = get();
+    if (!wsManager) {
+      log.warn("streamInput called without an active WebSocket connection");
+      return;
+    }
+    wsManager.send({
+      type: "stream_input",
+      command: "stream_input",
+      data: { input: inputName, value, handle }
+    });
+  },
+
+  // End a streaming input by name
+  endInputStream: (inputName: string, handle?: string) => {
+    const { wsManager } = get();
+    if (!wsManager) {
+      log.warn("endInputStream called without an active WebSocket connection");
+      return;
+    }
+    wsManager.send({
+      type: "end_input_stream",
+      command: "end_input_stream",
+      data: { input: inputName, handle }
+    });
   },
 
   readMessage: (workflow: WorkflowAttributes, data: MsgpackData) => {
