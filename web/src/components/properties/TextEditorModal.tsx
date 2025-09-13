@@ -54,6 +54,8 @@ import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibilit
 import { useModalResize } from "../../hooks/editor/useModalResize";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useEditorActions } from "../../hooks/editor/useEditorActions";
+import { useCodeLanguage } from "../../hooks/editor/useCodeLanguage";
+import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -483,27 +485,10 @@ const TextEditorModal = ({
     defaultVisible: true
   });
 
-  // Code language override (for Monaco)
-  const CODE_LANGUAGE_KEY = "textEditorModal_codeLanguage";
-  const getInitialCodeLanguage = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(CODE_LANGUAGE_KEY);
-      if (saved && typeof saved === "string") return saved;
-    } catch {
-      /* empty */
-    }
-    return language;
-  }, [language]);
-  const [codeLanguage, setCodeLanguage] = useState<string>(
-    getInitialCodeLanguage
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(CODE_LANGUAGE_KEY, codeLanguage);
-    } catch {
-      /* empty */
-    }
-  }, [codeLanguage]);
+  // Code language (hook)
+  const { codeLanguage, setCodeLanguage } = useCodeLanguage({
+    defaultLanguage: language
+  });
 
   const handleToggleEditorMode = useCallback(() => {
     toggleEditorMode();
@@ -681,7 +666,7 @@ const TextEditorModal = ({
         insertIntoLexical(text);
       }
     },
-    [isCodeEditor, insertIntoLexical]
+    [isCodeEditor, insertIntoLexical, monacoRef]
   );
 
   const handleAITransform = useCallback(
@@ -909,13 +894,12 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
-  // Shortcuts: fullscreen, assistant pane, editor mode
-  useCombo(["ctrl", "shift", "f"], toggleFullscreen, false);
-  useCombo(["meta", "shift", "f"], toggleFullscreen, false);
-  useCombo(["ctrl", "shift", "a"], toggleAssistantVisible, false);
-  useCombo(["meta", "shift", "a"], toggleAssistantVisible, false);
-  useCombo(["ctrl", "shift", "e"], handleToggleEditorMode, false);
-  useCombo(["meta", "shift", "e"], handleToggleEditorMode, false);
+  // Shortcuts: fullscreen, assistant pane, editor mode (hook)
+  useEditorKeyboardShortcuts({
+    onToggleFullscreen: toggleFullscreen,
+    onToggleAssistant: toggleAssistantVisible,
+    onToggleEditorMode: handleToggleEditorMode
+  });
 
   // Close signal from other properties so only one modal active
   useEffect(() => {
