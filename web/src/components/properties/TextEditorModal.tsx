@@ -44,10 +44,9 @@ import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
-import type { MessageContent, LanguageModel } from "../../stores/ApiTypes";
+import type { LanguageModel } from "../../stores/ApiTypes";
 import { useEditorMode } from "../../hooks/editor/useEditorMode";
 import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
 import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
@@ -56,6 +55,7 @@ import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useEditorActions } from "../../hooks/editor/useEditorActions";
 import { useCodeLanguage } from "../../hooks/editor/useCodeLanguage";
 import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
+import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -440,20 +440,7 @@ const TextEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
-  const {
-    connect,
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
-    selectedModel,
-    setSelectedModel,
-    selectedTools,
-    selectedCollections,
-    stopGeneration,
-    createNewThread
-  } = useGlobalChatStore();
+  // chat now handled via useChatIntegration
 
   // Monaco dynamic import and actions (hook)
   const {
@@ -501,10 +488,7 @@ const TextEditorModal = ({
     }
   }, [isCodeEditor, loadMonacoIfNeeded]);
 
-  // Ensure chat is connected for assistant pane
-  useEffect(() => {
-    connect().catch(() => undefined);
-  }, [connect]);
+  // chat connection handled in hook
 
   // Resizable modal height state (hook)
   const { modalHeight, handleResizeMouseDown } = useModalResize({
@@ -544,18 +528,28 @@ const TextEditorModal = ({
   const setAllTextFnRef = useRef<((text: string) => void) | null>(null);
   const getSelectedTextFnRef = useRef<(() => string) | null>(null);
 
-  const improvePendingRef = useRef<{
-    active: boolean;
-    baseCount: number;
-    hadSelection: boolean;
-    isCodeEditor: boolean;
-    monacoRange: any | null;
-  }>({
-    active: false,
-    baseCount: 0,
-    hadSelection: false,
-    isCodeEditor: false,
-    monacoRange: null
+  // Chat integration
+  const {
+    handleAITransform,
+    status,
+    progress,
+    statusMessage,
+    getCurrentMessagesSync,
+    sendMessage,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    selectedCollections,
+    stopGeneration,
+    createNewThread
+  } = useChatIntegration({
+    isCodeEditor,
+    monacoRef,
+    getSelectedTextFnRef,
+    replaceSelectionFnRef,
+    setAllTextFnRef,
+    setCurrentText,
+    currentText
   });
 
   // Search state
@@ -669,89 +663,6 @@ const TextEditorModal = ({
     [isCodeEditor, insertIntoLexical, monacoRef]
   );
 
-  const handleAITransform = useCallback(
-    async (instruction: string, options?: { shouldReplace?: boolean }) => {
-      const shouldReplace = options?.shouldReplace ?? true;
-      // Get selected text from the active editor
-      let selected = "";
-      let hadSelection = false;
-      let monacoRange: any | null = null;
-      if (isCodeEditor && monacoRef.current) {
-        try {
-          const editor = monacoRef.current;
-          const selection = editor.getSelection();
-          if (selection) {
-            selected = editor.getModel().getValueInRange(selection) || "";
-            hadSelection = !!selected && selected.trim().length > 0;
-            monacoRange = selection;
-          }
-        } catch {
-          /* empty */
-        }
-      } else if (getSelectedTextFnRef.current) {
-        try {
-          selected = getSelectedTextFnRef.current() || "";
-          hadSelection = !!selected && selected.trim().length > 0;
-        } catch {
-          /* empty */
-        }
-      }
-
-      const textToProcess =
-        selected && selected.trim().length > 0 ? selected : currentText;
-
-      if (!textToProcess || textToProcess.trim().length === 0) {
-        return;
-      }
-
-      const composed = `${instruction}\n\n${textToProcess}`;
-
-      const content: MessageContent[] = [
-        { type: "text", text: composed } as MessageContent
-      ];
-
-      try {
-        const baseCount = getCurrentMessagesSync().length || 0;
-        if (shouldReplace) {
-          improvePendingRef.current = {
-            active: true,
-            baseCount,
-            hadSelection,
-            isCodeEditor,
-            monacoRange
-          };
-        }
-        await sendMessage({
-          type: "message",
-          name: "",
-          role: "user",
-          provider: (selectedModel as any)?.provider,
-          model: (selectedModel as any)?.id,
-          content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: false,
-          help_mode: false,
-          workflow_assistant: true
-        } as any);
-      } catch {
-        /* empty */
-      }
-    },
-    [
-      isCodeEditor,
-      monacoRef,
-      getSelectedTextFnRef,
-      currentText,
-      sendMessage,
-      selectedModel,
-      selectedTools,
-      selectedCollections,
-      getCurrentMessagesSync
-    ]
-  );
-
   const handleImproveSelection = useCallback(async () => {
     await handleAITransform(
       "Improve the following text for clarity, grammar, and style. Return only the improved text without commentary:"
@@ -789,72 +700,6 @@ const TextEditorModal = ({
       "Translate the following text to English. Return only the translation:"
     );
   }, [handleAITransform]);
-
-  useEffect(() => {
-    const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
-      const pending = improvePendingRef.current;
-      if (!pending.active) return;
-
-      const threadId = state.currentThreadId;
-      if (!threadId) return;
-
-      const messages = state.messageCache?.[threadId] || [];
-      if (messages.length <= pending.baseCount) return;
-
-      if (state.status === "streaming") return;
-
-      const last = messages[messages.length - 1];
-      if (!last || last.role !== "assistant") return;
-
-      let responseText = "";
-      const content = last.content as any;
-      if (typeof content === "string") {
-        responseText = content;
-      } else if (Array.isArray(content)) {
-        const textItem = content.find((c: any) => c?.type === "text");
-        responseText = textItem?.text || "";
-      }
-
-      if (!responseText) return;
-
-      if (pending.isCodeEditor && monacoRef.current) {
-        const editor = monacoRef.current;
-        try {
-          if (pending.hadSelection && pending.monacoRange) {
-            editor.executeEdits("improve-replace", [
-              {
-                range: pending.monacoRange,
-                text: responseText,
-                forceMoveMarkers: true
-              }
-            ]);
-          } else {
-            editor.setValue(responseText);
-          }
-          editor.focus();
-        } catch {
-          /* empty */
-        }
-      } else {
-        if (pending.hadSelection && replaceSelectionFnRef.current) {
-          replaceSelectionFnRef.current(responseText);
-        } else if (setAllTextFnRef.current) {
-          setAllTextFnRef.current(responseText);
-        } else {
-          setCurrentText(responseText);
-        }
-      }
-
-      improvePendingRef.current.active = false;
-    });
-    return () => {
-      try {
-        unsubscribe?.();
-      } catch {
-        /* empty */
-      }
-    };
-  }, [monacoRef]);
 
   // Clean-up the debounced function when the component unmounts
   useEffect(() => {
