@@ -14,7 +14,11 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     if (!source) return undefined;
     if (typeof source === "string") {
       // If it's already a URL string (data URL, blob URL, or http URL), return it directly
-      if (source.startsWith('data:') || source.startsWith('blob:') || source.startsWith('http')) {
+      if (
+        source.startsWith("data:") ||
+        source.startsWith("blob:") ||
+        source.startsWith("http")
+      ) {
         return source;
       }
       // If it's a regular string that's not a URL, treat it as data
@@ -26,7 +30,9 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     }
 
     // Create new object URL
-    const newObjectUrl = URL.createObjectURL(new Blob([source], { type: "image/png" }));
+    const newObjectUrl = URL.createObjectURL(
+      new Blob([source], { type: "image/png" })
+    );
     objectUrlRef.current = newObjectUrl;
     return newObjectUrl;
   }, [source]);
@@ -55,7 +61,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         alignItems: "flex-start",
         width: "100%",
         maxWidth: "100%",
-        height: "calc(100% - 24px)",
+        height: "100%",
         minHeight: "100px"
       }}
     >

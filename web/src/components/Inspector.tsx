@@ -151,6 +151,11 @@ const Inspector: React.FC = () => {
       : null;
     return { selectedNode: node, metadata: md };
   });
+  const { edges, findNode } = useNodes((state) => ({
+    edges: state.edges,
+    findNode: state.findNode
+  }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
   const inspectorStyles = styles(theme);
@@ -213,6 +218,7 @@ const Inspector: React.FC = () => {
               showHandle={false}
               isInspector={true}
               nodeType="inspector"
+              data={selectedNode.data}
               layout=""
             />
           ))}
@@ -222,7 +228,8 @@ const Inspector: React.FC = () => {
             ([name, value], index) => {
               // Infer type from incoming edge
               const incoming = edges.find(
-                (edge) => edge.target === selectedNode.id && edge.targetHandle === name
+                (edge) =>
+                  edge.target === selectedNode.id && edge.targetHandle === name
               );
               let resolvedType: TypeMetadata = {
                 type: "any",
@@ -255,6 +262,7 @@ const Inspector: React.FC = () => {
                   showHandle={false}
                   isInspector={true}
                   nodeType="inspector"
+                  data={selectedNode.data}
                   layout=""
                   isDynamicProperty={true}
                 />

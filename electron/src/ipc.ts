@@ -8,6 +8,7 @@ import {
 import {
   getServerState,
   openLogFile,
+  showItemInFolder,
   runApp,
   initializeBackendServer,
   stopServer,
@@ -47,7 +48,7 @@ import {
  * process and the privileged main process, following Electron's security best practices.
  */
 
-export type IpcMainHandler<T extends keyof IpcRequest> = (
+export type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   event: Electron.IpcMainInvokeEvent,
   data: IpcRequest[T]
 ) => Promise<IpcResponse[T]>;
@@ -115,6 +116,12 @@ export function initializeIpcHandlers(): void {
     openLogFile();
   });
 
+  createIpcMainHandler(
+    IpcChannels.SHOW_ITEM_IN_FOLDER,
+    async (_event, fullPath) => {
+      showItemInFolder(fullPath);
+    }
+  );
   // Continue to app handler
   createIpcMainHandler(IpcChannels.START_SERVER, async () => {
     logMessage("User continued to app from package manager");
@@ -131,6 +138,8 @@ export function initializeIpcHandlers(): void {
     } catch (e) {
       logMessage(`Error while stopping server for restart: ${e}`, "warn");
     }
+    // Small delay to ensure ports and resources are released before restart
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await initializeBackendServer();
     await setupWorkflowShortcuts();
   });
@@ -142,10 +151,17 @@ export function initializeIpcHandlers(): void {
   });
 
   // Show Package Manager window
-  createIpcMainHandler(IpcChannels.SHOW_PACKAGE_MANAGER, async (_event, nodeSearch) => {
-    logMessage(`Opening Package Manager window${nodeSearch ? ` with search: ${nodeSearch}` : ''}`);
-    createPackageManagerWindow(nodeSearch);
-  });
+  createIpcMainHandler(
+    IpcChannels.SHOW_PACKAGE_MANAGER,
+    async (_event, nodeSearch) => {
+      logMessage(
+        `Opening Package Manager window${
+          nodeSearch ? ` with search: ${nodeSearch}` : ""
+        }`
+      );
+      createPackageManagerWindow(nodeSearch);
+    }
+  );
 
   //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
   //     await installUpdate();

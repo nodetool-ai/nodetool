@@ -14,6 +14,7 @@ __pycache__
 *.pth
 *.safetensors
 build/
+coverage/
 dist/
 electron/apps/build/
 electron/dist/

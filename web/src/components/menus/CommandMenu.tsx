@@ -222,14 +222,14 @@ const NodeCommands = memo(function NodeCommands() {
 const ExampleCommands = memo(function ExampleCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
-  const { loadExamples, copy } = useWorkflowManager((state) => ({
-    loadExamples: state.loadExamples,
+  const { loadTemplates, copy } = useWorkflowManager((state) => ({
+    loadTemplates: state.loadTemplates,
     copy: state.copy
   }));
 
   const { data: examples } = useQuery<WorkflowList>({
-    queryKey: ["examples"],
-    queryFn: loadExamples
+    queryKey: ["templates"],
+    queryFn: loadTemplates
   });
 
   const loadExample = useCallback(
@@ -244,7 +244,7 @@ const ExampleCommands = memo(function ExampleCommands() {
   if (!examples) return null;
 
   return (
-    <Command.Group heading="Examples">
+    <Command.Group heading="Templates">
       {examples.workflows.map((example, idx) => (
         <Command.Item
           key={idx}

@@ -3,7 +3,6 @@ import type { Theme } from "@mui/material/styles";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
-    width: "100%",
     flexGrow: 1,
     position: "relative",
     display: "flex",
@@ -58,7 +57,10 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
-      position: "relative"
+      position: "relative",
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "8px"
     },
 
     "li.user": {
@@ -183,6 +185,68 @@ export const createStyles = (theme: Theme) => ({
     ".progress-bar": {
       width: "80%",
       marginBottom: "0.5em"
+    },
+
+    ".message-content": {
+      flex: 1,
+      minWidth: 0,
+      overflow: "hidden",
+      wordBreak: "break-word",
+      overflowWrap: "anywhere"
+    },
+
+    ".tool-call-card": {
+      border: "1px solid var(--palette-grey-900)",
+      borderRadius: 8,
+      background: "transparent",
+      padding: "6px 10px",
+      marginBottom: 6
+    },
+
+    ".tool-call-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    },
+
+    ".tool-chip": {
+      fontWeight: 600,
+      color: "var(--palette-grey-200)",
+      borderColor: "var(--palette-grey-900)"
+    },
+
+    ".tool-message": {
+      color: "var(--palette-grey-400)"
+    },
+
+    ".expand-icon": {
+      transition: "transform 0.15s ease",
+      color: "var(--palette-grey-500)"
+    },
+
+    ".expand-icon.expanded": {
+      transform: "rotate(180deg)"
+    },
+
+    ".tool-section-title": {
+      color: "var(--palette-grey-500)"
+    },
+
+    ".pretty-json": {
+      margin: 0,
+      padding: "8px 10px",
+      background: "var(--palette-grey-1100, #0f0f0f)",
+      borderRadius: 6,
+      color: "var(--palette-grey-300)",
+      border: "1px solid var(--palette-grey-900)",
+      overflowX: "auto"
+    },
+
+    ".error-icon": {
+      color: theme.vars.palette.error.main,
+      fontSize: 20,
+      marginTop: 4,
+      flexShrink: 0
     },
 
     "li.chat-message-list-item": {

@@ -19,12 +19,14 @@ import { DockviewReact, DockviewReadyEvent, DockviewApi } from "dockview";
 import AddPanelDropdown from "./AddPanelDropdown";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { defaultLayout } from "../../config/defaultLayouts";
+import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 import LayoutMenu from "./LayoutMenu";
 import { useLayoutStore } from "../../stores/LayoutStore";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useChatService } from "../../hooks/useChatService";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { PANEL_CONFIG } from "./panelConfig";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
@@ -35,21 +37,23 @@ const styles = (theme: Theme) =>
     ".dashboard": {
       width: "calc(100vw - 64px)",
       height: "calc(100vh - 64px)",
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       top: "64px",
       left: "64px"
     },
     "& .dockview-container": {
-      paddingTop: "2rem"
+      paddingTop: "2rem",
+      flex: 1,
+      minHeight: 0,
+      height: "100%"
     },
     // CONTENT
     "& .dv-react-part": {
       paddingTop: ".2rem"
     },
     // CHAT
-    "& .chat-view": {
-      height: "fit-content"
-    },
     "& .chat-input-section": {
       marginTop: 0,
       paddingTop: 0
@@ -64,24 +68,14 @@ const Dashboard: React.FC = () => {
   const theme = useTheme();
   const settings = useSettingsStore((state) => state.settings);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
   const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
 
   const isMountedRef = useRef(true);
 
-  // Ensure WebSocket connection is established when Dashboard mounts
-  useEffect(() => {
-    const { status, connect } = useGlobalChatStore.getState();
-    if (status === "disconnected" || status === "failed") {
-      connect().catch((error) => {
-        console.error("Dashboard: Failed to establish chat connection:", error);
-      });
-    }
-  }, []);
+  // Ensure WebSocket connection while dashboard is visible
+  useEnsureChatConnected({ disconnectOnUnmount: false });
 
   const tryParseModel = (model: string) => {
     try {
@@ -105,8 +99,8 @@ const Dashboard: React.FC = () => {
   const {
     isLoadingWorkflows,
     sortedWorkflows,
-    isLoadingExamples,
-    startExamples
+    isLoadingTemplates,
+    startTemplates
   } = useDashboardData();
 
   const {
@@ -114,7 +108,7 @@ const Dashboard: React.FC = () => {
     handleCreateNewWorkflow,
     handleWorkflowClick,
     handleExampleClick,
-    handleViewAllExamples
+    handleViewAllTemplates
   } = useWorkflowActions();
 
   const {
@@ -152,12 +146,12 @@ const Dashboard: React.FC = () => {
 
   const panelParams = useMemo(() => {
     return {
-      examples: {
-        startExamples,
-        isLoadingExamples,
+      templates: {
+        startTemplates,
+        isLoadingTemplates,
         loadingExampleId,
         handleExampleClick,
-        handleViewAllExamples
+        handleViewAllTemplates
       },
       workflows: {
         sortedWorkflows,
@@ -193,11 +187,11 @@ const Dashboard: React.FC = () => {
       }
     };
   }, [
-    startExamples,
-    isLoadingExamples,
+    startTemplates,
+    isLoadingTemplates,
     loadingExampleId,
     handleExampleClick,
-    handleViewAllExamples,
+    handleViewAllTemplates,
     sortedWorkflows,
     isLoadingWorkflows,
     settings,
@@ -236,9 +230,9 @@ const Dashboard: React.FC = () => {
       const activeLayout = (layouts || []).find((l) => l.id === activeLayoutId);
 
       if (activeLayout) {
-        api.fromJSON(activeLayout.layout);
+        applyDockviewLayoutSafely(api, activeLayout.layout);
       } else {
-        api.fromJSON(defaultLayout);
+        applyDockviewLayoutSafely(api, defaultLayout);
       }
     },
 

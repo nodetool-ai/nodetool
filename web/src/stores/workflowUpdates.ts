@@ -4,37 +4,71 @@ import {
   Prediction,
   NodeProgress,
   NodeUpdate,
-  AssetRef,
-  Message,
   TaskUpdate,
   ToolCallUpdate,
   PlanningUpdate,
   OutputUpdate,
-  ImageRef
+  PreviewUpdate,
+  EdgeUpdate,
+  LogUpdate
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
-import { useAssetStore } from "./AssetStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import log from "loglevel";
 import useWorkflowRunner from "./WorkflowRunner";
 import { MsgpackData } from "./WorkflowChatStore";
+import { Notification } from "./ApiTypes";
+import { useNotificationStore } from "./NotificationStore";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
   data: MsgpackData
 ) => {
   const runner = useWorkflowRunner.getState();
-  const getAsset = useAssetStore.getState().get;
   const setResult = useResultsStore.getState().setResult;
+  const clearResults = useResultsStore.getState().clearResults;
   const setStatus = useStatusStore.getState().setStatus;
-  const setLogs = useLogsStore.getState().setLogs;
+  const clearStatuses = useStatusStore.getState().clearStatuses;
+  const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
+  const clearProgress = useResultsStore.getState().clearProgress;
+  const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
+  const setEdge = useResultsStore.getState().setEdge;
+  const clearEdges = useResultsStore.getState().clearEdges;
+  const addNotification = useNotificationStore.getState().addNotification;
+
+  console.log("handleUpdate", data);
+
+  if (data.type === "log_update") {
+    const logUpdate = data as LogUpdate;
+    appendLog({
+      workflowId: workflow.id,
+      nodeId: logUpdate.node_id,
+      nodeName: logUpdate.node_name,
+      content: logUpdate.content,
+      severity: logUpdate.severity,
+      timestamp: Date.now()
+    });
+  }
+
+  if (data.type === "notification") {
+    const notification = data as Notification;
+    addNotification({
+      type: notification.severity,
+      content: notification.content
+    });
+  }
+
+  if (data.type === "edge_update") {
+    const edgeUpdate = data as EdgeUpdate;
+    setEdge(workflow.id, edgeUpdate.edge_id, edgeUpdate.status);
+  }
 
   if (data.type === "planning_update") {
     const planningUpdate = data as PlanningUpdate;
@@ -64,33 +98,7 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    const assetTypes = ["image", "audio", "video", "document"];
-    if (update.output_type === "string") {
-      // String updates are handled in WorkflowChatStore directly
-    } else if (assetTypes.includes(update.output_type)) {
-      const value = update.value as { uri: string; data: Uint8Array };
-      setResult(
-        workflow.id,
-        update.node_id,
-        {
-          output: {
-            type: update.output_type,
-            uri: value.uri,
-            data: value.data
-          }
-        },
-        true
-      );
-    } else {
-      setResult(
-        workflow.id,
-        update.node_id,
-        {
-          output: update.value
-        },
-        true
-      );
-    }
+    setResult(workflow.id, update.node_id, update.value, true);
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
@@ -114,6 +122,9 @@ export const handleUpdate = (
           }`,
           timeout: job.status === "failed" ? 30000 : undefined
         });
+        clearStatuses(workflow.id);
+        clearEdges(workflow.id);
+        clearProgress(workflow.id);
         runner.disconnect();
         break;
       case "queued":
@@ -135,7 +146,14 @@ export const handleUpdate = (
 
   if (data.type === "prediction") {
     const pred = data as Prediction;
-    setLogs(workflow.id, pred.node_id, pred.logs || "");
+    appendLog({
+      workflowId: workflow.id,
+      nodeId: pred.node_id,
+      nodeName: "",
+      content: pred.logs || "",
+      severity: "info",
+      timestamp: Date.now()
+    });
     if (pred.status === "booting") {
       setStatus(workflow.id, pred.node_id, "booting");
     }
@@ -149,6 +167,11 @@ export const handleUpdate = (
       progress.progress,
       progress.total
     );
+  }
+
+  if (data.type === "preview_update") {
+    const preview = data as PreviewUpdate;
+    setPreview(workflow.id, preview.node_id, preview.value, true);
   }
 
   if (data.type === "node_update") {
@@ -169,40 +192,19 @@ export const handleUpdate = (
       useWorkflowRunner.setState({ state: "error" });
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
+      appendLog({
+        workflowId: workflow.id,
+        nodeId: update.node_id,
+        nodeName: update.node_name || update.node_id,
+        content: `${update.node_name || update.node_id} error: ${update.error}`,
+        severity: "error",
+        timestamp: Date.now()
+      });
     } else {
       useWorkflowRunner.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
-      if (update.logs) {
-        setLogs(workflow.id, update.node_id, update.logs);
-      }
       setStatus(workflow.id, update.node_id, update.status);
-    }
-
-    if (update.status === "completed") {
-      setResult(workflow.id, update.node_id, update.result, true);
-
-      // This should happen in output renderer.
-      // if (update.result) {
-      //   Object.entries(update.result).forEach(([key, value]) => {
-      //     const ref = value as AssetRef;
-      //     if (typeof ref === "object" && ref !== null && "asset_id" in ref) {
-      //       const asset_id = ref.asset_id;
-      //       if (asset_id) {
-      //         getAsset(asset_id).then((res) => {
-      //           if (res?.get_url) {
-      //             ref.uri = res.get_url;
-      //           }
-      //           setResult(workflow.id, update.node_id, { [key]: ref });
-      //         });
-      //       } else {
-      //         log.error(
-      //           `WorkflowRunner: Asset id is null or undefined for key: ${key}`
-      //         );
-      //       }
-      //     }
-      //   });
-      // }
     }
 
     // if (update.properties) {

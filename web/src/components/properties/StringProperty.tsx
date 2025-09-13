@@ -17,7 +17,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isInspector
+  isInspector,
+  isDynamicProperty
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -88,6 +89,7 @@ const StringProperty = ({
             name={property.name}
             description={property.description}
             id={id}
+            isDynamicProperty={isDynamicProperty}
           />
           {isHovered && (
             <div className="string-action-buttons">

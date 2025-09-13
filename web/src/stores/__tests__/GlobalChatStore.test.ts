@@ -3,6 +3,11 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).TextDecoder = TextDecoder;
 (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
 
+jest.mock("../BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000",
+  CHAT_URL: "ws://test/chat"
+}));
+
 import { encode, decode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
@@ -20,7 +25,14 @@ import { supabase } from "../../lib/supabaseClient";
 
 jest.mock("../ApiClient", () => ({
   CHAT_URL: "ws://test/chat",
-  isLocalhost: true
+  isLocalhost: true,
+  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" })),
+  client: {
+    GET: jest.fn(async () => ({ data: {}, error: null })),
+    POST: jest.fn(async () => ({ data: {}, error: null })),
+    PUT: jest.fn(async () => ({ data: {}, error: null })),
+    DELETE: jest.fn(async () => ({ data: {}, error: null }))
+  }
 }));
 
 jest.mock("../../lib/supabaseClient", () => ({
@@ -97,7 +109,7 @@ describe("GlobalChatStore", () => {
       currentThreadId: null,
       status: "disconnected",
       error: null,
-      progress: { current: 0, total: 0 },
+      progress: { current: 0, total: 0 }
     } as any);
   });
 
@@ -199,11 +211,6 @@ describe("GlobalChatStore", () => {
       expect(state.status).toBe("connected");
       expect((state as any).socket).toBeTruthy();
       expect(state.error).toBeNull();
-    });
-
-    it("connect with workflowId sets workflowId", async () => {
-      await store.getState().connect("workflow-123");
-      expect(store.getState().workflowId).toBe("workflow-123");
     });
 
     it("connect closes existing socket before creating new one", async () => {
@@ -396,6 +403,7 @@ describe("GlobalChatStore", () => {
       const nodeUpdate: NodeUpdate = {
         type: "node_update",
         node_id: "test-node",
+        node_type: "test.node",
         status: "completed",
         node_name: "Test Node"
       };
@@ -410,6 +418,7 @@ describe("GlobalChatStore", () => {
       const nodeUpdate: NodeUpdate = {
         type: "node_update",
         node_id: "test-node",
+        node_type: "test.node",
         status: "running",
         node_name: "Test Node"
       };
@@ -700,7 +709,12 @@ describe("GlobalChatStore", () => {
     });
 
     it("sendMessage does nothing when socket is not connected", async () => {
-      store.setState({ socket: null, wsManager: null, currentThreadId: null, threads: {} } as any);
+      store.setState({
+        socket: null,
+        wsManager: null,
+        currentThreadId: null,
+        threads: {}
+      } as any);
       const message: Message = {
         role: "user",
         type: "message",

@@ -28,11 +28,11 @@ const PackageManager: React.FC = () => {
   useEffect(() => {
     initialize();
   }, []);
-  
+
   useEffect(() => {
     // Check for nodeSearch query parameter after component mounts
     const urlParams = new URLSearchParams(window.location.search);
-    const nodeSearchParam = urlParams.get('nodeSearch');
+    const nodeSearchParam = urlParams.get("nodeSearch");
     if (nodeSearchParam) {
       handleNodeSearch(nodeSearchParam);
     }
@@ -127,14 +127,23 @@ const PackageManager: React.FC = () => {
         throw new Error(result.message);
       }
 
-      // Refresh installed packages
-      const installedData = await fetchInstalledPackages();
-      setInstalledPackages(installedData.packages || []);
       if (!isInstalled) {
         alert(
           "Package installed successfully. The server will restart to apply changes."
         );
-        await window.api.restartServer();
+        // Reload after showing the message
+        const installedData = await fetchInstalledPackages();
+        setInstalledPackages(installedData.packages || []);
+        // Trigger restart without awaiting to avoid UI hang
+        try {
+          window.api?.restartServer?.();
+        } catch (e) {
+          console.warn("Restart server failed:", e);
+        }
+      } else {
+        // For uninstall path, keep behavior
+        const installedData = await fetchInstalledPackages();
+        setInstalledPackages(installedData.packages || []);
       }
     } catch (error: any) {
       console.error("Package action failed:", error);

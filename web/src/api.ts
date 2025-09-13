@@ -610,24 +610,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Open In Explorer
-         * @description Opens the specified path in the system's default file explorer.
-         *
-         *     Security measures:
-         *     - The requested path must be within a pre-configured list of safe root directories
-         *       (e.g., Ollama models directory, Hugging Face cache).
-         *     - The input path is sanitized using `shlex.quote` for non-Windows platforms before
-         *       being passed to subprocess commands to prevent command injection.
-         *
-         *     Args:
-         *         path (str): The path to open in the file explorer.
-         *         user (str): The current user, injected by FastAPI dependency.
-         *
-         *     Returns:
-         *         dict: A dictionary indicating success (e.g., {"status": "success", "path": "/validated/path"})
-         *               or an error (e.g., {"status": "error", "message": "..."}).
-         */
+        /** Open In Explorer */
         post: operations["open_in_explorer_api_models_open_in_explorer_post"];
         delete?: never;
         options?: never;
@@ -819,7 +802,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Examples */
+        /**
+         * Examples
+         * @description List example workflows enriched with required providers and models.
+         *
+         *     Provider detection rules:
+         *     - If a node's namespace matches a known provider namespace
+         *       (gemini, openai, replicate, huggingface, huggingface_hub, fal, aime)
+         *     - Or if any node property is a LanguageModel (type == 'language_model')
+         *       which has a 'provider' field
+         *
+         *     Model detection rules:
+         *     - Collect ids from LanguageModel (id)
+         *     - Collect repo_id from HuggingFaceModel-like types (types starting with 'hf.')
+         *     - Collect model_id from InferenceProvider* types
+         */
         get: operations["examples_api_workflows_examples_get"];
         put?: never;
         post?: never;
@@ -1020,6 +1017,23 @@ export interface paths {
         get: operations["get_system_fonts_api_fonts__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/debug/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Debug Bundle */
+        post: operations["export_debug_bundle_api_debug_export_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1407,6 +1421,13 @@ export interface components {
              */
             file: string;
         };
+        /** CachedFileInfo */
+        CachedFileInfo: {
+            /** File Name */
+            file_name: string;
+            /** Size On Disk */
+            size_on_disk: number;
+        };
         /** CachedModel */
         CachedModel: {
             /** Repo Id */
@@ -1427,6 +1448,11 @@ export interface components {
             the_model_info?: components["schemas"]["ModelInfo"] | null;
             /** Readme */
             readme?: string | null;
+            /**
+             * Cached Files
+             * @default []
+             */
+            cached_files: components["schemas"]["CachedFileInfo"][];
         };
         /** CachedRepo */
         CachedRepo: {
@@ -1590,6 +1616,31 @@ export interface components {
              */
             utc_offset: number;
         };
+        /** DebugBundleRequest */
+        DebugBundleRequest: {
+            /** Workflow Id */
+            workflow_id?: string | null;
+            /** Graph */
+            graph?: {
+                [key: string]: unknown;
+            } | null;
+            /** Errors */
+            errors?: string[] | null;
+            /**
+             * Preferred Save
+             * @description desktop or downloads preference
+             */
+            preferred_save?: string | null;
+        };
+        /** DebugBundleResponse */
+        DebugBundleResponse: {
+            /** File Path */
+            file_path: string;
+            /** Filename */
+            filename: string;
+            /** Message */
+            message: string;
+        };
         /**
          * DocumentRef
          * @description A reference to a document asset.
@@ -1628,6 +1679,22 @@ export interface components {
             ui_properties?: {
                 [key: string]: string;
             } | null;
+        };
+        /**
+         * EdgeUpdate
+         * @description A message representing an update to an edge.
+         */
+        EdgeUpdate: {
+            /**
+             * Type
+             * @default edge_update
+             * @constant
+             */
+            type: "edge_update";
+            /** Edge Id */
+            edge_id: string;
+            /** Status */
+            status: string;
         };
         /** Email */
         Email: {
@@ -3136,6 +3203,29 @@ export interface components {
             timestamp: number;
         };
         /**
+         * LogUpdate
+         * @description A message representing a log update from a node.
+         */
+        LogUpdate: {
+            /**
+             * Type
+             * @default log_update
+             * @constant
+             */
+            type: "log_update";
+            /** Node Id */
+            node_id: string;
+            /** Node Name */
+            node_name: string;
+            /** Content */
+            content: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "error";
+        };
+        /**
          * Message
          * @description Abstract representation for a chat message.
          *     Independent of the underlying chat system, such as OpenAI or Anthropic.
@@ -3428,6 +3518,11 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Input"];
             };
+            /**
+             * Sync Mode
+             * @default on_any
+             */
+            sync_mode: string;
         };
         /** Node */
         "Node-Output": {
@@ -3452,6 +3547,11 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Output"];
             };
+            /**
+             * Sync Mode
+             * @default on_any
+             */
+            sync_mode: string;
         };
         /**
          * NodeMetadata
@@ -3517,12 +3617,6 @@ export interface components {
              * @default false
              */
             is_dynamic: boolean;
-            /**
-             * Is Streaming
-             * @description Whether the node is streaming
-             * @default false
-             */
-            is_streaming: boolean;
             /**
              * Expose As Tool
              * @description Whether the node is exposed as a tool
@@ -3600,8 +3694,6 @@ export interface components {
             status: string;
             /** Error */
             error?: string | null;
-            /** Logs */
-            logs?: string | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
@@ -3610,6 +3702,27 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * Notification
+         * @description A message representing a notification from a node.
+         */
+        Notification: {
+            /**
+             * Type
+             * @default notification
+             * @constant
+             */
+            type: "notification";
+            /** Node Id */
+            node_id: string;
+            /** Content */
+            content: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning" | "error";
         };
         /**
          * OutputSlot
@@ -3771,6 +3884,22 @@ export interface components {
             completed_at?: string | null;
         };
         /**
+         * PreviewUpdate
+         * @description A message representing a preview update from a node.
+         */
+        PreviewUpdate: {
+            /**
+             * Type
+             * @default preview_update
+             * @constant
+             */
+            type: "preview_update";
+            /** Node Id */
+            node_id: string;
+            /** Value */
+            value: unknown;
+        };
+        /**
          * Property
          * @description Property of a node.
          *
@@ -3818,6 +3947,67 @@ export interface components {
              * @default false
              */
             downloaded: boolean;
+        };
+        /**
+         * RunJobRequest
+         * @description A request model for running a workflow.
+         *
+         *     Attributes:
+         *         type: The type of request, always "run_job_request".
+         *         job_type: The type of job to run, defaults to "workflow".
+         *         params: Optional parameters for the job.
+         *         messages: Optional list of messages associated with the job.
+         *         workflow_id: The ID of the workflow to run.
+         *         user_id: The ID of the user making the request.
+         *         auth_token: Authentication token for the request.
+         *         api_url: Optional API URL to use for the job.
+         *         env: Optional environment variables for the job.
+         *         graph: Optional graph data for the job.
+         *         explicit_types: Whether to use explicit types, defaults to False.
+         */
+        RunJobRequest: {
+            /**
+             * Type
+             * @default run_job_request
+             * @constant
+             */
+            type: "run_job_request";
+            /**
+             * Job Type
+             * @default workflow
+             */
+            job_type: string;
+            /** Params */
+            params?: unknown | null;
+            /** Messages */
+            messages?: components["schemas"]["Message"][] | null;
+            /**
+             * Workflow Id
+             * @default
+             */
+            workflow_id: string;
+            /**
+             * User Id
+             * @default
+             */
+            user_id: string;
+            /**
+             * Auth Token
+             * @default
+             */
+            auth_token: string;
+            /** Api Url */
+            api_url?: string | null;
+            /** Env */
+            env?: {
+                [key: string]: unknown;
+            } | null;
+            graph?: components["schemas"]["Graph-Output"] | null;
+            /**
+             * Explicit Types
+             * @default false
+             */
+            explicit_types: boolean | null;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
@@ -4263,6 +4453,24 @@ export interface components {
             message?: string | null;
         };
         /**
+         * ToolResultUpdate
+         * @description A message representing a tool result from a node.
+         */
+        ToolResultUpdate: {
+            /**
+             * Type
+             * @default tool_result_update
+             * @constant
+             */
+            type: "tool_result_update";
+            /** Node Id */
+            node_id: string;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * TypeMetadata
          * @description Metadata for a type.
          */
@@ -4352,6 +4560,8 @@ export interface components {
             updated_at: string;
             /** Name */
             name: string;
+            /** Tool Name */
+            tool_name?: string | null;
             /** Description */
             description: string;
             /** Tags */
@@ -4379,6 +4589,10 @@ export interface components {
             path?: string | null;
             /** Run Mode */
             run_mode?: string | null;
+            /** Required Providers */
+            required_providers?: string[] | null;
+            /** Required Models */
+            required_models?: string[] | null;
         };
         /** WorkflowList */
         WorkflowList: {
@@ -4405,6 +4619,8 @@ export interface components {
         WorkflowRequest: {
             /** Name */
             name: string;
+            /** Tool Name */
+            tool_name?: string | null;
             /** Package Name */
             package_name?: string | null;
             /** Path */
@@ -4430,6 +4646,22 @@ export interface components {
             } | null;
             /** Run Mode */
             run_mode?: string | null;
+        };
+        /** WorkflowTool */
+        WorkflowTool: {
+            /** Name */
+            name: string;
+            /** Tool Name */
+            tool_name?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** WorkflowToolList */
+        WorkflowToolList: {
+            /** Next */
+            next: string | null;
+            /** Workflows */
+            workflows: components["schemas"]["WorkflowTool"][];
         };
     };
     responses: never;
@@ -5759,7 +5991,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
                 };
             };
         };
@@ -5961,7 +6193,6 @@ export interface operations {
             query?: {
                 cursor?: string | null;
                 limit?: number;
-                columns?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -5979,7 +6210,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorkflowList"];
+                    "application/json": components["schemas"]["WorkflowToolList"];
                 };
             };
             /** @description Validation Error */
@@ -6542,6 +6773,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FontResponse"];
+                };
+            };
+        };
+    };
+    export_debug_bundle_api_debug_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DebugBundleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebugBundleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

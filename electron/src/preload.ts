@@ -90,6 +90,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, text),
   clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
+  showItemInFolder: (fullPath: string) =>
+    ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, fullPath),
   installToLocation: (location: string, packages: PythonPackages) =>
     ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
   selectCustomInstallLocation: () =>

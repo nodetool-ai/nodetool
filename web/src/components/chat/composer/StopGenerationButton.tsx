@@ -15,27 +15,29 @@ export const StopGenerationButton = forwardRef<
       ref={ref}
       onClick={onClick}
       size="small"
-      sx={{
-        width: 40,
-        height: 40,
+      sx={(theme) => ({
+        width: 36,
+        height: 36,
         padding: 0,
-        borderRadius: "50%",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.1)",
-        transition: "background-color 0.2s",
+        backgroundColor: theme.vars.palette.grey[600],
+        transition: "background-color 0.15s ease, transform 0.1s ease",
+        boxShadow: "none",
         "&:hover": {
-          backgroundColor: "var(--palette-primary-main)",
-          "& .MuiSvgIcon-root": {
-            color: "#ffffff"
-          }
+          backgroundColor: theme.vars.palette.grey[600]
+        },
+        "&:active": {
+          transform: "translateY(1px)"
+        },
+        "&:disabled": {
+          opacity: 0.5
         }
-      }}
+      })}
     >
       <StopIcon
         fontSize="small"
-        sx={{
-          color: "var(--palette-grey-800)"
-        }}
+        sx={(theme) => ({
+          color: theme.palette.text.primary
+        })}
       />
     </IconButton>
   );

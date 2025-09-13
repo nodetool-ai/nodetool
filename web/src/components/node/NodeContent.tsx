@@ -10,6 +10,7 @@ import { isEqual } from "lodash";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
+import useLogsStore from "../../stores/LogStore";
 
 interface NodeContentProps {
   id: string;
@@ -47,6 +48,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties as Record<string, any>
   );
 
+  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
   return (
     <>
       <NodeInputs
@@ -72,24 +74,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {renderedResult && (
-        <Typography
-          variant="caption"
-          sx={{
-            px: 1,
-            pt: 0.5,
-            pb: 0,
-            display: "block",
-            color: (theme) => theme.vars.palette.grey[400],
-            fontFamily: (theme) => theme.fontFamily2,
-            textTransform: "none"
-          }}
-        >
-          <code style={{ fontFamily: "inherit", fontSize: "inherit" }}>
-            {nodeType}
-          </code>
-        </Typography>
-      )}
       {renderedResult}
       <ProcessTimer status={status} />
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}

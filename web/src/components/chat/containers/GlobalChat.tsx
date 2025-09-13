@@ -15,35 +15,35 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
+import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
+import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
   const {
-    connect,
-    disconnect,
     status,
     sendMessage,
     progress,
-    resetMessages,
     statusMessage,
     error,
     currentThreadId,
     getCurrentMessagesSync,
     createNewThread,
-    threads,
     switchThread,
-    deleteThread,
     stopGeneration,
     agentMode,
     setAgentMode,
     currentPlanningUpdate,
     currentTaskUpdate,
-    isLoadingMessages,
     threadsLoaded
   } = useGlobalChatStore();
+  const runningToolCallId = useGlobalChatStore(
+    (s) => s.currentRunningToolCallId
+  );
+  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
@@ -70,20 +70,8 @@ const GlobalChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
 
-  // Connect once on mount and clean up on unmount
-  useEffect(() => {
-    if (status === "disconnected") {
-      connect().catch((error) => {
-        console.error("Failed to connect to global chat:", error);
-      });
-    }
-
-    return () => {
-      // Only disconnect on actual unmount, not on thread changes
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run on mount/unmount
+  // Ensure chat connection while GlobalChat is visible (do not disconnect on unmount)
+  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -338,6 +326,21 @@ const GlobalChat: React.FC = () => {
           </Alert>
         )}
 
+        {/* Controls row */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 0.5,
+            px: 1,
+            pt: 1,
+            mt: 10
+          }}
+        >
+          <NewChatButton onNewThread={handleNewChat} />
+        </Box>
+
         <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
           <ChatView
             status={getChatViewStatus()}
@@ -346,6 +349,8 @@ const GlobalChat: React.FC = () => {
             progress={progress.current}
             total={progress.total}
             progressMessage={statusMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
             model={selectedModel}
             selectedTools={selectedTools}
             onToolsChange={setSelectedTools}

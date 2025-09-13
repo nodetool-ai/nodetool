@@ -1,6 +1,7 @@
 import { Menu, shell } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
+import { createPackageManagerWindow } from "./window";
 
 /**
  * Builds the application menu
@@ -209,6 +210,15 @@ const buildMenu = () => {
         },
         { type: "separator" },
         { role: "togglefullscreen" },
+      ],
+    },
+    {
+      label: "Tools",
+      submenu: [
+        {
+          label: "Package Manager",
+          click: () => createPackageManagerWindow(),
+        },
       ],
     },
     {

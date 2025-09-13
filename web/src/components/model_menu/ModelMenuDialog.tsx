@@ -113,6 +113,9 @@ export default function ModelMenuDialog({
     <Dialog
       open={open}
       onClose={onClose}
+      css={css({
+        zIndex: 20000
+      })}
       className="model-menu__dialog"
       transitionDuration={isSmall ? 0 : undefined}
       slotProps={{

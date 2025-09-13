@@ -38,10 +38,11 @@ import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import AssetExplorer from "./components/assets/AssetExplorer";
+import CollectionsExplorer from "./components/collections/CollectionsExplorer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
-import ExampleGrid from "./components/workflows/ExampleGrid";
+import TemplateGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
@@ -72,6 +73,24 @@ import Dashboard from "./components/dashboard/Dashboard";
 import Alert from "./components/node_editor/Alert";
 import MobileClassProvider from "./components/MobileClassProvider";
 import AppHeader from "./components/panels/AppHeader";
+
+// Register frontend tools
+import "./lib/tools/builtin/addNode";
+import "./lib/tools/builtin/setSelectionMode";
+import "./lib/tools/builtin/setAutoLayout";
+import "./lib/tools/builtin/setNodeSyncMode";
+import "./lib/tools/builtin/connectNodes";
+import "./lib/tools/builtin/deleteNode";
+import "./lib/tools/builtin/deleteEdge";
+import "./lib/tools/builtin/updateNodeData";
+import "./lib/tools/builtin/moveNode";
+import "./lib/tools/builtin/autoLayout";
+import "./lib/tools/builtin/setNodeTitle";
+import "./lib/tools/builtin/setNodeColor";
+import "./lib/tools/builtin/alignNodes";
+import "./lib/tools/builtin/duplicateNode";
+import "./lib/tools/builtin/selectNodes";
+import "./lib/tools/builtin/fitView";
 
 (window as any).log = log;
 
@@ -162,11 +181,19 @@ function getRoutes() {
       )
     },
     {
-      path: "examples",
+      path: "collections",
+      element: (
+        <ProtectedRoute>
+          <CollectionsExplorer />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "templates",
       element: (
         <ProtectedRoute>
           <PanelLeft />
-          <ExampleGrid />
+          <TemplateGrid />
         </ProtectedRoute>
       )
     },
@@ -244,13 +271,6 @@ const AppWrapper = () => {
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
   }, []); // Empty dependency array ensures this runs only once on mount
-
-  // Helper to navigate to the newly created workflow
-  // This function seems unused in the current context of AppWrapper's return,
-  // but keeping it in case it's used by other parts or intended for future use.
-  const handleWorkflowCreated = (workflowId: string) => {
-    window.location.href = `/editor/${workflowId}`;
-  };
 
   return (
     <React.StrictMode>

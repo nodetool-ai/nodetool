@@ -3,11 +3,12 @@ import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
 
-async function createViteConfig() {
+export default defineConfig(async ({ mode }) => {
   const browserslistToEsbuild = (await import("browserslist-to-esbuild"))
     .default;
+  const isDebug = mode === "debug";
 
-  return defineConfig({
+  return {
     server: {
       allowedHosts: [".nodetool.ai"],
       port: 3000
@@ -24,14 +25,17 @@ async function createViteConfig() {
     ],
     build: {
       target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all"]),
-      // minify: false,
-      rollupOptions: {
-        output: {
-          manualChunks: undefined
-        }
-      }
+      sourcemap: isDebug,
+      minify: isDebug ? false : "esbuild",
+      ...(isDebug
+        ? {}
+        : {
+            rollupOptions: {
+              output: {
+                manualChunks: undefined
+              }
+            }
+          })
     }
-  });
-}
-
-export default createViteConfig();
+  };
+});

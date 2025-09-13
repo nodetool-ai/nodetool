@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import { IconButton } from "@mui/material";
 
 interface NewChatComposerButtonProps {
@@ -20,33 +20,32 @@ export const NewChatComposerButton = forwardRef<
       size="small"
       disableRipple={disabled}
       disabled={disabled}
-      sx={{
-        width: 30,
-        height: 30,
-        borderRadius: "50%",
-        backgroundColor: "transparent",
-        transition: "all 0.2s",
-        marginRight: "8px",
+      sx={(theme) => ({
+        width: 36,
+        height: 36,
+        transition: "background-color 0.15s ease, transform 0.1s ease",
+        marginRight: "6px",
         "&:hover": {
-          backgroundColor: "var(--palette-action-hover)",
-          borderColor: "var(--palette-primary-main)"
+          backgroundColor: theme.vars.palette.grey[600]
+        },
+        "&:active": {
+          transform: "translateY(1px)"
         },
         "&:disabled": {
-          opacity: 0.5,
-          borderColor: "var(--palette-grey-500)"
+          opacity: 0.5
         }
-      }}
+      })}
     >
-      <ChatBubbleOutlineIcon
+      <AddCommentOutlinedIcon
         fontSize="small"
-        sx={{
+        sx={(theme) => ({
           color: disabled
-            ? "var(--palette-text-disabled)"
-            : "var(--palette-text-primary)"
-        }}
+            ? theme.vars.palette.grey[500]
+            : theme.vars.palette.grey[0]
+        })}
       />
     </IconButton>
   );
 });
 
-NewChatComposerButton.displayName = "NewChatComposerButton"; 
+NewChatComposerButton.displayName = "NewChatComposerButton";

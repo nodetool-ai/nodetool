@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, useMemo } from "react";
 import { Button, Tooltip, Select, MenuItem, Box } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -34,7 +33,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       margin: "0 10px"
     },
-    ".tools button": {
+    ".tools .icon-button": {
       fontSize: "0.7em",
       borderColor: `${"var(--palette-primary-main)"}33`,
       width: "3em",
@@ -112,15 +111,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           placement="top"
           enterDelay={TOOLTIP_ENTER_DELAY}
         >
-          <Button onClick={toggleCheckboxes}>
+          <Button className="icon-button" onClick={toggleCheckboxes}>
             <CheckBoxIcon />
           </Button>
         </Tooltip>
-        <Tooltip title="Create a new workflow">
-          <Button variant="outlined" onClick={handleCreateWorkflow}>
-            <AddIcon />
-          </Button>
-        </Tooltip>
+        {/* New Workflow button moved to WorkflowList header */}
 
         <Tooltip title="Search workflows by name">
           <div>

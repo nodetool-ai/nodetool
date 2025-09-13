@@ -3,7 +3,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useState } from "react";
-import { IconButton, Fab, Box, useMediaQuery, Tooltip } from "@mui/material";
+import {
+  IconButton,
+  Fab,
+  Box,
+  useMediaQuery,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
+} from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useLocation } from "react-router-dom";
@@ -18,16 +28,22 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import EditIcon from "@mui/icons-material/Edit";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { isLocalhost } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { Workflow } from "../../stores/ApiTypes";
 // keep existing colors; add only subtle shine overlays
 
 const styles = (theme: Theme) =>
   css({
     position: "fixed",
     bottom: "20px",
-    right: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
     zIndex: 21000,
     display: "flex",
     flexDirection: "row",
@@ -121,6 +137,24 @@ const styles = (theme: Theme) =>
           "0 0 18px var(--palette-primary-main)60, 0 0 36px var(--palette-secondary-main)40, inset 0 0 12px var(--palette-primary-main)40"
       }
     },
+
+    ".floating-action-button.save-workflow": {
+      position: "relative",
+      overflow: "hidden",
+      backgroundColor: "var(--palette-grey-700)",
+      color: "var(--palette-grey-200)",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px var(--palette-grey-700)25`,
+      filter: "saturate(1.1)",
+      "&:hover": {
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-success-main)35`,
+        transform: "scale(1.06)"
+      },
+      "&::before": {},
+      "&.disabled": {
+        opacity: 0.6,
+        pointerEvents: "none"
+      }
+    },
     // Ensure disabled state doesn't dim the running run-workflow button
     ".floating-action-button.run-workflow.Mui-disabled.running": {
       opacity: 1
@@ -178,11 +212,22 @@ const styles = (theme: Theme) =>
     }
   });
 
-const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
+const FloatingToolBar: React.FC<{
+  setWorkflowToEdit: (workflow: Workflow) => void;
+}> = memo(function FloatingToolBar({ setWorkflowToEdit }) {
   const theme = useTheme();
   const path = useLocation().pathname;
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
+  const [actionsMenuAnchor, setActionsMenuAnchor] =
+    useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isLeftPanelVisible = usePanelStore((state) => state.panel.isVisible);
+  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
+    (state) => ({
+      isRightPanelVisible: state.panel.isVisible,
+      rightPanelSize: state.panel.panelSize
+    })
+  );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -193,6 +238,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       workflowJSON: state.workflowJSON
     })
   );
+  const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
   const { run, state, isWorkflowRunning, cancel } = useWorkflowRunner(
     (state) => ({
@@ -203,17 +249,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     })
   );
 
-  const { getWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
-    getWorkflow: state.getWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
+    (state) => ({
+      getWorkflow: state.getWorkflow,
+      saveWorkflow: state.saveWorkflow
+    })
+  );
 
   const handleRun = useCallback(() => {
     if (!isWorkflowRunning) {
       run({}, workflow, nodes, edges);
     }
     setTimeout(() => {
-      const w = getWorkflow(workflow.id);
+      const w = getWorkflowById(workflow.id);
       if (w) {
         saveWorkflow(w);
       }
@@ -224,7 +272,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     workflow,
     nodes,
     edges,
-    getWorkflow,
+    getWorkflowById,
     saveWorkflow
   ]);
 
@@ -234,9 +282,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const handleSave = useCallback(() => {
     if (!workflow) return;
-    const w = getWorkflow(workflow.id);
+    const w = getWorkflowById(workflow.id);
     if (w) saveWorkflow(w);
-  }, [getWorkflow, saveWorkflow, workflow]);
+  }, [getWorkflowById, saveWorkflow, workflow]);
 
   const handleDownload = useCallback(() => {
     if (!workflow) return;
@@ -269,6 +317,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     }
   }, [path]);
 
+  const handleEditWorkflow = useCallback(() => {
+    setWorkflowToEdit(getCurrentWorkflow());
+  }, [getCurrentWorkflow, setWorkflowToEdit]);
+
   // Node menu open/close for mobile
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({
@@ -282,9 +334,16 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     if (isMenuOpen) {
       closeNodeMenu();
     } else {
-      // Open as a bottom sheet (full-width) near the top for full-height layout
-      const x = 0;
-      const y = Math.max(8, Math.floor(window.innerHeight * 0.06));
+      // Open centered in the viewport
+      const FALLBACK_MENU_WIDTH = 950;
+      const FALLBACK_MENU_HEIGHT = 900;
+      const CURSOR_ANCHOR_OFFSET_Y = 40; // compensate for store's anchor shift
+      const x = Math.floor(window.innerWidth / 2 - FALLBACK_MENU_WIDTH / 2);
+      const y = Math.floor(
+        window.innerHeight / 2 -
+          FALLBACK_MENU_HEIGHT / 2 +
+          CURSOR_ANCHOR_OFFSET_Y
+      );
       openNodeMenu({ x, y });
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
@@ -297,14 +356,37 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     setPaneMenuOpen(false);
   }, []);
 
-  // Only show in editor view (visibility toggled by CSS for mobile)
-  if (!path.startsWith("/editor")) {
+  const handleOpenActionsMenu = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      setActionsMenuAnchor(e.currentTarget);
+    },
+    []
+  );
+
+  const handleCloseActionsMenu = useCallback(() => {
+    setActionsMenuAnchor(null);
+  }, []);
+
+  // Only show in editor view; keep visible when right panel is open
+  if (!path.startsWith("/editor") || isLeftPanelVisible) {
     return null;
   }
 
   return (
     <>
-      <Box css={styles(theme)} className="floating-toolbar">
+      <Box
+        css={styles(theme)}
+        className="floating-toolbar"
+        style={
+          isRightPanelVisible
+            ? {
+                left: "auto",
+                transform: "none",
+                right: `${Math.max(rightPanelSize + 20, 72)}px`
+              }
+            : undefined
+        }
+      >
         {isMobile && (
           <Tooltip
             title="Open canvas menu"
@@ -334,7 +416,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </Fab>
         </Tooltip>
         <Tooltip
-          title="Auto-arrange nodes in the workspace"
+          title="Auto layout nodes"
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
@@ -347,29 +429,29 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </Fab>
         </Tooltip>
         <Tooltip
+          title="More actions"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleOpenActionsMenu}
+            aria-label="More actions"
+          >
+            <MoreVertIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
           title={getShortcutTooltip("saveWorkflow")}
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
           <Fab
-            className={`floating-action-button subtle`}
+            className={`floating-action-button save-workflow`}
             onClick={handleSave}
             aria-label="Save workflow"
           >
             <SaveIcon />
-          </Fab>
-        </Tooltip>
-        <Tooltip
-          title="Download workflow as JSON file"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          placement="top"
-        >
-          <Fab
-            className={`floating-action-button subtle`}
-            onClick={handleDownload}
-            aria-label="Download workflow JSON"
-          >
-            <DownloadIcon />
           </Fab>
         </Tooltip>
         <Tooltip
@@ -409,22 +491,51 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             </Fab>
           </span>
         </Tooltip>
-        {isLocalhost && workflow?.run_mode === "app" && (
-          <Tooltip
-            title="Run workflow as standalone app"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            placement="top"
-          >
-            <Fab
-              className={`floating-action-button subtle`}
-              onClick={handleRunAsApp}
-              aria-label="Run as App"
-            >
-              <RocketLaunchIcon />
-            </Fab>
-          </Tooltip>
-        )}
       </Box>
+
+      <Menu
+        anchorEl={actionsMenuAnchor}
+        open={Boolean(actionsMenuAnchor)}
+        onClose={handleCloseActionsMenu}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <MenuItem
+          onClick={() => {
+            handleEditWorkflow();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Edit workflow settings" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleDownload();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Download JSON" />
+        </MenuItem>
+        {isLocalhost && workflow?.run_mode === "app" && (
+          <MenuItem
+            onClick={() => {
+              handleRunAsApp();
+              handleCloseActionsMenu();
+            }}
+          >
+            <ListItemIcon>
+              <RocketLaunchIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Run as standalone app" />
+          </MenuItem>
+        )}
+      </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
     </>

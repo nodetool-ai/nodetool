@@ -13,7 +13,8 @@ import { useHuggingFaceModels } from "../../../hooks/useHuggingFaceModels";
 import { useOllamaModels } from "../../../hooks/useOllamaModels";
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { client, BASE_URL, authHeader } from "../../../stores/ApiClient";
+import { client, authHeader } from "../../../stores/ApiClient";
+import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useState } from "react";
 

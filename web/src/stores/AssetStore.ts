@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { client, BASE_URL, authHeader } from "../stores/ApiClient";
+import { client, authHeader } from "../stores/ApiClient";
+import { BASE_URL } from "./BASE_URL";
 import { Asset, AssetList, AssetSearchResult } from "../stores/ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -224,8 +225,17 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
 
   loadFolderTree: async (sortBy?: string) => {
-    const { assets } = await get().load({ content_type: "folder" });
-    return buildFolderTree(assets, (sortBy as "name" | "updated_at") || "name");
+    // Fallback implementation: fetch all folders via /api/assets/ and build tree locally
+    const { data, error } = await client.GET("/api/assets/", {
+      params: { query: { content_type: "folder" } }
+    });
+    if (error) {
+      throw createErrorMessage(error, "Failed to load folder tree");
+    }
+    return buildFolderTree(
+      data.assets as unknown as Asset[],
+      (sortBy as any) === "updated_at" ? "updated_at" : "name"
+    );
   },
 
   /**

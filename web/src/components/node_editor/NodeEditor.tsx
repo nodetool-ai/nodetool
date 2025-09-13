@@ -33,7 +33,7 @@ import WorkflowChat from "../chat/containers/WorkflowChat";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
-import { WORKER_URL } from "../../stores/ApiClient";
+import { WORKER_URL } from "../../stores/BASE_URL";
 import { useTheme } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";

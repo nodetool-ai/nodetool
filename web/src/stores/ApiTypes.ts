@@ -33,6 +33,8 @@ export type WorkflowRef = components["schemas"]["WorkflowRef"];
 export type NodeRef = components["schemas"]["NodeRef"];
 export type Workflow = components["schemas"]["Workflow"];
 export type WorkflowList = components["schemas"]["WorkflowList"];
+export type WorkflowTool = components["schemas"]["WorkflowTool"];
+export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
@@ -50,7 +52,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
   };
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message-Output"];
+export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
   components["schemas"]["MessageCreateRequest"];
@@ -71,6 +73,7 @@ export type RunJobRequest = components["schemas"]["RunJobRequest"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type OutputUpdate = components["schemas"]["OutputUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
+export type PreviewUpdate = components["schemas"]["PreviewUpdate"];
 export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
@@ -131,3 +134,6 @@ export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
 export type ThreadSummarizeRequest =
   components["schemas"]["ThreadSummarizeRequest"];
 export type ThreadList = components["schemas"]["ThreadList"];
+export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
+export type Notification = components["schemas"]["Notification"];
+export type LogUpdate = components["schemas"]["LogUpdate"];

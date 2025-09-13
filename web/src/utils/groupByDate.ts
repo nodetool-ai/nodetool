@@ -6,14 +6,14 @@ export function groupByDate(
 ): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
-  // Normalize to start-of-day to get full-day difference
+  // Normalize to start-of-day in UTC to get full-day difference
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
-  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dateStart = new Date(
-    dateObj.getFullYear(),
-    dateObj.getMonth(),
-    dateObj.getDate()
-  );
+  const nowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dateStart = new Date(Date.UTC(
+    dateObj.getUTCFullYear(),
+    dateObj.getUTCMonth(),
+    dateObj.getUTCDate()
+  ));
 
   const diffDays = Math.floor(
     (nowStart.getTime() - dateStart.getTime()) / MS_PER_DAY
