@@ -52,6 +52,7 @@ import { useEditorMode } from "../../hooks/editor/useEditorMode";
 import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
 import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
 import { useModalResize } from "../../hooks/editor/useModalResize";
+import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -451,40 +452,24 @@ const TextEditorModal = ({
     createNewThread
   } = useGlobalChatStore();
 
+  // Monaco dynamic import and actions (hook)
+  const {
+    MonacoEditor,
+    monacoLoadError,
+    loadMonacoIfNeeded,
+    monacoRef,
+    monacoOnMount,
+    handleMonacoFind,
+    handleMonacoFormat
+  } = useMonacoEditor();
+
   // Editor mode toggle (extracted hook)
   const { isCodeEditor, setIsCodeEditor, toggleEditorMode } = useEditorMode({
     storageKey: "textEditorModal_useCodeEditor",
     onCodeEnabled: () => {
-      // if switching to code editor, ensure Monaco is loaded
       void loadMonacoIfNeeded();
     }
   });
-
-  // Monaco dynamic import (loaded on demand)
-  const [MonacoEditor, setMonacoEditor] = useState<
-    | ((props: {
-        value: string;
-        onChange?: (val?: string) => void;
-        language?: string;
-        theme?: string;
-        options?: Record<string, unknown>;
-        width?: string | number;
-        height?: string | number;
-        onMount?: (editor: unknown, monaco: unknown) => void;
-      }) => JSX.Element)
-    | null
-  >(null);
-  const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
-  const loadMonacoIfNeeded = useCallback(async () => {
-    if (MonacoEditor || monacoLoadError) return;
-    try {
-      const mod = await import("@monaco-editor/react");
-      // default export is Editor component
-      setMonacoEditor(() => mod.default as unknown as typeof MonacoEditor);
-    } catch (err) {
-      setMonacoLoadError("Failed to load code editor");
-    }
-  }, [MonacoEditor, monacoLoadError]);
 
   // Fullscreen toggle (hook)
   const { isFullscreen, toggleFullscreen } = useFullscreenMode({
@@ -636,29 +621,6 @@ const TextEditorModal = ({
     [debouncedExternalOnChange, readOnly]
   );
   // Insertion handlers for both editors
-  const monacoRef = useRef<any>(null);
-  const monacoOnMount = useCallback((editor: any) => {
-    monacoRef.current = editor;
-  }, []);
-
-  const handleMonacoFind = useCallback(() => {
-    try {
-      const editor = monacoRef.current;
-      editor?.getAction?.("actions.find")?.run?.();
-    } catch {
-      /* empty */
-    }
-  }, []);
-
-  const handleMonacoFormat = useCallback(() => {
-    try {
-      const editor = monacoRef.current;
-      // Try format document; if no formatter, ignore silently
-      editor?.getAction?.("editor.action.formatDocument")?.run?.();
-    } catch {
-      /* empty */
-    }
-  }, []);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([currentText || ""], {
