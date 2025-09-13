@@ -1,5 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, memo, useState } from "react";
+import React, {
+  useMemo,
+  useCallback,
+  memo,
+  useState,
+  useRef,
+  useEffect
+} from "react";
 import Plot from "react-plotly.js";
 
 import {
@@ -14,7 +21,7 @@ import {
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
-import { Container } from "@mui/material";
+import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
@@ -40,6 +47,57 @@ import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
+
+// Custom hook for draggable scrolling
+const useDraggableScroll = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const scrollTop = useRef(0);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    startY.current = e.clientY;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const deltaY = e.clientY - startY.current;
+    scrollRef.current.scrollTop = scrollTop.current - deltaY;
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!scrollRef.current) return;
+    isDragging.current = false;
+    scrollRef.current.style.cursor = "grab";
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
+    const handleGlobalMouseUp = () => handleMouseUp();
+
+    if (isDragging.current) {
+      document.addEventListener("mousemove", handleGlobalMouseMove);
+      document.addEventListener("mouseup", handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleGlobalMouseMove);
+      document.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  return {
+    scrollRef,
+    handleMouseDown,
+    isDragging: isDragging.current
+  };
+};
+
 export type OutputRendererProps = {
   value: any;
 };
@@ -60,6 +118,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const copyToClipboard = useCopyToClipboard();
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
 
@@ -148,13 +207,37 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           if (typeof value[0] === "string") {
             return (
               <div
+                ref={scrollRef}
+                onMouseDown={handleMouseDown}
+                className="nodrag"
                 style={{
-                  padding: "0.5em"
+                  maxHeight: 360,
+                  overflow: "hidden",
+                  cursor: "grab",
+                  userSelect: "none"
                 }}
               >
-                {value.map((v: any) => (
-                  <div key={v}>{v}</div>
-                ))}
+                <List sx={{ p: 1 }}>
+                  {value.map((v: any, i: number) => (
+                    <ListItem
+                      key={i}
+                      sx={{
+                        borderRadius: 2,
+                        bgcolor: "background.paper",
+                        boxShadow: 1,
+                        mb: 1,
+                        px: 2
+                      }}
+                    >
+                      <ListItemText
+                        primaryTypographyProps={{
+                          sx: { whiteSpace: "pre-wrap" }
+                        }}
+                        primary={v}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
               </div>
             );
           }
@@ -282,14 +365,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           />
         );
     }
-  }, [value, type, onDoubleClickAsset, copyToClipboard, videoRef]);
+  }, [
+    value,
+    type,
+    onDoubleClickAsset,
+    copyToClipboard,
+    videoRef,
+    handleMouseDown,
+    scrollRef
+  ]);
 
   if (!shouldRender) {
     return null;
   }
 
   return (
-    <>
+    <div className="nodrag">
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -301,7 +392,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         />
       )}
       {renderContent}
-    </>
+    </div>
   );
 };
 
