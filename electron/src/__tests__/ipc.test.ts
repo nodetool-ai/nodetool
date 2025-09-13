@@ -1,26 +1,3 @@
-jest.mock('electron', () => {
-  return {
-    app: {
-      isPackaged: false,
-      getPath: jest.fn().mockReturnValue('/mock/userData'),
-    },
-    ipcMain: {
-      handle: jest.fn(),
-      on: jest.fn(),
-      once: jest.fn(),
-    },
-    BrowserWindow: {
-      getFocusedWindow: jest.fn(),
-    },
-    clipboard: {
-      writeText: jest.fn(),
-      readText: jest.fn(),
-    },
-    globalShortcut: {
-      unregister: jest.fn(),
-    },
-  };
-});
 
 // Provide runtime values for the enums defined in the declaration file
 jest.mock('../types.d', () => ({
@@ -37,6 +14,17 @@ jest.mock('../types.d', () => ({
     ON_UPDATE_WORKFLOW: 'on-update-workflow',
     ON_DELETE_WORKFLOW: 'on-delete-workflow',
     BOOT_MESSAGE: 'boot-message',
+    SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
+    START_SERVER: 'start-server',
+    RESTART_SERVER: 'restart-server',
+    SHOW_PACKAGE_MANAGER: 'show-package-manager',
+    PACKAGE_LIST_AVAILABLE: 'package-list-available',
+    PACKAGE_LIST_INSTALLED: 'package-list-installed',
+    PACKAGE_INSTALL: 'package-install',
+    PACKAGE_UNINSTALL: 'package-uninstall',
+    PACKAGE_UPDATE: 'package-update',
+    PACKAGE_SEARCH_NODES: 'package-search-nodes',
+    PACKAGE_OPEN_EXTERNAL: 'package-open-external',
   },
   IpcEvents: {},
   IpcResponse: {},
@@ -46,25 +34,82 @@ jest.mock('../server', () => ({
   getServerState: jest.fn(),
   openLogFile: jest.fn(),
   runApp: jest.fn(),
+  showItemInFolder: jest.fn(),
+  initializeBackendServer: jest.fn(),
+  stopServer: jest.fn(),
 }));
 
 jest.mock('../logger', () => ({
-  logMessage: jest.fn(),
+  logMessage: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../shortcuts', () => ({
   registerWorkflowShortcut: jest.fn(),
+  setupWorkflowShortcuts: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../tray', () => ({
   updateTrayMenu: jest.fn(),
 }));
 
-import { ipcMain, BrowserWindow, clipboard, globalShortcut } from 'electron';
-import { getServerState, openLogFile, runApp } from '../server';
+jest.mock('../window', () => ({
+  createPackageManagerWindow: jest.fn(),
+}));
+
+jest.mock('../packageManager', () => ({
+  fetchAvailablePackages: jest.fn(),
+  listInstalledPackages: jest.fn(),
+  installPackage: jest.fn(),
+  uninstallPackage: jest.fn(),
+  updatePackage: jest.fn(),
+  validateRepoId: jest.fn(),
+  searchNodes: jest.fn(),
+}));
+
+jest.mock('electron', () => {
+  return {
+    app: {
+      isPackaged: false,
+      getPath: jest.fn().mockReturnValue('/mock/userData'),
+      on: jest.fn(),
+    },
+    ipcMain: {
+      handle: jest.fn(),
+      on: jest.fn(),
+      once: jest.fn(),
+      removeHandler: jest.fn(),
+    },
+    BrowserWindow: {
+      getFocusedWindow: jest.fn(),
+    },
+    clipboard: {
+      writeText: jest.fn(),
+      readText: jest.fn(),
+    },
+    globalShortcut: {
+      unregister: jest.fn(),
+    },
+    shell: {
+      openExternal: jest.fn(),
+    },
+  };
+});
+
+import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell } from 'electron';
+import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
 import { logMessage } from '../logger';
-import { registerWorkflowShortcut } from '../shortcuts';
+import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { updateTrayMenu } from '../tray';
+import { createPackageManagerWindow } from '../window';
+import { 
+  fetchAvailablePackages, 
+  listInstalledPackages, 
+  installPackage, 
+  uninstallPackage, 
+  updatePackage, 
+  validateRepoId, 
+  searchNodes 
+} from '../packageManager';
 import {
   createIpcMainHandler,
   createIpcOnceHandler,
@@ -84,6 +129,17 @@ const Channels = {
   WINDOW_MINIMIZE: 'window-minimize',
   WINDOW_MAXIMIZE: 'window-maximize',
   BOOT_MESSAGE: 'boot-message',
+  SHOW_ITEM_IN_FOLDER: 'show-item-in-folder',
+  START_SERVER: 'start-server',
+  RESTART_SERVER: 'restart-server',
+  SHOW_PACKAGE_MANAGER: 'show-package-manager',
+  PACKAGE_LIST_AVAILABLE: 'package-list-available',
+  PACKAGE_LIST_INSTALLED: 'package-list-installed',
+  PACKAGE_INSTALL: 'package-install',
+  PACKAGE_UNINSTALL: 'package-uninstall',
+  PACKAGE_UPDATE: 'package-update',
+  PACKAGE_SEARCH_NODES: 'package-search-nodes',
+  PACKAGE_OPEN_EXTERNAL: 'package-open-external',
 };
 
 const ipcMainMock = ipcMain as jest.Mocked<typeof ipcMain>;
@@ -95,11 +151,27 @@ const serverMock = {
   getServerState: getServerState as jest.MockedFunction<typeof getServerState>,
   openLogFile: openLogFile as jest.MockedFunction<typeof openLogFile>,
   runApp: runApp as jest.MockedFunction<typeof runApp>,
+  showItemInFolder: showItemInFolder as jest.MockedFunction<typeof showItemInFolder>,
+  initializeBackendServer: initializeBackendServer as jest.MockedFunction<typeof initializeBackendServer>,
+  stopServer: stopServer as jest.MockedFunction<typeof stopServer>,
+};
+
+const packageManagerMock = {
+  fetchAvailablePackages: fetchAvailablePackages as jest.MockedFunction<typeof fetchAvailablePackages>,
+  listInstalledPackages: listInstalledPackages as jest.MockedFunction<typeof listInstalledPackages>,
+  installPackage: installPackage as jest.MockedFunction<typeof installPackage>,
+  uninstallPackage: uninstallPackage as jest.MockedFunction<typeof uninstallPackage>,
+  updatePackage: updatePackage as jest.MockedFunction<typeof updatePackage>,
+  validateRepoId: validateRepoId as jest.MockedFunction<typeof validateRepoId>,
+  searchNodes: searchNodes as jest.MockedFunction<typeof searchNodes>,
 };
 
 const loggerMock = logMessage as jest.MockedFunction<typeof logMessage>;
 const registerWorkflowShortcutMock = registerWorkflowShortcut as jest.MockedFunction<typeof registerWorkflowShortcut>;
+const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction<typeof setupWorkflowShortcuts>;
 const updateTrayMenuMock = updateTrayMenu as jest.MockedFunction<typeof updateTrayMenu>;
+const createPackageManagerWindowMock = createPackageManagerWindow as jest.MockedFunction<typeof createPackageManagerWindow>;
+const shellMock = shell as jest.Mocked<typeof shell>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -230,5 +302,274 @@ describe('initializeIpcHandlers', () => {
     mockWindow.isMaximized.mockReturnValue(true);
     maximizeHandler({});
     expect(mockWindow.unmaximize).toHaveBeenCalled();
+  });
+
+  it('should handle createIpcMainHandler with removeHandler error', () => {
+    const handler = jest.fn();
+    ipcMainMock.removeHandler.mockImplementation(() => {
+      throw new Error('Remove handler error');
+    });
+    
+    createIpcMainHandler(Channels.CLIPBOARD_READ_TEXT as any, handler);
+    
+    expect(loggerMock).toHaveBeenCalledWith(
+      expect.stringContaining('Warning removing existing IPC handler'),
+      'warn'
+    );
+    expect(ipcMainMock.handle).toHaveBeenCalledWith(
+      Channels.CLIPBOARD_READ_TEXT,
+      handler
+    );
+  });
+
+  describe('additional IPC handlers', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle SHOW_ITEM_IN_FOLDER', async () => {
+      const showItemHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.SHOW_ITEM_IN_FOLDER
+      )?.[1] as any;
+
+      await showItemHandler({}, '/path/to/file');
+      expect(serverMock.showItemInFolder).toHaveBeenCalledWith('/path/to/file');
+    });
+
+    it('should handle START_SERVER', async () => {
+      const startServerHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.START_SERVER
+      )?.[1] as any;
+
+      await startServerHandler({});
+      expect(serverMock.initializeBackendServer).toHaveBeenCalled();
+      expect(setupWorkflowShortcutsMock).toHaveBeenCalled();
+    });
+
+    it('should handle RESTART_SERVER', async () => {
+      const restartServerHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.RESTART_SERVER
+      )?.[1] as any;
+
+      await restartServerHandler({});
+      expect(serverMock.stopServer).toHaveBeenCalled();
+      expect(serverMock.initializeBackendServer).toHaveBeenCalled();
+      expect(setupWorkflowShortcutsMock).toHaveBeenCalled();
+    });
+
+    it('should handle RESTART_SERVER with stop server error', async () => {
+      serverMock.stopServer.mockRejectedValue(new Error('Stop error'));
+      
+      const restartServerHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.RESTART_SERVER
+      )?.[1] as any;
+
+      await restartServerHandler({});
+      expect(loggerMock).toHaveBeenCalledWith(
+        expect.stringContaining('Error while stopping server for restart'),
+        'warn'
+      );
+    });
+
+    it('should handle SHOW_PACKAGE_MANAGER', async () => {
+      const showPackageManagerHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.SHOW_PACKAGE_MANAGER
+      )?.[1] as any;
+
+      await showPackageManagerHandler({}, 'search-term');
+      expect(createPackageManagerWindowMock).toHaveBeenCalledWith('search-term');
+
+      await showPackageManagerHandler({}, undefined);
+      expect(createPackageManagerWindowMock).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should handle PACKAGE_LIST_AVAILABLE', async () => {
+      const packages = [{ id: 'pkg1', name: 'Package 1' }];
+      packageManagerMock.fetchAvailablePackages.mockResolvedValue(packages);
+      
+      const listAvailableHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_LIST_AVAILABLE
+      )?.[1] as any;
+
+      const result = await listAvailableHandler({});
+      expect(packageManagerMock.fetchAvailablePackages).toHaveBeenCalled();
+      expect(result).toBe(packages);
+    });
+
+    it('should handle PACKAGE_LIST_INSTALLED', async () => {
+      const packages = [{ id: 'installed1', name: 'Installed 1' }];
+      packageManagerMock.listInstalledPackages.mockResolvedValue(packages);
+      
+      const listInstalledHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_LIST_INSTALLED
+      )?.[1] as any;
+
+      const result = await listInstalledHandler({});
+      expect(packageManagerMock.listInstalledPackages).toHaveBeenCalled();
+      expect(result).toBe(packages);
+    });
+
+    it('should handle PACKAGE_INSTALL with valid repo', async () => {
+      packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
+      packageManagerMock.installPackage.mockResolvedValue({ success: true });
+      
+      const installHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_INSTALL
+      )?.[1] as any;
+
+      const result = await installHandler({}, { repo_id: 'valid-repo' });
+      expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
+      expect(packageManagerMock.installPackage).toHaveBeenCalledWith('valid-repo');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should handle PACKAGE_INSTALL with invalid repo', async () => {
+      packageManagerMock.validateRepoId.mockReturnValue({ valid: false, error: 'Invalid repo' });
+      
+      const installHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_INSTALL
+      )?.[1] as any;
+
+      const result = await installHandler({}, { repo_id: 'invalid-repo' });
+      expect(result).toEqual({
+        success: false,
+        message: 'Invalid repo'
+      });
+      expect(packageManagerMock.installPackage).not.toHaveBeenCalled();
+    });
+
+    it('should handle PACKAGE_UNINSTALL with valid repo', async () => {
+      packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
+      packageManagerMock.uninstallPackage.mockResolvedValue({ success: true });
+      
+      const uninstallHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_UNINSTALL
+      )?.[1] as any;
+
+      const result = await uninstallHandler({}, { repo_id: 'valid-repo' });
+      expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
+      expect(packageManagerMock.uninstallPackage).toHaveBeenCalledWith('valid-repo');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should handle PACKAGE_UPDATE with valid repo', async () => {
+      packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
+      packageManagerMock.updatePackage.mockResolvedValue({ success: true });
+      
+      const updateHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_UPDATE
+      )?.[1] as any;
+
+      const result = await updateHandler({}, 'valid-repo');
+      expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
+      expect(packageManagerMock.updatePackage).toHaveBeenCalledWith('valid-repo');
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should handle PACKAGE_SEARCH_NODES', async () => {
+      const searchResults = [{ id: 'node1', name: 'Node 1' }];
+      packageManagerMock.searchNodes.mockResolvedValue(searchResults);
+      
+      const searchHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_SEARCH_NODES
+      )?.[1] as any;
+
+      const result = await searchHandler({}, 'search-query');
+      expect(packageManagerMock.searchNodes).toHaveBeenCalledWith('search-query');
+      expect(result).toBe(searchResults);
+
+      // Test with empty query
+      await searchHandler({}, '');
+      expect(packageManagerMock.searchNodes).toHaveBeenCalledWith('');
+    });
+
+    it('should handle PACKAGE_SEARCH_NODES with error', async () => {
+      packageManagerMock.searchNodes.mockRejectedValue(new Error('Search error'));
+      
+      const searchHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_SEARCH_NODES
+      )?.[1] as any;
+
+      const result = await searchHandler({}, 'query');
+      expect(loggerMock).toHaveBeenCalledWith(
+        expect.stringContaining('Error in PACKAGE_SEARCH_NODES'),
+        'warn'
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('should handle PACKAGE_OPEN_EXTERNAL', async () => {
+      const openExternalHandler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.PACKAGE_OPEN_EXTERNAL
+      )?.[1] as any;
+
+      await openExternalHandler({}, 'https://example.com');
+      expect(shellMock.openExternal).toHaveBeenCalledWith('https://example.com');
+    });
+  });
+
+  describe('window event error handling', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle errors in window close', () => {
+      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+        throw new Error('Window error');
+      });
+
+      const closeHandler = ipcMainMock.on.mock.calls.find(
+        ([channel]) => channel === Channels.WINDOW_CLOSE
+      )?.[1] as any;
+
+      closeHandler({});
+      expect(loggerMock).toHaveBeenCalledWith(
+        expect.stringContaining('Error in window close'),
+        'error'
+      );
+    });
+
+    it('should handle errors in window minimize', () => {
+      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+        throw new Error('Minimize error');
+      });
+
+      const minimizeHandler = ipcMainMock.on.mock.calls.find(
+        ([channel]) => channel === Channels.WINDOW_MINIMIZE
+      )?.[1] as any;
+
+      minimizeHandler({});
+      expect(loggerMock).toHaveBeenCalledWith(
+        expect.stringContaining('Error in window minimize'),
+        'error'
+      );
+    });
+
+    it('should handle errors in window maximize', () => {
+      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+        throw new Error('Maximize error');
+      });
+
+      const maximizeHandler = ipcMainMock.on.mock.calls.find(
+        ([channel]) => channel === Channels.WINDOW_MAXIMIZE
+      )?.[1] as any;
+
+      maximizeHandler({});
+      expect(loggerMock).toHaveBeenCalledWith(
+        expect.stringContaining('Error in window maximize'),
+        'error'
+      );
+    });
+
+    it('should handle null window in close', () => {
+      browserWindowMock.getFocusedWindow.mockReturnValue(null);
+
+      const closeHandler = ipcMainMock.on.mock.calls.find(
+        ([channel]) => channel === Channels.WINDOW_CLOSE
+      )?.[1] as any;
+
+      closeHandler({});
+      // Should not throw or call window methods
+    });
   });
 });

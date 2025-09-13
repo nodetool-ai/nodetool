@@ -18,7 +18,6 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
-import CollectionList from "../collections/CollectionList";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +42,8 @@ const styles = (theme: Theme) =>
     left: "0",
     ".panel-container": {
       flexShrink: 0,
-      position: "absolute"
+      position: "absolute",
+      backgroundColor: theme.vars.palette.background.default
     },
     ".panel-left": {
       border: "none",
@@ -52,8 +52,9 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       width: "100%",
       padding: "0",
-      top: "72px",
-      height: "calc(-72px + 100vh)"
+      top: "80px",
+      height: "calc(100vh - 80px)",
+      backgroundColor: theme.vars.palette.background.default
     },
 
     ".panel-button": {
@@ -62,11 +63,11 @@ const styles = (theme: Theme) =>
       left: "unset",
       right: "unset",
       width: "36px",
-      height: "calc(100vh - 75px)",
+      height: "calc(100vh - 83px)",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: "72px",
+      top: "80px",
       cursor: "e-resize",
       transition: "background-color 0.3s ease",
       "&::before": {
@@ -256,21 +257,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <IconForType iconName="asset" showTooltip={false} />
         </IconButton>
       </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("toggleCollections")}
-        placement="right-start"
-        enterDelay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          onClick={() => onViewChange("collections")}
-          className={
-            activeView === "collections" && panelVisible ? "active" : ""
-          }
-        >
-          <IconForType iconName="database" showTooltip={false} />
-        </IconButton>
-      </Tooltip>
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
@@ -429,24 +415,11 @@ const PanelContent = memo(function PanelContent({
             width: "100%",
             height: "100%",
             overflow: "auto",
-            margin: "0"
+            margin: "10px 0"
           }}
         >
           <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
           <WorkflowList />
-        </Box>
-      )}
-      {activeView === "collections" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden auto",
-            margin: "0 20px"
-          }}
-        >
-          <h3>Collections</h3>
-          <CollectionList />
         </Box>
       )}
     </>
@@ -468,7 +441,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], () => handlePanelToggle("chat"), false);
   useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["3"], () => handlePanelToggle("assets"), false);
-  useCombo(["4"], () => handlePanelToggle("collections"), false);
+
   useCombo(["5"], () => handlePanelToggle("packs"), false);
 
   const activeView =
@@ -507,7 +480,10 @@ const PanelLeft: React.FC = () => {
               ? "var(--palette-background-default)"
               : "transparent",
             borderRight: isVisible
-              ? `1px solid ${theme.vars.palette.divider}`
+              ? `1px solid ${theme.vars.palette.grey[800]}`
+              : "none",
+            borderTop: isVisible
+              ? `1px solid ${theme.vars.palette.grey[800]}`
               : "none",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
@@ -519,7 +495,8 @@ const PanelLeft: React.FC = () => {
                 }px`
               : PANEL_WIDTH_COLLAPSED,
             maxWidth: isMobile ? "75vw" : "none",
-            maxHeight: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 40px)", // Use dynamic viewport height when available
+            // Match the panel height to avoid any gap beneath the drawer
+            height: isMobile ? "calc(100dvh - 56px)" : "calc(100vh - 80px)",
             contain: isMobile ? "layout style" : "none",
             boxSizing: "border-box",
             overflow: "hidden" // Prevent panel content from overflowing

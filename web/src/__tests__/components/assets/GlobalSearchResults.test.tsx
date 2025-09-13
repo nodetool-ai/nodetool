@@ -1,37 +1,22 @@
 import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import GlobalSearchResults from "../../../components/assets/GlobalSearchResults";
 import { AssetWithPath } from "../../../stores/ApiTypes";
+import mockTheme from "../../../__mocks__/themeMock";
 
-// Create a simple mock theme for testing
-const mockTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: "#77b4e6"
-    },
-    background: {
-      default: "#202020",
-      paper: "#232323"
-    },
-    text: {
-      primary: "#fff"
-    },
-    grey: {
-      "100": "#f5f5f5",
-      "200": "#eeeeee",
-      "400": "#bdbdbd",
-      "500": "#9e9e9e",
-      "600": "#757575",
-      "800": "#424242"
-    }
-  },
-  fontSizeNormal: "1rem",
-  fontSizeSmall: "0.875rem",
-  fontSizeSmaller: "0.75rem",
-  fontFamily2: "Roboto, sans-serif"
+jest.mock("../../../stores/BASE_URL", () => ({
+  BASE_URL: "http://localhost:8000"
+}));
+
+// MUI Tooltip can access theme vars; keep Tooltip pass-through
+jest.mock("@mui/material", () => {
+  const actual = jest.requireActual("@mui/material");
+  return {
+    ...actual,
+    Tooltip: ({ children }: any) => <>{children}</>
+  };
 });
 
 // Mock the stores and hooks

@@ -1,6 +1,6 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { SystemStats } from "./ApiTypes";
-import { BASE_URL } from "./ApiClient";
+import { BASE_URL } from "./BASE_URL";
 
 interface WebSocketUpdatesState {
   systemStats: SystemStats | null;

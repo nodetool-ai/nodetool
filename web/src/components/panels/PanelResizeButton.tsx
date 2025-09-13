@@ -24,14 +24,11 @@ const buttonStyles = css({
   top: "72px",
   cursor: "e-resize",
   transition: "background-color 0.3s ease",
+  // Hide the visible handle so the drawer handle disappears visually
   "& .resize-handle": {
-    width: "5px",
-    height: "100px",
-    borderRadius: "1em",
-    backgroundColor: "var(--palette-grey-800)",
-    opacity: 1,
-    transition: "background-color 0.5s ease"
+    display: "none"
   },
+  // Keep any icons hidden (none are rendered currently)
   "& svg": {
     fontSize: "0.8em !important",
     color: "var(--palette-grey-200)",
@@ -39,11 +36,9 @@ const buttonStyles = css({
     marginLeft: "1px",
     transition: "all 0.5s ease"
   },
+  // Do not show any hover background so it remains invisible
   "&:hover": {
-    backgroundColor: "var(--palette-grey-800)"
-  },
-  "&:hover .resize-handle": {
-    backgroundColor: "var(--palette-primary-main)"
+    backgroundColor: "transparent"
   }
 });
 

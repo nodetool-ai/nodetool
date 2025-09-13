@@ -142,6 +142,26 @@
   stroke-width: 5;
 }
 
+/* Flow animation for edges on message_sent */
+.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+  opacity: 1;
+  stroke-width: 4 !important;
+  stroke-linecap: round;
+  /* create a repeating dash pattern to simulate flow */
+  stroke-dasharray: 14 10;
+  animation: edgeFlow 1.4s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
+}
+
+@keyframes edgeFlow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -120;
+  }
+}
+
 /* zoomed out */
 .zoomed-out .react-flow__edge .react-flow__edge-path,
 .zoomed-out .react-flow__connection .react-flow__connection-path {

@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import useModelStore from "./ModelStore";
 import axios, { CancelTokenSource } from "axios";
-import { BASE_URL, DOWNLOAD_URL } from "./ApiClient";
+import { DOWNLOAD_URL } from "./BASE_URL";
+import { BASE_URL } from "./BASE_URL";
 
 interface SpeedDataPoint {
   bytes: number;

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { BASE_URL, isLocalhost, WORKER_URL } from "./ApiClient";
+import { isLocalhost } from "./ApiClient";
+import { WORKER_URL } from "./BASE_URL";
+import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
@@ -15,12 +17,9 @@ import {
   PlanningUpdate
 } from "./ApiTypes";
 import { uuidv4 } from "./uuidv4";
-import { useAuth } from "./useAuth";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
-import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
-import { decode, encode } from "@msgpack/msgpack";
 import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -71,6 +70,9 @@ export type WorkflowRunner = {
   ) => Promise<void>;
   connect: (url: string) => Promise<void>;
   disconnect: () => void;
+  // Streaming inputs
+  streamInput: (inputName: string, value: any, handle?: string) => void;
+  endInputStream: (inputName: string, handle?: string) => void;
 };
 
 type MsgpackData =
@@ -169,11 +171,40 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   },
 
   disconnect: () => {
+    console.log("Disconnecting WebSocket");
     const { wsManager } = get();
     if (wsManager) {
       wsManager.disconnect();
       set({ wsManager: null, current_url: "", state: "idle" });
     }
+  },
+
+  // Push a streaming item to a streaming InputNode by name
+  streamInput: (inputName: string, value: any, handle?: string) => {
+    const { wsManager } = get();
+    if (!wsManager) {
+      log.warn("streamInput called without an active WebSocket connection");
+      return;
+    }
+    wsManager.send({
+      type: "stream_input",
+      command: "stream_input",
+      data: { input: inputName, value, handle }
+    });
+  },
+
+  // End a streaming input by name
+  endInputStream: (inputName: string, handle?: string) => {
+    const { wsManager } = get();
+    if (!wsManager) {
+      log.warn("endInputStream called without an active WebSocket connection");
+      return;
+    }
+    wsManager.send({
+      type: "end_input_stream",
+      command: "end_input_stream",
+      data: { input: inputName, handle }
+    });
   },
 
   readMessage: (workflow: WorkflowAttributes, data: MsgpackData) => {
@@ -199,9 +230,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   ) => {
     set({ workflow, nodes, edges });
     const clearStatuses = useStatusStore.getState().clearStatuses;
-    const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
+    const clearEdges = useResultsStore.getState().clearEdges;
     const clearResults = useResultsStore.getState().clearResults;
+    const clearPreviews = useResultsStore.getState().clearPreviews;
     const clearProgress = useResultsStore.getState().clearProgress;
     const clearToolCalls = useResultsStore.getState().clearToolCalls;
     const clearTasks = useResultsStore.getState().clearTasks;
@@ -235,9 +267,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     }
 
     clearStatuses(workflow.id);
-    clearLogs(workflow.id);
+    clearEdges(workflow.id);
     clearErrors(workflow.id);
     clearResults(workflow.id);
+    clearPreviews(workflow.id);
     clearProgress(workflow.id);
     clearToolCalls(workflow.id);
     clearTasks(workflow.id);
@@ -299,9 +332,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     console.log("Cancelling job", job_id);
 
     const clearStatuses = useStatusStore.getState().clearStatuses;
+    const clearEdges = useResultsStore.getState().clearEdges;
 
     if (workflow) {
       clearStatuses(workflow.id);
+      clearEdges(workflow.id);
     }
 
     if (!wsManager || !job_id) {

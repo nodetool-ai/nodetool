@@ -65,6 +65,7 @@ type ChatViewProps = {
   total: number;
   messages: Array<Message>;
   model?: LanguageModel;
+  showToolbar?: boolean;
   graph?: {
     nodes: Node[];
     edges: Edge[];
@@ -84,6 +85,8 @@ type ChatViewProps = {
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
+  runningToolCallId?: string | null;
+  runningToolMessage?: string | null;
   /**
    * Optional React node to display when there are no messages yet.
    */
@@ -100,6 +103,7 @@ const ChatView = ({
   sendMessage,
   progressMessage,
   selectedTools = [],
+  showToolbar = true,
   onToolsChange,
   selectedCollections = [],
   onCollectionsChange,
@@ -114,7 +118,9 @@ const ChatView = ({
   currentTaskUpdate,
   noMessagesPlaceholder,
   graph,
-  onInsertCode
+  onInsertCode,
+  runningToolCallId,
+  runningToolMessage
 }: ChatViewProps) => {
   const theme = useTheme();
   const handleSendMessage = useCallback(
@@ -164,6 +170,8 @@ const ChatView = ({
             progress={progress}
             total={total}
             progressMessage={progressMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
             onInsertCode={onInsertCode}
@@ -175,6 +183,7 @@ const ChatView = ({
 
       <ChatInputSection
         status={status}
+        showToolbar={showToolbar}
         onSendMessage={handleSendMessage}
         onStop={onStop}
         onNewChat={onNewChat}

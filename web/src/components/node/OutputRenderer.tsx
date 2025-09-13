@@ -1,16 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import type { Theme } from "@mui/material/styles";
-import { useTheme } from "@mui/material/styles";
 import React, {
   useMemo,
   useCallback,
-  useRef,
-  useEffect,
   memo,
-  createElement,
-  useState
+  useState,
+  useRef,
+  useEffect
 } from "react";
-import { css } from "@emotion/react";
 import Plot from "react-plotly.js";
 
 import {
@@ -20,245 +16,95 @@ import {
   NPArray,
   TaskPlan,
   PlotlyConfig,
-  AssetRef,
   Task
 } from "../../stores/ApiTypes";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
-import { Button, ButtonGroup, Container, Tooltip } from "@mui/material";
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../stores/NotificationStore";
+import { Container, List, ListItem, ListItemText } from "@mui/material";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import ImageView from "./ImageView";
-import AssetGridContent from "../assets/AssetGridContent";
 import AssetViewer from "../assets/AssetViewer";
-import { uint8ArrayToDataUri } from "../../utils/binary";
-import ArrayView from "./ArrayView"; // We'll create this component
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isEqual } from "lodash";
-import { SVGElement, Chunk } from "../../stores/ApiTypes";
+import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import {
+  typeFor,
+  renderSVGDocument,
+  useCopyToClipboard,
+  useImageAssets,
+  useRevokeBlobUrls,
+  useVideoSrc
+} from "./output";
+import { TextRenderer } from "./output/TextRenderer";
+import { BooleanRenderer } from "./output/BooleanRenderer";
+import { EmailRenderer } from "./output/EmailRenderer";
+import { ArrayRenderer } from "./output/ArrayRenderer";
+import { AssetGrid } from "./output/AssetGrid";
+import { ChunkRenderer } from "./output/ChunkRenderer";
+import { RealtimeAudioOutput } from "./output";
+// import left for future reuse of audio stream component when needed
+
+// Custom hook for draggable scrolling
+const useDraggableScroll = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const scrollTop = useRef(0);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    startY.current = e.clientY;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const deltaY = e.clientY - startY.current;
+    scrollRef.current.scrollTop = scrollTop.current - deltaY;
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!scrollRef.current) return;
+    isDragging.current = false;
+    scrollRef.current.style.cursor = "grab";
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
+    const handleGlobalMouseUp = () => handleMouseUp();
+
+    if (isDragging.current) {
+      document.addEventListener("mousemove", handleGlobalMouseMove);
+      document.addEventListener("mouseup", handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleGlobalMouseMove);
+      document.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  return {
+    scrollRef,
+    handleMouseDown,
+    isDragging: isDragging.current
+  };
+};
+
 export type OutputRendererProps = {
   value: any;
 };
 
-function generateAssetGridContent(
-  value: AssetRef[],
-  onDoubleClick: (asset: Asset) => void
-) {
-  const assets: Asset[] = value.map((item: AssetRef, index: number) => {
-    let contentType: string;
-    let name: string;
-    switch (item.type) {
-      case "image":
-        contentType = "image/png";
-        break;
-      case "audio":
-        contentType = "audio/mp3";
-        break;
-      case "video":
-        contentType = "video/mp4";
-        break;
-      default:
-        contentType = "application/octet-stream";
-    }
-
-    if (item.data && !(item.data instanceof Uint8Array)) {
-      throw new Error("Data is not a Uint8Array");
-    }
-
-    const get_url =
-      item.uri || uint8ArrayToDataUri(item.data as Uint8Array, contentType);
-
-    return {
-      id: `output-${item.type}-${index}`,
-      user_id: "",
-      workflow_id: null,
-      parent_id: "",
-      name: `output-${item.type}-${index}`,
-      content_type: contentType,
-      metadata: {},
-      created_at: new Date().toISOString(),
-      get_url: get_url,
-      thumb_url: get_url
-    } as Asset;
-  });
-
-  return <AssetGridContent assets={assets} onDoubleClick={onDoubleClick} />;
-}
-
-const convertStyleStringToObject = (
-  styleString: string
-): React.CSSProperties => {
-  if (!styleString) return {};
-  return styleString
-    .split(";")
-    .filter((style) => style.trim())
-    .reduce((acc, style) => {
-      const [property, value] = style.split(":").map((str) => str.trim());
-      // Convert kebab-case to camelCase
-      const camelProperty = property.replace(/-([a-z])/g, (g) =>
-        g[1].toUpperCase()
-      );
-      return { ...acc, [camelProperty]: value };
-    }, {});
-};
-
-const renderSvgElement = (value: SVGElement): React.ReactElement => {
-  const attributes = value.attributes || {};
-
-  // Convert style string to object if present
-  const style = attributes.style
-    ? convertStyleStringToObject(attributes.style)
-    : undefined;
-
-  // Create props object from attributes
-  const svgProps = {
-    ...value.attributes,
-    // Ensure React-compatible attribute names
-    className: attributes.class,
-    xmlSpace: attributes["xml:space"],
-    xmlLang: attributes["xml:lang"],
-    style // Override style with converted object
-  };
-
-  // Handle children differently based on type
-  const children = [
-    // Add text/SVG content if present
-    value.content &&
-      (typeof value.content === "string" &&
-      value.content.trim().startsWith("<") ? (
-        <div dangerouslySetInnerHTML={{ __html: value.content }} />
-      ) : (
-        value.content
-      )),
-    // Render child SVG elements
-    ...(value.children || []).map(renderSvgElement)
-  ].filter(Boolean);
-
-  return createElement(value.name || "svg", svgProps, ...children);
-};
-
-const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
-  const docAttributes = {
-    xmlns: "http://www.w3.org/2000/svg",
-    version: "1.1",
-    width: "100%",
-    height: "100%"
-  };
-
-  // Extract actual SVG content from nested structure
-  const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] => {
-    return elements.map((element) => {
-      if (element.content && typeof element.content === "string") {
-        // Extract the inner SVG content using regex
-        const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
-        if (match && match[1]) {
-          // Return just the inner content
-          return (
-            <g
-              key={element.name}
-              dangerouslySetInnerHTML={{ __html: match[1] }}
-            />
-          );
-        }
-      }
-      return renderSvgElement(element);
-    });
-  };
-
-  const children = extractSVGContent(value);
-  return createElement("svg", docAttributes, ...children);
-};
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      backgroundColor: "transparent",
-      height: "calc(100% - 43px)",
-      width: "100%",
-      padding: ".25em",
-      overflow: "auto",
-      userSelect: "text",
-      cursor: "text"
-    },
-    ".content": {
-      flex: 1,
-      overflowY: "auto",
-      overflowX: "hidden"
-    },
-    p: {
-      margin: "0",
-      padding: ".25em",
-      wordWrap: "break-word",
-      overflowWrap: "break-word"
-    },
-    ul: {
-      margin: "0",
-      padding: ".1em 1.75em",
-      listStyleType: "square"
-    },
-    li: {
-      margin: "0",
-      padding: ".1em .25em"
-    },
-    pre: {
-      margin: "0",
-      padding: ".25em",
-      backgroundColor: theme.vars.palette.grey[900],
-      width: "100%",
-      overflowX: "scroll"
-    },
-    code: {
-      fontFamily: theme.fontFamily2
-    },
-    ".actions": {
-      position: "absolute",
-      maxWidth: "50%",
-      left: "5.5em",
-      bottom: ".1em",
-      top: "unset",
-      padding: "0",
-      margin: "0",
-      display: "flex",
-      flexDirection: "row",
-      gap: "0.5em",
-      zIndex: 10
-    },
-    ".actions button": {
-      minWidth: "unset",
-      width: "auto",
-      lineHeight: "1.5em",
-      padding: ".3em .3em 0 .3em",
-      color: theme.vars.palette.grey[200],
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall
-    }
-  });
-
-const typeFor = (value: any): string => {
-  if (value === undefined || value === null) {
-    return "null";
-  }
-  if (Array.isArray(value)) {
-    return "array";
-  }
-  if (typeof value === "boolean") {
-    return "boolean";
-  }
-  if (typeof value === "object" && "type" in value) {
-    return value.type;
-  }
-  return typeof value;
-};
+// all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
-  const theme = useTheme();
   const shouldRender = !(
     value === undefined ||
     value === null ||
@@ -269,55 +115,30 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       Object.keys(value).length === 0)
   );
 
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const copyToClipboard = useCopyToClipboard();
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
 
+  const computedViewer = useImageAssets(value);
+  useRevokeBlobUrls(computedViewer.urls);
+
   const onDoubleClickAsset = useCallback(
-    (asset: Asset) => {
-      setLocalOpenAsset(asset);
-      setOpenAsset(asset);
-    },
-    [setOpenAsset]
-  );
-
-  const handleCopyToClipboard = useCallback(
-    (value: string) => {
-      writeClipboard(value?.toString(), true);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Value copied to Clipboard!"
-      });
-    },
-    [writeClipboard, addNotification]
-  );
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (type === "video" && videoRef.current) {
-      if (value?.uri === "") {
-        const blob = new Blob([value?.data], { type: "video/mp4" });
-        const url = URL.createObjectURL(blob);
-        videoRef.current.src = url;
-        return () => URL.revokeObjectURL(url);
-      } else {
-        videoRef.current.src = value?.uri;
+    (index: number) => {
+      const asset = computedViewer.assets[index];
+      if (asset) {
+        setLocalOpenAsset(asset);
+        setOpenAsset(asset);
       }
-    }
-  }, [type, value]);
+    },
+    [computedViewer.assets, setOpenAsset]
+  );
+
+  const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    function renderArrayPreview(array: NPArray): React.ReactNode {
-      return <ArrayView array={array} />;
-    }
-
     let config: PlotlyConfig | undefined;
     switch (type) {
       case "plotly_config":
@@ -339,9 +160,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             <ImageView key={i} source={v} />
           ));
         } else {
-          return (
-            <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
-          );
+          return <ImageView source={value?.uri ? value?.uri : value?.data} />;
         }
       case "audio":
         return (
@@ -358,7 +177,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "np_array":
         return (
           <div className="tensor nodrag">
-            {renderArrayPreview(value as NPArray)}
+            <ArrayRenderer array={value as NPArray} />
           </div>
         );
       case "object":
@@ -387,9 +206,39 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           }
           if (typeof value[0] === "string") {
             return (
-              <MarkdownRenderer
-                content={value.map((v: any) => v.toString()).join("")}
-              />
+              <div
+                ref={scrollRef}
+                onMouseDown={handleMouseDown}
+                className="nodrag"
+                style={{
+                  maxHeight: 360,
+                  overflow: "hidden",
+                  cursor: "grab",
+                  userSelect: "none"
+                }}
+              >
+                <List sx={{ p: 1 }}>
+                  {value.map((v: any, i: number) => (
+                    <ListItem
+                      key={i}
+                      sx={{
+                        borderRadius: 2,
+                        bgcolor: "background.paper",
+                        boxShadow: 1,
+                        mb: 1,
+                        px: 2
+                      }}
+                    >
+                      <ListItemText
+                        primaryTypographyProps={{
+                          sx: { whiteSpace: "pre-wrap" }
+                        }}
+                        primary={v}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </div>
             );
           }
           if (typeof value[0] === "number") {
@@ -402,31 +251,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => c.content_type === "text");
               if (allText) {
-                const text = chunks.map((c) => c.content).join("");
+                const text = chunks
+                  .filter((c) => !!c)
+                  .map((c) => c.content)
+                  .join("");
+                return <TextRenderer text={text} onCopy={copyToClipboard} />;
+              }
+              const audioChunks = chunks.filter(
+                (c) => c.content_type === "audio"
+              );
+              if (audioChunks.length >= 2) {
                 return (
-                  <div
-                    className="output value nodrag noscroll"
-                    css={styles(theme)}
-                  >
-                    {text !== "" && (
-                      <>
-                        <ButtonGroup className="actions">
-                          <Tooltip
-                            title="Copy to Clipboard"
-                            enterDelay={TOOLTIP_ENTER_DELAY}
-                          >
-                            <Button
-                              size="small"
-                              onClick={() => handleCopyToClipboard(text)}
-                            >
-                              Copy
-                            </Button>
-                          </Tooltip>
-                        </ButtonGroup>
-                        <MarkdownRenderer content={text} />
-                      </>
-                    )}
-                  </div>
+                  <RealtimeAudioOutput
+                    chunks={audioChunks}
+                    sampleRate={22000}
+                    channels={1}
+                  />
                 );
               }
               // Mixed or non-text chunks: render each chunk individually
@@ -444,8 +284,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             if (value[0].type === "thread_message") {
               return <ThreadMessageList messages={value as Message[]} />;
             }
-            if (["image", "audio", "video"].includes(value[0].type)) {
-              return generateAssetGridContent(value, onDoubleClickAsset);
+            if (value[0].type === "image") {
+              return (
+                <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
+              );
+            }
+            if (["audio", "video"].includes(value[0].type)) {
+              return (
+                <Container>
+                  {value.map((v: any, i: number) => (
+                    <OutputRenderer key={i} value={v} />
+                  ))}
+                </Container>
+              );
             }
             const columnType = (
               v: any
@@ -496,191 +347,52 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "svg_element":
         return renderSVGDocument(value);
       case "boolean": {
-        const boolStr = String(value).toUpperCase();
         return (
-          <div className="output value nodrag noscroll" css={styles(theme)}>
-            <ButtonGroup className="actions">
-              <Tooltip
-                title="Copy to Clipboard"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                <Button
-                  size="small"
-                  onClick={() => handleCopyToClipboard(boolStr)}
-                >
-                  Copy
-                </Button>
-              </Tooltip>
-            </ButtonGroup>
-            <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
-          </div>
+          <BooleanRenderer value={value as boolean} onCopy={copyToClipboard} />
         );
       }
       case "email":
-        return (
-          <div css={styles(theme)}>
-            <div className="email-header">
-              <p>
-                <strong>From:</strong> {value.sender}
-              </p>
-              <p>
-                <strong>To:</strong> {value.to}
-              </p>
-              {value.cc && (
-                <p>
-                  <strong>CC:</strong> {value.cc}
-                </p>
-              )}
-              <p>
-                <strong>Subject:</strong> {value.subject}
-              </p>
-            </div>
-            <div className="email-body">
-              <MarkdownRenderer content={value.body} />
-            </div>
-          </div>
-        );
+        return <EmailRenderer value={value} />;
       case "chunk": {
         const chunk = value as Chunk;
-        switch (chunk.content_type) {
-          case "image":
-            return <ImageView source={chunk.content} />;
-          case "audio":
-            return (
-              <div className="audio" style={{ padding: "1em" }}>
-                <AudioPlayer source={chunk.content} />
-              </div>
-            );
-          case "video":
-            return (
-              <video src={chunk.content} controls style={{ width: "100%" }} />
-            );
-          case "document":
-            return (
-              <div className="output value nodrag noscroll" css={styles(theme)}>
-                <a href={chunk.content} target="_blank" rel="noreferrer">
-                  Open document
-                </a>
-              </div>
-            );
-          case "text":
-          default: {
-            const text = chunk.content ?? "";
-            return (
-              <div className="output value nodrag noscroll" css={styles(theme)}>
-                {text !== "" && (
-                  <>
-                    <ButtonGroup className="actions">
-                      <Tooltip
-                        title="Copy to Clipboard"
-                        enterDelay={TOOLTIP_ENTER_DELAY}
-                      >
-                        <Button
-                          size="small"
-                          onClick={() => handleCopyToClipboard(text)}
-                        >
-                          Copy
-                        </Button>
-                      </Tooltip>
-                    </ButtonGroup>
-                    <MarkdownRenderer content={text} />
-                  </>
-                )}
-              </div>
-            );
-          }
-        }
+        return <ChunkRenderer chunk={chunk} onCopy={copyToClipboard} />;
       }
       default:
         return (
-          <div className="output value nodrag noscroll" css={styles(theme)}>
-            {value !== null &&
-              value !== undefined &&
-              value.toString() !== "" && (
-                <>
-                  <ButtonGroup className="actions">
-                    <Tooltip
-                      title="Copy to Clipboard"
-                      enterDelay={TOOLTIP_ENTER_DELAY}
-                    >
-                      <Button
-                        size="small"
-                        onClick={() => handleCopyToClipboard(value?.toString())}
-                      >
-                        Copy
-                      </Button>
-                    </Tooltip>
-                  </ButtonGroup>
-                  <MarkdownRenderer content={value?.toString()} />
-                </>
-              )}
-          </div>
+          <TextRenderer
+            text={value?.toString?.() ?? ""}
+            onCopy={copyToClipboard}
+          />
         );
     }
-  }, [value, type, onDoubleClickAsset, handleCopyToClipboard, theme]);
+  }, [
+    value,
+    type,
+    onDoubleClickAsset,
+    copyToClipboard,
+    videoRef,
+    handleMouseDown,
+    scrollRef
+  ]);
 
   if (!shouldRender) {
     return null;
   }
 
   return (
-    <>
+    <div className="nodrag">
       {openAsset && (
         <AssetViewer
           asset={openAsset}
           sortedAssets={
-            Array.isArray(value) &&
-            value.every(
-              (item) =>
-                item.type && ["image", "audio", "video"].includes(item.type)
-            )
-              ? value.map((item: any, index: number) => {
-                  let contentType: string;
-                  let name: string;
-                  switch (item.type) {
-                    case "image":
-                      contentType = "image/png";
-                      name = item.name || `Image ${index + 1}.png`;
-                      break;
-                    case "audio":
-                      contentType = "audio/mp3";
-                      name = item.name || `Audio ${index + 1}.mp3`;
-                      break;
-                    case "video":
-                      contentType = "video/mp4";
-                      name = item.name || `Video ${index + 1}.mp4`;
-                      break;
-                    default:
-                      contentType = "application/octet-stream";
-                      name = item.name || `File ${index + 1}`;
-                  }
-
-                  const get_url =
-                    item.uri || uint8ArrayToDataUri(item.data, contentType);
-                  const thumb_url = item.thumb_url || get_url;
-
-                  return {
-                    id: item.id || `output-${item.type}-${index}`,
-                    user_id: "",
-                    workflow_id: null,
-                    parent_id: "",
-                    name: name,
-                    content_type: contentType,
-                    metadata: {},
-                    created_at: new Date().toISOString(),
-                    get_url: get_url,
-                    thumb_url: thumb_url,
-                    duration: item.duration || null
-                  } as Asset;
-                })
-              : undefined
+            computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
           onClose={() => setLocalOpenAsset(null)}
         />
       )}
       {renderContent}
-    </>
+    </div>
   );
 };
 

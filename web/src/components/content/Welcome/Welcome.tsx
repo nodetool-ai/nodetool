@@ -487,13 +487,13 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/examples")}
+                        onClick={() => navigate("/templates")}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
                           <LibraryBooksIcon className="quick-card-icon" />
                           <Typography className="quick-card-title">
-                            Browse Examples
+                            Browse Templates
                           </Typography>
                           <Typography className="quick-card-desc">
                             Explore ready-made workflows to learn and remix.
@@ -758,10 +758,10 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/examples")}
+                      onClick={() => navigate("/templates")}
                       className="setup-test-button"
                     >
-                      Open Examples
+                      Open Templates
                     </Button>
                     <Button
                       size="small"

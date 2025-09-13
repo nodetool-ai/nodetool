@@ -61,8 +61,9 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
         await sendMessage(messageWithModel);
 
         // Navigate after a short delay to allow message processing
+        const targetThreadId = threadId; // capture for closure
         setTimeout(() => {
-          navigate("/chat");
+          navigate(`/chat/${targetThreadId}`);
         }, 100);
       } catch (error) {
         console.error("Failed to send message:", error);

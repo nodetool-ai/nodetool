@@ -16,7 +16,7 @@ const styles = (theme: Theme) =>
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    padding: "1.5em 20px",
+    padding: "1.5em",
     marginTop: "auto",
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
@@ -51,6 +51,7 @@ type ChatInputSectionProps = {
     | "reconnecting"
     | "disconnecting"
     | "failed";
+  showToolbar?: boolean;
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
@@ -80,38 +81,41 @@ const ChatInputSection = ({
   selectedModel,
   onModelChange,
   agentMode,
-  onAgentModeToggle
+  onAgentModeToggle,
+  showToolbar = true
 }: ChatInputSectionProps) => {
   const isDisconnected = status === "disconnected" || status === "connecting";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   return (
     <div className="chat-input-section" css={styles(theme)}>
-      <div className="chat-controls">
-        {isMobile ? (
-          <MobileChatToolbar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={onCollectionsChange}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            agentMode={agentMode}
-            onAgentModeToggle={onAgentModeToggle}
-          />
-        ) : (
-          <ChatToolBar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={onCollectionsChange}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            agentMode={agentMode}
-            onAgentModeToggle={onAgentModeToggle}
-          />
-        )}
-      </div>
+      {showToolbar && (
+        <div className="chat-controls">
+          {isMobile ? (
+            <MobileChatToolbar
+              selectedTools={selectedTools}
+              onToolsChange={onToolsChange}
+              selectedCollections={selectedCollections}
+              onCollectionsChange={onCollectionsChange}
+              selectedModel={selectedModel}
+              onModelChange={onModelChange}
+              agentMode={agentMode}
+              onAgentModeToggle={onAgentModeToggle}
+            />
+          ) : (
+            <ChatToolBar
+              selectedTools={selectedTools}
+              onToolsChange={onToolsChange}
+              selectedCollections={selectedCollections}
+              onCollectionsChange={onCollectionsChange}
+              selectedModel={selectedModel}
+              onModelChange={onModelChange}
+              agentMode={agentMode}
+              onAgentModeToggle={onAgentModeToggle}
+            />
+          )}
+        </div>
+      )}
       <div className="chat-composer-wrapper">
         <ChatComposer
           status={status}

@@ -24,7 +24,7 @@ const loadWorkflows = async () => {
 
 export const useDashboardData = () => {
   const settings = useSettingsStore((state) => state.settings);
-  const loadExamples = useWorkflowManager((state) => state.loadExamples);
+  const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
 
   const { data: workflowsData, isLoading: isLoadingWorkflows } =
     useQuery<WorkflowList>({
@@ -32,13 +32,13 @@ export const useDashboardData = () => {
       queryFn: loadWorkflows
     });
 
-  const { data: examplesData, isLoading: isLoadingExamples } =
+  const { data: examplesData, isLoading: isLoadingTemplates } =
     useQuery<WorkflowList>({
-      queryKey: ["examples"],
-      queryFn: loadExamples
+      queryKey: ["templates"],
+      queryFn: loadTemplates
     });
 
-  const startExamples = useMemo(() => {
+  const startTemplates = useMemo(() => {
     return (
       examplesData?.workflows.filter(
         (workflow: Workflow) =>
@@ -62,7 +62,7 @@ export const useDashboardData = () => {
   return {
     isLoadingWorkflows,
     sortedWorkflows,
-    isLoadingExamples,
-    startExamples
+    isLoadingTemplates,
+    startTemplates
   };
 };

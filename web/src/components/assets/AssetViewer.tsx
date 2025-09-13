@@ -27,6 +27,9 @@ import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
+import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
+import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 
 const containerStyles = css({
   width: "100%",
@@ -232,61 +235,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [sortedAssets, folderFiles]
   );
 
-  const handleDownload = useCallback(() => {
-    const downloadUrl = url || (currentAsset && currentAsset.get_url);
-
-    if (!downloadUrl) return;
-
-    // Always use anchor element for downloading
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-
-    // Extract filename from asset or URL
-    let filename = "download";
-    if (currentAsset?.name) {
-      filename = currentAsset.name;
-    } else if (downloadUrl.startsWith("data:")) {
-      // Try to determine file extension from data URI
-      const match = downloadUrl.match(/data:([^;]+)/);
-      if (match) {
-        const mimeType = match[1];
-        const extension = mimeType.split("/")[1];
-        if (extension) {
-          filename = `download.${extension}`;
-        }
-      }
-    } else {
-      // Extract filename from URL path
-      try {
-        const urlObj = new URL(downloadUrl);
-        const pathname = urlObj.pathname;
-        const lastSegment = pathname.split("/").pop();
-        if (lastSegment && lastSegment.includes(".")) {
-          filename = lastSegment;
-        }
-      } catch (e) {
-        // If URL parsing fails, keep default filename
-      }
-    }
-
-    link.download = filename;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [currentAsset, url]);
+  const { handleDownload } = useAssetDownload({ currentAsset, url });
 
   const handleChangeAsset = useCallback(
     (index: number) => {
-      if (assetsToUse && index >= 0 && index < assetsToUse.length) {
-        const newAsset = assetsToUse[index];
-        setTimeout(() => {
-          setCurrentAsset(newAsset);
-        }, 10);
-        setCurrentIndex(index);
-      }
+      if (!assetsToUse) return;
+      const newAsset = assetsToUse[index];
+      setTimeout(() => {
+        setCurrentAsset(newAsset);
+      }, 10);
+      setCurrentIndex(index);
     },
-    [assetsToUse, setCurrentAsset, setCurrentIndex]
+    [assetsToUse]
   );
 
   useEffect(() => {
@@ -305,49 +265,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [asset, assetsToUse]);
 
-  const changeAsset = useCallback(
-    (direction: "left" | "right", controlKeyPressed: boolean) => {
-      if (currentIndex !== null && assetsToUse) {
-        if (direction === "left" && currentIndex > 0) {
-          if (controlKeyPressed) {
-            const newIndex = Math.max(currentIndex - prevNextAmount, 0);
-            handleChangeAsset(newIndex);
-          } else {
-            handleChangeAsset(currentIndex - 1);
-          }
-        } else if (
-          direction === "right" &&
-          currentIndex < assetsToUse.length - 1
-        ) {
-          if (controlKeyPressed) {
-            const newIndex = Math.min(
-              currentIndex + prevNextAmount,
-              assetsToUse.length - 1
-            );
-            handleChangeAsset(newIndex);
-          } else {
-            handleChangeAsset(currentIndex + 1);
-          }
-        }
-      }
-    },
-    [handleChangeAsset, currentIndex, assetsToUse, prevNextAmount]
-  );
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-
-      if (e.key === "ArrowLeft") {
-        changeAsset("left", e.ctrlKey);
-      } else if (e.key === "ArrowRight") {
-        changeAsset("right", e.ctrlKey);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, changeAsset]);
+  const { changeAsset } = useAssetNavigation({
+    open,
+    assets: assetsToUse,
+    currentIndex,
+    prevNextAmount,
+    onChangeIndex: handleChangeAsset
+  });
 
   useCombo(["Escape"], handleClose);
   useCombo(
@@ -383,47 +307,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }, [changeAsset, open])
   );
 
-  const assetViewer = useMemo(() => {
-    const type = currentAsset?.content_type || contentType || "";
-
-    if (currentAsset) {
-      if (type.startsWith("image/")) {
-        return <ImageViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("audio/")) {
-        return <AudioViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("text/")) {
-        return <TextViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("video/")) {
-        return <VideoViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("application/pdf")) {
-        return <PDFViewer asset={currentAsset} />;
-      }
-    }
-    if (url) {
-      if (type.startsWith("image/")) {
-        return <ImageViewer url={url} />;
-      }
-      if (type.startsWith("audio/")) {
-        return <AudioViewer url={url} />;
-      }
-      if (type.startsWith("text/")) {
-        return <TextViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("video/")) {
-        return <VideoViewer url={url} />;
-      }
-      if (type.startsWith("application/pdf")) {
-        return <PDFViewer url={url} />;
-      }
-      if (type === "document" && url?.endsWith(".pdf")) {
-        return <PDFViewer url={url} />;
-      }
-    }
-  }, [currentAsset, url, contentType]);
+  const { component: assetViewer } = useAssetDisplay({
+    asset: currentAsset,
+    url,
+    contentType
+  });
 
   const navigation = useMemo(() => {
     if (currentIndex === null) return null;

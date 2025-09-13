@@ -71,7 +71,6 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
     edges: state.edges,
     findNode: state.findNode
   }));
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const isConstantNode = property.type.type.startsWith("nodetool.constant");
   const isConnected = useMemo(() => {
@@ -88,11 +87,18 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   if (isAdvancedField && !isConnected && !showAdvancedFields) {
     return null;
   }
+  // Resolve the current value for this input. Use dynamic_properties for
+  // dynamic inputs; otherwise use properties. Fallback to the property's
+  // default when undefined to avoid runtime errors.
+  const resolvedValue = isDynamicProperty
+    ? data?.dynamic_properties?.[property.name] ?? property.default
+    : data?.properties?.[property.name] ?? property.default;
+
   return (
     <PropertyField
       key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
       id={id}
-      value={data.properties[property.name]}
+      value={resolvedValue}
       nodeType={nodeType}
       layout={layout}
       property={property}

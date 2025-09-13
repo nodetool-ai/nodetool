@@ -33,9 +33,15 @@ jest.mock("../../../utils/TypeHandler", () => ({
 import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
 
-const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<typeof findOutputHandle>;
-const mockFindInputHandle = findInputHandle as jest.MockedFunction<typeof findInputHandle>;
-const mockIsConnectable = isConnectable as jest.MockedFunction<typeof isConnectable>;
+const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<
+  typeof findOutputHandle
+>;
+const mockFindInputHandle = findInputHandle as jest.MockedFunction<
+  typeof findInputHandle
+>;
+const mockIsConnectable = isConnectable as jest.MockedFunction<
+  typeof isConnectable
+>;
 
 // Test data
 const mockNodeMetadata: NodeMetadata = {
@@ -47,14 +53,26 @@ const mockNodeMetadata: NodeMetadata = {
   outputs: [
     {
       name: "output",
-      type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+      type: {
+        type: "str",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
       stream: false
     }
   ],
   properties: [
     {
       name: "input",
-      type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+      type: {
+        type: "str",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
       default: "",
       title: "Input",
       description: "Test input"
@@ -62,8 +80,10 @@ const mockNodeMetadata: NodeMetadata = {
   ],
   is_dynamic: false,
   supports_dynamic_outputs: false,
-  is_output: false,
-  expose_as_tool: false
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: []
 };
 
 const mockDynamicNodeMetadata: NodeMetadata = {
@@ -110,7 +130,9 @@ describe("useConnectionHandlers", () => {
     (useMetadataStore as unknown as jest.Mock).mockReturnValue(mockGetMetadata);
 
     // Mock useNotificationStore
-    (useNotificationStore as unknown as jest.Mock).mockReturnValue(mockAddNotification);
+    (useNotificationStore as unknown as jest.Mock).mockReturnValue(
+      mockAddNotification
+    );
 
     // Mock useNodes
     (useNodes as unknown as jest.Mock).mockReturnValue({
@@ -127,7 +149,7 @@ describe("useConnectionHandlers", () => {
   describe("onConnectStart", () => {
     it("should start connecting with valid parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(mockNodeMetadata);
@@ -152,7 +174,7 @@ describe("useConnectionHandlers", () => {
 
     it("should handle missing node gracefully", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       mockFindNode.mockReturnValue(undefined);
       const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
@@ -164,7 +186,9 @@ describe("useConnectionHandlers", () => {
 
       result.current.onConnectStart({} as any, connectStartParams);
 
-      expect(consoleSpy).toHaveBeenCalledWith("Node with id nonexistent not found");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Node with id nonexistent not found"
+      );
       expect(mockStartConnecting).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -172,7 +196,7 @@ describe("useConnectionHandlers", () => {
 
     it("should handle missing metadata gracefully", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(undefined);
@@ -186,7 +210,9 @@ describe("useConnectionHandlers", () => {
 
       result.current.onConnectStart({} as any, connectStartParams);
 
-      expect(consoleSpy).toHaveBeenCalledWith("Metadata for node type test.node not found");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Metadata for node type test.node not found"
+      );
       expect(mockStartConnecting).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -194,17 +220,22 @@ describe("useConnectionHandlers", () => {
 
     it("should handle missing required parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Missing nodeId
-      result.current.onConnectStart({} as any, {
-        nodeId: "",
-        handleId: "output",
-        handleType: "source"
-      } as OnConnectStartParams);
+      result.current.onConnectStart(
+        {} as any,
+        {
+          nodeId: "",
+          handleId: "output",
+          handleType: "source"
+        } as OnConnectStartParams
+      );
 
-      expect(consoleSpy).toHaveBeenCalledWith("Missing required data for connection start");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Missing required data for connection start"
+      );
       expect(mockStartConnecting).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -214,10 +245,10 @@ describe("useConnectionHandlers", () => {
   describe("handleOnConnect", () => {
     it("should connect nodes with valid handles", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.node");
       const targetNode = createMockNode("target", "test.node");
-      
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
@@ -228,14 +259,26 @@ describe("useConnectionHandlers", () => {
       // Mock handle finding
       mockFindOutputHandle.mockReturnValue({
         name: "output",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         stream: false,
         isDynamic: false
       });
 
       mockFindInputHandle.mockReturnValue({
         name: "input",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         isDynamic: false
       });
 
@@ -248,8 +291,16 @@ describe("useConnectionHandlers", () => {
 
       result.current.handleOnConnect(connection);
 
-      expect(mockFindOutputHandle).toHaveBeenCalledWith(sourceNode, "output", mockNodeMetadata);
-      expect(mockFindInputHandle).toHaveBeenCalledWith(targetNode, "input", mockNodeMetadata);
+      expect(mockFindOutputHandle).toHaveBeenCalledWith(
+        sourceNode,
+        "output",
+        mockNodeMetadata
+      );
+      expect(mockFindInputHandle).toHaveBeenCalledWith(
+        targetNode,
+        "input",
+        mockNodeMetadata
+      );
       expect(mockOnConnect).toHaveBeenCalledWith({
         ...connection,
         className: "str" // Slugified type
@@ -258,14 +309,45 @@ describe("useConnectionHandlers", () => {
 
     it("should handle dynamic properties connections", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.node");
       const targetNode = createMockNode("target", "test.dynamic");
-      targetNode.data.dynamic_properties = { "dynamic_input": "test_value" };
-      
+      targetNode.data.dynamic_properties = { dynamic_input: "test_value" };
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
+
+      // Mock getMetadata to return proper metadata for both source and target
+      mockGetMetadata.mockReturnValueOnce(mockNodeMetadata); // Source metadata
+      mockGetMetadata.mockReturnValueOnce({
+        node_type: "test.dynamic",
+        title: "Dynamic Node",
+        description: "A dynamic node",
+        namespace: "test",
+        layout: "default",
+        properties: [],
+        outputs: [],
+        is_dynamic: true
+      }); // Target metadata
+
+      // Mock the handle finding functions to return proper handle objects
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue(undefined); // Dynamic property, so input handle is undefined
+
+      mockIsConnectable.mockReturnValue(true);
 
       const connection: Connection = {
         source: "source",
@@ -278,16 +360,16 @@ describe("useConnectionHandlers", () => {
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         ...connection,
-        className: "any" // Dynamic properties use "any" type
+        className: "str" // Uses source handle type, not target
       });
     });
 
     it("should reject connections with missing handles", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.node");
       const targetNode = createMockNode("target", "test.node");
-      
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
@@ -311,7 +393,7 @@ describe("useConnectionHandlers", () => {
       result.current.handleOnConnect(connection);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        "Invalid source or target handle. Source: invalid_output, Target: invalid_input"
+        "Invalid source handle. Source: invalid_output"
       );
       expect(mockOnConnect).not.toHaveBeenCalled();
 
@@ -320,10 +402,10 @@ describe("useConnectionHandlers", () => {
 
     it("should reject incompatible type connections", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.node");
       const targetNode = createMockNode("target", "test.node");
-      
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
@@ -334,14 +416,26 @@ describe("useConnectionHandlers", () => {
       // Mock incompatible types
       mockFindOutputHandle.mockReturnValue({
         name: "output",
-        type: { type: "int", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "int",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         stream: false,
         isDynamic: false
       });
 
       mockFindInputHandle.mockReturnValue({
         name: "input",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         isDynamic: false
       });
 
@@ -367,7 +461,7 @@ describe("useConnectionHandlers", () => {
 
     it("should handle missing nodes gracefully", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       mockFindNode.mockReturnValue(undefined);
 
       const connection: Connection = {
@@ -384,7 +478,7 @@ describe("useConnectionHandlers", () => {
 
     it("should handle missing targetHandle gracefully", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const connection: Connection = {
         source: "source",
         target: "target",
@@ -401,10 +495,10 @@ describe("useConnectionHandlers", () => {
   describe("integration with centralized handle functions", () => {
     it("should use findOutputHandle for source handle validation", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.node");
       const targetNode = createMockNode("target", "test.node");
-      
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
@@ -414,14 +508,26 @@ describe("useConnectionHandlers", () => {
 
       mockFindOutputHandle.mockReturnValue({
         name: "output",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         stream: false,
         isDynamic: false
       });
 
       mockFindInputHandle.mockReturnValue({
         name: "input",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         isDynamic: false
       });
 
@@ -434,16 +540,24 @@ describe("useConnectionHandlers", () => {
 
       result.current.handleOnConnect(connection);
 
-      expect(mockFindOutputHandle).toHaveBeenCalledWith(sourceNode, "output", mockNodeMetadata);
-      expect(mockFindInputHandle).toHaveBeenCalledWith(targetNode, "input", mockNodeMetadata);
+      expect(mockFindOutputHandle).toHaveBeenCalledWith(
+        sourceNode,
+        "output",
+        mockNodeMetadata
+      );
+      expect(mockFindInputHandle).toHaveBeenCalledWith(
+        targetNode,
+        "input",
+        mockNodeMetadata
+      );
     });
 
     it("should handle dynamic outputs through findOutputHandle", () => {
       const { result } = renderHook(() => useConnectionHandlers());
-      
+
       const sourceNode = createMockNode("source", "test.dynamic");
       const targetNode = createMockNode("target", "test.node");
-      
+
       mockFindNode
         .mockReturnValueOnce(sourceNode)
         .mockReturnValueOnce(targetNode);
@@ -454,14 +568,26 @@ describe("useConnectionHandlers", () => {
       // Mock finding a dynamic output
       mockFindOutputHandle.mockReturnValue({
         name: "dynamic_output",
-        type: { type: "bool", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "bool",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         stream: false,
         isDynamic: true
       });
 
       mockFindInputHandle.mockReturnValue({
         name: "input",
-        type: { type: "str", optional: false, values: null, type_args: [], type_name: null },
+        type: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
         isDynamic: false
       });
 
@@ -474,7 +600,11 @@ describe("useConnectionHandlers", () => {
 
       result.current.handleOnConnect(connection);
 
-      expect(mockFindOutputHandle).toHaveBeenCalledWith(sourceNode, "dynamic_output", mockDynamicNodeMetadata);
+      expect(mockFindOutputHandle).toHaveBeenCalledWith(
+        sourceNode,
+        "dynamic_output",
+        mockDynamicNodeMetadata
+      );
       expect(mockOnConnect).toHaveBeenCalledWith({
         ...connection,
         className: "bool"

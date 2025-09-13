@@ -17,6 +17,7 @@ import { Save, Layers, Add } from "@mui/icons-material";
 import { useLayoutStore, UserLayout } from "../../stores/LayoutStore";
 import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
+import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
 
 interface LayoutMenuProps {
   dockviewApi: DockviewApi | null;
@@ -86,11 +87,11 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     setActiveLayoutId(layoutId);
     if (dockviewApi) {
       if (layoutId === null) {
-        dockviewApi.fromJSON(defaultLayout);
+        applyDockviewLayoutSafely(dockviewApi, defaultLayout);
       } else {
         const newLayout = layouts.find((l) => l.id === layoutId);
         if (newLayout) {
-          dockviewApi.fromJSON(newLayout.layout);
+          applyDockviewLayoutSafely(dockviewApi, newLayout.layout);
         }
       }
     }

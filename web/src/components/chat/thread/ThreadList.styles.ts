@@ -13,26 +13,10 @@ export const createStyles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: theme.spacing(1.5),
+      padding: theme.spacing(1.5)
     },
 
-    ".new-chat-button": {
-      width: "calc(100% - 10px)",
-      textAlign: "center",
-      padding: "0.5em 1em",
-      borderRadius: "8px",
-      background: "transparent",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      color: theme.vars.palette.grey[0],
-      textTransform: "none",
-      justifyContent: "center",
-      transition: "background 0.2s, transform 0.15s ease, box-shadow 0.2s ease",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600],
-        transform: "translateY(-1px)"
-      },
-      "&:active": { transform: "translateY(0)" }
-    },
+    ".new-chat-button": {},
 
     ".thread-list": {
       flex: 1,
@@ -68,6 +52,7 @@ export const createStyles = (theme: Theme) =>
       position: "relative",
       padding: "0.6em 0.75em",
       fontSize: theme.fontSizeSmall,
+      width: "calc(100% - 12px)",
       borderLeft: `3px solid transparent`,
       cursor: "pointer",
       transition:
@@ -78,7 +63,6 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
 
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600],
         ".delete-button": { opacity: 1 }
       },
 
@@ -88,7 +72,7 @@ export const createStyles = (theme: Theme) =>
       },
 
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[600],
+        backgroundColor: theme.vars.palette.grey[800],
         borderLeft: `3px solid ${"var(--palette-primary-main)"}`
       },
 

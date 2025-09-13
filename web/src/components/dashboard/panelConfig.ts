@@ -1,5 +1,5 @@
 export const PANEL_CONFIG = {
-  examples: { title: "Examples" },
+  templates: { title: "Templates" },
   workflows: { title: "Recent Workflows" },
   "recent-chats": { title: "Recent Chats" },
   chat: { title: "Chat" }

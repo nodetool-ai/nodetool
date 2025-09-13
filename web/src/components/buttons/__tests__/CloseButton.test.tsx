@@ -1,24 +1,27 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import CloseButton from "../CloseButton";
+import mockTheme from "../../../__mocks__/themeMock";
 
-// Create a simple theme for testing
-const theme = createTheme({
-  palette: {
-    c_gray5: "#888888",
-    grey: {
-      50: "#eee"
-    }
-  } as any
-});
+// Mock MUI Button to avoid reliance on theme.vars internals in tests
+jest.mock("@mui/material/Button", () => ({
+  __esModule: true,
+  default: ({ children, ...rest }: any) => <button {...rest}>{children}</button>
+}));
+
+// Mock icon to a simple element
+jest.mock("@mui/icons-material/Clear", () => ({
+  __esModule: true,
+  default: () => <span data-testid="clear-icon" />
+}));
 
 describe("CloseButton", () => {
   it("renders correctly", () => {
     const mockOnClick = jest.fn();
 
     render(
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} />
       </ThemeProvider>
     );
@@ -33,7 +36,7 @@ describe("CloseButton", () => {
     const customClass = "custom-class";
 
     render(
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton className={customClass} onClick={mockOnClick} />
       </ThemeProvider>
     );
@@ -47,7 +50,7 @@ describe("CloseButton", () => {
     const mockOnClick = jest.fn();
 
     render(
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} />
       </ThemeProvider>
     );

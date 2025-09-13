@@ -56,8 +56,8 @@ export const useWorkflowActions = () => {
     [loadingExampleId, createWorkflow, navigate]
   );
 
-  const handleViewAllExamples = useCallback(() => {
-    navigate("/examples");
+  const handleViewAllTemplates = useCallback(() => {
+    navigate("/templates");
   }, [navigate]);
 
   return {
@@ -65,6 +65,6 @@ export const useWorkflowActions = () => {
     handleCreateNewWorkflow,
     handleWorkflowClick,
     handleExampleClick,
-    handleViewAllExamples
+    handleViewAllTemplates
   };
 };

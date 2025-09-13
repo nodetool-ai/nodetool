@@ -9,8 +9,14 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import ChatIcon from "@mui/icons-material/Chat";
+import FolderIcon from "@mui/icons-material/Folder";
+import EditIcon from "@mui/icons-material/Edit";
+import StorageIcon from "@mui/icons-material/Storage";
 import Logo from "../Logo";
 import TitleBar from "../TitleBar";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: Theme) =>
   css({
@@ -150,7 +156,7 @@ const DashboardButton = memo(function DashboardButton({
   );
 });
 
-const ExamplesButton = memo(function ExamplesButton({
+const TemplatesButton = memo(function TemplatesButton({
   isActive
 }: {
   isActive: boolean;
@@ -159,23 +165,164 @@ const ExamplesButton = memo(function ExamplesButton({
   const theme = useTheme();
 
   const handleClick = useCallback(() => {
-    navigate("/examples");
+    navigate("/templates");
   }, [navigate]);
 
   return (
     <Tooltip
-      title="Explore Examples"
+      title="Explore Templates"
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
       <IconButton
-        className={`nav-button examples-button ${isActive ? "active" : ""}`}
+        className={`nav-button templates-button ${isActive ? "active" : ""}`}
         onClick={handleClick}
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
         <ExamplesIcon />
-        <span className="nav-button-text">Examples</span>
+        <span className="nav-button-text">Templates</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const ChatButton = memo(function ChatButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const { lastUsedThreadId, createNewThread, switchThread } =
+    useGlobalChatStore();
+
+  const handleClick = useCallback(async () => {
+    try {
+      if (lastUsedThreadId) {
+        switchThread(lastUsedThreadId);
+        navigate(`/chat/${lastUsedThreadId}`);
+      } else {
+        const newThreadId = await createNewThread();
+        switchThread(newThreadId);
+        navigate(`/chat/${newThreadId}`);
+      }
+    } catch (e) {
+      navigate(`/chat`);
+    }
+  }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
+
+  return (
+    <Tooltip
+      title="Open Chat"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className={`nav-button chat-button ${isActive ? "active" : ""}`}
+        onClick={handleClick}
+        tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <ChatIcon />
+        <span className="nav-button-text">Chat</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const EditorButton = memo(function EditorButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
+  const handleClick = useCallback(() => {
+    if (currentWorkflowId) {
+      navigate(`/editor/${currentWorkflowId}`);
+    } else {
+      navigate("/editor");
+    }
+  }, [navigate, currentWorkflowId]);
+
+  return (
+    <Tooltip
+      title="Open Editor"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className={`nav-button editor-button ${isActive ? "active" : ""}`}
+        onClick={handleClick}
+        tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
+        disabled={!currentWorkflowId}
+      >
+        <EditIcon />
+        <span className="nav-button-text">Editor</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const AssetsButton = memo(function AssetsButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
+  const navigate = useNavigate();
+  const theme = useTheme();
+
+  const handleClick = useCallback(() => {
+    navigate("/assets");
+  }, [navigate]);
+
+  return (
+    <Tooltip title="Assets" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
+      <IconButton
+        className={`nav-button assets-button ${isActive ? "active" : ""}`}
+        onClick={handleClick}
+        tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <FolderIcon />
+        <span className="nav-button-text">Assets</span>
+      </IconButton>
+    </Tooltip>
+  );
+});
+
+const CollectionsButton = memo(function CollectionsButton({
+  isActive
+}: {
+  isActive: boolean;
+}) {
+  const navigate = useNavigate();
+  const theme = useTheme();
+
+  const handleClick = useCallback(() => {
+    navigate("/collections");
+  }, [navigate]);
+
+  return (
+    <Tooltip
+      title="Collections"
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <IconButton
+        className={`nav-button collections-button ${isActive ? "active" : ""}`}
+        onClick={handleClick}
+        tabIndex={-1}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <StorageIcon />
+        <span className="nav-button-text">Collections</span>
       </IconButton>
     </Tooltip>
   );
@@ -210,7 +357,11 @@ const AppHeader: React.FC = memo(function AppHeader() {
           </div>
           <div className="nav-group">
             <DashboardButton isActive={path.startsWith("/dashboard")} />
-            <ExamplesButton isActive={path.startsWith("/examples")} />
+            <EditorButton isActive={path.startsWith("/editor")} />
+            <ChatButton isActive={path.startsWith("/chat")} />
+            <AssetsButton isActive={path.startsWith("/assets")} />
+            <CollectionsButton isActive={path.startsWith("/collections")} />
+            <TemplatesButton isActive={path.startsWith("/templates")} />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>

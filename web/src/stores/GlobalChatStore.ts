@@ -17,22 +17,26 @@ import {
   SubTaskResult,
   MessageList,
   Thread,
-  ThreadCreateRequest,
   ThreadUpdateRequest,
   ThreadSummarizeRequest,
-  ThreadList,
   LanguageModel
 } from "./ApiTypes";
-import { CHAT_URL, isLocalhost } from "./ApiClient";
+import { isLocalhost } from "./ApiClient";
+import { CHAT_URL } from "./BASE_URL";
 import { client } from "./ApiClient";
 import log from "loglevel";
 import { supabase } from "../lib/supabaseClient";
-import { uuidv4 } from "./uuidv4";
 import { DEFAULT_MODEL } from "../config/constants";
+import { NodeStore } from "../stores/NodeStore";
 import {
   WebSocketManager,
   ConnectionState
 } from "../lib/websocket/WebSocketManager";
+import {
+  FrontendToolRegistry,
+  FrontendToolState
+} from "../lib/tools/frontendTools";
+import { uuidv4 } from "./uuidv4";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -50,6 +54,10 @@ interface GlobalChatState {
   error: string | null;
   workflowId: string | null;
 
+  // Tool call runtime UI state
+  currentRunningToolCallId: string | null;
+  currentToolMessage: string | null;
+
   // WebSocket manager
   wsManager: WebSocketManager | null;
   socket: WebSocket | null;
@@ -57,6 +65,7 @@ interface GlobalChatState {
   // Thread management
   threads: Record<string, Thread>;
   currentThreadId: string | null;
+  lastUsedThreadId: string | null;
   isLoadingThreads: boolean;
   threadsLoaded: boolean;
 
@@ -88,8 +97,12 @@ interface GlobalChatState {
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
 
+  // Frontend tool state
+  frontendToolState: FrontendToolState;
+  setFrontendToolState: (state: FrontendToolState) => void;
+
   // Actions
-  connect: (workflowId?: string) => Promise<void>;
+  connect: () => Promise<void>;
   disconnect: () => void;
   sendMessage: (message: Message) => Promise<void>;
   resetMessages: () => void;
@@ -99,7 +112,8 @@ interface GlobalChatState {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
-  getCurrentMessages: () => Promise<Message[]>;
+  setLastUsedThreadId: (threadId: string | null) => void;
+  getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
@@ -129,7 +143,27 @@ export type MsgpackData =
   | OutputUpdate
   | SubTaskResult
   | WorkflowCreatedUpdate
-  | GenerationStoppedUpdate;
+  | GenerationStoppedUpdate
+  | ToolCallMessage
+  | ToolResultMessage;
+
+interface ToolCallMessage {
+  type: "tool_call";
+  tool_call_id: string;
+  name: string;
+  args: any;
+  thread_id: string;
+}
+
+interface ToolResultMessage {
+  type: "tool_result";
+  tool_call_id: string;
+  thread_id: string;
+  ok: boolean;
+  result?: any;
+  error?: string;
+  elapsed_ms?: number;
+}
 
 // Define the WorkflowCreatedUpdate type
 interface WorkflowCreatedUpdate {
@@ -196,10 +230,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       workflowId: null,
       wsManager: null,
       socket: null,
+      currentRunningToolCallId: null,
+      currentToolMessage: null,
 
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
+      lastUsedThreadId: null as string | null,
       isLoadingThreads: false,
       threadsLoaded: false,
 
@@ -228,6 +265,28 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setPlanningUpdate: (update: PlanningUpdate | null) =>
         set({ currentPlanningUpdate: update }),
 
+      // Frontend tool state
+      frontendToolState: {
+        nodeMetadata: {},
+        currentWorkflowId: null,
+        getWorkflow: () => undefined,
+        addWorkflow: () => {},
+        removeWorkflow: () => {},
+        getNodeStore: () => undefined,
+        updateWorkflow: () => {},
+        saveWorkflow: () => Promise.resolve(),
+        getCurrentWorkflow: () => undefined,
+        setCurrentWorkflowId: () => {},
+        fetchWorkflow: () => Promise.resolve(),
+        newWorkflow: () => {
+          throw new Error("Not initialized");
+        },
+        createNew: () => Promise.reject(new Error("Not initialized")),
+        searchTemplates: () => Promise.reject(new Error("Not initialized")),
+        copy: () => Promise.reject(new Error("Not initialized"))
+      },
+      setFrontendToolState: (state: FrontendToolState) =>
+        set({ frontendToolState: state }),
       // Task updates
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) =>
@@ -236,7 +295,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
 
-      connect: async (workflowId?: string) => {
+      connect: async () => {
         log.info("Connecting to global chat");
 
         const state = get();
@@ -321,6 +380,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         wsManager.on("open", () => {
           set({ socket: wsManager.getWebSocket() });
+          // Send client tools manifest after connection opens
+          const manifest = FrontendToolRegistry.getManifest();
+          if (manifest.length > 0) {
+            wsManager.send({
+              type: "client_tools_manifest",
+              tools: manifest
+            });
+          }
         });
 
         wsManager.on("error", (error: Error) => {
@@ -349,7 +416,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Store the manager and connect
         set({
           wsManager,
-          workflowId: workflowId || null,
           error: null
         });
 
@@ -384,6 +450,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
+        console.log("sendMessage", message);
+
         if (!wsManager || !wsManager.isConnected()) {
           set({ error: "Not connected to chat service" });
           return;
@@ -395,13 +463,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = await get().createNewThread();
         }
 
-        // Prepare message
-        const messageToSend = {
-          ...message,
-          workflow_id: workflowId || undefined,
+        // Prepare messages for cache and wire (workflow_id only on wire)
+        const messageForCache: Message = {
+          ...(message as any),
           thread_id: threadId,
           agent_mode: agentMode
-        };
+        } as any;
+
+        const messageToSend = {
+          ...(message as any),
+          workflow_id: workflowId ?? null,
+          thread_id: threadId,
+          agent_mode: agentMode
+        } as any;
 
         console.log("sendMessage", messageToSend);
 
@@ -413,7 +487,37 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const isFirstUserMessage =
           message.role === "user" && userMessageCount === 0;
         // Add message to cache optimistically
-        get().addMessageToCache(threadId, messageToSend);
+        get().addMessageToCache(threadId, messageForCache);
+
+        // Auto-generate title from first user message if not set
+        if (isFirstUserMessage) {
+          const state = get();
+          const thread = state.threads[threadId];
+          if (thread) {
+            let contentText = "";
+            if (typeof message.content === "string") {
+              contentText = message.content as string;
+            } else if (Array.isArray(message.content)) {
+              const firstText = (message.content as any[]).find(
+                (c: any) => c?.type === "text" && typeof c.text === "string"
+              );
+              contentText = firstText?.text || "";
+            }
+            const titleBase = contentText || "New conversation";
+            const newTitle =
+              titleBase.substring(0, 50) + (titleBase.length > 50 ? "..." : "");
+            set((s) => ({
+              threads: {
+                ...s.threads,
+                [threadId]: {
+                  ...s.threads[threadId],
+                  title: newTitle,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            }));
+          }
+        }
 
         set({ status: "loading" }); // Waiting for response
 
@@ -450,7 +554,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
       resetMessages: () => {
         const threadId = get().currentThreadId;
         if (threadId) {
-          get().clearMessageCache(threadId);
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: []
+            }
+          }));
         }
       },
 
@@ -480,46 +589,36 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       createNewThread: async (title?: string) => {
-        const request: ThreadCreateRequest = {
-          title: title || "New Conversation"
-        };
+        // Create thread locally; server will auto-create on first message
+        const id = uuidv4();
+        const now = new Date().toISOString();
+        const localThread: Thread = {
+          id,
+          title: title || "New conversation",
+          created_at: now as any,
+          updated_at: now as any
+        } as any;
 
-        try {
-          const { data, error } = await client.POST("/api/threads/", {
-            body: request
-          });
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to create thread"
-            );
+        set((state) => ({
+          threads: {
+            ...state.threads,
+            [id]: localThread
+          },
+          currentThreadId: id,
+          lastUsedThreadId: id,
+          messageCache: {
+            ...state.messageCache,
+            [id]: []
           }
+        }));
 
-          // Add to local state
-          set((state) => ({
-            threads: {
-              ...state.threads,
-              [data.id]: data
-            },
-            currentThreadId: data.id
-          }));
-
-          // Initialize empty message cache for new thread
-          set((state) => ({
-            messageCache: {
-              ...state.messageCache,
-              [data.id]: []
-            }
-          }));
-
-          return data.id;
-        } catch (error) {
-          log.error("Failed to create new thread:", error);
-          throw error;
-        }
+        return id;
       },
 
       switchThread: (threadId: string) => {
-        set({ currentThreadId: threadId });
+        const exists = !!get().threads[threadId];
+        if (!exists) return;
+        set({ currentThreadId: threadId, lastUsedThreadId: threadId });
         get().loadMessages(threadId);
       },
 
@@ -556,29 +655,46 @@ const useGlobalChatStore = create<GlobalChatState>()(
               if (threadIds.length > 0) {
                 const newCurrentThreadId = threadIds[threadIds.length - 1];
                 newState.currentThreadId = newCurrentThreadId;
+                newState.lastUsedThreadId = newCurrentThreadId;
                 // Auto-load messages for the new current thread
                 setTimeout(() => get().loadMessages(newCurrentThreadId), 0);
               } else {
-                // No threads left, clear current thread (new one will be created as needed)
+                // No threads left, clear current thread (we will create a new one below)
                 newState.currentThreadId = null;
+                newState.lastUsedThreadId = null;
               }
+            }
+            // If the deleted thread was the last used, but not current, pick another if available
+            else if (state.lastUsedThreadId === threadId) {
+              const threadIds = Object.keys(remainingThreads);
+              newState.lastUsedThreadId = threadIds.length
+                ? threadIds[threadIds.length - 1]
+                : null;
             }
 
             return newState as GlobalChatState;
           });
+
+          // If no threads remain, create a new one immediately
+          const { threads, currentThreadId } = get();
+          if (!currentThreadId && Object.keys(threads).length === 0) {
+            await get().createNewThread();
+          }
         } catch (error) {
           log.error("Failed to delete thread:", error);
           throw error;
         }
       },
 
-      getCurrentMessages: async () => {
-        const { currentThreadId } = get();
+      setLastUsedThreadId: (threadId: string | null) =>
+        set({ lastUsedThreadId: threadId }),
+
+      getCurrentMessages: () => {
+        const { currentThreadId, messageCache } = get();
         if (!currentThreadId) {
           return [];
         }
-
-        return await get().loadMessages(currentThreadId);
+        return messageCache[currentThreadId] || [];
       },
 
       // Get current messages synchronously from cache
@@ -662,37 +778,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       updateThreadTitle: async (threadId: string, title: string) => {
-        const request: ThreadUpdateRequest = { title };
+        // Optimistically update local state
+        set((state) => {
+          const thread = state.threads[threadId];
+          if (thread) {
+            return {
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  title,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            } as Partial<GlobalChatState>;
+          }
+          return state;
+        });
+
+        // Best-effort server update
         try {
-          const { data, error } = await client.PUT("/api/threads/{thread_id}", {
+          const request: ThreadUpdateRequest = { title };
+          await client.PUT("/api/threads/{thread_id}", {
             params: { path: { thread_id: threadId } },
             body: request
           });
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to update thread title"
-            );
-          }
-
-          set((state) => {
-            const thread = state.threads[threadId];
-            if (thread) {
-              return {
-                threads: {
-                  ...state.threads,
-                  [threadId]: {
-                    ...thread,
-                    title: data.title,
-                    updated_at: data.updated_at
-                  }
-                }
-              };
-            }
-            return state;
-          });
         } catch (error) {
           log.error("Failed to update thread title:", error);
-          throw error;
+          // Do not throw to keep optimistic UI
         }
       },
 
@@ -788,6 +901,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           status
         });
 
+        // Abort any active frontend tools
+        FrontendToolRegistry.abortAll();
+
         if (!wsManager) {
           console.log("No WebSocket manager available");
           return;
@@ -809,11 +925,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           wsManager.send({ type: "stop", thread_id: currentThreadId });
 
-          // Immediately update UI to show stopping state
+          // Immediately reset to connected state
           set({
-            status: "stopping",
+            status: "connected",
             progress: { current: 0, total: 0 },
-            statusMessage: "Stopping generation...",
+            statusMessage: null,
             currentPlanningUpdate: null,
             currentTaskUpdate: null
           });
@@ -833,6 +949,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Persist minimal subset incl. selections; do not persist message cache
       partialize: (state): any => ({
         threads: state.threads || {},
+        lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
@@ -868,6 +985,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (!state.selectedCollections) state.selectedCollections = [];
           if (!state.selectedModel)
             state.selectedModel = buildDefaultLanguageModel();
+          if (typeof state.lastUsedThreadId === "undefined")
+            state.lastUsedThreadId = null;
         }
       }
     }
@@ -875,7 +994,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 );
 
 // WebSocket message handler
-function handleWebSocketMessage(
+async function handleWebSocketMessage(
   data: MsgpackData,
   set: (
     state:
@@ -956,8 +1075,7 @@ function handleWebSocketMessage(
           const message: Message = {
             role: "assistant" as const,
             type: "message" as const,
-            content: chunk.content,
-            workflow_id: get().workflowId
+            content: chunk.content
           };
           set((state) => ({
             status: "streaming",
@@ -1042,8 +1160,7 @@ function handleWebSocketMessage(
             const message: Message = {
               role: "assistant" as const,
               type: "message" as const,
-              content: update.value as string,
-              workflow_id: get().workflowId
+              content: update.value as string
             };
             set((state) => ({
               status: "streaming",
@@ -1070,7 +1187,6 @@ function handleWebSocketMessage(
                 (update.value as { data: Uint8Array }).data
               )
             ],
-            workflow_id: get().workflowId,
             name: "assistant"
           } as Message;
           const messages = get().messageCache[threadId] || [];
@@ -1093,7 +1209,131 @@ function handleWebSocketMessage(
     }
   } else if (data.type === "tool_call_update") {
     const update = data as ToolCallUpdate;
-    set({ statusMessage: update.message });
+    // Capture tool-specific running state for UI
+    set({
+      statusMessage: update.message,
+      currentRunningToolCallId: (update as any).tool_call_id || null,
+      currentToolMessage: update.message || null
+    });
+  } else if (data.type === "message") {
+    // Persist assistant/tool messages (e.g., assistant with tool_calls, tool role results)
+    const msg = data as Message;
+    const threadId = get().currentThreadId;
+    if (threadId) {
+      const thread = get().threads[threadId];
+      if (thread) {
+        const messages = get().messageCache[threadId] || [];
+        const last = messages[messages.length - 1];
+
+        // Always append tool role messages and assistant tool-call messages
+        const isAssistantToolCall =
+          msg.role === "assistant" &&
+          Array.isArray(msg.tool_calls) &&
+          msg.tool_calls.length > 0;
+        if (msg.role === "tool" || isAssistantToolCall) {
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, msg]
+            },
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                updated_at: new Date().toISOString()
+              }
+            },
+            // Clear running tool indicator when a tool result arrives
+            ...(msg.role === "tool"
+              ? {
+                  currentRunningToolCallId: null,
+                  currentToolMessage: null,
+                  statusMessage: null
+                }
+              : {})
+          }));
+          return;
+        }
+
+        // For final assistant messages, de-duplicate with streamed content
+        if (msg.role === "assistant") {
+          const incomingText =
+            typeof msg.content === "string"
+              ? msg.content
+              : Array.isArray(msg.content)
+              ? msg.content
+                  .map((c: any) => (c?.type === "text" ? c.text : ""))
+                  .join("")
+              : "";
+          const lastText =
+            last &&
+            last.role === "assistant" &&
+            typeof last.content === "string"
+              ? (last.content as string)
+              : null;
+
+          set((state) => {
+            const current = state.messageCache[threadId] || [];
+            const currentLast = current[current.length - 1];
+            const currentLastText =
+              currentLast &&
+              currentLast.role === "assistant" &&
+              typeof currentLast.content === "string"
+                ? (currentLast.content as string)
+                : null;
+
+            // If the final assistant message has the same text as the last streamed assistant message, skip adding
+            if (
+              currentLast &&
+              currentLast.role === "assistant" &&
+              currentLastText === incomingText
+            ) {
+              return {
+                messageCache: state.messageCache,
+                threads: {
+                  ...state.threads,
+                  [threadId]: {
+                    ...thread,
+                    updated_at: new Date().toISOString()
+                  }
+                }
+              } as Partial<GlobalChatState>;
+            }
+
+            // Otherwise, append the assistant message
+            return {
+              messageCache: {
+                ...state.messageCache,
+                [threadId]: [...current, msg]
+              },
+              threads: {
+                ...state.threads,
+                [threadId]: {
+                  ...thread,
+                  updated_at: new Date().toISOString()
+                }
+              }
+            } as Partial<GlobalChatState>;
+          });
+          return;
+        }
+
+        // Default: append
+        set((state) => ({
+          messageCache: {
+            ...state.messageCache,
+            [threadId]: [...messages, msg]
+          },
+          threads: {
+            ...state.threads,
+            [threadId]: {
+              ...thread,
+              updated_at: new Date().toISOString()
+            }
+          }
+        }));
+      }
+    }
   } else if (data.type === "node_progress") {
     const progress = data as NodeProgress;
     set({
@@ -1110,83 +1350,50 @@ function handleWebSocketMessage(
   } else if (data.type === "subtask_result") {
     const update = data as SubTaskResult;
     // TODO: update the thread with the subtask result
-  } else if (data.type === "workflow_updated") {
-    const update = data as WorkflowUpdatedUpdate;
-    const threadId = get().currentThreadId;
+  } else if (data.type === "tool_call") {
+    // Handle tool call from server
+    const toolCallData = data as ToolCallMessage;
+    const { tool_call_id, name, args, thread_id } = toolCallData;
 
-    // Store the workflow graph update
-    set({ lastWorkflowGraphUpdate: update });
-
-    if (threadId) {
-      // Add a message to the thread about the created workflow
-      const message: Message = {
-        role: "assistant",
-        type: "message",
-        content: "Workflow updated successfully!",
-        workflow_id: get().workflowId,
-        graph: update.graph
-      };
-      const messages = get().messageCache[threadId] || [];
-      set((state) => {
-        const thread = state.threads[threadId];
-        if (thread) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            status: "connected",
-            statusMessage: null
-          };
-        }
-        return state;
+    // Check if tool exists
+    if (!FrontendToolRegistry.has(name)) {
+      log.warn(`Unknown tool: ${name}`);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: `Unsupported tool: ${name}`
       });
+      return;
     }
-  } else if (data.type === "workflow_created") {
-    const update = data as WorkflowCreatedUpdate;
-    const threadId = get().currentThreadId;
 
-    // Store the workflow graph update
-    set({ lastWorkflowGraphUpdate: update });
+    // Execute the tool
+    const startTime = Date.now();
+    try {
+      const result = await FrontendToolRegistry.call(name, args, tool_call_id, {
+        getState: () => get().frontendToolState
+      });
 
-    if (threadId) {
-      // Add a message to the thread about the created workflow
-      const message: Message = {
-        role: "assistant",
-        type: "message",
-        content: "Workflow created successfully!",
-        workflow_id: get().workflowId,
-        graph: update.graph
-      };
-
-      const messages = get().messageCache[threadId] || [];
-      set((state) => {
-        const thread = state.threads[threadId];
-        if (thread) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [threadId]: [...messages, message]
-            },
-            threads: {
-              ...state.threads,
-              [threadId]: {
-                ...thread,
-                updated_at: new Date().toISOString()
-              }
-            },
-            status: "connected",
-            statusMessage: null
-          };
-        }
-        return state;
+      const elapsedMs = Date.now() - startTime;
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: true,
+        result,
+        elapsed_ms: elapsedMs
+      });
+    } catch (error) {
+      const elapsedMs = Date.now() - startTime;
+      log.error(`Tool execution failed for ${name}:`, error);
+      currentState.wsManager?.send({
+        type: "tool_result",
+        tool_call_id,
+        thread_id,
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        elapsed_ms: elapsedMs
       });
     }
   } else if (data.type === "generation_stopped") {
@@ -1221,7 +1428,7 @@ if (typeof window !== "undefined") {
       state.wsManager
     ) {
       log.info("Network came online, attempting to reconnect...");
-      state.connect(state.workflowId || undefined).catch((error) => {
+      state.connect().catch((error) => {
         log.error("Failed to reconnect after network online:", error);
       });
     }
@@ -1241,7 +1448,7 @@ if (typeof window !== "undefined") {
         state.wsManager
       ) {
         log.info("Tab became visible, checking connection...");
-        state.connect(state.workflowId || undefined).catch((error) => {
+        state.connect().catch((error) => {
           log.error("Failed to reconnect after tab visible:", error);
         });
       }

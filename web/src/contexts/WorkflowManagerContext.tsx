@@ -27,6 +27,10 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "../stores/uuidv4";
 import type {} from "../window";
 import { QueryClient } from "@tanstack/react-query";
+import {
+  fetchWorkflowById,
+  workflowQueryKey
+} from "../serverState/useWorkflow";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -73,25 +77,18 @@ export const determineNextWorkflowId = (
 // TYPES
 // -----------------------------------------------------------------
 
-// Represents the loading state for a workflow API call.
-type LoadingState = {
-  isLoading: boolean;
-  error: Error | null;
-  data: Workflow | null;
-};
+// Loading state was previously kept here for tabs; now superseded by React Query
+type LoadingState = never;
 
 type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
   currentWorkflowId: string | null;
-  loadingStates: Record<string, LoadingState>;
+  loadingStates: Record<string, never>;
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
   systemStats: SystemStats | null;
-  workflowTools: Workflow[];
-  workflowToolsLoading: boolean;
-  workflowToolsError: Error | null;
   getSystemStats: () => SystemStats | null;
-  getCurrentLoadingState: () => LoadingState | undefined;
+  getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
@@ -102,8 +99,7 @@ type WorkflowManagerState = {
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<void>;
-  getLoadingState: (workflowId: string) => LoadingState | undefined;
-  setLoadingState: (workflowId: string, state: Partial<LoadingState>) => void;
+  getLoadingState: (workflowId: string) => undefined;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
   create: (
@@ -114,14 +110,12 @@ type WorkflowManagerState = {
   load: (cursor?: string, limit?: number) => Promise<any>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
-  loadExamples: () => Promise<any>;
-  searchExamples: (query: string) => Promise<any>;
+  loadTemplates: () => Promise<any>;
+  searchTemplates: (query: string) => Promise<any>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
   validateAllEdges: () => void;
-  fetchWorkflowTools: () => Promise<void>;
-  getWorkflowTools: () => Workflow[];
 };
 
 // Defines the Zustand store type for workflow management.
@@ -229,12 +223,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       error: null,
       queryClient: queryClient,
       systemStats: null,
-      workflowTools: [],
-      workflowToolsLoading: false,
-      workflowToolsError: null,
       getSystemStats: () => get().systemStats,
       setSystemStats: (stats: SystemStats) => set({ systemStats: stats }),
-      getWorkflowTools: () => get().workflowTools,
 
       // ---------------------------------------------------------------------------------
       // Workflow Creation and API methods
@@ -306,16 +296,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         // Refresh workflows query cache.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        // Refresh workflow tools list reactively
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
 
         if (window.api) {
           window.api.onCreateWorkflow(data);
-        }
-
-        // Update workflow tools cache if this is a tool workflow
-        if (data.run_mode === "tool") {
-          set((state) => ({
-            workflowTools: [...state.workflowTools, data]
-          }));
         }
 
         return data;
@@ -363,17 +348,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      // Loads example workflows.
-      loadExamples: async () => {
+      // Loads template workflows.
+      loadTemplates: async () => {
         const { data, error } = await client.GET("/api/workflows/examples", {});
         if (error) {
-          throw createErrorMessage(error, "Failed to load examples");
+          throw createErrorMessage(error, "Failed to load templates");
         }
         return data;
       },
 
-      // Searches example workflows using the backend search API.
-      searchExamples: async (query: string) => {
+      // Searches template workflows using the backend search API.
+      searchTemplates: async (query: string) => {
         const { data, error } = await client.GET(
           "/api/workflows/examples/search",
           {
@@ -386,10 +371,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         );
         if (error) {
           console.error(
-            "[WorkflowManagerContext] searchExamples error:",
+            "[WorkflowManagerContext] searchTemplates error:",
             error
           );
-          throw createErrorMessage(error, "Failed to search examples");
+          throw createErrorMessage(error, "Failed to search templates");
         }
         return data;
       },
@@ -438,16 +423,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           window.api.onDeleteWorkflow(workflow);
         }
 
-        // Remove from workflow tools cache if it was a tool
-        set((state) => ({
-          workflowTools: state.workflowTools.filter((w) => w.id !== workflow.id)
-        }));
-
         // Invalidate cache for workflows and the specific workflow.
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({
           queryKey: ["workflow", workflow.id]
         });
+        // Invalidate workflow tools reactively
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
       },
 
       // Saves the current workflow as an example.
@@ -480,17 +462,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       // ---------------------------------------------------------------------------------
-      // Current Workflow and Loading States
+      // Current Workflow (loading state handled via React Query)
       // ---------------------------------------------------------------------------------
 
-      // Returns the loading state of the current workflow based on currentWorkflowId.
-      getCurrentLoadingState: () => {
-        const currentWorkflowId = get().currentWorkflowId;
-        if (!currentWorkflowId) {
-          return undefined;
-        }
-        return get().loadingStates[currentWorkflowId];
-      },
+      // Deprecated: replaced by React Query; keep API for compatibility
+      getCurrentLoadingState: () => undefined,
 
       /**
        * Sets the current workflow ID and syncs it to localStorage.
@@ -545,17 +521,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       removeWorkflow: (workflowId: string) => {
         console.log(`[WorkflowManager] Removing workflow: ${workflowId}`);
-        const { nodeStores, openWorkflows, currentWorkflowId, loadingStates } =
-          get();
+        const { nodeStores, openWorkflows, currentWorkflowId } = get();
 
         const newOpenWorkflows = openWorkflows.filter(
           (w) => w.id !== workflowId
         );
         const newStores = { ...nodeStores };
         delete newStores[workflowId];
-
-        const newLoadingStates = { ...loadingStates };
-        delete newLoadingStates[workflowId];
 
         const newCurrentId = determineNextWorkflowId(
           openWorkflows,
@@ -567,7 +539,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          loadingStates: newLoadingStates
+          loadingStates: {}
         });
 
         storage.removeOpenWorkflow(workflowId);
@@ -608,32 +580,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             nodeStore.getState().setWorkflowDirty(false);
           }
 
-          // Update workflow tools cache based on run_mode
-          let updatedWorkflowTools = state.workflowTools;
-          const existingToolIndex = state.workflowTools.findIndex(
-            (w) => w.id === data.id
-          );
-
-          if (data.run_mode === "tool") {
-            // Add or update in tools list
-            if (existingToolIndex >= 0) {
-              updatedWorkflowTools = [...state.workflowTools];
-              updatedWorkflowTools[existingToolIndex] = data;
-            } else {
-              updatedWorkflowTools = [...state.workflowTools, data];
-            }
-          } else if (existingToolIndex >= 0) {
-            // Remove from tools list if no longer a tool
-            updatedWorkflowTools = state.workflowTools.filter(
-              (w) => w.id !== data.id
-            );
-          }
-
           return {
             openWorkflows: state.openWorkflows.map((w) =>
               w.id === workflow.id ? omit(data, ["graph"]) : w
-            ),
-            workflowTools: updatedWorkflowTools
+            )
           };
         });
 
@@ -642,6 +592,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         get().queryClient?.invalidateQueries({
           queryKey: ["workflow", workflow.id]
         });
+        // Invalidate workflow tools reactively
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
       },
 
       // Returns the node store for a given workflow Id.
@@ -683,97 +635,57 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       // ---------------------------------------------------------------------------------
-      // Loading States for Workflows
+      // Loading States for Workflows (deprecated)
       // ---------------------------------------------------------------------------------
 
-      // Retrieves the loading state for a particular workflow.
-      getLoadingState: (workflowId: string) => get().loadingStates[workflowId],
+      // Deprecated: always undefined; use React Query hooks for loading/error
+      getLoadingState: (_workflowId: string) => undefined,
 
-      // Updates the loading state for a workflow (e.g., during API calls).
-      setLoadingState: (workflowId: string, state: Partial<LoadingState>) => {
-        set((current) => ({
-          loadingStates: {
-            ...current.loadingStates,
-            [workflowId]: {
-              ...current.loadingStates[workflowId],
-              ...state
-            }
-          }
-        }));
-      },
-
-      // Fetches the workflow data by its ID, updates the loading state and adds the workflow.
+      // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {
-        // Do not fetch if already loading
-        if (get().getLoadingState(workflowId)?.isLoading) {
-          return;
-        }
-        console.log("fetching workflow", workflowId);
-
-        // If the workflow is already in the store, just make it current.
-        if (get().getWorkflow(workflowId)) {
+        // If already have a NodeStore, just set current and ensure query cache is populated.
+        const existing = get().getWorkflow(workflowId);
+        if (existing) {
+          get().queryClient?.setQueryData(
+            workflowQueryKey(workflowId),
+            existing
+          );
           get().setCurrentWorkflowId(workflowId);
           return;
         }
 
-        get().setLoadingState(workflowId, { isLoading: true });
+        // Check cache first
+        const cached = get().queryClient?.getQueryData<Workflow>(
+          workflowQueryKey(workflowId)
+        );
+        if (cached) {
+          get().addWorkflow(cached);
+          get().setCurrentWorkflowId(workflowId);
+          return;
+        }
 
+        // Fetch and populate both cache and NodeStore
         try {
-          const { data, error } = await client.GET("/api/workflows/{id}", {
-            params: { path: { id: workflowId } }
-          });
-
-          if (error) {
-            get().setLoadingState(workflowId, {
-              isLoading: false,
-              error: error as Error
-            });
-            return;
-          }
-
+          const data = await fetchWorkflowById(workflowId);
+          get().queryClient?.setQueryData(workflowQueryKey(workflowId), data);
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
-          get().setLoadingState(workflowId, { isLoading: false, data });
         } catch (e) {
           console.error(
             `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
             e
           );
-          get().setLoadingState(workflowId, {
-            isLoading: false,
-            error: e as Error
-          });
         }
       },
 
       validateAllEdges: () => {
         // Edge validation functionality removed - will be implemented in separate branch
-      },
+      }
 
       /**
        * Fetches workflow tools from the API.
        * @returns {Promise<void>}
        */
-      fetchWorkflowTools: async () => {
-        set({ workflowToolsLoading: true, workflowToolsError: null });
-
-        const { data, error } = await client.GET("/api/workflows/tools");
-
-        if (error) {
-          console.error("Error fetching workflow tools", error);
-          set({
-            workflowToolsLoading: false,
-            workflowToolsError: error as Error,
-            workflowTools: []
-          });
-        } else {
-          set({
-            workflowToolsLoading: false,
-            workflowToolsError: null,
-            workflowTools: data.workflows || []
-          });
-        }
-      }
     };
   });
 };
@@ -838,9 +750,6 @@ export const WorkflowManagerProvider: React.FC<{
     openWorkflows.forEach((workflowId: string) => {
       store.getState().fetchWorkflow(workflowId);
     });
-
-    // Fetch workflow tools
-    store.getState().fetchWorkflowTools();
   }, [store]);
 
   return (

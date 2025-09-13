@@ -44,6 +44,8 @@ const NodeContextMenu: React.FC = () => {
     updateNodeData: state.updateNodeData
   }));
 
+  const currentSyncMode = (nodeData?.sync_mode as string) || "on_any";
+
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
@@ -68,10 +70,10 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu
   ]);
 
-  const handleFindExamples = () => {
+  const handleFindTemplates = () => {
     const nodeType = node?.type || "";
-    // Navigate to examples with the node type as a search parameter
-    navigate(`/examples?node=${encodeURIComponent(nodeType)}`);
+    // Navigate to templates with the node type as a search parameter
+    navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
     closeContextMenu();
   };
 
@@ -114,11 +116,12 @@ const NodeContextMenu: React.FC = () => {
         tooltip="Edit this comment"
       />
       <ContextMenuItem
-        onClick={handleFindExamples}
-        label="Show Examples"
+        onClick={handleFindTemplates}
+        label="Show Templates"
         IconComponent={<SearchIcon />}
-        tooltip="Find Examples using this node"
+        tooltip="Find Templates using this node"
       />
+      {/* Sync mode selection moved to header icon menu */}
       <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}
         label="Copy NodeData"

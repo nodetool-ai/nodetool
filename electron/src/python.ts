@@ -117,29 +117,38 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
 }
 
 /**
- * Update the Python environment packages
+ * Update the Python environment packages using wheel-based package index
  */
 async function updateCondaEnvironment(packages: string[]): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
 
     const uvExecutable = getUVPath();
-    packages = [
-      "nodetool-ai/nodetool-core",
-      "nodetool-ai/nodetool-base",
-      ...packages,
+    const PACKAGE_INDEX_URL = "https://nodetool-ai.github.io/nodetool-registry/simple/";
+    
+    // Convert repo IDs to package names for wheel installation
+    const corePackages = [
+      "nodetool-core",
+      "nodetool-base",
     ];
-    const githubRepos = packages.map((repoId) => {
-      return `git+https://github.com/${repoId}.git`;
+    
+    // Convert additional packages from repo format to package names
+    const additionalPackages = packages.map((repoId) => {
+      // If it's already a package name, use as-is, otherwise extract from repo_id
+      return repoId.includes("/") ? repoId.split("/")[1] : repoId;
     });
+    
+    const allPackages = [...corePackages, ...additionalPackages];
+    
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
+      "--index-url", PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
-      ...githubRepos,
+      ...allPackages,
     ];
 
     if (process.platform !== "darwin") {
@@ -150,7 +159,7 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 
-    logMessage("Python packages update completed successfully");
+    logMessage("Python packages update completed successfully from wheel index");
   } catch (error: any) {
     logMessage(`Failed to update Pip packages: ${error.message}`, "error");
     throw error;

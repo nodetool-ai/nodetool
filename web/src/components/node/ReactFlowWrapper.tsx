@@ -54,10 +54,12 @@ import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkflow } from "../../serverState/useWorkflow";
 import { CircularProgress } from "@mui/material";
 import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import useResultsStore from "../../stores/ResultsStore";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -141,9 +143,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [setViewport]
   );
 
-  const { loadingState } = useWorkflowManager((state) => ({
-    loadingState: state.getLoadingState(workflowId)
-  }));
+  const { isLoading, error } = useWorkflow(workflowId);
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
@@ -158,7 +158,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
-  const { getNode } = useReactFlow();
 
   /* USE STORE */
   const { close: closeSelect } = useSelect();
@@ -319,12 +318,14 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
+  const edgeStatuses = useResultsStore((state) => state.edges);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
-    getNode,
     dataTypes: DATA_TYPES,
-    getMetadata
+    getMetadata,
+    workflowId,
+    edgeStatuses
   });
   const activeGradientKeysArray = useMemo(
     () => Array.from(activeGradientKeys),
@@ -360,18 +361,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
   }, [nodes.length, fitView, storedViewport]);
 
-  if (loadingState?.isLoading) {
+  if (isLoading) {
     return (
       <div className="loading-overlay">
         <CircularProgress /> Loading workflow...
       </div>
     );
   }
-  if (loadingState?.error) {
+  if (error) {
     return (
       <div className="loading-overlay">
         <Typography variant="body1" color="error">
-          {loadingState.error.message}
+          {(error as Error).message}
         </Typography>
       </div>
     );

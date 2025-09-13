@@ -100,7 +100,8 @@ async function startOllamaServer(): Promise<void> {
     logMessage(`Ensured OLLAMA_MODELS directory exists at: ${modelsPath}`);
   } catch (error) {
     logMessage(
-      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${(error as Error).message
+      `Failed to create OLLAMA_MODELS directory at ${modelsPath}: ${
+        (error as Error).message
       }`,
       "error"
     );
@@ -337,7 +338,8 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
       );
       if (response.ok) {
         logMessage(
-          `Server endpoint is available at http://127.0.0.1:${serverState.serverPort ?? 8000
+          `Server endpoint is available at http://127.0.0.1:${
+            serverState.serverPort ?? 8000
           }/health`
         );
         emitServerStarted();
@@ -388,6 +390,13 @@ export function getServerState() {
  */
 export function openLogFile() {
   return shell.showItemInFolder(LOG_FILE);
+}
+
+/**
+ * Opens the log file in the system's default file explorer
+ */
+export function showItemInFolder(fullPath: string) {
+  return shell.showItemInFolder(fullPath);
 }
 
 /**

@@ -14,8 +14,8 @@ export const defaultLayout: SerializedDockview = {
                 {
                   type: "leaf",
                   data: {
-                    views: ["examples"],
-                    activeView: "examples",
+                    views: ["templates"],
+                    activeView: "templates",
                     id: "2"
                   },
                   size: 472
@@ -61,10 +61,10 @@ export const defaultLayout: SerializedDockview = {
     orientation: Orientation.HORIZONTAL
   },
   panels: {
-    examples: {
-      id: "examples",
-      contentComponent: "examples",
-      title: "Examples"
+    templates: {
+      id: "templates",
+      contentComponent: "templates",
+      title: "Templates"
     },
     workflows: {
       id: "workflows",

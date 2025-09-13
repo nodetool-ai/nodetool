@@ -44,10 +44,18 @@ import EditorStatusBar from "../textEditor/EditorStatusBar";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
-import type { MessageContent, LanguageModel } from "../../stores/ApiTypes";
+import type { LanguageModel } from "../../stores/ApiTypes";
+import { useEditorMode } from "../../hooks/editor/useEditorMode";
+import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
+import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
+import { useModalResize } from "../../hooks/editor/useModalResize";
+import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import { useEditorActions } from "../../hooks/editor/useEditorActions";
+import { useCodeLanguage } from "../../hooks/editor/useCodeLanguage";
+import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
+import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -432,155 +440,46 @@ const TextEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
+  // chat now handled via useChatIntegration
+
+  // Monaco dynamic import and actions (hook)
   const {
-    connect,
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
-    selectedModel,
-    setSelectedModel,
-    selectedTools,
-    selectedCollections,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    stopGeneration,
-    createNewThread
-  } = useGlobalChatStore();
+    MonacoEditor,
+    monacoLoadError,
+    loadMonacoIfNeeded,
+    monacoRef,
+    monacoOnMount,
+    handleMonacoFind,
+    handleMonacoFormat
+  } = useMonacoEditor();
 
-  // Editor mode toggle
-  const CODE_EDITOR_TOGGLE_KEY = "textEditorModal_useCodeEditor";
-  const getInitialIsCodeEditor = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(CODE_EDITOR_TOGGLE_KEY);
-      if (saved === "true" || saved === "false") {
-        return saved === "true";
-      }
-    } catch {
-      /* empty */
+  // Editor mode toggle (extracted hook)
+  const { isCodeEditor, setIsCodeEditor, toggleEditorMode } = useEditorMode({
+    storageKey: "textEditorModal_useCodeEditor",
+    onCodeEnabled: () => {
+      void loadMonacoIfNeeded();
     }
-    return false;
-  }, []);
-  const [isCodeEditor, setIsCodeEditor] = useState<boolean>(
-    getInitialIsCodeEditor
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        CODE_EDITOR_TOGGLE_KEY,
-        isCodeEditor ? "true" : "false"
-      );
-    } catch {
-      /* empty */
-    }
-  }, [isCodeEditor]);
+  });
 
-  // Monaco dynamic import (loaded on demand)
-  const [MonacoEditor, setMonacoEditor] = useState<
-    | ((props: {
-        value: string;
-        onChange?: (val?: string) => void;
-        language?: string;
-        theme?: string;
-        options?: Record<string, unknown>;
-        width?: string | number;
-        height?: string | number;
-        onMount?: (editor: unknown, monaco: unknown) => void;
-      }) => JSX.Element)
-    | null
-  >(null);
-  const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
-  const loadMonacoIfNeeded = useCallback(async () => {
-    if (MonacoEditor || monacoLoadError) return;
-    try {
-      const mod = await import("@monaco-editor/react");
-      // default export is Editor component
-      setMonacoEditor(() => mod.default as unknown as typeof MonacoEditor);
-    } catch (err) {
-      setMonacoLoadError("Failed to load code editor");
-    }
-  }, [MonacoEditor, monacoLoadError]);
+  // Fullscreen toggle (hook)
+  const { isFullscreen, toggleFullscreen } = useFullscreenMode({
+    storageKey: "textEditorModal_fullscreen"
+  });
 
-  // Fullscreen toggle
-  const FULLSCREEN_KEY = "textEditorModal_fullscreen";
-  const getInitialFullscreen = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(FULLSCREEN_KEY);
-      if (saved === "true" || saved === "false") return saved === "true";
-    } catch {
-      /* empty */
-    }
-    return false;
-  }, []);
-  const [isFullscreen, setIsFullscreen] =
-    useState<boolean>(getInitialFullscreen);
-  useEffect(() => {
-    try {
-      localStorage.setItem(FULLSCREEN_KEY, isFullscreen ? "true" : "false");
-    } catch {
-      /* empty */
-    }
-  }, [isFullscreen]);
+  // Assistant pane visibility (hook)
+  const { assistantVisible, toggleAssistantVisible } = useAssistantVisibility({
+    storageKey: "textEditorModal_assistantVisible",
+    defaultVisible: true
+  });
 
-  // Assistant pane toggle
-  const ASSIST_TOGGLE_KEY = "textEditorModal_assistantVisible";
-  const getInitialAssistantVisible = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(ASSIST_TOGGLE_KEY);
-      if (saved === "true" || saved === "false") return saved === "true";
-    } catch {
-      /* empty */
-    }
-    return true;
-  }, []);
-  const [assistantVisible, setAssistantVisible] = useState<boolean>(
-    getInitialAssistantVisible
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        ASSIST_TOGGLE_KEY,
-        assistantVisible ? "true" : "false"
-      );
-    } catch {
-      /* empty */
-    }
-  }, [assistantVisible]);
-
-  // Code language override (for Monaco)
-  const CODE_LANGUAGE_KEY = "textEditorModal_codeLanguage";
-  const getInitialCodeLanguage = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(CODE_LANGUAGE_KEY);
-      if (saved && typeof saved === "string") return saved;
-    } catch {
-      /* empty */
-    }
-    return language;
-  }, [language]);
-  const [codeLanguage, setCodeLanguage] = useState<string>(
-    getInitialCodeLanguage
-  );
-  useEffect(() => {
-    try {
-      localStorage.setItem(CODE_LANGUAGE_KEY, codeLanguage);
-    } catch {
-      /* empty */
-    }
-  }, [codeLanguage]);
+  // Code language (hook)
+  const { codeLanguage, setCodeLanguage } = useCodeLanguage({
+    defaultLanguage: language
+  });
 
   const handleToggleEditorMode = useCallback(() => {
-    setIsCodeEditor((prev) => {
-      const next = !prev;
-      if (next) {
-        // switching to code editor - lazy load Monaco
-        // fire and forget
-        void loadMonacoIfNeeded();
-      }
-      return next;
-    });
-  }, [loadMonacoIfNeeded]);
+    toggleEditorMode();
+  }, [toggleEditorMode]);
 
   // If we start in code mode, ensure Monaco loads immediately
   useEffect(() => {
@@ -589,96 +488,12 @@ const TextEditorModal = ({
     }
   }, [isCodeEditor, loadMonacoIfNeeded]);
 
-  // Ensure chat is connected for assistant pane
-  useEffect(() => {
-    connect().catch(() => undefined);
-  }, [connect]);
+  // chat connection handled in hook
 
-  // Resizable modal height state
-  const DEFAULT_HEIGHT = Math.min(600, window.innerHeight - 200);
-  const MIN_HEIGHT = 250;
-  const MAX_HEIGHT = window.innerHeight - 120;
-  const STORAGE_KEY = "textEditorModal_height";
-
-  // Get initial height from localStorage or use default
-  const getInitialHeight = useCallback(() => {
-    try {
-      const savedHeight = localStorage.getItem(STORAGE_KEY);
-      if (savedHeight) {
-        const height = parseInt(savedHeight, 10);
-        // Validate the saved height is within bounds
-        if (height >= MIN_HEIGHT && height <= MAX_HEIGHT) {
-          return height;
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to read modal height from localStorage:", error);
-    }
-    return DEFAULT_HEIGHT;
-  }, [DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT]);
-
-  const [modalHeight, setModalHeight] = useState<number>(getInitialHeight);
-
-  // Debounced function to save height to localStorage
-  const saveHeightToStorage = useMemo(
-    () =>
-      debounce((height: number) => {
-        try {
-          localStorage.setItem(STORAGE_KEY, height.toString());
-        } catch (error) {
-          console.warn("Failed to save modal height to localStorage:", error);
-        }
-      }, 500), // Save after 500ms of no height changes
-    []
-  );
-
-  // Update modal height and persist to storage
-  const updateModalHeight = useCallback(
-    (newHeight: number) => {
-      const clampedHeight = Math.max(
-        MIN_HEIGHT,
-        Math.min(newHeight, MAX_HEIGHT)
-      );
-      setModalHeight(clampedHeight);
-      saveHeightToStorage(clampedHeight);
-    },
-    [MIN_HEIGHT, MAX_HEIGHT, saveHeightToStorage]
-  );
-
-  // refs for drag logic
-  const dragStartY = useRef(0);
-  const startHeight = useRef(0);
-
-  const handleResizeMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      dragStartY.current = event.clientY;
-      startHeight.current = modalHeight;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const delta = e.clientY - dragStartY.current;
-        const newHeight = startHeight.current + delta;
-        updateModalHeight(newHeight);
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-
-      event.preventDefault();
-    },
-    [modalHeight, updateModalHeight]
-  );
-
-  // Clean up debounced function on unmount
-  useEffect(() => {
-    return () => {
-      saveHeightToStorage.cancel();
-    };
-  }, [saveHeightToStorage]);
+  // Resizable modal height state (hook)
+  const { modalHeight, handleResizeMouseDown } = useModalResize({
+    storageKey: "textEditorModal_height"
+  });
 
   // Editor state management
   const [canUndo, setCanUndo] = useState(false);
@@ -713,18 +528,28 @@ const TextEditorModal = ({
   const setAllTextFnRef = useRef<((text: string) => void) | null>(null);
   const getSelectedTextFnRef = useRef<(() => string) | null>(null);
 
-  const improvePendingRef = useRef<{
-    active: boolean;
-    baseCount: number;
-    hadSelection: boolean;
-    isCodeEditor: boolean;
-    monacoRange: any | null;
-  }>({
-    active: false,
-    baseCount: 0,
-    hadSelection: false,
-    isCodeEditor: false,
-    monacoRange: null
+  // Chat integration
+  const {
+    handleAITransform,
+    status,
+    progress,
+    statusMessage,
+    getCurrentMessagesSync,
+    sendMessage,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    selectedCollections,
+    stopGeneration,
+    createNewThread
+  } = useChatIntegration({
+    isCodeEditor,
+    monacoRef,
+    getSelectedTextFnRef,
+    replaceSelectionFnRef,
+    setAllTextFnRef,
+    setCurrentText,
+    currentText
   });
 
   // Search state
@@ -776,29 +601,6 @@ const TextEditorModal = ({
     [debouncedExternalOnChange, readOnly]
   );
   // Insertion handlers for both editors
-  const monacoRef = useRef<any>(null);
-  const monacoOnMount = useCallback((editor: any) => {
-    monacoRef.current = editor;
-  }, []);
-
-  const handleMonacoFind = useCallback(() => {
-    try {
-      const editor = monacoRef.current;
-      editor?.getAction?.("actions.find")?.run?.();
-    } catch {
-      /* empty */
-    }
-  }, []);
-
-  const handleMonacoFormat = useCallback(() => {
-    try {
-      const editor = monacoRef.current;
-      // Try format document; if no formatter, ignore silently
-      editor?.getAction?.("editor.action.formatDocument")?.run?.();
-    } catch {
-      /* empty */
-    }
-  }, []);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([currentText || ""], {
@@ -858,90 +660,7 @@ const TextEditorModal = ({
         insertIntoLexical(text);
       }
     },
-    [isCodeEditor, insertIntoLexical]
-  );
-
-  const handleAITransform = useCallback(
-    async (instruction: string, options?: { shouldReplace?: boolean }) => {
-      const shouldReplace = options?.shouldReplace ?? true;
-      // Get selected text from the active editor
-      let selected = "";
-      let hadSelection = false;
-      let monacoRange: any | null = null;
-      if (isCodeEditor && monacoRef.current) {
-        try {
-          const editor = monacoRef.current;
-          const selection = editor.getSelection();
-          if (selection) {
-            selected = editor.getModel().getValueInRange(selection) || "";
-            hadSelection = !!selected && selected.trim().length > 0;
-            monacoRange = selection;
-          }
-        } catch {
-          /* empty */
-        }
-      } else if (getSelectedTextFnRef.current) {
-        try {
-          selected = getSelectedTextFnRef.current() || "";
-          hadSelection = !!selected && selected.trim().length > 0;
-        } catch {
-          /* empty */
-        }
-      }
-
-      const textToProcess =
-        selected && selected.trim().length > 0 ? selected : currentText;
-
-      if (!textToProcess || textToProcess.trim().length === 0) {
-        return;
-      }
-
-      const composed = `${instruction}\n\n${textToProcess}`;
-
-      const content: MessageContent[] = [
-        { type: "text", text: composed } as MessageContent
-      ];
-
-      try {
-        const baseCount = getCurrentMessagesSync().length || 0;
-        if (shouldReplace) {
-          improvePendingRef.current = {
-            active: true,
-            baseCount,
-            hadSelection,
-            isCodeEditor,
-            monacoRange
-          };
-        }
-        await sendMessage({
-          type: "message",
-          name: "",
-          role: "user",
-          provider: (selectedModel as any)?.provider,
-          model: (selectedModel as any)?.id,
-          content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: false,
-          help_mode: false,
-          workflow_assistant: true
-        } as any);
-      } catch {
-        /* empty */
-      }
-    },
-    [
-      isCodeEditor,
-      monacoRef,
-      getSelectedTextFnRef,
-      currentText,
-      sendMessage,
-      selectedModel,
-      selectedTools,
-      selectedCollections,
-      getCurrentMessagesSync
-    ]
+    [isCodeEditor, insertIntoLexical, monacoRef]
   );
 
   const handleImproveSelection = useCallback(async () => {
@@ -982,72 +701,6 @@ const TextEditorModal = ({
     );
   }, [handleAITransform]);
 
-  useEffect(() => {
-    const unsubscribe = useGlobalChatStore.subscribe((state, prevState) => {
-      const pending = improvePendingRef.current;
-      if (!pending.active) return;
-
-      const threadId = state.currentThreadId;
-      if (!threadId) return;
-
-      const messages = state.messageCache?.[threadId] || [];
-      if (messages.length <= pending.baseCount) return;
-
-      if (state.status === "streaming") return;
-
-      const last = messages[messages.length - 1];
-      if (!last || last.role !== "assistant") return;
-
-      let responseText = "";
-      const content = last.content as any;
-      if (typeof content === "string") {
-        responseText = content;
-      } else if (Array.isArray(content)) {
-        const textItem = content.find((c: any) => c?.type === "text");
-        responseText = textItem?.text || "";
-      }
-
-      if (!responseText) return;
-
-      if (pending.isCodeEditor && monacoRef.current) {
-        const editor = monacoRef.current;
-        try {
-          if (pending.hadSelection && pending.monacoRange) {
-            editor.executeEdits("improve-replace", [
-              {
-                range: pending.monacoRange,
-                text: responseText,
-                forceMoveMarkers: true
-              }
-            ]);
-          } else {
-            editor.setValue(responseText);
-          }
-          editor.focus();
-        } catch {
-          /* empty */
-        }
-      } else {
-        if (pending.hadSelection && replaceSelectionFnRef.current) {
-          replaceSelectionFnRef.current(responseText);
-        } else if (setAllTextFnRef.current) {
-          setAllTextFnRef.current(responseText);
-        } else {
-          setCurrentText(responseText);
-        }
-      }
-
-      improvePendingRef.current.active = false;
-    });
-    return () => {
-      try {
-        unsubscribe?.();
-      } catch {
-        /* empty */
-      }
-    };
-  }, [monacoRef]);
-
   // Clean-up the debounced function when the component unmounts
   useEffect(() => {
     return () => {
@@ -1055,50 +708,28 @@ const TextEditorModal = ({
     };
   }, [debouncedExternalOnChange]);
 
-  // Toolbar handlers
-  const handleUndo = useCallback(() => {
-    undoFnRef.current?.();
-  }, []);
-
-  const handleRedo = useCallback(() => {
-    redoFnRef.current?.();
-  }, []);
-
-  const handleToggleWordWrap = useCallback(() => {
-    setWordWrapEnabled((prev) => !prev);
-  }, []);
-
-  const handleFormatCodeBlock = useCallback(() => {
-    formatCodeBlockFnRef.current?.();
-  }, []);
-
-  const handleToggleFind = useCallback(() => {
-    setFindReplaceVisible((prev: boolean) => !prev);
-  }, []);
-
-  const handleFind = useCallback((searchTerm: string) => {
-    const results = findFnRef.current?.(searchTerm);
-    if (results) {
-      setSearchResults(results);
-    }
-  }, []);
-
-  const handleReplace = useCallback(
-    (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
-      replaceFnRef.current?.(searchTerm, replaceTerm, replaceAll);
-    },
-    []
-  );
-
-  const handleNavigateNext = useCallback(() => {
-    const results = navigateFnRef.current?.("next");
-    if (results) setSearchResults(results);
-  }, []);
-
-  const handleNavigatePrevious = useCallback(() => {
-    const results = navigateFnRef.current?.("previous");
-    if (results) setSearchResults(results);
-  }, []);
+  // Toolbar handlers (hook)
+  const {
+    handleUndo,
+    handleRedo,
+    handleToggleWordWrap,
+    handleFormatCodeBlock,
+    handleToggleFind,
+    handleFind,
+    handleReplace,
+    handleNavigateNext,
+    handleNavigatePrevious
+  } = useEditorActions({
+    setWordWrapEnabled,
+    setFindReplaceVisible,
+    setSearchResults,
+    undoFnRef,
+    redoFnRef,
+    formatCodeBlockFnRef,
+    findFnRef,
+    replaceFnRef,
+    navigateFnRef
+  });
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -1108,13 +739,12 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
-  // Shortcuts: fullscreen, assistant pane, editor mode
-  useCombo(["ctrl", "shift", "f"], () => setIsFullscreen((v) => !v), false);
-  useCombo(["meta", "shift", "f"], () => setIsFullscreen((v) => !v), false);
-  useCombo(["ctrl", "shift", "a"], () => setAssistantVisible((v) => !v), false);
-  useCombo(["meta", "shift", "a"], () => setAssistantVisible((v) => !v), false);
-  useCombo(["ctrl", "shift", "e"], handleToggleEditorMode, false);
-  useCombo(["meta", "shift", "e"], handleToggleEditorMode, false);
+  // Shortcuts: fullscreen, assistant pane, editor mode (hook)
+  useEditorKeyboardShortcuts({
+    onToggleFullscreen: toggleFullscreen,
+    onToggleAssistant: toggleAssistantVisible,
+    onToggleEditorMode: handleToggleEditorMode
+  });
 
   // Close signal from other properties so only one modal active
   useEffect(() => {
@@ -1288,10 +918,7 @@ const TextEditorModal = ({
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
-                  <button
-                    className="button"
-                    onClick={() => setAssistantVisible((v) => !v)}
-                  >
+                  <button className="button" onClick={toggleAssistantVisible}>
                     {assistantVisible ? (
                       <ChatBubbleIcon />
                     ) : (
@@ -1308,10 +935,7 @@ const TextEditorModal = ({
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
-                  <button
-                    className="button"
-                    onClick={() => setIsFullscreen((v) => !v)}
-                  >
+                  <button className="button" onClick={toggleFullscreen}>
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>

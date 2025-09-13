@@ -129,6 +129,10 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     status === "disconnected" ||
     status === "connecting";
 
+  // Keep input enabled during generation, but disable when not connected
+  const isInputDisabled =
+    disabled || status === "disconnected" || status === "connecting";
+
   return (
     <div css={createStyles(theme)}>
       <div
@@ -154,7 +158,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             value={prompt}
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
-            disabled={isDisabled}
+            disabled={isInputDisabled}
             placeholder={
               status === "disconnected" || status === "connecting"
                 ? "Connection required to send messages..."

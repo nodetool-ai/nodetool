@@ -8,7 +8,7 @@ const mockServerState = {
 };
 
 const mockWebContents = { send: jest.fn() };
-const mockWindow = { webContents: mockWebContents } as any;
+const mockWindow = { webContents: mockWebContents, isDestroyed: jest.fn().mockReturnValue(false) } as any;
 
 jest.mock('../state', () => ({
   getMainWindow: jest.fn(),

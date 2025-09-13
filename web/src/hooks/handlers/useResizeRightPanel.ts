@@ -4,7 +4,7 @@ import {
   RightPanelView
 } from "../../stores/RightPanelStore";
 
-const DEFAULT_PANEL_SIZE = 300;
+const DEFAULT_PANEL_SIZE = 350;
 const MIN_DRAG_SIZE = 60;
 const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
 const MAX_PANEL_SIZE = 600;

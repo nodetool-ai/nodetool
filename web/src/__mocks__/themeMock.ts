@@ -31,4 +31,68 @@ const mockTheme = createTheme({
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif"
 });
 
+// Add vars property directly to the theme object
+(mockTheme as any).vars = {
+  palette: {
+    grey: {
+      0: "#000000",
+      50: "#fafafa",
+      100: "#f5f5f5",
+      200: "#eeeeee",
+      300: "#e0e0e0",
+      400: "#bdbdbd",
+      500: "#9e9e9e",
+      600: "#757575",
+      700: "#616161",
+      800: "#424242",
+      900: "#212121"
+    },
+    // Add missing palette properties used by components
+    primary: { main: "#77b4e6" },
+    secondary: { main: "#9c27b0" },
+    info: { main: "#2196f3" },
+    error: { main: "#f44336" },
+    warning: { main: "#ff9800" },
+    success: { main: "#4caf50" },
+    divider: "#2f2f2f",
+    action: {
+      hover: "rgba(255,255,255,0.08)",
+      selected: "rgba(255,255,255,0.16)",
+      disabled: "rgba(255,255,255,0.3)",
+      disabledBackground: "rgba(255,255,255,0.12)",
+      active: "rgba(255,255,255,0.54)"
+    },
+    // Provide text palette when MUI Typography reads from theme.vars
+    text: {
+      primary: "#ffffff",
+      secondary: "#bdbdbd",
+      disabled: "#9e9e9e"
+    }
+  },
+  // Provide spacing variables expected by MUI components (e.g., Button)
+  // MUI expects spacing to be a function that multiplies by 8px
+  spacing: (factor: number) => `${factor * 8}px`
+};
+
+// Add tooltip property to theme
+(mockTheme as any).tooltip = {};
+
+// Ensure components overrides exist for MUI that reference theme.components
+(mockTheme as any).components = {
+  ...((mockTheme as any).components || {}),
+  MuiTooltip: {
+    styleOverrides: {
+      tooltip: {}
+    }
+  }
+};
+
+// Ensure theme shape matches MUI v7 expectations without forcing internal flags
+(mockTheme as any).shape = {
+  borderRadius: 4
+};
+(mockTheme as any).vars.shape = {
+  borderRadius: 4
+};
+
 export default mockTheme;
