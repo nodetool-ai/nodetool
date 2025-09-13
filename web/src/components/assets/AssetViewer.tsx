@@ -29,6 +29,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
+import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 
 const containerStyles = css({
   width: "100%",
@@ -306,47 +307,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }, [changeAsset, open])
   );
 
-  const assetViewer = useMemo(() => {
-    const type = currentAsset?.content_type || contentType || "";
-
-    if (currentAsset) {
-      if (type.startsWith("image/")) {
-        return <ImageViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("audio/")) {
-        return <AudioViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("text/")) {
-        return <TextViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("video/")) {
-        return <VideoViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("application/pdf")) {
-        return <PDFViewer asset={currentAsset} />;
-      }
-    }
-    if (url) {
-      if (type.startsWith("image/")) {
-        return <ImageViewer url={url} />;
-      }
-      if (type.startsWith("audio/")) {
-        return <AudioViewer url={url} />;
-      }
-      if (type.startsWith("text/")) {
-        return <TextViewer asset={currentAsset} />;
-      }
-      if (type.startsWith("video/")) {
-        return <VideoViewer url={url} />;
-      }
-      if (type.startsWith("application/pdf")) {
-        return <PDFViewer url={url} />;
-      }
-      if (type === "document" && url?.endsWith(".pdf")) {
-        return <PDFViewer url={url} />;
-      }
-    }
-  }, [currentAsset, url, contentType]);
+  const { component: assetViewer } = useAssetDisplay({
+    asset: currentAsset,
+    url,
+    contentType
+  });
 
   const navigation = useMemo(() => {
     if (currentIndex === null) return null;
