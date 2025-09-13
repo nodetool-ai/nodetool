@@ -53,7 +53,14 @@ const styles = (theme: Theme) =>
       ".preview-node-content": {
         height: "100%",
         width: "100%",
-        backgroundColor: "transparent"
+        backgroundColor: "transparent",
+        display: "flex",
+        flexDirection: "column"
+      },
+      ".preview-node-content > .content": {
+        flex: 1,
+        minHeight: 0,
+        overflow: "hidden"
       },
       ".node-header": {
         width: "100%",
@@ -165,6 +172,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
   );
+
+  console.log("result", result);
 
   const memoizedOutputRenderer = useMemo(() => {
     return result !== undefined ? <OutputRenderer value={result} /> : null;

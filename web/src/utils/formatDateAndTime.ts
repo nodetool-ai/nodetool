@@ -30,7 +30,7 @@ export function prettyDate(
   // Handle numeric timestamp input
   let dateTime: DateTime;
   if (typeof dateStr === "number") {
-    dateTime = DateTime.fromMillis(dateStr);
+    dateTime = DateTime.fromMillis(dateStr, { zone: 'utc' });
   } else {
     const compliantDateStr = dateStr.replace(" ", "T");
     dateTime = DateTime.fromISO(compliantDateStr);

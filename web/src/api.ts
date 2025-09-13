@@ -1421,6 +1421,13 @@ export interface components {
              */
             file: string;
         };
+        /** CachedFileInfo */
+        CachedFileInfo: {
+            /** File Name */
+            file_name: string;
+            /** Size On Disk */
+            size_on_disk: number;
+        };
         /** CachedModel */
         CachedModel: {
             /** Repo Id */
@@ -1441,6 +1448,11 @@ export interface components {
             the_model_info?: components["schemas"]["ModelInfo"] | null;
             /** Readme */
             readme?: string | null;
+            /**
+             * Cached Files
+             * @default []
+             */
+            cached_files: components["schemas"]["CachedFileInfo"][];
         };
         /** CachedRepo */
         CachedRepo: {
@@ -3605,12 +3617,6 @@ export interface components {
              * @default false
              */
             is_dynamic: boolean;
-            /**
-             * Is Streaming
-             * @description Whether the node is streaming
-             * @default false
-             */
-            is_streaming: boolean;
             /**
              * Expose As Tool
              * @description Whether the node is exposed as a tool

@@ -61,7 +61,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         alignItems: "flex-start",
         width: "100%",
         maxWidth: "100%",
-        height: "calc(100% - 24px)",
+        height: "100%",
         minHeight: "100px"
       }}
     >

@@ -9,6 +9,11 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
 import { isEqual } from "lodash";
+import { Button } from "@mui/material";
+import { useState } from "react";
+import { useNodes } from "../../contexts/NodeContext";
+import AudioVisualizer from "../common/AudioVisualizer";
+import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
 
 const styles = (theme: Theme) =>
   css({
@@ -33,7 +38,17 @@ const AudioProperty = (props: PropertyProps) => {
   const showRecorder =
     props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
+  const isRealtime = props.nodeType === "nodetool.input.RealtimeAudioInput";
   const theme = useTheme();
+  const { findNode } = useNodes((state) => ({ findNode: state.findNode }));
+  const rfNode = findNode(props.nodeId);
+  const inputNodeName = (rfNode?.data as any)?.properties?.name as
+    | string
+    | undefined;
+  const { isStreaming, toggle, stream, version } =
+    useRealtimeAudioStream(inputNodeName);
+
+  // Visualizer moved to AudioVisualizer component
   return (
     <div className="audio-property" css={styles(theme)}>
       <PropertyLabel
@@ -49,6 +64,18 @@ const AudioProperty = (props: PropertyProps) => {
         props={props}
         showRecorder={showRecorder}
       />
+      {isRealtime && (
+        <div className="realtime-audio-controls">
+          <Button size="small" variant="outlined" onClick={toggle}>
+            {isStreaming ? "Stop Realtime" : "Realtime Mic"}
+          </Button>
+          {isStreaming && (
+            <div className="visualizer" aria-label="Realtime audio visualizer">
+              <AudioVisualizer stream={stream} version={version} height={64} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

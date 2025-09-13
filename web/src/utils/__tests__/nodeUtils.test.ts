@@ -1,7 +1,11 @@
 /**
  * @jest-environment node
  */
-import { GROUP_NODE_TYPE, GROUP_NODE_METADATA, COMMENT_NODE_METADATA } from "../nodeUtils";
+import {
+  GROUP_NODE_TYPE,
+  GROUP_NODE_METADATA,
+  COMMENT_NODE_METADATA
+} from "../nodeUtils";
 
 describe("nodeUtils", () => {
   describe("GROUP_NODE_TYPE constant", () => {
@@ -27,7 +31,6 @@ describe("nodeUtils", () => {
       expect(GROUP_NODE_METADATA).toHaveProperty("recommended_models");
       expect(GROUP_NODE_METADATA).toHaveProperty("basic_fields");
       expect(GROUP_NODE_METADATA).toHaveProperty("is_dynamic");
-      expect(GROUP_NODE_METADATA).toHaveProperty("is_streaming");
       expect(GROUP_NODE_METADATA).toHaveProperty("expose_as_tool");
       expect(GROUP_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
     });
@@ -53,7 +56,6 @@ describe("nodeUtils", () => {
 
     it("should have all boolean flags set to false", () => {
       expect(GROUP_NODE_METADATA.is_dynamic).toBe(false);
-      expect(GROUP_NODE_METADATA.is_streaming).toBe(false);
       expect(GROUP_NODE_METADATA.expose_as_tool).toBe(false);
       expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(false);
     });
@@ -63,7 +65,7 @@ describe("nodeUtils", () => {
       // Attempt to modify (this shouldn't actually change the constant)
       const testMetadata = { ...GROUP_NODE_METADATA };
       testMetadata.node_type = "modified";
-      
+
       // Verify original hasn't changed
       expect(GROUP_NODE_METADATA.node_type).toBe(originalNodeType);
     });
@@ -82,14 +84,15 @@ describe("nodeUtils", () => {
       expect(COMMENT_NODE_METADATA).toHaveProperty("recommended_models");
       expect(COMMENT_NODE_METADATA).toHaveProperty("basic_fields");
       expect(COMMENT_NODE_METADATA).toHaveProperty("is_dynamic");
-      expect(COMMENT_NODE_METADATA).toHaveProperty("is_streaming");
       expect(COMMENT_NODE_METADATA).toHaveProperty("expose_as_tool");
       expect(COMMENT_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
     });
 
     it("should have correct default values for Comment node", () => {
       expect(COMMENT_NODE_METADATA.namespace).toBe("default");
-      expect(COMMENT_NODE_METADATA.node_type).toBe("nodetool.workflows.base_node.Comment");
+      expect(COMMENT_NODE_METADATA.node_type).toBe(
+        "nodetool.workflows.base_node.Comment"
+      );
       expect(COMMENT_NODE_METADATA.title).toBe("Comment");
       expect(COMMENT_NODE_METADATA.description).toBe("Comment");
       expect(COMMENT_NODE_METADATA.layout).toBe("comment");
@@ -113,7 +116,6 @@ describe("nodeUtils", () => {
 
     it("should have all boolean flags set to false", () => {
       expect(COMMENT_NODE_METADATA.is_dynamic).toBe(false);
-      expect(COMMENT_NODE_METADATA.is_streaming).toBe(false);
       expect(COMMENT_NODE_METADATA.expose_as_tool).toBe(false);
       expect(COMMENT_NODE_METADATA.supports_dynamic_outputs).toBe(false);
     });
@@ -121,7 +123,9 @@ describe("nodeUtils", () => {
 
   describe("Metadata comparison", () => {
     it("should have different node_type values", () => {
-      expect(GROUP_NODE_METADATA.node_type).not.toBe(COMMENT_NODE_METADATA.node_type);
+      expect(GROUP_NODE_METADATA.node_type).not.toBe(
+        COMMENT_NODE_METADATA.node_type
+      );
     });
 
     it("should have different titles", () => {
@@ -133,14 +137,21 @@ describe("nodeUtils", () => {
     });
 
     it("should have same namespace", () => {
-      expect(GROUP_NODE_METADATA.namespace).toBe(COMMENT_NODE_METADATA.namespace);
+      expect(GROUP_NODE_METADATA.namespace).toBe(
+        COMMENT_NODE_METADATA.namespace
+      );
     });
 
     it("should both have same boolean flag values", () => {
-      expect(GROUP_NODE_METADATA.is_dynamic).toBe(COMMENT_NODE_METADATA.is_dynamic);
-      expect(GROUP_NODE_METADATA.is_streaming).toBe(COMMENT_NODE_METADATA.is_streaming);
-      expect(GROUP_NODE_METADATA.expose_as_tool).toBe(COMMENT_NODE_METADATA.expose_as_tool);
-      expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(COMMENT_NODE_METADATA.supports_dynamic_outputs);
+      expect(GROUP_NODE_METADATA.is_dynamic).toBe(
+        COMMENT_NODE_METADATA.is_dynamic
+      );
+      expect(GROUP_NODE_METADATA.expose_as_tool).toBe(
+        COMMENT_NODE_METADATA.expose_as_tool
+      );
+      expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(
+        COMMENT_NODE_METADATA.supports_dynamic_outputs
+      );
     });
   });
 });
