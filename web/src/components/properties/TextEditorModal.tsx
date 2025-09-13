@@ -53,6 +53,7 @@ import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
 import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
 import { useModalResize } from "../../hooks/editor/useModalResize";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import { useEditorActions } from "../../hooks/editor/useEditorActions";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
@@ -877,50 +878,28 @@ const TextEditorModal = ({
     };
   }, [debouncedExternalOnChange]);
 
-  // Toolbar handlers
-  const handleUndo = useCallback(() => {
-    undoFnRef.current?.();
-  }, []);
-
-  const handleRedo = useCallback(() => {
-    redoFnRef.current?.();
-  }, []);
-
-  const handleToggleWordWrap = useCallback(() => {
-    setWordWrapEnabled((prev) => !prev);
-  }, []);
-
-  const handleFormatCodeBlock = useCallback(() => {
-    formatCodeBlockFnRef.current?.();
-  }, []);
-
-  const handleToggleFind = useCallback(() => {
-    setFindReplaceVisible((prev: boolean) => !prev);
-  }, []);
-
-  const handleFind = useCallback((searchTerm: string) => {
-    const results = findFnRef.current?.(searchTerm);
-    if (results) {
-      setSearchResults(results);
-    }
-  }, []);
-
-  const handleReplace = useCallback(
-    (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
-      replaceFnRef.current?.(searchTerm, replaceTerm, replaceAll);
-    },
-    []
-  );
-
-  const handleNavigateNext = useCallback(() => {
-    const results = navigateFnRef.current?.("next");
-    if (results) setSearchResults(results);
-  }, []);
-
-  const handleNavigatePrevious = useCallback(() => {
-    const results = navigateFnRef.current?.("previous");
-    if (results) setSearchResults(results);
-  }, []);
+  // Toolbar handlers (hook)
+  const {
+    handleUndo,
+    handleRedo,
+    handleToggleWordWrap,
+    handleFormatCodeBlock,
+    handleToggleFind,
+    handleFind,
+    handleReplace,
+    handleNavigateNext,
+    handleNavigatePrevious
+  } = useEditorActions({
+    setWordWrapEnabled,
+    setFindReplaceVisible,
+    setSearchResults,
+    undoFnRef,
+    redoFnRef,
+    formatCodeBlockFnRef,
+    findFnRef,
+    replaceFnRef,
+    navigateFnRef
+  });
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
