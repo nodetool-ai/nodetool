@@ -1,3 +1,6 @@
+// Set timezone to UTC to ensure consistent test results
+process.env.TZ = 'UTC';
+
 // Mock canvas before jsdom requires it
 const Module = require("module");
 const originalRequire = Module.prototype.require;
