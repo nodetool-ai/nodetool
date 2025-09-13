@@ -28,6 +28,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
+import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 
 const containerStyles = css({
   width: "100%",
@@ -237,15 +238,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const handleChangeAsset = useCallback(
     (index: number) => {
-      if (assetsToUse && index >= 0 && index < assetsToUse.length) {
-        const newAsset = assetsToUse[index];
-        setTimeout(() => {
-          setCurrentAsset(newAsset);
-        }, 10);
-        setCurrentIndex(index);
-      }
+      if (!assetsToUse) return;
+      const newAsset = assetsToUse[index];
+      setTimeout(() => {
+        setCurrentAsset(newAsset);
+      }, 10);
+      setCurrentIndex(index);
     },
-    [assetsToUse, setCurrentAsset, setCurrentIndex]
+    [assetsToUse]
   );
 
   useEffect(() => {
@@ -264,49 +264,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [asset, assetsToUse]);
 
-  const changeAsset = useCallback(
-    (direction: "left" | "right", controlKeyPressed: boolean) => {
-      if (currentIndex !== null && assetsToUse) {
-        if (direction === "left" && currentIndex > 0) {
-          if (controlKeyPressed) {
-            const newIndex = Math.max(currentIndex - prevNextAmount, 0);
-            handleChangeAsset(newIndex);
-          } else {
-            handleChangeAsset(currentIndex - 1);
-          }
-        } else if (
-          direction === "right" &&
-          currentIndex < assetsToUse.length - 1
-        ) {
-          if (controlKeyPressed) {
-            const newIndex = Math.min(
-              currentIndex + prevNextAmount,
-              assetsToUse.length - 1
-            );
-            handleChangeAsset(newIndex);
-          } else {
-            handleChangeAsset(currentIndex + 1);
-          }
-        }
-      }
-    },
-    [handleChangeAsset, currentIndex, assetsToUse, prevNextAmount]
-  );
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-
-      if (e.key === "ArrowLeft") {
-        changeAsset("left", e.ctrlKey);
-      } else if (e.key === "ArrowRight") {
-        changeAsset("right", e.ctrlKey);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, changeAsset]);
+  const { changeAsset } = useAssetNavigation({
+    open,
+    assets: assetsToUse,
+    currentIndex,
+    prevNextAmount,
+    onChangeIndex: handleChangeAsset
+  });
 
   useCombo(["Escape"], handleClose);
   useCombo(
