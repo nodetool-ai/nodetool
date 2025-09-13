@@ -107,6 +107,7 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "check": "tsc && eslint src && jest",
     "test": "jest",
     "test:summary": "jest --reporters=\"summary\"",
     "test:watch": "jest --watch",
