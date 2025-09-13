@@ -27,6 +27,7 @@ import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 
 const containerStyles = css({
   width: "100%",
@@ -232,49 +233,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [sortedAssets, folderFiles]
   );
 
-  const handleDownload = useCallback(() => {
-    const downloadUrl = url || (currentAsset && currentAsset.get_url);
-
-    if (!downloadUrl) return;
-
-    // Always use anchor element for downloading
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-
-    // Extract filename from asset or URL
-    let filename = "download";
-    if (currentAsset?.name) {
-      filename = currentAsset.name;
-    } else if (downloadUrl.startsWith("data:")) {
-      // Try to determine file extension from data URI
-      const match = downloadUrl.match(/data:([^;]+)/);
-      if (match) {
-        const mimeType = match[1];
-        const extension = mimeType.split("/")[1];
-        if (extension) {
-          filename = `download.${extension}`;
-        }
-      }
-    } else {
-      // Extract filename from URL path
-      try {
-        const urlObj = new URL(downloadUrl);
-        const pathname = urlObj.pathname;
-        const lastSegment = pathname.split("/").pop();
-        if (lastSegment && lastSegment.includes(".")) {
-          filename = lastSegment;
-        }
-      } catch (e) {
-        // If URL parsing fails, keep default filename
-      }
-    }
-
-    link.download = filename;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [currentAsset, url]);
+  const { handleDownload } = useAssetDownload({ currentAsset, url });
 
   const handleChangeAsset = useCallback(
     (index: number) => {
