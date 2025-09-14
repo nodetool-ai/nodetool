@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import type { MessageContent, LanguageModel } from "../../stores/ApiTypes";
+import type {
+  MessageContent,
+  LanguageModel,
+  Message
+} from "../../stores/ApiTypes";
 
 export function useChatIntegration(params: {
   isCodeEditor: boolean;
@@ -26,7 +30,7 @@ export function useChatIntegration(params: {
   const {
     connect,
     status,
-    sendMessage,
+    sendMessage: sendMessageFn,
     progress,
     statusMessage,
     getCurrentMessagesSync,
@@ -37,6 +41,27 @@ export function useChatIntegration(params: {
     stopGeneration,
     createNewThread
   } = useGlobalChatStore();
+
+  const sendMessage = useCallback(
+    async (message: Message) => {
+      if (typeof message.content === "string") {
+        message.content =
+          "<context>" + currentText + "</context>\n\n" + message.content;
+      } else {
+        message.content = message.content?.map((content) => {
+          if (content.type === "text") {
+            return {
+              ...content,
+              text: "<context>" + currentText + "</context>\n\n" + content.text
+            };
+          }
+          return content;
+        });
+      }
+      await sendMessageFn(message);
+    },
+    [sendMessageFn, currentText]
+  );
 
   // Ensure chat is connected
   useEffect(() => {

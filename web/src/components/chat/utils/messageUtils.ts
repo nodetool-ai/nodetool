@@ -5,9 +5,17 @@ export interface ParsedThought {
   textAfterThought: string;
 }
 
+export const stripContextContent = (content: string): string => {
+  const contextMatch = content.match(/<context>([\s\S]*?)(<\/context>|$)(.*)/s);
+  if (!contextMatch) {
+    return content;
+  }
+  return contextMatch[3];
+};
+
 export const parseThoughtContent = (content: string): ParsedThought | null => {
   const thoughtMatch = content.match(/<think>([\s\S]*?)(<\/think>|$)/s);
-  
+
   if (!thoughtMatch) {
     return null;
   }

@@ -10,7 +10,11 @@ import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
 import { ThoughtSection } from "./thought/ThoughtSection";
 import { MessageContentRenderer } from "./MessageContentRenderer";
-import { parseThoughtContent, getMessageClass } from "../utils/messageUtils";
+import {
+  parseThoughtContent,
+  getMessageClass,
+  stripContextContent
+} from "../utils/messageUtils";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -63,8 +67,9 @@ export const MessageView: React.FC<
     return textToCopy;
   };
 
-  const renderContent = (content: string, index: number) => {
-    const parsedThought = parseThoughtContent(content);
+  const renderTextContent = (content: string, index: number) => {
+    const parsedContent = stripContextContent(content);
+    const parsedThought = parseThoughtContent(parsedContent);
 
     if (parsedThought) {
       const key = `thought-${message.id}-${index}`;
@@ -85,7 +90,7 @@ export const MessageView: React.FC<
     const handler =
       onInsertCode ||
       (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
-    return <ChatMarkdown content={content} onInsertCode={handler} />;
+    return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
   };
 
   const content = message.content as
@@ -200,7 +205,7 @@ export const MessageView: React.FC<
         {(message.role === "assistant" || message.role === "user") && (
           <>
             {typeof message.content === "string" &&
-              renderContent(
+              renderTextContent(
                 message.content,
                 typeof message.id === "string" ? parseInt(message.id) || 0 : 0
               )}
@@ -209,7 +214,7 @@ export const MessageView: React.FC<
                 <MessageContentRenderer
                   key={i}
                   content={c}
-                  renderTextContent={renderContent}
+                  renderTextContent={renderTextContent}
                   index={i}
                 />
               ))}

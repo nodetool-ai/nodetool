@@ -9,6 +9,28 @@ import { useNodes } from "../../contexts/NodeContext";
 import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
+const determineCodeLanguage = (nodeType: string) => {
+  if (nodeType == "nodetool.code.ExecutePython") {
+    return "python";
+  }
+  if (nodeType == "nodetool.code.ExecuteJavaScript") {
+    return "javascript";
+  }
+  if (nodeType == "nodetool.code.ExecuteBash") {
+    return "bash";
+  }
+  if (nodeType == "nodetool.code.ExecuteRuby") {
+    return "ruby";
+  }
+  if (
+    nodeType == "nodetool.code.ExecuteLua" ||
+    nodeType == "nodetool.code.EvaluateExpression"
+  ) {
+    return "lua";
+  }
+  return "text";
+};
+
 const StringProperty = ({
   property,
   propertyIndex,
@@ -22,7 +44,6 @@ const StringProperty = ({
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const focusHandler = useFocusPan(nodeId);
@@ -36,6 +57,7 @@ const StringProperty = ({
 
   const showTextEditor = !isConnected;
   const isConstant = nodeType.startsWith("nodetool.constant.");
+  const codeLanguage = determineCodeLanguage(nodeType);
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -47,35 +69,6 @@ const StringProperty = ({
       return next;
     });
   }, []);
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange(e.target.value);
-    },
-    [onChange]
-  );
-
-  const startEditing = useCallback(() => {
-    if (!isConnected) {
-      setIsEditing(true);
-    }
-  }, [isConnected]);
-
-  const stopEditing = useCallback(() => {
-    setIsEditing(false);
-  }, []);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        stopEditing();
-      } else if (e.key === "Escape") {
-        stopEditing();
-      }
-    },
-    [stopEditing]
-  );
 
   if (showTextEditor) {
     return (
@@ -114,9 +107,7 @@ const StringProperty = ({
               }}
               onBlur={() => {
                 setIsFocused(false);
-                stopEditing();
               }}
-              onKeyDown={handleKeyDown}
               tabIndex={tabIndex}
               autoComplete="off"
               autoCorrect="off"
@@ -135,6 +126,7 @@ const StringProperty = ({
         {isExpanded && (
           <TextEditorModal
             value={value || ""}
+            language={codeLanguage}
             onChange={onChange}
             onClose={toggleExpand}
             propertyName={property.name}
