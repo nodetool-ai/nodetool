@@ -125,26 +125,26 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     const uvExecutable = getUVPath();
     const PACKAGE_INDEX_URL = "https://nodetool-ai.github.io/nodetool-registry/simple/";
-    
+
     // Convert repo IDs to package names for wheel installation
     const corePackages = [
       "nodetool-core",
       "nodetool-base",
     ];
-    
+
     // Convert additional packages from repo format to package names
     const additionalPackages = packages.map((repoId) => {
       // If it's already a package name, use as-is, otherwise extract from repo_id
       return repoId.includes("/") ? repoId.split("/")[1] : repoId;
     });
-    
+
     const allPackages = [...corePackages, ...additionalPackages];
-    
+
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
-      "--index-url", PACKAGE_INDEX_URL,
+      "--extra-index-url", PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
@@ -271,9 +271,9 @@ function getDefaultInstallLocation(): string {
       return process.env.SUDO_USER
         ? path.join("/Library/Application Support/nodetool/conda_env")
         : path.join(
-            os.homedir(),
-            "Library/Application Support/nodetool/conda_env"
-          );
+          os.homedir(),
+          "Library/Application Support/nodetool/conda_env"
+        );
     case "linux":
       // Use /opt for all users, or ~/.local/share for current user
       return process.env.SUDO_USER
