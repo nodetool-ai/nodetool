@@ -33,3 +33,4 @@ describe("useAssistantVisibility", () => {
     expect(result.current.assistantVisible).toBe(false);
   });
 });
+
