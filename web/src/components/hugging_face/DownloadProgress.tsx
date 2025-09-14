@@ -9,7 +9,8 @@ import {
   Button,
   CircularProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  Chip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -19,13 +20,16 @@ import type { Theme } from "@mui/material/styles";
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    borderRadius: "4px",
-    padding: ".5em",
+    borderRadius: "8px",
+    padding: "0.75em 1em 1em",
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    alignItems: "start",
+    alignItems: "stretch",
     justifyContent: "start",
+    border: `1px solid ${theme.vars.palette.grey[800]}`,
+    background: theme.vars.palette.glass.backgroundDialogContent,
+    boxShadow: theme.shadows[1],
     ".download-progress-text": {
       fontFamily: theme.fontFamily2,
       paddingBottom: "0.2em",
@@ -34,26 +38,32 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller
     },
     ".download-status": {
-      padding: "1em 0",
-      textTransform: "uppercase",
+      padding: "0.35em 0 0.25em",
       fontFamily: theme.fontFamily2
     },
     ".repo-name": {
       lineHeight: "1.2em",
       wordBreak: "break-word",
-      paddingRight: "1em"
+      paddingRight: "2.5em",
+      fontWeight: 500
     },
     ".download-message": {
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.info.main
     },
+    ".header-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.spacing(1)
+    },
     ".progress-bar-container": {
-      height: "6px",
-      borderRadius: "3px",
+      height: "8px",
+      borderRadius: "4px",
       overflow: "hidden",
       position: "relative",
-      background: "#555",
-      marginTop: "1em"
+      background: theme.vars.palette.grey[800],
+      marginTop: "0.75em"
     },
     ".progress-bar": {
       position: "absolute",
@@ -61,23 +71,32 @@ const styles = (theme: Theme) =>
       left: 0,
       right: 0,
       bottom: 0,
-      background: "linear-gradient(90deg, #3a6ba5, #5a9bd5)",
+      background:
+        "linear-gradient(90deg, var(--palette-primary-light), var(--palette-primary-dark))",
       backgroundSize: "200% 100%",
       transformOrigin: "right center"
     },
     ".download-details": {
-      minHeight: "120px"
+      minHeight: "120px",
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      columnGap: theme.spacing(2),
+      rowGap: theme.spacing(0.25),
+      marginTop: theme.spacing(1)
     },
     ".cancel-button": {
-      padding: "0.5em 1em",
-      marginTop: ".5em",
+      padding: "0.45em 0.9em",
+      marginTop: ".75em",
       lineHeight: "1.1em",
       whiteSpace: "nowrap",
-      color: "var(--palette-grey-900)",
-      backgroundColor: "var(--palette-warning-main)",
-      "&:hover": {
-        opacity: 0.85
-      }
+      alignSelf: "start"
+    },
+    ".meta-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: theme.spacing(1),
+      marginTop: theme.spacing(1)
     }
   });
 
@@ -117,16 +136,23 @@ export const DownloadProgress: React.FC<{
     removeDownload(name);
   }, [name, removeDownload]);
 
+  const totalBytes = download.totalBytes ?? 0;
+  const downloadedBytes = download.downloadedBytes ?? 0;
+  const percent =
+    totalBytes > 0
+      ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
+      : 0;
+
   const eta = useMemo(() => {
     if (download.speed && download.speed > 0) {
-      const remainingBytes = download.totalBytes - download.downloadedBytes;
+      const remainingBytes = totalBytes - downloadedBytes;
       const remainingSeconds = remainingBytes / download.speed;
       const minutes = Math.floor(remainingSeconds / 60);
       const seconds = Math.floor(remainingSeconds % 60);
       return `${minutes}m ${seconds}s`;
     }
     return null;
-  }, [download.speed, download.totalBytes, download.downloadedBytes]);
+  }, [download.speed, totalBytes, downloadedBytes]);
 
   const showDetails =
     download.status === "start" ||
@@ -233,26 +259,16 @@ export const DownloadProgress: React.FC<{
 
   return (
     <Box css={styles(theme)}>
-      <Tooltip title={getCloseButtonTooltip()}>
-        <IconButton
-          onClick={handleRemove}
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 4,
-            right: -15,
-            ml: 4,
-            color: "white"
-          }}
-          className="close-button"
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      <Typography className="repo-name" variant="subtitle1">
-        {name}
-      </Typography>
+      <Box className="header-row">
+        <Typography className="repo-name" variant="subtitle1">
+          {name}
+        </Typography>
+        <Tooltip title={getCloseButtonTooltip()}>
+          <IconButton onClick={handleRemove} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
       {download.message && (
         <Typography className="download-message" variant="body2">
           {download.message}
@@ -260,10 +276,7 @@ export const DownloadProgress: React.FC<{
       )}
       {(download.status === "start" || download.status === "pending") && (
         <Box display="flex" alignItems="center">
-          <CircularProgress
-            size={20}
-            style={{ marginRight: "0.5em", color: "white" }}
-          />
+          <CircularProgress size={20} style={{ marginRight: "0.5em" }} />
           <Typography variant="body2">
             {download.status === "start"
               ? "Starting download..."
@@ -273,46 +286,46 @@ export const DownloadProgress: React.FC<{
       )}
       {download.status === "completed" && (
         <Tooltip title="Download has finished successfully">
-          <Typography
+          <Chip
+            label="Completed"
+            size="small"
+            color="success"
             className="download-status"
-            variant="body2"
-            color={theme.vars.palette.success.main}
-          >
-            Download completed
-          </Typography>
+          />
         </Tooltip>
       )}
       {download.status === "cancelled" && (
         <Tooltip title="Download was cancelled. You can restart it from the model browser.">
-          <Typography
+          <Chip
+            label="Cancelled"
+            size="small"
+            color="warning"
             className="download-status"
-            variant="body2"
-            color={theme.vars.palette.warning.main}
-          >
-            Download cancelled
-          </Typography>
+          />
         </Tooltip>
       )}
       {download.status === "error" && (
         <Tooltip title={download.message || "Download failed"}>
-          <Typography
+          <Chip
+            label="Failed"
+            size="small"
+            color="error"
             className="download-status"
-            variant="body2"
-            color={theme.vars.palette.error.main}
-          >
-            Download failed
-          </Typography>
+          />
         </Tooltip>
       )}
-      {showDetails && download.totalBytes >= 0 && (
+      {showDetails && (
         <>
+          <Box className="meta-row">
+            <Typography variant="caption" sx={{ opacity: 0.85 }}>
+              {percent.toFixed(0)}%
+            </Typography>
+          </Box>
           <Box className="progress-bar-container">
             <Box
               className="progress-bar"
               sx={{
-                width: `${
-                  (download.downloadedBytes / download.totalBytes) * 100
-                }%`,
+                width: `${percent}%`,
                 animation: `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`
               }}
             />
