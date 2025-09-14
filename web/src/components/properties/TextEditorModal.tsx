@@ -60,6 +60,7 @@ import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
+import { NewChatButton } from "../chat";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -430,7 +431,7 @@ const TextEditorModal = ({
   onClose,
   propertyName,
   propertyDescription,
-  language = "python",
+  language: defaultLanguage = "",
   readOnly = false,
   isLoading = false,
   showToolbar = true,
@@ -439,8 +440,6 @@ const TextEditorModal = ({
 }: TextEditorModalProps) => {
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
-  const { writeClipboard } = useClipboard();
-  // chat now handled via useChatIntegration
 
   // Monaco dynamic import and actions (hook)
   const {
@@ -472,11 +471,6 @@ const TextEditorModal = ({
     defaultVisible: true
   });
 
-  // Code language (hook)
-  const { codeLanguage, setCodeLanguage } = useCodeLanguage({
-    defaultLanguage: language
-  });
-
   const handleToggleEditorMode = useCallback(() => {
     toggleEditorMode();
   }, [toggleEditorMode]);
@@ -487,8 +481,6 @@ const TextEditorModal = ({
       void loadMonacoIfNeeded();
     }
   }, [isCodeEditor, loadMonacoIfNeeded]);
-
-  // chat connection handled in hook
 
   // Resizable modal height state (hook)
   const { modalHeight, handleResizeMouseDown } = useModalResize({
@@ -502,6 +494,7 @@ const TextEditorModal = ({
   const [isCodeBlock, setIsCodeBlock] = useState(false);
   const [findReplaceVisible, setFindReplaceVisible] = useState(false);
   const [currentText, setCurrentText] = useState(value || "");
+  const [language, setLanguage] = useState(defaultLanguage || "");
 
   // Editor command function refs – using refs avoids re-renders when the
   // underlying functions are recreated in the child component on every mount.
@@ -622,7 +615,7 @@ const TextEditorModal = ({
       shell: "sh",
       bash: "sh"
     };
-    const ext = (extMap[codeLanguage] || "txt").replace(/^\./, "");
+    const ext = (extMap[language] || "txt").replace(/^\./, "");
     const safeName = (propertyName || "document")
       .toString()
       .replace(/[^a-z0-9-_]+/gi, "_");
@@ -632,7 +625,7 @@ const TextEditorModal = ({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [currentText, codeLanguage, propertyName]);
+  }, [currentText, language, propertyName]);
 
   const insertIntoLexical = useCallback(
     (text: string) => {
@@ -819,8 +812,8 @@ const TextEditorModal = ({
                   </Tooltip>
                   <select
                     className="language-select"
-                    value={codeLanguage}
-                    onChange={(e) => setCodeLanguage(e.target.value)}
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
                   >
                     {[
                       "plaintext",
@@ -829,11 +822,13 @@ const TextEditorModal = ({
                       "typescript",
                       "python",
                       "json",
+                      "lua",
                       "yaml",
                       "html",
                       "css",
                       "sql",
-                      "bash"
+                      "bash",
+                      "ruby"
                     ].map((lang) => (
                       <option key={lang} value={lang}>
                         {lang}
@@ -1004,7 +999,7 @@ const TextEditorModal = ({
                             setCurrentText(next);
                             debouncedExternalOnChange(next);
                           }}
-                          language={codeLanguage}
+                          language={language}
                           theme={"vs-dark"}
                           width="100%"
                           height="100%"
@@ -1100,6 +1095,7 @@ const TextEditorModal = ({
                 </div>
                 {assistantVisible && (
                   <div className="assistant-pane">
+                    <NewChatButton onNewThread={createNewThread} />
                     <ChatView
                       status={
                         status === "stopping" ? "loading" : (status as any)

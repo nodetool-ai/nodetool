@@ -29,7 +29,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
               borderRadius: 12,
               color: (theme as any).vars.palette.grey[200],
               backgroundColor: "transparent",
-              border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
+              border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
               boxShadow: "none",
               textTransform: "none",
               justifyContent: "center",
@@ -57,7 +57,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
                 right: 0,
                 height: "55%",
                 background:
-                  "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.02) 60%, transparent)",
+                  "linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.02) 60%, transparent)",
                 pointerEvents: "none",
                 zIndex: 0
               },
@@ -66,7 +66,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
                 position: "absolute",
                 inset: 0,
                 borderRadius: "inherit",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
                 pointerEvents: "none"
               }
             }}

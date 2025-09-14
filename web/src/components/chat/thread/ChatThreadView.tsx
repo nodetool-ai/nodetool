@@ -283,8 +283,6 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  console.log("messages", messages);
-
   return (
     <div
       css={componentStyles.chatThreadViewRoot}
