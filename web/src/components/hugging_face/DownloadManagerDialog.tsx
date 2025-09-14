@@ -8,7 +8,10 @@ import {
   DialogActions,
   Button,
   Box,
-  Typography
+  Typography,
+  IconButton,
+  Tooltip,
+  Divider
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -19,28 +22,51 @@ import { type Theme } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
+import DownloadingIcon from "@mui/icons-material/Downloading";
 import { openInExplorer } from "../../utils/fileExplorer";
 
 const styles = (theme: Theme) =>
   css({
     ".MuiDialog-paper": {
       width: "92%",
-      maxWidth: "900px",
+      maxWidth: "920px",
       margin: "auto",
       borderRadius: (theme as any)?.rounded?.dialog ?? 6,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      color: theme.vars.palette.text.primary
+      color: theme.vars.palette.text.primary,
+      boxShadow: theme.shadows[8]
     },
     ".MuiDialogTitle-root": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeBig,
-      fontWeight: 400
+      fontWeight: 400,
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em",
+      paddingRight: theme.spacing(7)
     },
     ".download-actions": {
       padding: "8px 24px 16px",
       justifyContent: "space-between",
-      alignItems: "flex-end",
-      color: "inherit"
+      alignItems: "center",
+      color: "inherit",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+    },
+    ".title-close": {
+      position: "absolute",
+      right: theme.spacing(1),
+      top: theme.spacing(1)
+    },
+    ".downloads-list": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2)
+    },
+    ".folders-row": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: theme.spacing(1.5)
     }
   });
 
@@ -53,7 +79,7 @@ const DownloadManagerDialog: React.FC = () => {
   const theme = useTheme();
 
   const infoMessage = hasActiveDownloads ? (
-    "You can close this dialog and return later - downloads will continue in the background. Access downloads anytime via the Download icon in the toolbar."
+    "Downloads continue in the background. Access them anytime from the toolbar download icon."
   ) : (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <span>
@@ -90,30 +116,49 @@ const DownloadManagerDialog: React.FC = () => {
         }
       }}
     >
-      <DialogTitle sx={{ color: "inherit" }}>
+      <DialogTitle sx={{ color: "inherit", position: "relative" }}>
+        <DownloadingIcon sx={{ color: theme.vars.palette.primary.main }} />
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
+        <Tooltip title="Close">
+          <IconButton
+            size="small"
+            onClick={closeDialog}
+            className="title-close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </DialogTitle>
-      <DialogContent
-        className="download-dialog-content"
-        // sx={{
-        //   background: theme.vars.palette.glass.backgroundDialogContent
-        // }}
-      >
-        <Box mt={2}>
+      <DialogContent className="download-dialog-content">
+        <Box mt={1} className="downloads-list">
           {Object.keys(downloads).length > 0 ? (
             Object.keys(downloads).map((name) => (
               <DownloadProgress key={name} name={name} />
             ))
           ) : (
-            <Typography
-              variant="body1"
-              sx={{ textAlign: "center", padding: "2em 0" }}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1.5,
+                padding: "2.5em 0"
+              }}
             >
-              No active downloads
-            </Typography>
+              <DownloadingIcon sx={{ opacity: 0.8 }} />
+              <Typography variant="h6">No active downloads</Typography>
+              <Typography
+                variant="body2"
+                sx={{ opacity: 0.8, textAlign: "center" }}
+              >
+                Start a model download from the Recommended Models dialog or
+                Model Manager.
+              </Typography>
+            </Box>
           )}
         </Box>
-        <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+        <Divider sx={{ my: 2 }} />
+        <Box className="folders-row">
           <Button
             variant="outlined"
             startIcon={<FolderOutlined />}
