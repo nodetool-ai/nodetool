@@ -8,10 +8,7 @@ from platform import system, machine
 import threading
 import subprocess
 import threading
-from typing import Any, List
-import re
 from textwrap import dedent
-import json
 import os
 
 # Set up logging
@@ -216,6 +213,7 @@ class Build:
                 "uv",
                 "lua",
                 "nodejs",
+                "llama.cpp",
                 "-y",
                 "--channel",
                 "conda-forge",
