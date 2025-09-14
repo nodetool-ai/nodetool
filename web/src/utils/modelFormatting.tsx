@@ -1,6 +1,7 @@
 import React from "react";
 import { UnifiedModel } from "../stores/ApiTypes";
 import ModelIcon from "../icons/model.svg";
+import PetsIcon from "@mui/icons-material/Pets";
 
 export const prettifyModelType = (type: string) => {
   if (type === "All") return type;
@@ -18,6 +19,15 @@ export const prettifyModelType = (type: string) => {
           }}
         />
         Ollama
+      </>
+    );
+  }
+
+  if (type === "llama_cpp") {
+    return (
+      <>
+        <PetsIcon style={{ fontSize: 18, marginRight: 8 }} />
+        Llama cpp
       </>
     );
   }
@@ -101,6 +111,8 @@ export const sortModelTypes = (types: string[]) => {
       case "All":
         return 0;
       case "llama_model":
+        return 1;
+      case "llama_cpp":
         return 1;
       case "Other":
         return 2;

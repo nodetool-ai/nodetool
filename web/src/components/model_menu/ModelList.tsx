@@ -16,7 +16,10 @@ import FavoriteStar from "./FavoriteStar";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import { toTitleCase } from "../../utils/providerDisplay";
+import {
+  toTitleCase,
+  formatGenericProviderName
+} from "../../utils/providerDisplay";
 import { isProviderAvailable } from "../../stores/ModelMenuStore";
 import useModelMenuStore from "../../stores/ModelMenuStore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -44,6 +47,13 @@ const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
   if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
   if (p.includes("aime")) return "AIME_API_KEY";
+  // Local providers like llama.cpp do not require API keys
+  if (
+    p.includes("llama_cpp") ||
+    p.includes("llama-cpp") ||
+    p.includes("llamacpp")
+  )
+    return null;
   return null;
 };
 
@@ -110,7 +120,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
                 primary={m.name}
                 secondary={
                   available
-                    ? toTitleCase(m.provider || "")
+                    ? formatGenericProviderName(m.provider || "")
                     : `${toTitleCase(
                         m.provider || ""
                       )} · Activate provider & setup`

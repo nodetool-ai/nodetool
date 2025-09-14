@@ -139,7 +139,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
             const badges: Array<{ label: string }> = [];
             let kind: "api" | "local" | "hf" = "api";
             if (isHuggingFaceProvider(p)) kind = "hf";
-            else if (/ollama|local|lmstudio/i.test(p)) kind = "local";
+            else if (/ollama|local|lmstudio|llama[_-]?cpp/i.test(p))
+              kind = "local";
             badges.push({
               label: kind === "hf" ? "HF" : kind === "local" ? "Local" : "API"
             });

@@ -31,7 +31,7 @@ const modelListItemStyles = (theme: Theme) =>
       "& .model-top-row": {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: "flex-start",
         gap: "1em",
         width: "100%",
         minHeight: "2.75em"
@@ -40,17 +40,18 @@ const modelListItemStyles = (theme: Theme) =>
       "& .model-info-container": {
         flex: 1,
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "flex-start",
         justifyContent: "flex-start",
-        gap: "1em",
-        lineHeight: "2.5em",
+        gap: ".35em",
+        lineHeight: "inherit",
         minWidth: 0 // Prevents flex item from overflowing
       },
 
       "& .model-header": {
         flex: "1 1 auto",
-        maxWidth: "400px",
-        lineHeight: "1.2em",
+        width: "100%",
+        lineHeight: "1.3em",
         cursor: "default"
       },
 
@@ -76,13 +77,23 @@ const modelListItemStyles = (theme: Theme) =>
         "&:hover": { textDecoration: "underline" }
       },
 
+      "& .model-owner": {
+        color: theme.vars.palette.grey[300],
+        fontSize: "var(--fontSize)",
+        marginRight: 0,
+        marginBottom: ".15em",
+        opacity: 0.85
+      },
+
       "& .model-name": {
-        flexGrow: 1,
-        fontSize: "var(--fontSizeBig)",
-        fontWeight: "400",
-        textDecoration: "none",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
         overflow: "hidden",
-        textOverflow: "ellipsis"
+        textOverflow: "ellipsis",
+        fontSize: "var(--fontSizeBig)",
+        fontWeight: 500,
+        wordBreak: "break-word"
       },
       "& .model-path": {
         display: "block",
@@ -92,8 +103,8 @@ const modelListItemStyles = (theme: Theme) =>
       },
       "& .model-details": {
         flex: "0 0 auto",
-        gap: "0.2em",
-        maxWidth: "200px",
+        gap: "0.4em",
+        maxWidth: "100%",
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",

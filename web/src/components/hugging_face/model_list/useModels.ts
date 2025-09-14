@@ -22,19 +22,10 @@ export const useModels = () => {
     (state) => state.addNotification
   );
 
-  const {
-    hfModels,
-    hfLoading,
-    hfIsFetching,
-    hfError
-  } = useHuggingFaceModels();
+  const { hfModels, hfLoading, hfIsFetching, hfError } = useHuggingFaceModels();
 
-  const {
-    ollamaModels,
-    ollamaLoading,
-    ollamaIsFetching,
-    ollamaError
-  } = useOllamaModels();
+  const { ollamaModels, ollamaLoading, ollamaIsFetching, ollamaError } =
+    useOllamaModels();
 
   const downloadedIds = useMemo(() => {
     const ids = new Set<string>();
@@ -68,6 +59,7 @@ export const useModels = () => {
     Object.keys(groupedRecommendedModels).forEach((type) => allTypes.add(type));
     allTypes.add("Other");
     allTypes.add("llama_model");
+    allTypes.add("llama_cpp");
     return sortModelTypes(Array.from(allTypes));
   }, [groupedHFModels, groupedRecommendedModels]);
 
@@ -78,6 +70,11 @@ export const useModels = () => {
         model.name?.toLowerCase().includes(searchTerm) ||
         model.repo_id?.toLowerCase().includes(searchTerm)
       );
+    };
+
+    const isGGUFRepo = (model: UnifiedModel) => {
+      const id = (model.repo_id || model.id || "").toLowerCase();
+      return id.includes("gguf");
     };
 
     const groups =
@@ -101,12 +98,19 @@ export const useModels = () => {
           filteredAllModels.filter((model: UnifiedModel) =>
             type === "llama_model"
               ? model.type === type
+              : type === "llama_cpp"
+              ? isGGUFRepo(model)
               : model.type === type || (type === "Other" && !model.type)
           )
         ])
       );
     } else if (selectedModelType === "llama_model") {
       return { llama_model: (llama || []).filter(filterModel) };
+    } else if (selectedModelType === "llama_cpp") {
+      const sourceAll = Object.values(groups).flat() as UnifiedModel[];
+      return {
+        llama_cpp: sourceAll.filter((m) => isGGUFRepo(m) && filterModel(m))
+      };
     } else {
       const source = groups[selectedModelType] || [];
       return {
@@ -122,7 +126,6 @@ export const useModels = () => {
     modelTypes,
     modelSource
   ]);
-
 
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) return;
