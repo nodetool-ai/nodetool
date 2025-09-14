@@ -1,5 +1,4 @@
 import argparse
-from nodetool.config.logging_config import get_logger
 import shutil
 import subprocess
 import sys
@@ -10,11 +9,9 @@ import subprocess
 import threading
 from textwrap import dedent
 import os
+import logging
 
-# Set up logging
-from nodetool.config.logging_config import get_logger
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
