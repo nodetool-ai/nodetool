@@ -51,6 +51,8 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (!provider) return "";
   // Normalize common aliases for display
   const p = provider.toLowerCase();
+  if (p === "llama_cpp" || p === "llama-cpp" || p === "llamacpp")
+    return "Llama.cpp";
   if (p === "google") return "Gemini";
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
@@ -92,6 +94,8 @@ export const getProviderUrl = (provider?: string): string | null => {
     const slug = getHuggingFaceSlug(provider);
     return slug ? `https://huggingface.co/${slug}` : "https://huggingface.co";
   }
+  if (p.includes("llama_cpp") || p.includes("llama-cpp") || p.includes("llamacpp"))
+    return "https://github.com/ggerganov/llama.cpp";
   if (p.includes("ollama")) return "https://ollama.com";
   if (p.includes("lmstudio")) return "https://lmstudio.ai";
   if (p.includes("openai")) return "https://platform.openai.com";

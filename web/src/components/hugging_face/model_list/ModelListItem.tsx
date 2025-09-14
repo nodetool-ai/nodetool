@@ -140,21 +140,36 @@ const ModelListItem: React.FC<
         <div className="model-top-row">
           <div className="model-info-container">
             <div className="model-header">
-              <Link
-                href={`https://huggingface.co/${model.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="model-name-link"
-              >
-                <Typography component="span" className="model-name">
-                  {model.repo_id}
-                </Typography>
-                {model.path && (
-                  <Typography component="span" className="model-path">
-                    {model.path}
-                  </Typography>
-                )}
-              </Link>
+              {(() => {
+                const full = model.repo_id || model.id;
+                const lastSlash = (full || "").lastIndexOf("/");
+                const owner = lastSlash !== -1 ? full?.slice(0, lastSlash) : "";
+                const repo =
+                  lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
+                return (
+                  <Link
+                    href={`https://huggingface.co/${model.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="model-name-link"
+                    title={full}
+                  >
+                    {owner ? (
+                      <Typography component="div" className="model-owner">
+                        {owner}
+                      </Typography>
+                    ) : null}
+                    <Typography component="span" className="model-name">
+                      {repo}
+                    </Typography>
+                    {model.path && (
+                      <Typography component="span" className="model-path">
+                        {model.path}
+                      </Typography>
+                    )}
+                  </Link>
+                );
+              })()}
             </div>
 
             <div className="model-details">
@@ -210,6 +225,22 @@ const ModelListItem: React.FC<
             </div>
           </div>
 
+          <div className="actions-container" style={{ gap: "1em" }}>
+            <Typography component="span" className="model-size">
+              {formattedSize}
+            </Typography>
+            <ModelListItemActions
+              model={model}
+              onDownload={onDownload}
+              handleModelDelete={handleModelDelete}
+              handleShowInExplorer={handleShowInExplorer}
+              ollamaBasePath={ollamaBasePath}
+              showFileExplorerButton={showFileExplorerButton}
+            />
+          </div>
+        </div>
+
+        <div className="model-details">
           {isHuggingFace && showModelStats && (
             <div className="model-stats">
               <div className="model-stats-item">
@@ -230,28 +261,14 @@ const ModelListItem: React.FC<
               </div>
             </div>
           )}
-          <div className="actions-container" style={{ gap: "1em" }}>
-            <Typography component="span" className="model-size">
-              {formattedSize}
-            </Typography>
-            <ModelListItemActions
-              model={model}
-              onDownload={onDownload}
-              handleModelDelete={handleModelDelete}
-              handleShowInExplorer={handleShowInExplorer}
-              ollamaBasePath={ollamaBasePath}
-              showFileExplorerButton={showFileExplorerButton}
-            />
-          </div>
+          {model.description && (
+            <div className="model-description-container">
+              <Typography component="span" className="model-description">
+                {model.description}
+              </Typography>
+            </div>
+          )}
         </div>
-
-        {model.description && (
-          <div className="model-description-container">
-            <Typography component="span" className="model-description">
-              {model.description}
-            </Typography>
-          </div>
-        )}
       </div>
     </Box>
   );

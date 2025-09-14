@@ -13,7 +13,7 @@ interface ModelMenuState {
   search: string;
   selectedProvider: string | null;
   activeSidebarTab: SidebarTab;
-  allModels: LanguageModel[];
+  models: LanguageModel[];
 
   setSearch: (value: string) => void;
   setSelectedProvider: (provider: string | null) => void;
@@ -28,6 +28,13 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
   if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
   if (p.includes("aime")) return "AIME_API_KEY";
+  // Local llama.cpp does not require a key
+  if (
+    p.includes("llama_cpp") ||
+    p.includes("llama-cpp") ||
+    p.includes("llamacpp")
+  )
+    return null;
   return null;
 };
 
@@ -38,8 +45,7 @@ export const isProviderAvailable = (
 ): boolean => {
   if (!provider) return false;
   const p = (provider || "").toLowerCase();
-  const key = /gemini|google/.test(p) ? "gemini" : provider || "";
-  const enabled = enabledProviders?.[key] !== false;
+  const enabled = enabledProviders?.[p] !== false;
   const env = requiredSecretForProvider(provider);
   const hasKey =
     !env || Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
@@ -52,72 +58,17 @@ export const ALWAYS_INCLUDE_PROVIDERS = [
   "gemini",
   "replicate",
   "ollama",
-  "aime"
+  "llama_cpp"
+  // "aime"
 ];
-
-const keyForModel = (m: LanguageModel): string =>
-  `${m.provider || ""}:${m.id || ""}`;
-
-export const mergeModelsWithFallback = (
-  models?: LanguageModel[]
-): LanguageModel[] => {
-  const base = [...(models ?? [])];
-  const hasGeminiOrGoogle = base.some((m) =>
-    /gemini|google/i.test(m.provider || "")
-  );
-  if (!hasGeminiOrGoogle) {
-    const fallbackGemini: LanguageModel[] = [
-      {
-        type: "language_model",
-        provider: "gemini",
-        id: "gemini-1.5-pro",
-        name: "Gemini 1.5 Pro"
-      },
-      {
-        type: "language_model",
-        provider: "gemini",
-        id: "gemini-1.5-flash",
-        name: "Gemini 1.5 Flash"
-      },
-      {
-        type: "language_model",
-        provider: "gemini",
-        id: "gemini-2.0-flash",
-        name: "Gemini 2.0 Flash"
-      }
-    ];
-    base.push(...fallbackGemini);
-  }
-  const seen = new Set<string>();
-  const deduped: LanguageModel[] = [];
-  for (const m of base) {
-    const key = keyForModel(m);
-    if (!seen.has(key)) {
-      seen.add(key);
-      deduped.push(m);
-    }
-  }
-  return deduped;
-};
 
 export const computeProvidersList = (
   models: LanguageModel[] | undefined,
   secrets: Record<string, string> | undefined
 ): string[] => {
   const rawProviders = (models ?? []).map((m) => m.provider || "Other");
-  const counts = rawProviders.reduce<Record<string, number>>((acc, p) => {
-    acc[p] = (acc[p] || 0) + 1;
-    return acc;
-  }, {});
   const raw = Array.from(new Set(rawProviders));
-  const hasGeminiOrGoogle = raw.some((p) => /gemini|google/i.test(p));
-  const geminiEnabled = Boolean(
-    secrets?.GEMINI_API_KEY && String(secrets?.GEMINI_API_KEY).trim().length > 0
-  );
-  const baseList = raw
-    .filter((p) => !/gemini|google/i.test(p))
-    .concat(hasGeminiOrGoogle || geminiEnabled ? ["gemini"] : [])
-    .sort((a, b) => a.localeCompare(b));
+  const baseList = raw.sort((a, b) => a.localeCompare(b));
   const list = Array.from(
     new Set([...baseList, ...ALWAYS_INCLUDE_PROVIDERS])
   ).sort((a, b) => a.localeCompare(b));
@@ -190,25 +141,19 @@ export const useModelMenuData = (models?: LanguageModel[]) => {
   const search = useModelMenuStore((s) => s.search);
   const selectedProvider = useModelMenuStore((s) => s.selectedProvider);
 
-  const allModels = React.useMemo(
-    () => mergeModelsWithFallback(models),
-    [models]
-  );
-
   const providers = React.useMemo(
-    () => computeProvidersList(allModels, secrets),
-    [allModels, secrets]
+    () => computeProvidersList(models, secrets),
+    [models, secrets]
   );
 
   const filteredModels = React.useMemo(
-    () =>
-      filterModelsList(allModels, selectedProvider, search, enabledProviders),
-    [allModels, selectedProvider, search, enabledProviders]
+    () => filterModelsList(models, selectedProvider, search, enabledProviders),
+    [models, selectedProvider, search, enabledProviders]
   );
 
   const recentModels = React.useMemo(() => {
     const byKey = new Map<string, LanguageModel>(
-      (allModels ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
+      (models ?? []).map((m) => [`${m.provider ?? ""}:${m.id ?? ""}`, m])
     );
     const mapped: LanguageModel[] = [];
     recentsList.forEach((r) => {
@@ -216,15 +161,15 @@ export const useModelMenuData = (models?: LanguageModel[]) => {
       if (m) mapped.push(m);
     });
     return mapped;
-  }, [allModels, recentsList]);
+  }, [models, recentsList]);
 
   const favoriteModels = React.useMemo(() => {
     const keyHas = (provider?: string, id?: string) =>
       favoritesSet.has(`${provider ?? ""}:${id ?? ""}`);
-    return (allModels ?? []).filter((m) => keyHas(m.provider, m.id));
-  }, [allModels, favoritesSet]);
+    return (models ?? []).filter((m) => keyHas(m.provider, m.id));
+  }, [models, favoritesSet]);
 
-  const totalCount = allModels.length;
+  const totalCount = models?.length ?? 0;
   const filteredCount = filteredModels.length;
   const totalActiveCount = React.useMemo(() => {
     const isEnabled = (p?: string) => enabledProviders?.[p || ""] !== false;
@@ -234,12 +179,14 @@ export const useModelMenuData = (models?: LanguageModel[]) => {
       const v = secrets?.[env];
       return Boolean(v && String(v).trim().length > 0);
     };
-    return allModels.filter((m) => isEnabled(m.provider) && isEnvOk(m.provider))
-      .length;
-  }, [allModels, enabledProviders, secrets]);
+    return (
+      models?.filter((m) => isEnabled(m.provider) && isEnvOk(m.provider))
+        .length ?? 0
+    );
+  }, [models, enabledProviders, secrets]);
 
   return {
-    allModels,
+    models,
     providers,
     filteredModels,
     favoriteModels,
@@ -254,13 +201,13 @@ const useModelMenuStore = create<ModelMenuState>((set) => ({
   search: "",
   selectedProvider: null,
   activeSidebarTab: "favorites",
-  allModels: [],
+  models: [],
 
   setSearch: (value: string) => set({ search: value }),
   setSelectedProvider: (provider: string | null) =>
     set({ selectedProvider: provider }),
   setActiveSidebarTab: (tab: SidebarTab) => set({ activeSidebarTab: tab }),
-  setAllModels: (models: LanguageModel[]) => set({ allModels: models })
+  setAllModels: (models: LanguageModel[]) => set({ models: models })
 }));
 
 export default useModelMenuStore;
