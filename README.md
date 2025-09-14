@@ -13,9 +13,8 @@
 
 > **🎯 Privacy by design** • **🔓 Own your stack** • **🚀 Production ready**
 
-AI should be yours.
-Agents run locally, beside your data.
-They are transparent, portable, and under your control.
+Nodetool lets you design agents that work with your data.
+Use any model to analyze data, generate images or videos, automate processes and workdlows.
 
 ## Table of Contents
 
