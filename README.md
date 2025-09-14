@@ -49,20 +49,17 @@ Get from idea to production in three simple steps:
 
 ## Principles
 
-- **Local‑first. Always.**
-- **No data leaves without consent.**
+- **Local‑first.**
 - **Open and portable.**
-- **One graph. One runtime.** Visual and headless share semantics.
-- **Typed tools.** Small, composable, explicit I/O.
-- **Reproducible runs.** Seeds and inputs captured.
-- **No black boxes.** See every step while it runs.
-- **Fast on your hardware.** Cloud only when you choose.
+- **Powerful node system.** Small, composable units.
+- **Transparency.** See every step while it runs.
+- **Fast on your hardware.** Optimized for MPS or CUDA acceleration.
 
 ## What NodeTool Is (today)
 
 - Visual graph editor + runnable runtime (desktop + headless)
-- Execute via CLI, API, WebSocket; graphs in JSON
-- Local models (Ollama/HF) + optional cloud (OpenAI/Anthropic/Replicate)
+- Execute via CLI, API, WebSocket
+- Local models (Llama.cpp/HF) + optional cloud (OpenAI/Anthropic/Replicate)
 - Deploy to laptop/server, Runpod, Google Cloud, AWS
 
 ## What NodeTool Is Not (today)
@@ -116,12 +113,12 @@ Set provider API keys in Settings → Providers.
 <details>
 <summary>Text Generation</summary>
 
-- **Ollama** all models
-- **Huggingface** most transformers based models
-- **HuggingFace Hub** all inference providers with thousands of models
-- **OpenAI** all models
-- **Gemini** all models
-- **Anthropic** all models
+- **Ollama**
+- **Huggingface** Llama.cpp and GGUF
+- **HuggingFace Hub** Inference providers 
+- **OpenAI** 
+- **Gemini**
+- **Anthropic**
 - and many others
 
 </details>
