@@ -3,20 +3,21 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
-import { Tooltip, Toolbar, Box, IconButton, Typography } from "@mui/material";
+import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import ExamplesIcon from "@mui/icons-material/Fluorescent";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import ChatIcon from "@mui/icons-material/Chat";
 import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
-import StorageIcon from "@mui/icons-material/Storage";
+import DatasetIcon from "@mui/icons-material/Dataset";
 import Logo from "../Logo";
 import TitleBar from "../TitleBar";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import ModelsButton from "../hugging_face/ModelsButton";
 
 const styles = (theme: Theme) =>
   css({
@@ -180,7 +181,7 @@ const TemplatesButton = memo(function TemplatesButton({
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
-        <ExamplesIcon />
+        <ViewModuleIcon />
         <span className="nav-button-text">Templates</span>
       </IconButton>
     </Tooltip>
@@ -321,7 +322,7 @@ const CollectionsButton = memo(function CollectionsButton({
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
-        <StorageIcon />
+        <DatasetIcon />
         <span className="nav-button-text">Collections</span>
       </IconButton>
     </Tooltip>
@@ -362,6 +363,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
             <AssetsButton isActive={path.startsWith("/assets")} />
             <CollectionsButton isActive={path.startsWith("/collections")} />
             <TemplatesButton isActive={path.startsWith("/templates")} />
+            <ModelsButton />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
