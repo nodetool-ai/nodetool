@@ -41,35 +41,12 @@ const RightSideButtons: React.FC = () => {
   const theme = useTheme();
   const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
 
-  const [modelsOpen, setModelsOpen] = useState(false);
-
   return (
     <Box className="buttons-right" css={styles(theme)}>
       {!isProduction && (
         <>
-          <ModelsManager
-            open={modelsOpen}
-            onClose={() => setModelsOpen(false)}
-          />
           <SystemStatsDisplay />
           <OverallDownloadProgress />
-          <Tooltip title="Model Manager" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <Button
-              className="command-icon"
-              onClick={() => setModelsOpen(true)}
-              tabIndex={-1}
-            >
-              <IconForType
-                iconName="model"
-                showTooltip={false}
-                bgStyle={{
-                  backgroundColor: "transparent",
-                  width: "18px",
-                  height: "18px"
-                }}
-              />
-            </Button>
-          </Tooltip>
         </>
       )}
       <NotificationButton />
