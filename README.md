@@ -80,9 +80,6 @@ Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and 
 - Render Queue & A/B: batch runs and seeded comparisons.
 - Packaging: one‑click bundles for sharing with collaborators/clients; community packs registry.
 
-## Promise
-
-Open core. Local‑first. Own the runtime, the workflows, and the outputs.
 
 ## Quick Start
 
