@@ -16,38 +16,46 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
 
-# Write YAML manually since we don't have yaml module
-def write_yaml_value(value, f, indent=0):
-    if isinstance(value, dict):
-        for k, v in value.items():
-            f.write(" " * indent + f"{k}:")
-            if isinstance(v, (dict, list)):
-                f.write("\n")
-                write_yaml_value(v, f, indent + 2)
-            else:
-                f.write(f" {v}\n")
-    elif isinstance(value, list):
-        for item in value:
-            f.write(" " * indent + f"- {item}\n")
-    else:
-        f.write(" " * indent + f"{value}\n")
-
-
 class BuildError(Exception):
-    """Custom exception for build errors"""
+    """Custom exception for build errors.
+
+    Raised when a build step fails (e.g., a command returns a non-zero exit
+    status) and the error is not marked as ignorable.
+    """
 
     pass
 
 
 class Build:
-    """Manage building and packaging of the Nodetool application."""
+    """Manage building and packaging of the Nodetool application.
+
+    This helper orchestrates creating a dedicated Conda environment and
+    packaging it for distribution.
+
+    Args:
+        clean_build: If True, remove previous build artifacts and environment
+            before starting.
+        python_version: Python version to install into the Conda environment.
+
+    Attributes:
+        platform: Normalized platform name (e.g., ``"windows"``, ``"linux"``).
+        arch: Normalized CPU architecture (e.g., ``"x64"``, ``"arm64"``).
+        BUILD_DIR: Path to the build output directory.
+        ENV_DIR: Path to the Conda environment directory.
+    """
 
     def __init__(
         self,
         clean_build: bool = False,
         python_version: str = "3.11",
     ):
-        """Initialize Build configuration."""
+        """Initialize the build configuration and computed paths.
+
+        Args:
+            clean_build: Remove any previous build outputs before proceeding.
+            python_version: Python version string acceptable by Conda, such as
+                ``"3.11"``.
+        """
         platform = system().lower()
         arch = machine().lower()
 
@@ -77,7 +85,20 @@ class Build:
         env: dict | None = None,
         ignore_error: bool = False,
     ) -> int:
-        """Execute a shell command and stream output to the logger."""
+        """Execute a shell command and stream output to the logger.
+
+        Args:
+            command: Full command and arguments to execute.
+            cwd: Optional working directory for the process.
+            env: Optional environment to pass to the process.
+            ignore_error: If True, do not raise on non-zero exit status.
+
+        Returns:
+            The process return code.
+
+        Raises:
+            BuildError: If the command exits non-zero and ``ignore_error`` is False.
+        """
         # Remove the conda run wrapper since we're using base environment
         logger.info(" ".join(command))
 
@@ -120,27 +141,50 @@ class Build:
         return return_code
 
     def create_directory(self, path: Path, parents: bool = True) -> None:
-        """Create a directory."""
+        """Create a directory if it does not already exist.
+
+        Args:
+            path: Directory path to create.
+            parents: When True, create parent directories as needed.
+        """
         logger.info(f"Creating directory: {path}")
         path.mkdir(parents=parents, exist_ok=True)
 
     def copy_file(self, src: Path, dst: Path) -> None:
-        """Copy a file."""
+        """Copy a single file preserving metadata.
+
+        Args:
+            src: Source file path.
+            dst: Destination file path.
+        """
         logger.info(f"Copying file: {src} to {dst}")
         shutil.copy2(src, dst)
 
     def copy_tree(self, src: Path, dst: Path) -> None:
-        """Copy a directory tree."""
+        """Copy a directory tree into a destination directory.
+
+        Args:
+            src: Source directory path.
+            dst: Destination directory path.
+        """
         logger.info(f"Copying tree: {src} to {dst}")
         shutil.copytree(src, dst, dirs_exist_ok=True)
 
     def remove_directory(self, path: Path) -> None:
-        """Remove a directory and its contents."""
+        """Remove a directory and all of its contents.
+
+        Args:
+            path: Directory to remove.
+        """
         logger.info(f"Removing directory: {path}")
         shutil.rmtree(path, ignore_errors=True)
 
     def remove_file(self, path: Path) -> None:
-        """Remove a file."""
+        """Remove a file if it exists.
+
+        Args:
+            path: File path to remove.
+        """
         logger.info(f"Removing file: {path}")
         try:
             path.unlink()
@@ -148,12 +192,20 @@ class Build:
             pass
 
     def move_file(self, src: Path, dst: Path) -> None:
-        """Move a file."""
+        """Move or rename a file.
+
+        Args:
+            src: Source file path.
+            dst: Destination file path.
+        """
         logger.info(f"Moving file: {src} to {dst}")
         shutil.move(src, dst)
 
     def setup(self) -> None:
-        """Set up the build environment."""
+        """Set up directories for the build process.
+
+        Creates or cleans the build directory based on the configuration.
+        """
 
         if self.clean_build:
             try:
@@ -168,7 +220,12 @@ class Build:
             sys.exit(1)
 
     def pack(self) -> None:
-        """Create a packed conda environment."""
+        """Create and pack a Conda environment for distribution.
+
+        On Windows, installs a CUDA 12.6 variant of the llama.cpp package
+        (``llama.cpp=*=cuda126*``). On other platforms, installs the default
+        ``llama.cpp`` package.
+        """
         logger.info("Packing conda environment")
 
         # Install conda-pack
@@ -191,6 +248,7 @@ class Build:
         )
 
         # Install ffmpeg and related codecs from conda forge
+        llama_pkg = "llama.cpp" if self.platform == "darwin" else "llama.cpp=*=cuda126*"
         self.run_command(
             [
                 "conda",
@@ -205,12 +263,18 @@ class Build:
                 "aom",
                 "libopus",
                 "libvorbis",
+                "libpng",
+                "libjpeg-turbo",
+                "libtiff",
+                "openjpeg",
+                "libwebp",
+                "giflib",
                 "lame",
                 "pandoc",
                 "uv",
                 "lua",
                 "nodejs",
-                "llama.cpp",
+                llama_pkg,
                 "-y",
                 "--channel",
                 "conda-forge",
@@ -235,7 +299,12 @@ class Build:
 
 
 def main() -> None:
-    """Parse arguments and run the build process."""
+    """Parse CLI arguments and run the requested build step.
+
+    Exposes two steps:
+        - ``setup``: Prepare build directories.
+        - ``pack``: Create and pack the Conda environment.
+    """
     parser = argparse.ArgumentParser(
         description="Build script for Nodetool Electron app and installer"
     )
