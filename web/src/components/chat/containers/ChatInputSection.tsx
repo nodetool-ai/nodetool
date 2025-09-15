@@ -122,9 +122,7 @@ const ChatInputSection = ({
           onSendMessage={onSendMessage}
           onStop={onStop}
           onNewChat={onNewChat}
-          disabled={
-            status === "loading" || status === "streaming" || isDisconnected
-          }
+          disabled={isDisconnected}
           agentMode={agentMode}
         />
       </div>

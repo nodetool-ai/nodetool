@@ -100,6 +100,11 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       onSendMessage([...content, ...fileContents], prompt, agentMode);
       setPrompt("");
       clearFiles();
+      // Keep focus in the textarea after sending
+      // Use rAF to ensure focus after DOM updates
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
     }
   }, [status, prompt, getFileContents, onSendMessage, clearFiles, agentMode]);
 
