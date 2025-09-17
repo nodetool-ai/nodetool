@@ -17,7 +17,6 @@ export type LogRow = {
 
 export type LogsTableProps = {
   rows: LogRow[];
-  showWorkflow?: boolean;
   rowHeight?: number; // default 44
   height?: number; // if provided, sets container height; otherwise flexes
   emptyText?: string;
@@ -46,7 +45,7 @@ const tableStyles = (theme: Theme) =>
     ".header": {
       display: "grid",
       gridAutoFlow: "column",
-      gridTemplateColumns: "80px 160px 1fr 160px",
+      gridTemplateColumns: "70px 1fr 120px",
       gap: 0,
       alignItems: "center",
       height: 40,
@@ -60,7 +59,7 @@ const tableStyles = (theme: Theme) =>
     ".row": {
       display: "grid",
       gridAutoFlow: "column",
-      gridTemplateColumns: "80px 160px 1fr 160px",
+      gridTemplateColumns: "70px 1fr 120px",
       gap: 0,
       alignItems: "center",
       height: 44,
@@ -106,7 +105,6 @@ const formatTime = (ts: number) => {
 
 export const LogsTable: React.FC<LogsTableProps> = ({
   rows,
-  showWorkflow = true,
   rowHeight = 44,
   height,
   emptyText = "No logs to display",
@@ -134,7 +132,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           <div className="cell">
             <Chip size="small" color={chipColor as any} label={r.severity} />
           </div>
-          {showWorkflow && <div className="cell">{r.workflowName ?? ""}</div>}
           <div className="cell content" title={r.content}>
             {r.content}
           </div>
@@ -144,19 +141,12 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     );
   };
 
-  // Adjust grid when no workflow column
-  const gridOverride = showWorkflow
-    ? {}
-    : {
-        gridTemplateColumns: "80px 1fr 160px"
-      } as React.CSSProperties;
 
   return (
     <div css={styles} style={height ? { height } : undefined}>
       <Paper variant="outlined" className="table">
-        <div className="header" style={gridOverride}>
+        <div className="header">
           <Typography variant="caption">Severity</Typography>
-          {showWorkflow && <Typography variant="caption">Workflow</Typography>}
           <Typography variant="caption">Content</Typography>
           <Typography variant="caption">Timestamp</Typography>
         </div>

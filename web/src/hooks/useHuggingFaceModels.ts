@@ -28,7 +28,8 @@ export const useHuggingFaceModels = () => {
           readme: model.readme ?? "",
           size_on_disk: model.size_on_disk,
           downloaded: true,
-          pipeline_tag: model.the_model_info?.pipeline_tag ?? ""
+          pipeline_tag: model.the_model_info?.pipeline_tag ?? "",
+          ...(model as any).cached_files && { cached_files: (model as any).cached_files }
         })
       );
     },

@@ -79,6 +79,7 @@ export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
 export type CachedModel = components["schemas"]["CachedModel"];
+export type CachedFileInfo = components["schemas"]["CachedFileInfo"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type ModelInfo = components["schemas"]["ModelInfo"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];

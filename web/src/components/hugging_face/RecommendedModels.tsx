@@ -19,6 +19,7 @@ import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { openInExplorer } from "../../utils/fileExplorer";
 import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
+import { isModelDownloaded } from "../../utils/modelDownloadCheck";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -41,11 +42,10 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
   const { hfModels } = useHuggingFaceModels();
   const { ollamaModels } = useOllamaModels();
-  const downloadedModels = useMemo(
-    () =>
-      new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id)),
-    [hfModels, ollamaModels]
-  );
+  const downloadedModels = useMemo(() => {
+    const modelIds = new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id));
+    return modelIds;
+  }, [hfModels, ollamaModels]);
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) return modelsWithSize;
@@ -120,7 +120,8 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       ) : (
         <List>
           {filteredModels.map((model) => {
-            const isDownloaded = downloadedModels.has(model.id);
+            const isDownloaded = isModelDownloaded(model, downloadedModels, hfModels);
+            
             return (
               <ModelListItem
                 compactView={true}
