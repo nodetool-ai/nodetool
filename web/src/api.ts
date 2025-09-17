@@ -747,6 +747,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/image-generation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Image Generation Workflows */
+        get: operations["image_generation_workflows_api_workflows_image_generation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/public/{id}": {
         parameters: {
             query?: never;
@@ -1486,8 +1503,18 @@ export interface components {
              * @enum {string}
              */
             content_type: "text" | "audio" | "image" | "video" | "document";
-            /** Content */
+            /**
+             * Content
+             * @default
+             */
             content: string;
+            /**
+             * Content Metadata
+             * @default {}
+             */
+            content_metadata: {
+                [key: string]: unknown;
+            };
             /**
              * Done
              * @default false
@@ -3935,7 +3962,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "gemini" | "empty" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -6134,6 +6161,39 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    image_generation_workflows_api_workflows_image_generation_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
