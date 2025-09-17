@@ -9,6 +9,8 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { Button, Box } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import { isProduction } from "../../stores/ApiClient";
+import { useOllamaModels } from "../../hooks/useOllamaModels";
+import { isModelDownloaded } from "../../utils/modelDownloadCheck";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
@@ -22,12 +24,17 @@ const HuggingFaceModelSelect = ({
   value
 }: HuggingFaceModelSelectProps) => {
   const { hfModels, hfLoading, hfIsFetching, hfError } = useHuggingFaceModels();
+  const { ollamaModels } = useOllamaModels();
   const { recommendedModels } = useRecommendedModels();
   const { data: loraModels, isLoading: loraIsLoading } = useLoraModels({
     modelType,
     enabled: !!modelType && !hfLoading && !hfIsFetching && !hfError
   });
   const downloadStore = useModelDownloadStore();
+
+  const downloadedModelIds = useMemo(() => {
+    return new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id));
+  }, [hfModels, ollamaModels]);
 
   const models = useMemo(() => {
     if (
@@ -80,11 +87,19 @@ const HuggingFaceModelSelect = ({
             (m) => m.repo_id === recommendedModel.repo_id
           );
           if (model) {
-            acc.push({
-              type: modelType,
+            const modelToCheck = {
               repo_id: model.repo_id || "",
-              path: recommendedModel.path || ""
-            });
+              path: recommendedModel.path || undefined,
+              allow_patterns: recommendedModel.allow_patterns
+            };
+            // Only include models that are downloaded
+            if (isModelDownloaded(modelToCheck, downloadedModelIds, hfModels)) {
+              acc.push({
+                type: modelType,
+                repo_id: model.repo_id || "",
+                path: recommendedModel.path || ""
+              });
+            }
           }
           return acc;
         }, [] as HuggingFaceModel[]) || []
@@ -96,7 +111,8 @@ const HuggingFaceModelSelect = ({
     hfLoading,
     hfIsFetching,
     hfError,
-    recommendedModels
+    recommendedModels,
+    downloadedModelIds
   ]);
 
   const options = useMemo(() => {
