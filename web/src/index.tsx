@@ -64,6 +64,7 @@ import { MenuProvider } from "./providers/MenuProvider";
 import ModelListIndex from "./components/hugging_face/model_list/ModelListIndex";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import ImageGenerationPage from "./components/midjourney/ImageGenerationPage";
 
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
@@ -162,6 +163,28 @@ function getRoutes() {
             >
               <PanelLeft />
               <GlobalChat />
+            </div>
+          </>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/imagine",
+      element: (
+        <ProtectedRoute>
+          <>
+            <AppHeader />
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <div style={{ flex: 1, display: "flex" }}>
+                <ImageGenerationPage />
+              </div>
             </div>
           </>
         </ProtectedRoute>
