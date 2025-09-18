@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENT RULES
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Agents when working with code in this repository.
 
 ## Project Overview
 
@@ -11,11 +11,13 @@ NodeTool is an open-source, privacy-first, no-code platform for rapidly building
 NodeTool follows a client-server architecture with multiple components:
 
 1. **Frontend Components:**
+
    - Web UI (React/TypeScript): Visual editor for building AI workflows
    - Electron Wrapper: Packages the web UI into a desktop application
    - Apps UI: Standalone mini-applications created from workflows
 
 2. **Backend Components:**
+
    - API Server: HTTP endpoints for workflow management
    - WebSocket Runner: Real-time communication during workflow execution
    - Backend is not part of this repository
@@ -39,32 +41,37 @@ NodeTool follows a client-server architecture with multiple components:
 ### Development Setup
 
 1. **Environment Activation:**
+   Before running python commands always do:
+
    ```bash
    conda activate nodetool
    ```
 
 2. **Web UI Development:**
+
    ```bash
    cd web
    npm install
    npm start
    ```
+
    - Access at http://localhost:3000
 
 3. **Electron App Development:**
+
    ```bash
    # Build the web UI first
    cd web
    npm install
    npm run build
    cd ..
-   
+
    # Build the apps UI
    cd apps
    npm install
    npm run build
    cd ..
-   
+
    # Run with Electron
    cd electron
    npm install
@@ -74,12 +81,14 @@ NodeTool follows a client-server architecture with multiple components:
 ### Build Commands
 
 1. **Web UI Build:**
+
    ```bash
    cd web
    npm run build
    ```
 
 2. **Apps UI Build:**
+
    ```bash
    cd apps
    npm run build
@@ -94,6 +103,7 @@ NodeTool follows a client-server architecture with multiple components:
 ### Linting & Type Checking
 
 1. **Web UI:**
+
    ```bash
    cd web
    npm run lint        # Run ESLint
@@ -102,6 +112,7 @@ NodeTool follows a client-server architecture with multiple components:
    ```
 
 2. **Apps UI:**
+
    ```bash
    cd apps
    npm run lint
@@ -139,12 +150,14 @@ When working on this codebase:
 ### Hooks Guidelines
 
 1. **Custom Hooks:**
+
    - Prefix with `use` (e.g., `useWorkflow`, `useNodeSelection`)
    - Extract reusable logic into custom hooks
    - Keep hooks focused on single responsibilities
    - Use TypeScript for all hook parameters and return types
 
 2. **Built-in Hooks:**
+
    - Use `useCallback` for functions passed to child components
    - Use `useMemo` for expensive calculations, not for object references
    - Prefer `useEffect` cleanup functions to prevent memory leaks
@@ -160,6 +173,7 @@ When working on this codebase:
 The project includes many specialized hooks organized by functionality:
 
 #### Model Management Hooks
+
 - **`useHuggingFaceModels`**: Fetches and caches HuggingFace models with TanStack Query
 - **`useLoraModels`**: Manages LoRA (Low-Rank Adaptation) model data
 - **`useModelBasePaths`**: Provides base cache directories for HuggingFace Hub and Ollama models
@@ -168,9 +182,10 @@ The project includes many specialized hooks organized by functionality:
 - **`useRecommendedModels`**: Provides curated model recommendations based on use cases
 - **`useModelInfo`**: Detailed model metadata and specifications
 
-*Usage: Import these hooks in components that need AI model selection, configuration, or display.*
+_Usage: Import these hooks in components that need AI model selection, configuration, or display._
 
 #### Node Editor Hooks
+
 - **`useNodeEditorShortcuts`**: Comprehensive keyboard shortcuts for the visual editor (copy, paste, delete, etc.)
 - **`useCreateNode`**: Factory hook for creating new nodes with proper metadata and positioning
 - **`useFitView`**: Handles viewport fitting and auto-centering of node graphs
@@ -179,59 +194,70 @@ The project includes many specialized hooks organized by functionality:
 - **`useDuplicate`**: Handles node and edge duplication with proper ID generation
 - **`useFocusPan`**: Manages camera focus and panning to specific nodes or areas
 
-*Usage: These hooks are essential for the visual workflow editor interface.*
+_Usage: These hooks are essential for the visual workflow editor interface._
 
 #### Workflow Management Hooks
+
 - **`useWorkflowGraphUpdater`**: Syncs workflow updates from GlobalChatStore with React context
 - **`useNamespaceTree`**: Manages hierarchical organization of workflow components
 
-*Usage: Import in components that manage workflow state and synchronization.*
+_Usage: Import in components that manage workflow state and synchronization._
 
 #### UI Interaction Hooks
+
 - **`useNumberInput`**: Advanced number input with drag-to-change, constraints, and decimal precision
 - **`useRenderLogger`**: Debug hook for tracking component re-render triggers (development only)
 - **`useDelayedHover`**: Implements hover delays for tooltips and popover triggers
 - **`useCollectionDragAndDrop`**: Handles drag-and-drop operations for asset collections
 
-*Usage: These hooks enhance user interaction patterns and provide debugging capabilities.*
+_Usage: These hooks enhance user interaction patterns and provide debugging capabilities._
 
 #### File & Asset Management Hooks
+
 - **`useFileDrop`** (in `/handlers/`): Handles file drag-and-drop with type validation and asset uploading
 - **`useDropHandler`**: Manages dropping files onto the canvas to create nodes
 - **`useCopyPaste`**: Implements copy/paste functionality for nodes and edges
 - **`useAssetUpload`**: Handles asset upload with progress tracking and error handling
 - **`addNodeFromAsset`**: Creates appropriate nodes from uploaded assets
 
-*Usage: Import these for file handling, asset management, and node creation from assets.*
+_Usage: Import these for file handling, asset management, and node creation from assets._
 
 #### Browser & Hardware Hooks
+
 - **`useWaveRecorder`**: Audio recording functionality using Web Audio API
 - **`useIpcRenderer`**: Electron IPC communication for desktop app features
 
-*Usage: These hooks provide browser API access and desktop app integration.*
+_Usage: These hooks provide browser API access and desktop app integration._
 
 #### Connection & Context Hooks
+
 - **`useConnectionHandlers`**: Manages node connections, validation, and connection logic
 - **`useResizePanel`**: Handles resizable panel behavior for sidebars and drawers
 - **Context menu hooks**: Various hooks for right-click context menus
 
-*Usage: These hooks manage graph connections and UI panel behaviors.*
+_Usage: These hooks manage graph connections and UI panel behaviors._
 
 #### Hook Usage Patterns
 
 1. **Model Hooks**: Use React Query patterns with proper cache keys and stale times
+
    ```typescript
    const { data: models, isLoading, error } = useHuggingFaceModels();
    ```
 
 2. **Editor Hooks**: Often return handler functions and state
+
    ```typescript
    const { handleCopy, handlePaste, selectedNodes } = useCopyPaste();
    ```
 
 3. **UI Hooks**: Return event handlers and state for component interaction
+
    ```typescript
-   const { handleMouseEnter, handleMouseLeave } = useDelayedHover(callback, 300);
+   const { handleMouseEnter, handleMouseLeave } = useDelayedHover(
+     callback,
+     300
+   );
    ```
 
 4. **File Hooks**: Handle complex file operations with loading states
@@ -239,18 +265,20 @@ The project includes many specialized hooks organized by functionality:
    const { onDragOver, onDrop, uploading, filename } = useFileDrop({
      type: "image",
      uploadAsset: true,
-     onChangeAsset: handleAssetChange
+     onChangeAsset: handleAssetChange,
    });
    ```
 
 ### Zustand State Management
 
 1. **Store Structure:**
+
    - Keep stores focused on specific domains (e.g., `workflowStore`, `nodeStore`)
    - Use TypeScript interfaces for store state
    - Implement actions as methods within the store
 
 2. **State Updates:**
+
    - Use Immer for complex state updates via `immer` middleware
    - Keep state updates immutable when not using Immer
    - Use shallow comparison for selectors when possible
@@ -277,7 +305,7 @@ The application uses Zustand for state management with stores organized by domai
 - **`ApiTypes.ts`**: TypeScript definitions for all API data structures and responses
 - **`useAuth.ts`**: Authentication store managing Supabase sessions and user state
 
-*Usage: These form the foundation for all API interactions and type safety.*
+_Usage: These form the foundation for all API interactions and type safety._
 
 #### UI State Management Stores
 
@@ -290,7 +318,7 @@ The application uses Zustand for state management with stores organized by domai
 - **`SettingsStore.ts`**: User preferences and application settings (persisted)
 - **`RemoteSettingStore.ts`**: Server-side settings synchronization
 
-*Usage: Import these stores in UI components that need to manage interface state.*
+_Usage: Import these stores in UI components that need to manage interface state._
 
 #### Asset & File Management Stores
 
@@ -299,11 +327,12 @@ The application uses Zustand for state management with stores organized by domai
 - **`FileStore.ts`**: File system operations and directory tree management
 - **`CollectionStore.ts`**: Asset collection management and organization
 
-*Usage: Use these stores in components dealing with file uploads, asset browsers, and media management.*
+_Usage: Use these stores in components dealing with file uploads, asset browsers, and media management._
 
 #### Node & Workflow Management Stores
 
 - **`NodeStore.ts`**: Core node graph state (35KB - largest store)
+
   - Manages nodes, edges, selection, and connections
   - Handles workflow serialization and auto-layout
   - Provides undo/redo via temporal state (zundo)
@@ -315,7 +344,7 @@ The application uses Zustand for state management with stores organized by domai
 - **`WorkflowRunner.ts`**: Workflow execution control and WebSocket communication
 - **`WorkflowChatStore.ts`**: Workflow-specific chat interface state
 
-*Usage: These stores power the visual node editor and workflow execution engine.*
+_Usage: These stores power the visual node editor and workflow execution engine._
 
 #### AI Model Management Stores
 
@@ -324,7 +353,7 @@ The application uses Zustand for state management with stores organized by domai
 - **`ModelManagerStore.ts`**: Model source management (downloaded vs recommended)
 - **`MetadataStore.ts`**: Node metadata and model recommendations
 
-*Usage: Import these in components that handle AI model selection, downloading, and configuration.*
+_Usage: Import these in components that handle AI model selection, downloading, and configuration._
 
 #### Execution & Results Stores
 
@@ -333,11 +362,12 @@ The application uses Zustand for state management with stores organized by domai
 - **`ErrorStore.ts`**: Error handling and reporting across workflows
 - **`LogStore.ts`**: Application logging and debug information
 
-*Usage: These stores handle workflow execution state and results display.*
+_Usage: These stores handle workflow execution state and results display._
 
 #### Real-time Communication Stores
 
 - **`GlobalChatStore.ts`**: Global chat interface with WebSocket integration (24KB)
+
   - Manages chat messages and streaming
   - Handles tool calls and planning updates
   - Integrates with Supabase for persistence
@@ -346,7 +376,7 @@ The application uses Zustand for state management with stores organized by domai
 - **`WebSocketUpdatesStore.ts`**: System stats and real-time updates
 - **`SessionStateStore.ts`**: Session-level state (clipboard, temporary data)
 
-*Usage: These stores handle real-time communication and global chat functionality.*
+_Usage: These stores handle real-time communication and global chat functionality._
 
 #### Utility & Helper Files
 
@@ -363,24 +393,29 @@ The application uses Zustand for state management with stores organized by domai
 - **`graphEdgeToReactFlowEdge.ts`**: Converts backend edges to ReactFlow format
 - **`reactFlowEdgeToGraphEdge.ts`**: Converts ReactFlow edges to backend format
 
-*Usage: These utilities handle data transformation between backend API and ReactFlow.*
+_Usage: These utilities handle data transformation between backend API and ReactFlow._
 
 #### Store Usage Patterns
 
 1. **Basic Store Usage:**
+
    ```typescript
    // Select specific state with selectors
    const nodes = useNodeStore((state) => state.nodes);
    const addNode = useNodeStore((state) => state.addNode);
-   
+
    // Use shallow equality for objects
    const { selectedAssets, searchTerm } = useAssetGridStore(
-     (state) => ({ selectedAssets: state.selectedAssets, searchTerm: state.searchTerm }),
+     (state) => ({
+       selectedAssets: state.selectedAssets,
+       searchTerm: state.searchTerm,
+     }),
      shallow
    );
    ```
 
 2. **Persisted Store Pattern:**
+
    ```typescript
    // Settings store uses persistence
    const useSettingsStore = create<SettingsState>()(
@@ -389,12 +424,13 @@ The application uses Zustand for state management with stores organized by domai
          gridSnap: 20,
          updateGridSnap: (value) => set({ gridSnap: value }),
        }),
-       { name: 'settings' }
+       { name: "settings" }
      )
    );
    ```
 
 3. **Temporal Store Pattern (Undo/Redo):**
+
    ```typescript
    // NodeStore uses temporal middleware
    const useNodeStore = create<NodeState>()(
@@ -412,8 +448,8 @@ The application uses Zustand for state management with stores organized by domai
 4. **Store with Computed Values:**
    ```typescript
    // Use selectors for derived state
-   const selectedNodes = useNodeStore((state) => 
-     state.nodes.filter(node => node.selected)
+   const selectedNodes = useNodeStore((state) =>
+     state.nodes.filter((node) => node.selected)
    );
    ```
 
@@ -429,12 +465,14 @@ The application uses Zustand for state management with stores organized by domai
 ### Material-UI (MUI) Guidelines
 
 1. **Component Usage:**
+
    - Use MUI components over custom HTML elements when available
    - Leverage MUI's built-in accessibility features
    - Use `sx` prop for component-specific styling
    - Prefer composition over deep prop drilling
 
 2. **Theming:**
+
    - Define custom theme extensions in theme configuration
    - Use theme breakpoints for responsive design
    - Leverage theme palette for consistent colors
@@ -448,11 +486,13 @@ The application uses Zustand for state management with stores organized by domai
 ### TanStack Query (React Query)
 
 1. **Query Keys:**
+
    - Use hierarchical query keys: `['workflows', 'list']` or `['workflow', workflowId]`
    - Create query key factories for consistency
    - Use TypeScript for query key types
 
 2. **Query Configuration:**
+
    - Set appropriate `staleTime` and `cacheTime` values
    - Use `enabled` option for conditional queries
    - Implement proper error handling with `onError` callbacks
@@ -467,12 +507,14 @@ The application uses Zustand for state management with stores organized by domai
 ### TanStack Router
 
 1. **Route Definition:**
+
    - Use TypeScript for route parameters and search params
    - Implement proper route guards and authentication
    - Use nested routing for hierarchical UI structures
    - Define route-specific data loading
 
 2. **Navigation:**
+
    - Use `useNavigate` for programmatic navigation
    - Implement proper loading states during route transitions
    - Use route-based code splitting for performance
@@ -486,21 +528,22 @@ The application uses Zustand for state management with stores organized by domai
 ### MUI Theming Best Practices
 
 1. **Theme Structure:**
+
    ```typescript
    const theme = createTheme({
      palette: {
-       primary: { main: '#1976d2' },
-       secondary: { main: '#dc004e' },
-       background: { default: '#f5f5f5' },
+       primary: { main: "#1976d2" },
+       secondary: { main: "#dc004e" },
+       background: { default: "#f5f5f5" },
      },
      typography: {
-       fontFamily: 'Inter, sans-serif',
+       fontFamily: "Inter, sans-serif",
        h1: { fontWeight: 600 },
      },
      components: {
        MuiButton: {
          styleOverrides: {
-           root: { textTransform: 'none' },
+           root: { textTransform: "none" },
          },
        },
      },
@@ -508,6 +551,7 @@ The application uses Zustand for state management with stores organized by domai
    ```
 
 2. **Custom Theme Extensions:**
+
    - Extend theme interface for custom properties
    - Use module augmentation for TypeScript support
    - Create semantic color tokens (e.g., `success`, `warning`)
@@ -522,17 +566,19 @@ The application uses Zustand for state management with stores organized by domai
 ### Emotion CSS Guidelines
 
 1. **Styled Components:**
+
    - Use `styled()` for reusable component styling
    - Implement theme-aware styled components
    - Use props for dynamic styling logic
    - Keep styled components co-located with their usage
 
 2. **CSS-in-JS Patterns:**
+
    ```typescript
    const StyledButton = styled(Button)(({ theme, variant }) => ({
      borderRadius: theme.spacing(1),
      padding: theme.spacing(1, 2),
-     ...(variant === 'primary' && {
+     ...(variant === "primary" && {
        backgroundColor: theme.palette.primary.main,
        color: theme.palette.primary.contrastText,
      }),
@@ -548,12 +594,14 @@ The application uses Zustand for state management with stores organized by domai
 ### Component Architecture
 
 1. **Component Organization:**
+
    - Keep components focused on single responsibilities
    - Use composition over inheritance
    - Implement proper prop interfaces with TypeScript
    - Use `React.memo` for performance optimization when needed
 
 2. **File Structure:**
+
    - Co-locate related files (component, styles, tests)
    - Use index files for clean imports
    - Separate presentation and container components

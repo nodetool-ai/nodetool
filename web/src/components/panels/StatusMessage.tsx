@@ -2,10 +2,10 @@
 import { Typography } from "@mui/material";
 import { css } from "@emotion/react";
 import { memo } from "react";
-import useWorkflowRunner from "../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 
 const StatusMessage = memo(function StatusMessage() {
-  const { statusMessage, isWorkflowRunning } = useWorkflowRunner((state) => ({
+  const { statusMessage, isWorkflowRunning } = useWebsocketRunner((state) => ({
     statusMessage: state.statusMessage,
     isWorkflowRunning: state.state === "running"
   }));

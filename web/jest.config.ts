@@ -8,7 +8,7 @@ export default {
     resources: "usable"
   },
   moduleNameMapper: {
-    "canvas": "<rootDir>/src/__mocks__/canvas.ts",
+    canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas/.*$": "<rootDir>/src/__mocks__/canvas.ts",
     "^chroma-js$": "<rootDir>/src/__mocks__/chroma-js.ts",

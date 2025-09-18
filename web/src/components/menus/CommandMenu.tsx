@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { Dialog, Tooltip } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -58,7 +58,8 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
   }));
-  const run = useWorkflowRunnner((state) => state.run);
+  const run = useWebsocketRunner((state) => state.run);
+  const cancel = useWebsocketRunner((state) => state.cancel);
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -98,9 +99,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
         Copy Workflow as JSON
       </Command.Item>
-      <Command.Item
-        onSelect={() => executeAndClose(useWorkflowRunnner.getState().cancel)}
-      >
+      <Command.Item onSelect={() => executeAndClose(cancel)}>
         Cancel Workflow
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(autoLayout)}>

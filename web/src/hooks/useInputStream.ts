@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import useWorkflowRunner from "../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
 /**
  * Generic streaming hook for workflow input nodes.
@@ -8,9 +8,9 @@ import useWorkflowRunner from "../stores/WorkflowRunner";
  * Works with the backend WebSocket `stream_input` / `end_input_stream` commands.
  */
 export function useInputStream(inputName: string) {
-  const streamInput = useWorkflowRunner((s) => s.streamInput);
-  const endInputStream = useWorkflowRunner((s) => s.endInputStream);
-  const state = useWorkflowRunner((s) => s.state);
+  const streamInput = useWebsocketRunner((s) => s.streamInput);
+  const endInputStream = useWebsocketRunner((s) => s.endInputStream);
+  const state = useWebsocketRunner((s) => s.state);
 
   const send = useCallback(
     (value: any, handle?: string) => {

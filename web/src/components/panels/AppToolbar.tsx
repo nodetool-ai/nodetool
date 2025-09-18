@@ -17,7 +17,7 @@ import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useWorkflowRunner from "../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { isEqual } from "lodash";
 import { useNodes } from "../../contexts/NodeContext";
@@ -503,7 +503,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     edges: state.edges
   }));
 
-  const { run, state, isWorkflowRunning } = useWorkflowRunner((state) => ({
+  const { run, state, isWorkflowRunning } = useWebsocketRunner((state) => ({
     run: state.run,
     state: state.state,
     isWorkflowRunning: state.state === "running"
@@ -573,7 +573,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 });
 
 const StopWorkflowButton = memo(function StopWorkflowButton() {
-  const { isWorkflowRunning, cancel } = useWorkflowRunner((state) => ({
+  const { isWorkflowRunning, cancel } = useWebsocketRunner((state) => ({
     isWorkflowRunning: state.state === "running",
     cancel: state.cancel
   }));

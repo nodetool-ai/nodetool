@@ -11,7 +11,7 @@ import { NodeData } from "../../stores/NodeData";
 import { debounce, isEqual } from "lodash";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import useWorkflowRunner from "../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
@@ -174,11 +174,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // );
 
   // RUN WORKFLOW
-  const state = useWorkflowRunner((state) => state.state);
-  const isWorkflowRunning = useWorkflowRunner(
+  const state = useWebsocketRunner((state) => state.state);
+  const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const run = useWorkflowRunner((state) => state.run);
+  const run = useWebsocketRunner((state) => state.run);
   const runWorkflow = useCallback(() => {
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(

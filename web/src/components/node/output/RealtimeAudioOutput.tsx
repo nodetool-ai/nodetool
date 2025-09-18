@@ -13,7 +13,7 @@ import { Button, ButtonGroup } from "@mui/material";
 import { Chunk } from "../../../stores/ApiTypes";
 import { base64ToUint8Array, int16ToFloat32 } from "./audio";
 import AudioVisualizer from "../../common/AudioVisualizer";
-import useWorkflowRunner from "../../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 
 type Props = {
   chunks: Chunk[];
@@ -52,7 +52,7 @@ const RealtimeAudioOutput: React.FC<Props> = ({
   const lastIndexRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [visualizerVersion, setVisualizerVersion] = useState<number>(0);
-  const workflowState = useWorkflowRunner((s) => s.state);
+  const workflowState = useWebsocketRunner((s) => s.state);
 
   // Initialize AudioContext and routing
   useEffect(() => {

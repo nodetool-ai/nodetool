@@ -17,16 +17,17 @@ import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import log from "loglevel";
-import useWorkflowRunner from "./WorkflowRunner";
+import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { MsgpackData } from "./WorkflowChatStore";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
-  data: MsgpackData
+  data: MsgpackData,
+  runnerStore: WorkflowRunnerStore
 ) => {
-  const runner = useWorkflowRunner.getState();
+  const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
   const clearResults = useResultsStore.getState().clearResults;
   const setStatus = useStatusStore.getState().setStatus;
@@ -102,12 +103,12 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
-    useWorkflowRunner.setState({
+    runnerStore.setState({
       state:
         job.status === "running" || job.status === "queued" ? "running" : "idle"
     });
     if (job.job_id) {
-      useWorkflowRunner.setState({ job_id: job.job_id });
+      runnerStore.setState({ job_id: job.job_id });
     }
     switch (job.status) {
       case "completed":
@@ -128,7 +129,7 @@ export const handleUpdate = (
         runner.disconnect();
         break;
       case "queued":
-        useWorkflowRunner.setState({
+        runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
         });
         break;
@@ -189,7 +190,7 @@ export const handleUpdate = (
         alert: true,
         content: update.error
       });
-      useWorkflowRunner.setState({ state: "error" });
+      runnerStore.setState({ state: "error" });
       setStatus(workflow.id, update.node_id, update.status);
       setError(workflow.id, update.node_id, update.error);
       appendLog({
@@ -201,7 +202,7 @@ export const handleUpdate = (
         timestamp: Date.now()
       });
     } else {
-      useWorkflowRunner.setState({
+      runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
       });
       setStatus(workflow.id, update.node_id, update.status);

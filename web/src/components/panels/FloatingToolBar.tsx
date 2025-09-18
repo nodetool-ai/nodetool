@@ -17,7 +17,7 @@ import {
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useLocation } from "react-router-dom";
-import useWorkflowRunner from "../../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -240,7 +240,7 @@ const FloatingToolBar: React.FC<{
   );
   const getCurrentWorkflow = useNodes((state) => state.getWorkflow);
 
-  const { run, state, isWorkflowRunning, cancel } = useWorkflowRunner(
+  const { run, state, isWorkflowRunning, cancel } = useWebsocketRunner(
     (state) => ({
       run: state.run,
       state: state.state,
