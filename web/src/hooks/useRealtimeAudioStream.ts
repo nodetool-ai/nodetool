@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInputStream } from "./useInputStream";
-import useWorkflowRunner from "../stores/WorkflowRunner";
+import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
 type UseRealtimeAudioStream = {
   isStreaming: boolean;
@@ -23,7 +23,7 @@ export const useRealtimeAudioStream = (
   const [version, setVersion] = useState(0);
 
   const { send, end } = useInputStream(inputNodeName || "");
-  const runnerState = useWorkflowRunner((s) => s.state);
+  const runnerState = useWebsocketRunner((s) => s.state);
 
   const stop = useCallback(() => {
     setIsStreaming(false);

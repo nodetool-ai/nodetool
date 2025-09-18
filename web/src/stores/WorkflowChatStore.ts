@@ -26,6 +26,7 @@ import { isLocalhost } from "./ApiClient";
 import { CHAT_URL } from "./BASE_URL";
 import log from "loglevel";
 import { handleUpdate } from "./workflowUpdates";
+import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { supabase } from "../lib/supabaseClient";
 import {
   WebSocketManager,
@@ -904,7 +905,8 @@ function handleWebSocketMessage(
     }
   } else {
     // Handle workflow updates for backward compatibility
-    handleUpdate(workflow, data);
+    const runnerStore = getWorkflowRunnerStore(workflow.id);
+    handleUpdate(workflow, data, runnerStore);
   }
 }
 

@@ -1309,7 +1309,7 @@ export interface components {
              * Type
              * @default asset
              */
-            type: string;
+            type: unknown;
             /**
              * Uri
              * @default
@@ -2862,7 +2862,7 @@ export interface components {
              * Type
              * @default hf.model
              */
-            type: string;
+            type: unknown;
             /**
              * Repo Id
              * @default
@@ -3423,7 +3423,7 @@ export interface components {
         /** ModelFile */
         ModelFile: {
             /** Type */
-            type: string;
+            type: unknown;
             /**
              * Name
              * @default
