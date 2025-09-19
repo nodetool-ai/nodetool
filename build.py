@@ -1,19 +1,101 @@
 import argparse
+import json
+import logging
+import os
+import shlex
 import shutil
 import subprocess
 import sys
+import threading
 from pathlib import Path
-from platform import system, machine
-import threading
-import subprocess
-import threading
-from textwrap import dedent
-import os
-import logging
+from platform import machine, system
+from typing import Iterable, Sequence
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
+DEFAULT_PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "3.11")
+
+
+def _format_command(command: Sequence[str]) -> str:
+    """Return a human-friendly shell representation of *command*."""
+
+    return shlex.join(map(str, command))
+
+
+def unique_sequence(items: Iterable[str]) -> list[str]:
+    """Return items with duplicates removed while preserving order."""
+
+    seen: set[str] = set()
+    unique: list[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            unique.append(item)
+    return unique
+
+
+def detect_conda_executable(preferred: Iterable[str] | None = None) -> str:
+    """Locate a usable conda executable.
+
+    Checks the ``CONDA_EXE`` environment variable, followed by the provided
+    *preferred* executables, and finally a small list of known conda-compatible
+    commands (``conda``, ``mamba``, ``micromamba``).
+    """
+
+    candidates: list[str] = []
+    env_executable = os.environ.get("CONDA_EXE")
+    if env_executable:
+        candidates.append(env_executable)
+    if preferred:
+        candidates.extend(filter(None, preferred))
+    candidates.extend(["conda", "mamba", "micromamba"])
+
+    for candidate in candidates:
+        path = Path(candidate)
+        if path.is_file():
+            return str(path)
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+
+    raise BuildError(
+        "Unable to locate a conda executable. Set CONDA_EXE or ensure conda is on PATH."
+    )
+
+
+def run_command_capture(
+    command: Sequence[str],
+    *,
+    cwd: str | Path | None = None,
+    env: dict[str, str] | None = None,
+) -> str:
+    """Run *command* and capture stdout.
+
+    Raises :class:`BuildError` on failure, logging stderr for convenience.
+    """
+
+    logger.info(_format_command(command))
+    result = subprocess.run(
+        list(map(str, command)),
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        if result.stdout:
+            logger.info(result.stdout.strip())
+        if result.stderr:
+            logger.error(result.stderr.strip())
+        raise BuildError(
+            f"Command failed with return code {result.returncode}: {_format_command(command)}"
+        )
+
+    return result.stdout
 
 
 class BuildError(Exception):
@@ -71,6 +153,7 @@ class Build:
         self.platform = platform
         self.arch = arch
         self.python_version = python_version
+        self.conda_exe = detect_conda_executable()
 
         self.BUILD_DIR = PROJECT_ROOT / "build"
         self.ENV_DIR = self.BUILD_DIR / "env"
@@ -78,11 +161,11 @@ class Build:
         if not self.BUILD_DIR.exists():
             self.create_directory(self.BUILD_DIR)
 
+    @staticmethod
     def run_command(
-        self,
-        command: list[str],
+        command: Sequence[str],
         cwd: str | Path | None = None,
-        env: dict | None = None,
+        env: dict[str, str] | None = None,
         ignore_error: bool = False,
     ) -> int:
         """Execute a shell command and stream output to the logger.
@@ -99,17 +182,16 @@ class Build:
         Raises:
             BuildError: If the command exits non-zero and ``ignore_error`` is False.
         """
-        # Remove the conda run wrapper since we're using base environment
-        logger.info(" ".join(command))
+        command_list = list(map(str, command))
+        logger.info(_format_command(command_list))
 
         process = subprocess.Popen(
-            " ".join(command),
-            shell=True,
-            cwd=cwd,
+            command_list,
+            cwd=str(cwd) if cwd else None,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
-            universal_newlines=True,
+            text=True,
             bufsize=256,
         )
 
@@ -135,10 +217,15 @@ class Build:
 
         if return_code != 0 and not ignore_error:
             raise BuildError(
-                f"Command failed with return code {return_code}: {' '.join(command)}"
+                f"Command failed with return code {return_code}: {_format_command(command_list)}"
             )
 
         return return_code
+
+    def conda_cmd(self, *args: str) -> list[str]:
+        """Return a command list prefixed with the detected conda executable."""
+
+        return [self.conda_exe, *map(str, args)]
 
     def create_directory(self, path: Path, parents: bool = True) -> None:
         """Create a directory if it does not already exist.
@@ -229,29 +316,27 @@ class Build:
         logger.info("Packing conda environment")
 
         # Install conda-pack
-        self.run_command(["conda", "install", "conda-pack", "-y"])
+        self.run_command(self.conda_cmd("install", "conda-pack", "-y"))
 
         if self.clean_build:
             self.remove_directory(self.ENV_DIR)
 
         # Create new conda environment
         self.run_command(
-            [
-                "conda",
+            self.conda_cmd(
                 "create",
                 "--yes",
                 "--verbose",
                 "-p",
                 str(self.ENV_DIR),
                 f"python={self.python_version}",
-            ]
+            )
         )
 
         # Install ffmpeg and related codecs from conda forge
         llama_pkg = "llama.cpp" if self.platform == "darwin" else "llama.cpp=*=cuda126*"
         self.run_command(
-            [
-                "conda",
+            self.conda_cmd(
                 "install",
                 "-p",
                 str(self.ENV_DIR),
@@ -278,7 +363,7 @@ class Build:
                 "-y",
                 "--channel",
                 "conda-forge",
-            ]
+            )
         )
 
         # Pack the environment
@@ -289,7 +374,7 @@ class Build:
         self.remove_file(output_path)
 
         # This is needed to avoid the clobbering of base packages error
-        self.run_command(["conda", "list", "-p", str(self.ENV_DIR)])
+        self.run_command(self.conda_cmd("list", "-p", str(self.ENV_DIR)))
 
         self.run_command(
             ["conda-pack", "-p", str(self.ENV_DIR), "-o", str(output_path)]
@@ -298,47 +383,440 @@ class Build:
         logger.info(f"Environment packed successfully to {output_name}")
 
 
-def main() -> None:
-    """Parse CLI arguments and run the requested build step.
+class CondaEnvironmentManager:
+    """High-level helpers for creating and managing the Nodetool conda env."""
 
-    Exposes two steps:
-        - ``setup``: Prepare build directories.
-        - ``pack``: Create and pack the Conda environment.
-    """
-    parser = argparse.ArgumentParser(
-        description="Build script for Nodetool Electron app and installer"
-    )
-    parser.add_argument(
-        "step",
-        choices=[
-            "setup",
-            "pack",
-        ],
-        help="Build step to run",
-    )
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="Clean the build directory before running",
-    )
-    parser.add_argument(
-        "--python-version",
-        default=os.environ.get("PYTHON_VERSION", "3.11"),
-        help="Python version to use for the conda environment (e.g., 3.11)",
+    DEFAULT_ENV_NAME = "nodetool"
+    DEFAULT_CHANNELS = ["conda-forge"]
+
+    def __init__(
+        self,
+        *,
+        env_name: str | None = None,
+        env_prefix: str | Path | None = None,
+        python_version: str = DEFAULT_PYTHON_VERSION,
+        channels: Iterable[str] | None = None,
+    ) -> None:
+        self.platform = system().lower()
+        arch = machine().lower()
+        if arch == "amd64":
+            arch = "x64"
+        if arch == "x86_64":
+            arch = "x64"
+        if arch == "aarch64":
+            arch = "arm64"
+
+        self.arch = arch
+        self.python_version = python_version
+        self.env_name = env_name or self.DEFAULT_ENV_NAME
+        self.env_prefix = (
+            Path(env_prefix).expanduser().resolve()
+            if env_prefix is not None
+            else None
+        )
+        combined_channels = list(self.DEFAULT_CHANNELS)
+        if channels:
+            combined_channels.extend(channels)
+        self.channels = unique_sequence(combined_channels)
+        self.conda_exe = detect_conda_executable()
+
+        self.base_packages = [
+            f"python={self.python_version}",
+            "pip",
+            "git",
+            "nodejs",
+            "uv",
+            "ffmpeg",
+        ]
+
+        llama_pkg = "llama.cpp" if self.platform == "darwin" else "llama.cpp=*=cuda126*"
+        self.build_packages = [
+            "cairo",
+            "x264",
+            "x265",
+            "aom",
+            "libopus",
+            "libvorbis",
+            "libpng",
+            "libjpeg-turbo",
+            "libtiff",
+            "openjpeg",
+            "libwebp",
+            "giflib",
+            "lame",
+            "pandoc",
+            "lua",
+            llama_pkg,
+        ]
+
+    def conda_cmd(self, *args: str) -> list[str]:
+        return [self.conda_exe, *map(str, args)]
+
+    def _channel_args(self) -> list[str]:
+        args: list[str] = []
+        for channel in self.channels:
+            args.extend(["-c", channel])
+        return args
+
+    def _target_args(self) -> list[str]:
+        if self.env_prefix is not None:
+            return ["-p", str(self.env_prefix)]
+        return ["-n", self.env_name]
+
+    def _load_envs(self) -> dict:
+        output = run_command_capture(self.conda_cmd("env", "list", "--json"))
+        try:
+            return json.loads(output)
+        except json.JSONDecodeError as exc:
+            raise BuildError("Failed to parse conda env list output") from exc
+
+    def _resolve_existing_prefix(self) -> Path | None:
+        data = self._load_envs()
+        target_prefix = self.env_prefix
+        matches: list[Path] = []
+        for entry in data.get("envs", []):
+            path = Path(entry)
+            if target_prefix is not None and path == target_prefix:
+                return path
+            if target_prefix is None and path.name == self.env_name:
+                matches.append(path)
+        if matches:
+            return matches[0]
+        return None
+
+    def env_exists(self) -> bool:
+        return self._resolve_existing_prefix() is not None
+
+    def default_packages(self, include_build_deps: bool = False) -> list[str]:
+        packages = list(self.base_packages)
+        if include_build_deps:
+            packages.extend(self.build_packages)
+        return unique_sequence(packages)
+
+    def create(
+        self,
+        *,
+        force: bool = False,
+        include_build_deps: bool = False,
+        extra_packages: Iterable[str] | None = None,
+    ) -> None:
+        if self.env_exists():
+            if not force:
+                logger.info("Conda environment already exists; use --force to recreate it.")
+                return
+            logger.info("Removing existing conda environment before recreation.")
+            self.remove(skip_confirmation=True)
+
+        packages = self.default_packages(include_build_deps)
+        if extra_packages:
+            packages.extend(extra_packages)
+        packages = unique_sequence(packages)
+
+        command = self.conda_cmd(
+            "create",
+            "--yes",
+            *self._channel_args(),
+            *self._target_args(),
+            *packages,
+        )
+        Build.run_command(command)
+
+    def remove(self, *, skip_confirmation: bool = False) -> None:
+        if not self.env_exists():
+            logger.info("Conda environment not found; nothing to remove.")
+            return
+
+        command = self.conda_cmd("env", "remove", *self._target_args())
+        if skip_confirmation:
+            command.append("--yes")
+        Build.run_command(command)
+
+    def list(self) -> None:
+        Build.run_command(self.conda_cmd("env", "list"))
+
+    def info(self) -> None:
+        prefix = self._resolve_existing_prefix()
+        if prefix is None:
+            raise BuildError("Conda environment not found; create it first.")
+
+        activation_hint = (
+            f"conda activate {self.env_name}"
+            if self.env_prefix is None
+            else f"conda activate {prefix}"
+        )
+
+        logger.info(f"Environment name: {self.env_name}")
+        logger.info(f"Environment prefix: {prefix}")
+        logger.info(f"Activation command: {activation_hint}")
+
+    def run(self, command: Sequence[str]) -> None:
+        if not command:
+            raise BuildError("No command provided to run inside the environment.")
+        if not self.env_exists():
+            raise BuildError("Conda environment not found; create it first.")
+
+        composed = self.conda_cmd(
+            "run",
+            "--no-capture-output",
+            *self._target_args(),
+            *command,
+        )
+        Build.run_command(composed)
+
+    def shell(self, shell_command: str | None = None) -> None:
+        if shell_command:
+            chosen_shell = shell_command
+        elif self.platform == "windows":
+            chosen_shell = os.environ.get("COMSPEC", "cmd.exe")
+        else:
+            chosen_shell = os.environ.get("SHELL", "/bin/bash")
+
+        shell_args: list[str]
+        if self.platform != "windows" and chosen_shell in {"/bin/bash", "bash"}:
+            shell_args = [chosen_shell, "-l"]
+        else:
+            shell_args = [chosen_shell]
+
+        self.run(shell_args)
+
+
+def configure_logging(level: str | int | None) -> int:
+    """Configure root logging and return the numeric level used."""
+
+    if isinstance(level, int):
+        numeric = level
+    else:
+        level_name = (level or os.environ.get("BUILD_LOG_LEVEL", "INFO")).upper()
+        numeric = getattr(logging, level_name, logging.INFO)
+
+    logging.basicConfig(level=numeric, format="%(message)s")
+    logging.getLogger().setLevel(numeric)
+    return numeric
+
+
+def _build_manager_from_args(args: argparse.Namespace) -> CondaEnvironmentManager:
+    return CondaEnvironmentManager(
+        env_name=args.name if getattr(args, "prefix", None) is None else None,
+        env_prefix=getattr(args, "prefix", None),
+        python_version=getattr(args, "python_version", DEFAULT_PYTHON_VERSION),
+        channels=getattr(args, "channels", None),
     )
 
-    args = parser.parse_args()
 
+def handle_build_command(args: argparse.Namespace) -> None:
     build = Build(
         clean_build=args.clean,
         python_version=args.python_version,
     )
-
     step_method = getattr(build, args.step, None)
-    if step_method:
-        step_method()
-    else:
-        logger.error(f"Invalid build step: {args.step}")
+    if step_method is None:
+        raise BuildError(f"Invalid build step: {args.step}")
+    step_method()
+
+
+def handle_env_create(args: argparse.Namespace) -> None:
+    manager = _build_manager_from_args(args)
+    manager.create(
+        force=args.force,
+        include_build_deps=args.full,
+        extra_packages=args.packages,
+    )
+
+
+def handle_env_remove(args: argparse.Namespace) -> None:
+    manager = _build_manager_from_args(args)
+    manager.remove(skip_confirmation=args.yes)
+
+
+def handle_env_info(args: argparse.Namespace) -> None:
+    manager = _build_manager_from_args(args)
+    manager.info()
+
+
+def handle_env_list(args: argparse.Namespace) -> None:  # noqa: ARG001 - matches signature
+    manager = CondaEnvironmentManager()
+    manager.list()
+
+
+def handle_env_run(args: argparse.Namespace) -> None:
+    manager = _build_manager_from_args(args)
+    command = list(args.command)
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        raise BuildError("Provide a command after -- to run inside the environment.")
+    manager.run(command)
+
+
+def handle_env_shell(args: argparse.Namespace) -> None:
+    manager = _build_manager_from_args(args)
+    manager.shell(args.shell)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Build and environment management for Nodetool",
+    )
+    parser.add_argument(
+        "--log-level",
+        default=None,
+        help="Logging level (DEBUG, INFO, WARNING, ERROR). Defaults to BUILD_LOG_LEVEL env.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    build_parser = subparsers.add_parser("build", help="Run build-related steps")
+    build_parser.add_argument(
+        "step",
+        choices=["setup", "pack"],
+        help="Build step to run",
+    )
+    build_parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean the build directory before running",
+    )
+    build_parser.add_argument(
+        "--python-version",
+        default=DEFAULT_PYTHON_VERSION,
+        help="Python version to use for packaging (e.g., 3.11)",
+    )
+    build_parser.set_defaults(func=handle_build_command)
+
+    env_parser = subparsers.add_parser("env", help="Manage the Nodetool conda environment")
+    env_subparsers = env_parser.add_subparsers(dest="env_command", required=True)
+
+    target_parent = argparse.ArgumentParser(add_help=False)
+    target_parent.add_argument(
+        "--name",
+        default=CondaEnvironmentManager.DEFAULT_ENV_NAME,
+        help=f"Conda environment name (default: {CondaEnvironmentManager.DEFAULT_ENV_NAME})",
+    )
+    target_parent.add_argument(
+        "--prefix",
+        help="Full path to the environment prefix. Overrides --name when provided.",
+    )
+
+    create_parent = argparse.ArgumentParser(add_help=False)
+    create_parent.add_argument(
+        "--python-version",
+        default=DEFAULT_PYTHON_VERSION,
+        help="Python version to install when creating the environment",
+    )
+    create_parent.add_argument(
+        "--channel",
+        dest="channels",
+        action="append",
+        help="Additional conda channels to include (conda-forge is always added)",
+    )
+    create_parent.add_argument(
+        "-p",
+        "--package",
+        dest="packages",
+        action="append",
+        help="Extra packages to install (can be supplied multiple times)",
+    )
+    create_parent.add_argument(
+        "--full",
+        action="store_true",
+        help="Include the full set of build dependencies used for packaging",
+    )
+    create_parent.add_argument(
+        "--force",
+        action="store_true",
+        help="Recreate the environment if it already exists",
+    )
+
+    create_parser = env_subparsers.add_parser(
+        "create",
+        help="Create the conda environment",
+        parents=[target_parent, create_parent],
+    )
+    create_parser.set_defaults(func=handle_env_create)
+
+    remove_parser = env_subparsers.add_parser(
+        "remove",
+        help="Delete the conda environment",
+        parents=[target_parent],
+    )
+    remove_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Do not prompt before removing the environment",
+    )
+    remove_parser.set_defaults(func=handle_env_remove)
+
+    info_parser = env_subparsers.add_parser(
+        "info",
+        help="Show environment activation details",
+        parents=[target_parent],
+    )
+    info_parser.set_defaults(func=handle_env_info)
+
+    run_parser = env_subparsers.add_parser(
+        "run",
+        help="Execute a command inside the environment",
+        parents=[target_parent],
+    )
+    run_parser.add_argument(
+        "command",
+        nargs=argparse.REMAINDER,
+        help="Command to execute (prefix with -- to avoid parsing issues)",
+    )
+    run_parser.set_defaults(func=handle_env_run)
+
+    shell_parser = env_subparsers.add_parser(
+        "shell",
+        help="Open an interactive shell inside the environment",
+        parents=[target_parent],
+    )
+    shell_parser.add_argument(
+        "--shell",
+        help="Shell executable to launch (default depends on the platform)",
+    )
+    shell_parser.set_defaults(func=handle_env_shell)
+
+    env_list_parser = env_subparsers.add_parser("list", help="List conda environments")
+    env_list_parser.set_defaults(func=handle_env_list)
+
+    return parser
+
+
+def main() -> None:
+    argv = sys.argv[1:]
+    legacy_commands = {"setup", "pack"}
+
+    if argv and argv[0] in legacy_commands:
+        configure_logging(None)
+        legacy_parser = argparse.ArgumentParser(
+            description="Legacy interface for build steps",
+        )
+        legacy_parser.add_argument(
+            "step",
+            choices=sorted(legacy_commands),
+            help="Build step to run",
+        )
+        legacy_parser.add_argument(
+            "--clean",
+            action="store_true",
+            help="Clean the build directory before running",
+        )
+        legacy_parser.add_argument(
+            "--python-version",
+            default=DEFAULT_PYTHON_VERSION,
+            help="Python version to use for the conda environment (e.g., 3.11)",
+        )
+        args = legacy_parser.parse_args(argv)
+        handle_build_command(args)
+        return
+
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    configure_logging(args.log_level)
+
+    try:
+        args.func(args)
+    except BuildError as exc:
+        logger.error(str(exc))
         sys.exit(1)
 
 
