@@ -17,6 +17,7 @@ interface WorkflowListViewProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
   onEdit: (workflow: Workflow) => void;
+  onOpenAsApp?: (workflow: Workflow) => void;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
   workflowCategory: string;
@@ -139,6 +140,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   onSelect,
   onDelete,
   onEdit,
+  onOpenAsApp,
   onScroll,
   selectedWorkflows,
   showCheckboxes
@@ -172,6 +174,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           onSelect={onSelect}
           onDelete={onDelete}
           onEdit={onEdit}
+          onOpenAsApp={onOpenAsApp}
           isAlternate={index % 2 === 1}
         />
       </div>

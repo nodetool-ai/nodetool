@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -28,6 +28,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import LaunchIcon from "@mui/icons-material/Launch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -216,7 +217,9 @@ const FloatingToolBar: React.FC<{
   setWorkflowToEdit: (workflow: Workflow) => void;
 }> = memo(function FloatingToolBar({ setWorkflowToEdit }) {
   const theme = useTheme();
-  const path = useLocation().pathname;
+  const location = useLocation();
+  const path = location.pathname;
+  const navigate = useNavigate();
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] =
     useState<null | HTMLElement>(null);
@@ -300,22 +303,19 @@ const FloatingToolBar: React.FC<{
     autoLayout();
   }, [autoLayout]);
 
+  const handleOpenInMiniApp = useCallback(() => {
+    if (!workflow?.id) {
+      return;
+    }
+    navigate(`/apps/${workflow.id}`);
+  }, [navigate, workflow?.id]);
+
   const handleRunAsApp = useCallback(() => {
     const workflowId = path.split("/").pop();
     if (workflowId) {
-      const api = (window as any)["api"] as
-        | { runApp: (workflowId: string) => void }
-        | undefined;
-      if (api) {
-        api.runApp(workflowId);
-      } else {
-        window.open(
-          "http://localhost:5173/index.html?workflow_id=" + workflowId,
-          "_blank"
-        );
-      }
+      navigate(`/apps/${workflowId}`);
     }
-  }, [path]);
+  }, [navigate, path]);
 
   const handleEditWorkflow = useCallback(() => {
     setWorkflowToEdit(getCurrentWorkflow());
@@ -429,6 +429,19 @@ const FloatingToolBar: React.FC<{
           </Fab>
         </Tooltip>
         <Tooltip
+          title="Open mini app view"
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          placement="top"
+        >
+          <Fab
+            className={`floating-action-button subtle`}
+            onClick={handleOpenInMiniApp}
+            aria-label="Open mini app view"
+          >
+            <LaunchIcon />
+          </Fab>
+        </Tooltip>
+        <Tooltip
           title="More actions"
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
@@ -522,19 +535,17 @@ const FloatingToolBar: React.FC<{
           </ListItemIcon>
           <ListItemText primary="Download JSON" />
         </MenuItem>
-        {isLocalhost && workflow?.run_mode === "app" && (
-          <MenuItem
-            onClick={() => {
-              handleRunAsApp();
-              handleCloseActionsMenu();
-            }}
-          >
-            <ListItemIcon>
-              <RocketLaunchIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Run as standalone app" />
-          </MenuItem>
-        )}
+        <MenuItem
+          onClick={() => {
+            handleRunAsApp();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <RocketLaunchIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Run as standalone app" />
+        </MenuItem>
       </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />

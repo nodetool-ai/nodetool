@@ -46,8 +46,8 @@ const StringProperty = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const focusHandler = useFocusPan(nodeId);
-  const handleFocus = isInspector ? () => {} : focusHandler;
+  // const focusHandler = useFocusPan(nodeId);
+  // const handleFocus = isInspector ? () => {} : focusHandler;
   const edges = useNodes((state) => state.edges);
   const isConnected = useMemo(() => {
     return edges.some(
@@ -102,7 +102,7 @@ const StringProperty = ({
                 onChange(e.target.value)
               }
               onFocus={(e) => {
-                handleFocus(e);
+                // handleFocus(e);
                 setIsFocused(true);
               }}
               onBlur={() => {

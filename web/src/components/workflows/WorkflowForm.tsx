@@ -424,6 +424,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
             >
               <MenuItem value="workflow">Workflow</MenuItem>
               <MenuItem value="chat">Chat</MenuItem>
+              <MenuItem value="app">App</MenuItem>
               <MenuItem value="tool">Tool</MenuItem>
             </TextField>
           </Box>

@@ -5,6 +5,7 @@ import Checkbox from "@mui/material/Checkbox";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import LaunchIcon from "@mui/icons-material/Launch";
 import { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { isEqual } from "lodash";
@@ -20,6 +21,7 @@ interface WorkflowListItemProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
   onEdit: (workflow: Workflow) => void;
+  onOpenAsApp?: (workflow: Workflow) => void;
 }
 
 const WorkflowListItem: React.FC<WorkflowListItemProps> = ({

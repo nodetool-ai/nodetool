@@ -98,7 +98,7 @@ type WorkflowManagerState = {
   saveWorkflow: (workflow: Workflow) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
-  fetchWorkflow: (workflowId: string) => Promise<void>;
+  fetchWorkflow: (workflowId: string) => Promise<Workflow | undefined>;
   getLoadingState: (workflowId: string) => undefined;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
@@ -651,7 +651,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             existing
           );
           get().setCurrentWorkflowId(workflowId);
-          return;
+          return existing;
         }
 
         // Check cache first
@@ -661,7 +661,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
-          return;
+          return cached;
         }
 
         // Fetch and populate both cache and NodeStore
@@ -670,6 +670,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().queryClient?.setQueryData(workflowQueryKey(workflowId), data);
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
+          return data;
         } catch (e) {
           console.error(
             `[WorkflowManager] fetchWorkflow error for ${workflowId}`,

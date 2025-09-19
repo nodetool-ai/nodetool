@@ -747,23 +747,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workflows/image-generation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Image Generation Workflows */
-        get: operations["image_generation_workflows_api_workflows_image_generation_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/workflows/public/{id}": {
         parameters: {
             query?: never;
@@ -6080,6 +6063,7 @@ export interface operations {
                 cursor?: string | null;
                 limit?: number;
                 columns?: string | null;
+                run_mode?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -6161,39 +6145,6 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkflowList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    image_generation_workflows_api_workflows_image_generation_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
         };
         requestBody?: never;
         responses: {
