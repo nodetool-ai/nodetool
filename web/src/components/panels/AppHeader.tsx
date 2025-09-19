@@ -13,6 +13,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
+import AppsIcon from "@mui/icons-material/Apps";
 import Logo from "../Logo";
 import TitleBar from "../TitleBar";
 import useGlobalChatStore from "../../stores/GlobalChatStore";

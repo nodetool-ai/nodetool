@@ -63,8 +63,7 @@ import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import ModelListIndex from "./components/hugging_face/model_list/ModelListIndex";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
-import { useModelDownloadStore } from "./stores/ModelDownloadStore";
-import ImageGenerationPage from "./components/midjourney/ImageGenerationPage";
+import MiniAppPage from "./components/miniapps/MiniAppPage";
 
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
@@ -169,7 +168,7 @@ function getRoutes() {
       )
     },
     {
-      path: "/imagine",
+      path: "/apps/:workflowId?",
       element: (
         <ProtectedRoute>
           <>
@@ -183,7 +182,7 @@ function getRoutes() {
             >
               <PanelLeft />
               <div style={{ flex: 1, display: "flex" }}>
-                <ImageGenerationPage />
+                <MiniAppPage />
               </div>
             </div>
           </>

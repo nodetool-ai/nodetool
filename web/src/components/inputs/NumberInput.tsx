@@ -2,11 +2,8 @@ import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
-import { useFocusPan } from "../../hooks/useFocusPan";
-import { useViewport } from "@xyflow/react";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
@@ -81,8 +78,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const dragStateRef = useRef(state);
   dragStateRef.current = state;
 
-  const { zoom } = useViewport();
-
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
     state,
@@ -91,11 +86,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setInputIsFocused,
     containerRef,
     dragStateRef,
-    setSpeedFactorState,
-    zoom
+    setSpeedFactorState
   );
 
-  const handleFocusPan = useFocusPan(props.nodeId);
+  // const handleFocusPan = useFocusPan(props.nodeId);
 
   useCombo(
     ["Escape"],
@@ -123,9 +117,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (event: React.FocusEvent<HTMLInputElement>) => {
       event.target.select();
       setState((prevState) => ({ ...prevState, isFocused: true }));
-      handleFocusPan(event);
+      // handleFocusPan(event);
     },
-    [handleFocusPan]
+    []
   );
 
   const handleBlur = useCallback(

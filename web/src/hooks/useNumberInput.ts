@@ -9,7 +9,6 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  getEffectiveSliderWidth,
   applyValueConstraints
 } from "../components/inputs/NumberInput.utils";
 
@@ -34,8 +33,7 @@ export const useDragHandling = (
   setInputIsFocused: (focused: boolean) => void,
   containerRef: React.RefObject<HTMLDivElement>,
   dragStateRef: React.MutableRefObject<NumberInputState>,
-  setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>,
-  zoom: number
+  setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>
 ) => {
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
 
@@ -104,15 +102,9 @@ export const useDragHandling = (
       if (Math.abs(deltaX) < 0.5) {
         newValue = currentDragValue;
       } else {
-        // Step 1: Convert pixel movement to visual percentage
+        // Step 1: Convert pixel movement to visual percentage using actual slider width only
         const { actualSliderWidth } = dragStateRef.current;
-        const zoomEnabled = props.zoomAffectsDragging !== false; // default to true
-        const visualScreenWidth = getEffectiveSliderWidth(
-          zoomEnabled,
-          zoom,
-          actualSliderWidth
-        );
-        const visualPercentage = deltaX / visualScreenWidth;
+        const visualPercentage = deltaX / actualSliderWidth;
 
         // Step 2: Convert to raw value change
         let rawValueChange: number;
@@ -161,13 +153,11 @@ export const useDragHandling = (
       props.max,
       props.inputType,
       props.onChange,
-      props.zoomAffectsDragging,
       calculateStep,
       calculateDecimalPlaces,
       setInputIsFocused,
       containerRef,
-      setSpeedFactorState,
-      zoom
+      setSpeedFactorState
     ]
   );
 
