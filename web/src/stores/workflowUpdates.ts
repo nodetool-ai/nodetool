@@ -10,7 +10,10 @@ import {
   OutputUpdate,
   PreviewUpdate,
   EdgeUpdate,
-  LogUpdate
+  LogUpdate,
+  SubTaskResult,
+  Message,
+  Chunk
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -18,9 +21,25 @@ import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
 import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
-import { MsgpackData } from "./WorkflowChatStore";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+
+export type MsgpackData =
+  | JobUpdate
+  | Chunk
+  | Prediction
+  | NodeProgress
+  | NodeUpdate
+  | Message
+  | LogUpdate
+  | ToolCallUpdate
+  | TaskUpdate
+  | PlanningUpdate
+  | OutputUpdate
+  | SubTaskResult
+  | PreviewUpdate
+  | EdgeUpdate
+  | Notification;
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,

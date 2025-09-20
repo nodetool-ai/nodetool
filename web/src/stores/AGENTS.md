@@ -36,7 +36,6 @@ This guide helps OpenAI's coding agents understand the state management stores i
 - `ConnectionStore.ts`: Handles node connections and edges
 - `ResultsStore.ts`: Stores node execution results
 - `WorkflowRunner.ts`: Controls workflow execution
-- `WorkflowChatStore.ts`: Manages workflow chat interface
 
 ### Model Management
 
@@ -82,12 +81,12 @@ The stores follow these design patterns:
 
 ```typescript
 // Example store pattern
-import create from 'zustand';
+import create from "zustand";
 
 interface StoreState {
   // State properties
   count: number;
-  
+
   // Actions
   increment: () => void;
   decrement: () => void;
@@ -96,7 +95,7 @@ interface StoreState {
 const useCountStore = create<StoreState>((set) => ({
   count: 0,
   increment: () => set((state) => ({ count: state.count + 1 })),
-  decrement: () => set((state) => ({ count: state.count - 1 })),
+  decrement: () => set((state) => ({ count: state.count - 1 }))
 }));
 ```
 
@@ -104,14 +103,14 @@ const useCountStore = create<StoreState>((set) => ({
 
 ```typescript
 // Example usage in a component
-import React from 'react';
-import { useNodeStore } from '../stores/NodeStore';
+import React from "react";
+import { useNodeStore } from "../stores/NodeStore";
 
 const NodeComponent = () => {
   // Select only needed state
   const nodes = useNodeStore((state) => state.nodes);
   const addNode = useNodeStore((state) => state.addNode);
-  
+
   // Component implementation
 };
 ```

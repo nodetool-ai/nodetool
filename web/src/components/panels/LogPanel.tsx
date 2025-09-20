@@ -264,7 +264,7 @@ const LogPanel: React.FC = () => {
         </Box>
       </Box>
 
-      <LogsTable rows={filtered} showWorkflow height={undefined} />
+      <LogsTable rows={filtered} height={undefined} />
     </Box>
   );
 };

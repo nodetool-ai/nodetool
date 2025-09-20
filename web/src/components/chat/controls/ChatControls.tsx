@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import useWorkflowChatStore from "../../../stores/WorkflowChatStore";
 import { ChatHeader } from "../containers/ChatHeader";
 import { isEqual } from "lodash";
 
