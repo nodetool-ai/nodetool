@@ -9,6 +9,9 @@ import rehypeRaw from "rehype-raw";
 import { usePanelStore } from "../stores/PanelStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { Box, Dialog, IconButton } from "@mui/material";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
 interface MarkdownRendererProps {
   content: string;
@@ -23,40 +26,8 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       padding: "1em 1em 2em 1em",
-      fontWeight: "300"
-    },
-    p: {
-      width: "100%",
-      lineHeight: "1.2em",
-      margin: "0.25em 0 .75em 0"
-    },
-    strong: {
-      fontWeight: "600"
-    },
-    pre: {
-      width: "90%",
-      overflow: "auto",
-      backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "5px",
-      padding: "1em"
-    },
-    table: {
-      maxWidth: "90%",
-      overflow: "auto",
-      display: "block",
-      padding: "1em 0",
-      borderCollapse: "collapse"
-    },
-    th: {
-      border: `1px solid ${theme.vars.palette.grey[500]}`,
-      padding: "0.5em"
-    },
-    "li, ol": {
-      paddingLeft: "1em",
-      marginBottom: "0.5em"
-    },
-    ".markdown": {
-      padding: "1em"
+      fontWeight: "300",
+      position: "relative"
     }
   });
 
@@ -72,25 +43,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     x: 0,
     y: 0
   });
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleClose = useCallback(() => {
     setSelectedNodeType(null);
   }, []);
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (e.target instanceof HTMLAnchorElement) {
-        const url = new URL(e.target.href);
-        setSelectedNodeType(url.pathname.split("/").pop() || "");
-        setDocumentationPosition({
-          x: e.clientX + panel.panelSize,
-          y: e.clientY - 150
-        });
-      }
-    },
-    [panel.panelSize]
-  );
 
   const isExternalLink = (url: string) => {
     return /^https?:\/\//.test(url);
@@ -111,12 +68,12 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <>
       <div
-        className="output markdown nodrag noscroll"
+        className="output markdown markdown-body nodrag noscroll"
         css={styles(theme)}
         ref={containerRef}
         tabIndex={0}
       >
-        {isReadme ? (
+        <Box css={styles(theme)}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -132,22 +89,79 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           >
             {content || ""}
           </ReactMarkdown>
-        ) : (
+        </Box>
+
+        <IconButton
+          aria-label="Enter fullscreen"
+          onClick={() => setIsFullscreen(true)}
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            bgcolor: (t) => t.palette.action.hover,
+            "&:hover": { bgcolor: (t) => t.palette.action.selected }
+          }}
+        >
+          <FullscreenIcon fontSize="small" />
+        </IconButton>
+      </div>
+
+      <Dialog
+        fullScreen
+        open={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: theme.vars
+              ? theme.vars.palette.background.default
+              : theme.palette.background.default
+          }
+        }}
+      >
+        <Box
+          className="output markdown markdown-body nodrag noscroll"
+          css={styles(theme)}
+          sx={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            overflow: "auto"
+          }}
+        >
+          <IconButton
+            aria-label="Exit fullscreen"
+            onClick={() => setIsFullscreen(false)}
+            size="small"
+            sx={{
+              position: "fixed",
+              top: 12,
+              right: 16,
+              zIndex: 1,
+              bgcolor: (t) => t.palette.action.hover,
+              "&:hover": { bgcolor: (t) => t.palette.action.selected }
+            }}
+          >
+            <FullscreenExitIcon fontSize="small" />
+          </IconButton>
+
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
             components={{
               a: ({ href, children }) => {
-                return (
-                  <a href={href} onClick={handleClick}>
-                    {children}
-                  </a>
-                );
+                if (isExternalLink(href || "")) {
+                  return <span>{children}</span>;
+                }
+
+                return <a href={href}>{children}</a>;
               }
             }}
           >
             {content || ""}
           </ReactMarkdown>
-        )}
-      </div>
+        </Box>
+      </Dialog>
       {memoizedDocumentation}
     </>
   );
