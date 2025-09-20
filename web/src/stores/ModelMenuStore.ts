@@ -58,7 +58,8 @@ export const ALWAYS_INCLUDE_PROVIDERS = [
   "gemini",
   "replicate",
   "ollama",
-  "llama_cpp"
+  "llama_cpp",
+  "mlx"
   // "aime"
 ];
 
