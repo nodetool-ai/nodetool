@@ -16,6 +16,7 @@ This guide helps OpenAI's coding agents understand the React components structur
 ## Asset Viewer Components (`/asset_viewer`)
 
 Components for displaying different asset types:
+
 - `AudioViewer.tsx`: Audio playback component
 - `ImageViewer.tsx`: Image display component
 - `PDFViewer.tsx`: PDF document viewer
@@ -25,6 +26,7 @@ Components for displaying different asset types:
 ## Asset Management Components (`/assets`)
 
 Components for managing assets (files, folders, etc.):
+
 - `AssetExplorer.tsx`: File browser component
 - `AssetGrid.tsx`: Grid view of assets
 - `AssetTable.tsx`: Table view of assets
@@ -36,8 +38,8 @@ Components for managing assets (files, folders, etc.):
 ## Chat Components (`/chat`)
 
 Components for chat interfaces:
+
 - `ChatView.tsx`: Generic chat interface
-- `WorkflowChat.tsx`: Workflow-specific chat
 - `GlobalChat.tsx`: Global chat interface
 - `ToolsSelector.tsx`: Tool selection dropdown
 - `ChatComposer.tsx`: Message composition component
@@ -46,6 +48,7 @@ Components for chat interfaces:
 ## Audio Components (`/audio`)
 
 Audio processing and recording components:
+
 - `AudioControls.tsx`: Playback controls
 - `AudioPlayer.tsx`: Audio player component
 - `WaveRecorder.tsx`: Audio recording component
@@ -53,6 +56,7 @@ Audio processing and recording components:
 ## Button Components (`/buttons`)
 
 Reusable button components:
+
 - `CloseButton.tsx`: Button for closing dialogs/panels
 - `DeleteButton.tsx`: Button for delete operations
 - `FileUploadButton.tsx`: Button for file uploads
@@ -61,6 +65,7 @@ Reusable button components:
 ## Collection Components (`/collections`)
 
 Components for managing workflow collections:
+
 - `CollectionForm.tsx`: Form for creating/editing collections
 - `CollectionList.tsx`: List of collections
 - `WorkflowSelect.tsx`: Dropdown for selecting workflows
@@ -68,12 +73,14 @@ Components for managing workflow collections:
 ## Content Components (`/content`)
 
 Static content and documentation:
+
 - `/Help`: Help documentation components
 - `/Welcome`: Welcome screen components
 
 ## Context Menu Components (`/context_menus`)
 
 Right-click context menus:
+
 - `NodeContextMenu.tsx`: Context menu for nodes
 - `InputContextMenu.tsx`: Context menu for node inputs
 - `OutputContextMenu.tsx`: Context menu for node outputs
@@ -84,12 +91,14 @@ Right-click context menus:
 ## Dialog Components (`/dialogs`)
 
 Modal dialogs:
+
 - `ConfirmDialog.tsx`: Generic confirmation dialog
 - `OpenOrCreateDialog.tsx`: Dialog for opening/creating workflows
 
 ## Editor Components (`/editor`)
 
 Tab-based editor components:
+
 - `TabHeader.tsx`: Tab header component
 - `TabsBar.tsx`: Navigation tabs component
 - `TabsNodeEditor.tsx`: Tab-based node editor
@@ -97,6 +106,7 @@ Tab-based editor components:
 ## Hugging Face Components (`/hugging_face`)
 
 HuggingFace AI model integration:
+
 - `HuggingFaceModelSearch.tsx`: Model search interface
 - `ModelDownloadDialog.tsx`: Dialog for downloading models
 - `ModelsManager.tsx`: Model management component
@@ -105,6 +115,7 @@ HuggingFace AI model integration:
 ## Input Components (`/inputs`)
 
 Form input components:
+
 - `ColorPicker.tsx`: Color selection component
 - `DatePicker.tsx`: Date selection component
 - `EditableInput.tsx`: Editable text input
@@ -115,6 +126,7 @@ Form input components:
 ## Menu Components (`/menus`)
 
 Application menus:
+
 - `AppIconMenu.tsx`: App icon main menu
 - `CommandMenu.tsx`: Command palette
 - `SettingsMenu.tsx`: Settings configuration menu
@@ -123,6 +135,7 @@ Application menus:
 ## Node Components (`/node`)
 
 Core node visualization components:
+
 - `BaseNode.tsx`: Base component for all nodes
 - `NodeContent.tsx`: Node content container
 - `NodeInputs.tsx`: Node inputs container
@@ -134,6 +147,7 @@ Core node visualization components:
 ## Node Editor Components (`/node_editor`)
 
 Workflow editor components:
+
 - `NodeEditor.tsx`: Main node graph editor
 - `WorkflowCreator.tsx`: Component for creating workflows
 - `ConnectionLine.tsx`: Custom connection line renderer
@@ -142,6 +156,7 @@ Workflow editor components:
 ## Node Menu Components (`/node_menu`)
 
 Node selection and organization:
+
 - `NodeMenu.tsx`: Menu for browsing/selecting nodes
 - `NamespaceList.tsx`: List of node namespaces
 - `TypeFilter.tsx`: Filter for node types
@@ -150,6 +165,7 @@ Node selection and organization:
 ## Panel Components (`/panels`)
 
 UI panels and toolbars:
+
 - `AppHeader.tsx`: Application header
 - `AppToolbar.tsx`: Main application toolbar
 - `PanelLeft.tsx`: Left sidebar panel
@@ -158,6 +174,7 @@ UI panels and toolbars:
 ## Property Components (`/properties`)
 
 Property editors for different data types:
+
 - `StringProperty.tsx`: String property editor
 - `NumberProperty.tsx`: Numeric property editor
 - `ColorProperty.tsx`: Color property editor
@@ -167,6 +184,7 @@ Property editors for different data types:
 ## Workflow Components (`/workflows`)
 
 Workflow management components:
+
 - `WorkflowList.tsx`: List of workflows
 - `WorkflowForm.tsx`: Form for creating/editing workflows
 - `WorkflowTile.tsx`: Workflow tile component

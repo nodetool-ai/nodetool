@@ -124,7 +124,9 @@ const WorkflowAssistantChat: React.FC = () => {
       saveWorkflow: saveWorkflow,
       getCurrentWorkflow: getCurrentWorkflow,
       setCurrentWorkflowId: setCurrentWorkflowId,
-      fetchWorkflow: fetchWorkflow,
+      fetchWorkflow: async (id: string) => {
+        await fetchWorkflow(id);
+      },
       newWorkflow: newWorkflow,
       createNew: createNew,
       searchTemplates: searchTemplates,

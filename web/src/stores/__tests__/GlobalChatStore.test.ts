@@ -332,6 +332,7 @@ describe("GlobalChatStore", () => {
         type: "chunk",
         content: " world!",
         content_type: "text",
+        content_metadata: {},
         done: false
       };
       simulateServerMessage(mockServer, chunk);
@@ -348,6 +349,7 @@ describe("GlobalChatStore", () => {
         type: "chunk",
         content: "New message",
         content_type: "text",
+        content_metadata: {},
         done: false
       };
       simulateServerMessage(mockServer, chunk);
@@ -927,6 +929,7 @@ describe("GlobalChatStore", () => {
         type: "chunk",
         content: "Test chunk",
         content_type: "text",
+        content_metadata: {},
         done: false
       };
 

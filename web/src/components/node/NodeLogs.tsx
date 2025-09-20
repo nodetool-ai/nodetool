@@ -180,9 +180,9 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
               rows={(logs || []).map((l) => ({
                 severity: l.severity as LogRow["severity"],
                 timestamp: l.timestamp,
-                content: l.content
+                content: l.content,
+                workflowName: undefined
               }))}
-              showWorkflow={false}
               height={400}
               severities={selectedSeverities}
             />

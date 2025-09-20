@@ -342,7 +342,6 @@ _Usage: Use these stores in components dealing with file uploads, asset browsers
 - **`ConnectableNodesStore.ts`**: Node connection validation and possibilities
 - **`ConnectionStore.ts`**: Active connection state and edge management
 - **`WorkflowRunner.ts`**: Workflow execution control and WebSocket communication
-- **`WorkflowChatStore.ts`**: Workflow-specific chat interface state
 
 _Usage: These stores power the visual node editor and workflow execution engine._
 

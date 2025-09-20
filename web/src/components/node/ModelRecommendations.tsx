@@ -29,15 +29,18 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
         const id = model.path
           ? `${model.repo_id}/${model.path}`
           : model.repo_id || "";
+        // Ensure `type` is a string to satisfy UnifiedModel
+        const modelType =
+          typeof model.type === "string" ? model.type : "hf.model";
         return {
           id,
           repo_id: model.repo_id || "",
           name: model.repo_id || "",
-          type: model.type || "hf.model",
+          type: modelType,
           path: model.path ?? null,
           allow_patterns: model.allow_patterns ?? undefined,
           ignore_patterns: model.ignore_patterns ?? undefined
-        };
+        } as UnifiedModel;
       });
     }
   }, [getMetadata, nodeType]);

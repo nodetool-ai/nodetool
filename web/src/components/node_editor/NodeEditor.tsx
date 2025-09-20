@@ -29,7 +29,6 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import WorkflowChat from "../chat/containers/WorkflowChat";
 import { useNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -118,7 +117,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <ReactFlowWrapper workflowId={workflowId} active={active} />
         {active && (
           <>
-            <WorkflowChat workflow_id="default" />
             <NodeMenu focusSearchInput={true} />
             <Modal
               open={showShortcuts}
