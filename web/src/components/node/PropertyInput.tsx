@@ -14,14 +14,12 @@ import FloatProperty from "../properties/FloatProperty";
 import EnumProperty from "../properties/EnumProperty";
 import BoolProperty from "../properties/BoolProperty";
 import ListProperty from "../properties/ListProperty";
-import ThreadMessageProperty from "../properties/ThreadMessageProperty";
 import FileProperty from "../properties/FileProperty";
 import AssetProperty from "../properties/AssetProperty";
 import FolderProperty from "../properties/FolderProperty";
 import WorkflowProperty from "../properties/WorkflowProperty";
 import WorkflowListProperty from "../properties/WorkflowListProperty";
 import ToolsListProperty from "../properties/ToolsListProperty";
-import NonEditableProperty from "../properties/NonEditableProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
@@ -35,7 +33,6 @@ import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
-import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
@@ -117,10 +114,6 @@ function handleAdvancedDataTypes(
       return DocumentProperty;
     case "enum":
       return EnumProperty;
-    case "thread":
-      return NonEditableProperty;
-    case "thread_message":
-      return ThreadMessageProperty;
     case "file":
       return FileProperty;
     case "file_path":

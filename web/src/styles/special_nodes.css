@@ -23,44 +23,6 @@
   pointer-events: all;
 }
 
-/* Group Input/Output node */
-.react-flow__node-nodetool\.input\.GroupInput {
-  padding: 0;
-}
-
-.react-flow__node-nodetool\.output\.GroupOutput {
-  padding: 0;
-}
-
-.react-flow__node-nodetool\.input\.GroupInput .node-body,
-.react-flow__node-nodetool\.output\.GroupOutput .node-body {
-  min-height: unset !important;
-}
-
-.react-flow__node-nodetool\.input\.GroupInput .node-header {
-  background-color: var(--c_input) !important;
-}
-
-.react-flow__node-nodetool\.output\.GroupOutput .node-header {
-  background-color: var(--c_output) !important;
-}
-
-.react-flow__node-nodetool\.input\.GroupInput .node-footer,
-.react-flow__node-nodetool\.output\.GroupOutput .node-footer,
-.react-flow__node-nodetool\.input\.GroupInput .process-timer,
-.react-flow__node-nodetool\.output\.GroupOutput .process-timer,
-.react-flow__node-nodetool\.output\.GroupOutput label {
-  display: none !important;
-}
-
-.react-flow__node-nodetool\.input\.GroupInput .node-inputs,
-.react-flow__node-nodetool\.output\.GroupOutput .node-inputs {
-  position: absolute;
-  top: 2px;
-  left: -1px;
-  margin: 0;
-}
-
 /* Comment node */
 .react-flow__node-nodetool\.workflows\.base_node\.Comment {
   z-index: -1 !important;
