@@ -367,7 +367,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             iconType={"any"}
             iconBaseColor={theme.vars.palette.primary.main}
           />
-          {!result?.output && (
+          {!result && (
             <Typography className="hint">
               Displays any data from connected nodes
             </Typography>
