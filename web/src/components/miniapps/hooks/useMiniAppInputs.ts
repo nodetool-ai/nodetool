@@ -21,7 +21,6 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
         if (!kind) {
           return null;
         }
-        console.log(node);
 
         return {
           nodeId: node.id,

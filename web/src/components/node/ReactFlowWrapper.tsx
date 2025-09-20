@@ -29,7 +29,6 @@ import EdgeContextMenu from "../context_menus/EdgeContextMenu";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
-import LoopNode from "../node/LoopNode";
 import RerouteNode from "../node/RerouteNode";
 //utils
 
@@ -165,7 +164,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   /* DEFINE NODE TYPES */
   const nodeTypes = useMetadataStore((state) => state.nodeTypes);
-  nodeTypes["nodetool.group.Loop"] = LoopNode;
   nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;

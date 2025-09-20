@@ -21,9 +21,6 @@ export const useCreateNode = (
   }));
 
   const handleCreateNode = useCallback(
-    // Create a node at the last click position or at the provided center
-    // position. Loop nodes are expanded into a group with input and output
-    // child nodes handled by `createLoopNode`.
     (metadata: NodeMetadata) => {
       if (!reactFlowInstance) return;
 
@@ -32,11 +29,18 @@ export const useCreateNode = (
 
       const newNode = createNode(metadata, rfPos);
       addNode(newNode);
-      
+
       // Close the node menu after creating a node
       closeNodeMenu();
     },
-    [reactFlowInstance, centerPosition, clickPosition, createNode, addNode, closeNodeMenu]
+    [
+      reactFlowInstance,
+      centerPosition,
+      clickPosition,
+      createNode,
+      addNode,
+      closeNodeMenu
+    ]
   );
 
   return handleCreateNode;
