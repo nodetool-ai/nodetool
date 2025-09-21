@@ -114,10 +114,12 @@ export const sortModelTypes = (types: string[]) => {
         return 1;
       case "llama_cpp":
         return 1;
+      case "mlx":
+        return 1;
       case "Other":
-        return 2;
-      default:
         return 3;
+      default:
+        return 4;
     }
   };
 
