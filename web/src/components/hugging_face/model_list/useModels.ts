@@ -55,11 +55,12 @@ export const useModels = () => {
   const modelTypes = useMemo(() => {
     const allTypes = new Set<string>();
     allTypes.add("All");
+    allTypes.add("llama_model");
+    allTypes.add("llama_cpp");
+    allTypes.add("mlx");
     Object.keys(groupedHFModels).forEach((type) => allTypes.add(type));
     Object.keys(groupedRecommendedModels).forEach((type) => allTypes.add(type));
     allTypes.add("Other");
-    allTypes.add("llama_model");
-    allTypes.add("llama_cpp");
     return sortModelTypes(Array.from(allTypes));
   }, [groupedHFModels, groupedRecommendedModels]);
 
@@ -77,6 +78,11 @@ export const useModels = () => {
       return id.includes("gguf");
     };
 
+    const isMlxRepo = (model: UnifiedModel) => {
+      const id = (model.repo_id || model.id || "").toLowerCase();
+      return id.includes("mlx");
+    };
+
     const groups =
       modelSource === "recommended"
         ? groupedRecommendedModels
@@ -85,29 +91,21 @@ export const useModels = () => {
       modelSource === "recommended"
         ? groupedRecommendedModels["llama_model"]
         : ollamaModels;
+    const sourceAll = Object.values(groups).flat() as UnifiedModel[];
 
     if (selectedModelType === "All") {
       const allModels = [
         ...Object.values(groups).flat(),
         ...(modelSource === "recommended" ? [] : ollamaModels || [])
       ];
-      const filteredAllModels = allModels.filter(filterModel) as UnifiedModel[];
-      return Object.fromEntries(
-        modelTypes.map((type: string) => [
-          type,
-          filteredAllModels.filter((model: UnifiedModel) =>
-            type === "llama_model"
-              ? model.type === type
-              : type === "llama_cpp"
-              ? isGGUFRepo(model)
-              : model.type === type || (type === "Other" && !model.type)
-          )
-        ])
-      );
+      return allModels.filter(filterModel) as UnifiedModel[];
     } else if (selectedModelType === "llama_model") {
       return { llama_model: (llama || []).filter(filterModel) };
+    } else if (selectedModelType === "mlx") {
+      return {
+        mlx: (sourceAll || []).filter((m) => isMlxRepo(m) && filterModel(m))
+      };
     } else if (selectedModelType === "llama_cpp") {
-      const sourceAll = Object.values(groups).flat() as UnifiedModel[];
       return {
         llama_cpp: sourceAll.filter((m) => isGGUFRepo(m) && filterModel(m))
       };
@@ -123,7 +121,6 @@ export const useModels = () => {
     groupedRecommendedModels,
     ollamaModels,
     modelSearchTerm,
-    modelTypes,
     modelSource
   ]);
 
