@@ -16,9 +16,8 @@ import {
 import { isEqual } from "lodash";
 import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import useNodeMenuStore from "../../../stores/NodeMenuStore";
+import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";
 import { shallow } from "zustand/shallow";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
@@ -160,28 +159,21 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   }, [selectedNodeTypes, metadata]);
 
   // Use NodeMenuStore for search functionality
-  const { searchTerm, setSearchTerm, searchResults, isLoading, selectedPath } =
-    useStoreWithEqualityFn(
-      useNodeMenuStore,
-      (state) => ({
-        searchTerm: state.searchTerm,
-        setSearchTerm: state.setSearchTerm,
-        searchResults: state.searchResults,
-        isLoading: state.isLoading,
-        selectedPath: state.selectedPath
-      }),
-      shallow
-    );
-
-  const hoveredNode = useStoreWithEqualityFn(
-    useNodeMenuStore,
-    (state) => state.hoveredNode,
-    Object.is
-  );
-
-  const availableNodes = useMemo(() => {
-    return searchResults.filter((node: NodeMetadata) => node.expose_as_tool);
-  }, [searchResults]);
+  const {
+    searchTerm,
+    setSearchTerm,
+    searchResults,
+    isLoading,
+    selectedPath,
+    hoveredNode
+  } = useNodeToolsMenuStore((state) => ({
+    searchTerm: state.searchTerm,
+    setSearchTerm: state.setSearchTerm,
+    searchResults: state.searchResults,
+    isLoading: state.isLoading,
+    selectedPath: state.selectedPath,
+    hoveredNode: state.hoveredNode
+  }));
 
   // Union of available nodes and selected nodes to always show selected at the top
   const allNodesForDisplay = useMemo(() => {
@@ -191,12 +183,12 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
       if (!nodeTypeToNode.has(node.node_type))
         nodeTypeToNode.set(node.node_type, node);
     });
-    availableNodes.forEach((node) => {
+    searchResults.forEach((node) => {
       if (!nodeTypeToNode.has(node.node_type))
         nodeTypeToNode.set(node.node_type, node);
     });
     return Array.from(nodeTypeToNode.values());
-  }, [selectedNodeMetadatas, availableNodes]);
+  }, [selectedNodeMetadatas, searchResults]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setIsMenuOpen(true);
@@ -335,7 +327,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
               searchTerm={searchTerm}
               onSearchChange={handleSearchChange}
               onPressEscape={handleClose}
-              searchResults={availableNodes}
+              searchResults={searchResults}
             />
           </div>
           <div className="selector-grid">
@@ -345,7 +337,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   <div className="loading-container">
                     <CircularProgress size={24} />
                   </div>
-                ) : availableNodes.length === 0 && selectedCount === 0 ? (
+                ) : searchResults.length === 0 && selectedCount === 0 ? (
                   <div className="no-nodes-message">
                     <Typography>
                       {(() => {
