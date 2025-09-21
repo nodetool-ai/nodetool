@@ -15,6 +15,7 @@ import {
   getMessageClass,
   stripContextContent
 } from "../utils/messageUtils";
+import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -68,11 +69,64 @@ export const MessageView: React.FC<
   };
 
   const renderTextContent = (content: string, index: number) => {
+    // Check if content contains Harmony format tokens
+    if (hasHarmonyTokens(content)) {
+      const { messages, rawText } = parseHarmonyContent(content);
+      
+      // If we have parsed Harmony messages, render them
+      if (messages.length > 0) {
+        return (
+          <>
+            {messages.map((message, i) => {
+              const displayContent = getDisplayContent(message);
+              const parsedContent = stripContextContent(displayContent);
+              const parsedThought = parseThoughtContent(parsedContent);
+
+              if (parsedThought) {
+                const key = `thought-${index}-${i}`;
+                const isExpanded = expandedThoughts[key];
+
+                return (
+                  <ThoughtSection
+                    key={key}
+                    thoughtContent={parsedThought.thoughtContent}
+                    hasClosingTag={parsedThought.hasClosingTag}
+                    isExpanded={isExpanded}
+                    onToggle={() => onToggleThought(key)}
+                    textBefore={parsedThought.textBeforeThought}
+                    textAfter={parsedThought.textAfterThought}
+                  />
+                );
+              }
+
+              const handler =
+                onInsertCode ||
+                (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
+              return (
+                <ChatMarkdown 
+                  key={`markdown-${index}-${i}`} 
+                  content={parsedContent} 
+                  onInsertCode={handler} 
+                />
+              );
+            })}
+            {rawText && (
+              <ChatMarkdown 
+                content={stripContextContent(rawText)} 
+                onInsertCode={onInsertCode || (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined)} 
+              />
+            )}
+          </>
+        );
+      }
+    }
+    
+    // If no Harmony tokens or parsing failed, render as regular text
     const parsedContent = stripContextContent(content);
     const parsedThought = parseThoughtContent(parsedContent);
 
     if (parsedThought) {
-      const key = `thought-${message.id}-${index}`;
+      const key = `thought-${index}`;
       const isExpanded = expandedThoughts[key];
 
       return (
