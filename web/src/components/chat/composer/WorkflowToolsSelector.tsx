@@ -166,7 +166,7 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const selectedTools = useMemo(
-    () => value.filter((tool) => tool !== "workflow_null") || [],
+    () => value.filter((tool) => tool.startsWith("workflow_")) || [],
     [value]
   );
   const theme = useTheme();
