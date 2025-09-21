@@ -43,6 +43,9 @@ const toolsSelectorStyles = (theme: Theme) =>
         color: theme.vars.palette.grey[100]
       }
     },
+    ".MuiButton-endIcon": {
+      marginLeft: 0
+    },
     ".close-button": {
       position: "absolute",
       right: theme.spacing(1),
@@ -264,7 +267,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           }
           sx={(theme) => ({
             color: theme.vars.palette.grey[0],
-            padding: "0.25em 0.75em",
+            padding: "0.25em 0.25em",
             "&:hover": {
               backgroundColor: theme.vars.palette.grey[500]
             },
