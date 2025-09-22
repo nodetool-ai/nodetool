@@ -196,7 +196,7 @@ const DataTable: React.FC<DataTableProps> = ({
     if (!tableRef.current) return;
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
-      height: "300px",
+      height: "100%",
       data: data,
       columns: columns,
       columnDefaults: {

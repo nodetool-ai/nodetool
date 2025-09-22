@@ -158,7 +158,7 @@ const ListTable: React.FC<ListTableProps> = ({
     if (!tableRef.current) return;
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
-      height: "300px",
+      height: "100%",
       data: data.map((value, index) => ({
         rownum: index,
         value: coerceValue(value, data_type)

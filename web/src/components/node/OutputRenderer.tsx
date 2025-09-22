@@ -144,7 +144,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
       case "plotly_config":
         config = value as PlotlyConfig;
         return (
-          <div style={{ width: "100%", height: "400px" }}>
+          <div style={{ width: "100%", height: "100%" }}>
             <Plot
               data={config.config.data as Plotly.Data[]}
               layout={config.config.layout as Partial<Plotly.Layout>}
@@ -171,7 +171,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
       case "video":
-        return <video ref={videoRef} controls style={{ width: "100%" }} />;
+        return (
+          <video
+            ref={videoRef}
+            controls
+            style={{ width: "100%", height: "100%" }}
+          />
+        );
       case "dataframe":
         return <DataTable dataframe={value as DataframeRef} editable={false} />;
       case "np_array":
@@ -211,8 +217,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                 onMouseDown={handleMouseDown}
                 className="nodrag"
                 style={{
-                  maxHeight: 360,
-                  overflow: "hidden",
+                  height: "100%",
+                  overflow: "auto",
                   cursor: "grab",
                   userSelect: "none"
                 }}
@@ -380,7 +386,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   }
 
   return (
-    <div className="nodrag">
+    <div className="nodrag" style={{ height: "100%", width: "100%" }}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}
