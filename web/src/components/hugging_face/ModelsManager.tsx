@@ -16,7 +16,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 const styles = (theme: Theme) =>
   css({
-    margin: "2em 0 0",
+    margin: "2em 0 4em 0",
     "&.models-manager": {
       display: "flex",
       gap: "1em",

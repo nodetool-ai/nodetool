@@ -340,7 +340,7 @@ class Build:
                 "install",
                 "-p",
                 str(self.ENV_DIR),
-                "ffmpeg",
+                "ffmpeg>=6,<7",
                 "cairo",
                 "git",
                 "x264",
@@ -410,9 +410,7 @@ class CondaEnvironmentManager:
         self.python_version = python_version
         self.env_name = env_name or self.DEFAULT_ENV_NAME
         self.env_prefix = (
-            Path(env_prefix).expanduser().resolve()
-            if env_prefix is not None
-            else None
+            Path(env_prefix).expanduser().resolve() if env_prefix is not None else None
         )
         combined_channels = list(self.DEFAULT_CHANNELS)
         if channels:
@@ -502,7 +500,9 @@ class CondaEnvironmentManager:
     ) -> None:
         if self.env_exists():
             if not force:
-                logger.info("Conda environment already exists; use --force to recreate it.")
+                logger.info(
+                    "Conda environment already exists; use --force to recreate it."
+                )
                 return
             logger.info("Removing existing conda environment before recreation.")
             self.remove(skip_confirmation=True)
@@ -633,7 +633,9 @@ def handle_env_info(args: argparse.Namespace) -> None:
     manager.info()
 
 
-def handle_env_list(args: argparse.Namespace) -> None:  # noqa: ARG001 - matches signature
+def handle_env_list(
+    args: argparse.Namespace,
+) -> None:  # noqa: ARG001 - matches signature
     manager = CondaEnvironmentManager()
     manager.list()
 
@@ -682,7 +684,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     build_parser.set_defaults(func=handle_build_command)
 
-    env_parser = subparsers.add_parser("env", help="Manage the Nodetool conda environment")
+    env_parser = subparsers.add_parser(
+        "env", help="Manage the Nodetool conda environment"
+    )
     env_subparsers = env_parser.add_subparsers(dest="env_command", required=True)
 
     target_parent = argparse.ArgumentParser(add_help=False)

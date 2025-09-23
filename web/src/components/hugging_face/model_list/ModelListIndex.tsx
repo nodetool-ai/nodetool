@@ -59,12 +59,14 @@ const styles = (theme: Theme) =>
       padding: "0.25em 1em",
       backgroundColor: "transparent",
       "&:hover": {
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.grey[100]
       }
     },
     ".model-type-button.Mui-selected": {
       color: theme.vars.palette.grey[100],
-      transition: "background-color 0.2s ease-in"
+      transition: "background-color 0.2s ease-in",
+      borderRadius: 8,
+      backgroundColor: theme.vars.palette.grey[800]
     },
     ".model-type-button span": {
       display: "flex",
@@ -92,20 +94,10 @@ const styles = (theme: Theme) =>
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const { selectedModelType, modelSearchTerm, modelSource } =
-    useModelManagerStore();
+  const { selectedModelType, modelSearchTerm } = useModelManagerStore();
 
-  const {
-    modelTypes,
-    filteredModels,
-    isLoading,
-    isFetching,
-    hfError,
-    ollamaError,
-    recommendedError,
-    groupedHFModels,
-    groupedRecommendedModels
-  } = useModels();
+  const { modelTypes, filteredModels, isLoading, isFetching, error } =
+    useModels();
 
   const handleDeleteClick = (modelId: string) => {
     setModelToDelete(modelId);
@@ -113,15 +105,6 @@ const ModelListIndex: React.FC = () => {
 
   const handleCancelDelete = () => {
     setModelToDelete(null);
-  };
-
-  const renderModelCount = (modelType: any) => {
-    if (modelSource === "recommended" && groupedRecommendedModels[modelType]) {
-      return `[${groupedRecommendedModels[modelType].length}]`;
-    } else if (modelSource === "downloaded" && groupedHFModels[modelType]) {
-      return `[${groupedHFModels[modelType].length}]`;
-    }
-    return "";
   };
 
   if (isLoading) {
@@ -144,26 +127,13 @@ const ModelListIndex: React.FC = () => {
     );
   }
 
-  if (
-    (modelSource === "downloaded" && (hfError || ollamaError)) ||
-    (modelSource === "recommended" && recommendedError)
-  ) {
+  if (error) {
     return (
       <div className="status-container">
         <Typography variant="h3">Could not load models.</Typography>
-        {hfError && modelSource === "downloaded" && (
+        {error && (
           <Typography variant="body2" color="error">
-            HuggingFace Error: {hfError.message}
-          </Typography>
-        )}
-        {ollamaError && modelSource === "downloaded" && (
-          <Typography variant="body2" color="error">
-            Ollama Error: {ollamaError.message}
-          </Typography>
-        )}
-        {recommendedError && modelSource === "recommended" && (
-          <Typography variant="body2" color="error">
-            {recommendedError.message}
+            {error.message}
           </Typography>
         )}
       </div>
@@ -195,7 +165,9 @@ const ModelListIndex: React.FC = () => {
                 </Typography>
               )}
               {modelTypes.slice(1).map((modelType) => {
-                const models = filteredModels[modelType] || [];
+                const models = filteredModels.filter(
+                  (model) => model.type === modelType
+                );
                 if (modelSearchTerm && models.length === 0) {
                   return null;
                 }
@@ -211,15 +183,6 @@ const ModelListIndex: React.FC = () => {
                   >
                     <Typography variant="h2" fontSize="1.25em">
                       {prettifyModelType(modelType)}{" "}
-                      <span
-                        style={{
-                          color: "var(--palette-grey-400)",
-                          display: "inline-block",
-                          fontSize: "var(--fontSizeSmaller)"
-                        }}
-                      >
-                        {renderModelCount(modelType)}
-                      </span>
                     </Typography>
                     <ModelDisplay
                       models={models}
@@ -233,10 +196,13 @@ const ModelListIndex: React.FC = () => {
             <Box mt={2}>
               <Typography variant="h2" fontSize="1.25em">
                 {prettifyModelType(selectedModelType)}{" "}
-                {renderModelCount(selectedModelType)}
               </Typography>
               <ModelDisplay
-                models={Object.values(filteredModels)[0]}
+                models={Object.values(
+                  filteredModels.filter(
+                    (model) => model.type === selectedModelType
+                  )
+                )}
                 handleDeleteClick={handleDeleteClick}
               />
             </Box>

@@ -3,9 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
-import { Card, CardContent, CircularProgress } from "@mui/material";
+import { Card } from "@mui/material";
 import { ModelComponentProps } from "../ModelUtils";
-import { useModelInfo } from "../../../hooks/useModelInfo";
 import ModelCardActions from "./ModelCardActions";
 import ModelCardContent from "./ModelCardContent";
 import { isEqual } from "lodash";
@@ -198,29 +197,11 @@ const ModelCard: React.FC<
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
-  const { modelData, isLoading } = useModelInfo(model);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const modelId = model.id;
   const downloaded = model.downloaded ?? !!model.path;
   const theme = useTheme();
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
-
-  if (isLoading) {
-    return (
-      <Card className="model-card" css={styles(theme)}>
-        <CardContent
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%"
-          }}
-        >
-          <CircularProgress />
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (downloads[modelId]) {
     return (
@@ -231,19 +212,14 @@ const ModelCard: React.FC<
   }
 
   return (
-    <Card
-      className={`model-card ${!modelData ? "missing" : ""}`}
-      css={styles(theme)}
-    >
+    <Card className="model-card" css={styles(theme)}>
       <ModelCardContent
         model={model}
-        modelData={modelData}
         downloaded={downloaded}
         tagsExpanded={tagsExpanded}
         toggleTags={toggleTags}
         readmeDialogOpen={readmeDialogOpen}
         setReadmeDialogOpen={setReadmeDialogOpen}
-        sizeBytes={model.size_on_disk}
       />
       <ModelCardActions
         model={model}

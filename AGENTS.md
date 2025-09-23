@@ -174,7 +174,6 @@ The project includes many specialized hooks organized by functionality:
 
 #### Model Management Hooks
 
-- **`useHuggingFaceModels`**: Fetches and caches HuggingFace models with TanStack Query
 - **`useLoraModels`**: Manages LoRA (Low-Rank Adaptation) model data
 - **`useModelBasePaths`**: Provides base cache directories for HuggingFace Hub and Ollama models
 - **`useModelsWithSize`**: Fetches model data with size information for storage planning

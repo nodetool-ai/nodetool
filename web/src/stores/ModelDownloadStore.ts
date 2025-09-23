@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import useModelStore from "./ModelStore";
 import axios, { CancelTokenSource } from "axios";
 import { DOWNLOAD_URL } from "./BASE_URL";
 import { BASE_URL } from "./BASE_URL";
+import { QueryClient } from "@tanstack/react-query";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -34,6 +34,8 @@ interface Download {
 interface ModelDownloadStore {
   downloads: Record<string, Download>;
   ws: WebSocket | null;
+  queryClient: QueryClient | null;
+  setQueryClient: (queryClient: QueryClient) => void;
   connectWebSocket: () => Promise<WebSocket>;
   disconnectWebSocket: () => void;
   addDownload: (id: string, additionalProps?: Partial<Download>) => void;
@@ -64,7 +66,10 @@ const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
 export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   downloads: {},
   ws: null,
-
+  queryClient: null,
+  setQueryClient: (queryClient: QueryClient) => {
+    set({ queryClient });
+  },
   connectWebSocket: async () => {
     let ws = get().ws;
     if (ws?.readyState === WebSocket.OPEN) {
@@ -98,7 +103,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             message: data.message
           });
           if (data.status === "completed") {
-            useModelStore.getState().invalidate();
+            get().queryClient?.invalidateQueries({ queryKey: ["allModels"] });
           }
         }
       };
@@ -246,7 +251,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         }
 
         get().updateDownload(id, { status: "completed" });
-        useModelStore.getState().invalidate();
+        get().queryClient?.invalidateQueries({ queryKey: ["allModels"] });
       } catch (error) {
         if (axios.isCancel(error)) {
           get().updateDownload(id, { status: "cancelled" });

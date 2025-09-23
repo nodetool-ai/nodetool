@@ -371,7 +371,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/recommended_models": {
+    "/api/models/recommended": {
         parameters: {
             query?: never;
             header?: never;
@@ -379,7 +379,7 @@ export interface paths {
             cookie?: never;
         };
         /** Recommended Models */
-        get: operations["recommended_models_api_models_recommended_models_get"];
+        get: operations["recommended_models_api_models_recommended_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -388,7 +388,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/huggingface_models": {
+    "/api/models/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get All Models */
+        get: operations["get_all_models_api_models_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/huggingface": {
         parameters: {
             query?: never;
             header?: never;
@@ -396,33 +413,17 @@ export interface paths {
             cookie?: never;
         };
         /** Get Huggingface Models */
-        get: operations["get_huggingface_models_api_models_huggingface_models_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/models/huggingface_model": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        get: operations["get_huggingface_models_api_models_huggingface_get"];
         put?: never;
         post?: never;
         /** Delete Huggingface Model */
-        delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
+        delete: operations["delete_huggingface_model_api_models_huggingface_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/models/ollama_models": {
+    "/api/models/ollama": {
         parameters: {
             query?: never;
             header?: never;
@@ -430,33 +431,17 @@ export interface paths {
             cookie?: never;
         };
         /** Get Ollama Models Endpoint */
-        get: operations["get_ollama_models_endpoint_api_models_ollama_models_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/models/ollama_model": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        get: operations["get_ollama_models_endpoint_api_models_ollama_get"];
         put?: never;
         post?: never;
         /** Delete Ollama Model Endpoint */
-        delete: operations["delete_ollama_model_endpoint_api_models_ollama_model_delete"];
+        delete: operations["delete_ollama_model_endpoint_api_models_ollama_delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/models/language_models": {
+    "/api/models/llm": {
         parameters: {
             query?: never;
             header?: never;
@@ -464,7 +449,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get Language Models Endpoint */
-        get: operations["get_language_models_endpoint_api_models_language_models_get"];
+        get: operations["get_language_models_endpoint_api_models_llm_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1420,39 +1405,6 @@ export interface components {
              * Format: binary
              */
             file: string;
-        };
-        /** CachedFileInfo */
-        CachedFileInfo: {
-            /** File Name */
-            file_name: string;
-            /** Size On Disk */
-            size_on_disk: number;
-        };
-        /** CachedModel */
-        CachedModel: {
-            /** Repo Id */
-            repo_id: string;
-            /** Repo Type */
-            repo_type: string;
-            /** Path */
-            path: string;
-            /** Size On Disk */
-            size_on_disk: number;
-            /**
-             * Has Model Index
-             * @default false
-             */
-            has_model_index: boolean;
-            /** The Model Type */
-            the_model_type?: string | null;
-            the_model_info?: components["schemas"]["ModelInfo"] | null;
-            /** Readme */
-            readme?: string | null;
-            /**
-             * Cached Files
-             * @default []
-             */
-            cached_files: components["schemas"]["CachedFileInfo"][];
         };
         /** CachedRepo */
         CachedRepo: {
@@ -3413,57 +3365,6 @@ export interface components {
              */
             name: string;
         };
-        /** ModelInfo */
-        ModelInfo: {
-            /** Id */
-            id: string;
-            /** Modelid */
-            modelId: string;
-            /** Author */
-            author: string;
-            /** Sha */
-            sha: string;
-            /**
-             * Lastmodified
-             * Format: date-time
-             */
-            lastModified: string;
-            /** Private */
-            private: boolean;
-            /** Disabled */
-            disabled: boolean;
-            /** Gated */
-            gated: boolean | string;
-            /** Pipeline Tag */
-            pipeline_tag?: string | null;
-            /** Tags */
-            tags: string[];
-            /** Downloads */
-            downloads: number;
-            /** Library Name */
-            library_name?: string | null;
-            /** Likes */
-            likes: number;
-            /** Model-Index */
-            "model-index"?: unknown | null;
-            /** Config */
-            config?: {
-                [key: string]: unknown;
-            } | null;
-            /** Carddata */
-            cardData?: {
-                [key: string]: unknown;
-            } | null;
-            /** Siblings */
-            siblings?: components["schemas"]["Sibling"][] | null;
-            /** Spaces */
-            spaces?: string[] | null;
-            /**
-             * Createdat
-             * Format: date-time
-             */
-            createdAt: string;
-        };
         /** ModelRef */
         ModelRef: {
             /**
@@ -3615,7 +3516,7 @@ export interface components {
              * Recommended Models
              * @description Recommended models for the node
              */
-            recommended_models: components["schemas"]["HuggingFaceModel"][];
+            recommended_models: components["schemas"]["UnifiedModel"][];
             /**
              * Basic Fields
              * @description Basic fields of the node
@@ -3945,7 +3846,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -4087,11 +3988,6 @@ export interface components {
             secrets: {
                 [key: string]: unknown;
             };
-        };
-        /** Sibling */
-        Sibling: {
-            /** Rfilename */
-            rfilename: string;
         };
         /**
          * SubTask
@@ -4523,6 +4419,45 @@ export interface components {
             type_args: components["schemas"]["TypeMetadata-Output"][];
             /** Type Name */
             type_name?: string | null;
+        };
+        /** UnifiedModel */
+        UnifiedModel: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string | null;
+            /** Name */
+            name: string;
+            /** Repo Id */
+            repo_id: string | null;
+            /** Path */
+            path: string | null;
+            /** Cache Path */
+            cache_path: string | null;
+            /** Allow Patterns */
+            allow_patterns: string[] | null;
+            /** Ignore Patterns */
+            ignore_patterns: string[] | null;
+            /** Description */
+            description: string | null;
+            /** Readme */
+            readme: string | null;
+            /** Size On Disk */
+            size_on_disk: number | null;
+            /** Downloaded */
+            downloaded: boolean;
+            /** Pipeline Tag */
+            pipeline_tag: string | null;
+            /** Tags */
+            tags: string[] | null;
+            /** Has Model Index */
+            has_model_index: boolean | null;
+            /** Downloads */
+            downloads: number | null;
+            /** Likes */
+            likes: number | null;
+            /** Trending Score */
+            trending_score: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -5467,7 +5402,7 @@ export interface operations {
             };
         };
     };
-    recommended_models_api_models_recommended_models_get: {
+    recommended_models_api_models_recommended_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5486,7 +5421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HuggingFaceModel"][];
+                    "application/json": components["schemas"]["UnifiedModel"][];
                 };
             };
             /** @description Validation Error */
@@ -5500,7 +5435,7 @@ export interface operations {
             };
         };
     };
-    get_huggingface_models_api_models_huggingface_models_get: {
+    get_all_models_api_models_all_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5519,7 +5454,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CachedModel"][];
+                    "application/json": components["schemas"]["UnifiedModel"][];
                 };
             };
             /** @description Validation Error */
@@ -5533,7 +5468,40 @@ export interface operations {
             };
         };
     };
-    delete_huggingface_model_api_models_huggingface_model_delete: {
+    get_huggingface_models_api_models_huggingface_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnifiedModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_huggingface_model_api_models_huggingface_delete: {
         parameters: {
             query: {
                 repo_id: string;
@@ -5564,7 +5532,7 @@ export interface operations {
             };
         };
     };
-    get_ollama_models_endpoint_api_models_ollama_models_get: {
+    get_ollama_models_endpoint_api_models_ollama_get: {
         parameters: {
             query?: never;
             header?: {
@@ -5597,7 +5565,7 @@ export interface operations {
             };
         };
     };
-    delete_ollama_model_endpoint_api_models_ollama_model_delete: {
+    delete_ollama_model_endpoint_api_models_ollama_delete: {
         parameters: {
             query: {
                 model_name: string;
@@ -5628,7 +5596,7 @@ export interface operations {
             };
         };
     };
-    get_language_models_endpoint_api_models_language_models_get: {
+    get_language_models_endpoint_api_models_llm_get: {
         parameters: {
             query?: never;
             header?: {

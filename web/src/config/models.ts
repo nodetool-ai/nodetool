@@ -382,4 +382,20 @@ export const llama_models: UnifiedModel[] = [
       "Flagship 32B parameter coding model with competitive performance against GPT-4o. Achieves state-of-the-art results in code generation, repair, and reasoning with exceptional multi-language support including Haskell and Racket.",
     type: "llama_model"
   }
-];
+].map((model) => ({
+  ...model,
+  repo_id: model.id,
+  path: null,
+  cache_path: null,
+  allow_patterns: null,
+  ignore_patterns: null,
+  downloaded: false,
+  pipeline_tag: null,
+  tags: null,
+  has_model_index: null,
+  downloads: null,
+  likes: null,
+  trending_score: null,
+  readme: null,
+  size_on_disk: null
+}));

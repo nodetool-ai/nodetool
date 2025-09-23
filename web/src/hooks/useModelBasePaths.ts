@@ -1,7 +1,5 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
-import { CachedModel } from "../stores/ApiTypes";
 
 /**
  * useModelBasePaths
@@ -11,7 +9,7 @@ import { CachedModel } from "../stores/ApiTypes";
  *
  * Ollama:      Obtained from the dedicated backend endpoint.
  * HuggingFace: Derived heuristically from the first model path returned by the
- *               `/api/models/huggingface_models` endpoint, falling back to the
+ *               `/api/models/huggingface` endpoint, falling back to the
  *               conventional `~/.cache/huggingface` if none are present.
  */
 export const useModelBasePaths = () => {
@@ -70,7 +68,8 @@ export const useModelBasePaths = () => {
     refetchOnWindowFocus: false
   });
 
-  const huggingfaceBasePath: string | null = huggingfaceBasePathData?.path ?? null;
+  const huggingfaceBasePath: string | null =
+    huggingfaceBasePathData?.path ?? null;
 
   return { huggingfaceBasePath, ollamaBasePath };
 };

@@ -49,17 +49,6 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       )}
 
       <div className="model-actions">
-        {downloaded && (
-          <div className="downloaded-icon">
-            <Tooltip
-              title="Downloaded"
-              enterDelay={TOOLTIP_ENTER_DELAY * 2}
-              enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-            >
-              <Check />
-            </Tooltip>
-          </div>
-        )}
         {handleShowInExplorer && showFileExplorerButton && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}

@@ -65,22 +65,6 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
   const searchTerm = useModelMenuStore((s) => s.search);
-  React.useEffect(() => {
-    // Intentionally left blank: previously logged models for debugging
-  }, [models]);
-  const availabilityMap = useMemo(() => {
-    const map: Record<string, boolean> = {};
-    models.forEach((m) => {
-      const env = requiredSecretForProvider(m.provider);
-      const providerEnabled = enabledProviders?.[m.provider || ""] !== false;
-      const ok =
-        providerEnabled &&
-        (!env ||
-          Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0));
-      map[`${m.provider}:${m.id}`] = ok;
-    });
-    return map;
-  }, [models, secrets, enabledProviders]);
 
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {

@@ -49,7 +49,6 @@ import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
-import useModelStore from "./stores/ModelStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
 import Welcome from "./components/content/Welcome/Welcome";
@@ -91,6 +90,7 @@ import "./lib/tools/builtin/alignNodes";
 import "./lib/tools/builtin/duplicateNode";
 import "./lib/tools/builtin/selectNodes";
 import "./lib/tools/builtin/fitView";
+import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;
 
@@ -272,7 +272,7 @@ function getRoutes() {
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
-useModelStore.getState().setQueryClient(queryClient);
+useModelDownloadStore.getState().setQueryClient(queryClient);
 const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
