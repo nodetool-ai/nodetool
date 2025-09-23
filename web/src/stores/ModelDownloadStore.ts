@@ -197,18 +197,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
     get().addDownload(id);
 
-    if (modelType.startsWith("hf.")) {
-      const ws = await get().connectWebSocket();
-      ws.send(
-        JSON.stringify({
-          command: "start_download",
-          repo_id: repoId,
-          path: path,
-          allow_patterns: allowPatterns,
-          ignore_patterns: ignorePatterns
-        })
-      );
-    } else if (modelType === "llama_model") {
+    if (modelType === "llama_model") {
       try {
         const response = await fetch(
           BASE_URL + "/api/models/pull_ollama_model?model_name=" + id,
@@ -259,6 +248,17 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           get().updateDownload(id, { status: "error" });
         }
       }
+    } else {
+      const ws = await get().connectWebSocket();
+      ws.send(
+        JSON.stringify({
+          command: "start_download",
+          repo_id: repoId,
+          path: path,
+          allow_patterns: allowPatterns,
+          ignore_patterns: ignorePatterns
+        })
+      );
     }
   },
 
