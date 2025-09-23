@@ -15,11 +15,20 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
   recommendedModels
 }) => {
   const [openModelDialog, setOpenModelDialog] = useState(false);
-  const { startDownload } = useModelDownloadStore();
+  const { startDownload, openDialog } = useModelDownloadStore();
   const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
   const handleCloseModelDialog = useCallback(
     () => setOpenModelDialog(false),
     []
+  );
+
+  const onStartDownload = React.useCallback(
+    (model: UnifiedModel) => {
+      const repoId = model.repo_id || model.id;
+      startDownload(repoId, model.type ?? "", model.path ?? undefined);
+      openDialog();
+    },
+    [startDownload, openDialog]
   );
 
   if (recommendedModels.length === 0) {
@@ -65,7 +74,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
         open={openModelDialog}
         onClose={handleCloseModelDialog}
         recommendedModels={recommendedModels}
-        startDownload={startDownload}
+        startDownload={onStartDownload}
       />
     </>
   );

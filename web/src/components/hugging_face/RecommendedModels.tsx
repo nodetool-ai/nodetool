@@ -18,13 +18,7 @@ import { openInExplorer } from "../../utils/fileExplorer";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
-  startDownload: (
-    repoId: string,
-    modelType: string,
-    path: string | null,
-    allowPatterns: string[] | null,
-    ignorePatterns: string[] | null
-  ) => void;
+  startDownload: (model: UnifiedModel) => void;
 }
 
 const RecommendedModels: React.FC<RecommendedModelsProps> = ({
@@ -113,15 +107,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
                 compactView={true}
                 key={model.id}
                 model={model}
-                onDownload={() =>
-                  startDownload(
-                    model.repo_id || "",
-                    model.type || "hf.model",
-                    model.path ?? null,
-                    model.allow_patterns ?? null,
-                    model.ignore_patterns ?? null
-                  )
-                }
+                onDownload={() => startDownload(model)}
               />
             );
           })}
