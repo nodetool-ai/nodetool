@@ -16,24 +16,20 @@ import { UnifiedModel } from "../../../stores/ApiTypes";
 
 interface ModelCardContentProps {
   model: UnifiedModel;
-  modelData: any;
   downloaded: boolean;
   tagsExpanded: boolean;
   toggleTags: () => void;
   readmeDialogOpen: boolean;
   setReadmeDialogOpen: (open: boolean) => void;
-  sizeBytes?: number;
 }
 const ModelCardContent = React.memo<ModelCardContentProps>(
   ({
     model,
-    modelData,
     downloaded,
     tagsExpanded,
     toggleTags,
     readmeDialogOpen,
-    setReadmeDialogOpen,
-    sizeBytes
+    setReadmeDialogOpen
   }) => {
     const isHuggingFace = model.type?.startsWith("hf.") ?? false;
     const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
@@ -73,90 +69,54 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           </Typography>
         )}
 
-        {isHuggingFace && !modelData && (
-          <>
-            <Typography
-              variant="h5"
-              style={{ color: theme.vars.palette.warning.main }}
-            >
-              No matching repository found.
-            </Typography>
-            <Button
-              className="button-link"
-              size="small"
-              variant="contained"
-              href={`https://huggingface.co/${model.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {getShortModelName(model.id)}
-            </Button>
-          </>
-        )}
+        <Box>
+          {model.size_on_disk && (
+            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
+              <Typography variant="body2" className="text-model-size">
+                {formatBytes(model.size_on_disk)}
+              </Typography>
+            </Tooltip>
+          )}
+          {model.tags && (
+            <Box className="tags-container">
+              <Button className="pipeline-tag" onClick={toggleTags}>
+                {model.pipeline_tag || "#"}
+              </Button>
 
-        {modelData ? (
-          <>
-            <Box>
-              {(sizeBytes || model.size_on_disk) && (
-                <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                  title={downloaded ? "Size on disk" : "Download size"}
-                >
-                  <Typography variant="body2" className="text-model-size">
-                    {formatBytes(sizeBytes ?? model.size_on_disk)}
-                  </Typography>
-                </Tooltip>
-              )}
-              {(modelData.cardData?.tags || modelData.tags) && (
-                <Box className="tags-container">
-                  <Button className="pipeline-tag" onClick={toggleTags}>
-                    {modelData.cardData?.pipeline_tag || "#"}
-                  </Button>
-
-                  <Box
-                    className="tags-list"
-                    style={{ display: tagsExpanded ? "block" : "none" }}
-                  >
-                    <Box mt={1}>
-                      {(modelData.cardData?.tags || modelData.tags).map(
-                        (tag: string) => (
-                          <Chip
-                            className="tag"
-                            key={tag}
-                            label={tag}
-                            size="small"
-                            sx={{ margin: "2px" }}
-                          />
-                        )
-                      )}
-                    </Box>
-                  </Box>
+              <Box
+                className="tags-list"
+                style={{ display: tagsExpanded ? "block" : "none" }}
+              >
+                <Box mt={1}>
+                  {model.tags.map((tag: string) => (
+                    <Chip
+                      className="tag"
+                      key={tag}
+                      label={tag}
+                      size="small"
+                      sx={{ margin: "2px" }}
+                    />
+                  ))}
                 </Box>
-              )}
-            </Box>
-
-            {isHuggingFace && (
-              <Box>
-                <Button
-                  className="readme-toggle-button"
-                  onClick={() => setReadmeDialogOpen(true)}
-                >
-                  <Typography>README</Typography>
-                </Button>
-                <ReadmeDialog
-                  open={readmeDialogOpen}
-                  onClose={() => setReadmeDialogOpen(false)}
-                  modelId={model.id}
-                />
               </Box>
-            )}
-          </>
-        ) : (
-          isHuggingFace && (
-            <Box mt={2}>
-              <Typography>Loading model data...</Typography>
             </Box>
-          )
+          )}
+        </Box>
+
+        {isHuggingFace && (
+          <Box>
+            <Button
+              className="readme-toggle-button"
+              onClick={() => setReadmeDialogOpen(true)}
+            >
+              <Typography>README</Typography>
+            </Button>
+            <ReadmeDialog
+              open={readmeDialogOpen}
+              onClose={() => setReadmeDialogOpen(false)}
+              modelId={model.id}
+            />
+          </Box>
         )}
       </CardContent>
     );

@@ -9,14 +9,13 @@ import {
   CircularProgress,
   Box
 } from "@mui/material";
-import { useHuggingFaceModels } from "../../../hooks/useHuggingFaceModels";
-import { useOllamaModels } from "../../../hooks/useOllamaModels";
 import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useState } from "react";
+import { useModels } from "./useModels";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
@@ -27,8 +26,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   modelId,
   onClose
 }) => {
-  const { ollamaModels } = useOllamaModels();
-  const { hfModels } = useHuggingFaceModels();
+  const { allModels } = useModels();
   const { ollamaBasePath } = useModelBasePaths();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -39,7 +37,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
     try {
-      const { error } = await client.DELETE("/api/models/huggingface_model", {
+      const { error } = await client.DELETE("/api/models/huggingface", {
         params: { query: { repo_id: repoId } }
       });
       if (error) throw error;
@@ -95,9 +93,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) return;
 
-    const model =
-      ollamaModels?.find((m) => m.id === modelId) ||
-      hfModels?.find((m) => m.id === modelId);
+    const model = allModels?.find((m) => m.id === modelId);
 
     const isOllama = model?.type === "llama_model";
     const pathToShow = isOllama ? ollamaBasePath : model?.path;
@@ -127,8 +123,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   };
 
   const modelForExplorer = modelId
-    ? ollamaModels?.find((m) => m.id === modelId) ||
-      hfModels?.find((m) => m.id === modelId)
+    ? allModels?.find((m) => m.id === modelId)
     : null;
 
   let explorerPath = modelForExplorer?.path;
@@ -143,8 +138,8 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
 
   const handleConfirmDelete = async () => {
     if (modelId) {
-      const isOllama = ollamaModels?.find((m) => m.id === modelId);
-      if (isOllama) {
+      const model = allModels?.find((m) => m.id === modelId);
+      if (model?.type === "llama_model") {
         await deleteOllamaModel(modelId);
       } else {
         await deleteHFModel(modelId);

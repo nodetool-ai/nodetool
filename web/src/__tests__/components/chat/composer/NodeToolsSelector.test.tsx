@@ -61,9 +61,65 @@ jest.mock("@mui/icons-material", () => ({
   Close: () => <svg data-testid="CloseIcon" />
 }));
 
-// Use the real store; we'll set its state in tests
+// Test fixtures and shared mocks need to be defined before jest.mock() that use them
+const mockOnChange = jest.fn();
+const mockSetSearchTerm = jest.fn();
+const mockSetHoveredNode = jest.fn();
 
-// Do not mock the store itself; we will stub the selector hook instead
+const mockNodeMetadata: Record<string, any> = {
+  "tool.node1": {
+    node_type: "tool.node1",
+    title: "Tool Node 1",
+    namespace: "tool",
+    properties: [],
+    outputs: [],
+    expose_as_tool: true
+  },
+  "tool.node2": {
+    node_type: "tool.node2",
+    title: "Tool Node 2",
+    namespace: "tool",
+    properties: [],
+    outputs: [],
+    expose_as_tool: true
+  },
+  "regular.node": {
+    node_type: "regular.node",
+    title: "Regular Node",
+    namespace: "regular",
+    properties: [],
+    outputs: [],
+    expose_as_tool: false
+  }
+};
+
+const mockSearchResults = [
+  mockNodeMetadata["tool.node1"],
+  mockNodeMetadata["tool.node2"]
+];
+
+// Mock the NodeMenuStore hook directly so we can control searchTerm and results
+jest.mock("../../../../stores/NodeMenuStore", () => {
+  let currentStore: any = {
+    searchTerm: "",
+    setSearchTerm: (_term: string) => {},
+    searchResults: [],
+    isLoading: false,
+    selectedPath: [],
+    hoveredNode: null,
+    setHoveredNode: (_node: any) => {}
+  };
+  const useNodeToolsMenuStore = (selector?: any) =>
+    selector ? selector(currentStore) : currentStore;
+  const __setNodeToolsMenuStore = (newStore: any) => {
+    currentStore = newStore;
+  };
+  return {
+    __esModule: true,
+    useNodeToolsMenuStore,
+    __setNodeToolsMenuStore
+  };
+});
 
 // Mock the SearchInput component
 jest.mock("../../../../components/search/SearchInput", () => ({
@@ -150,6 +206,7 @@ jest.mock("lodash", () => ({
 }));
 
 import useMetadataStore from "../../../../stores/MetadataStore";
+import { __setNodeToolsMenuStore } from "../../../../stores/NodeMenuStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 
 // Mock the useStoreWithEqualityFn hook to return from our mock store
@@ -163,48 +220,11 @@ jest.mock("react", () => ({
   useRef: jest.fn(() => ({ current: null }))
 }));
 
-// Test fixtures
-const mockNodeMetadata: Record<string, any> = {
-  "tool.node1": {
-    node_type: "tool.node1",
-    title: "Tool Node 1",
-    namespace: "tool",
-    properties: [],
-    outputs: [],
-    expose_as_tool: true
-  },
-  "tool.node2": {
-    node_type: "tool.node2",
-    title: "Tool Node 2",
-    namespace: "tool",
-    properties: [],
-    outputs: [],
-    expose_as_tool: true
-  },
-  "regular.node": {
-    node_type: "regular.node",
-    title: "Regular Node",
-    namespace: "regular",
-    properties: [],
-    outputs: [],
-    expose_as_tool: false
-  }
-};
-
-const mockSearchResults = [
-  mockNodeMetadata["tool.node1"],
-  mockNodeMetadata["tool.node2"]
-];
-
 const renderComponent = (props: any) => {
   return render(<NodeToolsSelector {...props} />);
 };
 
 describe("NodeToolsSelector", () => {
-  const mockOnChange = jest.fn();
-  const mockSetSearchTerm = jest.fn();
-  const mockSetHoveredNode = jest.fn();
-
   const baseProps = {
     value: [],
     onChange: mockOnChange
@@ -214,30 +234,21 @@ describe("NodeToolsSelector", () => {
     metadata: mockNodeMetadata
   };
 
-  const mockNodeMenuStore = {
-    searchTerm: "",
-    setSearchTerm: mockSetSearchTerm,
-    searchResults: mockSearchResults,
-    isLoading: false,
-    selectedPath: [],
-    hoveredNode: null,
-    setHoveredNode: mockSetHoveredNode,
-    // Add missing properties that might be used
-    availableNodes: mockSearchResults,
-    filteredNodes: mockSearchResults
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Initialize real store state
     useMetadataStore.setState({ metadata: mockNodeMetadata });
 
-    (useStoreWithEqualityFn as jest.Mock).mockImplementation(
-      (_store, selector) => {
-        return selector ? selector(mockNodeMenuStore) : mockNodeMenuStore;
-      }
-    );
+    __setNodeToolsMenuStore({
+      searchTerm: "",
+      setSearchTerm: (term: string) => mockSetSearchTerm(term),
+      searchResults: mockSearchResults,
+      isLoading: false,
+      selectedPath: [],
+      hoveredNode: null,
+      setHoveredNode: (node: any) => mockSetHoveredNode(node)
+    });
   });
 
   describe("Basic Rendering", () => {

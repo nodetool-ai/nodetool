@@ -7,7 +7,6 @@ import { Grid, Box } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { UnifiedModel } from "../../stores/ApiTypes";
-import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import ModelListItem from "./model_list/ModelListItem";
 
 const styles = (theme: Theme) =>
@@ -34,12 +33,10 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
     downloads: state.downloads
   }));
 
-  const modelsWithSize = useModelsWithSize(models);
-
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
-        {modelsWithSize.map((model, index) => {
+        {models.map((model, index) => {
           const modelId = model.id;
           return (
             <Grid
@@ -56,7 +53,6 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
               <Box className="model-container">
                 {!downloads[modelId] && (
                   <ModelListItem
-                    hideMissingInfo={false}
                     key={model.id}
                     model={model}
                     showModelStats={false}

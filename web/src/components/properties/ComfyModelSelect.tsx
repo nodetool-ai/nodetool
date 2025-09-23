@@ -1,9 +1,9 @@
 import { useMemo, useCallback, memo } from "react";
-import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { ModelFile } from "../../stores/ApiTypes";
 import { isEqual } from "lodash";
 import Select from "../inputs/Select";
+import { client } from "../../stores/ApiClient";
 
 interface ComfyModelSelectProps {
   modelType: string;
@@ -16,7 +16,15 @@ const ComfyModelSelect = ({
   onChange,
   value
 }: ComfyModelSelectProps) => {
-  const loadComfyModels = useModelStore((state) => state.loadComfyModels);
+  const loadComfyModels = useCallback(async (modelType: string) => {
+    const { error, data } = await client.GET("/api/models/{model_type}", {
+      params: { path: { model_type: modelType } }
+    });
+    if (error) {
+      throw error;
+    }
+    return data;
+  }, []);
 
   const {
     data: models,

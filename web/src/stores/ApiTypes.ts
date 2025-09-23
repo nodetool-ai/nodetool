@@ -78,11 +78,9 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
-export type CachedModel = components["schemas"]["CachedModel"];
-export type CachedFileInfo = components["schemas"]["CachedFileInfo"];
 export type ModelFile = components["schemas"]["ModelFile"];
-export type ModelInfo = components["schemas"]["ModelInfo"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
+export type UnifiedModel = components["schemas"]["UnifiedModel"];
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
@@ -103,24 +101,6 @@ export type FileInfo = components["schemas"]["FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
-export interface UnifiedModel {
-  id: string;
-  type?: string;
-  name: string;
-  repo_id?: string;
-  path?: string | null;
-  cache_path?: string | null;
-  allow_patterns?: string[];
-  ignore_patterns?: string[];
-  description?: string;
-  readme?: string;
-  size_on_disk?: number;
-  downloaded?: boolean;
-  pipeline_tag?: string;
-  tags?: string[];
-  has_model_index?: boolean;
-}
-
 export type Task = components["schemas"]["Task"];
 export type TaskPlan = components["schemas"]["TaskPlan"];
 export type SubTask = components["schemas"]["SubTask"];

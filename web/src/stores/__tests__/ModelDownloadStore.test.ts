@@ -7,10 +7,8 @@ jest.mock("../BASE_URL", () => ({
   DOWNLOAD_URL: "ws://localhost:8000/hf/download"
 }));
 import { useModelDownloadStore } from "../ModelDownloadStore";
-import useModelStore from "../ModelStore";
 
 const originalDownloadState = useModelDownloadStore.getState();
-const originalModelState = useModelStore.getState();
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -32,14 +30,6 @@ beforeEach(() => {
     },
     true
   );
-
-  useModelStore.setState(
-    {
-      ...originalModelState,
-      invalidate: jest.fn()
-    },
-    true
-  );
 });
 
 afterEach(() => {
@@ -53,7 +43,6 @@ afterEach(() => {
     },
     true
   );
-  useModelStore.setState(originalModelState, true);
 });
 
 describe("ModelDownloadStore", () => {

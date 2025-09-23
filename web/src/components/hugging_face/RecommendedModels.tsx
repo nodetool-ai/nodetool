@@ -11,15 +11,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
-import { useModelsWithSize } from "../../hooks/useModelsWithSize";
 import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { openInExplorer } from "../../utils/fileExplorer";
-import { useHuggingFaceModels } from "../../hooks/useHuggingFaceModels";
-import { useOllamaModels } from "../../hooks/useOllamaModels";
-import { isModelDownloaded } from "../../utils/modelDownloadCheck";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -38,19 +33,12 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const modelsWithSize = useModelsWithSize(recommendedModels);
   const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
-  const { hfModels } = useHuggingFaceModels();
-  const { ollamaModels } = useOllamaModels();
-  const downloadedModels = useMemo(() => {
-    const modelIds = new Set([...(hfModels || []), ...(ollamaModels || [])].map((m) => m.id));
-    return modelIds;
-  }, [hfModels, ollamaModels]);
 
   const filteredModels = useMemo(() => {
-    if (!searchQuery) return modelsWithSize;
+    if (!searchQuery) return recommendedModels;
     const query = searchQuery.toLowerCase();
-    return modelsWithSize.filter((model) => {
+    return recommendedModels.filter((model) => {
       const matches =
         model.name.toLowerCase().includes(query) ||
         model.id.toLowerCase().includes(query) ||
@@ -59,7 +47,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 
       return matches;
     });
-  }, [modelsWithSize, searchQuery]);
+  }, [recommendedModels, searchQuery]);
 
   if (!recommendedModels) {
     return <div>Loading...</div>;
@@ -120,14 +108,11 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       ) : (
         <List>
           {filteredModels.map((model) => {
-            const isDownloaded = isModelDownloaded(model, downloadedModels, hfModels);
-            
             return (
               <ModelListItem
                 compactView={true}
-                hideMissingInfo={false}
                 key={model.id}
-                model={{ ...model, downloaded: isDownloaded }}
+                model={model}
                 onDownload={() =>
                   startDownload(
                     model.repo_id || "",

@@ -1,30 +1,19 @@
 import { create } from "zustand";
 
-export type ModelSource = "downloaded" | "recommended";
-
 interface ModelManagerState {
-  modelSource: ModelSource;
   modelSearchTerm: string;
   selectedModelType: string;
-  setModelSource: (source: ModelSource) => void;
+  maxModelSizeGB: number; // 0 means no limit
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
-  handleModelSourceChange: (
-    event: React.MouseEvent<HTMLElement>,
-    newSource: ModelSource | null
-  ) => void;
+  setMaxModelSizeGB: (gb: number) => void;
 }
 
 export const useModelManagerStore = create<ModelManagerState>((set) => ({
-  modelSource: "downloaded",
   modelSearchTerm: "",
   selectedModelType: "All",
-  setModelSource: (source) => set({ modelSource: source }),
+  maxModelSizeGB: 0,
   setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
   setSelectedModelType: (type) => set({ selectedModelType: type }),
-  handleModelSourceChange: (event, newSource) => {
-    if (newSource !== null) {
-      set({ modelSource: newSource });
-    }
-  }
+  setMaxModelSizeGB: (gb) => set({ maxModelSizeGB: gb })
 }));

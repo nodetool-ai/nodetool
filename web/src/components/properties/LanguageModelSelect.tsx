@@ -3,7 +3,6 @@ import { Typography, Tooltip, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
 import { isEqual } from "lodash";
-import useModelStore from "../../stores/ModelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   isHuggingFaceProvider,
@@ -13,6 +12,7 @@ import {
 import ModelMenuDialog from "../model_menu/ModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { LanguageModel } from "../../stores/ApiTypes";
+import { client } from "../../stores/ApiClient";
 
 interface LanguageModelSelectProps {
   onChange: (value: any) => void;
@@ -66,7 +66,14 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const theme = useTheme();
 
-  const loadLanguageModels = useModelStore((state) => state.loadLanguageModels);
+  const loadLanguageModels = useCallback(async () => {
+    const { data, error } = await client.GET("/api/models/llm", {});
+    if (error) {
+      throw error;
+    }
+    return data;
+  }, []);
+
   const {
     data: models,
     isLoading,

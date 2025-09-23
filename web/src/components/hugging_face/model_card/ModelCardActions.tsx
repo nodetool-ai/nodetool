@@ -8,9 +8,7 @@ import { Check } from "@mui/icons-material";
 import { isProduction } from "../../../stores/ApiClient";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import { useModelInfo } from "../../../hooks/useModelInfo";
 import {
   HuggingFaceLink,
   ModelShowInExplorerButton,
@@ -91,7 +89,6 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   onDownload,
   ollamaBasePath
 }) => {
-  const { modelData, isHuggingFace, isOllama } = useModelInfo(model);
   const downloaded = model.downloaded ?? !!model.path;
   const theme = useTheme();
   const showFileExplorerButtonFinal =
@@ -111,7 +108,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         className="card-actions"
         sx={{ justifyContent: "space-between", p: 2 }}
       >
-        {isHuggingFace && (
+        {model.downloads && (
           <Box className="model-stats">
             <Typography
               variant="body2"
@@ -132,7 +129,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                 />
               </Tooltip>
               <Typography variant="body2" component="span">
-                {modelData?.downloads?.toLocaleString() || "N/A"}
+                {model.downloads?.toLocaleString() || "N/A"}
               </Typography>
 
               <Tooltip title="Likes on HF">
@@ -141,14 +138,14 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                   sx={{ ml: 2, color: theme.vars.palette.grey[500] }}
                 />
               </Tooltip>
-              {modelData?.likes?.toLocaleString() || "N/A"}
+              {model.likes?.toLocaleString() || "N/A"}
             </Typography>
           </Box>
         )}
-        {isHuggingFace && (
+        {model.type?.startsWith("hf.") && (
           <HuggingFaceLink modelId={model.repo_id || model.id} />
         )}
-        {isOllama && <OllamaLink modelId={model.id} />}
+        {model.type === "llama_model" && <OllamaLink modelId={model.id} />}
       </CardActions>
     </Box>
   );

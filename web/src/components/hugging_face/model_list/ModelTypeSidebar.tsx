@@ -6,14 +6,8 @@ import { useModels } from "./useModels";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
 const ModelTypeSidebar: React.FC = () => {
-  const {
-    modelTypes,
-    ollamaModels,
-    groupedHFModels,
-    groupedRecommendedModels
-  } = useModels();
-  const { modelSource, selectedModelType, setSelectedModelType } =
-    useModelManagerStore();
+  const { modelTypes } = useModels();
+  const { selectedModelType, setSelectedModelType } = useModelManagerStore();
 
   const onModelTypeChange = useCallback(
     (type: string) => {
@@ -25,21 +19,9 @@ const ModelTypeSidebar: React.FC = () => {
   return (
     <List className="model-type-list">
       {modelTypes.map((type) => {
-        let isEmpty = false;
-        if (type === "llama_model") {
-          isEmpty =
-            modelSource === "downloaded"
-              ? (ollamaModels?.length || 0) === 0
-              : (groupedRecommendedModels["llama_model"]?.length || 0) === 0;
-        } else if (modelSource === "downloaded") {
-          isEmpty = (groupedHFModels[type]?.length || 0) === 0;
-        } else {
-          isEmpty = (groupedRecommendedModels[type]?.length || 0) === 0;
-        }
-
         return (
           <ListItemButton
-            className={`model-type-button ${isEmpty ? "empty" : ""}`}
+            className={`model-type-button`}
             key={type}
             selected={selectedModelType === type}
             onClick={() => onModelTypeChange(type)}

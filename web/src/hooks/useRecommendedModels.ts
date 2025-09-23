@@ -4,12 +4,7 @@ import { client } from "../stores/ApiClient";
 import { UnifiedModel } from "../stores/ApiTypes";
 import { llama_models as staticOllamaModels } from "../config/models";
 
-interface UseRecommendedModelsOptions {
-  downloadedIds?: Set<string>;
-}
-
-export const useRecommendedModels = (options: UseRecommendedModelsOptions = {}) => {
-  const { downloadedIds = new Set<string>() } = options;
+export const useRecommendedModels = () => {
   const {
     data: recommendedModels,
     isLoading: recommendedLoading,
@@ -18,24 +13,9 @@ export const useRecommendedModels = (options: UseRecommendedModelsOptions = {}) 
   } = useQuery({
     queryKey: ["recommendedModels"],
     queryFn: async () => {
-      const { data, error } = await client.GET(
-        "/api/models/recommended_models",
-        {}
-      );
+      const { data, error } = await client.GET("/api/models/recommended", {});
       if (error) throw error;
-      return data.map(
-        (model: any): UnifiedModel => ({
-          id: model.repo_id,
-          type: model.the_model_type || model.type,
-          name: model.repo_id,
-          repo_id: model.repo_id,
-          path: model.path,
-          description: "",
-          readme: model.readme ?? "",
-          size_on_disk: model.size_on_disk,
-          downloaded: downloadedIds.has(model.repo_id)
-        })
-      );
+      return data;
     },
     refetchOnWindowFocus: false
   });
@@ -44,12 +24,12 @@ export const useRecommendedModels = (options: UseRecommendedModelsOptions = {}) 
     const staticModels = staticOllamaModels.map((m) => {
       return {
         ...m,
-        repo_id: m.id,
-      }
+        repo_id: m.id
+      };
     });
     const merged = [...(recommendedModels || []), ...staticModels];
-    return merged.filter((m) => !downloadedIds.has(m.id));
-  }, [recommendedModels, downloadedIds]);
+    return merged;
+  }, [recommendedModels]);
 
   return {
     recommendedModels,

@@ -9,7 +9,8 @@ export const formatNodeDocumentation = (
   searchTerm?: string,
   searchInfo?: any
 ): SplitNodeDescription => {
-  const lines = fullDocumentation.split("\n").map((line) => line.trim());
+  const safeDocumentation = (fullDocumentation ?? "").toString();
+  const lines = safeDocumentation.split("\n").map((line) => line.trim());
   const description = lines[0] || "";
   const tags =
     lines[1]
