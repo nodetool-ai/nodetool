@@ -280,7 +280,6 @@ const root = ReactDOM.createRoot(
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
-  const { state } = useAuth();
 
   useEffect(() => {
     // Existing effect for loading metadata

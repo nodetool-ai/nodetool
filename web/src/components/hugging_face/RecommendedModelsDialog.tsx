@@ -53,13 +53,7 @@ interface RecommendedModelsDialogProps {
   open: boolean;
   onClose: () => void;
   recommendedModels: UnifiedModel[];
-  startDownload: (
-    repoId: string,
-    modelType: string,
-    path: string | null,
-    allowPatterns: string[] | null,
-    ignorePatterns: string[] | null
-  ) => void;
+  startDownload: (model: UnifiedModel) => void;
 }
 
 const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
