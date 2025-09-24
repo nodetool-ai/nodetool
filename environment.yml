@@ -6,7 +6,6 @@ dependencies:
   - python=3.11
   - ffmpeg>=6,<7
   - cairo
-  - bash
   - git
   - x264
   - x265
