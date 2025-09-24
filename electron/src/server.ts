@@ -20,7 +20,7 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { ensureOllamaInstalled, isOllamaResponsive } from "./ollama";
+import { isOllamaResponsive } from "./ollama";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
