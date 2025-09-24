@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 
 interface InstallWizardProps {
   defaultPath: string;
@@ -14,7 +14,14 @@ interface PackageOptionProps {
   badge?: React.ReactNode;
 }
 
-const PackageOption: React.FC<PackageOptionProps> = ({ name, title, description, isSelected, onToggle, badge }) => (
+const PackageOption: React.FC<PackageOptionProps> = ({
+  name,
+  title,
+  description,
+  isSelected,
+  onToggle,
+  badge,
+}) => (
   <label className="package-option">
     <div className="checkbox-wrapper">
       <input
@@ -24,11 +31,11 @@ const PackageOption: React.FC<PackageOptionProps> = ({ name, title, description,
         onChange={onToggle}
       />
     </div>
-    <div 
+    <div
       className="package-content"
       style={{
-        backgroundColor: isSelected ? 'rgba(74, 158, 255, 0.15)' : '',
-        boxShadow: isSelected ? '0 0 0 2px rgba(74, 158, 255, 0.4)' : ''
+        backgroundColor: isSelected ? "rgba(74, 158, 255, 0.15)" : "",
+        boxShadow: isSelected ? "0 0 0 2px rgba(74, 158, 255, 0.4)" : "",
       }}
     >
       <div className="package-header">
@@ -44,17 +51,26 @@ const PackageOption: React.FC<PackageOptionProps> = ({ name, title, description,
 
 // Inline SVG icon components (use <use> to reference symbols injected in the DOM)
 const SearchIcon: React.FC = () => (
-  <svg width="16" height="16" aria-hidden><use href="#icon-search" /></svg>
+  <svg width="16" height="16" aria-hidden>
+    <use href="#icon-search" />
+  </svg>
 );
 
 const FolderDownloadIcon: React.FC = () => (
-  <svg width="16" height="16" aria-hidden><use href="#icon-folder-download" /></svg>
+  <svg width="16" height="16" aria-hidden>
+    <use href="#icon-folder-download" />
+  </svg>
 );
 
-const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }) => {
-  const [currentStep, setCurrentStep] = useState<'welcome' | 'location' | 'packages'>('welcome');
+const InstallWizard: React.FC<InstallWizardProps> = ({
+  defaultPath,
+  onComplete,
+}) => {
+  const [currentStep, setCurrentStep] = useState<
+    "welcome" | "location" | "packages"
+  >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
-  const LOCAL_STORAGE_KEY = 'installer.selectedModules';
+  const LOCAL_STORAGE_KEY = "installer.selectedModules";
   const [selectedModules, setSelectedModules] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -66,48 +82,124 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
   });
 
   const moduleMapping = {
-    anthropic: 'nodetool-ai/nodetool-anthropic',
-    apple: 'nodetool-ai/nodetool-apple',
-    audio: 'nodetool-ai/nodetool-lib-audio',
-    chroma: 'nodetool-ai/nodetool-chroma',
-    comfy: 'nodetool-ai/nodetool-comfy',
-    data: 'nodetool-ai/nodetool-lib-data',
-    elevenlabs: 'nodetool-ai/nodetool-elevenlabs',
-    fal: 'nodetool-ai/nodetool-fal',
-    file: 'nodetool-ai/nodetool-lib-file',
-    huggingface: 'nodetool-ai/nodetool-huggingface',
-    image: 'nodetool-ai/nodetool-lib-image',
-    ml: 'nodetool-ai/nodetool-lib-ml',
-    network: 'nodetool-ai/nodetool-lib-network',
-    openai: 'nodetool-ai/nodetool-openai',
-    replicate: 'nodetool-ai/nodetool-replicate',
+    anthropic: "nodetool-ai/nodetool-anthropic",
+    apple: "nodetool-ai/nodetool-apple",
+    audio: "nodetool-ai/nodetool-lib-audio",
+    chroma: "nodetool-ai/nodetool-chroma",
+    comfy: "nodetool-ai/nodetool-comfy",
+    data: "nodetool-ai/nodetool-lib-data",
+    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
+    whispercpp: "nodetool-ai/nodetool-whispercpp",
+    fal: "nodetool-ai/nodetool-fal",
+    file: "nodetool-ai/nodetool-lib-file",
+    huggingface: "nodetool-ai/nodetool-huggingface",
+    image: "nodetool-ai/nodetool-lib-image",
+    ml: "nodetool-ai/nodetool-lib-ml",
+    mlx: "nodetool-ai/nodetool-mlx",
+    network: "nodetool-ai/nodetool-lib-network",
+    openai: "nodetool-ai/nodetool-openai",
+    replicate: "nodetool-ai/nodetool-replicate",
   } as const;
 
   type ModuleKey = keyof typeof moduleMapping;
 
-  const packageMeta: Record<ModuleKey, { title: string; description: string; recommended?: boolean }> = {
-    huggingface: { title: '🤗 HuggingFace', description: 'Text, Image, and Audio models from HuggingFace', recommended: true },
-    ml: { title: '📊 Machine Learning', description: 'Classification, Regression, and statistical models' },
-    openai: { title: '🧠 OpenAI', description: 'Additional services from OpenAI, like TTS and Transcription', recommended: true },
-    elevenlabs: { title: '🎤 ElevenLabs', description: 'Advanced text-to-speech and voice cloning' },
-    fal: { title: '⚡ FAL AI', description: 'Run premium Image and Video models on Fal AI' },
-    replicate: { title: '🔄 Replicate', description: 'Access hundreds of AI models hosted on Replicate' },
-    file: { title: '📄 Document Processing', description: 'Convert, merge, and analyze PDFs, Excel, and more', recommended: true },
-    data: { title: '📈 Data Processing', description: 'Clean, transform, and analyze data with Pandas and Numpy' },
-    audio: { title: '🔊 Audio Processing', description: 'Apply audio effects and analyze audio' },
-    image: { title: '🖼️ Image Processing', description: 'Transform and draw images', recommended: true },
-    network: { title: '🌐 Network', description: 'HTTP, IMAP and BeautifulSoup' },
-    apple: { title: '🍎 Apple', description: 'Automation for Apple Notes, Calendar, and more' },
-    anthropic: { title: '🤖 Anthropic', description: 'Claude models from Anthropic' },
-    chroma: { title: '🧩 Chroma', description: 'Vector DB tools and integrations' },
-    comfy: { title: '🧱 ComfyUI', description: 'ComfyUI integration and nodes' },
+  const packageMeta: Record<
+    ModuleKey,
+    { title: string; description: string; recommended?: boolean }
+  > = {
+    mlx: {
+      title: "🤗 MLX",
+      description: "Apple Silicon Accelerated Models",
+      recommended: true,
+    },
+    huggingface: {
+      title: "🤗 HuggingFace",
+      description: "Text, Image, and Audio models from HuggingFace",
+      recommended: true,
+    },
+    ml: {
+      title: "📊 Machine Learning",
+      description: "Classification, Regression, and statistical models",
+    },
+    openai: {
+      title: "🧠 OpenAI",
+      description:
+        "Additional services from OpenAI, like TTS and Transcription",
+      recommended: true,
+    },
+    whispercpp: {
+      title: "🔊 WhisperCpp",
+      description: "Transcribe audio using CPU",
+    },
+    elevenlabs: {
+      title: "🎤 ElevenLabs",
+      description: "Advanced text-to-speech and voice cloning",
+    },
+    fal: {
+      title: "⚡ FAL AI",
+      description: "Run premium Image and Video models on Fal AI",
+    },
+    replicate: {
+      title: "🔄 Replicate",
+      description: "Access hundreds of AI models hosted on Replicate",
+    },
+    file: {
+      title: "📄 Document Processing",
+      description: "Convert, merge, and analyze PDFs, Excel, and more",
+      recommended: true,
+    },
+    data: {
+      title: "📈 Data Processing",
+      description: "Clean, transform, and analyze data with Pandas and Numpy",
+    },
+    audio: {
+      title: "🔊 Audio Processing",
+      description: "Apply audio effects and analyze audio",
+    },
+    image: {
+      title: "🖼️ Image Processing",
+      description: "Transform and draw images",
+      recommended: true,
+    },
+    network: {
+      title: "🌐 Network",
+      description: "HTTP, IMAP and BeautifulSoup",
+    },
+    apple: {
+      title: "🍎 Apple",
+      description: "Automation for Apple Notes, Calendar, and more",
+    },
+    anthropic: {
+      title: "🤖 Anthropic",
+      description: "Claude models from Anthropic",
+    },
+    chroma: {
+      title: "🧩 Chroma",
+      description: "Vector DB tools and integrations",
+    },
+    comfy: {
+      title: "🧱 ComfyUI",
+      description: "ComfyUI integration and nodes",
+    },
   };
 
   const groups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
-    { key: 'aiml', title: 'AI & Machine Learning', items: ['huggingface', 'ml'] },
-    { key: 'services', title: 'AI Services', items: ['openai', 'elevenlabs', 'fal', 'replicate'] },
-    { key: 'utilities', title: 'Utilities', items: ['file', 'data', 'audio', 'image', 'network', 'chroma'] },
-    { key: 'integrations', title: 'Integrations', items: ['apple', 'comfy'] },
+    {
+      key: "aiml",
+      title: "AI & Machine Learning",
+      items: ["huggingface", "ml"],
+    },
+    {
+      key: "services",
+      title: "AI Services",
+      items: ["openai", "elevenlabs", "fal", "replicate"],
+    },
+    {
+      key: "utilities",
+      title: "Utilities",
+      items: ["file", "data", "audio", "image", "network", "chroma"],
+    },
+    { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
   ];
 
   const persist = (next: string[]) => {
@@ -136,22 +228,22 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
 
   const handleDefaultLocation = () => {
     setSelectedPath(defaultPath);
-    setCurrentStep('packages');
+    setCurrentStep("packages");
   };
 
   const handleCustomLocation = async () => {
     const result = await window.api.selectCustomInstallLocation();
     if (result) {
       setSelectedPath(result);
-      setCurrentStep('packages');
+      setCurrentStep("packages");
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 'packages') {
-      setCurrentStep('location');
-    } else if (currentStep === 'location') {
-      setCurrentStep('welcome');
+    if (currentStep === "packages") {
+      setCurrentStep("location");
+    } else if (currentStep === "location") {
+      setCurrentStep("welcome");
     }
   };
 
@@ -182,31 +274,39 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
   return (
     <div id="install-location-prompt">
       {/* Inline icons (accessible, no external assets) */}
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
         <symbol id="icon-search" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/>
+          <path
+            fill="currentColor"
+            d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"
+          />
         </symbol>
         <symbol id="icon-folder-download" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-6 5v4h-2v-4H9l3-3 3 3h-1Z"/>
+          <path
+            fill="currentColor"
+            d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-6 5v4h-2v-4H9l3-3 3 3h-1Z"
+          />
         </symbol>
       </svg>
       <div className="installer-shell">
         <div className="installer-header">
           <div className="installer-brand">NodeTool Installer</div>
-          <div className="installer-sub">Fast, private, local-first AI workflows</div>
+          <div className="installer-sub">
+            Fast, private, local-first AI workflows
+          </div>
         </div>
 
         <div className="wizard-layout">
           <aside className="wizard-rail">
             {[
-              { key: 'welcome', label: 'Welcome' },
-              { key: 'location', label: 'Step 1: Location' },
-              { key: 'packages', label: 'Step 2: Packages' },
+              { key: "welcome", label: "Welcome" },
+              { key: "location", label: "Step 1: Location" },
+              { key: "packages", label: "Step 2: Packages" },
             ].map((step, index) => (
               <div
                 key={step.key}
                 className={`wizard-step ${
-                    currentStep === step.key ? 'active' : ''
+                  currentStep === step.key ? "active" : ""
                 }`}
               >
                 <div className="step-label">{step.label}</div>
@@ -216,42 +316,61 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
 
           <div id="environment-info" className="wizard-content">
             {/* Step 0: Welcome */}
-            {currentStep === 'welcome' && (
+            {currentStep === "welcome" && (
               <div className="setup-step active">
-                <div className="step-header" style={{ textAlign: 'center' }}>
+                <div className="step-header" style={{ textAlign: "center" }}>
                   <h3>Open‑source Visual Agent Builder</h3>
                   <p>Build Agents Visually · Deploy Anywhere</p>
                 </div>
-                <div className="welcome-actions" style={{ justifyContent: 'center' }}>
-                  <button className="primary" onClick={() => setCurrentStep('location')}>Get Started</button>
+                <div
+                  className="welcome-actions"
+                  style={{ justifyContent: "center" }}
+                >
+                  <button
+                    className="primary"
+                    onClick={() => setCurrentStep("location")}
+                  >
+                    Get Started
+                  </button>
                 </div>
               </div>
             )}
 
             {/* Step 1: Install Location */}
-            {currentStep === 'location' && (
+            {currentStep === "location" && (
               <div id="step-location" className="setup-step active">
                 <div className="step-header">
                   <h3>Step 1: Choose Installation Location</h3>
                   <p>Where would you like to install NodeTool?</p>
-                  <p role="note" style={{ marginTop: 8, color: '#7a7a7a' }}>
-                    Note: Installation may download Python libraries and require additional disk space.
+                  <p role="note" style={{ marginTop: 8, color: "#7a7a7a" }}>
+                    Note: Installation may download Python libraries and require
+                    additional disk space.
                   </p>
                 </div>
                 <div className="location-options">
-                  <button className="location-button default-location" onClick={handleDefaultLocation}>
-                    <span><FolderDownloadIcon /> Install to Default Location</span>
+                  <button
+                    className="location-button default-location"
+                    onClick={handleDefaultLocation}
+                  >
+                    <span>
+                      <FolderDownloadIcon /> Install to Default Location
+                    </span>
                     <span className="location-path">{defaultPath}</span>
                   </button>
-                  <button className="location-button custom-location" onClick={handleCustomLocation}>
-                    <span><SearchIcon /> Install to Custom Location</span>
+                  <button
+                    className="location-button custom-location"
+                    onClick={handleCustomLocation}
+                  >
+                    <span>
+                      <SearchIcon /> Install to Custom Location
+                    </span>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Step 2: Package Selection */}
-            {currentStep === 'packages' && (
+            {currentStep === "packages" && (
               <div id="step-packages" className="setup-step active">
                 <div className="step-header">
                   <h3>Step 2: Choose Packages</h3>
@@ -261,20 +380,32 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
                 <div className="package-selection">
                   <div className="package-grid">
                     {groups.map((group) => {
-                      const allSelected = group.items.every((k) => isModuleSelected(k));
-                      const someSelected = !allSelected && group.items.some((k) => isModuleSelected(k));
+                      const allSelected = group.items.every((k) =>
+                        isModuleSelected(k)
+                      );
+                      const someSelected =
+                        !allSelected &&
+                        group.items.some((k) => isModuleSelected(k));
                       return (
                         <div className="package-group" key={group.key}>
                           <div className="group-header">
                             <h4>{group.title}</h4>
                             <div className="group-actions">
                               {!allSelected && (
-                                <button className="chip-button" onClick={() => toggleGroup(group.items, true)}>
+                                <button
+                                  className="chip-button"
+                                  onClick={() => toggleGroup(group.items, true)}
+                                >
                                   Select all
                                 </button>
                               )}
                               {(allSelected || someSelected) && (
-                                <button className="chip-button" onClick={() => toggleGroup(group.items, false)}>
+                                <button
+                                  className="chip-button"
+                                  onClick={() =>
+                                    toggleGroup(group.items, false)
+                                  }
+                                >
                                   Clear
                                 </button>
                               )}
@@ -290,7 +421,11 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
                                 description={packageMeta[key].description}
                                 isSelected={isModuleSelected(key)}
                                 onToggle={() => handleModuleToggle(key)}
-                                badge={packageMeta[key].recommended ? 'Recommended' : undefined}
+                                badge={
+                                  packageMeta[key].recommended
+                                    ? "Recommended"
+                                    : undefined
+                                }
                               />
                             ))}
                           </div>
@@ -305,7 +440,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
                     ← Back
                   </button>
                   <button className="nav-button next" onClick={handleInstall}>
-                    Install {selectedCount > 0 ? `(${selectedCount}) ` : ''}→
+                    Install {selectedCount > 0 ? `(${selectedCount}) ` : ""}→
                   </button>
                 </div>
               </div>
@@ -318,5 +453,3 @@ const InstallWizard: React.FC<InstallWizardProps> = ({ defaultPath, onComplete }
 };
 
 export default InstallWizard;
-
-
