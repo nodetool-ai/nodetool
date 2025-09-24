@@ -264,13 +264,16 @@ Follow these steps to set up a local development environment for the entire Node
 ### 1. Set Up Conda Environment
 
 ```bash
-# Create and activate the Conda environment
-conda create -n nodetool python=3.11 -y
+# Create or update the Conda environment from environment.yml
+conda env update -f environment.yml --prune
 conda activate nodetool
-
-# Install essential system dependencies via Conda
-conda install -c conda-forge ffmpeg cairo x264 x265 aom libopus libvorbis lame pandoc uv -y
 ```
+
+**Windows shortcut:** run `pwsh -File setup_windows.ps1` to perform all steps (Conda env, Python installs, npm bootstraps) and start backend/web/electron processes.
+
+The script clones or updates `nodetool-core`, `nodetool-base`, and `nodetool-huggingface` one level up from the `nodetool` repository before installing them in editable mode.
+
+**macOS/Linux shortcut:** run `./scripts/setup_unix.sh` for the equivalent automation.
 
 ### 2. Install Core Python Dependencies
 

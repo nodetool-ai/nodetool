@@ -1,0 +1,30 @@
+name: nodetool
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - ffmpeg>=6,<7
+  - cairo
+  - git
+  - x264
+  - x265
+  - aom
+  - libopus
+  - libvorbis
+  - libpng
+  - libjpeg-turbo
+  - libtiff
+  - openjpeg
+  - libwebp
+  - giflib
+  - lame
+  - pandoc
+  - uv
+  - lua
+  - nodejs>=20
+  - pip
+  - conda-pack
+  - llama.cpp=*=cuda126*  # [win or linux]
+  - llama.cpp  # [not (win or linux)]
+
