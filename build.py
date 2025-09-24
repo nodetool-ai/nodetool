@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 DEFAULT_PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "3.11")
+ENVIRONMENT_FILE = PROJECT_ROOT / "environment.yml"
 
 
 def _format_command(command: Sequence[str]) -> str:
@@ -111,8 +112,8 @@ class BuildError(Exception):
 class Build:
     """Manage building and packaging of the Nodetool application.
 
-    This helper orchestrates creating a dedicated Conda environment and
-    packaging it for distribution.
+        This helper orchestrates creating a dedicated Conda environment from
+        ``environment.yml`` and packaging it for distribution.
 
     Args:
         clean_build: If True, remove previous build artifacts and environment
@@ -315,54 +316,25 @@ class Build:
         """
         logger.info("Packing conda environment")
 
-        # Install conda-pack
+        if not ENVIRONMENT_FILE.exists():
+            raise BuildError("environment.yml not found. Cannot pack environment.")
+
+        # Ensure conda-pack is available
         self.run_command(self.conda_cmd("install", "conda-pack", "-y"))
 
         if self.clean_build:
             self.remove_directory(self.ENV_DIR)
 
-        # Create new conda environment
+        # Create or update the conda environment using environment.yml
         self.run_command(
             self.conda_cmd(
-                "create",
-                "--yes",
-                "--verbose",
-                "-p",
+                "env",
+                "update",
+                "--prefix",
                 str(self.ENV_DIR),
-                f"python={self.python_version}",
-            )
-        )
-
-        # Install ffmpeg and related codecs from conda forge
-        llama_pkg = "llama.cpp" if self.platform == "darwin" else "llama.cpp=*=cuda126*"
-        self.run_command(
-            self.conda_cmd(
-                "install",
-                "-p",
-                str(self.ENV_DIR),
-                "ffmpeg>=6,<7",
-                "cairo",
-                "git",
-                "x264",
-                "x265",
-                "aom",
-                "libopus",
-                "libvorbis",
-                "libpng",
-                "libjpeg-turbo",
-                "libtiff",
-                "openjpeg",
-                "libwebp",
-                "giflib",
-                "lame",
-                "pandoc",
-                "uv",
-                "lua",
-                "nodejs",
-                llama_pkg,
-                "-y",
-                "--channel",
-                "conda-forge",
+                "--file",
+                str(ENVIRONMENT_FILE),
+                "--prune",
             )
         )
 
@@ -507,19 +479,39 @@ class CondaEnvironmentManager:
             logger.info("Removing existing conda environment before recreation.")
             self.remove(skip_confirmation=True)
 
-        packages = self.default_packages(include_build_deps)
-        if extra_packages:
-            packages.extend(extra_packages)
-        packages = unique_sequence(packages)
+        if not ENVIRONMENT_FILE.exists():
+            raise BuildError("environment.yml not found. Cannot create environment.")
 
-        command = self.conda_cmd(
+        base_command: list[str] = self.conda_cmd(
+            "env",
             "create",
-            "--yes",
-            *self._channel_args(),
-            *self._target_args(),
-            *packages,
+            "--file",
+            str(ENVIRONMENT_FILE),
         )
-        Build.run_command(command)
+
+        if self.env_prefix is not None:
+            base_command.extend(["--prefix", str(self.env_prefix)])
+        else:
+            base_command.extend(["--name", self.env_name])
+
+        Build.run_command(base_command)
+
+        if include_build_deps or extra_packages:
+            additional_packages = []
+            if include_build_deps:
+                additional_packages.extend(self.build_packages)
+            if extra_packages:
+                additional_packages.extend(extra_packages)
+            packages = unique_sequence(additional_packages)
+            if packages:
+                update_command = self.conda_cmd(
+                    "install",
+                    "--yes",
+                    *self._channel_args(),
+                    *self._target_args(),
+                    *packages,
+                )
+                Build.run_command(update_command)
 
     def remove(self, *, skip_confirmation: bool = False) -> None:
         if not self.env_exists():
