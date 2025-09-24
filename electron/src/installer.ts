@@ -18,7 +18,7 @@ import os from "os";
 import { checkPermissions, fileExists } from "./utils";
 import { getProcessEnv } from "./config";
 import { getCondaUnpackPath } from "./config";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
 import { ensureOllamaInstalled } from "./ollama";
@@ -26,6 +26,12 @@ import { getPythonPath } from "./config";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
+
+const CUDA_LLAMA_SPEC = "llama.cpp=*=cuda126*";
+const CPU_LLAMA_SPEC = "llama.cpp";
+const OLLAMA_SPEC = "ollama";
+const CONDA_CHANNELS = ["conda-forge"];
+const FALLBACK_CONDA_EXECUTABLES = ["conda", "mamba", "micromamba"];
 
 /**
  * Python Environment Installer Module
@@ -389,6 +395,11 @@ async function installCondaEnvironment(): Promise<void> {
 
     await updateCondaEnvironment(packages);
 
+    const condaEnvPath = location;
+    await installCondaPackages(condaEnvPath);
+    await ensureLlamaCppInstalled(condaEnvPath);
+    // await ensureOllamaCondaInstalled(condaEnvPath);
+
     // Install Playwright browsers in the freshly set up environment
     try {
       emitBootMessage("Installing Playwright browsers...");
@@ -492,5 +503,149 @@ async function promptForInstallLocation(): Promise<{
     });
   });
 }
+
+function detectCondaExecutable(): string {
+  const candidate = process.env.CONDA_EXE?.trim();
+  if (candidate) {
+    return candidate;
+  }
+
+  for (const executable of FALLBACK_CONDA_EXECUTABLES) {
+    try {
+      const resolved = spawnSync(executable, ["--version"], {
+        stdio: "ignore",
+      });
+      if (resolved.status === 0) {
+        return executable;
+      }
+    } catch {
+      // continue searching
+    }
+  }
+
+  throw new Error(
+    "Unable to locate a conda-compatible executable. Please install conda/mamba/micromamba or set CONDA_EXE."
+  );
+}
+
+function hasCudaRuntime(): boolean {
+  try {
+    const result = spawnSync("nvidia-smi", ["-L"], {
+      stdio: "ignore",
+      timeout: 2000,
+    });
+    if (result.status === 0) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  const cudaEnvVars = ["CUDA_VISIBLE_DEVICES", "CUDA_HOME", "CUDA_PATH"];
+  return cudaEnvVars.some((key) => Boolean(process.env[key]));
+}
+
+async function installCondaPackages(envPrefix: string): Promise<void> {
+  const condaExe = detectCondaExecutable();
+  const prefersCuda =
+    process.platform === "win32" || process.platform === "linux";
+  const packageSpecs = [
+    OLLAMA_SPEC,
+    prefersCuda ? CUDA_LLAMA_SPEC : CPU_LLAMA_SPEC,
+  ];
+
+  const args = ["install", ...packageSpecs, "-p", envPrefix, "-y"];
+  for (const channel of CONDA_CHANNELS) {
+    args.push("-c", channel);
+  }
+
+  logMessage(
+    `Installing conda packages (${packageSpecs.join(
+      ", "
+    )}) into ${envPrefix} using ${condaExe}`
+  );
+  const installProcess = spawn(condaExe, args, {
+    env: getProcessEnv(),
+    stdio: "pipe",
+  });
+
+  return new Promise((resolve, reject) => {
+    installProcess.stdout?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) logMessage(`conda install stdout: ${message}`);
+    });
+
+    installProcess.stderr?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) logMessage(`conda install stderr: ${message}`, "error");
+    });
+
+    installProcess.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Conda install exited with code ${code}`));
+      }
+    });
+
+    installProcess.on("error", (err) => {
+      reject(new Error(`Failed to run conda install: ${err.message}`));
+    });
+  });
+}
+
+async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
+  const condaExe = detectCondaExecutable();
+  const pythonPath = getPythonPath();
+  const executableName =
+    os.platform() === "win32" ? "llama.cpp.exe" : "llama.cpp";
+  const condaBinDir =
+    os.platform() === "win32"
+      ? path.join(envPrefix, "Library", "bin")
+      : path.join(envPrefix, "bin");
+  const llamaBinaryPath = path.join(condaBinDir, executableName);
+
+  if (await fileExists(llamaBinaryPath)) {
+    logMessage(`llama.cpp binary already present at ${llamaBinaryPath}`);
+    return;
+  }
+
+  logMessage("llama.cpp binary missing, reinstalling package via conda");
+  await installCondaPackages(envPrefix);
+
+  if (!(await fileExists(llamaBinaryPath))) {
+    throw new Error(
+      "llama.cpp binary was not found after conda installation. Please verify your GPU drivers or try reinstalling manually."
+    );
+  }
+}
+
+// async function ensureOllamaCondaInstalled(envPrefix: string): Promise<string> {
+//   const condaBinDir =
+//     os.platform() === "win32"
+//       ? path.join(envPrefix, "Scripts")
+//       : path.join(envPrefix, "bin");
+//   const binaryName = os.platform() === "win32" ? "ollama.exe" : "ollama";
+//   const binaryPath = path.join(condaBinDir, binaryName);
+
+//   if (await fileExists(binaryPath)) {
+//     logMessage(`Ollama binary already available at ${binaryPath}`);
+//     return binaryPath;
+//   }
+
+//   logMessage(
+//     "Ollama binary not found in conda environment, installing via conda..."
+//   );
+//   await installCondaPackages(envPrefix);
+
+//   if (!(await fileExists(binaryPath))) {
+//     throw new Error(
+//       "Ollama binary is still missing after conda installation. Please reinstall or install Ollama manually."
+//     );
+//   }
+
+//   logMessage(`Ollama installed at ${binaryPath}`);
+//   return binaryPath;
+// }
 
 export { promptForInstallLocation, installCondaEnvironment };
