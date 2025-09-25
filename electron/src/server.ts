@@ -20,7 +20,6 @@ import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { isOllamaResponsive } from "./ollama";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -75,6 +74,30 @@ async function findAvailablePort(
 }
 
 /**
+ * Checks if the Ollama server is responsive
+ * @param port - The port to check
+ * @param timeoutMs - The timeout in milliseconds
+ * @returns True if the Ollama server is responsive, false otherwise
+ */
+export async function isOllamaResponsive(
+  port: number,
+  timeoutMs = 2000
+): Promise<boolean> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/tags`, {
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/**
  * Starts the Ollama server on a custom port using Watchdog
  */
 async function startOllamaServer(): Promise<void> {
@@ -91,7 +114,7 @@ async function startOllamaServer(): Promise<void> {
   serverState.ollamaPort = selectedPort;
   serverState.ollamaExternalManaged = false;
 
-  const ollamaExecutablePath = await ensureOllamaInstalled();
+  const ollamaExecutablePath = await getOllamaPath();
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
   const healthUrl = `http://127.0.0.1:${selectedPort}/`;
   const modelsPath = getOllamaModelsPath();

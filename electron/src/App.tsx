@@ -70,14 +70,13 @@ const App: React.FC = () => {
       } else {
         setShowBootMessage(true);
         setBootMessage(bootMsg);
-        startAnimations();
       }
 
       setLogs(serverLogs);
     } catch (error) {
       console.error("Failed to initialize app:", error);
     }
-  }, [loadContentWithNoCaching, startAnimations]);
+  }, [loadContentWithNoCaching]);
 
   // Set up event listeners
   const handleUpdateProgress = useCallback(
@@ -132,35 +131,50 @@ const App: React.FC = () => {
     [setUpdateInfo, setShowUpdateNotification]
   );
 
-  const handleMenuEvent = useCallback((data: any) => {
-    // Basic reaction to menu clicks so users see immediate feedback
-    // Extend this switch to wire up actual actions as needed
-    switch (data?.type) {
-      case "fitView":
-      case "resetZoom":
-      case "zoomIn":
-      case "zoomOut":
-      case "saveWorkflow":
-      case "newTab":
-      case "close":
-      case "undo":
-      case "redo":
-      case "cut":
-      case "copy":
-      case "paste":
-      case "duplicate":
-      case "duplicateVertical":
-      case "group":
-      case "selectAll":
-      case "align":
-      case "alignWithSpacing":
-        addLog(`Menu action: ${data.type}`);
-        break;
-      default:
-        addLog(`Menu action: ${JSON.stringify(data)}`);
-        break;
+  const handleMenuEvent = useCallback(
+    (data: any) => {
+      // Basic reaction to menu clicks so users see immediate feedback
+      // Extend this switch to wire up actual actions as needed
+      switch (data?.type) {
+        case "fitView":
+        case "resetZoom":
+        case "zoomIn":
+        case "zoomOut":
+        case "saveWorkflow":
+        case "newTab":
+        case "close":
+        case "undo":
+        case "redo":
+        case "cut":
+        case "copy":
+        case "paste":
+        case "duplicate":
+        case "duplicateVertical":
+        case "group":
+        case "selectAll":
+        case "align":
+        case "alignWithSpacing":
+          addLog(`Menu action: ${data.type}`);
+          break;
+        default:
+          addLog(`Menu action: ${JSON.stringify(data)}`);
+          break;
+      }
+    },
+    [addLog]
+  );
+
+  useEffect(() => {
+    if (showBootMessage) {
+      startAnimations();
+      return () => {
+        clearAllAnimations();
+      };
     }
-  }, [addLog]);
+
+    clearAllAnimations();
+    return undefined;
+  }, [showBootMessage, startAnimations, clearAllAnimations]);
 
   useEffect(() => {
     // Initialize platform class

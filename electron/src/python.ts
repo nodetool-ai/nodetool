@@ -124,13 +124,11 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
     emitBootMessage(`Updating python packages...`);
 
     const uvExecutable = getUVPath();
-    const PACKAGE_INDEX_URL = "https://nodetool-ai.github.io/nodetool-registry/simple/";
+    const PACKAGE_INDEX_URL =
+      "https://nodetool-ai.github.io/nodetool-registry/simple/";
 
     // Convert repo IDs to package names for wheel installation
-    const corePackages = [
-      "nodetool-core",
-      "nodetool-base",
-    ];
+    const corePackages = ["nodetool-core", "nodetool-base"];
 
     // Convert additional packages from repo format to package names
     const additionalPackages = packages.map((repoId) => {
@@ -144,7 +142,8 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
       uvExecutable,
       "pip",
       "install",
-      "--extra-index-url", PACKAGE_INDEX_URL,
+      "--extra-index-url",
+      PACKAGE_INDEX_URL,
       "--index-strategy",
       "unsafe-best-match",
       "--system",
@@ -159,7 +158,9 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 
-    logMessage("Python packages update completed successfully from wheel index");
+    logMessage(
+      "Python packages update completed successfully from wheel index"
+    );
   } catch (error: any) {
     logMessage(`Failed to update Pip packages: ${error.message}`, "error");
     throw error;
@@ -267,13 +268,7 @@ function getDefaultInstallLocation(): string {
         ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
         : path.join(process.env.APPDATA!, "nodetool", "conda_env");
     case "darwin":
-      // Use /Library/Application Support for all users, or ~/Library/Application Support for current user
-      return process.env.SUDO_USER
-        ? path.join("/Library/Application Support/nodetool/conda_env")
-        : path.join(
-          os.homedir(),
-          "Library/Application Support/nodetool/conda_env"
-        );
+      return path.join(os.homedir(), "nodetool_env");
     case "linux":
       // Use /opt for all users, or ~/.local/share for current user
       return process.env.SUDO_USER
