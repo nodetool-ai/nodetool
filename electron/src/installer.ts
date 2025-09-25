@@ -21,7 +21,6 @@ import { getCondaUnpackPath } from "./config";
 import { spawn, spawnSync } from "child_process";
 import { downloadFile } from "./download";
 import { BrowserWindow } from "electron";
-import { ensureOllamaInstalled } from "./ollama";
 import { getPythonPath } from "./config";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
@@ -48,11 +47,11 @@ const FALLBACK_CONDA_EXECUTABLES = ["conda", "mamba", "micromamba"];
  * - Manages Python package updates through pip
  *
  * Installation Process:
- * 1. Prompts user for installation location
- * 2. Downloads the pre-built Conda environment
- * 3. Extracts the environment to the selected location
- * 4. Runs conda-unpack to finalize the environment
- * 5. Updates Python packages to their latest compatible versions
+ * 1. `promptForInstallLocation()` prompts the user for an installation directory
+ * 2. `downloadFile()` retrieves the pre-built Conda environment archive
+ * 3. `unpackPythonEnvironment()` / `unpackTarGzEnvironment()` extract the archive to the selected location
+ * 4. `runCondaUnpack()` finalizes the environment post-extraction
+ * 5. `installCondaPackages()` and `ensureLlamaCppInstalled()` update Python packages and required binaries
  *
  * Update Process:
  * - Checks for package updates using pip
@@ -398,7 +397,6 @@ async function installCondaEnvironment(): Promise<void> {
     const condaEnvPath = location;
     await installCondaPackages(condaEnvPath);
     await ensureLlamaCppInstalled(condaEnvPath);
-    // await ensureOllamaCondaInstalled(condaEnvPath);
 
     // Install Playwright browsers in the freshly set up environment
     try {
@@ -414,19 +412,6 @@ async function installCondaEnvironment(): Promise<void> {
 
     logMessage("Python environment installation completed successfully");
     emitBootMessage("Python environment is ready");
-
-    // Ensure Ollama is available during installation per requirements
-    try {
-      emitBootMessage("Checking for Ollama runtime...");
-      const ollamaPath = await ensureOllamaInstalled();
-      logMessage(`Ollama available at: ${ollamaPath}`);
-    } catch (err: any) {
-      logMessage(
-        `Failed to ensure Ollama is installed: ${err.message}`,
-        "error"
-      );
-      // Continue installation even if Ollama fetch failed; it will be retried at runtime
-    }
   } catch (error: any) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
@@ -528,23 +513,6 @@ function detectCondaExecutable(): string {
   );
 }
 
-function hasCudaRuntime(): boolean {
-  try {
-    const result = spawnSync("nvidia-smi", ["-L"], {
-      stdio: "ignore",
-      timeout: 2000,
-    });
-    if (result.status === 0) {
-      return true;
-    }
-  } catch {
-    // ignore
-  }
-
-  const cudaEnvVars = ["CUDA_VISIBLE_DEVICES", "CUDA_HOME", "CUDA_PATH"];
-  return cudaEnvVars.some((key) => Boolean(process.env[key]));
-}
-
 async function installCondaPackages(envPrefix: string): Promise<void> {
   const condaExe = detectCondaExecutable();
   const prefersCuda =
@@ -595,10 +563,8 @@ async function installCondaPackages(envPrefix: string): Promise<void> {
 }
 
 async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
-  const condaExe = detectCondaExecutable();
-  const pythonPath = getPythonPath();
   const executableName =
-    os.platform() === "win32" ? "llama.cpp.exe" : "llama.cpp";
+    os.platform() === "win32" ? "llama-server.exe" : "llama-server";
   const condaBinDir =
     os.platform() === "win32"
       ? path.join(envPrefix, "Library", "bin")

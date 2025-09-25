@@ -1,4 +1,124 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+
+const moduleMapping = {
+  anthropic: "nodetool-ai/nodetool-anthropic",
+  apple: "nodetool-ai/nodetool-apple",
+  audio: "nodetool-ai/nodetool-lib-audio",
+  chroma: "nodetool-ai/nodetool-chroma",
+  comfy: "nodetool-ai/nodetool-comfy",
+  data: "nodetool-ai/nodetool-lib-data",
+  elevenlabs: "nodetool-ai/nodetool-elevenlabs",
+  whispercpp: "nodetool-ai/nodetool-whispercpp",
+  fal: "nodetool-ai/nodetool-fal",
+  file: "nodetool-ai/nodetool-lib-file",
+  huggingface: "nodetool-ai/nodetool-huggingface",
+  image: "nodetool-ai/nodetool-lib-image",
+  ml: "nodetool-ai/nodetool-lib-ml",
+  mlx: "nodetool-ai/nodetool-mlx",
+  network: "nodetool-ai/nodetool-lib-network",
+  openai: "nodetool-ai/nodetool-openai",
+  replicate: "nodetool-ai/nodetool-replicate",
+} as const;
+
+type ModuleKey = keyof typeof moduleMapping;
+
+const packageMeta: Record<
+  ModuleKey,
+  { title: string; description: string; recommended?: boolean }
+> = {
+  mlx: {
+    title: "🤗 MLX",
+    description: "Apple Silicon Accelerated Models",
+    recommended: true,
+  },
+  huggingface: {
+    title: "🤗 HuggingFace",
+    description: "Text, Image, and Audio models from HuggingFace",
+    recommended: true,
+  },
+  ml: {
+    title: "📊 Machine Learning",
+    description: "Classification, Regression, and statistical models",
+  },
+  openai: {
+    title: "🧠 OpenAI",
+    description: "Additional services from OpenAI, like TTS and Transcription",
+    recommended: true,
+  },
+  whispercpp: {
+    title: "🔊 WhisperCpp",
+    description: "Transcribe audio using CPU",
+  },
+  elevenlabs: {
+    title: "🎤 ElevenLabs",
+    description: "Advanced text-to-speech and voice cloning",
+  },
+  fal: {
+    title: "⚡ FAL AI",
+    description: "Run premium Image and Video models on Fal AI",
+  },
+  replicate: {
+    title: "🔄 Replicate",
+    description: "Access hundreds of AI models hosted on Replicate",
+  },
+  file: {
+    title: "📄 Document Processing",
+    description: "Convert, merge, and analyze PDFs, Excel, and more",
+    recommended: true,
+  },
+  data: {
+    title: "📈 Data Processing",
+    description: "Clean, transform, and analyze data with Pandas and Numpy",
+  },
+  audio: {
+    title: "🔊 Audio Processing",
+    description: "Apply audio effects and analyze audio",
+  },
+  image: {
+    title: "🖼️ Image Processing",
+    description: "Transform and draw images",
+    recommended: true,
+  },
+  network: {
+    title: "🌐 Network",
+    description: "HTTP, IMAP and BeautifulSoup",
+  },
+  apple: {
+    title: "🍎 Apple",
+    description: "Automation for Apple Notes, Calendar, and more",
+  },
+  anthropic: {
+    title: "🤖 Anthropic",
+    description: "Claude models from Anthropic",
+  },
+  chroma: {
+    title: "🧩 Chroma",
+    description: "Vector DB tools and integrations",
+  },
+  comfy: {
+    title: "🧱 ComfyUI",
+    description: "ComfyUI integration and nodes",
+  },
+};
+
+const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
+  {
+    key: "aiml",
+    title: "AI & Machine Learning",
+    items: ["huggingface", "mlx", "ml", "whispercpp", "chroma"],
+  },
+  {
+    key: "services",
+    title: "AI Services",
+    items: ["openai", "elevenlabs", "fal", "replicate"],
+  },
+  {
+    key: "utilities",
+    title: "Utilities",
+    items: ["file", "data", "audio", "image", "network"],
+  },
+  { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
+];
 
 interface InstallWizardProps {
   defaultPath: string;
@@ -66,142 +186,77 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   defaultPath,
   onComplete,
 }) => {
+  const isMac = window.api.platform === "darwin";
+  const allowedModuleKeys = useMemo<ModuleKey[]>(() => {
+    const keys = Object.keys(moduleMapping) as ModuleKey[];
+    return isMac ? keys : keys.filter((key) => key !== "mlx");
+  }, [isMac]);
+
+  const allowedModuleRepoIds = useMemo(
+    () => new Set<string>(allowedModuleKeys.map((key) => moduleMapping[key])),
+    [allowedModuleKeys]
+  );
+
+  const sanitizeSelection = useCallback(
+    (modules: string[]) => modules.filter((id) => allowedModuleRepoIds.has(id)),
+    [allowedModuleRepoIds]
+  );
+
+  const groups = useMemo(
+    () =>
+      baseGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => allowedModuleKeys.includes(item)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [allowedModuleKeys]
+  );
+
   const [currentStep, setCurrentStep] = useState<
     "welcome" | "location" | "packages"
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
   const LOCAL_STORAGE_KEY = "installer.selectedModules";
+  const [pathError, setPathError] = useState<string | null>(null);
+  const validatePath = useCallback((path: string) => {
+    if (!path) {
+      return "Please choose an installation location.";
+    }
+    if (/\s/.test(path)) {
+      return "Installation path cannot contain spaces. Please choose a location without whitespace.";
+    }
+    return null;
+  }, []);
+  const applyPathSelection = useCallback(
+    (path: string) => {
+      setSelectedPath(path);
+      const error = validatePath(path);
+      if (error) {
+        setPathError(error);
+        setCurrentStep("location");
+        return false;
+      }
+      setPathError(null);
+      setCurrentStep("packages");
+      return true;
+    },
+    [validatePath]
+  );
   const [selectedModules, setSelectedModules] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
+      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+      const sanitized = sanitizeSelection(parsed);
+      if (sanitized.length !== parsed.length) {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
+      }
+      return sanitized;
     } catch {
       // ignore
       return [];
     }
   });
-
-  const moduleMapping = {
-    anthropic: "nodetool-ai/nodetool-anthropic",
-    apple: "nodetool-ai/nodetool-apple",
-    audio: "nodetool-ai/nodetool-lib-audio",
-    chroma: "nodetool-ai/nodetool-chroma",
-    comfy: "nodetool-ai/nodetool-comfy",
-    data: "nodetool-ai/nodetool-lib-data",
-    elevenlabs: "nodetool-ai/nodetool-elevenlabs",
-    whispercpp: "nodetool-ai/nodetool-whispercpp",
-    fal: "nodetool-ai/nodetool-fal",
-    file: "nodetool-ai/nodetool-lib-file",
-    huggingface: "nodetool-ai/nodetool-huggingface",
-    image: "nodetool-ai/nodetool-lib-image",
-    ml: "nodetool-ai/nodetool-lib-ml",
-    mlx: "nodetool-ai/nodetool-mlx",
-    network: "nodetool-ai/nodetool-lib-network",
-    openai: "nodetool-ai/nodetool-openai",
-    replicate: "nodetool-ai/nodetool-replicate",
-  } as const;
-
-  type ModuleKey = keyof typeof moduleMapping;
-
-  const packageMeta: Record<
-    ModuleKey,
-    { title: string; description: string; recommended?: boolean }
-  > = {
-    mlx: {
-      title: "🤗 MLX",
-      description: "Apple Silicon Accelerated Models",
-      recommended: true,
-    },
-    huggingface: {
-      title: "🤗 HuggingFace",
-      description: "Text, Image, and Audio models from HuggingFace",
-      recommended: true,
-    },
-    ml: {
-      title: "📊 Machine Learning",
-      description: "Classification, Regression, and statistical models",
-    },
-    openai: {
-      title: "🧠 OpenAI",
-      description:
-        "Additional services from OpenAI, like TTS and Transcription",
-      recommended: true,
-    },
-    whispercpp: {
-      title: "🔊 WhisperCpp",
-      description: "Transcribe audio using CPU",
-    },
-    elevenlabs: {
-      title: "🎤 ElevenLabs",
-      description: "Advanced text-to-speech and voice cloning",
-    },
-    fal: {
-      title: "⚡ FAL AI",
-      description: "Run premium Image and Video models on Fal AI",
-    },
-    replicate: {
-      title: "🔄 Replicate",
-      description: "Access hundreds of AI models hosted on Replicate",
-    },
-    file: {
-      title: "📄 Document Processing",
-      description: "Convert, merge, and analyze PDFs, Excel, and more",
-      recommended: true,
-    },
-    data: {
-      title: "📈 Data Processing",
-      description: "Clean, transform, and analyze data with Pandas and Numpy",
-    },
-    audio: {
-      title: "🔊 Audio Processing",
-      description: "Apply audio effects and analyze audio",
-    },
-    image: {
-      title: "🖼️ Image Processing",
-      description: "Transform and draw images",
-      recommended: true,
-    },
-    network: {
-      title: "🌐 Network",
-      description: "HTTP, IMAP and BeautifulSoup",
-    },
-    apple: {
-      title: "🍎 Apple",
-      description: "Automation for Apple Notes, Calendar, and more",
-    },
-    anthropic: {
-      title: "🤖 Anthropic",
-      description: "Claude models from Anthropic",
-    },
-    chroma: {
-      title: "🧩 Chroma",
-      description: "Vector DB tools and integrations",
-    },
-    comfy: {
-      title: "🧱 ComfyUI",
-      description: "ComfyUI integration and nodes",
-    },
-  };
-
-  const groups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
-    {
-      key: "aiml",
-      title: "AI & Machine Learning",
-      items: ["huggingface", "ml"],
-    },
-    {
-      key: "services",
-      title: "AI Services",
-      items: ["openai", "elevenlabs", "fal", "replicate"],
-    },
-    {
-      key: "utilities",
-      title: "Utilities",
-      items: ["file", "data", "audio", "image", "network", "chroma"],
-    },
-    { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
-  ];
-
   const persist = (next: string[]) => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
@@ -210,7 +265,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     }
   };
 
-  const handleModuleToggle = (moduleName: string) => {
+  const handleModuleToggle = (moduleName: ModuleKey) => {
+    if (!allowedModuleKeys.includes(moduleName)) {
+      return;
+    }
     const repoId = moduleMapping[moduleName as keyof typeof moduleMapping];
     setSelectedModules((prev: string[]) => {
       const next = prev.includes(repoId)
@@ -227,15 +285,13 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   };
 
   const handleDefaultLocation = () => {
-    setSelectedPath(defaultPath);
-    setCurrentStep("packages");
+    applyPathSelection(defaultPath);
   };
 
   const handleCustomLocation = async () => {
     const result = await window.api.selectCustomInstallLocation();
     if (result) {
-      setSelectedPath(result);
-      setCurrentStep("packages");
+      applyPathSelection(result);
     }
   };
 
@@ -248,7 +304,18 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   };
 
   const handleInstall = async () => {
-    await window.api.installToLocation(selectedPath, selectedModules);
+    const error = validatePath(selectedPath);
+    if (error) {
+      setPathError(error);
+      setCurrentStep("location");
+      return;
+    }
+    const sanitizedSelection = sanitizeSelection(selectedModules);
+    if (sanitizedSelection.length !== selectedModules.length) {
+      persist(sanitizedSelection);
+      setSelectedModules(sanitizedSelection);
+    }
+    await window.api.installToLocation(selectedPath, sanitizedSelection);
     onComplete();
   };
 
@@ -319,8 +386,19 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
             {currentStep === "welcome" && (
               <div className="setup-step active">
                 <div className="step-header" style={{ textAlign: "center" }}>
-                  <h3>Open‑source Visual Agent Builder</h3>
-                  <p>Build Agents Visually · Deploy Anywhere</p>
+                  <h3>NodeTool Installer</h3>
+                  <p style={{ marginBottom: "1em" }}>
+                    Nodetool is an open&ndash;source, privacy&ndash;first
+                    platform for building AI agents and workflows visually.
+                  </p>
+                  <p style={{ marginBottom: "1em" }}>
+                    This installer will download and install a Python
+                    environment to execute AI models locally.
+                  </p>
+                  <p style={{ marginBottom: "1em" }}>
+                    On a good internet connection the installation will take
+                    about 5 minutes.
+                  </p>
                 </div>
                 <div
                   className="welcome-actions"
@@ -346,6 +424,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     Note: Installation may download Python libraries and require
                     additional disk space.
                   </p>
+                  <p role="note" style={{ marginTop: 4, color: "#7a7a7a" }}>
+                    Paths with spaces are not supported. Choose a location with
+                    no whitespace characters.
+                  </p>
                 </div>
                 <div className="location-options">
                   <button
@@ -366,6 +448,21 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                     </span>
                   </button>
                 </div>
+                {pathError && (
+                  <div
+                    className="location-error"
+                    role="alert"
+                    style={{
+                      marginTop: 12,
+                      color: "#d93025",
+                      backgroundColor: "rgba(217, 48, 37, 0.08)",
+                      padding: "12px 16px",
+                      borderRadius: 8,
+                    }}
+                  >
+                    {pathError}
+                  </div>
+                )}
               </div>
             )}
 
@@ -375,6 +472,16 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                 <div className="step-header">
                   <h3>Step 2: Choose Packages</h3>
                   <p>Select the packages you'd like to install:</p>
+                  <p
+                    role="note"
+                    style={{
+                      marginTop: 8,
+                      color: "#7a7a7a",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    Installing to: <code>{selectedPath}</code>
+                  </p>
                 </div>
 
                 <div className="package-selection">
