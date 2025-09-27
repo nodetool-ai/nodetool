@@ -64,6 +64,7 @@ jest.mock('../packageManager', () => ({
   updatePackage: jest.fn(),
   validateRepoId: jest.fn(),
   searchNodes: jest.fn(),
+  checkForPackageUpdates: jest.fn(),
 }));
 
 jest.mock('electron', () => {
@@ -101,14 +102,15 @@ import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { updateTrayMenu } from '../tray';
 import { createPackageManagerWindow } from '../window';
-import { 
-  fetchAvailablePackages, 
-  listInstalledPackages, 
-  installPackage, 
-  uninstallPackage, 
-  updatePackage, 
-  validateRepoId, 
-  searchNodes 
+import {
+  fetchAvailablePackages,
+  listInstalledPackages,
+  installPackage,
+  uninstallPackage,
+  updatePackage,
+  validateRepoId,
+  searchNodes,
+  checkForPackageUpdates,
 } from '../packageManager';
 import {
   createIpcMainHandler,
@@ -140,6 +142,7 @@ const Channels = {
   PACKAGE_UPDATE: 'package-update',
   PACKAGE_SEARCH_NODES: 'package-search-nodes',
   PACKAGE_OPEN_EXTERNAL: 'package-open-external',
+  PACKAGE_UPDATES_AVAILABLE: 'package-updates-available',
 };
 
 const ipcMainMock = ipcMain as jest.Mocked<typeof ipcMain>;
@@ -164,6 +167,9 @@ const packageManagerMock = {
   updatePackage: updatePackage as jest.MockedFunction<typeof updatePackage>,
   validateRepoId: validateRepoId as jest.MockedFunction<typeof validateRepoId>,
   searchNodes: searchNodes as jest.MockedFunction<typeof searchNodes>,
+  checkForPackageUpdates: checkForPackageUpdates as jest.MockedFunction<
+    typeof checkForPackageUpdates
+  >,
 };
 
 const loggerMock = logMessage as jest.MockedFunction<typeof logMessage>;

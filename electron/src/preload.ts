@@ -28,6 +28,7 @@ import {
   IpcChannels,
   IpcEvents,
   MenuEventData,
+  PackageUpdateInfo,
   PythonPackages,
   UpdateProgressData,
   UpdateInfo,
@@ -121,6 +122,9 @@ contextBridge.exposeInMainWorld("api", {
     createEventHandler(IpcChannels.UPDATE_PROGRESS)(callback),
   onUpdateAvailable: (callback: (data: UpdateInfo) => void) =>
     createEventHandler(IpcChannels.UPDATE_AVAILABLE)(callback),
+  onPackageUpdatesAvailable: (
+    callback: (data: PackageUpdateInfo[]) => void
+  ) => createEventHandler(IpcChannels.PACKAGE_UPDATES_AVAILABLE)(callback),
   onInstallLocationPrompt: (callback: (data: InstallLocationData) => void) =>
     createEventHandler(IpcChannels.INSTALL_LOCATION_PROMPT)(callback),
   onShowPackageManager: (callback: () => void) =>

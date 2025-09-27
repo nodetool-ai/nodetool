@@ -130,13 +130,17 @@ const getOllamaModelsPath = (): string => {
 };
 
 /**
- * Retrieves the path to the conda-unpack executable
- * @returns {string} Path to conda-unpack executable
+ * Retrieves the path to the locked micromamba environment manifest
  */
-const getCondaUnpackPath = (): string =>
-  process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Scripts", "conda-unpack.exe")
-    : path.join(getCondaEnvPath(), "bin", "conda-unpack");
+const getCondaLockFilePath = (): string => {
+  const lockFileName = "environment.lock.yml";
+
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, lockFileName);
+  }
+
+  return path.join(__dirname, "..", "resources", lockFileName);
+};
 
 /**
  * Retrieves the environment variables for the process
@@ -190,7 +194,7 @@ export {
   getUVPath,
   getOllamaPath,
   getOllamaModelsPath,
-  getCondaUnpackPath,
+  getCondaLockFilePath,
   getProcessEnv,
   srcPath,
   PID_FILE_PATH,

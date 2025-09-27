@@ -46,12 +46,29 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
+import { checkForPackageUpdates } from "./packageManager";
+import { IpcChannels } from "./types.d";
 
 /**
  * Global application state flags and objects
  */
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
+
+async function notifyPackageUpdates(): Promise<void> {
+  try {
+    const updates = await checkForPackageUpdates();
+    if (!updates.length || !mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+    mainWindow.webContents.send(IpcChannels.PACKAGE_UPDATES_AVAILABLE, updates);
+  } catch (error: any) {
+    logMessage(
+      `Failed to notify package updates: ${error.message ?? String(error)}`,
+      "warn"
+    );
+  }
+}
 
 /**
  * Checks and sets up the Python Conda environment
@@ -156,6 +173,8 @@ async function initialize(): Promise<void> {
       logMessage("Setting up workflow shortcuts...");
       await setupWorkflowShortcuts();
     }
+
+    void notifyPackageUpdates();
 
     // Request notification permissions
     if (process.platform === "darwin") {

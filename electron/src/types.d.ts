@@ -16,6 +16,9 @@ declare global {
           eta?: string;
         }) => void
       ) => void;
+      onPackageUpdatesAvailable: (
+        callback: (packages: PackageUpdateInfo[]) => void
+      ) => void;
       onCreateWorkflow: (workflow: Workflow) => void;
       onUpdateWorkflow: (workflow: Workflow) => void;
       onDeleteWorkflow: (workflow: Workflow) => void;
@@ -50,6 +53,7 @@ declare global {
         listInstalled: () => Promise<InstalledPackageListResponse>;
         install: (repoId: string) => Promise<PackageResponse>;
         uninstall: (repoId: string) => Promise<PackageResponse>;
+        update: (repoId: string) => Promise<PackageResponse>;
         searchNodes?: (query: string) => Promise<PackageNode[]>;
       };
       openExternal: (url: string) => void;
@@ -214,6 +218,7 @@ export enum IpcChannels {
   PACKAGE_UPDATE = "package-update",
   PACKAGE_OPEN_EXTERNAL = "package-open-external",
   PACKAGE_SEARCH_NODES = "package-search-nodes",
+  PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
 }
 
 export interface InstallToLocationData {
@@ -288,6 +293,7 @@ export interface IpcEvents {
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.MENU_EVENT]: MenuEventData;
+  [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
 }
 
 export type PythonPackages = string[];
@@ -315,6 +321,7 @@ export interface PackageInfo {
   description: string;
   repo_id: string;
   namespaces?: string[];
+  version?: string;
 }
 
 export interface PackageModel {
@@ -332,6 +339,13 @@ export interface PackageModel {
 export interface PackageListResponse {
   packages: PackageInfo[];
   count: number;
+}
+
+export interface PackageUpdateInfo {
+  name: string;
+  repo_id: string;
+  installedVersion: string;
+  latestVersion: string;
 }
 
 export interface InstalledPackageListResponse {

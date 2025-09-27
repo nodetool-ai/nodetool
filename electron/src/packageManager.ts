@@ -8,6 +8,7 @@ import {
   InstalledPackageListResponse,
   PackageResponse,
   PackageNode,
+  PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
 
@@ -47,9 +48,19 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
       response.on("end", () => {
         try {
           const registryData = JSON.parse(data);
-          const packages = registryData.packages || [];
+          const packages = (registryData.packages || []).map((pkg: any) => ({
+            name: pkg.name,
+            description: pkg.description ?? "",
+            repo_id: pkg.repo_id,
+            namespaces: pkg.namespaces,
+            version:
+              pkg.version ??
+              pkg.latestVersion ??
+              pkg.latest_version ??
+              undefined,
+          })) as PackageInfo[];
           resolve({
-            packages: packages as PackageInfo[],
+            packages,
             count: packages.length,
           });
         } catch (error) {
@@ -80,6 +91,121 @@ function httpsGet(url: string): Promise<string> {
       req.destroy(new Error(`Request timeout for ${url}`));
     });
   });
+}
+
+function canonicalizePackageName(name: string): string {
+  return name.toLowerCase().replace(/[-_.]+/g, "-");
+}
+
+function stripFileExtension(filename: string): string {
+  let base = filename.replace(/#.*/, "");
+  if (base.toLowerCase().endsWith(".tar.gz")) {
+    return base.slice(0, -7);
+  }
+  return base.replace(/\.(whl|zip|tar|gz)$/gi, "");
+}
+
+function extractVersionFromFilename(
+  filename: string,
+  packageName: string
+): string | null {
+  const sanitized = filename.trim();
+  if (!sanitized) return null;
+  const baseName = stripFileExtension(sanitized.split("/").pop() || sanitized);
+  const parts = baseName.split("-");
+  if (parts.length < 2) {
+    return null;
+  }
+  const canonicalPackage = canonicalizePackageName(packageName);
+  const canonicalFileName = canonicalizePackageName(parts[0]);
+  if (canonicalPackage !== canonicalFileName) {
+    return null;
+  }
+  return parts[1] || null;
+}
+
+function tokenizeVersion(version: string): string[] {
+  const normalized = version
+    .replace(/([0-9])([a-zA-Z])/g, "$1.$2")
+    .replace(/([a-zA-Z])([0-9])/g, "$1.$2");
+  return normalized.split(/[.\-_+]/).filter(Boolean);
+}
+
+function compareVersions(a: string, b: string): number {
+  if (a === b) return 0;
+  const tokensA = tokenizeVersion(a);
+  const tokensB = tokenizeVersion(b);
+  const length = Math.max(tokensA.length, tokensB.length);
+
+  for (let i = 0; i < length; i += 1) {
+    const segA = tokensA[i];
+    const segB = tokensB[i];
+
+    if (segA === undefined) return -1;
+    if (segB === undefined) return 1;
+    if (segA === segB) continue;
+
+    const numA = Number(segA);
+    const numB = Number(segB);
+    const isNumA = Number.isInteger(numA);
+    const isNumB = Number.isInteger(numB);
+
+    if (isNumA && isNumB) {
+      if (numA > numB) return 1;
+      if (numA < numB) return -1;
+      continue;
+    }
+
+    if (isNumA) return 1;
+    if (isNumB) return -1;
+
+    const cmp = segA.localeCompare(segB);
+    if (cmp !== 0) return cmp;
+  }
+
+  return 0;
+}
+
+async function fetchLatestVersionFromSimpleIndex(
+  packageName: string
+): Promise<string | null> {
+  try {
+    const normalized = canonicalizePackageName(packageName).replace(/-/g, "-");
+    const url = `${PACKAGE_INDEX_URL}${normalized}/`;
+    const html = await httpsGet(url);
+
+    const candidates: string[] = [];
+    const anchorMatches = html.matchAll(/>([^<>]+)</g);
+    for (const match of anchorMatches) {
+      const version = extractVersionFromFilename(match[1], packageName);
+      if (version) {
+        candidates.push(version);
+      }
+    }
+
+    if (candidates.length === 0) {
+      const hrefMatches = html.matchAll(/href="([^"]+)"/gi);
+      for (const match of hrefMatches) {
+        const version = extractVersionFromFilename(match[1], packageName);
+        if (version) {
+          candidates.push(version);
+        }
+      }
+    }
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    candidates.sort(compareVersions);
+    return candidates[candidates.length - 1];
+  } catch (error: any) {
+    logMessage(
+      `Failed to fetch latest version for ${packageName}: ${error.message}`,
+      "warn"
+    );
+    return null;
+  }
 }
 
 async function fetchPackageNodes(repoId: string): Promise<PackageNode[]> {
@@ -263,6 +389,81 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
     ...s.node,
     installed: installedRepoIds.has(s.node.package || ""),
   }));
+}
+
+export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
+  try {
+    const installed = await listInstalledPackages();
+    if (!installed.packages.length) {
+      return [];
+    }
+
+    let registryPackages: PackageInfo[] = [];
+    try {
+      const registry = await fetchAvailablePackages();
+      registryPackages = registry.packages;
+    } catch (error: any) {
+      logMessage(
+        `Failed to fetch package registry for update check: ${error.message}`,
+        "warn"
+      );
+    }
+
+    const versionHints = new Map<string, string>();
+    for (const pkg of registryPackages) {
+      if (!pkg.version) continue;
+      const keys = [
+        pkg.name?.toLowerCase(),
+        canonicalizePackageName(pkg.name || ""),
+        pkg.repo_id?.toLowerCase(),
+      ].filter(Boolean) as string[];
+      for (const key of keys) {
+        if (!versionHints.has(key)) {
+          versionHints.set(key, pkg.version as string);
+        }
+      }
+    }
+
+    const updateChecks = installed.packages.map(async (pkg) => {
+      const keyCandidates = [
+        pkg.name.toLowerCase(),
+        canonicalizePackageName(pkg.name),
+        pkg.repo_id.toLowerCase(),
+      ];
+
+      let latest: string | null = null;
+      for (const key of keyCandidates) {
+        const hint = versionHints.get(key);
+        if (hint) {
+          latest = hint;
+          break;
+        }
+      }
+
+      if (!latest) {
+        latest = await fetchLatestVersionFromSimpleIndex(pkg.name);
+      }
+
+      if (!latest) {
+        return null;
+      }
+
+      return compareVersions(latest, pkg.version) > 0
+        ? {
+            name: pkg.name,
+            repo_id: pkg.repo_id,
+            installedVersion: pkg.version,
+            latestVersion: latest,
+          }
+        : null;
+    });
+
+    const results = await Promise.all(updateChecks);
+    return results.filter((entry): entry is PackageUpdateInfo => entry !== null);
+  } catch (error: any) {
+    logMessage(`Failed to check for package updates: ${error.message}`, "warn");
+    return [];
+  }
 }
 
 export async function getPackageForNodeType(
