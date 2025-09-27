@@ -241,6 +241,8 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
         await get().connect(WORKER_URL);
       }
 
+      console.log("run", params, workflow, nodes, edges);
+
       set({ workflow, nodes, edges });
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
