@@ -4,7 +4,7 @@ import {
   getUVPath,
   getOllamaPath,
   getOllamaModelsPath,
-  getCondaUnpackPath,
+  getCondaLockFilePath,
   getProcessEnv,
   srcPath,
   PID_FILE_PATH,
@@ -13,7 +13,7 @@ import {
 } from '../config';
 import { readSettings } from '../settings';
 import * as path from 'path';
-import * as os from 'os';
+import { app } from 'electron';
 
 // Mock dependencies
 jest.mock('../settings', () => ({
@@ -299,29 +299,50 @@ describe('Config', () => {
     });
   });
 
-  describe('getCondaUnpackPath', () => {
-    beforeEach(() => {
-      mockReadSettings.mockReturnValue({ CONDA_ENV: '/test/conda' });
+  describe('getCondaLockFilePath', () => {
+    const lockFileName = 'environment.lock.yml';
+    const originalIsPackaged = app.isPackaged;
+    const originalResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath;
+
+    afterEach(() => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = originalIsPackaged;
+
+      if (typeof originalResourcesPath === 'undefined') {
+        delete (process as unknown as { resourcesPath?: string }).resourcesPath;
+      } else {
+        Object.defineProperty(process, 'resourcesPath', {
+          value: originalResourcesPath,
+          configurable: true,
+          writable: true,
+        });
+      }
     });
 
-    it('should return Windows conda-unpack path', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'win32'
+    it('should resolve to packaged resources path when bundled', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = true;
+      Object.defineProperty(process, 'resourcesPath', {
+        value: '/mock/resources',
+        configurable: true,
+        writable: true,
       });
 
-      const result = getCondaUnpackPath();
+      const result = getCondaLockFilePath();
 
-      expect(result).toBe(path.join('/test/conda', 'Scripts', 'conda-unpack.exe'));
+      expect(result).toBe(path.join('/mock/resources', lockFileName));
     });
 
-    it('should return Unix conda-unpack path', () => {
-      Object.defineProperty(process, 'platform', {
-        value: 'linux'
-      });
+    it('should resolve to the local resources path during development', () => {
+      (app as unknown as { isPackaged: boolean }).isPackaged = false;
 
-      const result = getCondaUnpackPath();
+      const expected = path.join(
+        path.resolve(__dirname, '..', '..'),
+        'resources',
+        lockFileName
+      );
 
-      expect(result).toBe(path.join('/test/conda', 'bin', 'conda-unpack'));
+      const result = getCondaLockFilePath();
+
+      expect(result).toBe(expected);
     });
   });
 

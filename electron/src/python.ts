@@ -2,15 +2,12 @@ import { promises as fs, constants } from "fs";
 import { spawn } from "child_process";
 import * as os from "os";
 import { app, dialog } from "electron";
-import * as https from "https";
 import * as path from "path";
 
 import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
 import { emitBootMessage } from "./events";
-import { IncomingMessage } from "http";
-import { downloadFromFile, getFileSizeFromUrl } from "./download";
 
 /**
  * API Module for Electron-Server Communication
@@ -205,59 +202,6 @@ async function runCommand(command: string[]): Promise<void> {
   });
 }
 /**
- * Download a file's contents directly to a string
- */
-async function downloadToString(url: string): Promise<string> {
-  if (url.startsWith("file://")) {
-    return downloadFromFile(url.replace("file://", ""));
-  }
-
-  return new Promise((resolve, reject) => {
-    let data = "";
-
-    const request = https.get(url, handleResponse);
-    request.on("error", handleError);
-
-    function handleResponse(response: IncomingMessage) {
-      if (response.statusCode === 404) {
-        reject(new Error(`File not found at ${url}`));
-        return;
-      }
-
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        https
-          .get(response.headers.location!, handleResponse)
-          .on("error", handleError);
-        return;
-      }
-
-      response.setEncoding("utf8");
-      response.on("data", (chunk: string) => (data += chunk));
-      response.on("end", () => resolve(data));
-      response.on("error", handleError);
-    }
-
-    function handleError(err: Error) {
-      reject(new Error(`Error downloading file: ${err.message}`));
-    }
-  });
-}
-
-/**
- * Get the conda environment size from remote URL
- */
-async function getCondaEnvSize(): Promise<number> {
-  try {
-    const url = getCondaEnvUrl();
-    const size = await getFileSizeFromUrl(url);
-    return size;
-  } catch (error: any) {
-    logMessage(`Failed to get conda env size: ${error.message}`, "error");
-    throw error;
-  }
-}
-
-/**
  * Get the default installation location based on platform
  */
 function getDefaultInstallLocation(): string {
@@ -278,36 +222,10 @@ function getDefaultInstallLocation(): string {
       return path.join(os.homedir(), ".nodetool/conda_env");
   }
 }
-/**
- * Get the conda environment URL for the current platform
- */
-function getCondaEnvUrl(): string {
-  const VERSION = app.getVersion();
-  const platform = process.platform;
-  const arch = process.arch;
-  let fileName: string;
-
-  if (platform === "win32") {
-    fileName = `conda-env-windows-x64.zip`;
-  } else if (platform === "darwin") {
-    const archSuffix = arch === "arm64" ? "arm64" : "x86_64";
-    fileName = `conda-env-darwin-${archSuffix}.tar.gz`;
-  } else if (platform === "linux") {
-    fileName = `conda-env-linux-x64.tar.gz`;
-  } else {
-    throw new Error("Unsupported platform");
-  }
-
-  return `https://github.com/nodetool-ai/nodetool/releases/download/v${VERSION}/${fileName}`;
-}
-
 export {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
   updateCondaEnvironment,
-  downloadToString,
-  getCondaEnvUrl,
-  getCondaEnvSize,
   getDefaultInstallLocation,
   runCommand,
 };

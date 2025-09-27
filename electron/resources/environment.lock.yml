@@ -1,0 +1,37 @@
+# Micromamba lock manifest for Nodetool's Python runtime.
+#
+# This file is intentionally kept under version control so the desktop installer
+# can provision the exact environment using `micromamba create --file`.
+#
+# The entries mirror `environment.yml` and should be regenerated with
+# `micromamba lock` during release preparation to capture exact builds for each
+# supported platform.
+
+name: nodetool
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - ffmpeg>=6,<7
+  - cairo
+  - git
+  - x264
+  - x265
+  - aom
+  - libopus
+  - libvorbis
+  - libpng
+  - libjpeg-turbo
+  - libtiff
+  - openjpeg
+  - libwebp
+  - giflib
+  - lame
+  - ollama
+  - pandoc
+  - uv
+  - lua
+  - nodejs>=20
+  - pip
+  - conda-pack

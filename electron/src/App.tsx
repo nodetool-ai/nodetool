@@ -7,6 +7,8 @@ import UpdateNotification from "./components/UpdateNotification";
 import { useIconAnimation } from "./hooks/useIconAnimation";
 import "./index.css";
 import PackageManager from "./components/PackageManager";
+import PackageUpdatesNotification from "./components/PackageUpdatesNotification";
+import type { PackageUpdateInfo } from "./types";
 
 interface UpdateProgressData {
   componentName: string;
@@ -32,6 +34,7 @@ const App: React.FC = () => {
   const [showInstallWizard, setShowInstallPrompt] = useState(false);
   const [showUpdateSteps, setShowUpdateSteps] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  const [showPackageUpdates, setShowPackageUpdates] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [progressData, setProgressData] = useState<UpdateProgressData>({
     componentName: "",
@@ -44,6 +47,9 @@ const App: React.FC = () => {
   const [installLocationData, setInstallLocationData] =
     useState<InstallLocationData | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [packageUpdates, setPackageUpdates] = useState<PackageUpdateInfo[] | null>(
+    null
+  );
 
   const { startAnimations, clearAllAnimations } = useIconAnimation();
 
@@ -131,6 +137,17 @@ const App: React.FC = () => {
     [setUpdateInfo, setShowUpdateNotification]
   );
 
+  const handlePackageUpdatesAvailable = useCallback(
+    (updates: PackageUpdateInfo[]) => {
+      if (!updates?.length) {
+        return;
+      }
+      setPackageUpdates(updates);
+      setShowPackageUpdates(true);
+    },
+    []
+  );
+
   const handleMenuEvent = useCallback(
     (data: any) => {
       // Basic reaction to menu clicks so users see immediate feedback
@@ -186,6 +203,7 @@ const App: React.FC = () => {
     window.api.onServerLog(handleServerLog);
     window.api.onInstallLocationPrompt(handleInstallLocationPrompt);
     window.api.onUpdateAvailable(handleUpdateAvailable);
+    window.api.onPackageUpdatesAvailable(handlePackageUpdatesAvailable);
     (window as any).api.onMenuEvent(handleMenuEvent);
 
     // Initialize app after listeners are in place (skip when showing package manager)
@@ -212,6 +230,7 @@ const App: React.FC = () => {
     handleServerLog,
     handleInstallLocationPrompt,
     handleUpdateAvailable,
+    handlePackageUpdatesAvailable,
     handleMenuEvent,
     showPackageManager,
   ]);
@@ -261,6 +280,13 @@ const App: React.FC = () => {
         <UpdateNotification
           releaseUrl={updateInfo.releaseUrl}
           onClose={() => setShowUpdateNotification(false)}
+        />
+      )}
+      {showPackageUpdates && packageUpdates && (
+        <PackageUpdatesNotification
+          updates={packageUpdates}
+          onDismiss={() => setShowPackageUpdates(false)}
+          onManagePackages={() => window.api.showPackageManager?.(undefined)}
         />
       )}
     </div>
