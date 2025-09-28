@@ -27,7 +27,7 @@ declare global {
       onServerLog: (callback: (message: string) => void) => void;
       onUpdateAvailable: (callback: (info: UpdateInfo) => void) => void;
       onInstallLocationPrompt: (
-        callback: (data: { defaultPath: string }) => void
+        callback: (data: InstallLocationData) => void
       ) => void;
       onShowPackageManager: (callback: () => void) => void;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
