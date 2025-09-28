@@ -72,34 +72,41 @@ function InputProperty(props: PropertyProps) {
 const basicComponentTypeMap: Record<
   string,
   React.ComponentType<PropertyProps>
-> = {
-  str: StringProperty,
-  text: TextProperty,
-  int: IntegerProperty,
-  float: FloatProperty,
-  bool: BoolProperty,
-  dict: DictProperty,
-  color: ColorProperty
-};
+> = {};
 
-function getComponentForType(
+function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
-  const type = property.type.type;
-
-  if (type in basicComponentTypeMap) {
-    return basicComponentTypeMap[type];
+  if (property.json_schema_extra?.type) {
+    return componentForType(property.json_schema_extra.type as string);
+  } else {
+    switch (property.type.type) {
+      case "union":
+        return handleUnionType(property);
+      case "list":
+        return handleListType(property);
+      default:
+        return componentForType(property.type.type);
+    }
   }
-
-  return handleAdvancedDataTypes(property);
 }
 
-function handleAdvancedDataTypes(
-  property: Property
-): React.ComponentType<PropertyProps> {
-  const type = property.type.type;
-
+function componentForType(type: string): React.ComponentType<PropertyProps> {
   switch (type) {
+    case "str":
+      return StringProperty;
+    case "text":
+      return TextProperty;
+    case "int":
+      return IntegerProperty;
+    case "float":
+      return FloatProperty;
+    case "bool":
+      return BoolProperty;
+    case "dict":
+      return DictProperty;
+    case "color":
+      return ColorProperty;
     case "image":
       return ImageProperty;
     case "audio":
@@ -132,10 +139,6 @@ function handleAdvancedDataTypes(
       return RecordTypeProperty;
     case "font":
       return FontProperty;
-    case "union":
-      return handleUnionType(property);
-    case "list":
-      return handleListType(property);
     case "inference_provider_automatic_speech_recognition_model":
     case "inference_provider_audio_classification_model":
     case "inference_provider_image_classification_model":
@@ -159,7 +162,7 @@ function handleUnionType(
   property: Property
 ): React.ComponentType<PropertyProps> {
   const reducedType = reduceUnionType(property.type);
-  return getComponentForType({
+  return getComponentForProperty({
     ...property,
     type: {
       type: reducedType,
@@ -218,7 +221,7 @@ function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
 function componentFor(
   property: Property
 ): React.ComponentType<PropertyProps> | null {
-  return getComponentForType(property);
+  return getComponentForProperty(property);
 }
 
 /**

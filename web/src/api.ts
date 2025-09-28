@@ -1912,6 +1912,28 @@ export interface components {
             /** Ignore Patterns */
             ignore_patterns?: string[] | null;
         };
+        /** HFDepthGeneration */
+        HFDepthGeneration: {
+            /**
+             * Type
+             * @default hf.depth_generation
+             * @constant
+             */
+            type: "hf.depth_generation";
+            /**
+             * Repo Id
+             * @default
+             */
+            repo_id: string;
+            /** Path */
+            path?: string | null;
+            /** Variant */
+            variant?: string | null;
+            /** Allow Patterns */
+            allow_patterns?: string[] | null;
+            /** Ignore Patterns */
+            ignore_patterns?: string[] | null;
+        };
         /** HFDocumentQuestionAnswering */
         HFDocumentQuestionAnswering: {
             /**
@@ -2170,6 +2192,28 @@ export interface components {
             /** Ignore Patterns */
             ignore_patterns?: string[] | null;
         };
+        /** HFKontextGeneration */
+        HFKontextGeneration: {
+            /**
+             * Type
+             * @default hf.kontext_generation
+             * @constant
+             */
+            type: "hf.kontext_generation";
+            /**
+             * Repo Id
+             * @default
+             */
+            repo_id: string;
+            /** Path */
+            path?: string | null;
+            /** Variant */
+            variant?: string | null;
+            /** Allow Patterns */
+            allow_patterns?: string[] | null;
+            /** Ignore Patterns */
+            ignore_patterns?: string[] | null;
+        };
         /** HFMaskGeneration */
         HFMaskGeneration: {
             /**
@@ -2244,6 +2288,28 @@ export interface components {
              * @constant
              */
             type: "hf.question_answering";
+            /**
+             * Repo Id
+             * @default
+             */
+            repo_id: string;
+            /** Path */
+            path?: string | null;
+            /** Variant */
+            variant?: string | null;
+            /** Allow Patterns */
+            allow_patterns?: string[] | null;
+            /** Ignore Patterns */
+            ignore_patterns?: string[] | null;
+        };
+        /** HFReduxGeneration */
+        HFReduxGeneration: {
+            /**
+             * Type
+             * @default hf.redux_generation
+             * @constant
+             */
+            type: "hf.redux_generation";
             /**
              * Repo Id
              * @default
@@ -3841,12 +3907,16 @@ export interface components {
             min?: number | null;
             /** Max */
             max?: number | null;
+            /** Json Schema Extra */
+            json_schema_extra?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -5969,7 +6039,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
                 };
             };
         };
