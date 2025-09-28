@@ -443,7 +443,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                 flexDirection: "column"
               }}
             >
-              {activeNodeStore ? (
+              {activeNodeStore && (
                 <NodeContext.Provider value={activeNodeStore}>
                   <ReactFlowProvider>
                     <ContextMenuProvider>
@@ -475,8 +475,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                     </ContextMenuProvider>
                   </ReactFlowProvider>
                 </NodeContext.Provider>
-              ) : (
-                <StatusMessage />
               )}
             </Box>
           </div>

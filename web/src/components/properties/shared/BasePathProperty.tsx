@@ -307,7 +307,7 @@ const PathPreview = ({
         Browse
       </button>
       <div className="path-picker__preview">
-        <Typography>{value?.path}</Typography>
+        <Typography>{value?.toString()}</Typography>
         {value?.path && (
           <button
             onClick={onClear}
@@ -389,9 +389,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   });
 
   const [files, setFiles] = useState<TreeViewItem[]>([]);
-  const [selectedPath, setSelectedPath] = useState<string>(
-    props.value?.path || ""
-  );
+  const [selectedPath, setSelectedPath] = useState<string>(props.value || "");
 
   useEffect(() => {
     if (initialFiles) {
@@ -427,18 +425,19 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   }, []);
 
   const handleClear = useCallback(() => {
-    props.onChange({ type: props.pathType, path: "" });
+    props.onChange("");
   }, [props]);
 
   const handleConfirm = useCallback(() => {
-    props.onChange({ type: props.pathType, path: selectedPath });
+    console.log("selectedPath", selectedPath);
+    props.onChange(selectedPath);
     setIsFileBrowserOpen(false);
   }, [props, selectedPath]);
 
   const handleCancel = useCallback(() => {
-    setSelectedPath(props.value?.path || "");
+    setSelectedPath(props.value || "");
     setIsFileBrowserOpen(false);
-  }, [props.value?.path]);
+  }, [props.value]);
 
   return (
     <div css={createPathPropertyStyles(theme)} className="path-picker">
