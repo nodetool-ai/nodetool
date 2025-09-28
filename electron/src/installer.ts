@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import { createWriteStream, promises as fs } from "fs";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
@@ -8,13 +8,15 @@ import {
 
 import { logMessage } from "./logger";
 import path from "path";
-import { updateSettings } from "./settings";
+import { readSettings, updateSettings } from "./settings";
 import { emitBootMessage, emitUpdateProgress } from "./events";
 import os from "os";
 import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
+import https from "https";
+import { pipeline } from "stream/promises";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
@@ -24,9 +26,103 @@ const CPU_LLAMA_SPEC = "llama.cpp";
 const OLLAMA_SPEC = "ollama";
 const CONDA_CHANNELS = ["conda-forge"];
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
+const MICROMAMBA_BIN_DIR_NAME = "bin";
+const MICROMAMBA_EXECUTABLE_NAME =
+  process.platform === "win32" ? "micromamba.exe" : "micromamba";
+const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
+
+interface InstallationPreferences {
+  location: string;
+  packages: PythonPackages;
+}
+
+function sanitizePackageSelection(packages: unknown): PythonPackages {
+  if (!Array.isArray(packages)) {
+    return [];
+  }
+
+  const sanitized = packages
+    .filter((pkg): pkg is string => typeof pkg === "string")
+    .map((pkg) => pkg.trim())
+    .filter((pkg) => pkg.length > 0);
+
+  return Array.from(new Set(sanitized));
+}
+
+function normalizeInstallLocation(location: unknown): string {
+  if (typeof location === "string") {
+    const trimmed = location.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  return getDefaultInstallLocation();
+}
+
+function persistInstallationPreferences(
+  location: unknown,
+  packages: unknown
+): InstallationPreferences {
+  const normalizedLocation = normalizeInstallLocation(location);
+  const sanitizedPackages = sanitizePackageSelection(packages);
+
+  try {
+    updateSettings({
+      CONDA_ENV: normalizedLocation,
+      [PYTHON_PACKAGES_SETTING_KEY]: sanitizedPackages,
+    });
+    logMessage(
+      `Persisted installer preferences: location=${normalizedLocation}, packages=${
+        sanitizedPackages.join(", ") || "none"
+      }`
+    );
+  } catch (error) {
+    logMessage(
+      `Failed to persist installer preferences: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "error"
+    );
+  }
+
+  return {
+    location: normalizedLocation,
+    packages: sanitizedPackages,
+  };
+}
+
+function readInstallationPreferences(): InstallationPreferences {
+  try {
+    const settings = readSettings();
+    const location = normalizeInstallLocation(settings["CONDA_ENV"]);
+    const packages = sanitizePackageSelection(
+      settings[PYTHON_PACKAGES_SETTING_KEY as keyof typeof settings]
+    );
+    return { location, packages };
+  } catch (error) {
+    logMessage(
+      `Unable to read installer preferences, using defaults: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "warn"
+    );
+    return {
+      location: getDefaultInstallLocation(),
+      packages: [],
+    };
+  }
+}
 
 function getMicromambaRootPrefix(): string {
   return path.join(app.getPath("userData"), "micromamba");
+}
+
+function getMicromambaBinDir(): string {
+  return path.join(getMicromambaRootPrefix(), MICROMAMBA_BIN_DIR_NAME);
+}
+
+function getMicromambaExecutablePath(): string {
+  return path.join(getMicromambaBinDir(), MICROMAMBA_EXECUTABLE_NAME);
 }
 
 function sanitizeProcessEnv(): NodeJS.ProcessEnv {
@@ -58,9 +154,173 @@ function detectMicromambaExecutable(): string {
     }
   }
 
-  throw new Error(
-    "Unable to locate micromamba. Install micromamba and ensure it is available on PATH or set MICROMAMBA_EXE."
-  );
+  return "";
+}
+
+function getMicromambaDownloadUrl(): string | null {
+  const platform = process.platform;
+  const arch = process.arch;
+
+  if (platform === "darwin") {
+    if (arch === "arm64") {
+      return "https://micro.mamba.pm/api/micromamba/osx-arm64/latest";
+    }
+    if (arch === "x64") {
+      return "https://micro.mamba.pm/api/micromamba/osx-64/latest";
+    }
+    return null;
+  }
+
+  if (platform === "linux") {
+    if (arch === "x64") {
+      return "https://micro.mamba.pm/api/micromamba/linux-64/latest";
+    }
+    if (arch === "arm64") {
+      return "https://micro.mamba.pm/api/micromamba/linux-aarch64/latest";
+    }
+    if (arch === "ppc64") {
+      return "https://micro.mamba.pm/api/micromamba/linux-ppc64le/latest";
+    }
+    return null;
+  }
+
+  return null;
+}
+
+async function downloadFile(
+  url: string,
+  destinationPath: string
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = https.get(url, (response) => {
+      if (
+        response.statusCode &&
+        response.statusCode >= 300 &&
+        response.statusCode < 400 &&
+        response.headers.location
+      ) {
+        const redirectUrl = new URL(response.headers.location, url).toString();
+        response.destroy();
+        downloadFile(redirectUrl, destinationPath).then(resolve).catch(reject);
+        return;
+      }
+
+      if (response.statusCode !== 200) {
+        reject(
+          new Error(
+            `Failed to download micromamba (status ${response.statusCode})`
+          )
+        );
+        response.resume();
+        return;
+      }
+
+      const fileStream = createWriteStream(destinationPath);
+      pipeline(response, fileStream)
+        .then(resolve)
+        .catch((error) => reject(error));
+    });
+
+    request.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
+
+async function extractMicromambaArchive(
+  archivePath: string,
+  destinationDir: string
+): Promise<void> {
+  await fs.mkdir(destinationDir, { recursive: true });
+
+  await new Promise<void>((resolve, reject) => {
+    const tarProcess = spawn(
+      "tar",
+      ["-xvjf", archivePath, "-C", destinationDir, "bin/micromamba"],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
+
+    tarProcess.stdout?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`tar stdout: ${message}`);
+      }
+    });
+
+    tarProcess.stderr?.on("data", (data: Buffer) => {
+      const message = data.toString().trim();
+      if (message) {
+        logMessage(`tar stderr: ${message}`, "error");
+      }
+    });
+
+    tarProcess.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`tar exited with code ${code}`));
+      }
+    });
+
+    tarProcess.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
+
+async function ensureMicromambaAvailable(): Promise<string> {
+  const detectedExecutable = detectMicromambaExecutable();
+  if (detectedExecutable) {
+    return detectedExecutable;
+  }
+
+  const localExecutable = getMicromambaExecutablePath();
+  if (await fileExists(localExecutable)) {
+    return localExecutable;
+  }
+
+  const downloadUrl = getMicromambaDownloadUrl();
+  if (!downloadUrl) {
+    throw new Error(
+      "Unable to locate micromamba and automatic download is not supported on this platform."
+    );
+  }
+
+  emitBootMessage("Downloading micromamba...");
+  logMessage(`Downloading micromamba from ${downloadUrl}`);
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "micromamba-"));
+  const archivePath = path.join(tempDir, "micromamba.tar.bz2");
+  let installedExecutable: string | null = null;
+
+  try {
+    await downloadFile(downloadUrl, archivePath);
+    emitBootMessage("Installing micromamba...");
+    await extractMicromambaArchive(archivePath, tempDir);
+
+    const extractedBinary = path.join(tempDir, "bin", "micromamba");
+    if (!(await fileExists(extractedBinary))) {
+      throw new Error("micromamba binary not found after extraction");
+    }
+
+    await fs.mkdir(getMicromambaBinDir(), { recursive: true });
+    await fs.copyFile(extractedBinary, localExecutable);
+    await fs.chmod(localExecutable, 0o755);
+
+    process.env[MICROMAMBA_ENV_VAR] = localExecutable;
+    installedExecutable = localExecutable;
+    logMessage(`micromamba installed at ${localExecutable}`);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+
+  if (!installedExecutable) {
+    throw new Error("Failed to install micromamba");
+  }
+
+  return installedExecutable;
 }
 
 async function runMicromambaCommand(
@@ -68,6 +328,10 @@ async function runMicromambaCommand(
   args: string[],
   progressAction: string
 ): Promise<void> {
+  if (!micromambaExecutable) {
+    throw new Error("micromamba executable path is empty");
+  }
+
   await fs.mkdir(getMicromambaRootPrefix(), { recursive: true });
 
   const env = sanitizeProcessEnv();
@@ -120,6 +384,10 @@ async function createEnvironmentWithMicromamba(
   lockFilePath: string,
   destinationPrefix: string
 ): Promise<void> {
+  if (!micromambaExecutable) {
+    throw new Error("micromamba executable path is empty");
+  }
+
   emitBootMessage("Creating Python environment with micromamba...");
 
   if (!(await fileExists(lockFilePath))) {
@@ -148,6 +416,56 @@ async function createEnvironmentWithMicromamba(
     args,
     "Creating Python environment"
   );
+}
+
+async function provisionPythonEnvironment(
+  location: string,
+  packages: PythonPackages,
+  options?: { bootMessage?: string }
+): Promise<void> {
+  const bootMessage =
+    options?.bootMessage ?? "Setting up Python environment...";
+
+  emitBootMessage(bootMessage);
+  logMessage(`Setting up Python environment at: ${location}`);
+
+  const lockFilePath = getCondaLockFilePath();
+  logMessage(`Using micromamba lock file at: ${lockFilePath}`);
+
+  const micromambaExecutable = await ensureMicromambaAvailable();
+
+  await createEnvironmentWithMicromamba(
+    micromambaExecutable,
+    lockFilePath,
+    location
+  );
+
+  await updateCondaEnvironment(packages);
+
+  const condaEnvPath = location;
+  await installCondaPackages(micromambaExecutable, condaEnvPath);
+  await ensureLlamaCppInstalled(condaEnvPath);
+
+  try {
+    emitBootMessage("Installing Playwright browsers...");
+    logMessage("Running Playwright install in Python environment");
+    const pythonPath = getPythonPath();
+    await runCommand([pythonPath, "-m", "playwright", "install"]);
+    logMessage("Playwright installation completed successfully");
+  } catch (err: any) {
+    logMessage(`Failed to install Playwright: ${err.message}`, "error");
+    throw err;
+  }
+
+  logMessage("Python environment installation completed successfully");
+  emitBootMessage("Python environment is ready");
+}
+
+async function repairCondaEnvironment(): Promise<void> {
+  const { location, packages } = readInstallationPreferences();
+  await provisionPythonEnvironment(location, packages, {
+    bootMessage: "Repairing Python environment...",
+  });
 }
 
 /**
@@ -188,41 +506,11 @@ async function createEnvironmentWithMicromamba(
 async function installCondaEnvironment(): Promise<void> {
   try {
     logMessage("Prompting for install location");
-    const { location, packages } = await promptForInstallLocation();
-    emitBootMessage("Setting up Python environment...");
-    logMessage(`Setting up Python environment at: ${location}`);
-
-    const lockFilePath = getCondaLockFilePath();
-    logMessage(`Using micromamba lock file at: ${lockFilePath}`);
-
-    const micromambaExecutable = detectMicromambaExecutable();
-
-    await createEnvironmentWithMicromamba(
-      micromambaExecutable,
-      lockFilePath,
-      location
+    const persistedPreferences = readInstallationPreferences();
+    const { location, packages } = await promptForInstallLocation(
+      persistedPreferences
     );
-
-    await updateCondaEnvironment(packages);
-
-    const condaEnvPath = location;
-    await installCondaPackages(micromambaExecutable, condaEnvPath);
-    await ensureLlamaCppInstalled(condaEnvPath);
-
-    // Install Playwright browsers in the freshly set up environment
-    try {
-      emitBootMessage("Installing Playwright browsers...");
-      logMessage("Running Playwright install in Python environment");
-      const pythonPath = getPythonPath();
-      await runCommand([pythonPath, "-m", "playwright", "install"]);
-      logMessage("Playwright installation completed successfully");
-    } catch (err: any) {
-      logMessage(`Failed to install Playwright: ${err.message}`, "error");
-      throw err;
-    }
-
-    logMessage("Python environment installation completed successfully");
-    emitBootMessage("Python environment is ready");
+    await provisionPythonEnvironment(location, packages);
   } catch (error: any) {
     logMessage(
       `Failed to install Python environment: ${error.message}`,
@@ -237,7 +525,7 @@ async function installCondaEnvironment(): Promise<void> {
     } else if (error?.message?.toLowerCase().includes("micromamba")) {
       dialog.showErrorBox(
         "Micromamba Required",
-        "Nodetool now provisions its runtime with micromamba. Please install micromamba and ensure it is on your PATH, or set the MICROMAMBA_EXE environment variable, then retry the installation."
+        "Nodetool now provisions its runtime with micromamba. We attempted to download micromamba automatically but failed. Please install micromamba manually or set the MICROMAMBA_EXE environment variable, then retry the installation."
       );
     }
     throw error;
@@ -263,11 +551,11 @@ createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
  * Prompt for install location
  * @returns The path to the install location
  */
-async function promptForInstallLocation(): Promise<{
-  location: string;
-  packages: PythonPackages;
-}> {
-  const defaultLocation = getDefaultInstallLocation();
+async function promptForInstallLocation(
+  defaults?: InstallationPreferences
+): Promise<InstallationPreferences> {
+  const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
+  const defaultPackages = defaults?.packages ?? [];
 
   return new Promise<{
     location: string;
@@ -276,19 +564,8 @@ async function promptForInstallLocation(): Promise<{
     createIpcMainHandler(
       IpcChannels.INSTALL_TO_LOCATION,
       async (_event, { location, packages }: InstallToLocationData) => {
-        logMessage(`Updating CONDA_ENV setting to: ${location}`);
-        try {
-          updateSettings({
-            CONDA_ENV: location,
-          });
-        } catch (e) {
-          logMessage(
-            `Failed to persist CONDA_ENV setting: ${String(e)}`,
-            "error"
-          );
-          // Continue; installation can still proceed and settings can be updated later
-        }
-        resolve({ location, packages });
+        const preferences = persistInstallationPreferences(location, packages);
+        resolve(preferences);
       }
     );
 
@@ -301,6 +578,7 @@ async function promptForInstallLocation(): Promise<{
 
     mainWindow.webContents.send(IpcChannels.INSTALL_LOCATION_PROMPT, {
       defaultPath: defaultLocation,
+      packages: defaultPackages,
     });
   });
 }
@@ -329,7 +607,9 @@ async function installCondaPackages(
   }
 
   logMessage(
-    `Ensuring micromamba packages (${packageSpecs.join(", ")}) are installed into ${envPrefix}`
+    `Ensuring micromamba packages (${packageSpecs.join(
+      ", "
+    )}) are installed into ${envPrefix}`
   );
 
   await runMicromambaCommand(
@@ -354,7 +634,7 @@ async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
   }
 
   logMessage("llama.cpp binary missing, reinstalling package via micromamba");
-  const micromambaExecutable = detectMicromambaExecutable();
+  const micromambaExecutable = await ensureMicromambaAvailable();
   await installCondaPackages(micromambaExecutable, envPrefix);
 
   if (!(await fileExists(llamaBinaryPath))) {
@@ -393,3 +673,4 @@ async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
 // }
 
 export { promptForInstallLocation, installCondaEnvironment };
+export { repairCondaEnvironment };

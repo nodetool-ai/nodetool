@@ -20,6 +20,24 @@ const appsPath: string = app.isPackaged
 
 const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
 
+const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
+  Record<NodeJS.Platform, Record<string, string>>
+> = {
+  darwin: {
+    x64: "environment-osx-64.lock.yml",
+    arm64: "environment-osx-arm64.lock.yml",
+  },
+  linux: {
+    x64: "environment-linux-64.lock.yml",
+    arm64: "environment-linux-aarch64.lock.yml",
+  },
+  win32: {
+    x64: "environment-win-64.lock.yml",
+  },
+};
+
+const FALLBACK_LOCK_FILE_NAME = "environment.lock.yml";
+
 // Returns a sane default install location if settings do not define CONDA_ENV
 const getDefaultCondaEnvPath = (): string => {
   switch (process.platform) {
@@ -132,14 +150,50 @@ const getOllamaModelsPath = (): string => {
 /**
  * Retrieves the path to the locked micromamba environment manifest
  */
-const getCondaLockFilePath = (): string => {
-  const lockFileName = "environment.lock.yml";
-
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, lockFileName);
+const resolvePlatformLockFileName = (): string => {
+  const platformLockMap = PLATFORM_SPECIFIC_LOCK_FILES[process.platform];
+  if (!platformLockMap) {
+    logMessage(
+      `No platform-specific lock map for platform ${process.platform}, using fallback.`
+    );
+    return FALLBACK_LOCK_FILE_NAME;
   }
 
-  return path.join(__dirname, "..", "resources", lockFileName);
+  const lockForArch = platformLockMap[process.arch];
+  if (lockForArch) {
+    return lockForArch;
+  }
+
+  logMessage(
+    `No lock file entry for ${process.platform}/${process.arch}, falling back to ${FALLBACK_LOCK_FILE_NAME}`
+  );
+  return FALLBACK_LOCK_FILE_NAME;
+};
+
+const getCondaLockFilePath = (): string => {
+  const lockFileName = resolvePlatformLockFileName();
+
+  const packagedPath = path.join(process.resourcesPath, lockFileName);
+  if (app.isPackaged) {
+    if (fs.existsSync(packagedPath)) {
+      return packagedPath;
+    }
+
+    logMessage(
+      `Expected packaged lock file ${packagedPath} not found. Falling back to ${FALLBACK_LOCK_FILE_NAME}.`
+    );
+    return path.join(process.resourcesPath, FALLBACK_LOCK_FILE_NAME);
+  }
+
+  const devPath = path.join(__dirname, "..", "resources", lockFileName);
+  if (fs.existsSync(devPath)) {
+    return devPath;
+  }
+
+  logMessage(
+    `Expected dev lock file ${devPath} not found. Falling back to ${FALLBACK_LOCK_FILE_NAME}.`
+  );
+  return path.join(__dirname, "..", "resources", FALLBACK_LOCK_FILE_NAME);
 };
 
 /**

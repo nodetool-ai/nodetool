@@ -47,9 +47,9 @@ const App: React.FC = () => {
   const [installLocationData, setInstallLocationData] =
     useState<InstallLocationData | null>(null);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [packageUpdates, setPackageUpdates] = useState<PackageUpdateInfo[] | null>(
-    null
-  );
+  const [packageUpdates, setPackageUpdates] = useState<
+    PackageUpdateInfo[] | null
+  >(null);
 
   const { startAnimations, clearAllAnimations } = useIconAnimation();
 
@@ -122,7 +122,10 @@ const App: React.FC = () => {
 
   const handleInstallLocationPrompt = useCallback(
     (data: InstallLocationData) => {
-      setInstallLocationData(data);
+      setInstallLocationData({
+        ...data,
+        packages: data.packages ?? [],
+      });
       setShowBootMessage(false);
       setShowInstallPrompt(true);
     },
@@ -266,6 +269,7 @@ const App: React.FC = () => {
       {showInstallWizard && installLocationData && (
         <InstallWizard
           defaultPath={installLocationData.defaultPath}
+          defaultSelectedModules={installLocationData.packages}
           onComplete={handleInstallComplete}
         />
       )}
