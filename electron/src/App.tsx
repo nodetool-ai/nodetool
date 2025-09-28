@@ -8,22 +8,12 @@ import { useIconAnimation } from "./hooks/useIconAnimation";
 import "./index.css";
 import PackageManager from "./components/PackageManager";
 import PackageUpdatesNotification from "./components/PackageUpdatesNotification";
-import type { PackageUpdateInfo } from "./types";
-
-interface UpdateProgressData {
-  componentName: string;
-  progress: number;
-  action: string;
-  eta?: string;
-}
-
-interface InstallLocationData {
-  defaultPath: string;
-}
-
-interface UpdateInfo {
-  releaseUrl: string;
-}
+import type {
+  InstallLocationData,
+  PackageUpdateInfo,
+  UpdateInfo,
+  UpdateProgressData,
+} from "./types";
 
 const App: React.FC = () => {
   const showPackageManager = window.location.search.includes("package-manager");

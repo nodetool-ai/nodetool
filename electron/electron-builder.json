@@ -22,6 +22,26 @@
         {
             "from": "../src",
             "to": "src"
+        },
+        {
+            "from": "../conda-lock.yml",
+            "to": "environment.lock.yml"
+        },
+        {
+            "from": "resources/environment-osx-arm64.yml",
+            "to": "environment-osx-arm64.lock.yml"
+        },
+        {
+            "from": "resources/environment-linux-64.yml",
+            "to": "environment-linux-64.lock.yml"
+        },
+        {
+            "from": "resources/environment-linux-aarch64.yml",
+            "to": "environment-linux-aarch64.lock.yml"
+        },
+        {
+            "from": "resources/environment-win-64.yml",
+            "to": "environment-win-64.lock.yml"
         }
     ],
     "publish": [
