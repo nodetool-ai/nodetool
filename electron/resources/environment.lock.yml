@@ -34,4 +34,3 @@ dependencies:
   - lua
   - nodejs>=20
   - pip
-  - conda-pack

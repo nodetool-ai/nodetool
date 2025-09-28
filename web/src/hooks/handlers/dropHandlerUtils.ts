@@ -97,7 +97,7 @@ export const isComfyWorkflowJson = (json: any): boolean => {
 };
 
 export const isNodetoolWorkflowJson = (json: any): boolean => {
-  return json.graph && json.name && json.description;
+  return json.graph && json.updated_at && json.created_at;
 };
 
 export const useFileHandlers = () => {
@@ -183,7 +183,7 @@ export const useFileHandlers = () => {
               access: "private",
               comfy_workflow: workflow
             });
-            navigate(`/workflow/${createdWorkflow.id}`);
+            navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {
@@ -217,7 +217,7 @@ export const useFileHandlers = () => {
               access: "private",
               comfy_workflow: jsonData
             });
-            navigate(`/workflow/${createdWorkflow.id}`);
+            navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {
@@ -226,6 +226,7 @@ export const useFileHandlers = () => {
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
+          console.log("isNodetoolWorkflowJson", jsonData);
           try {
             const createdWorkflow = await createWorkflow({
               name: jsonData.name,
@@ -233,7 +234,7 @@ export const useFileHandlers = () => {
               access: "private",
               graph: jsonData.graph
             });
-            navigate(`/workflow/${createdWorkflow.id}`);
+            navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error: any) {
             return {

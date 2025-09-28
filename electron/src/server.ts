@@ -19,11 +19,13 @@ import path from "path";
 import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
+import { repairCondaEnvironment } from "./installer";
 import { Watchdog } from "./watchdog";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
 const OLLAMA_PID_FILE_PATH = path.join(app.getPath("userData"), "ollama.pid");
+let environmentRepairAttempted = false;
 
 /**
  * Server Management Module
@@ -280,11 +282,7 @@ function handleServerOutput(data: Buffer): void {
 
   if (output.includes("ModuleNotFoundError")) {
     logMessage("Python module not found error", "error");
-    dialog.showErrorBox(
-      "Server Error",
-      "Failed to start server due to missing Python module. Please try reinstalling the application."
-    );
-    app.quit();
+    void handleMissingPythonModule();
   }
 
   if (output.includes("Application startup complete.")) {
@@ -310,6 +308,45 @@ async function isServerRunning(): Promise<boolean> {
  */
 function isOllamaRunning(): boolean {
   return ollamaWatchdog !== null;
+}
+
+async function handleMissingPythonModule(): Promise<void> {
+  if (environmentRepairAttempted) {
+    dialog.showErrorBox(
+      "Server Error",
+      "Failed to start server due to missing Python module. Please try reinstalling the application."
+    );
+    app.quit();
+    return;
+  }
+
+  environmentRepairAttempted = true;
+  emitBootMessage("Repairing Python environment...");
+
+  try {
+    await stopServer();
+  } catch (error) {
+    logMessage(
+      `Failed to stop server before repair: ${(error as Error).message}`,
+      "warn"
+    );
+  }
+
+  try {
+    await repairCondaEnvironment();
+    environmentRepairAttempted = false;
+    await startServer();
+  } catch (error) {
+    logMessage(
+      `Automatic environment repair failed: ${(error as Error).message}`,
+      "error"
+    );
+    dialog.showErrorBox(
+      "Server Error",
+      "Failed to repair Python environment automatically. Please reinstall the application."
+    );
+    app.quit();
+  }
 }
 
 /**

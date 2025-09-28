@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -333,20 +333,37 @@ const CollectionsButton = memo(function CollectionsButton({
 const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
+  const headerStyles = useMemo(() => styles(theme), [theme]);
   const isWindows =
     (typeof window !== "undefined" &&
       (window as any)?.api?.platform === "win32") ||
     (typeof navigator !== "undefined" &&
       /Windows/i.test(navigator.userAgent || ""));
+  const isMac =
+    (typeof window !== "undefined" &&
+      (window as any)?.api?.platform === "darwin") ||
+    (typeof navigator !== "undefined" &&
+      /Macintosh|Mac OS X/i.test(navigator.userAgent || ""));
   const isElectron =
     typeof window !== "undefined" &&
     (!!(window as any)?.api?.windowControls ||
       (typeof navigator !== "undefined" &&
         /electron/i.test(navigator.userAgent || "")));
+  const applyMacElectronOffset = isElectron && !isWindows && isMac;
+  const macToolbarPadding = applyMacElectronOffset ? 68 : 12;
 
   return (
-    <div css={styles(theme)} className="app-header">
-      <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
+    <div css={headerStyles} className="app-header">
+      <Toolbar
+        variant="dense"
+        className="toolbar"
+        tabIndex={-1}
+        style={
+          applyMacElectronOffset
+            ? { paddingLeft: `${macToolbarPadding}px` }
+            : undefined
+        }
+      >
         <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
           <div className="logo-container">
             <Logo

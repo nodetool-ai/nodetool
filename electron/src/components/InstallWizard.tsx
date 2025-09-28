@@ -123,6 +123,7 @@ const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
 interface InstallWizardProps {
   defaultPath: string;
   onComplete: () => void;
+  defaultSelectedModules?: string[];
 }
 
 interface PackageOptionProps {
@@ -185,6 +186,7 @@ const FolderDownloadIcon: React.FC = () => (
 const InstallWizard: React.FC<InstallWizardProps> = ({
   defaultPath,
   onComplete,
+  defaultSelectedModules = [],
 }) => {
   const isMac = window.api.platform === "darwin";
   const allowedModuleKeys = useMemo<ModuleKey[]>(() => {
@@ -244,17 +246,19 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     [validatePath]
   );
   const [selectedModules, setSelectedModules] = useState<string[]>(() => {
+    const normalizedDefaults = sanitizeSelection(defaultSelectedModules);
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
-      const sanitized = sanitizeSelection(parsed);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : normalizedDefaults;
+      const sanitized = sanitizeSelection(
+        parsed.length ? parsed : normalizedDefaults
+      );
       if (sanitized.length !== parsed.length) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
       }
       return sanitized;
     } catch {
-      // ignore
-      return [];
+      return normalizedDefaults;
     }
   });
   const persist = (next: string[]) => {
@@ -386,11 +390,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
             {currentStep === "welcome" && (
               <div className="setup-step active">
                 <div className="step-header" style={{ textAlign: "center" }}>
-                  <h3>NodeTool Installer</h3>
-                  <p style={{ marginBottom: "1em" }}>
-                    Nodetool is an open&ndash;source, privacy&ndash;first
-                    platform for building AI agents and workflows visually.
-                  </p>
+                  <h3>Welcome to NodeTool</h3>
                   <p style={{ marginBottom: "1em" }}>
                     This installer will download and install a Python
                     environment to execute AI models locally.

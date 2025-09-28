@@ -330,7 +330,7 @@ function startIconAnimations(): void {
   }, 10 * 60000 + 2500);
 }
 
-window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
+window.api.onInstallLocationPrompt(async ({ defaultPath, packages }) => {
   const defaultLocationPath = document.querySelector(".location-path");
   const stepLocation = document.getElementById("step-location");
   const stepPackages = document.getElementById("step-packages");
@@ -405,19 +405,34 @@ window.api.onInstallLocationPrompt(async ({ defaultPath }) => {
   };
 
   if (defaultLocationButton && customLocationButton) {
-    defaultLocationButton.addEventListener("click", () => {
-      selectedPath = defaultPath;
+    const applySelection = (path: string) => {
+      selectedPath = path;
       goToPackageSelection();
+    };
+
+    defaultLocationButton.addEventListener("click", () => {
+      applySelection(defaultPath);
     });
 
     customLocationButton.addEventListener("click", async () => {
       const result = await window.api.selectCustomInstallLocation();
       if (result) {
-        selectedPath = result;
-        goToPackageSelection();
+        applySelection(result);
       }
     });
   }
+
+  const previouslySelected = new Set(packages ?? []);
+  Object.entries(moduleMapping).forEach(([checkboxName, repoId]) => {
+    if (previouslySelected.has(repoId)) {
+      const checkbox = document.querySelector(
+        `input[name="${checkboxName}"]`
+      ) as HTMLInputElement | null;
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    }
+  });
 
   backButton.addEventListener("click", goToLocationSelection);
 

@@ -313,6 +313,7 @@ export interface InstallLocationData {
   defaultPath: string;
   downloadSize?: string;
   installedSize?: string;
+  packages?: string[];
 }
 
 // Package-related types
