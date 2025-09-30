@@ -63,6 +63,7 @@ import { MenuProvider } from "./providers/MenuProvider";
 import ModelListIndex from "./components/hugging_face/model_list/ModelListIndex";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
 import MiniAppPage from "./components/miniapps/MiniAppPage";
+import { useJobReconnection } from "./hooks/useJobReconnection";
 
 import log from "loglevel";
 import GlobalChat from "./components/chat/containers/GlobalChat";
@@ -278,6 +279,14 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+/**
+ * Component to handle job reconnection on app load
+ */
+const JobReconnectionManager = () => {
+  useJobReconnection();
+  return null;
+};
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
@@ -296,6 +305,7 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
+        <JobReconnectionManager />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
           <MobileClassProvider>

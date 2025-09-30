@@ -182,6 +182,11 @@ export function useProcessedEdges({
           ...edge.style,
           stroke: strokeStyle,
           strokeWidth: 2
+        },
+        // Add status to data to force React Flow to detect changes
+        data: {
+          ...edge.data,
+          status: status || null
         }
       };
     });
