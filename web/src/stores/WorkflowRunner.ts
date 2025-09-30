@@ -1,7 +1,6 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeData } from "./NodeData";
 import { isLocalhost } from "./ApiClient";
-import { WORKER_URL } from "./BASE_URL";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
@@ -24,10 +23,7 @@ import { handleUpdate } from "./workflowUpdates";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { supabase } from "../lib/supabaseClient";
-import {
-  WebSocketManager,
-  ConnectionState
-} from "../lib/websocket/WebSocketManager";
+import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 
@@ -51,9 +47,8 @@ export type WorkflowRunner = {
   workflow: WorkflowAttributes | null;
   nodes: Node<NodeData>[];
   edges: Edge[];
-  wsManager: WebSocketManager | null;
   job_id: string | null;
-  current_url: string;
+  unsubscribe: (() => void) | null;
   state:
     | "idle"
     | "connecting"
@@ -76,8 +71,13 @@ export type WorkflowRunner = {
     nodes: Node<NodeData>[],
     edges: Edge[]
   ) => Promise<void>;
-  connect: (url: string) => Promise<void>;
-  disconnect: () => void;
+  reconnect: (jobId: string) => Promise<void>;
+  reconnectWithWorkflow: (
+    jobId: string,
+    workflow: WorkflowAttributes
+  ) => Promise<void>;
+  ensureConnection: () => Promise<void>;
+  cleanup: () => void;
   // Streaming inputs
   streamInput: (inputName: string, value: any, handle?: string) => void;
   endInputStream: (inputName: string, handle?: string) => void;
@@ -93,14 +93,15 @@ type MsgpackData =
 
 export type WorkflowRunnerStore = UseBoundStore<StoreApi<WorkflowRunner>>;
 
-export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
+export const createWorkflowRunnerStore = (
+  workflowId: string
+): WorkflowRunnerStore => {
   const store = create<WorkflowRunner>((set, get) => ({
-    wsManager: null,
     workflow: null,
     nodes: [],
     edges: [],
-    current_url: "",
     job_id: null,
+    unsubscribe: null,
     state: "idle",
     statusMessage: null,
     messageHandler: (workflow: WorkflowAttributes, data: MsgpackData) => {
@@ -114,122 +115,188 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
     },
     notifications: [],
 
-    connect: async (url: string) => {
-      if (get().wsManager) {
-        get().disconnect();
-      }
-
-      set({ current_url: url, state: "connecting" });
-
-      const wsManager = new WebSocketManager({
-        url,
-        binaryType: "arraybuffer",
-        reconnect: true,
-        reconnectInterval: 1000,
-        reconnectAttempts: 5
-      });
-
-      wsManager.on("open", () => {
-        log.info("WebSocket connected");
-        set({ state: "connected" });
-      });
-
-      wsManager.on("message", (data: any) => {
-        const workflow = get().workflow;
-        if (workflow) {
-          get().messageHandler(workflow, data);
-        }
-      });
-
-      wsManager.on("error", (error: Error) => {
-        log.error("WebSocket error:", error);
-        set({ state: "error" });
-      });
-
-      wsManager.on("close", () => {
-        log.info("WebSocket disconnected");
-        set({ wsManager: null, state: "idle" });
-      });
-
-      wsManager.on("reconnecting", (attempt: number, maxAttempts: number) => {
-        log.info(`Reconnecting attempt ${attempt}/${maxAttempts}`);
-        set({ state: "connecting" });
-      });
-
-      wsManager.on("stateChange", (newState: ConnectionState) => {
-        switch (newState) {
-          case "connecting":
-          case "reconnecting":
-            set({ state: "connecting" });
-            break;
-          case "connected":
-            set({ state: "connected" });
-            break;
-          case "disconnected":
-            set({ state: "idle" });
-            break;
-          case "failed":
-            set({ state: "error" });
-            break;
-        }
-      });
-
-      set({ wsManager });
-
+    ensureConnection: async () => {
+      set({ state: "connecting" });
       try {
-        await wsManager.connect();
+        await globalWebSocketManager.ensureConnection();
+        set({ state: "connected" });
+
+        // Subscribe to messages for this workflow
+        const currentUnsubscribe = get().unsubscribe;
+        if (currentUnsubscribe) {
+          currentUnsubscribe();
+        }
+
+        const unsubscribe = globalWebSocketManager.subscribe(
+          workflowId,
+          (message: any) => {
+            log.debug(
+              `WorkflowRunner[${workflowId}]: Received message`,
+              message
+            );
+            const workflow = get().workflow;
+            if (workflow) {
+              // Capture job_id from responses if present
+              if (message.job_id && !get().job_id) {
+                set({ job_id: message.job_id });
+              }
+              get().messageHandler(workflow, message);
+            }
+          }
+        );
+
+        set({ unsubscribe });
       } catch (error) {
-        log.error("Failed to connect WebSocket:", error);
+        log.error(`WorkflowRunner[${workflowId}]: Connection failed:`, error);
         set({ state: "error" });
         throw error;
       }
     },
 
-    disconnect: () => {
-      console.log("Disconnecting WebSocket");
-      const { wsManager } = get();
-      if (wsManager) {
-        wsManager.disconnect();
-        set({ wsManager: null, current_url: "", state: "idle" });
+    cleanup: () => {
+      const unsubscribe = get().unsubscribe;
+      if (unsubscribe) {
+        unsubscribe();
+        set({ unsubscribe: null });
       }
     },
 
+    /**
+     * Reconnect to an existing job by job_id.
+     */
+    reconnect: async (jobId: string) => {
+      log.info(`WorkflowRunner[${workflowId}]: Reconnecting to job`, {
+        jobId
+      });
+
+      await get().ensureConnection();
+
+      set({ job_id: jobId, state: "running" });
+
+      await globalWebSocketManager.send({
+        type: "reconnect_job",
+        command: "reconnect_job",
+        data: {
+          job_id: jobId,
+          workflow_id: workflowId
+        }
+      });
+
+      // Also subscribe to job_id for messages
+      const jobUnsubscribe = globalWebSocketManager.subscribe(
+        jobId,
+        (message: any) => {
+          const workflow = get().workflow;
+          if (workflow) {
+            get().messageHandler(workflow, message);
+          }
+        }
+      );
+
+      // Combine unsubscribers
+      const existingUnsubscribe = get().unsubscribe;
+      set({
+        unsubscribe: () => {
+          existingUnsubscribe?.();
+          jobUnsubscribe();
+        }
+      });
+    },
+
+    /**
+     * Reconnect to an existing job with workflow context.
+     */
+    reconnectWithWorkflow: async (
+      jobId: string,
+      workflow: WorkflowAttributes
+    ) => {
+      log.info(`WorkflowRunner[${workflowId}]: Reconnecting with workflow`, {
+        jobId,
+        workflowId: workflow.id
+      });
+
+      await get().ensureConnection();
+
+      set({
+        workflow,
+        job_id: jobId,
+        state: "connecting",
+        statusMessage: "Reconnecting to running job..."
+      });
+
+      await globalWebSocketManager.send({
+        type: "reconnect_job",
+        command: "reconnect_job",
+        data: {
+          job_id: jobId,
+          workflow_id: workflow.id
+        }
+      });
+
+      // Also subscribe to job_id for messages
+      const jobUnsubscribe = globalWebSocketManager.subscribe(
+        jobId,
+        (message: any) => {
+          const workflow = get().workflow;
+          if (workflow) {
+            get().messageHandler(workflow, message);
+          }
+        }
+      );
+
+      // Combine unsubscribers
+      const existingUnsubscribe = get().unsubscribe;
+      set({
+        unsubscribe: () => {
+          existingUnsubscribe?.();
+          jobUnsubscribe();
+        }
+      });
+    },
+
     // Push a streaming item to a streaming InputNode by name
-    streamInput: (inputName: string, value: any, handle?: string) => {
-      const { wsManager } = get();
-      if (!wsManager) {
-        log.warn("streamInput called without an active WebSocket connection");
+    streamInput: async (inputName: string, value: any, handle?: string) => {
+      const { job_id } = get();
+      if (!job_id) {
+        log.warn("streamInput called without an active job");
         return;
       }
-      wsManager.send({
+
+      await globalWebSocketManager.send({
         type: "stream_input",
         command: "stream_input",
-        data: { input: inputName, value, handle }
+        data: {
+          input: inputName,
+          value,
+          handle,
+          job_id,
+          workflow_id: workflowId
+        }
       });
     },
 
     // End a streaming input by name
-    endInputStream: (inputName: string, handle?: string) => {
-      const { wsManager } = get();
-      if (!wsManager) {
-        log.warn(
-          "endInputStream called without an active WebSocket connection"
-        );
+    endInputStream: async (inputName: string, handle?: string) => {
+      const { job_id } = get();
+      if (!job_id) {
+        log.warn("endInputStream called without an active job");
         return;
       }
-      wsManager.send({
+
+      await globalWebSocketManager.send({
         type: "end_input_stream",
         command: "end_input_stream",
-        data: { input: inputName, handle }
+        data: {
+          input: inputName,
+          handle,
+          job_id,
+          workflow_id: workflowId
+        }
       });
     },
 
     /**
      * Run the current workflow.
-     *
-     * @param params - The parameters to run the workflow with.
-     *
-     * @returns The results of the workflow.
      */
     run: async (
       params: any,
@@ -237,13 +304,12 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
       nodes: Node<NodeData>[],
       edges: Edge[]
     ) => {
-      if (!get().wsManager) {
-        await get().connect(WORKER_URL);
-      }
+      log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
-      console.log("run", params, workflow, nodes, edges);
+      await get().ensureConnection();
 
       set({ workflow, nodes, edges });
+
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
       const clearEdges = useResultsStore.getState().clearEdges;
@@ -255,7 +321,7 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
       const clearChunks = useResultsStore.getState().clearChunks;
       const clearPlanningUpdates =
         useResultsStore.getState().clearPlanningUpdates;
-      const connectUrl = WORKER_URL;
+
       let auth_token = "local_token";
       let user = "1";
 
@@ -270,16 +336,6 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
       set({
         statusMessage: "Workflow starting..."
       });
-
-      if (!get().wsManager || get().current_url !== connectUrl) {
-        await get().connect(connectUrl);
-      }
-
-      const wsManager = get().wsManager;
-
-      if (wsManager === null) {
-        throw new Error("WebSocketManager is null");
-      }
 
       clearStatuses(workflow.id);
       clearEdges(workflow.id);
@@ -312,9 +368,9 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
         }
       };
 
-      log.info("Running job", req);
+      log.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
-      wsManager.send({
+      await globalWebSocketManager.send({
         type: "run_job",
         command: "run_job",
         data: req
@@ -343,27 +399,35 @@ export const createWorkflowRunnerStore = (): WorkflowRunnerStore => {
      * Cancel the current workflow run.
      */
     cancel: async () => {
-      const { wsManager, job_id, workflow } = get();
-      console.log("Cancelling job", job_id);
+      const { job_id, workflow } = get();
+      log.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
+
+      // Immediately stop all animations and clear state
+      set({ state: "cancelled" });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearEdges = useResultsStore.getState().clearEdges;
+      const clearProgress = useResultsStore.getState().clearProgress;
 
       if (workflow) {
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
+        clearProgress(workflow.id);
       }
 
-      if (!wsManager || !job_id) {
+      if (!job_id) {
         return;
       }
 
-      wsManager.send({
+      // Send cancel command to backend
+      await globalWebSocketManager.send({
         type: "cancel_job",
         command: "cancel_job",
-        data: { job_id }
+        data: {
+          job_id,
+          workflow_id: workflowId
+        }
       });
-      set({ state: "cancelled" });
     }
   }));
 
@@ -381,12 +445,11 @@ const runnerStores = new Map<string, WorkflowRunnerStore>();
 export const getWorkflowRunnerStore = (
   workflowId: string
 ): WorkflowRunnerStore => {
-  const key = workflowId;
-  let store = runnerStores.get(key);
+  let store = runnerStores.get(workflowId);
 
   if (!store) {
-    store = createWorkflowRunnerStore();
-    runnerStores.set(key, store);
+    store = createWorkflowRunnerStore(workflowId);
+    runnerStores.set(workflowId, store);
   }
 
   return store;
