@@ -38,9 +38,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
-import { authHeader, BASE_URL } from "../../stores/ApiClient";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import path from "path";
 
 export const settingsStyles = (theme: Theme): any =>
   css({

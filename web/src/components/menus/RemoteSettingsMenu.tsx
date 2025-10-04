@@ -2,7 +2,15 @@
 import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography } from "@mui/material";
+import {
+  Button,
+  TextField,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -202,18 +210,43 @@ const RemoteSettings = () => {
                         key={setting.env_var}
                         className="settings-item large"
                       >
-                        <TextField
-                          type={setting.is_secret ? "text" : "text"}
-                          autoComplete="off"
-                          id={`${setting.env_var.toLowerCase()}-input`}
-                          label={setting.env_var.replace(/_/g, " ")}
-                          value={settingValues[setting.env_var] || ""}
-                          onChange={(e) =>
-                            handleChange(setting.env_var, e.target.value)
-                          }
-                          variant="standard"
-                          onKeyDown={(e) => e.stopPropagation()}
-                        />
+                        {setting.enum && setting.enum.length > 0 ? (
+                          <FormControl variant="standard" fullWidth>
+                            <InputLabel
+                              id={`${setting.env_var.toLowerCase()}-label`}
+                            >
+                              {setting.env_var.replace(/_/g, " ")}
+                            </InputLabel>
+                            <Select
+                              labelId={`${setting.env_var.toLowerCase()}-label`}
+                              id={`${setting.env_var.toLowerCase()}-select`}
+                              value={settingValues[setting.env_var] || ""}
+                              onChange={(e) =>
+                                handleChange(setting.env_var, e.target.value)
+                              }
+                              onKeyDown={(e) => e.stopPropagation()}
+                            >
+                              {setting.enum.map((option: string) => (
+                                <MenuItem key={option} value={option}>
+                                  {option}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <TextField
+                            type={setting.is_secret ? "text" : "text"}
+                            autoComplete="off"
+                            id={`${setting.env_var.toLowerCase()}-input`}
+                            label={setting.env_var.replace(/_/g, " ")}
+                            value={settingValues[setting.env_var] || ""}
+                            onChange={(e) =>
+                              handleChange(setting.env_var, e.target.value)
+                            }
+                            variant="standard"
+                            onKeyDown={(e) => e.stopPropagation()}
+                          />
+                        )}
                         {setting.description && (
                           <Typography className="description">
                             {setting.description}

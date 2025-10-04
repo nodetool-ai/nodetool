@@ -9,6 +9,7 @@ import {
 } from "lexical";
 import { memo, useCallback, useEffect, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   addClassNamesToElement,
   removeClassNamesFromElement
@@ -17,6 +18,8 @@ import {
   $patchStyleText,
   $getSelectionStyleValueForProperty
 } from "@lexical/selection";
+import { copyAsMarkdown } from "./exportMarkdown";
+import { INSERT_HORIZONTAL_RULE_COMMAND } from "./HorizontalRulePlugin";
 
 const toolbarStyles = css`
   display: flex;
@@ -49,6 +52,7 @@ const ToolbarPlugin = () => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isLargeFont, setIsLargeFont] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -156,6 +160,18 @@ const ToolbarPlugin = () => {
     });
   };
 
+  const handleCopyAsMarkdown = async () => {
+    const success = await copyAsMarkdown(editor);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleInsertHR = () => {
+    editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
+  };
+
   return (
     <div className="format-toolbar-actions" css={toolbarStyles}>
       <button
@@ -185,6 +201,22 @@ const ToolbarPlugin = () => {
         title="Toggle Large Font Size"
       >
         <AddIcon sx={{ fontSize: "1em" }} />
+      </button>
+      <button
+        onClick={handleInsertHR}
+        aria-label="Insert Horizontal Rule"
+        title="Insert Horizontal Rule"
+        style={{ fontSize: "16px", fontWeight: "bold" }}
+      >
+        ─
+      </button>
+      <button
+        onClick={handleCopyAsMarkdown}
+        aria-label="Copy as Markdown"
+        title="Copy as Markdown"
+        className={copied ? "active" : ""}
+      >
+        <ContentCopyIcon sx={{ fontSize: "1em" }} />
       </button>
     </div>
   );

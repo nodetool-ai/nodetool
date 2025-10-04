@@ -9,12 +9,12 @@ import {
   getProviderBaseName,
   formatGenericProviderName
 } from "../../utils/providerDisplay";
-import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
+import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { ImageModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 
-interface LanguageModelSelectProps {
+interface ImageModelSelectProps {
   onChange: (value: any) => void;
   value: string;
 }
@@ -57,7 +57,7 @@ const renderProviderLabel = (provider: string): React.ReactNode => {
   return formatGenericProviderName(provider);
 };
 
-const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
+const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   onChange,
   value
 }) => {
@@ -66,8 +66,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
   const theme = useTheme();
 
-  const loadLanguageModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/llm", {});
+  const loadImageModels = useCallback(async () => {
+    const { data, error } = await client.GET("/api/models/image", {});
     if (error) {
       throw error;
     }
@@ -79,8 +79,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     isLoading,
     isError
   } = useQuery({
-    queryKey: ["models"],
-    queryFn: async () => await loadLanguageModels()
+    queryKey: ["image-models"],
+    queryFn: async () => await loadImageModels()
   });
 
   const sortedModels = useMemo(() => {
@@ -118,9 +118,9 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   }, []);
 
   const handleDialogModelSelect = useCallback(
-    (model: LanguageModel) => {
+    (model: ImageModel) => {
       const modelToPass = {
-        type: "language_model" as const,
+        type: "image_model" as const,
         id: model.id,
         provider: model.provider,
         name: model.name || ""
@@ -160,10 +160,12 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         title={
           <div style={{ textAlign: "center" }}>
             <Typography variant="inherit">
-              {currentSelectedModelDetails?.name || value || "Select a model"}
+              {currentSelectedModelDetails?.name ||
+                value ||
+                "Select an image model"}
             </Typography>
             <Typography variant="caption" display="block">
-              Select Model
+              Select Image Generation Model
             </Typography>
           </div>
         }
@@ -171,7 +173,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       >
         <Button
           ref={buttonRef}
-          className={`select-model-button language-model-button ${
+          className={`select-model-button image-model-button ${
             value ? "active" : ""
           }`}
           sx={{
@@ -202,11 +204,11 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
               display: "block"
             }}
           >
-            {currentSelectedModelDetails?.name || value || "Select Model"}
+            {currentSelectedModelDetails?.name || value || "Select Image Model"}
           </Typography>
         </Button>
       </Tooltip>
-      <LanguageModelMenuDialog
+      <ImageModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
         models={models}
@@ -218,4 +220,4 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   );
 };
 
-export default React.memo(LanguageModelSelect, isEqual);
+export default React.memo(ImageModelSelect, isEqual);

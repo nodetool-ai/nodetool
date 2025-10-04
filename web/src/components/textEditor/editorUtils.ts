@@ -1,5 +1,5 @@
-// In the future, we will add functions here to convert
-// Slate.js data to Lexical and vice-versa.
+// Utility functions for converting between different editor formats
+// (Slate.js, Markdown, and Lexical)
 
 export const convertSlateToLexical = (slateData: any): string => {
   // For now, just extract the plain text as a starting point.
@@ -52,4 +52,24 @@ export const convertSlateToLexical = (slateData: any): string => {
       children: [{ type: "paragraph", children: [{ type: "text", text: "" }] }]
     }
   });
+};
+
+/**
+ * Detects if a string contains markdown-like syntax
+ */
+export const isMarkdownText = (text: string): boolean => {
+  if (!text || typeof text !== "string") return false;
+
+  // Check for common markdown patterns
+  return (
+    /#{1,6}\s/.test(text) || // Headers
+    /\*\*[^\*]+\*\*/.test(text) || // Bold
+    /\*[^\*]+\*/.test(text) || // Italic
+    /\[[^\]]+\]\([^\)]+\)/.test(text) || // Links
+    /^[\*\-\+]\s/m.test(text) || // Lists
+    /^\d+\.\s/m.test(text) || // Ordered lists
+    /^>\s/m.test(text) || // Blockquotes
+    /```/.test(text) || // Code blocks
+    /`[^`]+`/.test(text) // Inline code
+  );
 };

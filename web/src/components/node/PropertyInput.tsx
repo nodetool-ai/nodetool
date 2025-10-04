@@ -92,6 +92,7 @@ function getComponentForProperty(
 }
 
 function componentForType(type: string): React.ComponentType<PropertyProps> {
+  console.log("componentForType", type);
   switch (type) {
     case "str":
       return StringProperty;
@@ -196,6 +197,7 @@ function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
     "function_model",
     "openai_model",
     "language_model",
+    "image_model",
     "llama_model",
     "comfy.",
     "hf."

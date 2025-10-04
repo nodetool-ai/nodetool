@@ -237,20 +237,35 @@ export default function useConnectionHandlers() {
 
         // Handle dynamic properties case
         if (nodeMetadata.is_dynamic && connectDirection === "source") {
+          // Use the source node's name as the property name
+          const sourceNodeName =
+            connectNode.data?.title ||
+            connectNode.type?.split(".").pop() ||
+            connectHandleId ||
+            "";
+          const dynamicProps = node.data?.dynamic_properties || {};
+
+          // Find a unique name if the property already exists
+          let propertyName = sourceNodeName;
+          let counter = 1;
+          while (dynamicProps[propertyName]) {
+            propertyName = `${sourceNodeName}_${counter}`;
+            counter++;
+          }
+
           const newConnection = {
             source: connectNodeId || "",
             sourceHandle: connectHandleId || "",
             target: nodeId,
-            targetHandle: connectHandleId, // Use the same handle name for the dynamic property
+            targetHandle: propertyName,
             className: Slugify(connectType?.type || "")
           };
 
           // Create the dynamic property
-          const dynamicProps = node.data?.dynamic_properties || {};
-          if (!dynamicProps[connectHandleId || ""]) {
+          if (!dynamicProps[propertyName]) {
             const updatedProps = {
               ...dynamicProps,
-              [connectHandleId || ""]: ""
+              [propertyName]: ""
             };
             updateNodeData(nodeId, {
               dynamic_properties: updatedProps

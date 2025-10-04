@@ -11,8 +11,12 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 
 export const useModels = () => {
-  const { modelSearchTerm, selectedModelType, maxModelSizeGB } =
-    useModelManagerStore();
+  const {
+    modelSearchTerm,
+    selectedModelType,
+    maxModelSizeGB,
+    showDownloadedOnly
+  } = useModelManagerStore();
   const { ollamaBasePath } = useModelBasePaths();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -38,15 +42,6 @@ export const useModels = () => {
     [allModels]
   );
 
-  const modelTypes = useMemo(() => {
-    const allTypes = new Set<string>();
-    allTypes.add("All");
-    allTypes.add("llama_model");
-    Object.keys(groupedModels).forEach((type) => allTypes.add(type));
-    allTypes.add("Other");
-    return sortModelTypes(Array.from(allTypes));
-  }, [groupedModels]);
-
   const filteredModels: UnifiedModel[] = useMemo(() => {
     const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
@@ -64,10 +59,64 @@ export const useModels = () => {
         model.size_on_disk > maxModelSizeGB * 1024 ** 3
       )
         return false;
+      if (showDownloadedOnly && !model.downloaded) return false;
       return true;
     };
     return allModels?.filter(filterModel) || [];
-  }, [allModels, modelSearchTerm, selectedModelType, maxModelSizeGB]);
+  }, [
+    allModels,
+    modelSearchTerm,
+    selectedModelType,
+    maxModelSizeGB,
+    showDownloadedOnly
+  ]);
+
+  const modelTypes = useMemo(() => {
+    const allTypes = new Set<string>();
+    allTypes.add("All");
+
+    // Get unique types from all models
+    allModels?.forEach((model) => {
+      if (model.type) {
+        allTypes.add(model.type);
+      }
+    });
+
+    return sortModelTypes(Array.from(allTypes));
+  }, [allModels]);
+
+  // Get available model types based on current filters (for sidebar visibility)
+  const availableModelTypes = useMemo(() => {
+    const types = new Set<string>();
+    types.add("All");
+
+    // Get types from filtered models (excluding type filter)
+    const modelsForTypeList =
+      allModels?.filter((model) => {
+        const searchTerm = modelSearchTerm.toLowerCase();
+        const matchesText =
+          model.name?.toLowerCase().includes(searchTerm) ||
+          model.repo_id?.toLowerCase().includes(searchTerm);
+
+        if (!matchesText) return false;
+        if (
+          maxModelSizeGB &&
+          model.size_on_disk &&
+          model.size_on_disk > maxModelSizeGB * 1024 ** 3
+        )
+          return false;
+        if (showDownloadedOnly && !model.downloaded) return false;
+        return true;
+      }) || [];
+
+    modelsForTypeList.forEach((model) => {
+      if (model.type) {
+        types.add(model.type);
+      }
+    });
+
+    return types;
+  }, [allModels, modelSearchTerm, maxModelSizeGB, showDownloadedOnly]);
 
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) return;
@@ -102,6 +151,7 @@ export const useModels = () => {
 
   return {
     modelTypes,
+    availableModelTypes,
     allModels,
     groupedModels,
     filteredModels,

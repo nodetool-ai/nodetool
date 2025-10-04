@@ -14,12 +14,23 @@ const ModelListHeader: React.FC = () => {
     modelSearchTerm,
     setModelSearchTerm,
     maxModelSizeGB,
-    setMaxModelSizeGB
+    setMaxModelSizeGB,
+    showDownloadedOnly,
+    setShowDownloadedOnly
   } = useModelManagerStore();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
     const v = Array.isArray(value) ? value[0] : value;
     setMaxModelSizeGB(v);
+  };
+
+  const handleToggleChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newValue: boolean
+  ) => {
+    if (newValue !== null) {
+      setShowDownloadedOnly(newValue);
+    }
   };
 
   return (
@@ -33,8 +44,41 @@ const ModelListHeader: React.FC = () => {
         searchTerm={modelSearchTerm}
       />
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <Box sx={{ width: 180 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          flex: 1,
+          justifyContent: "flex-end",
+          pr: 2
+        }}
+      >
+        <ToggleButtonGroup
+          value={showDownloadedOnly}
+          exclusive
+          onChange={handleToggleChange}
+          aria-label="show downloaded models only"
+          size="small"
+          sx={{ height: "32px" }}
+        >
+          <ToggleButton
+            value={false}
+            aria-label="show all models"
+            sx={{ px: 2, minWidth: "60px" }}
+          >
+            All
+          </ToggleButton>
+          <ToggleButton
+            value={true}
+            aria-label="show downloaded models only"
+            sx={{ px: 2, minWidth: "100px" }}
+          >
+            Downloaded
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Box sx={{ width: 200, minWidth: 200, mr: 2 }}>
           <Slider
             aria-label="Max model size in GB"
             value={maxModelSizeGB}

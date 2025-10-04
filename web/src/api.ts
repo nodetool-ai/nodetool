@@ -458,6 +458,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Image Models Endpoint
+         * @description Get all available image generation models from all providers.
+         */
+        get: operations["get_image_models_endpoint_api_models_image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama_model_info": {
         parameters: {
             query?: never;
@@ -1025,6 +1045,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description List jobs for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *         workflow_id: Optional workflow ID to filter by
+         *         limit: Maximum number of jobs to return
+         *         start_key: Pagination start key
+         *
+         *     Returns:
+         *         List of jobs
+         */
+        get: operations["list_jobs_api_jobs__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Job
+         * @description Get a specific job by ID.
+         *
+         *     Args:
+         *         job_id: Job ID
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Job details
+         */
+        get: operations["get_job_api_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/running/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Running Jobs
+         * @description List all currently running background jobs for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         List of running background jobs
+         */
+        get: operations["list_running_jobs_api_jobs_running_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Job
+         * @description Cancel a running job.
+         *
+         *     Args:
+         *         job_id: Job ID to cancel
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Success message
+         */
+        post: operations["cancel_job_api_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -1383,6 +1512,21 @@ export interface components {
             /** Data */
             data?: unknown;
         };
+        /** BackgroundJobResponse */
+        BackgroundJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Created At */
+            created_at: string;
+            /** Is Running */
+            is_running: boolean;
+            /** Is Completed */
+            is_completed: boolean;
+        };
         /** Body_create_api_assets__post */
         Body_create_api_assets__post: {
             /** File */
@@ -1724,6 +1868,12 @@ export interface components {
             /** Error */
             error: string;
         };
+        /**
+         * ExecutionStrategy
+         * @description Execution strategy for workflow jobs.
+         * @enum {string}
+         */
+        ExecutionStrategy: "threaded" | "subprocess" | "docker";
         /** FileInfo */
         FileInfo: {
             /** Name */
@@ -2878,6 +3028,27 @@ export interface components {
             /** Ignore Patterns */
             ignore_patterns?: string[] | null;
         };
+        /** ImageModel */
+        ImageModel: {
+            /**
+             * Type
+             * @default image_model
+             * @constant
+             */
+            type: "image_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /**
          * ImageRef
          * @description A reference to an image asset.
@@ -3119,6 +3290,27 @@ export interface components {
              */
             model_id: string;
         };
+        /** JobResponse */
+        JobResponse: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Job Type */
+            job_type: string;
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Cost */
+            cost?: number | null;
+        };
         /** JobUpdate */
         JobUpdate: {
             /**
@@ -3131,6 +3323,8 @@ export interface components {
             status: string;
             /** Job Id */
             job_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /** Message */
             message?: string | null;
             /** Result */
@@ -3898,7 +4092,7 @@ export interface components {
             name: string;
             type: components["schemas"]["TypeMetadata-Output"];
             /** Default */
-            default?: unknown | null;
+            default?: unknown;
             /** Title */
             title?: string | null;
             /** Description */
@@ -3930,12 +4124,39 @@ export interface components {
             downloaded: boolean;
         };
         /**
+         * ResourceLimits
+         * @description Resource limits for subprocess execution.
+         *
+         *     Attributes:
+         *         cpu_percent: CPU usage limit as percentage (1-100), requires cpulimit
+         *         memory_mb: Memory limit in megabytes, uses ulimit -v
+         *         time_seconds: CPU time limit in seconds, uses ulimit -t
+         *         file_size_mb: File size limit in megabytes, uses ulimit -f
+         *         open_files: Maximum number of open file descriptors, uses ulimit -n
+         *         max_processes: Maximum number of processes, uses ulimit -u
+         */
+        ResourceLimits: {
+            /** Cpu Percent */
+            cpu_percent?: number | null;
+            /** Memory Mb */
+            memory_mb?: number | null;
+            /** Time Seconds */
+            time_seconds?: number | null;
+            /** File Size Mb */
+            file_size_mb?: number | null;
+            /** Open Files */
+            open_files?: number | null;
+            /** Max Processes */
+            max_processes?: number | null;
+        };
+        /**
          * RunJobRequest
          * @description A request model for running a workflow.
          *
          *     Attributes:
          *         type: The type of request, always "run_job_request".
          *         job_type: The type of job to run, defaults to "workflow".
+         *         execution_strategy: Strategy for executing the job (threaded, subprocess, docker).
          *         params: Optional parameters for the job.
          *         messages: Optional list of messages associated with the job.
          *         workflow_id: The ID of the workflow to run.
@@ -3958,6 +4179,8 @@ export interface components {
              * @default workflow
              */
             job_type: string;
+            /** @default threaded */
+            execution_strategy: components["schemas"]["ExecutionStrategy"];
             /** Params */
             params?: unknown | null;
             /** Messages */
@@ -3989,6 +4212,7 @@ export interface components {
              * @default false
              */
             explicit_types: boolean | null;
+            resource_limits?: components["schemas"]["ResourceLimits"] | null;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
@@ -4040,6 +4264,8 @@ export interface components {
             description: string;
             /** Is Secret */
             is_secret: boolean;
+            /** Enum */
+            enum?: string[] | null;
             /** Value */
             value?: unknown | null;
         };
@@ -5699,6 +5925,39 @@ export interface operations {
             };
         };
     };
+    get_image_models_endpoint_api_models_image_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_ollama_model_info_endpoint_api_models_ollama_model_info_get: {
         parameters: {
             query: {
@@ -6846,6 +7105,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebugBundleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_jobs__get: {
+        parameters: {
+            query?: {
+                workflow_id?: string | null;
+                limit?: number;
+                start_key?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_running_jobs_api_jobs_running_all_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackgroundJobResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_job_api_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

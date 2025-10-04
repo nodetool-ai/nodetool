@@ -20,6 +20,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -151,12 +152,34 @@ const initialConfigTemplate = {
     CodeNode,
     CodeHighlightNode,
     AutoLinkNode,
-    LinkNode
+    LinkNode,
+    HorizontalRuleNode
   ],
   theme: {
     text: {
-      large: "font-size-large"
-    }
+      large: "font-size-large",
+      bold: "editor-text-bold",
+      italic: "editor-text-italic",
+      underline: "editor-text-underline",
+      strikethrough: "editor-text-strikethrough",
+      code: "editor-text-code"
+    },
+    link: "editor-link",
+    code: "editor-code",
+    heading: {
+      h1: "editor-heading-h1",
+      h2: "editor-heading-h2",
+      h3: "editor-heading-h3",
+      h4: "editor-heading-h4",
+      h5: "editor-heading-h5",
+      h6: "editor-heading-h6"
+    },
+    list: {
+      ul: "editor-list-ul",
+      ol: "editor-list-ol",
+      listitem: "editor-listitem"
+    },
+    quote: "editor-quote"
   }
 };
 
@@ -176,25 +199,25 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const contentOnFocusRef = useRef<EditorState | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
 
-  const initialEditorState = useMemo(() => {
-    const commentData =
-      props.data.properties.comment_lexical ?? props.data.properties.comment;
-    if (commentData) {
-      if (props.data.properties.comment_lexical) {
-        return JSON.stringify(commentData);
-      }
-      return convertSlateToLexical(commentData);
-    }
-    return undefined;
-  }, [props.data.properties.comment, props.data.properties.comment_lexical]);
+  const editorConfig = useMemo(() => {
+    const config: any = {
+      ...initialConfigTemplate
+    };
 
-  const editorConfig = useMemo(
-    () => ({
-      ...initialConfigTemplate,
-      editorState: initialEditorState
-    }),
-    [initialEditorState]
-  );
+    // Only set editorState if we have valid comment data with content
+    // Lexical editor state must have a root node, so we check for that
+    const comment = props.data.properties.comment;
+    if (
+      comment &&
+      typeof comment === "object" &&
+      comment.root &&
+      Object.keys(comment).length > 0
+    ) {
+      config.editorState = JSON.stringify(comment);
+    }
+
+    return config;
+  }, [props.data.properties.comment]);
 
   const textColor = useMemo(() => {
     if (color.trim().startsWith("var(")) {
@@ -210,7 +233,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           ...props.data,
           properties: {
             ...props.data.properties,
-            comment_lexical: newEditorState.toJSON()
+            comment: newEditorState.toJSON()
           }
         });
       }, 500),
