@@ -69,7 +69,8 @@ export type WorkflowRunner = {
     params: any,
     workflow: WorkflowAttributes,
     nodes: Node<NodeData>[],
-    edges: Edge[]
+    edges: Edge[],
+    resource_limits?: any
   ) => Promise<void>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -302,7 +303,8 @@ export const createWorkflowRunnerStore = (
       params: any,
       workflow: WorkflowAttributes,
       nodes: Node<NodeData>[],
-      edges: Edge[]
+      edges: Edge[],
+      resource_limits?: any
     ) => {
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
@@ -360,12 +362,14 @@ export const createWorkflowRunnerStore = (
         workflow_id: workflow.id,
         auth_token: auth_token,
         job_type: "workflow",
+        execution_strategy: resource_limits ? "subprocess" : "threaded",
         params: params || {},
         explicit_types: false,
         graph: {
           nodes: nodes.map(reactFlowNodeToGraphNode),
           edges: edges.map(reactFlowEdgeToGraphEdge)
-        }
+        },
+        resource_limits: resource_limits
       };
 
       log.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);

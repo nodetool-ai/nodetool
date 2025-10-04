@@ -6,6 +6,7 @@ import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import { isEqual } from "lodash";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
+import ImageModelSelect from "./ImageModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 
 const ModelProperty = (props: PropertyProps) => {
@@ -39,6 +40,13 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "language_model") {
       return (
         <LanguageModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
+    } else if (modelType === "image_model") {
+      return (
+        <ImageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />

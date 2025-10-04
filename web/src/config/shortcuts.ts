@@ -424,7 +424,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Save Example",
     slug: "saveExample",
-    keyCombo: ["Control", "Shift", "E"],
+    keyCombo: ["Control", "."],
     category: "workflow" as const,
     description: "Save workflow as example",
     registerCombo: true
