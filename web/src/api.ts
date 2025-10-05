@@ -478,6 +478,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tts Models Endpoint
+         * @description Get all available text-to-speech models from all providers.
+         */
+        get: operations["get_tts_models_endpoint_api_models_tts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/asr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Asr Models Endpoint
+         * @description Get all available automatic speech recognition models from all providers.
+         */
+        get: operations["get_asr_models_endpoint_api_models_asr_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama_model_info": {
         parameters: {
             query?: never;
@@ -1359,6 +1399,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ASRModel */
+        ASRModel: {
+            /**
+             * Type
+             * @default asr_model
+             * @constant
+             */
+            type: "asr_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /** Asset */
         Asset: {
             /** Id */
@@ -3081,7 +3142,7 @@ export interface components {
          * InferenceProvider
          * @enum {string}
          */
-        InferenceProvider: "" | "black-forest-labs" | "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "together";
+        InferenceProvider: "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "scaleway" | "together" | "zai-org";
         /** InferenceProviderAudioClassificationModel */
         InferenceProviderAudioClassificationModel: {
             /**
@@ -3789,6 +3850,12 @@ export interface components {
              */
             is_dynamic: boolean;
             /**
+             * Is Streaming Output
+             * @description Whether the node can stream output
+             * @default false
+             */
+            is_streaming_output: boolean;
+            /**
              * Expose As Tool
              * @description Whether the node is exposed as a tool
              * @default false
@@ -4110,7 +4177,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -4303,11 +4370,6 @@ export interface components {
              */
             id: string;
             /**
-             * Model
-             * @description The model to use for the subtask
-             */
-            model?: string | null;
-            /**
              * Content
              * @description Instructions for the subtask
              */
@@ -4318,12 +4380,6 @@ export interface components {
              * @default []
              */
             logs: components["schemas"]["LogEntry"][];
-            /**
-             * Max Iterations
-             * @description The maximum number of iterations for the subtask
-             * @default 10
-             */
-            max_iterations: number;
             /**
              * Max Tool Calls
              * @description The maximum number of tool calls for the subtask
@@ -4372,12 +4428,6 @@ export interface components {
              * @default
              */
             output_schema: string;
-            /**
-             * Is Intermediate Result
-             * @description Whether the subtask is an intermediate result of a task
-             * @default false
-             */
-            is_intermediate_result: boolean;
         };
         /**
          * SubTaskResult
@@ -4438,6 +4488,29 @@ export interface components {
              * @description VRAM usage percentage
              */
             vram_percent?: number | null;
+        };
+        /** TTSModel */
+        TTSModel: {
+            /**
+             * Type
+             * @default tts_model
+             * @constant
+             */
+            type: "tts_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Voices */
+            voices?: string[];
         };
         /**
          * Task
@@ -5945,6 +6018,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImageModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tts_models_endpoint_api_models_tts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asr_models_endpoint_api_models_asr_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ASRModel"][];
                 };
             };
             /** @description Validation Error */

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ImageModel, LanguageModel } from "./ApiTypes";
+import type { ImageModel, LanguageModel, TTSModel, ASRModel } from "./ApiTypes";
 import Fuse from "fuse.js";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
@@ -9,7 +9,7 @@ export type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
-export type ModelSelectorModel = LanguageModel | ImageModel;
+export type ModelSelectorModel = LanguageModel | ImageModel | TTSModel | ASRModel;
 
 export interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -260,3 +260,29 @@ export const useLanguageModelMenuData = languageModelMenu.useData;
 const imageModelMenu = createModelMenuSelector<ImageModel>();
 export const useImageModelMenuStore = imageModelMenu.useStore;
 export const useImageModelMenuData = imageModelMenu.useData;
+
+// TTS-specific providers
+export const TTS_PROVIDERS = [
+  "openai",
+  "gemini",
+  "huggingface",
+  "huggingface_hf_inference",
+  "mlx",
+  "elevenlabs"
+];
+
+const ttsModelMenu = createModelMenuSelector<TTSModel>();
+export const useTTSModelMenuStore = ttsModelMenu.useStore;
+export const useTTSModelMenuData = ttsModelMenu.useData;
+
+// ASR-specific providers
+export const ASR_PROVIDERS = [
+  "openai",
+  "gemini",
+  "huggingface",
+  "huggingface_hf_inference"
+];
+
+const asrModelMenu = createModelMenuSelector<ASRModel>();
+export const useASRModelMenuStore = asrModelMenu.useStore;
+export const useASRModelMenuData = asrModelMenu.useData;

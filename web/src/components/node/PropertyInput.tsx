@@ -198,6 +198,8 @@ function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
     "openai_model",
     "language_model",
     "image_model",
+    "tts_model",
+    "asr_model",
     "llama_model",
     "comfy.",
     "hf."
