@@ -92,7 +92,6 @@ function getComponentForProperty(
 }
 
 function componentForType(type: string): React.ComponentType<PropertyProps> {
-  console.log("componentForType", type);
   switch (type) {
     case "str":
       return StringProperty;
