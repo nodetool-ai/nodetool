@@ -4177,7 +4177,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -4511,6 +4511,11 @@ export interface components {
             name: string;
             /** Voices */
             voices?: string[];
+            /**
+             * Selected Voice
+             * @default
+             */
+            selected_voice: string;
         };
         /**
          * Task
