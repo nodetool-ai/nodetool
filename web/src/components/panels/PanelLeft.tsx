@@ -14,7 +14,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
 import { memo, useCallback, useContext } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { XYPosition, Node as ReactFlowNode } from "@xyflow/react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
@@ -38,10 +38,9 @@ import GridViewIcon from "@mui/icons-material/GridView";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import ImageIcon from "@mui/icons-material/Image";
-import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import QuickActions, { QuickActionDefinition } from "./QuickActions";
+import useNodePlacementStore from "../../stores/NodePlacementStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -252,6 +251,14 @@ const styles = (theme: Theme) =>
       "&:active": {
         transform: "scale(0.96)",
         boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+      },
+
+      "&.active": {
+        borderColor: `${theme.vars.palette.primary.main}66`,
+        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}33, var(--quick-shadow, 0 3px 12px rgba(0,0,0,0.22))`,
+        "& svg": {
+          color: theme.vars.palette.primary.main
+        }
       }
     },
     ".quick-actions-divider": {
@@ -390,96 +397,68 @@ const VerticalToolbar = memo(function VerticalToolbar({
     };
   }, [getViewportCenter, nodeStore]);
 
+  const { activatePlacement, cancelPlacement, pendingNodeType } =
+    useNodePlacementStore((state) => ({
+      activatePlacement: state.activatePlacement,
+      cancelPlacement: state.cancelPlacement,
+      pendingNodeType: state.pendingNodeType
+    }));
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
   const handleAddNode = useCallback(
-    (nodeType: string) => {
+    (action: QuickActionDefinition, event: ReactMouseEvent<HTMLButtonElement>) => {
+      const { nodeType, label } = action;
       if (!nodeStore) {
         return;
       }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         console.warn(`Metadata not found for node type: ${nodeType}`);
+        addNotification({
+          type: "warning",
+          content: `Unable to find metadata for ${label}.`,
+          timeout: 4000
+        });
         return;
       }
-      const store = nodeStore.getState();
-      const position = computePlacementPosition();
-      const newNode = store.createNode(metadata, position);
-      store.addNode(newNode);
+
+      if (event.shiftKey) {
+        const store = nodeStore.getState();
+        const position = computePlacementPosition();
+        const newNode = store.createNode(metadata, position);
+        newNode.selected = true;
+        store.addNode(newNode);
+        cancelPlacement();
+        return;
+      }
+
+      if (pendingNodeType === nodeType) {
+        cancelPlacement();
+        return;
+      }
+
+      activatePlacement(nodeType, label, "quickAction");
+      addNotification({
+        type: "info",
+        content: `Click on the canvas to place "${label}". Press Esc to cancel.`,
+        timeout: 5000,
+        dismissable: true
+      });
     },
-    [nodeStore, getMetadata, computePlacementPosition]
+    [
+      nodeStore,
+      getMetadata,
+      computePlacementPosition,
+      cancelPlacement,
+      pendingNodeType,
+      activatePlacement,
+      addNotification
+    ]
   );
 
   const quickActionsAvailable = Boolean(nodeStore);
-
-  type QuickActionButton = {
-    key: string;
-    label: string;
-    nodeType: string;
-    icon: ReactNode;
-    gradient: string;
-    hoverGradient: string;
-    shadow: string;
-    hoverShadow?: string;
-    iconColor: string;
-  };
-
-  const quickActionButtons: QuickActionButton[] = [
-    {
-      key: "agent",
-      label: "Add Agent",
-      nodeType: "nodetool.agents.Agent",
-      icon: <SupportAgentIcon />,
-      gradient:
-        "linear-gradient(135deg, rgba(79, 70, 229, 0.48), rgba(124, 58, 237, 0.32))",
-      hoverGradient:
-        "linear-gradient(135deg, rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.42))",
-      shadow: "0 6px 16px rgba(99, 102, 241, 0.28)",
-      hoverShadow:
-        "0 10px 26px rgba(99, 102, 241, 0.38), 0 0 20px rgba(79, 70, 229, 0.26)",
-      iconColor: "#eef2ff"
-    },
-    {
-      key: "text-to-image",
-      label: "Add Text to Image",
-      nodeType: "nodetool.image.TextToImage",
-      icon: <ImageIcon />,
-      gradient:
-        "linear-gradient(135deg, rgba(249, 115, 22, 0.45), rgba(236, 72, 153, 0.32))",
-      hoverGradient:
-        "linear-gradient(135deg, rgba(251, 146, 60, 0.55), rgba(244, 114, 182, 0.42))",
-      shadow: "0 6px 16px rgba(249, 115, 22, 0.28)",
-      hoverShadow:
-        "0 10px 26px rgba(236, 72, 153, 0.38), 0 0 20px rgba(249, 115, 22, 0.24)",
-      iconColor: "#fff5f5"
-    },
-    {
-      key: "text-to-speech",
-      label: "Add Text to Speech",
-      nodeType: "nodetool.audio.TextToSpeech",
-      icon: <RecordVoiceOverIcon />,
-      gradient:
-        "linear-gradient(135deg, rgba(34, 211, 238, 0.45), rgba(59, 130, 246, 0.32))",
-      hoverGradient:
-        "linear-gradient(135deg, rgba(45, 212, 191, 0.55), rgba(96, 165, 250, 0.42))",
-      shadow: "0 6px 16px rgba(34, 211, 238, 0.24)",
-      hoverShadow:
-        "0 10px 24px rgba(59, 130, 246, 0.32), 0 0 18px rgba(34, 211, 238, 0.2)",
-      iconColor: "#e6f6ff"
-    },
-    {
-      key: "image-to-image",
-      label: "Add Image to Image",
-      nodeType: "nodetool.image.ImageToImage",
-      icon: <AutoFixHighIcon />,
-      gradient:
-        "linear-gradient(135deg, rgba(168, 85, 247, 0.45), rgba(34, 211, 238, 0.28))",
-      hoverGradient:
-        "linear-gradient(135deg, rgba(192, 132, 252, 0.55), rgba(56, 189, 248, 0.38))",
-      shadow: "0 6px 16px rgba(168, 85, 247, 0.26)",
-      hoverShadow:
-        "0 10px 26px rgba(168, 85, 247, 0.36), 0 0 20px rgba(34, 211, 238, 0.22)",
-      iconColor: "#f8f5ff"
-    }
-  ];
 
   return (
     <div className="vertical-toolbar">
@@ -532,50 +511,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
 
-      {quickActionsAvailable && (
-        <>
-          <div className="quick-actions-divider" />
-          <div className="quick-actions-group">
-            {quickActionButtons.map(
-              ({
-                key,
-                label,
-                nodeType,
-                icon,
-                gradient,
-                hoverGradient,
-                shadow,
-                hoverShadow = shadow,
-                iconColor
-              }) => (
-                <Tooltip
-                  key={key}
-                  title={label}
-                  placement="right-start"
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                >
-                  <IconButton
-                    tabIndex={-1}
-                    onClick={() => handleAddNode(nodeType)}
-                    className="quick-add-button"
-                    style={
-                      {
-                        "--quick-gradient": gradient,
-                        "--quick-hover-gradient": hoverGradient,
-                        "--quick-shadow": shadow,
-                        "--quick-shadow-hover": hoverShadow ?? shadow,
-                        "--quick-icon-color": iconColor
-                      } as CSSProperties
-                    }
-                  >
-                    {icon}
-                  </IconButton>
-                </Tooltip>
-              )
-            )}
-          </div>
-        </>
-      )}
+      <QuickActions
+        isAvailable={quickActionsAvailable}
+        onAddNode={handleAddNode}
+      />
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
