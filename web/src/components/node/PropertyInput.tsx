@@ -193,16 +193,13 @@ function handleListType(
 
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
   const modelPrefixes = [
-    "function_model",
-    "openai_model",
-    "language_model",
-    "image_model",
-    "tts_model",
-    "asr_model",
-    "llama_model",
     "comfy.",
     "hf."
   ];
+
+  if (type.endsWith("_model")) {
+    return ModelProperty;
+  }
 
   for (const prefix of modelPrefixes) {
     if (type.startsWith(prefix)) {
