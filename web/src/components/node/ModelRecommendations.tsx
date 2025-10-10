@@ -32,6 +32,10 @@ const AGGREGATED_RECOMMENDATION_SOURCES: Record<string, AggregatedSource[]> = {
     { type: "huggingface.text_to_image.Chroma" },
     { type: "huggingface.image_to_image.ImageToImage" }
   ],
+  "nodetool.video.TextToVideo": [
+    { type: "huggingface.text_to_video.CogVideoX" },
+    { type: "huggingface.text_to_video.WanT2V" }
+  ],
   "nodetool.image.ImageToImage": [
     { type: "mlx.image_to_image.MFluxImageToImage", requireMac: true },
     { type: "huggingface.image_to_image.QwenImage" },
