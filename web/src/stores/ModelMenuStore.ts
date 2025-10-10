@@ -280,7 +280,8 @@ export const ASR_PROVIDERS = [
   "openai",
   "gemini",
   "huggingface",
-  "huggingface_hf_inference"
+  "huggingface_hf_inference",
+  "mlx"
 ];
 
 const asrModelMenu = createModelMenuSelector<ASRModel>();
