@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ImageModel, LanguageModel, TTSModel, ASRModel } from "./ApiTypes";
+import type { ImageModel, LanguageModel, TTSModel, ASRModel, VideoModel } from "./ApiTypes";
 import Fuse from "fuse.js";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
@@ -9,7 +9,7 @@ export type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
-export type ModelSelectorModel = LanguageModel | ImageModel | TTSModel | ASRModel;
+export type ModelSelectorModel = LanguageModel | ImageModel | TTSModel | ASRModel | VideoModel;
 
 export interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -71,6 +71,7 @@ export const alwaysIncludeProviders = ALWAYS_INCLUDE_PROVIDERS;
 
 // Image-specific providers
 export const IMAGE_PROVIDERS = [
+  "openai",
   "huggingface",
   "huggingface_black_forest_labs",
   "huggingface_fal_ai",
@@ -287,3 +288,18 @@ export const ASR_PROVIDERS = [
 const asrModelMenu = createModelMenuSelector<ASRModel>();
 export const useASRModelMenuStore = asrModelMenu.useStore;
 export const useASRModelMenuData = asrModelMenu.useData;
+
+// Video-specific providers
+export const VIDEO_PROVIDERS = [
+  "gemini",
+  "openai",
+  "huggingface",
+  "huggingface_fal_ai",
+  "huggingface_replicate",
+  "huggingface_novita",
+  "huggingface_hf_inference"
+];
+
+const videoModelMenu = createModelMenuSelector<VideoModel>();
+export const useVideoModelMenuStore = videoModelMenu.useStore;
+export const useVideoModelMenuData = videoModelMenu.useData;

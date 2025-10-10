@@ -518,6 +518,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Video Models Endpoint
+         * @description Get all available video generation models from all providers.
+         */
+        get: operations["get_video_models_endpoint_api_models_video_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama_model_info": {
         parameters: {
             query?: never;
@@ -4319,6 +4339,33 @@ export interface components {
             /** Children */
             children?: components["schemas"]["SVGElement"][];
         };
+        /**
+         * SaveUpdate
+         * @description A message representing a save update from a node.
+         */
+        SaveUpdate: {
+            /**
+             * Type
+             * @default save_update
+             * @constant
+             */
+            type: "save_update";
+            /** Node Id */
+            node_id: string;
+            /** Name */
+            name: string;
+            /** Value */
+            value: unknown;
+            /** Output Type */
+            output_type: string;
+            /**
+             * Metadata
+             * @default {}
+             */
+            metadata: {
+                [key: string]: unknown;
+            };
+        };
         /** SettingWithValue */
         SettingWithValue: {
             /** Package Name */
@@ -4805,33 +4852,36 @@ export interface components {
             /** Repo Id */
             repo_id: string | null;
             /** Path */
-            path: string | null;
+            path?: string | null;
             /** Cache Path */
-            cache_path: string | null;
+            cache_path?: string | null;
             /** Allow Patterns */
-            allow_patterns: string[] | null;
+            allow_patterns?: string[] | null;
             /** Ignore Patterns */
-            ignore_patterns: string[] | null;
+            ignore_patterns?: string[] | null;
             /** Description */
-            description: string | null;
+            description?: string | null;
             /** Readme */
-            readme: string | null;
+            readme?: string | null;
             /** Size On Disk */
-            size_on_disk: number | null;
-            /** Downloaded */
+            size_on_disk?: number | null;
+            /**
+             * Downloaded
+             * @default false
+             */
             downloaded: boolean;
             /** Pipeline Tag */
-            pipeline_tag: string | null;
+            pipeline_tag?: string | null;
             /** Tags */
-            tags: string[] | null;
+            tags?: string[] | null;
             /** Has Model Index */
-            has_model_index: boolean | null;
+            has_model_index?: boolean | null;
             /** Downloads */
-            downloads: number | null;
+            downloads?: number | null;
             /** Likes */
-            likes: number | null;
+            likes?: number | null;
             /** Trending Score */
-            trending_score: number | null;
+            trending_score?: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -4841,6 +4891,27 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VideoModel */
+        VideoModel: {
+            /**
+             * Type
+             * @default video_model
+             * @constant
+             */
+            type: "video_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
         };
         /**
          * VideoRef
@@ -6102,6 +6173,39 @@ export interface operations {
             };
         };
     };
+    get_video_models_endpoint_api_models_video_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_ollama_model_info_endpoint_api_models_ollama_model_info_get: {
         parameters: {
             query: {
@@ -6442,7 +6546,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
                 };
             };
         };

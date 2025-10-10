@@ -9,6 +9,7 @@ import LanguageModelSelect from "./LanguageModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
+import VideoModelSelect from "./VideoModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 
 const ModelProperty = (props: PropertyProps) => {
@@ -63,6 +64,13 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "asr_model") {
       return (
         <ASRModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
+    } else if (modelType === "video_model") {
+      return (
+        <VideoModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />

@@ -82,6 +82,7 @@ export type LanguageModel = components["schemas"]["LanguageModel"];
 export type ImageModel = components["schemas"]["ImageModel"];
 export type TTSModel = components["schemas"]["TTSModel"];
 export type ASRModel = components["schemas"]["ASRModel"];
+export type VideoModel = components["schemas"]["VideoModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type UnifiedModel = components["schemas"]["UnifiedModel"];
