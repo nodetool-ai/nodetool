@@ -12,6 +12,7 @@ import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
+import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -71,6 +72,20 @@ const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 10px 26px rgba(168, 85, 247, 0.38), 0 0 20px rgba(236, 72, 153, 0.24)",
     iconColor: "#fef5ff"
+  },
+  {
+    key: "image-to-video",
+    label: "Add Image to Video",
+    nodeType: "nodetool.video.ImageToVideo",
+    icon: <OndemandVideoIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(245, 158, 11, 0.45), rgba(16, 185, 129, 0.32))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(251, 191, 36, 0.55), rgba(52, 211, 153, 0.42))",
+    shadow: "0 6px 16px rgba(245, 158, 11, 0.28)",
+    hoverShadow:
+      "0 10px 26px rgba(16, 185, 129, 0.38), 0 0 20px rgba(245, 158, 11, 0.24)",
+    iconColor: "#fffbeb"
   },
   {
     key: "text-to-speech",
