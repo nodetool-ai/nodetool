@@ -52,7 +52,10 @@ export interface NodeMetadata extends BaseNodeMetadata {
   };
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message"];
+export type Message = components["schemas"]["Message"] & {
+  execution_event_type?: string;
+  agent_execution_id?: string;
+};
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
   components["schemas"]["MessageCreateRequest"];

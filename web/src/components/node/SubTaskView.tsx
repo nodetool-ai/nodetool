@@ -6,7 +6,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   Paper,
   Typography,
-  ListItemText,
   Checkbox,
   Box,
   CircularProgress
@@ -16,19 +15,31 @@ import { SubTask } from "../../stores/ApiTypes";
 const styles = (theme: Theme) =>
   css({
     ".subtask-item": {
-      padding: "0.5rem",
+      padding: "0.625rem 0.75rem",
       marginBottom: "0.5rem",
+      borderRadius: "6px",
+      backgroundColor: theme.vars.palette.grey[800],
+      border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600]
+        backgroundColor: theme.vars.palette.grey[750],
+        borderColor: theme.vars.palette.grey[600]
       }
     },
     ".subtask-content": {
       display: "flex",
-      alignItems: "center"
+      alignItems: "center",
+      gap: "0.5rem"
     },
     ".subtask-completed": {
-      color: theme.vars.palette.grey[800]
+      color: theme.vars.palette.grey[500],
+      textDecoration: "line-through",
+      opacity: 0.7
+    },
+    ".subtask-text": {
+      fontSize: "0.875rem",
+      lineHeight: "1.5",
+      color: theme.vars.palette.grey[200]
     },
     ".subtask-tool svg": {
       fontSize: "0.5rem"
@@ -75,16 +86,16 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
         <div className="subtask-content">
           <Box
             sx={{
-              width: 32, // size of spinner (20) + marginRight (12)
-              height: 32, // Assuming checkbox 'small' fits within this
+              width: 24,
+              height: 24,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginRight: "12px" // Keep the original margin outside the box
+              flexShrink: 0
             }}
           >
             {isRunning ? (
-              <CircularProgress size={20} />
+              <CircularProgress size={18} />
             ) : (
               <Checkbox
                 checked={subtask.completed}
@@ -103,22 +114,17 @@ const SubTaskView: React.FC<SubTaskViewProps> = ({ subtask }) => {
               />
             )}
           </Box>
-          <ListItemText
-            primary={
-              <Typography
-                variant="body1"
-                className={
-                  subtask.completed
-                    ? "subtask-completed"
-                    : isRunning
-                    ? "shine-effect"
-                    : ""
-                }
-              >
-                {subtask.content}
-              </Typography>
-            }
-          />
+          <Typography
+            className={`subtask-text ${
+              subtask.completed
+                ? "subtask-completed"
+                : isRunning
+                ? "shine-effect"
+                : ""
+            }`}
+          >
+            {subtask.content}
+          </Typography>
         </div>
       </Paper>
     </div>
