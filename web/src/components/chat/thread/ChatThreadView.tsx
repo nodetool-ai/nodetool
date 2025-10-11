@@ -73,6 +73,9 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     onInsertCode,
     toolResultsByCallId
   }) => {
+    // Track which agent_execution_ids have been rendered to avoid duplicates
+    const renderedExecutionIds = new Set<string>();
+
     return (
       <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
         {messages
@@ -86,6 +89,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
               onInsertCode={onInsertCode}
               toolResultsByCallId={toolResultsByCallId}
               componentStyles={componentStyles}
+              renderedExecutionIds={renderedExecutionIds}
             />
           ))}
         {status === "loading" && progress === 0 && (

@@ -4,7 +4,10 @@ import {
   MessageContent,
   MessageTextContent,
   MessageImageContent,
-  ToolCall
+  ToolCall,
+  PlanningUpdate,
+  TaskUpdate,
+  SubTaskResult
 } from "../../../stores/ApiTypes";
 import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
@@ -29,6 +32,10 @@ import {
 } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
+import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
+import SubTaskResultDisplay from "../../node/SubTaskResultDisplay";
+import AgentExecutionView from "./AgentExecutionView";
 
 interface MessageViewProps {
   message: Message;
@@ -36,6 +43,7 @@ interface MessageViewProps {
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
   toolResultsByCallId?: Record<string, { name?: string | null; content: any }>;
+  renderedExecutionIds?: Set<string>;
 }
 
 export const MessageView: React.FC<
@@ -46,9 +54,73 @@ export const MessageView: React.FC<
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
-  componentStyles
+  componentStyles,
+  renderedExecutionIds
 }) => {
   const insertIntoEditor = useEditorInsertion();
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const getAgentExecutionMessages = useGlobalChatStore(
+    (state) => state.getAgentExecutionMessages
+  );
+
+  // Handle agent execution messages with consolidation
+  if (message.role === "agent_execution") {
+    const agentExecutionId = message.agent_execution_id;
+
+    // If no agent_execution_id, fall back to old behavior
+    if (!agentExecutionId) {
+      const executionContent = message.content as any;
+
+      if (message.execution_event_type === "planning_update") {
+        return (
+          <li className="chat-message-list-item execution-event">
+            <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
+          </li>
+        );
+      } else if (message.execution_event_type === "task_update") {
+        return (
+          <li className="chat-message-list-item execution-event">
+            <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
+          </li>
+        );
+      } else if (message.execution_event_type === "subtask_result") {
+        const subtaskResult = executionContent as SubTaskResult;
+        return (
+          <li className="chat-message-list-item execution-event">
+            <SubTaskResultDisplay subtaskResult={subtaskResult} />
+          </li>
+        );
+      }
+
+      return null;
+    }
+
+    // Check if this agent_execution_id has already been rendered
+    if (renderedExecutionIds && renderedExecutionIds.has(agentExecutionId)) {
+      // Skip rendering - this execution is already shown in consolidated view
+      return null;
+    }
+
+    // Mark this execution as rendered
+    if (renderedExecutionIds) {
+      renderedExecutionIds.add(agentExecutionId);
+    }
+
+    // Get all messages for this agent execution and render consolidated view
+    if (currentThreadId) {
+      const executionMessages = getAgentExecutionMessages(
+        currentThreadId,
+        agentExecutionId
+      );
+
+      if (executionMessages.length > 0) {
+        return <AgentExecutionView messages={executionMessages} />;
+      }
+    }
+
+    return null;
+  }
+
   // Add error class if message has error flag
   const baseClass = getMessageClass(message.role);
   const messageClass = message.error_type

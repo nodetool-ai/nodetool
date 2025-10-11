@@ -18,31 +18,71 @@ const styles = (theme: Theme) =>
     },
 
     ".task-update-container": {
-      marginBottom: "0.5rem",
-      padding: "0.75rem",
-      borderRadius: "4px",
-      backgroundColor: theme.vars.palette.background.paper,
-      border: `1px solid ${theme.vars.palette.divider}`
+      marginBottom: "0.75rem",
+      padding: "1rem",
+      borderRadius: "8px",
+      backgroundColor: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.primary.dark}`,
+      borderLeft: `3px solid ${theme.vars.palette.primary.main}`
+    },
+
+    ".task-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.75rem",
+      marginBottom: "0.75rem"
     },
 
     ".task-animated-heading": {
       animation: "aiColorShift 4s infinite",
       fontFamily: theme.fontFamily1,
-      fontSize: "0.8rem",
-      marginBottom: "0.5rem"
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      letterSpacing: "0.5px",
+      textTransform: "uppercase",
+      flex: 1
+    },
+
+    ".task-event-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "0.25rem 0.625rem",
+      borderRadius: "12px",
+      fontSize: "0.6875rem",
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: "0.3px",
+      backgroundColor: theme.vars.palette.primary.dark,
+      color: theme.vars.palette.primary.light,
+      border: `1px solid ${theme.vars.palette.primary.main}`
+    },
+
+    ".task-content": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem"
     },
 
     ".task-title": {
       fontWeight: 600,
-      marginBottom: "0.25rem",
-      color: theme.vars.palette.text.primary
+      fontSize: "0.9375rem",
+      lineHeight: "1.4",
+      color: theme.vars.palette.grey[100],
+      marginBottom: "0.25rem"
     },
 
-    ".task-event": {
-      fontSize: "0.7rem",
-      color: theme.vars.palette.text.secondary,
-      textTransform: "capitalize",
-      marginLeft: "0.5rem"
+    ".task-description": {
+      fontSize: "0.8125rem",
+      lineHeight: "1.5",
+      color: theme.vars.palette.grey[400],
+      paddingLeft: "0.5rem",
+      borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
+    },
+
+    ".subtask-wrapper": {
+      marginTop: "0.75rem",
+      paddingTop: "0.75rem",
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
     }
   });
 
@@ -79,24 +119,22 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   const theme = useTheme();
   return (
     <div className="task-update-container noscroll" css={styles(theme)}>
-      <Typography variant="h6" className="task-animated-heading">
-        Agent Task
-        <span className="task-event">
+      <div className="task-header">
+        <Typography className="task-animated-heading">
+          Agent Task
+        </Typography>
+        <span className="task-event-badge">
           {getEventDisplayText(taskUpdate.event)}
         </span>
-      </Typography>
+      </div>
 
       {taskUpdate.task && (
-        <Box>
-          <Typography variant="body2" className="task-title">
+        <Box className="task-content">
+          <Typography className="task-title">
             {taskUpdate.task.title}
           </Typography>
           {taskUpdate.task.description && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontSize: "0.7rem", mt: 0.25 }}
-            >
+            <Typography className="task-description">
               {taskUpdate.task.description}
             </Typography>
           )}
@@ -104,7 +142,7 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
       )}
 
       {taskUpdate.subtask && (
-        <Box sx={{ mt: 1 }}>
+        <Box className="subtask-wrapper">
           <SubTaskView subtask={taskUpdate.subtask} />
         </Box>
       )}
