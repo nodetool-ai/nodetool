@@ -200,7 +200,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: 8,
       background: "transparent",
       padding: "6px 10px",
-      marginBottom: 6
+      marginBottom: 3
     },
 
     ".tool-call-header": {

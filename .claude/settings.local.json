@@ -9,7 +9,8 @@
       "mcp__playwright__browser_close",
       "Bash(grep:*)",
       "Bash(find:*)",
-      "mcp__playwright__browser_resize"
+      "mcp__playwright__browser_resize",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
