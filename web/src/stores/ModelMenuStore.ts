@@ -56,49 +56,45 @@ export const isProviderAvailable = (
   return enabled && hasKey;
 };
 
-export const ALWAYS_INCLUDE_PROVIDERS = [
+export const ALL_PROVIDERS = [
   "openai",
   "anthropic",
   "gemini",
   "replicate",
   "ollama",
   "llama_cpp",
-  "mlx"
-  // "aime"
-];
-
-export const alwaysIncludeProviders = ALWAYS_INCLUDE_PROVIDERS;
-
-// Image-specific providers
-export const IMAGE_PROVIDERS = [
-  "openai",
+  "mlx",
+  "fal_ai",
   "huggingface",
   "huggingface_black_forest_labs",
   "huggingface_fal_ai",
   "huggingface_hf_inference",
   "huggingface_replicate",
   "huggingface_nebius",
-  "mlx",
-  "fal_ai",
-  "replicate",
-  "gemini"
+  // "aime"
 ];
+
+
+// Image-specific providers
+export const IMAGE_PROVIDERS = ALL_PROVIDERS;
 
 export const computeProvidersList = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
-  secrets: Record<string, string> | undefined,
   filterProviders?: string[]
 ): string[] => {
-  const rawProviders = (models ?? []).map((m) => m.provider || "Other");
-  const raw = Array.from(new Set(rawProviders));
-  const baseList = raw.sort((a, b) => a.localeCompare(b));
-  const list = Array.from(
-    new Set([...baseList, ...ALWAYS_INCLUDE_PROVIDERS])
-  ).sort((a, b) => a.localeCompare(b));
+  const providerCounts = new Map<string, number>();
+  (models ?? []).forEach((m) => {
+    const provider = m.provider || "Other";
+    providerCounts.set(provider, (providerCounts.get(provider) ?? 0) + 1);
+  });
 
-  // Apply filter if provided
+  let list = Array.from(providerCounts.entries())
+    .filter(([, count]) => count > 0)
+    .map(([provider]) => provider)
+    .sort((a, b) => a.localeCompare(b));
+
   if (filterProviders && filterProviders.length > 0) {
-    return list.filter((p) => filterProviders.includes(p));
+    list = list.filter((p) => filterProviders.includes(p));
   }
 
   return list;
@@ -174,8 +170,8 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const selectedProvider = storeHook((s) => s.selectedProvider);
 
   const providers = React.useMemo(
-    () => computeProvidersList(models, secrets, filterProviders),
-    [models, secrets, filterProviders]
+    () => computeProvidersList(models, filterProviders),
+    [models, filterProviders]
   );
 
   const filteredModels = React.useMemo(
@@ -263,42 +259,21 @@ export const useImageModelMenuStore = imageModelMenu.useStore;
 export const useImageModelMenuData = imageModelMenu.useData;
 
 // TTS-specific providers
-export const TTS_PROVIDERS = [
-  "openai",
-  "gemini",
-  "huggingface",
-  "huggingface_hf_inference",
-  "mlx",
-  "elevenlabs"
-];
+export const TTS_PROVIDERS = ALL_PROVIDERS;
 
 const ttsModelMenu = createModelMenuSelector<TTSModel>();
 export const useTTSModelMenuStore = ttsModelMenu.useStore;
 export const useTTSModelMenuData = ttsModelMenu.useData;
 
 // ASR-specific providers
-export const ASR_PROVIDERS = [
-  "openai",
-  "gemini",
-  "huggingface",
-  "huggingface_hf_inference",
-  "mlx"
-];
+export const ASR_PROVIDERS = ALL_PROVIDERS;
 
 const asrModelMenu = createModelMenuSelector<ASRModel>();
 export const useASRModelMenuStore = asrModelMenu.useStore;
 export const useASRModelMenuData = asrModelMenu.useData;
 
 // Video-specific providers
-export const VIDEO_PROVIDERS = [
-  "gemini",
-  "openai",
-  "huggingface",
-  "huggingface_fal_ai",
-  "huggingface_replicate",
-  "huggingface_novita",
-  "huggingface_hf_inference"
-];
+export const VIDEO_PROVIDERS = ALL_PROVIDERS;
 
 const videoModelMenu = createModelMenuSelector<VideoModel>();
 export const useVideoModelMenuStore = videoModelMenu.useStore;

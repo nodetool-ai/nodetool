@@ -187,7 +187,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
               </Box>
             );
           };
-          const providerUrl = getProviderUrl(p);
           return (
             <React.Fragment key={`provider-item-${p}`}>
               {showDivider && (
