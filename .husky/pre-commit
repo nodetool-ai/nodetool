@@ -1,0 +1,44 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run pre-commit hooks for Python and general file checks
+if command -v pre-commit >/dev/null 2>&1; then
+  pre-commit run --files $(git diff --cached --name-only --diff-filter=ACM)
+else
+  echo "⚠️  pre-commit not installed. Install with: pip install pre-commit && pre-commit install"
+fi
+
+# Lint and typecheck staged TypeScript/JavaScript files in web/
+WEB_STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "^web/.*\.\(ts\|tsx\|js\|jsx\)$" || true)
+if [ -n "$WEB_STAGED_FILES" ]; then
+  echo "🔍 Linting web/ files..."
+  cd web
+  npm run lint || exit 1
+  echo "✅ TypeScript type checking web/..."
+  npm run typecheck || exit 1
+  cd ..
+fi
+
+# Lint and typecheck staged TypeScript/JavaScript files in electron/
+ELECTRON_STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "^electron/.*\.\(ts\|tsx\|js\|jsx\)$" || true)
+if [ -n "$ELECTRON_STAGED_FILES" ]; then
+  echo "🔍 Linting electron/ files..."
+  cd electron
+  npm run lint || exit 1
+  echo "✅ TypeScript type checking electron/..."
+  npm run typecheck || exit 1
+  cd ..
+fi
+
+# Lint and typecheck staged TypeScript/JavaScript files in apps/
+APPS_STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "^apps/.*\.\(ts\|tsx\|js\|jsx\)$" || true)
+if [ -n "$APPS_STAGED_FILES" ]; then
+  echo "🔍 Linting apps/ files..."
+  cd apps
+  npm run lint || exit 1
+  echo "✅ TypeScript type checking apps/..."
+  npm run typecheck || exit 1
+  cd ..
+fi
+
+echo "✨ All pre-commit checks passed!"
