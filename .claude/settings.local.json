@@ -10,7 +10,8 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "mcp__playwright__browser_resize",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Read(//Users/mg/workspace/**)"
     ],
     "deny": [],
     "ask": []

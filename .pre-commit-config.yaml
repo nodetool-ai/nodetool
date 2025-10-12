@@ -1,0 +1,69 @@
+# Pre-commit hooks for NodeTool monorepo
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+    args: [--markdown-linebreak-ext=md]
+  - id: end-of-file-fixer
+  - id: check-yaml
+    args: [--unsafe]      # Allow custom YAML tags
+  - id: check-json
+  - id: check-added-large-files
+    args: [--maxkb=1000]
+  - id: check-merge-conflict
+  - id: check-case-conflict
+  - id: mixed-line-ending
+    args: [--fix=lf]
+  - id: detect-private-key
+
+  # Python: Ruff for fast linting and auto-fixing
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.8.4
+  hooks:
+      # Run the linter
+  - id: ruff
+    args: [--fix, --exit-non-zero-on-fix]
+    types_or: [python, pyi]
+    exclude: ^(web/|electron/|apps/|node_modules/|__notebooks/)
+      # Run the formatter
+  - id: ruff-format
+    types_or: [python, pyi]
+    exclude: ^(web/|electron/|apps/|node_modules/|__notebooks/)
+
+  # YAML formatting
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.14.0
+  hooks:
+  - id: pretty-format-yaml
+    args: [--autofix, --indent, '2']
+    exclude: ^(conda-lock.yml|\.github/)
+
+  # Markdown formatting and linting
+- repo: https://github.com/executablebooks/mdformat
+  rev: 0.7.21
+  hooks:
+  - id: mdformat
+    additional_dependencies:
+    - mdformat-gfm
+    - mdformat-tables
+    args: [--wrap, '120']
+    exclude: ^(CHANGELOG.md|__notebooks/)
+
+# Configuration for specific file types
+exclude: |
+  (?x)^(
+    .*\.egg-info/.*|
+    .*node_modules/.*|
+    .*\.venv/.*|
+    .*\.mypy_cache/.*|
+    .*\.pytest_cache/.*|
+    .*__pycache__/.*|
+    .*dist/.*|
+    .*build/.*|
+    .*\.git/.*
+  )$
