@@ -106,6 +106,7 @@ export type MessageContent =
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
 export type FileInfo = components["schemas"]["FileInfo"];
+export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
