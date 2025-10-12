@@ -18,6 +18,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { XYPosition, Node as ReactFlowNode } from "@xyflow/react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -34,6 +35,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
+import FolderIcon from "@mui/icons-material/Folder";
 // import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
@@ -510,6 +512,26 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <IconForType iconName="asset" showTooltip={false} />
         </IconButton>
       </Tooltip>
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workspace</div>
+            <div className="tooltip-key">
+              <kbd>4</kbd>
+            </div>
+          </div>
+        }
+        placement="right-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={() => onViewChange("workspace")}
+          className={activeView === "workspace" && panelVisible ? "active" : ""}
+        >
+          <FolderIcon />
+        </IconButton>
+      </Tooltip>
 
       <QuickActions
         isAvailable={quickActionsAvailable}
@@ -680,6 +702,17 @@ const PanelContent = memo(function PanelContent({
           <WorkflowList />
         </Box>
       )}
+      {activeView === "workspace" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden"
+          }}
+        >
+          <WorkspaceTree />
+        </Box>
+      )}
     </>
   );
 });
@@ -699,6 +732,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], () => handlePanelToggle("chat"), false);
   useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["3"], () => handlePanelToggle("assets"), false);
+  useCombo(["4"], () => handlePanelToggle("workspace"), false);
 
   useCombo(["5"], () => handlePanelToggle("packs"), false);
 

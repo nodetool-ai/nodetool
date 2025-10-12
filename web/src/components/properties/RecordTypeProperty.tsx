@@ -79,6 +79,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
       description: ""
     };
     onChange({
+      type: "record_type",
       ...value,
       columns: [...columns, newColumn]
     });
