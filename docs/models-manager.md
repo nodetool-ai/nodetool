@@ -6,7 +6,7 @@ The **Models Manager** helps you keep track of the AI models available on your s
 
 ### Opening the manager
 
-- Click the **model** icon on the right side of the editor.
+- Click the **Models** icon on app header.
 - A dialog appears showing downloaded and recommended models.
 
 ### Browsing your models

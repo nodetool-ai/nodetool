@@ -73,35 +73,6 @@ Visual connections between nodes:
 - **Visual Feedback**: Color-coded connections by data type
 - **Auto-Layout**: Automatic routing to avoid overlaps
 
-## Global Chat Interface
-
-### Chat View
-
-The main chat interface for AI conversations:
-
-- **Message History**: Scrollable conversation history
-- **Real-time Updates**: Live streaming of AI responses
-- **Rich Content**: Support for text, images, audio, and video
-- **Thread Management**: Multiple conversation threads
-
-### Chat Composer
-
-The input area for sending messages:
-
-- **Text Input**: Rich text editor with formatting support
-- **File Attachments**: Drag and drop files directly
-- **Voice Input**: Record audio messages (when supported)
-- **Send Controls**: Send button and keyboard shortcuts
-
-### Tool and Model Selection
-
-Configure your AI interactions:
-
-- **Model Selector**: Choose from available AI models
-- **Tools Panel**: Enable specific AI tools and capabilities
-- **Agent Mode**: Toggle autonomous agent behavior
-- **Help Mode**: Get explanations of AI reasoning
-
 ## Asset Management
 
 ### Asset Explorer
@@ -130,23 +101,6 @@ Full-screen asset preview:
 - **Playback Controls**: Play audio and video files
 - **Metadata Panel**: Detailed file information
 - **Edit Actions**: Basic editing and annotation tools
-
-## Models Manager
-
-### Model Library
-
-Browse available AI models from multiple providers:
-
-- **OpenAI Models**: GPT-4o, GPT-4.1, and specialized variants
-- **Anthropic Models**: Claude 3.5 Haiku, Sonnet, and Claude 4 series
-- **Google Models**: Gemini 2.0 and 2.5 series with multimodal capabilities
-- **Hugging Face Models**: Extensive open-source model catalog
-- **Hugging Face Groq**: High-performance models optimized for speed
-- **Hugging Face Cerebras**: Models optimized for specialized hardware
-- **MLX**: Models optimized for Apple Silicon
-- **Llama.cpp**: Models optimized for local execution
-- **Search**: Find models by name, provider, or capability
-- **Filters**: Filter by model type, size, or requirements
 
 ### Download Manager
 
@@ -266,15 +220,6 @@ NodeTool works across devices:
 - **Mobile Navigation**: Optimized navigation for small screens
 - **Gesture Support**: Pinch to zoom, swipe to navigate
 
-### Accessibility
-
-Designed for all users:
-
-- **Keyboard Navigation**: Full keyboard accessibility
-- **Screen Reader Support**: ARIA labels and descriptions
-- **High Contrast**: Support for high contrast themes
-- **Focus Management**: Clear focus indicators
-
 ## Tips for Effective Use
 
 ### Workflow Organization
@@ -290,13 +235,3 @@ Designed for all users:
 - Use preview mode for large workflows
 - Optimize image and video assets before upload
 - Monitor resource usage in the status bar
-
-### Collaboration
-
-- Share workflows with descriptive names and documentation
-- Use consistent asset organization across team members
-- Export workflows for version control
-- Document workflow requirements and dependencies
-
-This comprehensive interface guide covers all major aspects of the NodeTool UI. For specific feature documentation,
-refer to the dedicated guides for each component.
