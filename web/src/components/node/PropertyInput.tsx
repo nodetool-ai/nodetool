@@ -177,6 +177,7 @@ function handleListType(
   property: Property
 ): React.ComponentType<PropertyProps> {
   const type_args = property.type?.type_args;
+  console.log("type_args", type_args);
 
   if (type_args && type_args.length > 0) {
     switch (type_args[0].type) {
