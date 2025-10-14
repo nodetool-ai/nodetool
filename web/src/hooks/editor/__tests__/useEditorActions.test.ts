@@ -87,12 +87,3 @@ describe("useEditorActions", () => {
     expect(result.current.state.results.totalMatches).toBe(3);
   });
 });
-
-
-
-
-
-
-
-
-

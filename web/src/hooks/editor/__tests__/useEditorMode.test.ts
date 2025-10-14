@@ -45,12 +45,3 @@ describe("useEditorMode", () => {
     expect(result.current.isCodeEditor).toBe(true);
   });
 });
-
-
-
-
-
-
-
-
-
