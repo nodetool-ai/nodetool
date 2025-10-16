@@ -184,6 +184,13 @@ function getMicromambaDownloadUrl(): string | null {
     return null;
   }
 
+  if (platform === "win32") {
+    if (arch === "x64") {
+      return "https://micro.mamba.pm/api/micromamba/win-64/latest";
+    }
+    return null;
+  }
+
   return null;
 }
 
@@ -233,10 +240,16 @@ async function extractMicromambaArchive(
 ): Promise<void> {
   await fs.mkdir(destinationDir, { recursive: true });
 
+  // Extract from tar.bz2 archive - Windows uses Library/bin/micromamba.exe, Unix uses bin/micromamba
+  const extractPath =
+    process.platform === "win32"
+      ? "Library/bin/micromamba.exe"
+      : "bin/micromamba";
+
   await new Promise<void>((resolve, reject) => {
     const tarProcess = spawn(
       "tar",
-      ["-xvjf", archivePath, "-C", destinationDir, "bin/micromamba"],
+      ["-xvjf", archivePath, "-C", destinationDir, extractPath],
       {
         stdio: ["ignore", "pipe", "pipe"],
       }
@@ -300,14 +313,22 @@ async function ensureMicromambaAvailable(): Promise<string> {
     emitBootMessage("Installing micromamba...");
     await extractMicromambaArchive(archivePath, tempDir);
 
-    const extractedBinary = path.join(tempDir, "bin", "micromamba");
+    const extractedBinary =
+      process.platform === "win32"
+        ? path.join(tempDir, "Library", "bin", MICROMAMBA_EXECUTABLE_NAME)
+        : path.join(tempDir, "bin", "micromamba");
+
     if (!(await fileExists(extractedBinary))) {
       throw new Error("micromamba binary not found after extraction");
     }
 
     await fs.mkdir(getMicromambaBinDir(), { recursive: true });
     await fs.copyFile(extractedBinary, localExecutable);
-    await fs.chmod(localExecutable, 0o755);
+
+    // Only chmod on Unix-like systems
+    if (process.platform !== "win32") {
+      await fs.chmod(localExecutable, 0o755);
+    }
 
     process.env[MICROMAMBA_ENV_VAR] = localExecutable;
     installedExecutable = localExecutable;
