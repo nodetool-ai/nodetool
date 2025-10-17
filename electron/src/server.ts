@@ -113,13 +113,25 @@ async function startOllamaServer(): Promise<void> {
     const existingBasePath = getProcessEnv().PATH || "";
     const ollamaScriptsDir = path.join(getCondaEnvPath(), "Scripts");
     const ollamaBinDir = path.join(getCondaEnvPath(), "Library", "bin");
+    const userOllamaDir = path.join(
+      app.getPath("home"),
+      "AppData",
+      "Local",
+      "Programs",
+      "Ollama"
+    );
 
-    process.env.PATH = [ollamaScriptsDir, ollamaBinDir, existingBasePath]
-      .filter(Boolean)
+    process.env.PATH = [
+      ollamaScriptsDir,
+      ollamaBinDir,
+      userOllamaDir,
+      existingBasePath,
+    ]
+      .filter((segment) => segment && segment.trim().length > 0)
       .join(path.delimiter);
 
     logMessage(
-      `Using externally managed Ollama. Updated PATH with ${ollamaScriptsDir} and ${ollamaBinDir}`
+      `Using externally managed Ollama. Updated PATH with ${ollamaScriptsDir}, ${ollamaBinDir}, and ${userOllamaDir}`
     );
 
     return;

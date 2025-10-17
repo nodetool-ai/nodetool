@@ -1,5 +1,6 @@
 import { promises as fs, constants } from "fs";
 import { spawn } from "child_process";
+import { existsSync } from "fs";
 import * as os from "os";
 import { app, dialog } from "electron";
 import * as path from "path";
@@ -173,7 +174,107 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
     );
   } catch (error: any) {
     logMessage(`Failed to update Pip packages: ${error.message}`, "error");
+
+    const uvExecutable = getUVPath();
+    const fallbackInstalled = await installLocalEditablePackages(
+      uvExecutable,
+      packages
+    );
+
+    if (fallbackInstalled) {
+      logMessage(
+        "Installed Nodetool packages from local checkouts as a fallback"
+      );
+      return;
+    }
+
     throw error;
+  }
+}
+
+async function installLocalEditablePackages(
+  uvExecutable: string,
+  packages: string[]
+): Promise<boolean> {
+  const essentialPackages = new Set(["nodetool-core", "nodetool-base"]);
+
+  for (const entry of packages) {
+    if (!entry) continue;
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+
+    const packageName = trimmed.includes("/")
+      ? trimmed.split("/", 2)[1]
+      : trimmed;
+
+    if (packageName) {
+      essentialPackages.add(packageName);
+    }
+  }
+
+  const repoRootCandidates = [
+    path.resolve(app.getAppPath(), "..", ".."),
+    path.resolve(app.getAppPath(), ".."),
+    path.resolve(process.cwd(), ".."),
+    path.resolve(__dirname, "..", ".."),
+  ];
+
+  const editableArgs: string[] = [];
+  const resolvedPaths: string[] = [];
+  const seenPaths = new Set<string>();
+
+  for (const packageName of essentialPackages) {
+    for (const candidateRoot of repoRootCandidates) {
+      const repoCandidate = path.join(candidateRoot, packageName);
+      const packageCandidate = path.join(
+        repoCandidate,
+        "packages",
+        packageName
+      );
+
+      const matches: string[] = [];
+      if (existsSync(repoCandidate)) {
+        matches.push(repoCandidate);
+      }
+      if (existsSync(packageCandidate)) {
+        matches.push(packageCandidate);
+      }
+
+      const selected = matches.find((match) => !seenPaths.has(match));
+      if (selected) {
+        editableArgs.push("--editable", selected);
+        resolvedPaths.push(selected);
+        seenPaths.add(selected);
+        break;
+      }
+    }
+  }
+
+  if (editableArgs.length === 0) {
+    logMessage(
+      "No local editable Nodetool packages were found for fallback installation",
+      "warn"
+    );
+    return false;
+  }
+
+  const command = [uvExecutable, "pip", "install", "--system", ...editableArgs];
+
+  logMessage(
+    `Running fallback local install command: ${command.join(
+      " "
+    )}. Paths: ${resolvedPaths.join(", ")}`
+  );
+
+  try {
+    await runCommand(command);
+    return true;
+  } catch (fallbackError: any) {
+    logMessage(
+      `Fallback local package installation failed: ${fallbackError.message}`,
+      "error"
+    );
+    return false;
   }
 }
 
