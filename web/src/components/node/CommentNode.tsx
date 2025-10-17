@@ -13,7 +13,12 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import { convertSlateToLexical } from "../textEditor/editorUtils";
-import { EditorState } from "lexical";
+import {
+  EditorState,
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode
+} from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
@@ -21,6 +26,7 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -204,10 +210,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ...initialConfigTemplate
     };
 
-    // Only set editorState if we have valid comment data with content
-    // Lexical editor state must have a root node, so we check for that
     const comment = props.data.properties.comment;
-    if (
+
+    // Handle string comments as markdown
+    if (typeof comment === "string" && comment.length > 0) {
+      config.editorState = (editor: any) => {
+        $convertFromMarkdownString(comment, TRANSFORMERS);
+      };
+    }
+    // Handle existing Lexical editor state
+    else if (
       comment &&
       typeof comment === "object" &&
       comment.root &&
