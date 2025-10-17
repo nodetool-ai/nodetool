@@ -5,6 +5,7 @@
         "output": "dist",
         "buildResources": "resources"
     },
+    "afterPack": "scripts/after-pack.cjs",
     "files": [
         "assets/**/*",
         "dist-electron/**/*",
