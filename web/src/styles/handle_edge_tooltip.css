@@ -189,7 +189,7 @@
   z-index: 999;
   /* Softer shadow to reduce visual prominence */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-  opacity: 0.6;
+  /* opacity: 0.6; */
 }
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
