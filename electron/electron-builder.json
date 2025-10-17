@@ -109,6 +109,7 @@
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
         "runAfterFinish": true,
+        "warningsAsErrors": false,
         "include": "resources/installer.nsh",
         "artifactName": "${productName}-Setup-${version}.${ext}"
     },
