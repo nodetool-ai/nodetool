@@ -49,7 +49,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "^6.3.5",
-    "vite-plugin-electron": "^0.29.0"
+    "vite-plugin-electron": "^0.29.0",
+    "unbzip2-stream": "^1.4.3"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"

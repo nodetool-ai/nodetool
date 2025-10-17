@@ -5,7 +5,7 @@ const os = require("os");
 const https = require("https");
 const { pipeline } = require("stream/promises");
 const tar = require("tar-fs");
-const gunzip = require("gunzip-maybe");
+const bz2 = require("unbzip2-stream");
 
 const MICROMAMBA_API_BASE = "https://micro.mamba.pm/api/micromamba";
 const MICROMAMBA_DIR_NAME = "micromamba";
@@ -15,8 +15,8 @@ const MICROMAMBA_BINARY_NAME = {
 };
 
 const ARCH_MAPPING = {
-  0: "x64",
-  1: "ia32",
+  0: "ia32",
+  1: "x64",
   2: "armv7l",
   3: "arm64",
   4: "universal",
@@ -102,7 +102,7 @@ function downloadFile(url, destinationPath) {
 async function extractArchive(archivePath, destinationDir) {
   await fsp.mkdir(destinationDir, { recursive: true });
   const extractStream = tar.extract(destinationDir);
-  await pipeline(fs.createReadStream(archivePath), gunzip(), extractStream);
+  await pipeline(fs.createReadStream(archivePath), bz2(), extractStream);
 }
 
 async function findBinary(startDir, binaryName) {
