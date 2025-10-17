@@ -5,6 +5,7 @@
         "output": "dist",
         "buildResources": "resources"
     },
+    "afterPack": "scripts/after-pack.cjs",
     "files": [
         "assets/**/*",
         "dist-electron/**/*",
@@ -108,6 +109,8 @@
         "allowToChangeInstallationDirectory": true,
         "createDesktopShortcut": true,
         "runAfterFinish": true,
+        "warningsAsErrors": false,
+        "include": "resources/installer.nsh",
         "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "artifactName": "${productName}-${version}-${arch}.${ext}",

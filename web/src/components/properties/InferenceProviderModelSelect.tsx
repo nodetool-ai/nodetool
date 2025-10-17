@@ -41,10 +41,6 @@ const InferenceProviderModelSelect = ({
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const providerOptions = [
         {
-            label: "Black Forest Labs",
-            value: "black-forest-labs"
-        },
-        {
             label: "Cerebras",
             value: "cerebras"
         },

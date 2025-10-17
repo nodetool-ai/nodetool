@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
 import { isEqual } from "lodash";
-import { DragEvent, memo, useCallback, useState, useEffect } from "react";
+import { DragEvent, MouseEvent, memo, useCallback, useState, useEffect } from "react";
+import { Menu, MenuItem } from "@mui/material";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
@@ -44,6 +45,8 @@ interface TabHeaderProps {
   onNavigate: (id: string) => void;
   onDoubleClick: (id: string) => void;
   onClose: (id: string) => void;
+  onCloseOthers: (id: string) => void;
+  onCloseAll: () => void;
   onDragStart: (e: DragEvent<HTMLDivElement>, id: string) => void;
   onDragOver: (
     e: DragEvent<HTMLDivElement>,
@@ -64,6 +67,8 @@ const TabHeader = ({
   onNavigate,
   onDoubleClick,
   onClose,
+  onCloseOthers,
+  onCloseAll,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -73,6 +78,21 @@ const TabHeader = ({
 }: TabHeaderProps) => {
   // Use the simple hook to get reactive dirty state
   const isWorkflowDirty = useWorkflowDirty(workflow.id);
+  const [contextMenuPosition, setContextMenuPosition] = useState<
+    { mouseX: number; mouseY: number } | null
+  >(null);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuPosition(null);
+  }, []);
+
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setContextMenuPosition({ mouseX: event.clientX, mouseY: event.clientY });
+    },
+    []
+  );
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
@@ -98,76 +118,125 @@ const TabHeader = ({
   );
 
   return (
-    <div
-      className={`tab ${isActive ? "active" : ""} ${
-        dropTarget?.id === workflow.id
-          ? dropTarget?.position === "left"
-            ? "drop-target"
-            : "drop-target-right"
-          : ""
-      }`}
-      onClick={() => onNavigate(workflow.id)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-      }}
-      onDoubleClick={() => onDoubleClick(workflow.id)}
-      onMouseDown={(e) => {
-        // Middle mouse button (button 1)
-        if (e.button === 1) {
-          e.preventDefault();
-          onClose(workflow.id);
-        }
-      }}
-      draggable={!isEditing}
-      onDragStart={(e) => onDragStart(e, workflow.id)}
-      onDragOver={handleDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, workflow.id)}
-    >
-      {isEditing ? (
-        <input
-          type="text"
-          defaultValue={workflow.name}
-          autoFocus
-          onBlur={(e) => onNameChange(workflow.id, e.target.value)}
-          onKeyDown={handleKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "inherit",
-            padding: 0,
-            fontSize: "inherit",
-            width: "100%",
-            outline: "none"
+    <>
+      <div
+        className={`tab ${isActive ? "active" : ""} ${
+          dropTarget?.id === workflow.id
+            ? dropTarget?.position === "left"
+              ? "drop-target"
+              : "drop-target-right"
+            : ""
+        }`}
+        onClick={() => onNavigate(workflow.id)}
+        onContextMenu={handleContextMenu}
+        onDoubleClick={() => onDoubleClick(workflow.id)}
+        onMouseDown={(e) => {
+          // Middle mouse button (button 1)
+          if (e.button === 1) {
+            e.preventDefault();
+            onClose(workflow.id);
+          }
+        }}
+        draggable={!isEditing}
+        onDragStart={(e) => onDragStart(e, workflow.id)}
+        onDragOver={handleDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onDrop(e, workflow.id)}
+      >
+        {isEditing ? (
+          <input
+            type="text"
+            defaultValue={workflow.name}
+            autoFocus
+            onBlur={(e) => onNameChange(workflow.id, e.target.value)}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "inherit",
+              padding: 0,
+              fontSize: "inherit",
+              width: "100%",
+              outline: "none"
+            }}
+          />
+        ) : (
+          <span className="tab-name" style={{ marginRight: "4px" }}>
+            {workflow.name}
+            {isWorkflowDirty && (
+              <span
+                className="dirty-indicator"
+                style={{
+                  color: "var(--palette-warning-main)",
+                  fontWeight: "bold",
+                  marginLeft: "2px"
+                }}
+              >
+                *
+              </span>
+            )}
+          </span>
+        )}
+        <CloseIcon
+          className="close-icon"
+          sx={{ fontSize: 16 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose(workflow.id);
           }}
         />
-      ) : (
-        <span className="tab-name" style={{ marginRight: "4px" }}>
-          {workflow.name}
-          {isWorkflowDirty && (
-            <span
-              className="dirty-indicator"
-              style={{
-                color: "var(--palette-warning-main)",
-                fontWeight: "bold",
-                marginLeft: "2px"
-              }}
-            >
-              *
-            </span>
-          )}
-        </span>
-      )}
-      <CloseIcon
-        className="close-icon"
-        sx={{ fontSize: 16 }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose(workflow.id);
+      </div>
+      <Menu
+        open={contextMenuPosition !== null}
+        onClose={closeContextMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenuPosition
+            ? {
+                top: contextMenuPosition.mouseY,
+                left: contextMenuPosition.mouseX
+              }
+            : undefined
+        }
+        onContextMenu={(event) => event.preventDefault()}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "8px"
+            }
+          }
         }}
-      />
-    </div>
+      >
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            closeContextMenu();
+            onClose(workflow.id);
+          }}
+        >
+          Close Tab
+        </MenuItem>
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            closeContextMenu();
+            onCloseOthers(workflow.id);
+          }}
+        >
+          Close Other Tabs
+        </MenuItem>
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            closeContextMenu();
+            onCloseAll();
+          }}
+        >
+          Close All Tabs
+        </MenuItem>
+      </Menu>
+    </>
   );
 };
 

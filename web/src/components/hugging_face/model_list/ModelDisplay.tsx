@@ -25,7 +25,8 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
 
   // react-window configuration
   const ITEM_SIZE = 130; // px per row; adjust if list item height changes
-  const LIST_HEIGHT = 600; // viewport height; container can further constrain via layout
+  const MAX_LIST_HEIGHT = 600; // max viewport height
+  const LIST_HEIGHT = Math.min(models.length * ITEM_SIZE, MAX_LIST_HEIGHT);
 
   const startDownload = React.useCallback(
     (model: UnifiedModel) => {

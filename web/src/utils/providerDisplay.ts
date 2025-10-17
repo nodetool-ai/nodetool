@@ -54,6 +54,7 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (p === "llama_cpp" || p === "llama-cpp" || p === "llamacpp")
     return "Llama.cpp";
   if (p === "google") return "Gemini";
+  if (p === "fal_ai" || p === "fal-ai" || p === "falai") return "FAL AI";
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
   );
@@ -94,7 +95,11 @@ export const getProviderUrl = (provider?: string): string | null => {
     const slug = getHuggingFaceSlug(provider);
     return slug ? `https://huggingface.co/${slug}` : "https://huggingface.co";
   }
-  if (p.includes("llama_cpp") || p.includes("llama-cpp") || p.includes("llamacpp"))
+  if (
+    p.includes("llama_cpp") ||
+    p.includes("llama-cpp") ||
+    p.includes("llamacpp")
+  )
     return "https://github.com/ggerganov/llama.cpp";
   if (p.includes("ollama")) return "https://ollama.com";
   if (p.includes("lmstudio")) return "https://lmstudio.ai";
@@ -102,6 +107,7 @@ export const getProviderUrl = (provider?: string): string | null => {
   if (p.includes("anthropic")) return "https://console.anthropic.com";
   if (p.includes("gemini") || p.includes("google"))
     return "https://ai.google.dev";
+  if (p.includes("fal")) return "https://fal.ai";
   if (p.includes("replicate")) return "https://replicate.com";
   if (p.includes("aime")) return "https://www.aime.info/en/";
   // Unknown

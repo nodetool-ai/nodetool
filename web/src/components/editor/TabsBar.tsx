@@ -144,6 +144,24 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     [navigate]
   );
 
+  const handleCloseOthers = useCallback(
+    (workflowId: string) => {
+      const workflowsToClose = workflows
+        .filter((workflow) => workflow.id !== workflowId)
+        .map((workflow) => workflow.id);
+
+      workflowsToClose.forEach((id) => removeWorkflow(id));
+      navigate(`/editor/${workflowId}`);
+    },
+    [navigate, removeWorkflow, workflows]
+  );
+
+  const handleCloseAll = useCallback(() => {
+    const workflowsToClose = workflows.map((workflow) => workflow.id);
+    workflowsToClose.forEach((id) => removeWorkflow(id));
+    navigate("/editor");
+  }, [navigate, removeWorkflow, workflows]);
+
   const checkScrollability = useCallback(() => {
     if (tabsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
@@ -240,6 +258,8 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
               onNavigate={handleNavigate}
               onDoubleClick={handleDoubleClick}
               onClose={handleClose}
+              onCloseOthers={handleCloseOthers}
+              onCloseAll={handleCloseAll}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}

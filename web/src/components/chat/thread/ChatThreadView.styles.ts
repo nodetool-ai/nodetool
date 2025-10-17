@@ -200,7 +200,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: 8,
       background: "transparent",
       padding: "6px 10px",
-      marginBottom: 6
+      marginBottom: 3
     },
 
     ".tool-call-header": {
@@ -262,6 +262,30 @@ export const createStyles = (theme: Theme) => ({
       "&::marker": {
         display: "none"
       }
+    },
+
+    // Execution event styles
+    "li.execution-event": {
+      width: "100%",
+      marginBottom: "0.5rem"
+    },
+
+    ".execution-events-group": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem",
+      marginBottom: "1.5rem",
+      padding: "0.75rem",
+      borderRadius: "8px",
+      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      border: `1px solid ${theme.vars.palette.divider}`
+    },
+
+    ".execution-event-separator": {
+      height: "1px",
+      backgroundColor: theme.vars.palette.divider,
+      margin: "1rem 0",
+      opacity: 0.3
     }
   })
 });

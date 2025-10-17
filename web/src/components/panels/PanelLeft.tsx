@@ -13,9 +13,12 @@ import {
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isEqual } from "lodash";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useContext } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import type { XYPosition, Node as ReactFlowNode } from "@xyflow/react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -25,14 +28,21 @@ import ThreadList from "../chat/thread/ThreadList";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
+import { NodeContext } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import ChatIcon from "@mui/icons-material/Chat";
 import GridViewIcon from "@mui/icons-material/GridView";
+import FolderIcon from "@mui/icons-material/Folder";
 // import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PanelResizeButton from "./PanelResizeButton";
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import QuickActions, { QuickActionDefinition } from "./QuickActions";
+import useNodePlacementStore from "../../stores/NodePlacementStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const PANEL_WIDTH_COLLAPSED = "52px";
 
@@ -171,6 +181,95 @@ const styles = (theme: Theme) =>
         }
       }
     },
+    ".quick-actions-group": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 6,
+      padding: "12px 10px",
+      marginTop: "6px",
+      borderRadius: "16px",
+      background: "rgba(16, 18, 28, 0.14)",
+      border: `1px solid ${theme.vars.palette.grey[800]}33`,
+      boxShadow: "0 6px 20px rgba(0, 0, 0, 0.18)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)"
+    },
+    ".quick-actions-group .quick-add-button": {
+      width: "40px",
+      height: "40px",
+      borderRadius: "12px",
+      padding: "6px",
+      position: "relative",
+      overflow: "hidden",
+      background: "var(--quick-gradient, rgba(28, 30, 38, 0.1))",
+      border: `1px solid ${theme.vars.palette.grey[700]}30`,
+      boxShadow:
+        "var(--quick-shadow, 0 3px 12px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255,255,255,0.04))",
+      color: theme.vars.palette.grey[100],
+      transition: "all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+
+      "& svg": {
+        fontSize: "1.3rem",
+        color: "var(--quick-icon-color, #f5f7ff)",
+        position: "relative",
+        zIndex: 1
+      },
+
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.28), transparent 45%)",
+        opacity: 0.32,
+        pointerEvents: "none",
+        mixBlendMode: "screen"
+      },
+
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22)",
+        pointerEvents: "none"
+      },
+
+      "&:hover": {
+        transform: "translateY(-2px) scale(1.04)",
+        background: "var(--quick-hover-gradient, rgba(42, 46, 60, 0.16))",
+        boxShadow:
+          "var(--quick-shadow-hover, 0 10px 20px rgba(0,0,0,0.28), 0 0 16px rgba(56,189,248,0.18))",
+        borderColor: "var(--quick-border-hover, rgba(255,255,255,0.2))"
+      },
+
+      "&:active": {
+        transform: "scale(0.96)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.4)"
+      },
+
+      "&.active": {
+        borderColor: `${theme.vars.palette.primary.main}66`,
+        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}33, var(--quick-shadow, 0 3px 12px rgba(0,0,0,0.22))`,
+        "& svg": {
+          color: theme.vars.palette.primary.main
+        }
+      }
+    },
+    ".quick-actions-divider": {
+      width: "24px",
+      height: "1px",
+      margin: "4px auto",
+      background: theme.vars.palette.grey[800],
+      opacity: 0.6
+    },
     ".help-chat": {
       "& .MuiButton-root": {
         whiteSpace: "normal",
@@ -206,6 +305,162 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const theme = useTheme();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const nodeStoreFromContext = useContext(NodeContext);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const { currentWorkflowId, getNodeStore } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId,
+    getNodeStore: state.getNodeStore
+  }));
+  const nodeStore =
+    nodeStoreFromContext ??
+    (currentWorkflowId ? getNodeStore(currentWorkflowId) ?? null : null);
+
+  const getViewportCenter = useCallback((): XYPosition => {
+    if (!nodeStore || typeof window === "undefined") {
+      return { x: 0, y: 0 };
+    }
+    const { viewport } = nodeStore.getState();
+    const { innerWidth, innerHeight } = window;
+    if (!viewport) {
+      return { x: 0, y: 0 };
+    }
+    const { x, y, zoom } = viewport;
+    const centerX = innerWidth / 2;
+    const centerY = innerHeight / 2;
+
+    return {
+      x: (centerX - x) / zoom,
+      y: (centerY - y) / zoom
+    };
+  }, [nodeStore]);
+
+  const computePlacementPosition = useCallback((): XYPosition => {
+    const basePosition = getViewportCenter();
+    if (!nodeStore) {
+      return basePosition;
+    }
+
+    const { nodes } = nodeStore.getState();
+    if (!nodes || nodes.length === 0) {
+      return basePosition;
+    }
+
+    const spacingX = 240;
+    const spacingY = 180;
+
+    const candidateOffsets: Array<{ offset: XYPosition; distance: number }> =
+      [];
+    const maxRadius = 3;
+    for (let y = -maxRadius; y <= maxRadius; y++) {
+      for (let x = -maxRadius; x <= maxRadius; x++) {
+        const distance = Math.abs(x) + Math.abs(y);
+        candidateOffsets.push({
+          offset: { x: x * spacingX, y: y * spacingY },
+          distance
+        });
+      }
+    }
+
+    candidateOffsets.sort((a, b) => a.distance - b.distance);
+
+    const isPositionFree = (candidate: XYPosition) => {
+      const horizontalBuffer = spacingX * 0.6;
+      const verticalBuffer = spacingY * 0.6;
+
+      return nodes.every((node: ReactFlowNode<any>) => {
+        const pos = node.position ?? { x: 0, y: 0 };
+        const nodeWidth = node.width ?? 200;
+        const nodeHeight = node.height ?? 140;
+
+        const deltaX = Math.abs(candidate.x - pos.x);
+        const deltaY = Math.abs(candidate.y - pos.y);
+
+        const minX = nodeWidth / 2 + horizontalBuffer;
+        const minY = nodeHeight / 2 + verticalBuffer;
+
+        return deltaX >= minX || deltaY >= minY;
+      });
+    };
+
+    for (const { offset } of candidateOffsets) {
+      const candidate = {
+        x: basePosition.x + offset.x,
+        y: basePosition.y + offset.y
+      };
+      if (isPositionFree(candidate)) {
+        return candidate;
+      }
+    }
+
+    const fallbackOffset = nodes.length + 1;
+    return {
+      x: basePosition.x + fallbackOffset * (spacingX / 2),
+      y: basePosition.y + fallbackOffset * (spacingY / 2)
+    };
+  }, [getViewportCenter, nodeStore]);
+
+  const { activatePlacement, cancelPlacement, pendingNodeType } =
+    useNodePlacementStore((state) => ({
+      activatePlacement: state.activatePlacement,
+      cancelPlacement: state.cancelPlacement,
+      pendingNodeType: state.pendingNodeType
+    }));
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  const handleAddNode = useCallback(
+    (action: QuickActionDefinition, event: ReactMouseEvent<HTMLButtonElement>) => {
+      const { nodeType, label } = action;
+      if (!nodeStore) {
+        return;
+      }
+      const metadata = getMetadata(nodeType);
+      if (!metadata) {
+        console.warn(`Metadata not found for node type: ${nodeType}`);
+        addNotification({
+          type: "warning",
+          content: `Unable to find metadata for ${label}.`,
+          timeout: 4000
+        });
+        return;
+      }
+
+      if (event.shiftKey) {
+        const store = nodeStore.getState();
+        const position = computePlacementPosition();
+        const newNode = store.createNode(metadata, position);
+        newNode.selected = true;
+        store.addNode(newNode);
+        cancelPlacement();
+        return;
+      }
+
+      if (pendingNodeType === nodeType) {
+        cancelPlacement();
+        return;
+      }
+
+      activatePlacement(nodeType, label, "quickAction");
+      addNotification({
+        type: "info",
+        content: `Click on the canvas to place "${label}". Press Esc to cancel.`,
+        timeout: 5000,
+        dismissable: true
+      });
+    },
+    [
+      nodeStore,
+      getMetadata,
+      computePlacementPosition,
+      cancelPlacement,
+      pendingNodeType,
+      activatePlacement,
+      addNotification
+    ]
+  );
+
+  const quickActionsAvailable = Boolean(nodeStore);
 
   return (
     <div className="vertical-toolbar">
@@ -257,6 +512,31 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <IconForType iconName="asset" showTooltip={false} />
         </IconButton>
       </Tooltip>
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workspace</div>
+            <div className="tooltip-key">
+              <kbd>4</kbd>
+            </div>
+          </div>
+        }
+        placement="right-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={() => onViewChange("workspace")}
+          className={activeView === "workspace" && panelVisible ? "active" : ""}
+        >
+          <FolderIcon />
+        </IconButton>
+      </Tooltip>
+
+      <QuickActions
+        isAvailable={quickActionsAvailable}
+        onAddNode={handleAddNode}
+      />
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
@@ -422,6 +702,17 @@ const PanelContent = memo(function PanelContent({
           <WorkflowList />
         </Box>
       )}
+      {activeView === "workspace" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden"
+          }}
+        >
+          <WorkspaceTree />
+        </Box>
+      )}
     </>
   );
 });
@@ -441,6 +732,7 @@ const PanelLeft: React.FC = () => {
   useCombo(["1"], () => handlePanelToggle("chat"), false);
   useCombo(["2"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["3"], () => handlePanelToggle("assets"), false);
+  useCombo(["4"], () => handlePanelToggle("workspace"), false);
 
   useCombo(["5"], () => handlePanelToggle("packs"), false);
 

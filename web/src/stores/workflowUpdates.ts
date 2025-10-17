@@ -87,7 +87,11 @@ export const handleUpdate = (
 
   if (data.type === "edge_update") {
     const edgeUpdate = data as EdgeUpdate;
-    setEdge(workflow.id, edgeUpdate.edge_id, edgeUpdate.status);
+    // Don't update edges if workflow is cancelled or in error state
+    const currentState = runnerStore.getState().state;
+    if (currentState !== "cancelled" && currentState !== "error") {
+      setEdge(workflow.id, edgeUpdate.edge_id, edgeUpdate.status);
+    }
   }
 
   if (data.type === "planning_update") {
@@ -131,21 +135,39 @@ export const handleUpdate = (
     }
     switch (job.status) {
       case "completed":
-      case "cancelled":
-      case "failed":
-      case "timed_out":
+        runnerStore.setState({ state: "idle" });
         runner.addNotification({
-          type: job.status === "failed" ? "error" : "info",
+          type: "info",
           alert: true,
-          content: `Job ${job.status}${
-            job.status === "failed" ? ` ${job.error || ""}` : ""
-          }`,
-          timeout: job.status === "failed" ? 30000 : undefined
+          content: "Job completed"
         });
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
-        runner.disconnect();
+        break;
+      case "cancelled":
+        runnerStore.setState({ state: "cancelled" });
+        runner.addNotification({
+          type: "info",
+          alert: true,
+          content: "Job cancelled"
+        });
+        clearStatuses(workflow.id);
+        clearEdges(workflow.id);
+        clearProgress(workflow.id);
+        break;
+      case "failed":
+      case "timed_out":
+        runnerStore.setState({ state: "error" });
+        runner.addNotification({
+          type: "error",
+          alert: true,
+          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+          timeout: 30000
+        });
+        clearStatuses(workflow.id);
+        clearEdges(workflow.id);
+        clearProgress(workflow.id);
         break;
       case "queued":
         runnerStore.setState({
@@ -181,12 +203,16 @@ export const handleUpdate = (
 
   if (data.type === "node_progress") {
     const progress = data as NodeProgress;
-    setProgress(
-      workflow.id,
-      progress.node_id,
-      progress.progress,
-      progress.total
-    );
+    const currentState = runnerStore.getState().state;
+    // Don't update progress if workflow is cancelled
+    if (currentState !== "cancelled") {
+      setProgress(
+        workflow.id,
+        progress.node_id,
+        progress.progress,
+        progress.total
+      );
+    }
   }
 
   if (data.type === "preview_update") {
@@ -196,11 +222,12 @@ export const handleUpdate = (
 
   if (data.type === "node_update") {
     const update = data as NodeUpdate;
-    // const node = findNode(update.node_id);
-    // if (!node) {
-    //   log.error("received message for deleted node", update.node_id);
-    //   return;
-    // }
+    const currentState = runnerStore.getState().state;
+
+    // Don't update node status if workflow is cancelled
+    if (currentState === "cancelled") {
+      return;
+    }
 
     if (update.error) {
       log.error("WorkflowRunner update error", update.error);

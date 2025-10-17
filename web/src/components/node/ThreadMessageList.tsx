@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useRef } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
@@ -15,33 +15,71 @@ const styles = (theme: Theme) =>
       overflow: "auto"
     },
     ".messages li .tool-calls": {
-      marginTop: "0.5em",
-      marginBottom: "0.5em",
-      padding: "0.5em 0.6em",
-      borderLeft: `3px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: theme.vars.palette.grey[1000]
+      margin: "1em 0",
+      display: "grid",
+      gap: "0.75em"
     },
     ".messages li .tool-call": {
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.grey[200],
-      margin: "0.25em 0"
+      background: `linear-gradient(135deg, ${alpha(
+        theme.palette.primary.dark,
+        0.35
+      )} 0%, ${alpha(theme.palette.primary.main, 0.12)} 100%)`,
+      border: `1px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+      borderRadius: "14px",
+      padding: "0.9em 1.1em",
+      boxShadow: `0 8px 16px ${alpha(theme.palette.common.black, 0.18)}`,
+      position: "relative",
+      overflow: "hidden"
     },
-    ".messages li .tool-call .name": {
-      color: "var(--palette-primary-main)",
+    ".messages li .tool-call::before": {
+      content: '""',
+      position: "absolute",
+      inset: "0",
+      background: `linear-gradient(140deg, ${alpha(
+        theme.palette.primary.main,
+        0.2
+      )} 0%, transparent 60%)`,
+      pointerEvents: "none"
+    },
+    ".messages li .tool-call__header": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6em",
+      marginBottom: "0.65em"
+    },
+    ".messages li .tool-call__badge": {
+      fontSize: theme.fontSizeSmaller,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      fontWeight: 700,
+      color: theme.vars.palette.primary.main,
+      backgroundColor: alpha(theme.palette.primary.main, 0.15),
+      padding: "0.2em 0.55em",
+      borderRadius: "999px"
+    },
+    ".messages li .tool-call__name": {
+      color: theme.vars.palette.grey[50],
       fontWeight: 600,
-      marginRight: "0.35em"
+      fontSize: theme.fontSizeSmall,
+      letterSpacing: "0.01em"
     },
-    ".messages li .tool-call .args": {
-      color: theme.vars.palette.grey[400],
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word"
+    ".messages li .tool-call__message": {
+      color: theme.vars.palette.grey[200],
+      fontSize: theme.fontSizeSmall,
+      lineHeight: 1.6,
+      position: "relative",
+      zIndex: 1
     },
-    ".messages li .tool-call .message": {
-      color: theme.vars.palette.grey[300],
-      display: "block",
-      marginTop: "0.15em",
-      marginBottom: "0.15em"
+    ".messages li .tool-call__message pre": {
+      backgroundColor: alpha(theme.palette.common.black, 0.35),
+      borderRadius: "10px",
+      padding: "0.75em",
+      marginTop: "0.8em",
+      overflowX: "auto"
+    },
+    ".messages li .tool-call__message code": {
+      fontFamily: theme.fontFamily2
     },
     ".messages": {
       listStyleType: "none",
@@ -88,6 +126,16 @@ type ChatViewProps = {
   messages: Array<Message>;
 };
 
+
+const formatToolName = (name?: string) => {
+  if (!name) return "Agent Task";
+  return name
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
   toolCalls
 }) => {
@@ -96,8 +144,15 @@ const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
     <div className="tool-calls">
       {toolCalls.map((tc, idx) => (
         <div key={tc.id || idx} className="tool-call">
-          <span className="name">{tc.name}</span>
-          <span className="message">{tc.message}</span>
+          <div className="tool-call__header">
+            <span className="tool-call__badge">Agent Task</span>
+            <span className="tool-call__name">{formatToolName(tc.name)}</span>
+          </div>
+          {tc.message && (
+            <div className="tool-call__message">
+              <MarkdownRenderer content={tc.message} />
+            </div>
+          )}
         </div>
       ))}
     </div>

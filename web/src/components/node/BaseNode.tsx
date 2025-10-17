@@ -112,7 +112,7 @@ const getNodeStyles = (colors: string[]) =>
         right: "var(--glow-offset)",
         bottom: "var(--glow-offset)",
         background: `conic-gradient(
-        from var(--gradient-angle), 
+        from var(--gradient-angle),
         ${colors[0]},
         ${colors[1]},
         ${colors[2]},
@@ -150,9 +150,9 @@ const getStyleProps = (
 ) => {
   const hasParent = Boolean(parentId);
   return {
-    className: `base-node node-body 
+    className: `base-node node-body
       ${hasParent ? "has-parent" : ""}
-      ${nodeType.isInputNode ? " input-node" : ""} 
+      ${nodeType.isInputNode ? " input-node" : ""}
       ${nodeType.isOutputNode ? " output-node" : ""}
       ${isLoading ? " loading is-loading" : " loading "}`
       .replace(/\s+/g, " ")
@@ -189,7 +189,24 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
-const getHeaderColors = (metadata: NodeMetadata, theme: Theme) => {
+const getHeaderColors = (metadata: NodeMetadata, theme: Theme, nodeType: string) => {
+  // Override colors for input and output nodes
+  if (nodeType.startsWith("nodetool.input.")) {
+    const baseColor = "#4caf50"; // Green for input nodes
+    return {
+      headerColor: darkenHexColor(baseColor, 200),
+      baseColor
+    };
+  }
+
+  if (nodeType.startsWith("nodetool.output.")) {
+    const baseColor = "#2196f3"; // Blue for output nodes
+    return {
+      headerColor: darkenHexColor(baseColor, 200),
+      baseColor
+    };
+  }
+
   const firstOutputType = metadata?.outputs?.[0]?.type?.type as
     | string
     | undefined;
@@ -287,8 +304,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
   const { headerColor, baseColor } = useMemo(
-    () => getHeaderColors(metadata, theme),
-    [metadata, theme]
+    () => getHeaderColors(metadata, theme, type),
+    [metadata, theme, type]
   );
 
   const task = useResultsStore((state) => state.getTask(workflow_id, id));

@@ -458,6 +458,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Image Models Endpoint
+         * @description Get all available image generation models from all providers.
+         */
+        get: operations["get_image_models_endpoint_api_models_image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tts Models Endpoint
+         * @description Get all available text-to-speech models from all providers.
+         */
+        get: operations["get_tts_models_endpoint_api_models_tts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/asr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Asr Models Endpoint
+         * @description Get all available automatic speech recognition models from all providers.
+         */
+        get: operations["get_asr_models_endpoint_api_models_asr_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Video Models Endpoint
+         * @description Get all available video generation models from all providers.
+         */
+        get: operations["get_video_models_endpoint_api_models_video_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama_model_info": {
         parameters: {
             query?: never;
@@ -1025,6 +1105,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description List jobs for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *         workflow_id: Optional workflow ID to filter by
+         *         limit: Maximum number of jobs to return
+         *         start_key: Pagination start key
+         *
+         *     Returns:
+         *         List of jobs
+         */
+        get: operations["list_jobs_api_jobs__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Job
+         * @description Get a specific job by ID.
+         *
+         *     Args:
+         *         job_id: Job ID
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Job details
+         */
+        get: operations["get_job_api_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/running/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Running Jobs
+         * @description List all currently running background jobs for the current user.
+         *
+         *     Args:
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         List of running background jobs
+         */
+        get: operations["list_running_jobs_api_jobs_running_all_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Job
+         * @description Cancel a running job.
+         *
+         *     Args:
+         *         job_id: Job ID to cancel
+         *         user_id: Current authenticated user ID
+         *
+         *     Returns:
+         *         Success message
+         */
+        post: operations["cancel_job_api_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -1099,6 +1288,106 @@ export interface paths {
          * @description Upload a file to the specified path
          */
         post: operations["upload_file_api_files_upload__path__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workspaces
+         * @description List all workspaces in ~/.nodetool-workspaces
+         */
+        get: operations["list_workspaces_api_files_workspaces_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/workspaces/{workspace_id}/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace Info
+         * @description Get information about a specific workspace
+         */
+        get: operations["get_workspace_info_api_files_workspaces__workspace_id__info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/workspaces/{workspace_id}/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workspace Files
+         * @description List files and directories in a workspace
+         */
+        get: operations["list_workspace_files_api_files_workspaces__workspace_id__list_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/workspaces/{workspace_id}/download/{file_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Workspace File
+         * @description Download a file from a workspace
+         */
+        get: operations["download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/workspaces/{workspace_id}/upload/{file_path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Workspace File
+         * @description Upload a file to a workspace
+         */
+        post: operations["upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1230,6 +1519,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ASRModel */
+        ASRModel: {
+            /**
+             * Type
+             * @default asr_model
+             * @constant
+             */
+            type: "asr_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /** Asset */
         Asset: {
             /** Id */
@@ -1383,6 +1693,21 @@ export interface components {
             /** Data */
             data?: unknown;
         };
+        /** BackgroundJobResponse */
+        BackgroundJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Created At */
+            created_at: string;
+            /** Is Running */
+            is_running: boolean;
+            /** Is Completed */
+            is_completed: boolean;
+        };
         /** Body_create_api_assets__post */
         Body_create_api_assets__post: {
             /** File */
@@ -1400,6 +1725,14 @@ export interface components {
         };
         /** Body_upload_file_api_files_upload__path__post */
         Body_upload_file_api_files_upload__path__post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+        };
+        /** Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post */
+        Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
             /**
              * File
              * Format: binary
@@ -1724,6 +2057,12 @@ export interface components {
             /** Error */
             error: string;
         };
+        /**
+         * ExecutionStrategy
+         * @description Execution strategy for workflow jobs.
+         * @enum {string}
+         */
+        ExecutionStrategy: "threaded" | "subprocess" | "docker";
         /** FileInfo */
         FileInfo: {
             /** Name */
@@ -2878,6 +3217,27 @@ export interface components {
             /** Ignore Patterns */
             ignore_patterns?: string[] | null;
         };
+        /** ImageModel */
+        ImageModel: {
+            /**
+             * Type
+             * @default image_model
+             * @constant
+             */
+            type: "image_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
         /**
          * ImageRef
          * @description A reference to an image asset.
@@ -2910,7 +3270,7 @@ export interface components {
          * InferenceProvider
          * @enum {string}
          */
-        InferenceProvider: "" | "black-forest-labs" | "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "together";
+        InferenceProvider: "cerebras" | "cohere" | "fal-ai" | "featherless-ai" | "fireworks-ai" | "groq" | "hf-inference" | "hyperbolic" | "nebius" | "novita" | "nscale" | "openai" | "replicate" | "sambanova" | "scaleway" | "together" | "zai-org";
         /** InferenceProviderAudioClassificationModel */
         InferenceProviderAudioClassificationModel: {
             /**
@@ -3119,6 +3479,27 @@ export interface components {
              */
             model_id: string;
         };
+        /** JobResponse */
+        JobResponse: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Job Type */
+            job_type: string;
+            /** Status */
+            status: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Cost */
+            cost?: number | null;
+        };
         /** JobUpdate */
         JobUpdate: {
             /**
@@ -3131,6 +3512,8 @@ export interface components {
             status: string;
             /** Job Id */
             job_id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
             /** Message */
             message?: string | null;
             /** Result */
@@ -3595,6 +3978,12 @@ export interface components {
              */
             is_dynamic: boolean;
             /**
+             * Is Streaming Output
+             * @description Whether the node can stream output
+             * @default false
+             */
+            is_streaming_output: boolean;
+            /**
              * Expose As Tool
              * @description Whether the node is exposed as a tool
              * @default false
@@ -3898,7 +4287,7 @@ export interface components {
             name: string;
             type: components["schemas"]["TypeMetadata-Output"];
             /** Default */
-            default?: unknown | null;
+            default?: unknown;
             /** Title */
             title?: string | null;
             /** Description */
@@ -3916,7 +4305,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "empty" | "mlx" | "huggingface_black_forest_labs" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_together";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -3930,12 +4319,39 @@ export interface components {
             downloaded: boolean;
         };
         /**
+         * ResourceLimits
+         * @description Resource limits for subprocess execution.
+         *
+         *     Attributes:
+         *         cpu_percent: CPU usage limit as percentage (1-100), requires cpulimit
+         *         memory_mb: Memory limit in megabytes, uses ulimit -v
+         *         time_seconds: CPU time limit in seconds, uses ulimit -t
+         *         file_size_mb: File size limit in megabytes, uses ulimit -f
+         *         open_files: Maximum number of open file descriptors, uses ulimit -n
+         *         max_processes: Maximum number of processes, uses ulimit -u
+         */
+        ResourceLimits: {
+            /** Cpu Percent */
+            cpu_percent?: number | null;
+            /** Memory Mb */
+            memory_mb?: number | null;
+            /** Time Seconds */
+            time_seconds?: number | null;
+            /** File Size Mb */
+            file_size_mb?: number | null;
+            /** Open Files */
+            open_files?: number | null;
+            /** Max Processes */
+            max_processes?: number | null;
+        };
+        /**
          * RunJobRequest
          * @description A request model for running a workflow.
          *
          *     Attributes:
          *         type: The type of request, always "run_job_request".
          *         job_type: The type of job to run, defaults to "workflow".
+         *         execution_strategy: Strategy for executing the job (threaded, subprocess, docker).
          *         params: Optional parameters for the job.
          *         messages: Optional list of messages associated with the job.
          *         workflow_id: The ID of the workflow to run.
@@ -3958,6 +4374,8 @@ export interface components {
              * @default workflow
              */
             job_type: string;
+            /** @default threaded */
+            execution_strategy: components["schemas"]["ExecutionStrategy"];
             /** Params */
             params?: unknown | null;
             /** Messages */
@@ -3989,6 +4407,7 @@ export interface components {
              * @default false
              */
             explicit_types: boolean | null;
+            resource_limits?: components["schemas"]["ResourceLimits"] | null;
         };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
@@ -4028,6 +4447,33 @@ export interface components {
             /** Children */
             children?: components["schemas"]["SVGElement"][];
         };
+        /**
+         * SaveUpdate
+         * @description A message representing a save update from a node.
+         */
+        SaveUpdate: {
+            /**
+             * Type
+             * @default save_update
+             * @constant
+             */
+            type: "save_update";
+            /** Node Id */
+            node_id: string;
+            /** Name */
+            name: string;
+            /** Value */
+            value: unknown;
+            /** Output Type */
+            output_type: string;
+            /**
+             * Metadata
+             * @default {}
+             */
+            metadata: {
+                [key: string]: unknown;
+            };
+        };
         /** SettingWithValue */
         SettingWithValue: {
             /** Package Name */
@@ -4040,6 +4486,8 @@ export interface components {
             description: string;
             /** Is Secret */
             is_secret: boolean;
+            /** Enum */
+            enum?: string[] | null;
             /** Value */
             value?: unknown | null;
         };
@@ -4077,11 +4525,6 @@ export interface components {
              */
             id: string;
             /**
-             * Model
-             * @description The model to use for the subtask
-             */
-            model?: string | null;
-            /**
              * Content
              * @description Instructions for the subtask
              */
@@ -4092,12 +4535,6 @@ export interface components {
              * @default []
              */
             logs: components["schemas"]["LogEntry"][];
-            /**
-             * Max Iterations
-             * @description The maximum number of iterations for the subtask
-             * @default 10
-             */
-            max_iterations: number;
             /**
              * Max Tool Calls
              * @description The maximum number of tool calls for the subtask
@@ -4146,12 +4583,6 @@ export interface components {
              * @default
              */
             output_schema: string;
-            /**
-             * Is Intermediate Result
-             * @description Whether the subtask is an intermediate result of a task
-             * @default false
-             */
-            is_intermediate_result: boolean;
         };
         /**
          * SubTaskResult
@@ -4212,6 +4643,34 @@ export interface components {
              * @description VRAM usage percentage
              */
             vram_percent?: number | null;
+        };
+        /** TTSModel */
+        TTSModel: {
+            /**
+             * Type
+             * @default tts_model
+             * @constant
+             */
+            type: "tts_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Voices */
+            voices?: string[];
+            /**
+             * Selected Voice
+             * @default
+             */
+            selected_voice: string;
         };
         /**
          * Task
@@ -4501,33 +4960,36 @@ export interface components {
             /** Repo Id */
             repo_id: string | null;
             /** Path */
-            path: string | null;
+            path?: string | null;
             /** Cache Path */
-            cache_path: string | null;
+            cache_path?: string | null;
             /** Allow Patterns */
-            allow_patterns: string[] | null;
+            allow_patterns?: string[] | null;
             /** Ignore Patterns */
-            ignore_patterns: string[] | null;
+            ignore_patterns?: string[] | null;
             /** Description */
-            description: string | null;
+            description?: string | null;
             /** Readme */
-            readme: string | null;
+            readme?: string | null;
             /** Size On Disk */
-            size_on_disk: number | null;
-            /** Downloaded */
+            size_on_disk?: number | null;
+            /**
+             * Downloaded
+             * @default false
+             */
             downloaded: boolean;
             /** Pipeline Tag */
-            pipeline_tag: string | null;
+            pipeline_tag?: string | null;
             /** Tags */
-            tags: string[] | null;
+            tags?: string[] | null;
             /** Has Model Index */
-            has_model_index: boolean | null;
+            has_model_index?: boolean | null;
             /** Downloads */
-            downloads: number | null;
+            downloads?: number | null;
             /** Likes */
-            likes: number | null;
+            likes?: number | null;
             /** Trending Score */
-            trending_score: number | null;
+            trending_score?: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -4537,6 +4999,27 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VideoModel */
+        VideoModel: {
+            /**
+             * Type
+             * @default video_model
+             * @constant
+             */
+            type: "video_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
         };
         /**
          * VideoRef
@@ -4677,6 +5160,23 @@ export interface components {
             next: string | null;
             /** Workflows */
             workflows: components["schemas"]["WorkflowTool"][];
+        };
+        /** WorkspaceInfo */
+        WorkspaceInfo: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Workflow Id */
+            workflow_id: string | null;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** File Count */
+            file_count: number;
+            /** Created At */
+            created_at: string;
+            /** Modified At */
+            modified_at: string;
         };
     };
     responses: never;
@@ -5699,6 +6199,138 @@ export interface operations {
             };
         };
     };
+    get_image_models_endpoint_api_models_image_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tts_models_endpoint_api_models_tts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TTSModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asr_models_endpoint_api_models_asr_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ASRModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_video_models_endpoint_api_models_video_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_ollama_model_info_endpoint_api_models_ollama_model_info_get: {
         parameters: {
             query: {
@@ -6039,7 +6671,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
                 };
             };
         };
@@ -6859,6 +7491,146 @@ export interface operations {
             };
         };
     };
+    list_jobs_api_jobs__get: {
+        parameters: {
+            query?: {
+                workflow_id?: string | null;
+                limit?: number;
+                start_key?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_running_jobs_api_jobs_running_all_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackgroundJobResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_job_api_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_files_api_files_list_get: {
         parameters: {
             query?: {
@@ -6980,6 +7752,187 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_upload_file_api_files_upload__path__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspaces_api_files_workspaces_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workspace_info_api_files_workspaces__workspace_id__info_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_files_api_files_workspaces__workspace_id__list_get: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+                file_path: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+                file_path: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
             };
         };
         responses: {

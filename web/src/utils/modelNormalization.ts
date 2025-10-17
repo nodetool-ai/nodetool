@@ -1,4 +1,7 @@
-import type { LanguageModel } from "../stores/ApiTypes";
+import type { LanguageModel, ImageModel } from "../stores/ApiTypes";
+import type { TypeTag, SizeBucket } from "../stores/ModelFiltersStore";
+
+export type ModelSelectorModel = LanguageModel | ImageModel;
 
 export type NormalizedModelMeta = {
   sizeB?: number; // billions of params
@@ -60,6 +63,57 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
   };
 }
 
-export function buildMetaIndex(models: LanguageModel[]) {
-  return models.map((m) => ({ model: m, meta: normalizeModelMeta(m) }));
+export function buildMetaIndex<TModel extends ModelSelectorModel>(
+  models: TModel[]
+) {
+  return models.map((m) => ({
+    model: m,
+    meta: normalizeModelMeta(m as LanguageModel)
+  }));
+}
+
+export interface AdvancedModelFilters {
+  selectedTypes: TypeTag[];
+  sizeBucket: SizeBucket | null;
+  families: string[];
+}
+
+export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
+  models: TModel[],
+  filters: AdvancedModelFilters
+): TModel[] {
+  const { selectedTypes, sizeBucket, families } = filters;
+
+  // If no filters are applied, return all models
+  if (
+    selectedTypes.length === 0 &&
+    sizeBucket === null &&
+    families.length === 0
+  ) {
+    return models;
+  }
+
+  return models.filter((model) => {
+    const meta = normalizeModelMeta(model as LanguageModel);
+
+    // Check type tags
+    if (selectedTypes.length > 0) {
+      const hasMatchingType = selectedTypes.some((t) =>
+        meta.typeTags.includes(t)
+      );
+      if (!hasMatchingType) return false;
+    }
+
+    // Check size bucket
+    if (sizeBucket !== null) {
+      if (meta.sizeBucket !== sizeBucket) return false;
+    }
+
+    // Check families
+    if (families.length > 0) {
+      if (!meta.family || !families.includes(meta.family)) return false;
+    }
+
+    return true;
+  });
 }

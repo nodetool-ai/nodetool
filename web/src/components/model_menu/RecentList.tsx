@@ -10,7 +10,7 @@ import {
   ListSubheader
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { toTitleCase } from "../../utils/providerDisplay";
@@ -20,9 +20,9 @@ const listStyles = css({
   maxHeight: "100%"
 });
 
-export interface RecentListProps {
-  models: LanguageModel[];
-  onSelect: (m: LanguageModel) => void;
+export interface RecentListProps<TModel extends ModelSelectorModel> {
+  models: TModel[];
+  onSelect: (m: TModel) => void;
 }
 
 const requiredSecretForProvider = (provider?: string): string | null => {
@@ -35,7 +35,10 @@ const requiredSecretForProvider = (provider?: string): string | null => {
   return null;
 };
 
-const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
+function RecentList<TModel extends ModelSelectorModel>({
+  models,
+  onSelect
+}: RecentListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
 
@@ -119,6 +122,6 @@ const RecentList: React.FC<RecentListProps> = ({ models, onSelect }) => {
       })}
     </List>
   );
-};
+}
 
 export default RecentList;

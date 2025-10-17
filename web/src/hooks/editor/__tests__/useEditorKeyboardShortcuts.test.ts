@@ -43,6 +43,3 @@ describe("useEditorKeyboardShortcuts", () => {
     );
   });
 });
-
-
-

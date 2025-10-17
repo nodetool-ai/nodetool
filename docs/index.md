@@ -1,24 +1,25 @@
----
-layout: default
-title: NodeTool
----
+______________________________________________________________________
+
+## layout: default title: NodeTool
 
 # Nodetool - Documentation
 
-NodeTool is an open‑source, privacy‑first platform for building AI agents and workflows visually — no code required. Design, run, and deploy powerful AI systems using drag‑and‑drop nodes that connect models, tools, data, and your everyday apps.
+NodeTool is an open‑source, local‑first platform for building AI agents and workflows visually. Design, run, and deploy
+powerful AI systems using drag‑and‑drop nodes that connect models, tools, data, and your everyday apps.
 
 > Build agents visually • Deploy anywhere • Privacy by design
 
 ## How It Works
 
 1. 🏗️ Build — Create workflows by dragging and connecting nodes.
-2. ⚡ Run — Test locally; your data stays on your machine by default.
-3. 🚀 Deploy — Ship to your own cloud or provider when ready.
+1. ⚡ Run — Test locally; your data stays on your machine by default.
+1. 🚀 Deploy — Ship to your own cloud or provider when ready.
 
 ## What You Can Do
 
 - **Visual workflow editor** – link nodes to process text, images, audio or video.
-- **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate, Cohere and more — or run locally with Ollama.
+- **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate,
+  Cohere and more — or run locally with Ollama.
 - **Advanced agents** – build multi-step agents that can plan, reason and browse the web.
 - **Vector search & RAG** – index your documents and ask questions about them.
 - **System tray access** – launch workflows and manage your clipboard from anywhere.
@@ -35,6 +36,7 @@ NodeTool is an open‑source, privacy‑first platform for building AI agents an
 - **[Installation](installation.md)** – Download and install NodeTool
 - **[Getting Started](getting-started.md)** – Your first workflow and basic concepts
 - **[Tips and Tricks](tips-and-tricks.md)** – Shortcuts and workflow ideas
+- \*\*[Cookbook](cookbook.md) - Cookbook for workflows
 
 ### Core Features
 
@@ -42,23 +44,24 @@ NodeTool is an open‑source, privacy‑first platform for building AI agents an
 - **[User Interface](user-interface.md)** – Complete guide to the NodeTool UI
 - **[Global Chat](global-chat.md)** – AI chat interface with agents and tools
 - **[Supported Models](models.md)** – Comprehensive guide to all AI models and providers
+- **[Providers](providers.md)** - Provider support
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
 - **[Base Nodes Reference](base-nodes.md)** – Complete reference for all available base nodes
 
 ### Advanced Topics
 
-- **[Desktop App](desktop-app.md)** – System tray, shortcuts, and native features
 - **[Architecture](architecture.md)** – Technical overview and system design
 
 ## Quick Start
 
 1. Install NodeTool (see [Installation](installation.md)).
-2. Launch the app and download models.
-3. Start from a template or blank canvas.
-4. Drag nodes, connect them, and click Run to see results.
+1. Launch the app and download models.
+1. Start from a template or blank canvas.
+1. Drag nodes, connect them, and click Run to see results.
 
-Want more details? Check out our [Getting Started](getting-started.md) guide and explore the complete feature documentation above.
+Want more details? Check out our [Getting Started](getting-started.md) guide and explore the complete feature
+documentation above.
 
 ## Community
 

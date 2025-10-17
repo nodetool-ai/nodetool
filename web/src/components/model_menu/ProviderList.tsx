@@ -30,10 +30,10 @@ import {
 } from "../../utils/providerDisplay";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
+  ModelMenuStoreHook,
   requiredSecretForProvider,
-  isProviderAvailable
+  useLanguageModelMenuStore
 } from "../../stores/ModelMenuStore";
-import useModelMenuStore from "../../stores/ModelMenuStore";
 
 const listStyles = css({
   overflowY: "auto",
@@ -44,16 +44,18 @@ export interface ProviderListProps {
   providers: string[];
   isLoading: boolean;
   isError: boolean;
+  storeHook?: ModelMenuStoreHook<any>;
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
   providers,
   isLoading,
-  isError
+  isError,
+  storeHook = useLanguageModelMenuStore
 }) => {
   const theme = useTheme();
-  const selected = useModelMenuStore((s) => s.selectedProvider);
-  const setSelected = useModelMenuStore((s) => s.setSelectedProvider);
+  const selected = storeHook((s) => s.selectedProvider);
+  const setSelected = storeHook((s) => s.setSelectedProvider);
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [menuProvider, setMenuProvider] = React.useState<string | null>(null);
   const isProviderEnabled = useModelPreferencesStore(
@@ -185,7 +187,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
               </Box>
             );
           };
-          const providerUrl = getProviderUrl(p);
           return (
             <React.Fragment key={`provider-item-${p}`}>
               {showDivider && (

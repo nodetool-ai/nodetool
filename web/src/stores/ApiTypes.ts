@@ -52,7 +52,10 @@ export interface NodeMetadata extends BaseNodeMetadata {
   };
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message"];
+export type Message = components["schemas"]["Message"] & {
+  execution_event_type?: string;
+  agent_execution_id?: string;
+};
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest =
   components["schemas"]["MessageCreateRequest"];
@@ -70,6 +73,7 @@ export type FontRef = components["schemas"]["FontRef"];
 export type Audio = components["schemas"]["AudioRef"];
 export type Video = components["schemas"]["VideoRef"];
 export type RunJobRequest = components["schemas"]["RunJobRequest"];
+export type ResourceLimits = components["schemas"]["ResourceLimits"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type OutputUpdate = components["schemas"]["OutputUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
@@ -78,6 +82,10 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
+export type ImageModel = components["schemas"]["ImageModel"];
+export type TTSModel = components["schemas"]["TTSModel"];
+export type ASRModel = components["schemas"]["ASRModel"];
+export type VideoModel = components["schemas"]["VideoModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type UnifiedModel = components["schemas"]["UnifiedModel"];
@@ -98,6 +106,7 @@ export type MessageContent =
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
 export type FileInfo = components["schemas"]["FileInfo"];
+export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
@@ -118,3 +127,16 @@ export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
+
+// Job types
+export interface Job {
+  id: string;
+  user_id: string;
+  job_type: string;
+  status: string;
+  workflow_id: string;
+  started_at: string;
+  finished_at?: string | null;
+  error?: string | null;
+  cost?: number | null;
+}

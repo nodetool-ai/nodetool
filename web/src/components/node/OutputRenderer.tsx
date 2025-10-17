@@ -162,14 +162,33 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         } else {
           return <ImageView source={value?.uri ? value?.uri : value?.data} />;
         }
-      case "audio":
+      case "audio": {
+        // Handle different audio data formats
+        let audioSource: string | Uint8Array;
+
+        if (value?.uri && value.uri !== "") {
+          // Use URI if available
+          audioSource = value.uri;
+        } else if (Array.isArray(value?.data)) {
+          // Convert array of bytes to Uint8Array
+          audioSource = new Uint8Array(value.data);
+        } else if (value?.data instanceof Uint8Array) {
+          // Already a Uint8Array
+          audioSource = value.data;
+        } else if (typeof value?.data === "string") {
+          // Data URI or base64 string
+          audioSource = value.data;
+        } else {
+          // Fallback
+          audioSource = "";
+        }
+
         return (
           <div className="audio" style={{ padding: "1em" }}>
-            <AudioPlayer
-              source={value?.uri === "" ? value?.data : value?.uri}
-            />
+            <AudioPlayer source={audioSource} />
           </div>
         );
+      }
       case "video":
         return (
           <video

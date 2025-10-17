@@ -19,6 +19,3 @@ export function useEditorKeyboardShortcuts(options: {
   // No return value; side-effect registration only
   useEffect(() => {}, []);
 }
-
-
-

@@ -10,6 +10,11 @@ export type WaveRecorderProps = {
   onChange: (asset: Asset) => void;
 };
 
+export type AudioDevice = {
+  deviceId: string;
+  label: string;
+};
+
 export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
@@ -22,8 +27,9 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [audioInputDevices, setAudioInputDevices] = useState<string[]>([]);
+  const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<string[]>([]);
+  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string>("");
 
   const fetchAudioDeviceNames = useCallback(() => {
     if (!navigator.mediaDevices) {
@@ -57,16 +63,50 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
           (device) => device.kind === "audiooutput"
         );
 
-        const audioInputLabels = audioInputs.map(
-          (device) => device.label || device.deviceId
-        );
         const audioOutputLabels = audioOutputs.map(
           (device) => device.label || device.deviceId
         );
 
-        setAudioInputDevices(audioInputLabels);
+        const mappedAudioInputs = audioInputs.map((device, index) => {
+          const normalizedDeviceId =
+            device.deviceId === "default" ? "" : device.deviceId;
+          const fallbackLabel =
+            device.label ||
+            (device.deviceId === "default"
+              ? "System default input"
+              : `Microphone ${index + 1}`);
+          return {
+            deviceId: normalizedDeviceId,
+            label: fallbackLabel
+          };
+        });
+
+        const uniqueAudioInputs = mappedAudioInputs.filter(
+          (device, index, self) =>
+            index ===
+            self.findIndex(
+              (candidate) => candidate.deviceId === device.deviceId
+            )
+        );
+
+        setAudioInputDevices(uniqueAudioInputs);
         setAudioOutputDevices(audioOutputLabels);
-        if (audioInputLabels.length === 0) {
+        setSelectedInputDeviceId((currentSelection) => {
+          if (
+            uniqueAudioInputs.some(
+              (device) => device.deviceId === currentSelection
+            )
+          ) {
+            return currentSelection;
+          }
+          if (
+            uniqueAudioInputs.some((device) => device.deviceId.length === 0)
+          ) {
+            return "";
+          }
+          return uniqueAudioInputs[0]?.deviceId ?? "";
+        });
+        if (audioInputs.length === 0) {
           setTimeout(() => {
             setError("No audio input devices found");
           }, 2000);
@@ -93,7 +133,11 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
       setError(null);
 
       recordRef.current
-        .startRecording()
+        .startRecording(
+          selectedInputDeviceId
+            ? { deviceId: { exact: selectedInputDeviceId } }
+            : undefined
+        )
         .then(() => {
           setIsRecording(true);
           setIsLoading(false);
@@ -103,7 +147,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
           setIsLoading(false);
         });
     }
-  }, []);
+  }, [selectedInputDeviceId]);
 
   useEffect(() => {
     fetchAudioDeviceNames();
@@ -152,7 +196,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
         });
       });
     }
-  }, [audioInputDevices, defaultFileType, onChange, uploadAsset, workflow.id]);
+  }, [defaultFileType, onChange, uploadAsset, workflow.id]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);
@@ -171,6 +215,10 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     [audioOutputDevices]
   );
 
+  const handleInputDeviceChange = useCallback((deviceId: string) => {
+    setSelectedInputDeviceId(deviceId);
+  }, []);
+
   return {
     error,
     setError,
@@ -181,6 +229,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
     audioInputDevices: memoizedAudioInputDevices,
     audioOutputDevices: memoizedAudioOutputDevices,
     isDeviceListVisible,
-    toggleDeviceListVisibility
+    toggleDeviceListVisibility,
+    selectedInputDeviceId,
+    handleInputDeviceChange
   };
 }

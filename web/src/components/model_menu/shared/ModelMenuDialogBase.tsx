@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,29 +15,23 @@ import {
   IconButton
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import type { LanguageModel } from "../../stores/ApiTypes";
-import ProviderList from "./ProviderList";
-import ModelList from "./ModelList";
-import ModelMenuFooter from "./ModelMenuFooter";
-import RecentList from "./RecentList";
-import FavoritesList from "./FavoritesList";
-import SearchInput from "../search/SearchInput";
-import ModelFiltersBar from "./ModelFiltersBar";
-import useModelMenuStore, {
+import SearchInput from "../../search/SearchInput";
+import ModelFiltersBar from "../ModelFiltersBar";
+import ProviderList from "../ProviderList";
+import ModelList from "../ModelList";
+import FavoritesList from "../FavoritesList";
+import RecentList from "../RecentList";
+import ModelMenuFooter from "../ModelMenuFooter";
+import useModelFiltersStore from "../../../stores/ModelFiltersStore";
+import {
+  applyAdvancedModelFilters,
+  buildMetaIndex,
+  ModelSelectorModel
+} from "../../../utils/modelNormalization";
+import {
+  ModelMenuStoreHook,
   useModelMenuData
-} from "../../stores/ModelMenuStore";
-import useModelFiltersStore from "../../stores/ModelFiltersStore";
-import { applyAdvancedModelFilters } from "../../utils/modelFilters";
-import { buildMetaIndex } from "../../utils/modelNormalization";
-
-export interface ModelMenuDialogProps {
-  open: boolean;
-  onClose: () => void;
-  models?: LanguageModel[];
-  isLoading?: boolean;
-  isError?: boolean;
-  onModelChange?: (model: LanguageModel) => void;
-}
+} from "../../../stores/ModelMenuStore";
 
 const containerStyles = css({
   display: "grid",
@@ -53,22 +47,39 @@ const containerStyles = css({
   }
 });
 
-export default function ModelMenuDialog({
+export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
+  open: boolean;
+  onClose: () => void;
+  models?: TModel[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onModelChange?: (model: TModel) => void;
+  title?: string;
+  searchPlaceholder?: string;
+  storeHook: ModelMenuStoreHook<TModel>;
+  filterProviders?: string[];
+}
+
+export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
   models,
   isLoading,
   isError,
-  onModelChange
-}: ModelMenuDialogProps) {
+  onModelChange,
+  title = "Select Model",
+  searchPlaceholder = "Search models...",
+  storeHook,
+  filterProviders
+}: ModelMenuBaseProps<TModel>) {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
-  const setSearch = useModelMenuStore((s) => s.setSearch);
-  const activeSidebarTab = useModelMenuStore((s) => s.activeSidebarTab);
-  const setActiveSidebarTab = useModelMenuStore((s) => s.setActiveSidebarTab);
-  const [selectedModel, setSelectedModel] = useState<LanguageModel | null>(
-    null
-  );
+  const setSearch = storeHook((s) => s.setSearch);
+  const activeSidebarTab = storeHook((s) => s.activeSidebarTab);
+  const setActiveSidebarTab = storeHook((s) => s.setActiveSidebarTab);
+
+  const [selectedModel, setSelectedModel] = useState<TModel | null>(null);
+
   const {
     providers,
     filteredModels,
@@ -77,15 +88,14 @@ export default function ModelMenuDialog({
     totalCount,
     filteredCount,
     totalActiveCount
-  } = useModelMenuData(models);
+  } = useModelMenuData<TModel>(models, storeHook, filterProviders);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   const families = useModelFiltersStore((s) => s.families);
 
-  // Build option lists for Family and Quant based on all models
-  const { familiesList } = React.useMemo(() => {
+  const { familiesList } = useMemo(() => {
     const idx = buildMetaIndex(filteredModels.length ? filteredModels : []);
     const f = Array.from(
       new Set(idx.map((x) => x.meta.family).filter(Boolean) as string[])
@@ -93,18 +103,19 @@ export default function ModelMenuDialog({
     return { familiesList: f };
   }, [filteredModels]);
 
-  const filteredModelsAdvanced = React.useMemo(() => {
-    const result = applyAdvancedModelFilters(filteredModels, {
+  const filteredModelsAdvanced = useMemo(() => {
+    const result = applyAdvancedModelFilters<TModel>(filteredModels, {
       selectedTypes,
       sizeBucket,
       families
     });
     return result;
   }, [filteredModels, selectedTypes, sizeBucket, families]);
+
   const handleSelectModel = useCallback(
-    (m: LanguageModel) => {
-      setSelectedModel(m);
-      onModelChange?.(m);
+    (model: TModel) => {
+      setSelectedModel(model);
+      onModelChange?.(model);
     },
     [onModelChange]
   );
@@ -160,7 +171,7 @@ export default function ModelMenuDialog({
           letterSpacing: 0.4
         }}
       >
-        Select Model
+        {title}
         <Tooltip title="Close">
           <IconButton
             aria-label="close"
@@ -191,10 +202,8 @@ export default function ModelMenuDialog({
         >
           <Box sx={{ flex: 1 }}>
             <SearchInput
-              onSearchChange={(v) => {
-                setSearch(v);
-              }}
-              placeholder="Search models..."
+              onSearchChange={setSearch}
+              placeholder={searchPlaceholder}
               debounceTime={150}
               focusSearchInput
               focusOnTyping
@@ -214,6 +223,7 @@ export default function ModelMenuDialog({
               providers={providers}
               isLoading={!!isLoading}
               isError={!!isError}
+              storeHook={storeHook}
             />
           </Box>
           <Box
@@ -225,7 +235,7 @@ export default function ModelMenuDialog({
               overflow: "hidden"
             }}
           >
-            <ModelList
+            <ModelList<TModel>
               models={filteredModelsAdvanced}
               onSelect={handleSelectModel}
             />
@@ -237,7 +247,6 @@ export default function ModelMenuDialog({
               flexDirection: "column",
               height: "100%",
               overflow: "hidden",
-              // Hide internal list subheaders from child lists as we have tabs now
               "& .model-menu__favorites-list .MuiListSubheader-root, & .model-menu__recent-list .MuiListSubheader-root":
                 {
                   display: "none"
@@ -265,12 +274,12 @@ export default function ModelMenuDialog({
             <Divider />
             <Box sx={{ flex: 1, overflowY: "auto", pt: 0.5 }}>
               {activeSidebarTab === "favorites" ? (
-                <FavoritesList
+                <FavoritesList<TModel>
                   models={favoriteModels}
                   onSelect={handleSelectModel}
                 />
               ) : (
-                <RecentList
+                <RecentList<TModel>
                   models={recentModels}
                   onSelect={handleSelectModel}
                 />

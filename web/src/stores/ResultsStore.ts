@@ -88,7 +88,8 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         delete edges[key];
       }
     }
-    set({ edges });
+    // Force React Flow to re-render by creating a new object reference
+    set({ edges: { ...edges } });
   },
   /**
    * Set the planning update for a node.

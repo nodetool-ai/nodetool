@@ -97,7 +97,7 @@ export const isComfyWorkflowJson = (json: any): boolean => {
 };
 
 export const isNodetoolWorkflowJson = (json: any): boolean => {
-  return json.graph && json.updated_at && json.created_at;
+  return json.graph;
 };
 
 export const useFileHandlers = () => {
