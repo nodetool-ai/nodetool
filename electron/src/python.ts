@@ -129,8 +129,21 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     // Convert additional packages from repo format to package names
     const additionalPackages = packages.map((repoId) => {
-      // If it's already a package name, use as-is, otherwise extract from repo_id
-      return repoId.includes("/") ? repoId.split("/")[1] : repoId;
+      if (!repoId) {
+        return repoId;
+      }
+
+      const trimmed = repoId.trim();
+      if (!trimmed) {
+        return trimmed;
+      }
+
+      if (!trimmed.includes("/")) {
+        return trimmed;
+      }
+
+      const [, packageName = ""] = trimmed.split("/", 2);
+      return packageName || trimmed;
     });
 
     const allPackages = [...corePackages, ...additionalPackages];
