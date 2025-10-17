@@ -193,7 +193,11 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
   const binaryName = MICROMAMBA_EXECUTABLE_NAME;
 
   for (const baseDir of getCandidateMicromambaResourceDirs()) {
-    const candidate = path.join(baseDir, MICROMAMBA_BUNDLED_DIR_NAME, binaryName);
+    const candidate = path.join(
+      baseDir,
+      MICROMAMBA_BUNDLED_DIR_NAME,
+      binaryName
+    );
     if (await fileExists(candidate)) {
       return candidate;
     }
@@ -291,14 +295,31 @@ async function extractMicromambaArchive(
       ? "Library/bin/micromamba.exe"
       : "bin/micromamba";
 
+  const archiveForTar =
+    process.platform === "win32"
+      ? archivePath.replace(/\\/g, "/")
+      : archivePath;
+  const destinationForTar =
+    process.platform === "win32"
+      ? destinationDir.replace(/\\/g, "/")
+      : destinationDir;
+
+  const tarArgs = [
+    "-xvjf",
+    archiveForTar,
+    "-C",
+    destinationForTar,
+    extractPath,
+  ];
+
+  if (process.platform === "win32") {
+    tarArgs.unshift("--force-local");
+  }
+
   await new Promise<void>((resolve, reject) => {
-    const tarProcess = spawn(
-      "tar",
-      ["-xvjf", archivePath, "-C", destinationDir, extractPath],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
+    const tarProcess = spawn("tar", tarArgs, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
 
     tarProcess.stdout?.on("data", (data: Buffer) => {
       const message = data.toString().trim();
@@ -418,6 +439,28 @@ async function runMicromambaCommand(
 
   const env = sanitizeProcessEnv();
   env.MAMBA_ROOT_PREFIX = getMicromambaRootPrefix();
+
+  if (!env.HOME) {
+    env.HOME = os.homedir();
+  }
+
+  if (process.platform === "win32") {
+    const homeDir = env.HOME || os.homedir();
+    if (homeDir) {
+      env.USERPROFILE = env.USERPROFILE || homeDir;
+
+      const parsedHome = path.win32.parse(homeDir);
+      const drive = parsedHome.root?.replace(/\\$/, "");
+      if (drive) {
+        env.HOMEDRIVE = env.HOMEDRIVE || drive;
+        const relativePath = homeDir.substring(parsedHome.root.length);
+        if (relativePath) {
+          env.HOMEPATH =
+            env.HOMEPATH || `\\${relativePath.replace(/^\\+/, "")}`;
+        }
+      }
+    }
+  }
 
   logMessage(
     `Running micromamba command: ${micromambaExecutable} ${args.join(" ")}`
