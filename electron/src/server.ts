@@ -9,6 +9,7 @@ import {
   PID_FILE_PATH,
   webPath,
   appsPath,
+  getCondaEnvPath,
 } from "./config";
 import { forceQuit } from "./window";
 import { emitBootMessage, emitServerStarted, emitServerLog } from "./events";
@@ -108,6 +109,19 @@ async function startOllamaServer(): Promise<void> {
     serverState.ollamaPort = existingPort;
     serverState.ollamaExternalManaged = true;
     logMessage(`Detected running Ollama instance on port ${existingPort}`);
+
+    const existingBasePath = getProcessEnv().PATH || "";
+    const ollamaScriptsDir = path.join(getCondaEnvPath(), "Scripts");
+    const ollamaBinDir = path.join(getCondaEnvPath(), "Library", "bin");
+
+    process.env.PATH = [ollamaScriptsDir, ollamaBinDir, existingBasePath]
+      .filter(Boolean)
+      .join(path.delimiter);
+
+    logMessage(
+      `Using externally managed Ollama. Updated PATH with ${ollamaScriptsDir} and ${ollamaBinDir}`
+    );
+
     return;
   }
 
