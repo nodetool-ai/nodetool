@@ -3,7 +3,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 FrontendToolRegistry.register({
   name: "ui_set_node_sync_mode",
   description:
-    "Set a node's sync mode. 'on_any' processes when any input updates; 'zip_all' pairs inputs in lockstep.",
+    "Set a node's input processing mode. 'on_any' processes immediately when any input arrives; 'zip_all' waits for all inputs and processes them in matching pairs.",
   parameters: {
     type: "object",
     properties: {
