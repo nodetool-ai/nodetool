@@ -31,6 +31,3 @@ export function useCodeLanguage(options: {
 
   return { codeLanguage, setCodeLanguage } as const;
 }
-
-
-

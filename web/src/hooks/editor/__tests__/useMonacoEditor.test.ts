@@ -36,6 +36,3 @@ describe("useMonacoEditor", () => {
     expect(result.current.MonacoEditor).toBe(first);
   });
 });
-
-
-

@@ -128,6 +128,12 @@ interface GlobalChatState {
   // Message cache management
   addMessageToCache: (threadId: string, message: Message) => void;
   clearMessageCache: (threadId: string) => void;
+
+  // Agent execution message grouping
+  getAgentExecutionMessages: (
+    threadId: string,
+    agentExecutionId: string
+  ) => Message[];
 }
 
 export type MsgpackData =
@@ -942,6 +948,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
             statusMessage: null
           });
         }
+      },
+
+      getAgentExecutionMessages: (
+        threadId: string,
+        agentExecutionId: string
+      ) => {
+        const messages = get().messageCache[threadId] || [];
+        return messages.filter(
+          (msg) =>
+            msg.role === "agent_execution" &&
+            msg.agent_execution_id === agentExecutionId
+        );
       }
     }),
     {
@@ -1225,6 +1243,33 @@ async function handleWebSocketMessage(
         const messages = get().messageCache[threadId] || [];
         const last = messages[messages.length - 1];
 
+        // Handle agent_execution messages
+        if (msg.role === "agent_execution") {
+          // Add to message cache
+          set((state) => ({
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: [...messages, msg]
+            },
+            threads: {
+              ...state.threads,
+              [threadId]: {
+                ...thread,
+                updated_at: new Date().toISOString()
+              }
+            }
+          }));
+
+          // Also update current status for live display in status bar
+          if (msg.execution_event_type === "planning_update") {
+            set({ currentPlanningUpdate: msg.content as PlanningUpdate });
+          } else if (msg.execution_event_type === "task_update") {
+            set({ currentTaskUpdate: msg.content as TaskUpdate });
+          }
+
+          return;
+        }
+
         // Always append tool role messages and assistant tool-call messages
         const isAssistantToolCall =
           msg.role === "assistant" &&
@@ -1341,15 +1386,6 @@ async function handleWebSocketMessage(
       progress: { current: progress.progress, total: progress.total },
       statusMessage: null
     });
-  } else if (data.type === "planning_update") {
-    const update = data as PlanningUpdate;
-    set({ currentPlanningUpdate: update });
-  } else if (data.type === "task_update") {
-    const update = data as TaskUpdate;
-    set({ currentTaskUpdate: update });
-  } else if (data.type === "subtask_result") {
-    const update = data as SubTaskResult;
-    // TODO: update the thread with the subtask result
   } else if (data.type === "tool_call") {
     // Handle tool call from server
     const toolCallData = data as ToolCallMessage;

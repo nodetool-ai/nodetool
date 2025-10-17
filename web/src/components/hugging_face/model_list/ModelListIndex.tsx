@@ -2,16 +2,19 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
+import { VariableSizeList as VirtualList } from "react-window";
 
 import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
-import ModelDisplay from "./ModelDisplay";
 import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import ModelListItem from "./ModelListItem";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import type { UnifiedModel } from "../../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -91,13 +94,26 @@ const styles = (theme: Theme) =>
     }
   });
 
+type ListItem =
+  | { type: "header"; modelType: string }
+  | { type: "model"; model: UnifiedModel };
+
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const { selectedModelType, modelSearchTerm } = useModelManagerStore();
 
-  const { modelTypes, filteredModels, isLoading, isFetching, error } =
-    useModels();
+  const {
+    modelTypes,
+    filteredModels,
+    isLoading,
+    isFetching,
+    error,
+    handleShowInExplorer,
+    ollamaBasePath
+  } = useModels();
+
+  const downloadStore = useModelDownloadStore();
 
   const handleDeleteClick = (modelId: string) => {
     setModelToDelete(modelId);
@@ -106,6 +122,49 @@ const ModelListIndex: React.FC = () => {
   const handleCancelDelete = () => {
     setModelToDelete(null);
   };
+
+  const startDownload = useCallback(
+    (model: UnifiedModel) => {
+      const repoId = model.repo_id || model.id;
+      downloadStore.startDownload(
+        repoId,
+        model.type ?? "",
+        model.path ?? undefined
+      );
+      downloadStore.openDialog();
+    },
+    [downloadStore]
+  );
+
+  // Flatten the model list with headers for "All" view
+  const flattenedList = useMemo(() => {
+    if (selectedModelType !== "All") {
+      return filteredModels.map(
+        (model): ListItem => ({ type: "model", model })
+      );
+    }
+
+    const items: ListItem[] = [];
+    modelTypes.slice(1).forEach((modelType) => {
+      const models = filteredModels.filter((m) => m.type === modelType);
+      // Only add header if there are models in this section
+      if (models.length > 0) {
+        items.push({ type: "header", modelType });
+        models.forEach((model) => {
+          items.push({ type: "model", model });
+        });
+      }
+    });
+    return items;
+  }, [selectedModelType, modelTypes, filteredModels, modelSearchTerm]);
+
+  const getItemSize = useCallback(
+    (index: number) => {
+      const item = flattenedList[index];
+      return item.type === "header" ? 60 : 130;
+    },
+    [flattenedList]
+  );
 
   if (isLoading) {
     return (
@@ -157,55 +216,72 @@ const ModelListIndex: React.FC = () => {
               sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
             />
           )}
-          {selectedModelType === "All" ? (
-            <>
-              {modelSearchTerm && (
-                <Typography variant="h5">
-                  Searched models for &quot;{modelSearchTerm}&quot;
-                </Typography>
-              )}
-              {modelTypes.slice(1).map((modelType) => {
-                const models = filteredModels.filter(
-                  (model) => model.type === modelType
-                );
-                if (modelSearchTerm && models.length === 0) {
-                  return null;
+          {modelSearchTerm && selectedModelType === "All" && (
+            <Typography variant="h5" mb={2}>
+              Searched models for &quot;{modelSearchTerm}&quot;
+            </Typography>
+          )}
+          {selectedModelType !== "All" && (
+            <Typography variant="h2" fontSize="1.25em" mb={2}>
+              {prettifyModelType(selectedModelType)}
+            </Typography>
+          )}
+          {flattenedList.length > 0 ? (
+            <VirtualList
+              key={`${selectedModelType}-${flattenedList.length}`}
+              height={window.innerHeight - 200}
+              width="100%"
+              itemCount={flattenedList.length}
+              itemSize={getItemSize}
+              itemKey={(index) => {
+                const item = flattenedList[index];
+                return item.type === "header"
+                  ? `header-${item.modelType}`
+                  : `model-${item.model.id}`;
+              }}
+            >
+              {({ index, style }) => {
+                const item = flattenedList[index];
+                if (item.type === "header") {
+                  return (
+                    <Box style={style} sx={{ pt: 2, pb: 1 }}>
+                      <Typography variant="h2" fontSize="1.25em">
+                        {prettifyModelType(item.modelType)}
+                      </Typography>
+                    </Box>
+                  );
+                } else {
+                  return (
+                    <Box style={style}>
+                      <ModelListItem
+                        model={item.model}
+                        handleModelDelete={
+                          item.model.downloaded ? handleDeleteClick : undefined
+                        }
+                        onDownload={
+                          !item.model.downloaded
+                            ? () => startDownload(item.model)
+                            : undefined
+                        }
+                        handleShowInExplorer={
+                          item.model.downloaded
+                            ? handleShowInExplorer
+                            : undefined
+                        }
+                        showModelStats={true}
+                        ollamaBasePath={ollamaBasePath}
+                      />
+                    </Box>
+                  );
                 }
-                return (
-                  <Box
-                    className={
-                      models.length > 0
-                        ? "model-category"
-                        : "model-category empty"
-                    }
-                    key={modelType}
-                    mt={2}
-                  >
-                    <Typography variant="h2" fontSize="1.25em">
-                      {prettifyModelType(modelType)}{" "}
-                    </Typography>
-                    <ModelDisplay
-                      models={models}
-                      handleDeleteClick={handleDeleteClick}
-                    />
-                  </Box>
-                );
-              })}
-            </>
+              }}
+            </VirtualList>
           ) : (
-            <Box mt={2}>
-              <Typography variant="h2" fontSize="1.25em">
-                {prettifyModelType(selectedModelType)}{" "}
-              </Typography>
-              <ModelDisplay
-                models={Object.values(
-                  filteredModels.filter(
-                    (model) => model.type === selectedModelType
-                  )
-                )}
-                handleDeleteClick={handleDeleteClick}
-              />
-            </Box>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              {modelSearchTerm
+                ? `No models found for "${modelSearchTerm}"`
+                : "No models available"}
+            </Typography>
           )}
 
           <DeleteModelDialog

@@ -1,18 +1,16 @@
----
-layout: default
-title: Models Manager
----
+______________________________________________________________________
+
+## layout: default title: Models Manager
 
 The **Models Manager** helps you keep track of the AI models available on your system.
 
 ### Opening the manager
 
-- Click the **model** icon on the right side of the editor.
+- Click the **Models** icon on app header.
 - A dialog appears showing downloaded and recommended models.
 
 ### Browsing your models
 
-- Use the **Downloaded** and **Recommended** buttons to switch views.
 - Filter models by type using the list on the left.
 - Search by name or repository to quickly find what you need.
 - Toggle between grid and list layouts for a different view.

@@ -1,14 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Typography
+} from "@mui/material";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
   useWaveRecorder
 } from "../../hooks/browser/useWaveRecorder";
+import Select from "../inputs/Select";
 
 const WaveRecorder = (props: WaveRecorderProps) => {
   const theme = useTheme();
@@ -20,8 +27,21 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     isLoading,
     audioInputDevices,
     isDeviceListVisible,
-    toggleDeviceListVisibility
+    toggleDeviceListVisibility,
+    selectedInputDeviceId,
+    handleInputDeviceChange
   } = useWaveRecorder(props);
+
+  const deviceOptions = useMemo(() => {
+    const options = audioInputDevices.map((device) => ({
+      value: device.deviceId,
+      label: device.label
+    }));
+    if (!options.some((option) => option.value === "")) {
+      return [{ value: "", label: "System default input" }, ...options];
+    }
+    return options;
+  }, [audioInputDevices]);
 
   const styles = (theme: Theme) =>
     css({
@@ -47,6 +67,25 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         maxWidth: "200px",
         fontSize: theme.fontSizeTiny,
         color: theme.vars.palette.grey[200]
+      },
+      ".device-select": {
+        marginTop: "0.5em",
+        "& .select-container": {
+          width: "100%"
+        },
+        "& .custom-select": {
+          backgroundColor: theme.vars.palette.grey[700],
+          color: theme.vars.palette.grey[100],
+          borderRadius: "4px",
+          border: `1px solid ${theme.vars.palette.grey[600]}`
+        },
+        "& .select-header": {
+          padding: "0.4em 1.6em 0.4em 0.6em"
+        },
+        "&.disabled": {
+          opacity: 0.5,
+          pointerEvents: "none"
+        }
       },
       "& .toggle-on": {
         width: "10px",
@@ -110,20 +149,22 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   color: "var(--palette-grey-100)"
                 }}
               >
-                Input Devices
+                Input Device
               </Typography>
-              <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
-                {audioInputDevices.map((deviceName, index) => (
-                  <Typography
-                    key={index}
-                    component="li"
-                    variant="body2"
-                    sx={{ fontSize: "var(--fontSizeTiny)", lineHeight: "1.75" }}
-                  >
-                    {deviceName}
-                  </Typography>
-                ))}
-              </ul>
+              <div
+                className={`device-select${
+                  isRecording || isLoading ? " disabled" : ""
+                }`}
+              >
+                <Select
+                  options={deviceOptions}
+                  value={selectedInputDeviceId}
+                  onChange={handleInputDeviceChange}
+                  placeholder="System default input"
+                  label="Input Device"
+                  tabIndex={isRecording || isLoading ? -1 : 0}
+                />
+              </div>
             </>
           ) : (
             <Typography

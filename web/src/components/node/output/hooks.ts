@@ -25,8 +25,9 @@ export function useVideoSrc(value: any) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (value?.type === "video" && videoRef.current) {
-      if (value?.uri === "") {
-        const blob = new Blob([value?.data], { type: "video/mp4" });
+      if (value?.data) {
+        console.log("value?.data", value?.data);
+        const blob = new Blob([value?.data]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);

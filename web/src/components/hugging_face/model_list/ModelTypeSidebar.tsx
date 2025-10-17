@@ -6,7 +6,7 @@ import { useModels } from "./useModels";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 
 const ModelTypeSidebar: React.FC = () => {
-  const { modelTypes } = useModels();
+  const { modelTypes, availableModelTypes } = useModels();
   const { selectedModelType, setSelectedModelType } = useModelManagerStore();
 
   const onModelTypeChange = useCallback(
@@ -18,31 +18,33 @@ const ModelTypeSidebar: React.FC = () => {
 
   return (
     <List className="model-type-list">
-      {modelTypes.map((type) => {
-        return (
-          <ListItemButton
-            className={`model-type-button`}
-            key={type}
-            selected={selectedModelType === type}
-            onClick={() => onModelTypeChange(type)}
-          >
-            {type === "All" && (
-              <IconForType
-                iconName={"model"}
-                containerStyle={{ marginRight: "0.5em" }}
-                svgProps={{
-                  style: {
-                    width: "20px",
-                    height: "20px"
-                  }
-                }}
-                showTooltip={false}
-              />
-            )}
-            <ListItemText primary={prettifyModelType(type)} />
-          </ListItemButton>
-        );
-      })}
+      {modelTypes
+        .filter((type) => availableModelTypes.has(type))
+        .map((type) => {
+          return (
+            <ListItemButton
+              className={`model-type-button`}
+              key={type}
+              selected={selectedModelType === type}
+              onClick={() => onModelTypeChange(type)}
+            >
+              {type === "All" && (
+                <IconForType
+                  iconName={"model"}
+                  containerStyle={{ marginRight: "0.5em" }}
+                  svgProps={{
+                    style: {
+                      width: "20px",
+                      height: "20px"
+                    }
+                  }}
+                  showTooltip={false}
+                />
+              )}
+              <ListItemText primary={prettifyModelType(type)} />
+            </ListItemButton>
+          );
+        })}
     </List>
   );
 };

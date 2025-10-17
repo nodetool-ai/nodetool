@@ -10,6 +10,10 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { CodeHighlightPlugin } from "./CodeHighlightPlugin";
+import { MarkdownPastePlugin } from "./MarkdownPastePlugin";
+import { AutoLinkPlugin } from "./AutoLinkPlugin";
+import { HorizontalRulePlugin } from "./HorizontalRulePlugin";
+import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 
 const styles = (theme: Theme) =>
   css({
@@ -18,6 +22,72 @@ const styles = (theme: Theme) =>
     },
     "::highlight(findCurrent)": {
       backgroundColor: "rgba(255, 165, 0, 0.7)"
+    },
+    ".editor-link": {
+      color: "#60a5fa",
+      textDecoration: "none",
+      cursor: "pointer",
+      "&:hover": {
+        textDecoration: "underline"
+      }
+    },
+    ".editor-text-bold": {
+      fontWeight: "bold"
+    },
+    ".editor-text-italic": {
+      fontStyle: "italic"
+    },
+    ".editor-text-underline": {
+      textDecoration: "underline"
+    },
+    ".editor-text-strikethrough": {
+      textDecoration: "line-through"
+    },
+    ".editor-text-code": {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      padding: "2px 4px",
+      borderRadius: "3px",
+      fontFamily: "monospace",
+      fontSize: "0.9em"
+    },
+    ".editor-code": {
+      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      padding: "8px 12px",
+      borderRadius: "4px",
+      fontFamily: "monospace",
+      fontSize: "0.9em",
+      margin: "8px 0",
+      display: "block",
+      overflowX: "auto"
+    },
+    ".editor-heading-h1": {
+      fontSize: "2em",
+      fontWeight: "bold",
+      margin: "0.5em 0"
+    },
+    ".editor-heading-h2": {
+      fontSize: "1.5em",
+      fontWeight: "bold",
+      margin: "0.5em 0"
+    },
+    ".editor-heading-h3": {
+      fontSize: "1.25em",
+      fontWeight: "bold",
+      margin: "0.5em 0"
+    },
+    ".editor-quote": {
+      borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
+      paddingLeft: "12px",
+      margin: "8px 0",
+      fontStyle: "italic",
+      color: "rgba(255, 255, 255, 0.8)"
+    },
+    ".editor-list-ul, .editor-list-ol": {
+      paddingLeft: "20px",
+      margin: "4px 0"
+    },
+    ".editor-listitem": {
+      margin: "2px 0"
     },
     ".editor": {
       "&.word-wrap": {
@@ -133,7 +203,11 @@ const LexicalPlugins = ({
       />
       <HistoryPlugin />
       <OnChangePlugin onChange={onChange} />
+      <LinkPlugin />
       <CodeHighlightPlugin />
+      <MarkdownPastePlugin />
+      <AutoLinkPlugin />
+      <HorizontalRulePlugin />
       {onBlur && <BlurPlugin onBlur={onBlur} />}
     </>
   );

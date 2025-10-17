@@ -177,6 +177,7 @@ function handleListType(
   property: Property
 ): React.ComponentType<PropertyProps> {
   const type_args = property.type?.type_args;
+  console.log("type_args", type_args);
 
   if (type_args && type_args.length > 0) {
     switch (type_args[0].type) {
@@ -193,13 +194,13 @@ function handleListType(
 
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
   const modelPrefixes = [
-    "function_model",
-    "openai_model",
-    "language_model",
-    "llama_model",
     "comfy.",
     "hf."
   ];
+
+  if (type.endsWith("_model")) {
+    return ModelProperty;
+  }
 
   for (const prefix of modelPrefixes) {
     if (type.startsWith(prefix)) {

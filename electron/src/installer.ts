@@ -29,6 +29,7 @@ const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
 const MICROMAMBA_BIN_DIR_NAME = "bin";
 const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
+const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
 
 interface InstallationPreferences {
@@ -135,26 +136,70 @@ function sanitizeProcessEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-function detectMicromambaExecutable(): string {
+function validateMicromambaExecutableCandidate(
+  candidate: string | undefined | null
+): string {
+  if (!candidate) {
+    return "";
+  }
+
+  try {
+    const resolved = spawnSync(candidate, ["--version"], {
+      stdio: "ignore",
+    });
+
+    if (resolved.status === 0) {
+      return candidate;
+    }
+  } catch {
+    // Ignore and continue searching
+  }
+
+  return "";
+}
+
+function resolveExplicitMicromambaExecutable(): string {
   const explicit = process.env[MICROMAMBA_ENV_VAR]?.trim();
-  const candidates = [explicit, "micromamba"]
-    .filter(Boolean)
-    .map((candidate) => candidate as string);
+  return validateMicromambaExecutableCandidate(explicit);
+}
+
+function detectMicromambaExecutable(): string {
+  const candidates = ["micromamba"];
 
   for (const executable of candidates) {
-    try {
-      const resolved = spawnSync(executable, ["--version"], {
-        stdio: "ignore",
-      });
-      if (resolved.status === 0) {
-        return executable;
-      }
-    } catch {
-      // Continue searching
+    const resolved = validateMicromambaExecutableCandidate(executable);
+    if (resolved) {
+      return resolved;
     }
   }
 
   return "";
+}
+
+function getCandidateMicromambaResourceDirs(): string[] {
+  const dirs = new Set<string>();
+
+  if (app.isPackaged) {
+    dirs.add(process.resourcesPath);
+  } else {
+    dirs.add(path.join(app.getAppPath(), "resources"));
+    dirs.add(path.resolve(__dirname, "..", "resources"));
+  }
+
+  return Array.from(dirs);
+}
+
+async function findBundledMicromambaExecutable(): Promise<string | null> {
+  const binaryName = MICROMAMBA_EXECUTABLE_NAME;
+
+  for (const baseDir of getCandidateMicromambaResourceDirs()) {
+    const candidate = path.join(baseDir, MICROMAMBA_BUNDLED_DIR_NAME, binaryName);
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 function getMicromambaDownloadUrl(): string | null {
@@ -284,13 +329,29 @@ async function extractMicromambaArchive(
 }
 
 async function ensureMicromambaAvailable(): Promise<string> {
+  const explicitExecutable = resolveExplicitMicromambaExecutable();
+  if (explicitExecutable) {
+    logMessage(`Using micromamba from ${explicitExecutable}`);
+    return explicitExecutable;
+  }
+
+  const bundledExecutable = await findBundledMicromambaExecutable();
+  if (bundledExecutable) {
+    logMessage(`Using bundled micromamba at ${bundledExecutable}`);
+    process.env[MICROMAMBA_ENV_VAR] = bundledExecutable;
+    return bundledExecutable;
+  }
+
   const detectedExecutable = detectMicromambaExecutable();
   if (detectedExecutable) {
+    logMessage(`Using micromamba from system PATH: ${detectedExecutable}`);
     return detectedExecutable;
   }
 
   const localExecutable = getMicromambaExecutablePath();
   if (await fileExists(localExecutable)) {
+    logMessage(`Using previously installed micromamba at ${localExecutable}`);
+    process.env[MICROMAMBA_ENV_VAR] = localExecutable;
     return localExecutable;
   }
 

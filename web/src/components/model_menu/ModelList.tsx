@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import {
   Box,
   List,
@@ -13,15 +13,19 @@ import {
   Typography
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
   toTitleCase,
   formatGenericProviderName
 } from "../../utils/providerDisplay";
-import { isProviderAvailable } from "../../stores/ModelMenuStore";
-import useModelMenuStore from "../../stores/ModelMenuStore";
+import {
+  isProviderAvailable,
+  requiredSecretForProvider,
+  ModelSelectorModel,
+  useLanguageModelMenuStore
+} from "../../stores/ModelMenuStore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AutoSizer from "react-virtualized-auto-sizer";
 import {
@@ -35,36 +39,20 @@ const listStyles = css({
   maxHeight: 600
 });
 
-export interface ModelListProps {
-  models: LanguageModel[];
-  onSelect: (m: LanguageModel) => void;
+export interface ModelListProps<TModel extends ModelSelectorModel> {
+  models: TModel[];
+  onSelect: (m: TModel) => void;
 }
 
-const requiredSecretForProvider = (provider?: string): string | null => {
-  const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) return "OPENAI_API_KEY";
-  if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
-  if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
-  if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
-  if (p.includes("aime")) return "AIME_API_KEY";
-  // Local providers like llama.cpp do not require API keys
-  if (
-    p.includes("llama_cpp") ||
-    p.includes("llama-cpp") ||
-    p.includes("llamacpp")
-  )
-    return null;
-  return null;
-};
-
-const ITEM_HEIGHT = 40; // approximate row height for dense list items
-
-const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
+function ModelList<TModel extends ModelSelectorModel>({
+  models,
+  onSelect
+}: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const secrets = useRemoteSettingsStore((s) => s.secrets);
   const theme = useTheme();
-  const searchTerm = useModelMenuStore((s) => s.search);
+  const searchTerm = useLanguageModelMenuStore((s) => s.search);
 
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
@@ -166,7 +154,6 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
                     color: theme.vars.palette.text.secondary,
                     fontSize: theme.vars.fontSizeSmaller
                   },
-                  // Grey out unavailable/disabled models
                   "& .model-menu__model-item.is-unavailable": {
                     opacity: 0.55,
                     cursor: "not-allowed"
@@ -179,7 +166,6 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
                     {
                       color: theme.vars.palette.text.disabled
                     },
-                  // Reveal star on parent row hover
                   "& .MuiListItemButton-root:hover .favorite-star": {
                     opacity: 1
                   }
@@ -189,7 +175,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
                   height={safeHeight}
                   width={safeWidth}
                   itemCount={models.length}
-                  itemSize={ITEM_HEIGHT}
+                  itemSize={40}
                 >
                   {renderRow}
                 </VirtualList>
@@ -200,6 +186,14 @@ const ModelList: React.FC<ModelListProps> = ({ models, onSelect }) => {
       )}
     </Box>
   );
-};
+}
 
-export default React.memo(ModelList);
+export const LanguageModelList: React.FC<ModelListProps<LanguageModel>> = (
+  props
+) => <ModelList<LanguageModel> {...props} />;
+
+export const ImageModelList: React.FC<ModelListProps<ImageModel>> = (props) => (
+  <ModelList<ImageModel> {...props} />
+);
+
+export default ModelList;

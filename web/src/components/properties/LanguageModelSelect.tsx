@@ -9,7 +9,7 @@ import {
   getProviderBaseName,
   formatGenericProviderName
 } from "../../utils/providerDisplay";
-import ModelMenuDialog from "../model_menu/ModelMenuDialog";
+import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
@@ -43,19 +43,6 @@ const HFBadge: React.FC = () => (
     HF
   </span>
 );
-
-const renderProviderLabel = (provider: string): React.ReactNode => {
-  if (isHuggingFaceProvider(provider)) {
-    const base = getProviderBaseName(provider);
-    return (
-      <span>
-        {base}
-        <HFBadge />
-      </span>
-    );
-  }
-  return formatGenericProviderName(provider);
-};
 
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
@@ -104,6 +91,24 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     }, {});
   }, [sortedModels, isLoading, isError]);
 
+  const sortedProviders = useMemo(
+    () =>
+      Object.keys(groupedModels).sort((a, b) => {
+        const aKey = (
+          isHuggingFaceProvider(a)
+            ? getProviderBaseName(a)
+            : formatGenericProviderName(a)
+        ).toLowerCase();
+        const bKey = (
+          isHuggingFaceProvider(b)
+            ? getProviderBaseName(b)
+            : formatGenericProviderName(b)
+        ).toLowerCase();
+        return aKey.localeCompare(bKey);
+      }),
+    [groupedModels]
+  );
+
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) return null;
     return models.find((m) => m.id === value);
@@ -134,24 +139,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
       setDialogOpen(false);
     },
     [onChange, addRecent]
-  );
-
-  const sortedProviders = useMemo(
-    () =>
-      Object.keys(groupedModels).sort((a, b) => {
-        const aKey = (
-          isHuggingFaceProvider(a)
-            ? getProviderBaseName(a)
-            : formatGenericProviderName(a)
-        ).toLowerCase();
-        const bKey = (
-          isHuggingFaceProvider(b)
-            ? getProviderBaseName(b)
-            : formatGenericProviderName(b)
-        ).toLowerCase();
-        return aKey.localeCompare(bKey);
-      }),
-    [groupedModels]
   );
 
   return (
@@ -206,7 +193,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
           </Typography>
         </Button>
       </Tooltip>
-      <ModelMenuDialog
+      <LanguageModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
         models={models}

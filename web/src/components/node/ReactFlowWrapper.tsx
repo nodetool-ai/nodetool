@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useRef, useEffect, useMemo, memo, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import {
   useReactFlow,
   Node,
@@ -59,6 +60,7 @@ import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
+import useNodePlacementStore from "../../stores/NodePlacementStore";
 
 // FIT SCREEN
 const fitViewOptions = {
@@ -107,7 +109,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     validateConnection,
     findNode,
     viewport: storedViewport,
-    setViewport
+    setViewport,
+    createNode,
+    addNode
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -119,7 +123,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     validateConnection: state.validateConnection,
     findNode: state.findNode,
     viewport: state.viewport,
-    setViewport: state.setViewport
+    setViewport: state.setViewport,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
 
   const [isVisible, setIsVisible] = useState(true);
@@ -131,6 +137,34 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [workflowId, storedViewport, nodes.length]);
 
   const reactFlowInstance = useReactFlow();
+  const { pendingNodeType, cancelPlacement, placementLabel } =
+    useNodePlacementStore((state) => ({
+      pendingNodeType: state.pendingNodeType,
+      cancelPlacement: state.cancelPlacement,
+      placementLabel: state.label
+    }));
+  const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
+  const ghostRafRef = useRef<number | null>(null);
+  const ghostTheme = useMemo(() => {
+    const isDark = theme.palette.mode === "dark";
+    return {
+      textColor: isDark ? "rgba(226, 232, 255, 0.95)" : "rgba(23, 37, 84, 0.95)",
+      accentColor: theme.vars.palette.primary.main,
+      badgeBackground: isDark
+        ? "linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(14, 165, 233, 0.22))"
+        : "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.14))",
+      badgeBorder: isDark
+        ? "rgba(96, 165, 250, 0.65)"
+        : "rgba(59, 130, 246, 0.55)",
+      badgeShadow: isDark
+        ? "0 14px 32px rgba(2, 6, 23, 0.38)"
+        : "0 12px 26px rgba(30, 58, 138, 0.18)",
+      labelBackground: isDark
+        ? "rgba(8, 47, 73, 0.75)"
+        : "rgba(255, 255, 255, 0.95)",
+      hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)"
+    };
+  }, [theme.palette.mode, theme.vars.palette.primary.main]);
 
   const fitView = useFitView();
 
@@ -190,6 +224,74 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     })
   );
 
+  useEffect(() => {
+    return () => {
+      cancelPlacement();
+      if (ghostRafRef.current !== null) {
+        cancelAnimationFrame(ghostRafRef.current);
+        ghostRafRef.current = null;
+      }
+      setGhostPosition(null);
+    };
+  }, [cancelPlacement]);
+
+  useEffect(() => {
+    if (!pendingNodeType) {
+      setGhostPosition(null);
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelPlacement();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pendingNodeType, cancelPlacement]);
+
+  useEffect(() => {
+    if (!pendingNodeType) {
+      if (ghostRafRef.current !== null) {
+        cancelAnimationFrame(ghostRafRef.current);
+        ghostRafRef.current = null;
+      }
+      setGhostPosition(null);
+      return;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const { clientX, clientY } = event;
+      if (ghostRafRef.current !== null) {
+        cancelAnimationFrame(ghostRafRef.current);
+      }
+      ghostRafRef.current = requestAnimationFrame(() => {
+        setGhostPosition({ x: clientX, y: clientY });
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (ghostRafRef.current !== null) {
+        cancelAnimationFrame(ghostRafRef.current);
+        ghostRafRef.current = null;
+      }
+    };
+  }, [pendingNodeType]);
+
+  useEffect(() => {
+    if (!pendingNodeType) {
+      return;
+    }
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "crosshair";
+    return () => {
+      document.body.style.cursor = previousCursor;
+    };
+  }, [pendingNodeType]);
+
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
@@ -209,17 +311,51 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [closeNodeMenu, isMenuOpen, openNodeMenu]
   );
 
-  // CLOSE NODE MENU
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const clickedElement = e.target as HTMLElement;
-      if (clickedElement.classList.contains("react-flow__pane")) {
+  // CLOSE NODE MENU / PLACE PENDING NODE
+  const handlePaneClick = useCallback(
+    (event: ReactMouseEvent) => {
+      if (pendingNodeType) {
+        event.preventDefault();
+        event.stopPropagation();
+        const metadata = getMetadata(pendingNodeType);
+        if (!metadata) {
+          console.warn(
+            `Metadata not found while placing node type: ${pendingNodeType}`
+          );
+          cancelPlacement();
+          return;
+        }
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+        const newNode = createNode(metadata, position);
+        newNode.selected = true;
+        addNode(newNode);
+        cancelPlacement();
         if (isMenuOpen) {
           closeNodeMenu();
         }
+        closeSelect();
+        return;
       }
+
+      if (isMenuOpen) {
+        closeNodeMenu();
+      }
+      closeSelect();
     },
-    [closeNodeMenu, isMenuOpen]
+    [
+      pendingNodeType,
+      getMetadata,
+      reactFlowInstance,
+      createNode,
+      addNode,
+      cancelPlacement,
+      isMenuOpen,
+      closeNodeMenu,
+      closeSelect
+    ]
   );
 
   /* CONTEXT MENUS */
@@ -468,7 +604,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={handleNodeContextMenu}
-        onPaneClick={closeSelect}
+        onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}
@@ -496,6 +632,67 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           activeGradientKeys={activeGradientKeysArray}
         />
       </ReactFlow>
+      {pendingNodeType && ghostPosition && (
+        <div
+          style={{
+            position: "fixed",
+            top: ghostPosition.y,
+            left: ghostPosition.x,
+            transform: "translate(-50%, -60%)",
+            pointerEvents: "none",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            zIndex: 4000,
+            color: ghostTheme.textColor,
+            textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "18px",
+              border: `1.6px solid ${ghostTheme.badgeBorder}`,
+              background: ghostTheme.badgeBackground,
+              boxShadow: ghostTheme.badgeShadow,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.5rem",
+              fontWeight: 500,
+              backdropFilter: "blur(10px)",
+              color: ghostTheme.accentColor
+            }}
+          >
+            +
+          </div>
+          <div
+            style={{
+              padding: "6px 12px",
+              borderRadius: "12px",
+              background: ghostTheme.labelBackground,
+              boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              letterSpacing: "0.02em"
+            }}
+          >
+            {placementLabel ?? pendingNodeType.split(".").pop()}
+          </div>
+          <div
+            style={{
+              fontSize: "0.7rem",
+              fontWeight: 500,
+              letterSpacing: "0.04em",
+              color: ghostTheme.hintColor
+            }}
+          >
+            Click to place · Esc to cancel
+          </div>
+        </div>
+      )}
     </div>
   );
 };

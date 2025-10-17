@@ -88,6 +88,3 @@ export function useEditorActions(params: {
     handleNavigatePrevious
   } as const;
 }
-
-
-

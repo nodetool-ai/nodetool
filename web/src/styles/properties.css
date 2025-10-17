@@ -368,6 +368,11 @@
   font-size: var(--fontSizeNormal);
 }
 
+.select-model-button {
+  padding: 0 1em;
+  color: var(--palette-grey-200);
+}
+
 .node-property select option:checked,
 .node-property select option:active {
   color: var(--palette-grey-0);
