@@ -204,6 +204,30 @@ interface ProcessEnv {
   [key: string]: string;
 }
 
+/**
+ * Returns the system data path matching Python's get_system_data_path() function
+ * This ensures logs are stored in the same location as the Python backend expects
+ * @param filename - The filename or subdirectory to append
+ * @returns {string} The full path to the data directory
+ */
+const getSystemDataPath = (filename: string): string => {
+  const homeDir = os.homedir();
+
+  switch (process.platform) {
+    case "darwin":
+    case "linux":
+      return path.join(homeDir, ".local", "share", "nodetool", filename);
+    case "win32":
+      const localAppData = process.env.LOCALAPPDATA;
+      if (localAppData) {
+        return path.join(localAppData, "nodetool", filename);
+      }
+      return path.join("data", filename);
+    default:
+      return path.join("data", filename);
+  }
+};
+
 const getProcessEnv = (): ProcessEnv => {
   const condaPath: string = getCondaEnvPath();
 
@@ -250,6 +274,7 @@ export {
   getOllamaModelsPath,
   getCondaLockFilePath,
   getProcessEnv,
+  getSystemDataPath,
   srcPath,
   PID_FILE_PATH,
   webPath,
