@@ -89,7 +89,7 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
   });
 
   window.setBackgroundColor("#111111");
-  
+
   // Load the page with optional search query
   if (nodeSearch) {
     window.loadFile(path.join("dist-web", "pages", "packages.html"), {
@@ -98,6 +98,46 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
   } else {
     window.loadFile(path.join("dist-web", "pages", "packages.html"));
   }
+
+  window.webContents.on("before-input-event", (_event, input) => {
+    if (
+      (input.control || input.meta) &&
+      input.shift &&
+      input.key.toLowerCase() === "i"
+    ) {
+      if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
+      } else {
+        window.webContents.openDevTools();
+      }
+    }
+  });
+
+  initializePermissionHandlers();
+
+  return window;
+}
+
+/**
+ * Creates a window that opens the Log Viewer
+ * Loads: pages/logs.html
+ * @returns {BrowserWindow} The created window instance
+ */
+function createLogViewerWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: true,
+      webSecurity: true,
+    },
+  });
+
+  window.setBackgroundColor("#111111");
+  window.loadFile(path.join("dist-web", "pages", "logs.html"));
 
   window.webContents.on("before-input-event", (_event, input) => {
     if (
@@ -220,6 +260,7 @@ function handleActivation(): void {
 export {
   createWindow,
   createPackageManagerWindow,
+  createLogViewerWindow,
   forceQuit,
   handleActivation,
 };

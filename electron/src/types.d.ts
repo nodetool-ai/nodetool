@@ -46,6 +46,8 @@ declare global {
         maximize: () => void;
       };
       removeListener: (event: string) => void;
+      getLogs: () => Promise<string[]>;
+      clearLogs: () => Promise<void>;
     };
     electronAPI: {
       packages: {
@@ -219,6 +221,9 @@ export enum IpcChannels {
   PACKAGE_OPEN_EXTERNAL = "package-open-external",
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
+  // Log viewer channels
+  GET_LOGS = "get-logs",
+  CLEAR_LOGS = "clear-logs",
 }
 
 export interface InstallToLocationData {
@@ -253,6 +258,9 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_UPDATE]: string; // repo_id
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
+  // Log viewer
+  [IpcChannels.GET_LOGS]: void;
+  [IpcChannels.CLEAR_LOGS]: void;
 }
 
 export interface IpcResponse {
@@ -281,6 +289,9 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_UPDATE]: PackageResponse;
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
+  // Log viewer
+  [IpcChannels.GET_LOGS]: string[];
+  [IpcChannels.CLEAR_LOGS]: void;
 }
 
 // Event types for each IPC channel

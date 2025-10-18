@@ -304,4 +304,15 @@ export function initializeIpcHandlers(): void {
       shell.openExternal(url);
     }
   );
+
+  // Log viewer handlers
+  createIpcMainHandler(IpcChannels.GET_LOGS, async () => {
+    logMessage("Getting server logs");
+    return getServerState().logs;
+  });
+
+  createIpcMainHandler(IpcChannels.CLEAR_LOGS, async () => {
+    logMessage("Clearing server logs");
+    getServerState().logs = [];
+  });
 }

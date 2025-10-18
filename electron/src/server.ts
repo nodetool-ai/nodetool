@@ -172,7 +172,16 @@ async function startOllamaServer(): Promise<void> {
     onOutput: (line) => emitServerLog(line),
   });
 
-  await ollamaWatchdog.start();
+  try {
+    await ollamaWatchdog.start();
+  } catch (error) {
+    logMessage(
+      `Failed to start Ollama watchdog: ${(error as Error).message}`,
+      "error"
+    );
+    ollamaWatchdog = null;
+    throw error;
+  }
 }
 
 /**
@@ -248,8 +257,19 @@ async function startServer(): Promise<void> {
     throw error;
   }
 
-  // Ensure Ollama is started first
-  await startOllamaServer();
+  // Attempt to start Ollama, but continue even if it fails
+  try {
+    await startOllamaServer();
+  } catch (error) {
+    logMessage(
+      `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
+      "warn"
+    );
+    // Set default port even if Ollama failed to start
+    if (!serverState.ollamaPort) {
+      serverState.ollamaPort = 11435;
+    }
+  }
 
   const basePort = 8000;
   const selectedPort = await findAvailablePort(basePort);

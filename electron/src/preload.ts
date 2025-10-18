@@ -141,6 +141,10 @@ contextBridge.exposeInMainWorld("api", {
     maximize: () => ipcRenderer.send(IpcChannels.WINDOW_MAXIMIZE),
   },
   platform: process.platform,
+
+  // Log viewer methods
+  getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
+  clearLogs: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
 });
 // Package manager API
 contextBridge.exposeInMainWorld("electronAPI", {

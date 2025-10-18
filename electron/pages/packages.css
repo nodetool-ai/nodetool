@@ -31,8 +31,9 @@ h1 {
 .container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100vh - 50px); /* account for h1 title + some padding */
   padding-top: 36px; /* account for title bar on Windows */
+  overflow: hidden;
 }
 
 .search-container {
@@ -91,11 +92,32 @@ h1 {
 .package-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 12px 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
   align-content: start;
+  min-height: 0; /* Allow flex item to shrink below content size */
+}
+
+/* Scrollbar styling for webkit browsers */
+.package-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.package-list::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 5px;
+}
+
+.package-list::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 5px;
+}
+
+.package-list::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 .package-item {
