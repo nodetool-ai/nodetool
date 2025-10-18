@@ -335,6 +335,9 @@ export interface PackageModel {
   examples?: any[];
   assets?: any[];
   source_folder?: string;
+  // Upgrade availability info
+  latestVersion?: string;
+  hasUpdate?: boolean;
 }
 
 export interface PackageListResponse {

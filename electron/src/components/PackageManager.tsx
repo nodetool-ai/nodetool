@@ -106,6 +106,38 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     [loadPackages]
   );
 
+  const handleUpdate = useCallback(
+    async (repoId: string) => {
+      setInstalling((prev) => new Set(prev).add(repoId));
+      try {
+        const result = await window.electronAPI.packages.update(repoId);
+        if (result.success) {
+          alert(
+            "Package updated successfully. The server will restart to apply changes."
+          );
+          await loadPackages();
+          try {
+            window.api?.restartServer?.();
+          } catch (e) {
+            console.warn("Restart server failed:", e);
+          }
+        } else {
+          setError(result.message || "Update failed");
+        }
+      } catch (err) {
+        console.error("Update error:", err);
+        setError("Update failed. Please try again.");
+      } finally {
+        setInstalling((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(repoId);
+          return newSet;
+        });
+      }
+    },
+    [loadPackages]
+  );
+
   const isInstalled = useCallback(
     (repoId: string) => {
       return installedPackages.some((pkg) => pkg.repo_id === repoId);
@@ -154,18 +186,38 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
                 <div key={pkg.repo_id} className="package-item installed">
                   <div className="package-info">
                     <h3>{pkg.name}</h3>
-                    <p className="package-version">v{pkg.version}</p>
+                    <div className="version-info">
+                      <p className="package-version">
+                        Installed: v{pkg.version}
+                      </p>
+                      {pkg.hasUpdate && pkg.latestVersion && (
+                        <p className="update-available">
+                          Update available: v{pkg.latestVersion}
+                        </p>
+                      )}
+                    </div>
                     <p className="package-description">{pkg.description}</p>
                   </div>
-                  <button
-                    className="uninstall-button"
-                    onClick={() => handleUninstall(pkg.repo_id)}
-                    disabled={isProcessing(pkg.repo_id)}
-                  >
-                    {isProcessing(pkg.repo_id)
-                      ? "Uninstalling..."
-                      : "Uninstall"}
-                  </button>
+                  <div className="package-actions">
+                    {pkg.hasUpdate && (
+                      <button
+                        className="update-button"
+                        onClick={() => handleUpdate(pkg.repo_id)}
+                        disabled={isProcessing(pkg.repo_id)}
+                      >
+                        {isProcessing(pkg.repo_id) ? "Updating..." : "Update"}
+                      </button>
+                    )}
+                    <button
+                      className="uninstall-button"
+                      onClick={() => handleUninstall(pkg.repo_id)}
+                      disabled={isProcessing(pkg.repo_id)}
+                    >
+                      {isProcessing(pkg.repo_id)
+                        ? "Uninstalling..."
+                        : "Uninstall"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

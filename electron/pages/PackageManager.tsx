@@ -88,6 +88,10 @@ const PackageManager: React.FC = () => {
     return await window.electronAPI.packages.uninstall(repoId);
   };
 
+  const updatePackage = async (repoId: string): Promise<PackageResponse> => {
+    return await window.electronAPI.packages.update(repoId);
+  };
+
   const filterPackages = () => {
     const term = searchTerm.toLowerCase();
     const filtered = availablePackages.filter(
@@ -101,6 +105,15 @@ const PackageManager: React.FC = () => {
 
   const isPackageInstalled = (repoId: string): boolean => {
     return installedPackages.some((pkg) => pkg.repo_id === repoId);
+  };
+
+  const getInstalledPackage = (repoId: string): PackageModel | undefined => {
+    return installedPackages.find((pkg) => pkg.repo_id === repoId);
+  };
+
+  const hasUpdate = (repoId: string): boolean => {
+    const installedPkg = getInstalledPackage(repoId);
+    return installedPkg?.hasUpdate || false;
   };
 
   const handlePackageAction = async (repoId: string, isInstalled: boolean) => {
@@ -152,6 +165,46 @@ const PackageManager: React.FC = () => {
           error.message
         }`
       );
+    } finally {
+      setIsProcessing(false);
+      setActivePackageId(null);
+      setShowOverlay(false);
+    }
+  };
+
+  const handleUpdatePackage = async (repoId: string) => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    setActivePackageId(repoId);
+
+    const pkg = availablePackages.find((p) => p.repo_id === repoId);
+
+    setOverlayText(`Updating ${pkg?.name || "package"}...`);
+    setShowOverlay(true);
+
+    try {
+      const result = await updatePackage(repoId);
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      alert(
+        "Package updated successfully. The server will restart to apply changes."
+      );
+      // Reload after showing the message
+      const installedData = await fetchInstalledPackages();
+      setInstalledPackages(installedData.packages || []);
+      // Trigger restart without awaiting to avoid UI hang
+      try {
+        window.api?.restartServer?.();
+      } catch (e) {
+        console.warn("Restart server failed:", e);
+      }
+    } catch (error: any) {
+      console.error("Package update failed:", error);
+      alert(`Failed to update package: ${error.message}`);
     } finally {
       setIsProcessing(false);
       setActivePackageId(null);
@@ -300,6 +353,8 @@ const PackageManager: React.FC = () => {
           ) : (
             filteredPackages.map((pkg) => {
               const installed = isPackageInstalled(pkg.repo_id);
+              const updateAvailable = hasUpdate(pkg.repo_id);
+              const installedPkg = getInstalledPackage(pkg.repo_id);
               const isActive = activePackageId === pkg.repo_id;
 
               return (
@@ -327,9 +382,51 @@ const PackageManager: React.FC = () => {
                       >
                         {pkg.repo_id}
                       </a>
+                      {installed && installedPkg ? (
+                        <div style={{ marginTop: 4 }}>
+                          <div
+                            className="package-version"
+                            style={{ display: "inline-block" }}
+                          >
+                            Installed: v{installedPkg.version}
+                          </div>
+                          {updateAvailable && installedPkg.latestVersion && (
+                            <div
+                              style={{
+                                color: "var(--c_warning, #ffb86c)",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                marginTop: 2,
+                              }}
+                            >
+                              Update available: v{installedPkg.latestVersion}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="package-version">{pkg.version}</div>
+                      )}
                     </div>
                   </div>
                   <div className="package-action">
+                    {updateAvailable && (
+                      <button
+                        className="btn"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, var(--c_warning), var(--c_warning_dark))",
+                          color: "var(--c_text_primary)",
+                          marginRight: "8px",
+                        }}
+                        onClick={() => handleUpdatePackage(pkg.repo_id)}
+                        disabled={isProcessing}
+                      >
+                        {isActive && (
+                          <span className="spinner spinner-small"></span>
+                        )}
+                        {isActive ? "Updating..." : "Update"}
+                      </button>
+                    )}
                     <button
                       className={`btn ${
                         installed ? "btn-secondary" : "btn-primary"
@@ -339,10 +436,10 @@ const PackageManager: React.FC = () => {
                       }
                       disabled={isProcessing}
                     >
-                      {isActive && (
+                      {isActive && !updateAvailable && (
                         <span className="spinner spinner-small"></span>
                       )}
-                      {isActive
+                      {isActive && !updateAvailable
                         ? installed
                           ? "Uninstalling..."
                           : "Installing..."

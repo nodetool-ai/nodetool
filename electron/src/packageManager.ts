@@ -393,8 +393,8 @@ export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
 
 export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
   try {
-    const installed = await listInstalledPackages();
-    if (!installed.packages.length) {
+    const installedPackages = await listInstalledPackagesInternal();
+    if (!installedPackages.length) {
       return [];
     }
 
@@ -424,7 +424,7 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
       }
     }
 
-    const updateChecks = installed.packages.map(async (pkg) => {
+    const updateChecks = installedPackages.map(async (pkg) => {
       const keyCandidates = [
         pkg.name.toLowerCase(),
         canonicalizePackageName(pkg.name),
@@ -527,9 +527,10 @@ async function runUvCommand(
 }
 
 /**
- * List installed packages
+ * Internal function to list installed packages without version checking
+ * Used by both listInstalledPackages and checkForPackageUpdates to avoid circular dependency
  */
-export async function listInstalledPackages(): Promise<InstalledPackageListResponse> {
+async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
   try {
     // Use uv pip list to get all installed packages
     const output = await runUvCommand(["pip", "list", "--format=json"]);
@@ -551,9 +552,39 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
         } as PackageModel;
       });
 
+    return nodetoolPackages;
+  } catch (error: any) {
+    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+    return [];
+  }
+}
+
+/**
+ * List installed packages with upgrade information
+ */
+export async function listInstalledPackages(): Promise<InstalledPackageListResponse> {
+  try {
+    const nodetoolPackages = await listInstalledPackagesInternal();
+
+    // Check for available updates
+    const updateInfo = await checkForPackageUpdates();
+    const updateMap = new Map(
+      updateInfo.map((info) => [info.name, info.latestVersion])
+    );
+
+    // Enrich packages with update information
+    const enrichedPackages = nodetoolPackages.map((pkg: PackageModel) => {
+      const latestVersion = updateMap.get(pkg.name);
+      return {
+        ...pkg,
+        latestVersion: latestVersion || pkg.version,
+        hasUpdate: latestVersion ? latestVersion !== pkg.version : false,
+      };
+    });
+
     return {
-      packages: nodetoolPackages,
-      count: nodetoolPackages.length,
+      packages: enrichedPackages,
+      count: enrichedPackages.length,
     };
   } catch (error: any) {
     logMessage(`Failed to list installed packages: ${error.message}`, "error");

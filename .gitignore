@@ -57,3 +57,4 @@ key.pem
 # Dev
 .codegpt
 __plans__
+.claude/settings.local.json
