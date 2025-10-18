@@ -258,11 +258,25 @@
   color: var(--c_text_primary);
 }
 
+.version-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
 .package-version,
 .package-author {
   font-size: 12px;
   color: var(--c_text_tertiary, #999);
-  margin: 0 0 5px 0;
+  margin: 0;
+}
+
+.update-available {
+  font-size: 12px;
+  color: var(--c_warning);
+  font-weight: 600;
+  margin: 0;
 }
 
 .package-description {
@@ -272,8 +286,15 @@
   line-height: 1.45;
 }
 
+.package-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .install-button,
 .uninstall-button,
+.update-button,
 .installed-indicator {
   padding: 8px 14px;
   border: none;
@@ -296,6 +317,17 @@
   box-shadow: 0 6px 16px rgba(var(--c_accent_rgb), 0.35);
 }
 
+.update-button {
+  background: linear-gradient(135deg, var(--c_warning), var(--c_warning_dark));
+  color: var(--c_text_primary);
+  box-shadow: 0 4px 10px rgba(var(--c_warning_rgb), 0.25);
+}
+
+.update-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(var(--c_warning_rgb), 0.35);
+}
+
 .uninstall-button {
   background: linear-gradient(135deg, var(--c_danger), var(--c_error_light));
   color: var(--c_text_primary);
@@ -314,9 +346,11 @@
 }
 
 .install-button:disabled,
-.uninstall-button:disabled {
+.uninstall-button:disabled,
+.update-button:disabled {
   background: #666;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .no-packages {
