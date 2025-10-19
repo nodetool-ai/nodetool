@@ -410,14 +410,6 @@ conda env update -f environment.yml --prune
 conda activate nodetool
 ```
 
-**Windows shortcut:** run `pwsh -File setup_windows.ps1` to perform all steps (Conda env, Python installs, npm
-bootstraps) and start backend/web/electron processes.
-
-The script clones or updates `nodetool-core`, `nodetool-base`, and `nodetool-huggingface` one level up from the
-`nodetool` repository before installing them in editable mode.
-
-**macOS/Linux shortcut:** run `./scripts/setup_unix.sh` for the equivalent automation.
-
 ### 2. Install Core Python Dependencies
 
 These are the essential packages to run NodeTool.
@@ -426,18 +418,22 @@ Make sure to activate the conda environment.
 
 ```bash
 # Install nodetool-core and nodetool-base
-# On macOS / Linux / Windows:
 uv pip install git+https://github.com/nodetool-ai/nodetool-core
 uv pip install git+https://github.com/nodetool-ai/nodetool-base
 ```
 
-If you're working in this monorepo and want live-editable installs:
+If you're developing on these repos, you need to check them out and install as editable.
 
 ```bash
-# From the repository root
-conda activate nodetool
-uv pip install -e ./nodetool-core
-uv pip install -e ./nodetool-base
+git clone git+https://github.com/nodetool-ai/nodetool-core
+cd nodetool-core
+uv pip install -e .
+```
+
+```bash
+git clone git+https://github.com/nodetool-ai/nodetool-base
+cd nodetool-base
+uv pip install -e .
 ```
 
 ### 3. Install Optional Node Packs (As Needed)
@@ -502,18 +498,6 @@ uv pip install --extra-index-url https://download.pytorch.org/whl/cu121 git+http
 python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 ```
 
-#### Troubleshooting:
-
-If you see "bitsandbytes compiled without GPU support", reinstall it:
-
-```
-uv pip uninstall bitsandbytes
-uv pip install bitsandbytes
-```
-
-If PyTorch shows CPU-only version, make sure you used the correct url from step 2.
-
-Use --extra-index-url (not --index-url) when installing from git repositories to avoid missing dependencies
 
 ### 4. Run NodeTool Backend & Web UI
 
