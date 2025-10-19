@@ -1,22 +1,16 @@
 import React, { useCallback, useMemo, useState } from "react";
 
 const moduleMapping = {
-  anthropic: "nodetool-ai/nodetool-anthropic",
-  apple: "nodetool-ai/nodetool-apple",
+  // apple: "nodetool-ai/nodetool-apple",
   audio: "nodetool-ai/nodetool-lib-audio",
-  chroma: "nodetool-ai/nodetool-chroma",
-  comfy: "nodetool-ai/nodetool-comfy",
-  data: "nodetool-ai/nodetool-lib-data",
+  // comfy: "nodetool-ai/nodetool-comfy",
   elevenlabs: "nodetool-ai/nodetool-elevenlabs",
   whispercpp: "nodetool-ai/nodetool-whispercpp",
   fal: "nodetool-ai/nodetool-fal",
-  file: "nodetool-ai/nodetool-lib-file",
   huggingface: "nodetool-ai/nodetool-huggingface",
-  image: "nodetool-ai/nodetool-lib-image",
   ml: "nodetool-ai/nodetool-lib-ml",
   mlx: "nodetool-ai/nodetool-mlx",
   network: "nodetool-ai/nodetool-lib-network",
-  openai: "nodetool-ai/nodetool-openai",
   replicate: "nodetool-ai/nodetool-replicate",
 } as const;
 
@@ -40,11 +34,6 @@ const packageMeta: Record<
     title: "📊 Machine Learning",
     description: "Classification, Regression, and statistical models",
   },
-  openai: {
-    title: "🧠 OpenAI",
-    description: "Additional services from OpenAI, like TTS and Transcription",
-    recommended: true,
-  },
   whispercpp: {
     title: "🔊 WhisperCpp",
     description: "Transcribe audio using CPU",
@@ -61,63 +50,41 @@ const packageMeta: Record<
     title: "🔄 Replicate",
     description: "Access hundreds of AI models hosted on Replicate",
   },
-  file: {
-    title: "📄 Document Processing",
-    description: "Convert, merge, and analyze PDFs, Excel, and more",
-    recommended: true,
-  },
-  data: {
-    title: "📈 Data Processing",
-    description: "Clean, transform, and analyze data with Pandas and Numpy",
-  },
   audio: {
     title: "🔊 Audio Processing",
     description: "Apply audio effects and analyze audio",
-  },
-  image: {
-    title: "🖼️ Image Processing",
-    description: "Transform and draw images",
-    recommended: true,
   },
   network: {
     title: "🌐 Network",
     description: "HTTP, IMAP and BeautifulSoup",
   },
-  apple: {
-    title: "🍎 Apple",
-    description: "Automation for Apple Notes, Calendar, and more",
-  },
-  anthropic: {
-    title: "🤖 Anthropic",
-    description: "Claude models from Anthropic",
-  },
-  chroma: {
-    title: "🧩 Chroma",
-    description: "Vector DB tools and integrations",
-  },
-  comfy: {
-    title: "🧱 ComfyUI",
-    description: "ComfyUI integration and nodes",
-  },
+  // apple: {
+  //   title: "🍎 Apple",
+  //   description: "Automation for Apple Notes, Calendar, and more",
+  // },
+  // comfy: {
+  //   title: "🧱 ComfyUI",
+  //   description: "ComfyUI integration and nodes",
+  // },
 };
 
 const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
   {
     key: "aiml",
     title: "AI & Machine Learning",
-    items: ["huggingface", "mlx", "ml", "whispercpp", "chroma"],
+    items: ["huggingface", "mlx", "ml", "whispercpp"],
   },
   {
     key: "services",
     title: "AI Services",
-    items: ["openai", "elevenlabs", "fal", "replicate"],
+    items: ["elevenlabs", "fal", "replicate"],
   },
   {
     key: "utilities",
     title: "Utilities",
-    items: ["file", "data", "audio", "image", "network"],
+    items: ["audio", "network"],
   },
-  { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
+  // { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
 ];
 
 interface InstallWizardProps {
