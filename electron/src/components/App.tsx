@@ -1,19 +1,19 @@
 import React, { useEffect, useState, useCallback } from "react";
-import TitleBar from "./components/TitleBar";
-import BootMessage from "./components/BootMessage";
-import InstallWizard from "./components/InstallWizard";
-import LogContainer from "./components/LogContainer";
-import UpdateNotification from "./components/UpdateNotification";
-import { useIconAnimation } from "./hooks/useIconAnimation";
+import TitleBar from "./TitleBar";
+import BootMessage from "./BootMessage";
+import InstallWizard from "./InstallWizard";
+import LogContainer from "./LogContainer";
+import UpdateNotification from "./UpdateNotification";
+import { useIconAnimation } from "../hooks/useIconAnimation";
 import "./index.css";
-import PackageManager from "./components/PackageManager";
-import PackageUpdatesNotification from "./components/PackageUpdatesNotification";
+import PackageManager from "./PackageManager";
+import PackageUpdatesNotification from "./PackageUpdatesNotification";
 import type {
   InstallLocationData,
   PackageUpdateInfo,
   UpdateInfo,
   UpdateProgressData,
-} from "./types";
+} from "../types";
 
 const App: React.FC = () => {
   const showPackageManager = window.location.search.includes("package-manager");
