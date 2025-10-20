@@ -79,13 +79,13 @@ const RemoteSettings = () => {
     {}
   );
 
-  // Initialize setting values from fetched data or store settings
+  // Initialize setting values from fetched data or store settings (non-secrets only)
   useMemo(() => {
     const settingsToUse = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
       settingsToUse.forEach((setting: any) => {
-        if (setting.value !== null && setting.value !== undefined) {
+        if (!setting.is_secret && setting.value !== null && setting.value !== undefined) {
           values[setting.env_var] = String(setting.value);
         }
       });
@@ -118,15 +118,20 @@ const RemoteSettings = () => {
   const displayedSettingsByGroup = useMemo(() => {
     if (!settingsByGroup) return new Map<string, any[]>();
 
-    const filteredEntries = Array.from(settingsByGroup.entries()).filter(
-      ([groupName]) => groupName !== "Folders" // Always exclude "Folders"
-    );
+    const filteredEntries = Array.from(settingsByGroup.entries())
+      .filter(([groupName]) => groupName !== "Folders") // Always exclude "Folders"
+      .map(([groupName, settings]) => [
+        groupName,
+        settings.filter((s) => !s.is_secret) // Filter out secret settings
+      ])
+      .filter(([, settings]) => (settings as any[]).length > 0); // Remove empty groups
+
     return new Map(filteredEntries);
   }, [settingsByGroup]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: ({ settings, secrets }: { settings: any; secrets: any }) =>
-      updateSettings(settings, secrets),
+    mutationFn: (settings: Record<string, string>) =>
+      updateSettings(settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     }
@@ -137,17 +142,14 @@ const RemoteSettings = () => {
   }, []);
 
   const handleSave = useCallback(() => {
-    // Separate settings and secrets based on is_secret flag
+    // Only save non-secret settings
     const settings: Record<string, string> = {};
-    const secrets: Record<string, string> = {};
 
     if (data) {
       data.forEach((setting) => {
-        const value = settingValues[setting.env_var];
-        if (value !== undefined) {
-          if (setting.is_secret) {
-            secrets[setting.env_var] = value;
-          } else {
+        if (!setting.is_secret) {
+          const value = settingValues[setting.env_var];
+          if (value !== undefined) {
             settings[setting.env_var] = value;
           }
         }
@@ -155,7 +157,7 @@ const RemoteSettings = () => {
     }
 
     updateSettingsMutation.mutate(
-      { settings, secrets },
+      settings,
       {
         onSuccess: () => {
           addNotification({
@@ -205,7 +207,9 @@ const RemoteSettings = () => {
                     >
                       {groupName}
                     </Typography>
-                    {groupSettings.map((setting) => (
+                    {groupSettings
+                      .filter((setting) => !setting.is_secret)
+                      .map((setting) => (
                       <div
                         key={setting.env_var}
                         className="settings-item large"
@@ -235,7 +239,7 @@ const RemoteSettings = () => {
                           </FormControl>
                         ) : (
                           <TextField
-                            type={setting.is_secret ? "text" : "text"}
+                            type="text"
                             autoComplete="off"
                             id={`${setting.env_var.toLowerCase()}-input`}
                             label={setting.env_var.replace(/_/g, " ")}
@@ -299,12 +303,14 @@ export const getRemoteSidebarSections = () => {
   const store = useRemoteSettingsStore.getState();
   const settings = store.settings;
 
-  const initialGroupedSettings = settings.reduce((acc, setting) => {
-    const groupKey = setting.group || "UnknownGroup";
-    acc[groupKey] = acc[groupKey] || [];
-    acc[groupKey].push(setting);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const initialGroupedSettings = settings
+    .filter((setting) => !setting.is_secret)
+    .reduce((acc, setting) => {
+      const groupKey = setting.group || "UnknownGroup";
+      acc[groupKey] = acc[groupKey] || [];
+      acc[groupKey].push(setting);
+      return acc;
+    }, {} as Record<string, any[]>);
 
   const filteredGroupEntries = Object.entries(initialGroupedSettings).filter(
     ([group]) => {

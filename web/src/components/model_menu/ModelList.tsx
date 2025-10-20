@@ -32,6 +32,7 @@ import {
   FixedSizeList as VirtualList,
   ListChildComponentProps
 } from "react-window";
+import { useSecrets } from "../../hooks/useSecrets";
 
 const listStyles = css({
   overflowY: "auto",
@@ -50,7 +51,7 @@ function ModelList<TModel extends ModelSelectorModel>({
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const { isApiKeySet } = useSecrets();
   const theme = useTheme();
   const searchTerm = useLanguageModelMenuStore((s) => s.search);
 
@@ -63,9 +64,7 @@ function ModelList<TModel extends ModelSelectorModel>({
         ? "gemini"
         : m.provider || "";
       const providerEnabled = enabledProviders?.[normKey] !== false;
-      const hasKey = env
-        ? Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0)
-        : true;
+      const hasKey = env ? isApiKeySet(env) : true;
       const available = providerEnabled && hasKey;
       const tooltipTitle =
         !providerEnabled && !hasKey
@@ -112,7 +111,7 @@ function ModelList<TModel extends ModelSelectorModel>({
         </div>
       );
     },
-    [models, isFavorite, enabledProviders, secrets, onSelect]
+    [models, isFavorite, enabledProviders, isApiKeySet, onSelect]
   );
 
   return (

@@ -34,11 +34,15 @@ import RemoteSettingsMenuComponent, {
 import FoldersSettings, {
   getFoldersSidebarSections
 } from "./FoldersSettingsMenu";
+import SecretsMenu, {
+  getSecretsSidebarSections
+} from "./SecretsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useSecretsStore from "../../stores/SecretsStore";
 
 export const settingsStyles = (theme: Theme): any =>
   css({
@@ -403,7 +407,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
+  const [, setSecretsUpdated] = useState({});
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+
+  // Subscribe to secrets store changes to update sidebar when secrets are modified
+  useEffect(() => {
+    const unsubscribe = useSecretsStore.subscribe(
+      (state) => state.secrets,
+      () => setSecretsUpdated({})
+    );
+    return unsubscribe;
+  }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
@@ -594,8 +608,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   aria-label="settings tabs"
                 >
                   <Tab label="General" id="settings-tab-0" />
-                  <Tab label="API Services" id="settings-tab-1" />
+                  <Tab label="API Settings" id="settings-tab-1" />
                   <Tab label="Folders" id="settings-tab-2" />
+                  <Tab label="API Secrets" id="settings-tab-3" />
                 </Tabs>
               </div>
 
@@ -610,6 +625,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       ? getApiServicesSidebarSections()
                       : settingsTab === 2
                       ? getFoldersSidebarSections()
+                      : settingsTab === 3
+                      ? getSecretsSidebarSections()
                       : []
                   }
                   onSectionClick={scrollToSection}
@@ -940,6 +957,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </TabPanel>
                   <TabPanel value={settingsTab} index={2}>
                     {!isProduction && <FoldersSettings />}
+                  </TabPanel>
+                  <TabPanel value={settingsTab} index={3}>
+                    {!isProduction && <SecretsMenu />}
                   </TabPanel>
                 </div>
               </div>
