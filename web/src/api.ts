@@ -1412,6 +1412,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Secrets
+         * @description List all encrypted secrets for the current user.
+         *
+         *     Returns metadata only (no decrypted values).
+         */
+        get: operations["list_secrets_api_settings_secrets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/secrets/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Secret
+         * @description Get a specific secret by key.
+         *
+         *     Args:
+         *         key: The secret key.
+         *         decrypt: If True, return the decrypted value. WARNING: Use with caution!
+         *
+         *     Returns:
+         *         Secret metadata and optionally the decrypted value.
+         */
+        get: operations["get_secret_api_settings_secrets__key__get"];
+        /**
+         * Update Secret
+         * @description Update an existing secret.
+         */
+        put: operations["update_secret_api_settings_secrets__key__put"];
+        post?: never;
+        /**
+         * Delete Secret
+         * @description Delete a secret.
+         */
+        delete: operations["delete_secret_api_settings_secrets__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/collections/": {
         parameters: {
             query?: never;
@@ -3641,7 +3698,60 @@ export interface components {
          * @description Abstract representation for a chat message.
          *     Independent of the underlying chat system, such as OpenAI or Anthropic.
          */
-        Message: {
+        "Message-Input": {
+            /**
+             * Type
+             * @default message
+             */
+            type: string;
+            /** Id */
+            id?: string | null;
+            /** Workflow Id */
+            workflow_id?: string | null;
+            graph?: components["schemas"]["Graph-Input"] | null;
+            /** Thread Id */
+            thread_id?: string | null;
+            /** Tools */
+            tools?: string[] | null;
+            /** Tool Call Id */
+            tool_call_id?: string | null;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /** Name */
+            name?: string | null;
+            /** Content */
+            content?: string | (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"] | components["schemas"]["MessageDocumentContent"])[] | null;
+            /** Error Type */
+            error_type?: string | null;
+            /** Tool Calls */
+            tool_calls?: components["schemas"]["ToolCall"][] | null;
+            /** Collections */
+            collections?: string[] | null;
+            /** Input Files */
+            input_files?: components["schemas"]["MessageFile"][] | null;
+            /** Output Files */
+            output_files?: components["schemas"]["MessageFile"][] | null;
+            /** Created At */
+            created_at?: string | null;
+            provider?: components["schemas"]["Provider"] | null;
+            /** Model */
+            model?: string | null;
+            /** Agent Mode */
+            agent_mode?: boolean | null;
+            /** Workflow Assistant */
+            workflow_assistant?: boolean | null;
+            /** Help Mode */
+            help_mode?: boolean | null;
+        };
+        /**
+         * Message
+         * @description Abstract representation for a chat message.
+         *     Independent of the underlying chat system, such as OpenAI or Anthropic.
+         */
+        "Message-Output": {
             /**
              * Type
              * @default message
@@ -3774,7 +3884,7 @@ export interface components {
             /** Next */
             next: string | null;
             /** Messages */
-            messages: components["schemas"]["Message"][];
+            messages: components["schemas"]["Message-Output"][];
         };
         /** MessageTextContent */
         MessageTextContent: {
@@ -3917,7 +4027,7 @@ export interface components {
          * NodeMetadata
          * @description Metadata for a node.
          */
-        NodeMetadata: {
+        "NodeMetadata-Input": {
             /**
              * Title
              * @description UI Title of the node
@@ -3948,12 +4058,95 @@ export interface components {
              * Properties
              * @description Properties of the node
              */
-            properties: components["schemas"]["Property"][];
+            properties: components["schemas"]["Property-Input"][];
             /**
              * Outputs
              * @description Outputs of the node
              */
-            outputs: components["schemas"]["OutputSlot"][];
+            outputs: components["schemas"]["OutputSlot-Input"][];
+            /**
+             * The Model Info
+             * @description HF Model info for the node
+             */
+            the_model_info: {
+                [key: string]: unknown;
+            };
+            /**
+             * Recommended Models
+             * @description Recommended models for the node
+             */
+            recommended_models: components["schemas"]["UnifiedModel"][];
+            /**
+             * Basic Fields
+             * @description Basic fields of the node
+             */
+            basic_fields: string[];
+            /**
+             * Is Dynamic
+             * @description Whether the node is dynamic
+             * @default false
+             */
+            is_dynamic: boolean;
+            /**
+             * Is Streaming Output
+             * @description Whether the node can stream output
+             * @default false
+             */
+            is_streaming_output: boolean;
+            /**
+             * Expose As Tool
+             * @description Whether the node is exposed as a tool
+             * @default false
+             */
+            expose_as_tool: boolean;
+            /**
+             * Supports Dynamic Outputs
+             * @description Whether the node can declare outputs dynamically at runtime (only for dynamic nodes)
+             * @default false
+             */
+            supports_dynamic_outputs: boolean;
+        };
+        /**
+         * NodeMetadata
+         * @description Metadata for a node.
+         */
+        "NodeMetadata-Output": {
+            /**
+             * Title
+             * @description UI Title of the node
+             */
+            title: string;
+            /**
+             * Description
+             * @description UI Description of the node
+             */
+            description: string;
+            /**
+             * Namespace
+             * @description Namespace of the node
+             */
+            namespace: string;
+            /**
+             * Node Type
+             * @description Fully qualified type of the node
+             */
+            node_type: string;
+            /**
+             * Layout
+             * @description UI Layout of the node
+             * @default default
+             */
+            layout: string;
+            /**
+             * Properties
+             * @description Properties of the node
+             */
+            properties: components["schemas"]["Property-Output"][];
+            /**
+             * Outputs
+             * @description Outputs of the node
+             */
+            outputs: components["schemas"]["OutputSlot-Output"][];
             /**
              * The Model Info
              * @description HF Model info for the node
@@ -4094,7 +4287,21 @@ export interface components {
          * OutputSlot
          * @description An output slot is a slot that can be connected to an input slot.
          */
-        OutputSlot: {
+        "OutputSlot-Input": {
+            type: components["schemas"]["TypeMetadata-Input"];
+            /** Name */
+            name: string;
+            /**
+             * Stream
+             * @default false
+             */
+            stream: boolean;
+        };
+        /**
+         * OutputSlot
+         * @description An output slot is a slot that can be connected to an input slot.
+         */
+        "OutputSlot-Output": {
             type: components["schemas"]["TypeMetadata-Output"];
             /** Name */
             name: string;
@@ -4282,7 +4489,43 @@ export interface components {
          *         min: Minimum allowed value for numeric properties
          *         max: Maximum allowed value for numeric properties
          */
-        Property: {
+        "Property-Input": {
+            /** Name */
+            name: string;
+            type: components["schemas"]["TypeMetadata-Input"];
+            /** Default */
+            default?: unknown | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /** Json Schema Extra */
+            json_schema_extra?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * Property
+         * @description Property of a node.
+         *
+         *     This class represents a property of a node with type information, constraints,
+         *     and metadata. It can be used to generate JSON schema and can be created from
+         *     a Pydantic field.
+         *
+         *     Attributes:
+         *         name: The name of the property
+         *         type: Type metadata for the property
+         *         default: Default value for the property, if any
+         *         title: Human-readable title for the property
+         *         description: Detailed description of the property
+         *         min: Minimum allowed value for numeric properties
+         *         max: Maximum allowed value for numeric properties
+         */
+        "Property-Output": {
             /** Name */
             name: string;
             type: components["schemas"]["TypeMetadata-Output"];
@@ -4362,7 +4605,7 @@ export interface components {
          *         graph: Optional graph data for the job.
          *         explicit_types: Whether to use explicit types, defaults to False.
          */
-        RunJobRequest: {
+        "RunJobRequest-Input": {
             /**
              * Type
              * @default run_job_request
@@ -4379,7 +4622,72 @@ export interface components {
             /** Params */
             params?: unknown | null;
             /** Messages */
-            messages?: components["schemas"]["Message"][] | null;
+            messages?: components["schemas"]["Message-Input"][] | null;
+            /**
+             * Workflow Id
+             * @default
+             */
+            workflow_id: string;
+            /**
+             * User Id
+             * @default
+             */
+            user_id: string;
+            /**
+             * Auth Token
+             * @default
+             */
+            auth_token: string;
+            /** Api Url */
+            api_url?: string | null;
+            /** Env */
+            env?: {
+                [key: string]: unknown;
+            } | null;
+            graph?: components["schemas"]["Graph-Input"] | null;
+            /**
+             * Explicit Types
+             * @default false
+             */
+            explicit_types: boolean | null;
+            resource_limits?: components["schemas"]["ResourceLimits"] | null;
+        };
+        /**
+         * RunJobRequest
+         * @description A request model for running a workflow.
+         *
+         *     Attributes:
+         *         type: The type of request, always "run_job_request".
+         *         job_type: The type of job to run, defaults to "workflow".
+         *         execution_strategy: Strategy for executing the job (threaded, subprocess, docker).
+         *         params: Optional parameters for the job.
+         *         messages: Optional list of messages associated with the job.
+         *         workflow_id: The ID of the workflow to run.
+         *         user_id: The ID of the user making the request.
+         *         auth_token: Authentication token for the request.
+         *         api_url: Optional API URL to use for the job.
+         *         env: Optional environment variables for the job.
+         *         graph: Optional graph data for the job.
+         *         explicit_types: Whether to use explicit types, defaults to False.
+         */
+        "RunJobRequest-Output": {
+            /**
+             * Type
+             * @default run_job_request
+             * @constant
+             */
+            type: "run_job_request";
+            /**
+             * Job Type
+             * @default workflow
+             */
+            job_type: string;
+            /** @default threaded */
+            execution_strategy: components["schemas"]["ExecutionStrategy"];
+            /** Params */
+            params?: unknown | null;
+            /** Messages */
+            messages?: components["schemas"]["Message-Output"][] | null;
             /**
              * Workflow Id
              * @default
@@ -4423,7 +4731,7 @@ export interface components {
          * SVGElement
          * @description Base type for SVG elements that can be combined.
          */
-        SVGElement: {
+        "SVGElement-Input": {
             /**
              * Type
              * @default svg_element
@@ -4445,7 +4753,35 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Children */
-            children?: components["schemas"]["SVGElement"][];
+            children?: components["schemas"]["SVGElement-Input"][];
+        };
+        /**
+         * SVGElement
+         * @description Base type for SVG elements that can be combined.
+         */
+        "SVGElement-Output": {
+            /**
+             * Type
+             * @default svg_element
+             * @constant
+             */
+            type: "svg_element";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Attributes
+             * @default {}
+             */
+            attributes: {
+                [key: string]: string;
+            };
+            /** Content */
+            content?: string | null;
+            /** Children */
+            children?: components["schemas"]["SVGElement-Output"][];
         };
         /**
          * SaveUpdate
@@ -4473,6 +4809,35 @@ export interface components {
             metadata: {
                 [key: string]: unknown;
             };
+        };
+        /** SecretResponse */
+        SecretResponse: {
+            /** Id */
+            id: string;
+            /** User Id */
+            user_id: string;
+            /** Key */
+            key: string;
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** SecretUpdateRequest */
+        SecretUpdateRequest: {
+            /** Value */
+            value: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** SecretsListResponse */
+        SecretsListResponse: {
+            /** Secrets */
+            secrets: components["schemas"]["SecretResponse"][];
+            /** Next Key */
+            next_key?: string | null;
         };
         /** SettingWithValue */
         SettingWithValue: {
@@ -4588,7 +4953,29 @@ export interface components {
          * SubTaskResult
          * @description A message representing a result from a subtask.
          */
-        SubTaskResult: {
+        "SubTaskResult-Input": {
+            /**
+             * Type
+             * @default subtask_result
+             * @constant
+             */
+            type: "subtask_result";
+            subtask: components["schemas"]["SubTask"];
+            /** Result */
+            result: unknown;
+            /** Error */
+            error?: string | null;
+            /**
+             * Is Task Result
+             * @default false
+             */
+            is_task_result: boolean;
+        };
+        /**
+         * SubTaskResult
+         * @description A message representing a result from a subtask.
+         */
+        "SubTaskResult-Output": {
             /**
              * Type
              * @default subtask_result
@@ -4676,7 +5063,43 @@ export interface components {
          * Task
          * @description A task containing a title, description, and list of subtasks.
          */
-        Task: {
+        "Task-Input": {
+            /**
+             * Type
+             * @default task
+             * @constant
+             */
+            type: "task";
+            /**
+             * Id
+             * @description Unique identifier for the task
+             * @default
+             */
+            id: string;
+            /**
+             * Title
+             * @description The title of the task
+             * @default
+             */
+            title: string;
+            /**
+             * Description
+             * @description A description of the task, not used for execution
+             * @default
+             */
+            description: string;
+            /**
+             * Subtasks
+             * @description The subtasks of the task, a list of subtask IDs
+             * @default []
+             */
+            subtasks: components["schemas"]["SubTask"][];
+        };
+        /**
+         * Task
+         * @description A task containing a title, description, and list of subtasks.
+         */
+        "Task-Output": {
             /**
              * Type
              * @default task
@@ -4715,7 +5138,7 @@ export interface components {
          *     The tasks are a list of subtasks that are executed in order.
          *     Each task has a title, description, and list of subtasks.
          */
-        TaskPlan: {
+        "TaskPlan-Input": {
             /**
              * Type
              * @default task_plan
@@ -4733,7 +5156,34 @@ export interface components {
              * @description The tasks of the task list
              * @default []
              */
-            tasks: components["schemas"]["Task"][];
+            tasks: components["schemas"]["Task-Input"][];
+        };
+        /**
+         * TaskPlan
+         * @description A plan for an agent to achieve a specific objective.
+         *     The plan is a list of tasks that are executed in order.
+         *     The tasks are a list of subtasks that are executed in order.
+         *     Each task has a title, description, and list of subtasks.
+         */
+        "TaskPlan-Output": {
+            /**
+             * Type
+             * @default task_plan
+             * @constant
+             */
+            type: "task_plan";
+            /**
+             * Title
+             * @description The title of the task list
+             * @default
+             */
+            title: string;
+            /**
+             * Tasks
+             * @description The tasks of the task list
+             * @default []
+             */
+            tasks: components["schemas"]["Task-Output"][];
         };
         /**
          * TaskUpdate
@@ -4742,7 +5192,7 @@ export interface components {
          *     Used for communicating progress and status changes for complex
          *     task-based operations, such as agent workflows.
          */
-        TaskUpdate: {
+        "TaskUpdate-Input": {
             /**
              * Type
              * @default task_update
@@ -4751,7 +5201,27 @@ export interface components {
             type: "task_update";
             /** Node Id */
             node_id?: string | null;
-            task: components["schemas"]["Task"];
+            task: components["schemas"]["Task-Input"];
+            subtask?: components["schemas"]["SubTask"] | null;
+            event: components["schemas"]["TaskUpdateEvent"];
+        };
+        /**
+         * TaskUpdate
+         * @description A message representing an update to a task's status.
+         *
+         *     Used for communicating progress and status changes for complex
+         *     task-based operations, such as agent workflows.
+         */
+        "TaskUpdate-Output": {
+            /**
+             * Type
+             * @default task_update
+             * @constant
+             */
+            type: "task_update";
+            /** Node Id */
+            node_id?: string | null;
+            task: components["schemas"]["Task-Output"];
             subtask?: components["schemas"]["SubTask"] | null;
             event: components["schemas"]["TaskUpdateEvent"];
         };
@@ -5701,7 +6171,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Message"];
+                    "application/json": components["schemas"]["Message-Output"];
                 };
             };
             /** @description Validation Error */
@@ -5736,7 +6206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Message"];
+                    "application/json": components["schemas"]["Message-Output"];
                 };
             };
             /** @description Validation Error */
@@ -6669,9 +7139,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement-Output"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan-Output"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
-                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult"] | components["schemas"]["RunJobRequest"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
+                    } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate-Output"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["SubTaskResult-Output"] | components["schemas"]["RunJobRequest-Output"] | components["schemas"]["HFDepthGeneration"] | components["schemas"]["HFReduxGeneration"] | components["schemas"]["HFKontextGeneration"];
                 };
             };
         };
@@ -6691,7 +7161,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NodeMetadata"][];
+                    "application/json": components["schemas"]["NodeMetadata-Output"][];
                 };
             };
         };
@@ -7959,9 +8429,13 @@ export interface operations {
     get_settings_api_settings__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                authorization?: string | null;
+            };
             path?: never;
-            cookie?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -7974,20 +8448,184 @@ export interface operations {
                     "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     update_settings_api_settings__put: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                authorization?: string | null;
+            };
             path?: never;
-            cookie?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
         };
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SettingsUpdateRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_secrets_api_settings_secrets_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                start_key?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecretsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_secret_api_settings_secrets__key__get: {
+        parameters: {
+            query?: {
+                decrypt?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_secret_api_settings_secrets__key__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecretUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecretResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_secret_api_settings_secrets__key__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                key: string;
+            };
+            cookie?: {
+                auth_cookie?: string | null;
+            };
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

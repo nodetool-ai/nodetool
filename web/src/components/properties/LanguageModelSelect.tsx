@@ -91,24 +91,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     }, {});
   }, [sortedModels, isLoading, isError]);
 
-  const sortedProviders = useMemo(
-    () =>
-      Object.keys(groupedModels).sort((a, b) => {
-        const aKey = (
-          isHuggingFaceProvider(a)
-            ? getProviderBaseName(a)
-            : formatGenericProviderName(a)
-        ).toLowerCase();
-        const bKey = (
-          isHuggingFaceProvider(b)
-            ? getProviderBaseName(b)
-            : formatGenericProviderName(b)
-        ).toLowerCase();
-        return aKey.localeCompare(bKey);
-      }),
-    [groupedModels]
-  );
-
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) return null;
     return models.find((m) => m.id === value);

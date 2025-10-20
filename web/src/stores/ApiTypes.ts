@@ -36,9 +36,9 @@ export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowTool = components["schemas"]["WorkflowTool"];
 export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
-export type Property = components["schemas"]["Property"];
-export type OutputSlot = components["schemas"]["OutputSlot"];
-export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
+export type Property = components["schemas"]["Property-Input"];
+export type OutputSlot = components["schemas"]["OutputSlot-Input"];
+export type BaseNodeMetadata = components["schemas"]["NodeMetadata-Input"];
 export type IndexResponse = components["schemas"]["IndexResponse"];
 
 export interface NodeMetadata extends BaseNodeMetadata {
@@ -52,7 +52,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
   };
 }
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
-export type Message = components["schemas"]["Message"] & {
+export type Message = components["schemas"]["Message-Input"] & {
   execution_event_type?: string;
   agent_execution_id?: string;
 };
@@ -72,13 +72,13 @@ export type FolderRef = components["schemas"]["FolderRef"];
 export type FontRef = components["schemas"]["FontRef"];
 export type Audio = components["schemas"]["AudioRef"];
 export type Video = components["schemas"]["VideoRef"];
-export type RunJobRequest = components["schemas"]["RunJobRequest"];
+export type RunJobRequest = components["schemas"]["RunJobRequest-Input"];
 export type ResourceLimits = components["schemas"]["ResourceLimits"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type OutputUpdate = components["schemas"]["OutputUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
 export type PreviewUpdate = components["schemas"]["PreviewUpdate"];
-export type TaskUpdate = components["schemas"]["TaskUpdate"];
+export type TaskUpdate = components["schemas"]["TaskUpdate-Input"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
@@ -93,7 +93,7 @@ export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
 export type Chunk = components["schemas"]["Chunk"];
-export type SVGElement = components["schemas"]["SVGElement"];
+export type SVGElement = components["schemas"]["SVGElement-Input"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
 // a type that allows arbitrary members
 export type TypeName = string;
@@ -110,12 +110,12 @@ export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
-export type Task = components["schemas"]["Task"];
-export type TaskPlan = components["schemas"]["TaskPlan"];
+export type Task = components["schemas"]["Task-Input"];
+export type TaskPlan = components["schemas"]["TaskPlan-Input"];
 export type SubTask = components["schemas"]["SubTask"];
 export type PlotlyConfig = components["schemas"]["PlotlyConfig"];
 export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
-export type SubTaskResult = components["schemas"]["SubTaskResult"];
+export type SubTaskResult = components["schemas"]["SubTaskResult-Input"];
 export type InferenceProvider = components["schemas"]["InferenceProvider"];
 export type Provider = components["schemas"]["Provider"];
 export type Thread = components["schemas"]["Thread"];
@@ -127,6 +127,7 @@ export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
+export type SecretResponse = components["schemas"]["SecretResponse"];
 
 // Job types
 export interface Job {

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import useMetadataStore from "../stores/MetadataStore";
-import useRemoteSettingsStore from "../stores/RemoteSettingStore";
 import { isProduction } from "../stores/ApiClient";
+import { useSecrets } from "./useSecrets";
 
 export interface NamespaceTree {
   [key: string]: {
@@ -14,17 +14,7 @@ export interface NamespaceTree {
 
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
-  const secrets = useRemoteSettingsStore((state) => state.secrets);
-
-  // Check if an API key is set
-  const isApiKeySet = useCallback(
-    (key: keyof typeof secrets) => {
-      const value = secrets?.[key];
-      if (!value) return false;
-      return value.trim().length > 0;
-    },
-    [secrets]
-  );
+  const { isApiKeySet } = useSecrets();
 
   // Get the required API key name for a namespace
   const getRequiredKey = useCallback((namespace: string) => {

@@ -4,6 +4,7 @@ import Fuse from "fuse.js";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
+import { useSecrets } from "../hooks/useSecrets";
 
 export type SidebarTab = "favorites" | "recent";
 
@@ -30,15 +31,10 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("openai")) return "OPENAI_API_KEY";
   if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
   if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
+  if (p.includes("huggingface") || p.includes("hf_")) return "HF_TOKEN";
   if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
   if (p.includes("fal")) return "FAL_API_KEY";
   if (p.includes("aime")) return "AIME_API_KEY";
-  if (
-    p.includes("llama_cpp") ||
-    p.includes("llama-cpp") ||
-    p.includes("llamacpp")
-  )
-    return null;
   return null;
 };
 
@@ -162,7 +158,7 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   storeHook: ModelMenuStoreHook<TModel>,
   filterProviders?: string[]
 ) => {
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
@@ -204,14 +200,13 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     const isEnvOk = (p?: string) => {
       const env = requiredSecretForProvider(p);
       if (!env) return true;
-      const v = secrets?.[env];
-      return Boolean(v && String(v).trim().length > 0);
+      return isApiKeySet(env);
     };
     return (
       models?.filter((m) => isEnabled(m.provider) && isEnvOk(m.provider))
         .length ?? 0
     );
-  }, [models, enabledProviders, secrets]);
+  }, [models, enabledProviders, isApiKeySet]);
 
   return {
     models,
