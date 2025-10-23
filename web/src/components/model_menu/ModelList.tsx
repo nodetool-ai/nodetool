@@ -21,7 +21,6 @@ import {
   formatGenericProviderName
 } from "../../utils/providerDisplay";
 import {
-  isProviderAvailable,
   requiredSecretForProvider,
   ModelSelectorModel,
   useLanguageModelMenuStore

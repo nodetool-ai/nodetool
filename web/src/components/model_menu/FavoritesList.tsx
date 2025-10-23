@@ -41,19 +41,19 @@ function FavoritesList<TModel extends ModelSelectorModel>({
   onSelect
 }: FavoritesListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  // const secrets = useRemoteSettingsStore((s) => s.secrets);
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
-      const env = requiredSecretForProvider(m.provider);
-      const ok =
-        !env ||
-        Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
-      map[`${m.provider}:${m.id}`] = ok;
+      // const env = requiredSecretForProvider(m.provider);
+      // const ok =
+      //   !env ||
+      //   Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+      map[`${m.provider}:${m.id}`] = true;
     });
     return map;
-  }, [models, secrets]);
+  }, [models]);
 
   if (models.length === 0) return null;
 
