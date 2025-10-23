@@ -38,20 +38,6 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   return null;
 };
 
-export const isProviderAvailable = (
-  provider?: string,
-  secrets?: Record<string, string>,
-  enabledProviders?: EnabledProvidersMap
-): boolean => {
-  if (!provider) return false;
-  const p = (provider || "").toLowerCase();
-  const enabled = enabledProviders?.[p] !== false;
-  const env = requiredSecretForProvider(provider);
-  const hasKey =
-    !env || Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
-  return enabled && hasKey;
-};
-
 export const ALL_PROVIDERS = [
   "openai",
   "anthropic",

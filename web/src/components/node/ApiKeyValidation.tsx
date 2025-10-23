@@ -4,6 +4,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import useSecretsStore from "../../stores/SecretsStore";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;
@@ -12,39 +13,11 @@ interface ApiKeyValidationProps {
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
     const theme = useTheme();
-    const secrets = useRemoteSettingsStore((state) => state.secrets);
+    const secrets = useSecretsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
     const missingAPIKeys = useMemo(() => {
-      if (
-        nodeNamespace.startsWith("openai.") &&
-        (!secrets.OPENAI_API_KEY || secrets.OPENAI_API_KEY.trim() === "")
-      ) {
-        return "OpenAI API Key";
-      }
-      if (
-        nodeNamespace.startsWith("replicate.") &&
-        (!secrets.REPLICATE_API_TOKEN ||
-          secrets.REPLICATE_API_TOKEN.trim() === "")
-      ) {
-        return "Replicate API Token";
-      }
-      if (
-        nodeNamespace.startsWith("anthropic.") &&
-        (!secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY.trim() === "")
-      ) {
-        return "Anthropic API Key";
-      }
-      if (
-        nodeNamespace.startsWith("aime.") &&
-        (!secrets.AIME_API_KEY ||
-          secrets.AIME_API_KEY.trim() === "" ||
-          !secrets.AIME_USER ||
-          secrets.AIME_USER.trim() === "")
-      ) {
-        return "Aime API Key and User";
-      }
-      return null;
+      return [];
     }, [nodeNamespace, secrets]);
 
     const content = useMemo(() => {
