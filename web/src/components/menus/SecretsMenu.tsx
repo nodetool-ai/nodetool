@@ -12,8 +12,11 @@ import {
   DialogActions,
   IconButton,
   Tooltip,
-  Chip
+  Chip,
+  Box,
+  Divider
 } from "@mui/material";
+import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -292,43 +295,130 @@ const SecretsMenu = () => {
         </div>
       )}
 
-      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      <Dialog
+        open={openDialog}
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "12px",
+            backgroundImage: "none"
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75em",
+            paddingBottom: "1em",
+            fontSize: "1.25rem",
+            fontWeight: 600,
+            background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}15, ${theme.vars.palette.primary.main}08)`,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <LockIcon sx={{ color: "var(--palette-primary-main)" }} />
           {editingSecret?.is_configured ? "Update Secret" : "Set Secret"}
         </DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: "1em", marginTop: "0.5em" }}>
-          <TextField
-            disabled={true}
-            label="Key"
-            value={formData.key}
-            fullWidth
-            helperText="Secret key cannot be changed"
-          />
-          <TextField
-            label="Value"
-            type="password"
-            value={formData.value}
-            onChange={(e) =>
-              setFormData({ ...formData, value: e.target.value })
-            }
-            fullWidth
-            placeholder="Enter new secret value"
-            multiline
-            rows={3}
-            autoFocus
-          />
-          <TextField
-            label="Description (optional)"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            fullWidth
-            placeholder="e.g., My API key for external service"
-          />
+        <DialogContent sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5em",
+          paddingTop: "1.5em",
+          paddingBottom: "1.5em"
+        }}>
+          <Box>
+            <TextField
+              disabled={true}
+              label="Key"
+              value={formData.key}
+              fullWidth
+              helperText="Secret key cannot be changed"
+              variant="outlined"
+            />
+          </Box>
+
+          <Box>
+            <TextField
+              label="Value"
+              type="password"
+              value={formData.value}
+              onChange={(e) =>
+                setFormData({ ...formData, value: e.target.value })
+              }
+              fullWidth
+              placeholder="Enter new secret value"
+              multiline
+              rows={4}
+              autoFocus
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  fontFamily: "monospace",
+                  fontSize: "0.9em",
+                  letterSpacing: "0.05em"
+                }
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                marginTop: "0.5em",
+                opacity: 0.7
+              }}
+            >
+              Keep this value secure and do not share it publicly.
+            </Typography>
+          </Box>
+
+          <Box>
+            <TextField
+              label="Description (optional)"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              fullWidth
+              placeholder="e.g., My API key for external service"
+              variant="outlined"
+              rows={2}
+              multiline
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                marginTop: "0.5em",
+                opacity: 0.7
+              }}
+            >
+              Add a note to remember what this secret is used for.
+            </Typography>
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
+
+        <Divider />
+
+        <DialogActions
+          sx={{
+            padding: "1.25em",
+            gap: "0.75em",
+            justifyContent: "flex-end"
+          }}
+        >
+          <Button
+            onClick={handleClose}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.95rem",
+              padding: "0.6em 1.5em"
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleSave}
             variant="contained"
@@ -336,8 +426,20 @@ const SecretsMenu = () => {
               updateMutation.isPending ||
               !formData.value
             }
+            sx={{
+              textTransform: "none",
+              fontSize: "0.95rem",
+              padding: "0.6em 2em",
+              fontWeight: 600,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+              "&:hover:not(:disabled)": {
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                transform: "translateY(-1px)"
+              },
+              transition: "all 0.2s ease"
+            }}
           >
-            {editingSecret?.is_configured ? "Update" : "Set"}
+            {updateMutation.isPending ? "Saving..." : (editingSecret?.is_configured ? "Update" : "Set")}
           </Button>
         </DialogActions>
       </Dialog>
