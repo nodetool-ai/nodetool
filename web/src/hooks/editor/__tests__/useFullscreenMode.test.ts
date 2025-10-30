@@ -29,3 +29,8 @@ describe("useFullscreenMode", () => {
     expect(result.current.isFullscreen).toBe(true);
   });
 });
+
+
+
+
+

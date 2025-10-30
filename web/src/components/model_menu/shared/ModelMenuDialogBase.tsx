@@ -22,6 +22,7 @@ import ModelList from "../ModelList";
 import FavoritesList from "../FavoritesList";
 import RecentList from "../RecentList";
 import ModelMenuFooter from "../ModelMenuFooter";
+import ProviderApiKeyWarningBanner from "./ProviderApiKeyWarningBanner";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
@@ -196,6 +197,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           marginTop: theme.spacing(4)
         }}
       >
+        <ProviderApiKeyWarningBanner providers={providers} />
         <Box
           sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}
           className="model-menu__controls"
