@@ -34,6 +34,8 @@ const SecretsMenu = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const {
+    secrets,
+    isLoading: storeLoading,
     fetchSecrets,
     updateSecret,
     deleteSecret
@@ -48,12 +50,18 @@ const SecretsMenu = () => {
     description: ""
   });
 
-  const { data: secrets = [], isLoading, isSuccess } = useQuery({
+  // Use React Query to trigger fetch, but use store state directly
+  const { isLoading: queryLoading } = useQuery({
     queryKey: ["secrets"],
-    queryFn: () => fetchSecrets()
+    queryFn: () => fetchSecrets(),
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
+  const isLoading = storeLoading || queryLoading;
+  const isSuccess = !isLoading;
+
   // Group secrets by configured/unconfigured status
+  // Use store state directly (same as sidebar) to ensure consistency
   const secretsByStatus = useMemo(() => {
     const configured = secrets.filter((s: any) => s.is_configured);
     const unconfigured = secrets.filter((s: any) => !s.is_configured);
