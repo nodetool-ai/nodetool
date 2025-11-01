@@ -9,9 +9,9 @@ import {
   CircularProgress,
   Box
 } from "@mui/material";
-import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
+import { openHuggingfacePath, openOllamaPath, openInExplorer } from "../../../utils/fileExplorer";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useState } from "react";
@@ -27,7 +27,6 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   onClose
 }) => {
   const { allModels } = useModels();
-  const { ollamaBasePath } = useModelBasePaths();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -94,25 +93,14 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     if (!modelId) return;
 
     const model = allModels?.find((m) => m.id === modelId);
+    if (!model) return;
 
     const isOllama = model?.type === "llama_model";
-    const pathToShow = isOllama ? ollamaBasePath : model?.path;
 
-    if (pathToShow) {
-      const { error } = await client.POST("/api/models/open_in_explorer", {
-        params: {
-          query: {
-            path: pathToShow
-          }
-        }
-      });
-      if (error) {
-        addNotification({
-          type: "error",
-          content: `Could not open folder: ${JSON.stringify(error)}`,
-          dismissable: true
-        });
-      }
+    if (isOllama) {
+      await openOllamaPath();
+    } else if (model?.path) {
+      await openInExplorer(model.path);
     } else {
       addNotification({
         type: "warning",
@@ -126,15 +114,10 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     ? allModels?.find((m) => m.id === modelId)
     : null;
 
-  let explorerPath = modelForExplorer?.path;
-  let isExplorerDisabled = !modelId;
-
-  if (modelForExplorer) {
-    if (modelForExplorer.type === "llama_model" && !explorerPath) {
-      explorerPath = ollamaBasePath as string | null | undefined;
-    }
-    isExplorerDisabled = !explorerPath;
-  }
+  const isExplorerDisabled =
+    !modelId ||
+    !modelForExplorer ||
+    (modelForExplorer.type !== "llama_model" && !modelForExplorer.path);
 
   const handleConfirmDelete = async () => {
     if (modelId) {

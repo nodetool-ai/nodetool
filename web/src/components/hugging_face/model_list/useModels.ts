@@ -5,10 +5,10 @@ import {
   groupModelsByType,
   sortModelTypes
 } from "../../../utils/modelFormatting";
-import { useModelBasePaths } from "../../../hooks/useModelBasePaths";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
+import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 
 export const useModels = () => {
   const {
@@ -17,7 +17,6 @@ export const useModels = () => {
     maxModelSizeGB,
     showDownloadedOnly
   } = useModelManagerStore();
-  const { ollamaBasePath } = useModelBasePaths();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -122,24 +121,14 @@ export const useModels = () => {
     if (!modelId) return;
 
     const model = allModels?.find((m) => m.id === modelId);
-    const isOllama = model?.type === "llama_model";
-    const pathToShow = isOllama ? ollamaBasePath : model?.path;
+    if (!model) return;
 
-    if (pathToShow) {
-      const { error } = await client.POST("/api/models/open_in_explorer", {
-        params: {
-          query: {
-            path: pathToShow
-          }
-        }
-      });
-      if (error) {
-        addNotification({
-          type: "error",
-          content: `Could not open folder: ${JSON.stringify(error)}`,
-          dismissable: true
-        });
-      }
+    const isOllama = model.type === "llama_model";
+
+    if (isOllama) {
+      await openOllamaPath();
+    } else if (model.path) {
+      await openInExplorer(model.path);
     } else {
       addNotification({
         type: "warning",
@@ -158,7 +147,6 @@ export const useModels = () => {
     isLoading: isLoading,
     isFetching: isFetching,
     error: error,
-    handleShowInExplorer,
-    ollamaBasePath
+    handleShowInExplorer
   };
 };

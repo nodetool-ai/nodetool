@@ -13,8 +13,8 @@ import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
-import { useModelBasePaths } from "../../hooks/useModelBasePaths";
-import { openInExplorer } from "../../utils/fileExplorer";
+import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
+import { isLocalhost } from "../../stores/ApiClient";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -27,7 +27,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) return recommendedModels;
@@ -130,26 +129,24 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       </Typography>
 
       {/* Open folder buttons */}
-      <Box mt={2} sx={{ display: "flex", gap: 2 }}>
-        <Button
-          variant="outlined"
-          startIcon={<FolderOutlined />}
-          onClick={() =>
-            huggingfaceBasePath && openInExplorer(huggingfaceBasePath)
-          }
-          disabled={!huggingfaceBasePath}
-        >
-          Open HuggingFace folder
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<FolderOutlined />}
-          onClick={() => ollamaBasePath && openInExplorer(ollamaBasePath)}
-          disabled={!ollamaBasePath}
-        >
-          Open Ollama folder
-        </Button>
-      </Box>
+      {isLocalhost && (
+        <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FolderOutlined />}
+            onClick={openHuggingfacePath}
+          >
+            Open HuggingFace folder
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FolderOutlined />}
+            onClick={openOllamaPath}
+          >
+            Open Ollama folder
+          </Button>
+        </Box>
+      )}
     </>
   );
 };
