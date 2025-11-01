@@ -34,7 +34,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import LaunchIcon from "@mui/icons-material/Launch";
+import AppsIcon from "@mui/icons-material/Apps";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -188,6 +188,22 @@ const styles = (theme: Theme) =>
         boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.secondary.main}25`,
         transform: "scale(1.05)"
       }
+    },
+
+    /* Mini app button: vibrant inviting color */
+    ".floating-action-button.mini-app": {
+      backgroundColor: "#00BCD4",
+      color: "#0b1220",
+      borderColor: "#00BCD4",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)`,
+      filter: "saturate(1.1)",
+      "&:hover": {
+        backgroundColor: "#00ACC1",
+        borderColor: "#00ACC1",
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
+        transform: "scale(1.06)"
+      },
+      "&::before": {}
     },
 
     "@keyframes spin": {
@@ -454,11 +470,11 @@ const FloatingToolBar: React.FC<{
           placement="top"
         >
           <Fab
-            className={`floating-action-button subtle`}
+            className={`floating-action-button mini-app`}
             onClick={handleOpenInMiniApp}
             aria-label="Open mini app view"
           >
-            <LaunchIcon />
+            <AppsIcon />
           </Fab>
         </Tooltip>
         <Tooltip
