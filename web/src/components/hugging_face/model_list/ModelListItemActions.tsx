@@ -20,7 +20,6 @@ interface ModelListItemActionsProps {
   onDownload?: () => void;
   handleModelDelete?: (modelId: string) => void;
   handleShowInExplorer?: (modelId: string) => void;
-  ollamaBasePath?: string | null;
   showFileExplorerButton?: boolean;
 }
 
@@ -29,7 +28,6 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   onDownload,
   handleModelDelete,
   handleShowInExplorer,
-  ollamaBasePath,
   showFileExplorerButton = true
 }) => {
   const { isHuggingFace, isOllama } = useModelInfo(model);
@@ -52,7 +50,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
         {handleShowInExplorer && showFileExplorerButton && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}
-            disabled={isOllama ? !ollamaBasePath : !model.path}
+            disabled={isOllama ? false : !model.path}
           />
         )}
         {handleModelDelete && (

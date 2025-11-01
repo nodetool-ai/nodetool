@@ -20,11 +20,11 @@ import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
 
 import { isEqual } from "lodash";
-import { useModelBasePaths } from "../../hooks/useModelBasePaths";
 import { FolderOutlined } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadingIcon from "@mui/icons-material/Downloading";
-import { openInExplorer } from "../../utils/fileExplorer";
+import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
+import { isLocalhost } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({
@@ -72,7 +72,6 @@ const styles = (theme: Theme) =>
 
 const DownloadManagerDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
-  const { huggingfaceBasePath, ollamaBasePath } = useModelBasePaths();
 
   const hasActiveDownloads = Object.keys(downloads).length > 0;
 
@@ -157,27 +156,27 @@ const DownloadManagerDialog: React.FC = () => {
             </Box>
           )}
         </Box>
-        <Divider sx={{ my: 2 }} />
-        <Box className="folders-row">
-          <Button
-            variant="outlined"
-            startIcon={<FolderOutlined />}
-            onClick={() =>
-              huggingfaceBasePath && openInExplorer(huggingfaceBasePath)
-            }
-            disabled={!huggingfaceBasePath}
-          >
-            Open HuggingFace folder
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<FolderOutlined />}
-            onClick={() => ollamaBasePath && openInExplorer(ollamaBasePath)}
-            disabled={!ollamaBasePath}
-          >
-            Open Ollama folder
-          </Button>
-        </Box>
+        {isLocalhost && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Box className="folders-row">
+              <Button
+                variant="outlined"
+                startIcon={<FolderOutlined />}
+                onClick={openHuggingfacePath}
+              >
+                Open HuggingFace folder
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<FolderOutlined />}
+                onClick={openOllamaPath}
+              >
+                Open Ollama folder
+              </Button>
+            </Box>
+          </>
+        )}
       </DialogContent>
       <DialogActions className="download-actions">
         <Typography

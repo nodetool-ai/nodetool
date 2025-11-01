@@ -20,7 +20,6 @@ import { formatBytes } from "../../../utils/modelFormatting";
 const ModelListItem: React.FC<
   ModelComponentProps & {
     showModelStats?: boolean;
-    ollamaBasePath?: string | null;
     showFileExplorerButton?: boolean;
   }
 > = ({
@@ -30,7 +29,6 @@ const ModelListItem: React.FC<
   handleShowInExplorer,
   compactView = false,
   showModelStats = true,
-  ollamaBasePath,
   showFileExplorerButton = true
 }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
@@ -145,7 +143,6 @@ const ModelListItem: React.FC<
               onDownload={onDownload}
               handleModelDelete={handleModelDelete}
               handleShowInExplorer={handleShowInExplorer}
-              ollamaBasePath={ollamaBasePath}
               showFileExplorerButton={showFileExplorerButton}
             />
           </div>

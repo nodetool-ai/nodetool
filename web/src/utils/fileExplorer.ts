@@ -1,4 +1,5 @@
 import { client } from "../stores/ApiClient";
+import { useNotificationStore } from "../stores/NotificationStore";
 
 /**
  * Ask the backend to open the given path in the user's file explorer.
@@ -26,6 +27,86 @@ export async function openInExplorer(path: string): Promise<void> {
     });
   } catch (error) {
     console.error("[fileExplorer] Failed to open path in explorer:", error);
+  }
+}
+
+/**
+ * Fetch the HuggingFace model base path and open it in the file explorer.
+ * The backend provides the path through `/api/models/huggingface_base_path`.
+ */
+export async function openHuggingfacePath(): Promise<void> {
+  try {
+    const { data, error } = await client.GET("/api/models/huggingface_base_path", {});
+
+    if (error) {
+      console.error("[fileExplorer] Failed to fetch HuggingFace base path:", error);
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        content: "Could not fetch HuggingFace folder location",
+        dismissable: true
+      });
+      return;
+    }
+
+    const path = typeof data?.path === "string" ? data.path : null;
+    if (!path) {
+      console.warn("[fileExplorer] HuggingFace base path is not available");
+      useNotificationStore.getState().addNotification({
+        type: "warning",
+        content: "HuggingFace folder location not found",
+        dismissable: true
+      });
+      return;
+    }
+
+    await openInExplorer(path);
+  } catch (error) {
+    console.error("[fileExplorer] Failed to open HuggingFace path:", error);
+    useNotificationStore.getState().addNotification({
+      type: "error",
+      content: "Could not open HuggingFace folder",
+      dismissable: true
+    });
+  }
+}
+
+/**
+ * Fetch the Ollama model base path and open it in the file explorer.
+ * The backend provides the path through `/api/models/ollama_base_path`.
+ */
+export async function openOllamaPath(): Promise<void> {
+  try {
+    const { data, error } = await client.GET("/api/models/ollama_base_path", {});
+
+    if (error) {
+      console.error("[fileExplorer] Failed to fetch Ollama base path:", error);
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        content: "Could not fetch Ollama folder location",
+        dismissable: true
+      });
+      return;
+    }
+
+    const path = typeof data?.path === "string" ? data.path : null;
+    if (!path) {
+      console.warn("[fileExplorer] Ollama base path is not available");
+      useNotificationStore.getState().addNotification({
+        type: "warning",
+        content: "Ollama folder location not found",
+        dismissable: true
+      });
+      return;
+    }
+
+    await openInExplorer(path);
+  } catch (error) {
+    console.error("[fileExplorer] Failed to open Ollama path:", error);
+    useNotificationStore.getState().addNotification({
+      type: "error",
+      content: "Could not open Ollama folder",
+      dismissable: true
+    });
   }
 }
 

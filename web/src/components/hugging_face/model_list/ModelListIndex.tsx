@@ -109,8 +109,7 @@ const ModelListIndex: React.FC = () => {
     isLoading,
     isFetching,
     error,
-    handleShowInExplorer,
-    ollamaBasePath
+    handleShowInExplorer
   } = useModels();
 
   const downloadStore = useModelDownloadStore();
@@ -269,7 +268,6 @@ const ModelListIndex: React.FC = () => {
                             : undefined
                         }
                         showModelStats={true}
-                        ollamaBasePath={ollamaBasePath}
                       />
                     </Box>
                   );
