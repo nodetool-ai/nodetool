@@ -475,21 +475,13 @@ nvidia-smi
 2. Install PyTorch with CUDA support first:
 
 ```
-# For CUDA 11.8
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-# For CUDA 12.1-12.3 (most common)
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-
-# For CUDA 12.4+
-uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-```
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
 
 3. Install GPU-dependent packs:
 
 ```
 # Use --extra-index-url to access both PyPI and PyTorch packages
-uv pip install --extra-index-url https://download.pytorch.org/whl/cu121 git+https://github.com/nodetool-ai/nodetool-huggingface
+uv pip install --extra-index-url https://download.pytorch.org/whl/cu126 git+https://github.com/nodetool-ai/nodetool-huggingface
 ```
 
 4. Verify GPU support:
