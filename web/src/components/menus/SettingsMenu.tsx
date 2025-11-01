@@ -27,7 +27,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { client, isLocalhost, isProduction } from "../../stores/ApiClient";
+import { client, isLocalhost } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent, {
   getRemoteSidebarSections as getApiServicesSidebarSections
 } from "./RemoteSettingsMenu";
@@ -915,26 +915,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 "1px solid" + theme.vars.palette.warning.main
                             }}
                           >
-                            {isProduction && (
-                              <>
-                                <FormControl>
-                                  <InputLabel>Nodetool API Token</InputLabel>
-                                </FormControl>
-                                <div className="description">
-                                  <Typography>
-                                    This token is used to authenticate your
-                                    account with the Nodetool API.
-                                  </Typography>
-                                  <div className="secrets">
-                                    <WarningIcon sx={{ color: "#ff9800" }} />
-                                    <Typography component="span">
-                                      Keep this token secure and do not share it
-                                      publicly
-                                    </Typography>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <FormControl>
+                              <InputLabel>Nodetool API Token</InputLabel>
+                            </FormControl>
+                            <div className="description">
+                              <Typography>
+                                This token is used to authenticate your
+                                account with the Nodetool API.
+                              </Typography>
+                              <div className="secrets">
+                                <WarningIcon sx={{ color: "#ff9800" }} />
+                                <Typography component="span">
+                                  Keep this token secure and do not share it
+                                  publicly
+                                </Typography>
+                              </div>
+                            </div>
                             <Tooltip title="Copy to clipboard">
                               <Button
                                 style={{ margin: ".5em 0" }}
@@ -953,13 +949,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </TabPanel>
 
                   <TabPanel value={settingsTab} index={1}>
-                    {!isProduction && <RemoteSettingsMenuComponent />}
+                    <RemoteSettingsMenuComponent />
                   </TabPanel>
                   <TabPanel value={settingsTab} index={2}>
-                    {!isProduction && <FoldersSettings />}
+                    <FoldersSettings />
                   </TabPanel>
                   <TabPanel value={settingsTab} index={3}>
-                    {!isProduction && <SecretsMenu />}
+                    <SecretsMenu />
                   </TabPanel>
                 </div>
               </div>
