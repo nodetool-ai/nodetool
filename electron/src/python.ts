@@ -162,7 +162,7 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     if (process.platform !== "darwin") {
       installCommand.push("--extra-index-url");
-      installCommand.push("https://download.pytorch.org/whl/cu121");
+      installCommand.push("https://download.pytorch.org/whl/cu126");
     }
 
     logMessage(`Running command: ${installCommand.join(" ")}`);
