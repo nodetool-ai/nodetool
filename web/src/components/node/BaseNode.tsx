@@ -23,7 +23,6 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
 import ModelRecommendations from "./ModelRecommendations";
-import { isProduction } from "../../stores/ApiClient";
 import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
@@ -362,7 +361,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       {!isProduction && <ModelRecommendations nodeType={type} />}
-      {!isProduction && <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />}
+      <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <NodeContent
         id={id}
         nodeType={type}
