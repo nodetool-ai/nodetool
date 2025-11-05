@@ -27,7 +27,6 @@ import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 interface SecretFormData {
   key: string;
   value: string;
-  description: string;
 }
 
 const SecretsMenu = () => {
@@ -47,7 +46,6 @@ const SecretsMenu = () => {
   const [formData, setFormData] = useState<SecretFormData>({
     key: "",
     value: "",
-    description: ""
   });
 
   // Use React Query to trigger fetch, but use store state directly
@@ -73,7 +71,6 @@ const SecretsMenu = () => {
       updateSecret(
         editingSecret.key,
         formData.value,
-        formData.description
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
@@ -113,7 +110,7 @@ const SecretsMenu = () => {
   });
 
   const resetForm = () => {
-    setFormData({ key: "", value: "", description: "" });
+    setFormData({ key: "", value: "" });
     setEditingSecret(null);
     setOpenDialog(false);
   };
@@ -123,7 +120,6 @@ const SecretsMenu = () => {
     setFormData({
       key: secret.key,
       value: "",
-      description: secret.description || ""
     });
     setOpenDialog(true);
   };
@@ -270,11 +266,6 @@ const SecretsMenu = () => {
                               {secret.key}
                             </code>
                           </Typography>
-                          {secret.description && (
-                            <Typography className="description">
-                              {secret.description}
-                            </Typography>
-                          )}
                           <Chip
                             label="Not set"
                             size="small"
@@ -382,30 +373,6 @@ const SecretsMenu = () => {
             </Typography>
           </Box>
 
-          <Box>
-            <TextField
-              label="Description (optional)"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              fullWidth
-              placeholder="e.g., My API key for external service"
-              variant="outlined"
-              rows={2}
-              multiline
-            />
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                marginTop: "0.5em",
-                opacity: 0.7
-              }}
-            >
-              Add a note to remember what this secret is used for.
-            </Typography>
-          </Box>
         </DialogContent>
 
         <Divider />
