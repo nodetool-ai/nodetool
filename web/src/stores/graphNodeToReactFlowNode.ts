@@ -8,6 +8,12 @@ export function graphNodeToReactFlowNode(
   node: GraphNode
 ): Node<NodeData> {
   const ui_properties = node.ui_properties as NodeUIProperties;
+  const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
+  
+  // Set default size for Preview nodes if not already set
+  const defaultWidth = isPreviewNode && !ui_properties?.width ? 400 : (ui_properties?.width || DEFAULT_NODE_WIDTH);
+  const defaultHeight = isPreviewNode && !ui_properties?.height ? 300 : ui_properties?.height;
+  
   return {
     type: node.type,
     id: node.id,
@@ -33,8 +39,8 @@ export function graphNodeToReactFlowNode(
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     style: {
-      width: ui_properties?.width || DEFAULT_NODE_WIDTH,
-      height: ui_properties?.height
+      width: defaultWidth,
+      height: defaultHeight
     },
     zIndex:
       node.type == "nodetool.group.Loop" ||
