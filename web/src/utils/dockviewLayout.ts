@@ -37,7 +37,7 @@ export function migrateDockviewLayout(
     };
   }
 
-  // 2) Ensure required panels exist
+  // 2) Ensure required panels exist (templates is optional now)
   next.panels = next.panels || ({} as any);
   const ensurePanel = (panelId: string) => {
     if (!(next.panels as any)[panelId]) {
@@ -48,7 +48,8 @@ export function migrateDockviewLayout(
       };
     }
   };
-  ["templates", "workflows", "recent-chats", "chat"].forEach(ensurePanel);
+  // Only ensure core panels - templates is optional
+  ["workflows", "recent-chats", "chat"].forEach(ensurePanel);
 
   // 3) Walk grid tree and fix view ids to match panels; remap legacy ids
   const panelIds = new Set(Object.keys(next.panels as any));
@@ -62,7 +63,11 @@ export function migrateDockviewLayout(
 
       // Ensure at least one valid view remains
       if (filteredViews.length === 0) {
-        filteredViews.push("templates");
+        // Fallback to workflows if templates doesn't exist
+        const fallbackPanel = panelIds.has("workflows") ? "workflows" : Array.from(panelIds)[0];
+        if (fallbackPanel) {
+          filteredViews.push(fallbackPanel);
+        }
       }
 
       let activeView = updatedViews.includes(node.data.activeView)

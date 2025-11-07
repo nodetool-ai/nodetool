@@ -51,7 +51,6 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import TabsNodeEditor from "./components/editor/TabsNodeEditor";
-import Welcome from "./components/content/Welcome/Welcome";
 import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
@@ -101,16 +100,9 @@ if (isLocalhost) {
 
 const NavigateToStart = () => {
   const { state } = useAuth();
-  const showWelcomeOnStartup = useSettingsStore(
-    (state) => state.settings.showWelcomeOnStartup
-  );
 
   if (isLocalhost) {
-    return showWelcomeOnStartup ? (
-      <Navigate to="/welcome" replace={true} />
-    ) : (
-      <Navigate to="/dashboard" replace={true} />
-    );
+    return <Navigate to="/dashboard" replace={true} />;
   } else if (state === "init") {
     return <div>Loading...</div>;
   } else if (state === "logged_in") {
@@ -137,10 +129,6 @@ function getRoutes() {
           <Dashboard />
         </ProtectedRoute>
       )
-    },
-    {
-      path: "/welcome",
-      element: <Welcome />
     },
     {
       path: "/login",
