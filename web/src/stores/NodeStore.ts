@@ -1002,12 +1002,22 @@ export const createNodeStore = (
             }
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
+            
+            // Set default size for Preview nodes
+            const isPreviewNode = metadata.node_type === "nodetool.workflows.base_node.Preview";
+            const defaultStyle = isPreviewNode
+              ? {
+                  width: 400,
+                  height: 300
+                }
+              : {
+                  width: DEFAULT_NODE_WIDTH
+                };
+            
             return {
               id: nodeId,
               type: metadata.node_type,
-              style: {
-                width: DEFAULT_NODE_WIDTH
-              },
+              style: defaultStyle,
               data: {
                 properties: defaults,
                 collapsed: false,
