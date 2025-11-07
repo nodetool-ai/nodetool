@@ -3,7 +3,6 @@ import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { TTSModel } from "../../stores/ApiTypes";
 import {
   useTTSModelMenuStore,
-  TTS_PROVIDERS,
   type ModelSelectorModel
 } from "../../stores/ModelMenuStore";
 
@@ -35,7 +34,6 @@ export default function TTSModelMenuDialog({
     title: string;
     searchPlaceholder: string;
     storeHook: typeof useTTSModelMenuStore;
-    filterProviders?: string[];
   }>;
 
   return (
@@ -49,7 +47,6 @@ export default function TTSModelMenuDialog({
       title="Select TTS Model"
       searchPlaceholder="Search text-to-speech models..."
       storeHook={useTTSModelMenuStore}
-      filterProviders={TTS_PROVIDERS}
     />
   );
 }

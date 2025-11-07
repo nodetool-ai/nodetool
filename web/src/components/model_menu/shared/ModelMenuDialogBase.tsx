@@ -58,7 +58,6 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   title?: string;
   searchPlaceholder?: string;
   storeHook: ModelMenuStoreHook<TModel>;
-  filterProviders?: string[];
 }
 
 export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
@@ -70,8 +69,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   onModelChange,
   title = "Select Model",
   searchPlaceholder = "Search models...",
-  storeHook,
-  filterProviders
+  storeHook
 }: ModelMenuBaseProps<TModel>) {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
@@ -89,7 +87,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     totalCount,
     filteredCount,
     totalActiveCount
-  } = useModelMenuData<TModel>(models, storeHook, filterProviders);
+  } = useModelMenuData<TModel>(models, storeHook);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);

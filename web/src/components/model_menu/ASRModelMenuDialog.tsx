@@ -3,7 +3,6 @@ import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ASRModel } from "../../stores/ApiTypes";
 import {
   useASRModelMenuStore,
-  ASR_PROVIDERS,
   type ModelSelectorModel
 } from "../../stores/ModelMenuStore";
 
@@ -35,7 +34,6 @@ export default function ASRModelMenuDialog({
     title: string;
     searchPlaceholder: string;
     storeHook: typeof useASRModelMenuStore;
-    filterProviders?: string[];
   }>;
 
   return (
@@ -49,7 +47,6 @@ export default function ASRModelMenuDialog({
       title="Select ASR Model"
       searchPlaceholder="Search speech-to-text models..."
       storeHook={useASRModelMenuStore}
-      filterProviders={ASR_PROVIDERS}
     />
   );
 }

@@ -2,8 +2,7 @@ import React from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel } from "../../stores/ApiTypes";
 import {
-  useImageModelMenuStore,
-  IMAGE_PROVIDERS
+  useImageModelMenuStore
 } from "../../stores/ModelMenuStore";
 
 export interface ImageModelMenuDialogProps {
@@ -34,7 +33,6 @@ export default function ImageModelMenuDialog({
       title="Select Image Model"
       searchPlaceholder="Search image models..."
       storeHook={useImageModelMenuStore}
-      filterProviders={IMAGE_PROVIDERS}
     />
   );
 }

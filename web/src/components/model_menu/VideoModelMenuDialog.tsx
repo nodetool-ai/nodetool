@@ -3,7 +3,6 @@ import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { VideoModel } from "../../stores/ApiTypes";
 import {
   useVideoModelMenuStore,
-  VIDEO_PROVIDERS,
   type ModelSelectorModel
 } from "../../stores/ModelMenuStore";
 
@@ -35,7 +34,6 @@ export default function VideoModelMenuDialog({
     title: string;
     searchPlaceholder: string;
     storeHook: typeof useVideoModelMenuStore;
-    filterProviders?: string[];
   }>;
 
   return (
@@ -49,7 +47,6 @@ export default function VideoModelMenuDialog({
       title="Select Video Model"
       searchPlaceholder="Search text-to-video models..."
       storeHook={useVideoModelMenuStore}
-      filterProviders={VIDEO_PROVIDERS}
     />
   );
 }
