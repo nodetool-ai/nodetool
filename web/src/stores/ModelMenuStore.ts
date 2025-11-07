@@ -61,8 +61,7 @@ export const ALL_PROVIDERS = [
 export const IMAGE_PROVIDERS = ALL_PROVIDERS;
 
 export const computeProvidersList = <TModel extends ModelSelectorModel>(
-  models: TModel[] | undefined,
-  filterProviders?: string[]
+  models: TModel[] | undefined
 ): string[] => {
   const providerCounts = new Map<string, number>();
   (models ?? []).forEach((m) => {
@@ -75,9 +74,7 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
     .map(([provider]) => provider)
     .sort((a, b) => a.localeCompare(b));
 
-  if (filterProviders && filterProviders.length > 0) {
-    list = list.filter((p) => filterProviders.includes(p));
-  }
+  // Provider filtering removed - all providers from API are now shown
 
   return list;
 };
@@ -141,8 +138,7 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
 
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
-  storeHook: ModelMenuStoreHook<TModel>,
-  filterProviders?: string[]
+  storeHook: ModelMenuStoreHook<TModel>
 ) => {
   const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
@@ -152,8 +148,8 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const selectedProvider = storeHook((s) => s.selectedProvider);
 
   const providers = React.useMemo(
-    () => computeProvidersList(models, filterProviders),
-    [models, filterProviders]
+    () => computeProvidersList(models),
+    [models]
   );
 
   const filteredModels = React.useMemo(
@@ -226,8 +222,8 @@ export const createModelMenuSelector = <
   const store = createModelMenuStore<TModel>();
   return {
     useStore: store,
-    useData: (models?: TModel[], filterProviders?: string[]) =>
-      useModelMenuData<TModel>(models, store, filterProviders)
+    useData: (models?: TModel[]) =>
+      useModelMenuData<TModel>(models, store)
   };
 };
 
