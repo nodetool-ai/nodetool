@@ -71,6 +71,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
           supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
           dynamicOutputs={data.dynamic_outputs || {}}
           onAddProperty={handleAddProperty}
+          nodeType={nodeType}
         />
       )}
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
