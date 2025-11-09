@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Add } from "@mui/icons-material";
 import {
   Box,
   TextField,
@@ -10,14 +9,17 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  MenuItem
+  MenuItem,
+  Typography,
+  IconButton
 } from "@mui/material";
-import { IconButton } from "@mui/material";
+import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import { isEqual } from "lodash";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface NodePropertyFormProps {
   id: string;
@@ -26,6 +28,7 @@ interface NodePropertyFormProps {
   dynamicOutputs: Record<string, TypeMetadata>;
   // onAddProperty retained for compatibility but unused; dynamic inputs are created via connections
   onAddProperty: (propertyName: string) => void;
+  nodeType?: string;
 }
 
 const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
@@ -33,7 +36,8 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   isDynamic,
   supportsDynamicOutputs,
   dynamicOutputs,
-  onAddProperty
+  onAddProperty,
+  nodeType
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
@@ -99,14 +103,61 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               top: 0
             })}
           >
-            <Tooltip title="Add output">
-              <IconButton
-                size="small"
-                onClick={() => setShowOutputDialog(true)}
+            {nodeType === "nodetool.agents.Agent" ? (
+              <Tooltip
+                title="Connect any node to this handle to use it as a tool. The agent will be able to call the connected node during execution."
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                placement="top"
               >
-                <Add fontSize="small" />
-              </IconButton>
-            </Tooltip>
+                <Box
+                  component="button"
+                  onClick={() => setShowOutputDialog(true)}
+                  css={css({
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "4px 8px",
+                    marginRight: "8px",
+                    fontSize: theme.vars.fontSizeTiny,
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    borderRadius: "4px",
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)}, ${alpha(theme.palette.primary.dark, 0.1)})`,
+                    color: theme.vars.palette.primary.main,
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.4)}`,
+                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    outline: "none",
+                    "&:hover": {
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.25)}, ${alpha(theme.palette.primary.dark, 0.15)})`,
+                      borderColor: theme.vars.palette.primary.main,
+                      transform: "translateY(-1px)",
+                      boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.2)}`
+                    },
+                    "&:active": {
+                      transform: "translateY(0)"
+                    },
+                    "& svg": {
+                      fontSize: "14px"
+                    }
+                  })}
+                >
+                  <Add fontSize="small" />
+                  <span>Tools</span>
+                </Box>
+              </Tooltip>
+            ) : (
+              <Tooltip title="Add output">
+                <IconButton
+                  size="small"
+                  onClick={() => setShowOutputDialog(true)}
+                >
+                  <Add fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
 
           <Dialog
