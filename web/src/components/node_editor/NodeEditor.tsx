@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import {
   Box,
   CircularProgress,
@@ -29,7 +29,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { isEqual } from "lodash";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { WORKER_URL } from "../../stores/BASE_URL";
@@ -37,6 +37,9 @@ import { useTheme } from "@mui/material/styles";
 import allNodeStyles from "../../node_styles/node-styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
+import CommandMenu from "../menus/CommandMenu";
+import { useCombo } from "../../stores/KeyPressedStore";
+import { isMac } from "../../utils/platform";
 
 declare global {
   interface Window {
@@ -61,6 +64,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     })
   );
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
     packageNameInput,
@@ -73,6 +78,22 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const { state } = useWebsocketRunner((state) => ({
     state: state.state
   }));
+
+  // Undo/Redo for CommandMenu
+  const nodeHistory = useTemporalNodes((state) => state);
+
+  // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
+  const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
+  useCombo(
+    commandMenuCombo,
+    () => {
+      if (active) {
+        setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
 
   // OPEN NODE MENU
   const {
@@ -105,6 +126,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         />
       )}
       <Box
+        ref={reactFlowWrapperRef}
         css={allNodeStyles(theme)}
         className="node-editor"
         style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
@@ -118,6 +140,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         {active && (
           <>
             <NodeMenu focusSearchInput={true} />
+            <CommandMenu
+              open={commandMenuOpen}
+              setOpen={setCommandMenuOpen}
+              undo={() => nodeHistory.undo()}
+              redo={() => nodeHistory.redo()}
+              reactFlowWrapper={reactFlowWrapperRef}
+            />
             <Modal
               open={showShortcuts}
               onClose={(event, reason) => {
