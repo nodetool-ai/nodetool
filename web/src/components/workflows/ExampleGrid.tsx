@@ -206,9 +206,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       "&:hover": {
         border: `1px solid ${"var(--palette-primary-main)"}`,
-        // transform: "translateY(-2px)",
         boxShadow: `0 4px 8px rgba(0, 0, 0, 0.2)`,
-        color: theme.vars.palette.common.white,
         animation: "glowPulse 1.5s infinite"
       },
       fontSize: "0.8rem",
@@ -219,17 +217,12 @@ const styles = (theme: Theme) =>
       }
     },
     ".tag-menu .selected": {
-      background: `linear-gradient(0deg, 
-        ${"var(--palette-secondary-main)"}dd, 
-        ${"var(--palette-primary-main)"}dd
-      )`,
       boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-      color: theme.vars.palette.grey[1000],
       animation: "glowPulse 1.5s infinite",
+      border: `1px solid ${"var(--palette-primary-main)"}`,
       "&:hover": {
         transform: "none",
         boxShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
-        color: theme.vars.palette.grey[1000]
       }
     },
     "@keyframes glowPulse": {
