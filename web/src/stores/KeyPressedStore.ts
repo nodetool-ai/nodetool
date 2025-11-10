@@ -55,7 +55,6 @@ const executeComboCallbacks = (
   }
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
-
   const options = comboCallbacks.get(pressedKeysString);
 
   if (!options?.callback || options.active === false) {
@@ -105,7 +104,13 @@ const executeComboCallbacks = (
       //    Slate editor handles its own shortcuts like Ctrl+B, Ctrl+I locally.
       //    If a global combo (e.g., a global Ctrl+F) is not handled by Slate internally,
       //    this logic will prevent it from firing when Slate (or other inputs) are focused.
-      return; // Suppress other global combos in focused inputs.
+      
+      // Allow copy/paste shortcuts even when inputs are focused (for text copying)
+      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x") {
+        // Allow copy/paste to proceed - they can handle both text and node copying
+      } else {
+        return; // Suppress other global combos in focused inputs.
+      }
     }
     // If we reach here while isInputFocused is true, it means the combo is "shift+enter"
     // (or another combo explicitly designated to run in inputs).
@@ -118,7 +123,29 @@ const executeComboCallbacks = (
   if (options.preventDefault && event) {
     event.preventDefault();
   }
+  
+  // Execute the callback
   options.callback();
+  
+  // After executing a combo, clear non-modifier keys to prevent stuck keys
+  // This is important because keyup events may not fire reliably, especially on macOS
+  // when preventDefault is called or when system shortcuts are involved
+  if (event) {
+    const nonModifierKeys = Array.from(pressedKeys).filter(
+      (key) => !["shift", "control", "alt", "meta"].includes(key)
+    );
+    if (nonModifierKeys.length > 0) {
+      // Clear non-modifier keys after a short delay to allow the combo to complete
+      setTimeout(() => {
+        const keysToClear: Record<string, boolean> = {};
+        nonModifierKeys.forEach((key) => {
+          keysToClear[key] = false;
+        });
+        const { setKeysPressed } = useKeyPressedStore.getState();
+        setKeysPressed(keysToClear);
+      }, 50);
+    }
+  }
 };
 
 type KeyPressedState = {
@@ -267,22 +294,17 @@ const initKeyListeners = () => {
     const { setKeysPressed } = useKeyPressedStore.getState();
     const keysToUpdate: Record<string, boolean> = {};
 
-    // Set the state for the actual key from the event
+    // Track the actual key being pressed/released
     keysToUpdate[normalizedKey] = isPressed;
 
-    // Always update the global state of modifier keys based on the event's properties
+    // Always sync modifier keys from event properties to ensure accuracy
+    // This is important because modifier keys can be pressed/released independently
+    // and we need to track their actual state from the event
     keysToUpdate["shift"] = shiftKey;
     keysToUpdate["control"] = ctrlKey;
     keysToUpdate["alt"] = altKey;
     keysToUpdate["meta"] = metaKey;
 
-    // If a modifier key itself is being released, ensure its specific entry is false
-    if (
-      !isPressed &&
-      ["shift", "control", "alt", "meta"].includes(normalizedKey)
-    ) {
-      keysToUpdate[normalizedKey] = false;
-    }
     setKeysPressed(keysToUpdate, event);
   };
 
