@@ -30,7 +30,6 @@ const tooltipStyles = css`
  */
 const formatTypeString = (typeMetadata: TypeMetadata): string => {
   // Check if it's a union type with exactly 2 type args
-  console.log("typeMetadata", typeMetadata);
   if (
     typeMetadata.type === "union" &&
     typeMetadata.type_args &&
