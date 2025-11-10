@@ -69,7 +69,7 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
     providerCounts.set(provider, (providerCounts.get(provider) ?? 0) + 1);
   });
 
-  let list = Array.from(providerCounts.entries())
+  const list = Array.from(providerCounts.entries())
     .filter(([, count]) => count > 0)
     .map(([provider]) => provider)
     .sort((a, b) => a.localeCompare(b));

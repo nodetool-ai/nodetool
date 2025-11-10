@@ -173,7 +173,12 @@ const resolvePlatformLockFileName = (): string => {
 const getCondaLockFilePath = (): string => {
   const lockFileName = resolvePlatformLockFileName();
 
-  const packagedPath = path.join(process.resourcesPath, lockFileName);
+  const resourcesRoot =
+    typeof process.resourcesPath === "string"
+      ? process.resourcesPath
+      : path.join(__dirname, "..", "resources");
+
+  const packagedPath = path.join(resourcesRoot, lockFileName);
   if (app.isPackaged) {
     if (fs.existsSync(packagedPath)) {
       return packagedPath;
@@ -182,7 +187,7 @@ const getCondaLockFilePath = (): string => {
     logMessage(
       `Expected packaged lock file ${packagedPath} not found. Falling back to ${FALLBACK_LOCK_FILE_NAME}.`
     );
-    return path.join(process.resourcesPath, FALLBACK_LOCK_FILE_NAME);
+    return path.join(resourcesRoot, FALLBACK_LOCK_FILE_NAME);
   }
 
   const devPath = path.join(__dirname, "..", "resources", lockFileName);
@@ -217,12 +222,13 @@ const getSystemDataPath = (filename: string): string => {
     case "darwin":
     case "linux":
       return path.join(homeDir, ".local", "share", "nodetool", filename);
-    case "win32":
+    case "win32": {
       const localAppData = process.env.LOCALAPPDATA;
       if (localAppData) {
         return path.join(localAppData, "nodetool", filename);
       }
       return path.join("data", filename);
+    }
     default:
       return path.join("data", filename);
   }

@@ -239,7 +239,7 @@ const Dashboard: React.FC = () => {
       // to ensure it works even when layouts are loaded
     },
 
-    [settings.showWelcomeOnStartup]
+    []
   );
 
   // Remove automatic debounced saving - layouts should be saved explicitly

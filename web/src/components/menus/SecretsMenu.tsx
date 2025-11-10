@@ -40,7 +40,7 @@ const SecretsMenu = () => {
     deleteSecret
   } = useSecretsStore();
   const { addNotification } = useNotificationStore();
-  const safeSecrets = secrets ?? [];
+  const safeSecrets = useMemo(() => secrets ?? [], [secrets]);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSecret, setEditingSecret] = useState<any | null>(null);
