@@ -3,7 +3,7 @@ import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
 import { components } from "../api";
 
-type SettingWithValue = components["schemas"]["SettingWithValue"];
+export type SettingWithValue = components["schemas"]["SettingWithValue"];
 
 interface RemoteSettingsStore {
   settings: SettingWithValue[];
@@ -12,7 +12,8 @@ interface RemoteSettingsStore {
   error: string | null;
   fetchSettings: () => Promise<SettingWithValue[]>;
   updateSettings: (
-    settings: Record<string, string>
+    settings: Record<string, string>,
+    secrets?: Record<string, string>
   ) => Promise<void>;
   getSettingValue: (envVar: string) => string | undefined;
   setSettingValue: (envVar: string, value: string) => void;
@@ -50,13 +51,14 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   },
 
   updateSettings: async (
-    settings: Record<string, string>
+    settings: Record<string, string>,
+    secrets: Record<string, string> = {}
   ) => {
     set({ isLoading: true, error: null });
     const { error, data } = await client.PUT("/api/settings/", {
       body: {
         settings: settings as Record<string, never>,
-        secrets: {} as Record<string, never>
+        secrets: secrets as Record<string, never>
       }
     });
     if (error) {

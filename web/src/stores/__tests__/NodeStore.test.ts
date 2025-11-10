@@ -78,7 +78,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     the_model_info: {},
     recommended_models: [],
-    basic_fields: []
+    basic_fields: [],
+    is_streaming_output: false
   },
   dynamic_test: {
     node_type: "dynamic_test",
@@ -105,7 +106,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     the_model_info: {},
     recommended_models: [],
-    basic_fields: []
+    basic_fields: [],
+    is_streaming_output: false
   }
 };
 describe("NodeStore node management", () => {

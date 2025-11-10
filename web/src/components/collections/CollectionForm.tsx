@@ -11,7 +11,7 @@ import {
   Typography,
   Tooltip
 } from "@mui/material";
-import { CollectionCreate } from "../../stores/ApiTypes";
+import { CollectionCreate, UnifiedModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
@@ -22,7 +22,7 @@ interface CollectionFormProps {
   onClose: () => void;
 }
 
-const embeddingModels = [
+const embeddingModels: UnifiedModel[] = [
   {
     id: "all-minilm:22m",
     name: "All-MiniLM 22M (recommended)"
@@ -72,7 +72,7 @@ const embeddingModels = [
     name: "Snowflake Arctic Embed 2 568M"
   },
   {
-    id: "granite-embedding:30m  ",
+    id: "granite-embedding:30m",
     name: "Granite Embedding 30M"
   },
   {
@@ -82,8 +82,9 @@ const embeddingModels = [
 ].map((model) => ({
   id: model.id,
   name: model.name,
-  type: "llama_model",
-  repo_id: model.id
+  type: "embedding_model",
+  repo_id: model.id,
+  downloaded: false
 }));
 
 const CollectionForm = ({ onClose }: CollectionFormProps) => {
