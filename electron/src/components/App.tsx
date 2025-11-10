@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from "react";
-import TitleBar from "./TitleBar";
 import BootMessage from "./BootMessage";
 import InstallWizard from "./InstallWizard";
 import LogContainer from "./LogContainer";
@@ -242,8 +241,6 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      <TitleBar />
-
       {showPackageManager && (
         <PackageManager onSkip={handleSkipPackageManager} />
       )}
