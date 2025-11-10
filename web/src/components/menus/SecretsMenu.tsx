@@ -40,6 +40,7 @@ const SecretsMenu = () => {
     deleteSecret
   } = useSecretsStore();
   const { addNotification } = useNotificationStore();
+  const safeSecrets = secrets ?? [];
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSecret, setEditingSecret] = useState<any | null>(null);
@@ -61,10 +62,10 @@ const SecretsMenu = () => {
   // Group secrets by configured/unconfigured status
   // Use store state directly (same as sidebar) to ensure consistency
   const secretsByStatus = useMemo(() => {
-    const configured = secrets.filter((s: any) => s.is_configured);
-    const unconfigured = secrets.filter((s: any) => !s.is_configured);
+    const configured = safeSecrets.filter((s: any) => s.is_configured);
+    const unconfigured = safeSecrets.filter((s: any) => !s.is_configured);
     return { configured, unconfigured };
-  }, [secrets]);
+  }, [safeSecrets]);
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -170,7 +171,7 @@ const SecretsMenu = () => {
               </Typography>
             </div>
 
-            {secrets.length === 0 ? (
+            {safeSecrets.length === 0 ? (
               <Typography sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets available. Contact your administrator to configure available secrets.
               </Typography>
