@@ -10,7 +10,6 @@ import { useAuth } from "../stores/useAuth";
  * by running: npm run openapi (requires backend to be running on port 8000)
  */
 const fetchRunningJobs = async (): Promise<Job[]> => {
-  // @ts-expect-error - /api/jobs/ endpoint may not be in generated api.ts yet
   const { data, error } = await client.GET("/api/jobs/", {
     params: {
       query: {

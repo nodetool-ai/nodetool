@@ -20,9 +20,10 @@ type WorkflowRunnerState = ReturnType<WorkflowRunnerStore["getState"]>;
 type RunWorkflowFn = WorkflowRunnerState["run"];
 
 export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
+  const workflowKey = selectedWorkflow?.id ?? "mini-app-runner";
   const runnerStore = useMemo(() => {
-    return createWorkflowRunnerStore();
-  }, []);
+    return createWorkflowRunnerStore(workflowKey);
+  }, [workflowKey]);
 
   const runWorkflowFromStore = useStore(runnerStore, (state) => state.run);
   const runnerState = useStore(runnerStore, (state) => state.state);

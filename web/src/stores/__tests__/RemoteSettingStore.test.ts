@@ -4,7 +4,7 @@ import * as ApiClient from "../ApiClient";
 
 jest.mock("../ApiClient");
 
-const mockClient = ApiClient.client as jest.Mocked<typeof ApiClient.client>;
+const mockClient = ApiClient.client as any;
 
 describe("RemoteSettingStore", () => {
   beforeEach(() => {

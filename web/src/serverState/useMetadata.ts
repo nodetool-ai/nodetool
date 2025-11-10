@@ -1,5 +1,5 @@
 import { NodeTypes } from "@xyflow/react";
-import { HuggingFaceModel, NodeMetadata } from "../stores/ApiTypes";
+import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
@@ -28,7 +28,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     the_model_info: {},
     recommended_models: [],
     expose_as_tool: false,
-    supports_dynamic_outputs: false
+    supports_dynamic_outputs: false,
+    is_streaming_output: false
   }
 };
 
@@ -54,21 +55,22 @@ export const loadMetadata = async () => {
     defaultMetadata
   );
 
-  const recommendedModels = data.reduce<HuggingFaceModel[]>(
+  const recommendedModels = data.reduce<UnifiedModel[]>(
     (result, md) => [...result, ...md.recommended_models],
     []
   );
 
   // deduplicate by type, repo_id, path
-  const uniqueRecommendedModels = recommendedModels.filter(
-    (model, index, self) =>
-      index ===
-      self.findIndex(
-        (t) =>
-          t.type === model.type &&
-          t.repo_id === model.repo_id &&
-          t.path === model.path
-      )
+  const uniqueRecommendedModels = Array.from(
+    recommendedModels.reduce((acc, model) => {
+      const key = `${model.type ?? ""}:${model.repo_id ?? ""}:${
+        model.path ?? ""
+      }`;
+      if (!acc.has(key)) {
+        acc.set(key, model);
+      }
+      return acc;
+    }, new Map<string, UnifiedModel>()).values()
   );
 
   useMetadataStore.getState().setMetadata(metadataByType);

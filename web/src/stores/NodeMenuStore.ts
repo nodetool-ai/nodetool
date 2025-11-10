@@ -41,7 +41,7 @@ export interface OpenNodeMenuParams {
   selectedPath?: string[];
 }
 
-type NodeMenuStore = {
+export type NodeMenuStore = {
   isMenuOpen: boolean;
   dragToCreate: boolean;
   setDragToCreate: (dragToCreate: boolean) => void;
@@ -514,5 +514,12 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 
 export const useNodeMenuStore = createNodeMenuStore();
 export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
+
+export const __setNodeToolsMenuStore = (
+  state: Partial<NodeMenuStore>,
+  replace?: boolean
+) => {
+  useNodeToolsMenuStore.setState(state, replace);
+};
 
 export default useNodeMenuStore;

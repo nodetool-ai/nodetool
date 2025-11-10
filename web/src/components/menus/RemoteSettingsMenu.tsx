@@ -12,7 +12,9 @@ import {
   InputLabel
 } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import useRemoteSettingsStore, {
+  type SettingWithValue
+} from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -81,10 +83,10 @@ const RemoteSettings = () => {
 
   // Initialize setting values from fetched data or store settings (non-secrets only)
   useMemo(() => {
-    const settingsToUse = data || settings;
+    const settingsToUse: SettingWithValue[] | undefined = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
-      settingsToUse.forEach((setting: any) => {
+      settingsToUse.forEach((setting) => {
         if (!setting.is_secret && setting.value !== null && setting.value !== undefined) {
           values[setting.env_var] = String(setting.value);
         }
@@ -94,17 +96,17 @@ const RemoteSettings = () => {
   }, [data, settings]);
 
   // Use settingsByGroup from store or compute from data
-  const settingsByGroup = useMemo(() => {
+  const settingsByGroup = useMemo<Map<string, SettingWithValue[]>>(() => {
     // First try to use the store's grouped settings
     if (storeSettingsByGroup && storeSettingsByGroup.size > 0) {
       return storeSettingsByGroup;
     }
 
     // Otherwise compute from data
-    if (!data || !Array.isArray(data)) return new Map<string, any[]>();
+    if (!data || !Array.isArray(data)) return new Map<string, SettingWithValue[]>();
 
-    const groups = new Map<string, any[]>();
-    data.forEach((setting: any) => {
+    const groups = new Map<string, SettingWithValue[]>();
+    data.forEach((setting: SettingWithValue) => {
       const group = setting.group || "General";
       if (!groups.has(group)) {
         groups.set(group, []);
@@ -116,17 +118,27 @@ const RemoteSettings = () => {
   }, [data, storeSettingsByGroup]);
 
   const displayedSettingsByGroup = useMemo(() => {
-    if (!settingsByGroup) return new Map<string, any[]>();
+    if (!settingsByGroup || settingsByGroup.size === 0) {
+      return new Map<string, SettingWithValue[]>();
+    }
 
-    const filteredEntries = Array.from(settingsByGroup.entries())
-      .filter(([groupName]) => groupName !== "Folders") // Always exclude "Folders"
-      .map(([groupName, settings]) => [
-        groupName,
-        settings.filter((s) => !s.is_secret) // Filter out secret settings
-      ])
-      .filter(([, settings]) => (settings as any[]).length > 0); // Remove empty groups
+    const filteredEntries: [string, SettingWithValue[]][] = [];
 
-    return new Map(filteredEntries);
+    settingsByGroup.forEach((groupSettings, groupName) => {
+      if (groupName === "Folders") {
+        return;
+      }
+
+      const nonSecretSettings = groupSettings.filter(
+        (setting) => !setting.is_secret
+      );
+
+      if (nonSecretSettings.length > 0) {
+        filteredEntries.push([groupName, nonSecretSettings]);
+      }
+    });
+
+    return new Map<string, SettingWithValue[]>(filteredEntries);
   }, [settingsByGroup]);
 
   const updateSettingsMutation = useMutation({
