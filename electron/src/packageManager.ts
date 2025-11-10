@@ -98,7 +98,7 @@ function canonicalizePackageName(name: string): string {
 }
 
 function stripFileExtension(filename: string): string {
-  let base = filename.replace(/#.*/, "");
+  const base = filename.replace(/#.*/, "");
   if (base.toLowerCase().endsWith(".tar.gz")) {
     return base.slice(0, -7);
   }

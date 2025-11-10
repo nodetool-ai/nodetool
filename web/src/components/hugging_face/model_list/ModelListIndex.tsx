@@ -155,7 +155,7 @@ const ModelListIndex: React.FC = () => {
       }
     });
     return items;
-  }, [selectedModelType, modelTypes, filteredModels, modelSearchTerm]);
+  }, [selectedModelType, modelTypes, filteredModels]);
 
   const getItemSize = useCallback(
     (index: number) => {
