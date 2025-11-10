@@ -1261,11 +1261,17 @@ async function handleWebSocketMessage(
           }));
 
           // Also update current status for live display in status bar
-          if (msg.execution_event_type === "planning_update") {
-            set({ currentPlanningUpdate: msg.content as PlanningUpdate });
-          } else if (msg.execution_event_type === "task_update") {
-            set({ currentTaskUpdate: msg.content as TaskUpdate });
-          }
+            if (msg.execution_event_type === "planning_update") {
+              const content = msg.content;
+              if (content && typeof content === "object" && !Array.isArray(content)) {
+                set({ currentPlanningUpdate: content as PlanningUpdate });
+              }
+            } else if (msg.execution_event_type === "task_update") {
+              const content = msg.content;
+              if (content && typeof content === "object" && !Array.isArray(content)) {
+                set({ currentTaskUpdate: content as TaskUpdate });
+              }
+            }
 
           return;
         }

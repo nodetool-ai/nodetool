@@ -412,10 +412,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
-    const unsubscribe = useSecretsStore.subscribe(
-      (state) => state.secrets,
-      () => setSecretsUpdated({})
-    );
+    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated({}));
     return unsubscribe;
   }, []);
 

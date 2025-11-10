@@ -5,7 +5,7 @@ import * as ApiClient from "../ApiClient";
 // Mock the API client
 jest.mock("../ApiClient");
 
-const mockClient = ApiClient.client as jest.Mocked<typeof ApiClient.client>;
+const mockClient = ApiClient.client as any;
 
 describe("SecretsStore", () => {
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe("SecretsStore", () => {
           updated_at: "2024-01-02T00:00:00Z",
           is_configured: false
         }
-      ];
+      ] as any[];
 
       mockClient.GET.mockResolvedValueOnce({
         error: null,
@@ -67,7 +67,7 @@ describe("SecretsStore", () => {
     });
 
     it("should handle fetch with custom limit", async () => {
-      const mockSecrets = [];
+      const mockSecrets: any[] = [];
       mockClient.GET.mockResolvedValueOnce({
         error: null,
         data: { secrets: mockSecrets, next_key: "next_page_key" }
@@ -208,7 +208,7 @@ describe("SecretsStore", () => {
             created_at: "2024-01-01T00:00:00Z",
             updated_at: "2024-01-01T00:00:00Z",
             is_configured: true
-          }
+          } as any
         ]
       });
 

@@ -5,7 +5,7 @@
  */
 
 import { create } from "zustand";
-import { HuggingFaceModel, NodeMetadata } from "./ApiTypes";
+import { UnifiedModel, NodeMetadata } from "./ApiTypes";
 import { useSettingsStore } from "./SettingsStore";
 import { NodeTypes } from "@xyflow/react";
 
@@ -13,8 +13,8 @@ type MetadataStore = {
   metadata: Record<string, NodeMetadata>;
   setMetadata: (metadata: Record<string, NodeMetadata>) => void;
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
-  recommendedModels: HuggingFaceModel[];
-  setRecommendedModels: (models: HuggingFaceModel[]) => void;
+  recommendedModels: UnifiedModel[];
+  setRecommendedModels: (models: UnifiedModel[]) => void;
   nodeTypes: NodeTypes;
   setNodeTypes: (nodeTypes: NodeTypes) => void;
   addNodeType: (nodeType: string, nodeTypeComponent: any) => void;

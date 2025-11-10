@@ -136,12 +136,13 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
               >
                 <Box className="model-container">
                   {!downloads[repo] && (
-                    <ModelCard
+                  <ModelCard
                       model={{
                         id: repo,
                         name: repo,
                         repo_id: repo,
-                        type: "hf."
+                        type: "hf.",
+                        downloaded: false
                       }}
                       onDownload={() => {
                         startDownload(repo, "hf.model");
@@ -165,13 +166,14 @@ const RequiredModelsDialog: React.FC<RequiredModelsDialogProps> = ({
               >
                 <Box className="model-container">
                   {!downloads[modelId] && (
-                    <ModelCard
+                  <ModelCard
                       model={{
                         id: modelId,
                         name: repoPath.path,
                         repo_id: repoPath.repo_id,
                         path: repoPath.path,
-                        type: "hf."
+                        type: "hf.",
+                        downloaded: false
                       }}
                       onDownload={() => {
                         startDownload(
