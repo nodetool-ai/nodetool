@@ -4,31 +4,24 @@ import type { ImageModel } from "../../stores/ApiTypes";
 import {
   useImageModelMenuStore
 } from "../../stores/ModelMenuStore";
+import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 
 export interface ImageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
-  models?: ImageModel[];
-  isLoading?: boolean;
-  isError?: boolean;
   onModelChange?: (model: ImageModel) => void;
 }
 
 export default function ImageModelMenuDialog({
   open,
   onClose,
-  models,
-  isLoading,
-  isError,
   onModelChange
 }: ImageModelMenuDialogProps) {
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
       onClose={onClose}
-      models={models}
-      isLoading={isLoading}
-      isError={isError}
+      useModelsHook={useImageModelsByProvider}
       onModelChange={onModelChange}
       title="Select Image Model"
       searchPlaceholder="Search image models..."

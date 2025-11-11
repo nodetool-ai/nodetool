@@ -75,6 +75,15 @@ const SecretsMenu = () => {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
+      // Invalidate providers cache when secrets change, as provider availability
+      // depends on having the required secrets configured
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+      // Also invalidate all model queries that depend on providers
+      queryClient.invalidateQueries({ queryKey: ["language-models"] });
+      queryClient.invalidateQueries({ queryKey: ["image-models"] });
+      queryClient.invalidateQueries({ queryKey: ["tts-models"] });
+      queryClient.invalidateQueries({ queryKey: ["asr-models"] });
+      queryClient.invalidateQueries({ queryKey: ["video-models"] });
       addNotification({
         type: "success",
         content: "Secret updated successfully",
@@ -95,6 +104,15 @@ const SecretsMenu = () => {
     mutationFn: (key: string) => deleteSecret(key),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
+      // Invalidate providers cache when secrets change, as provider availability
+      // depends on having the required secrets configured
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+      // Also invalidate all model queries that depend on providers
+      queryClient.invalidateQueries({ queryKey: ["language-models"] });
+      queryClient.invalidateQueries({ queryKey: ["image-models"] });
+      queryClient.invalidateQueries({ queryKey: ["tts-models"] });
+      queryClient.invalidateQueries({ queryKey: ["asr-models"] });
+      queryClient.invalidateQueries({ queryKey: ["video-models"] });
       addNotification({
         type: "success",
         content: "Secret deleted successfully",

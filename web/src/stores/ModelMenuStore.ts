@@ -86,6 +86,23 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
   enabledProviders: EnabledProvidersMap | undefined
 ): TModel[] => {
   let list = models ?? [];
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === "development" && models && models.length > 0) {
+    const providerCounts = new Map<string, number>();
+    models.forEach((m) => {
+      const p = m.provider || "unknown";
+      providerCounts.set(p, (providerCounts.get(p) || 0) + 1);
+    });
+    console.log("filterModelsList:", {
+      inputCount: models.length,
+      selectedProvider,
+      search,
+      enabledProviders,
+      providerCounts: Object.fromEntries(providerCounts)
+    });
+  }
+  
   if (selectedProvider) {
     if (/gemini|google/i.test(selectedProvider)) {
       list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
@@ -94,7 +111,27 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     }
   }
   if (!selectedProvider) {
-    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
+    // Filter by enabled providers: missing key means enabled (default true)
+    // Only filter out if explicitly set to false
+    const beforeFilter = list.length;
+    list = list.filter((m) => {
+      const providerKey = String(m.provider || "");
+      const isEnabled = enabledProviders?.[providerKey] !== false;
+      return isEnabled;
+    });
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === "development" && beforeFilter > 0) {
+      const filteredOut = beforeFilter - list.length;
+      if (filteredOut > 0) {
+        console.log(`filterModelsList: Filtered out ${filteredOut} models by enabledProviders`, {
+          beforeFilter,
+          afterFilter: list.length,
+          enabledProviders,
+          sampleProviders: list.slice(0, 5).map((m) => m.provider)
+        });
+      }
+    }
   }
   const term = search.trim();
   if (term.length > 0) {

@@ -33,11 +33,31 @@ export interface paths {
         };
         /**
          * Openai Models
-         * @description Returns list of models filtered by provider in OpenAI format.
+         * @description Returns list of models in OpenAI format.
          */
         get: operations["openai_models_v1_models_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/secrets/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Secrets
+         * @description Import encrypted secrets (requires shared master key).
+         */
+        post: operations["import_secrets_admin_secrets_import_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -371,6 +391,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Providers Endpoint
+         * @description Get all available providers with their keys and capabilities.
+         */
+        get: operations["get_providers_endpoint_api_models_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/recommended": {
         parameters: {
             query?: never;
@@ -378,8 +418,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Recommended Models */
-        get: operations["recommended_models_api_models_recommended_get"];
+        /** Recommended Models Endpoint */
+        get: operations["recommended_models_endpoint_api_models_recommended_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -395,8 +435,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get All Models */
-        get: operations["get_all_models_api_models_all_get"];
+        /** Get All Models Endpoint */
+        get: operations["get_all_models_endpoint_api_models_all_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -441,15 +481,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/llm": {
+    "/api/models/llm/{provider}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Language Models Endpoint */
-        get: operations["get_language_models_endpoint_api_models_llm_get"];
+        /**
+         * Get Language Models Endpoint
+         * @description Get all available language models from a specific provider.
+         */
+        get: operations["get_language_models_endpoint_api_models_llm__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -458,7 +501,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/image": {
+    "/api/models/image/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -467,9 +510,9 @@ export interface paths {
         };
         /**
          * Get Image Models Endpoint
-         * @description Get all available image generation models from all providers.
+         * @description Get all available image generation models from a specific provider.
          */
-        get: operations["get_image_models_endpoint_api_models_image_get"];
+        get: operations["get_image_models_endpoint_api_models_image__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -478,7 +521,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/tts": {
+    "/api/models/tts/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -487,9 +530,9 @@ export interface paths {
         };
         /**
          * Get Tts Models Endpoint
-         * @description Get all available text-to-speech models from all providers.
+         * @description Get all available text-to-speech models from a specific provider.
          */
-        get: operations["get_tts_models_endpoint_api_models_tts_get"];
+        get: operations["get_tts_models_endpoint_api_models_tts__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -498,7 +541,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/asr": {
+    "/api/models/asr/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -507,9 +550,9 @@ export interface paths {
         };
         /**
          * Get Asr Models Endpoint
-         * @description Get all available automatic speech recognition models from all providers.
+         * @description Get all available automatic speech recognition models from a specific provider.
          */
-        get: operations["get_asr_models_endpoint_api_models_asr_get"];
+        get: operations["get_asr_models_endpoint_api_models_asr__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -518,7 +561,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/video": {
+    "/api/models/video/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -527,9 +570,9 @@ export interface paths {
         };
         /**
          * Get Video Models Endpoint
-         * @description Get all available video generation models from all providers.
+         * @description Get all available video generation models from a specific provider.
          */
-        get: operations["get_video_models_endpoint_api_models_video_get"];
+        get: operations["get_video_models_endpoint_api_models_video__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1214,6 +1257,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_settings__get"];
+        /** Update Settings */
+        put: operations["update_settings_api_settings__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/secrets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Secrets
+         * @description List all possible secrets from the settings registry.
+         *
+         *     For each possible secret, returns:
+         *     - id, user_id, key, description, created_at, updated_at if the user has configured it
+         *     - null values if the secret is not configured
+         *
+         *     Returns metadata only (no decrypted values).
+         */
+        get: operations["list_secrets_api_settings_secrets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/secrets/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Secret
+         * @description Get a specific secret by key.
+         *
+         *     Args:
+         *         key: The secret key.
+         *         decrypt: If True, return the decrypted value. WARNING: Use with caution!
+         *
+         *     Returns:
+         *         Secret metadata and optionally the decrypted value.
+         */
+        get: operations["get_secret_api_settings_secrets__key__get"];
+        /**
+         * Update Secret
+         * @description Update or create a secret.
+         *
+         *     If the secret exists, updates its value and description.
+         *     If the secret does not exist, creates it (only if it's in the settings registry).
+         */
+        put: operations["update_secret_api_settings_secrets__key__put"];
+        post?: never;
+        /**
+         * Delete Secret
+         * @description Delete a secret.
+         */
+        delete: operations["delete_secret_api_settings_secrets__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -1389,81 +1514,6 @@ export interface paths {
          */
         post: operations["upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/settings/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Settings */
-        get: operations["get_settings_api_settings__get"];
-        /** Update Settings */
-        put: operations["update_settings_api_settings__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/settings/secrets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Secrets
-         * @description List all encrypted secrets for the current user.
-         *
-         *     Returns metadata only (no decrypted values).
-         */
-        get: operations["list_secrets_api_settings_secrets_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/settings/secrets/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Secret
-         * @description Get a specific secret by key.
-         *
-         *     Args:
-         *         key: The secret key.
-         *         decrypt: If True, return the decrypted value. WARNING: Use with caution!
-         *
-         *     Returns:
-         *         Secret metadata and optionally the decrypted value.
-         */
-        get: operations["get_secret_api_settings_secrets__key__get"];
-        /**
-         * Update Secret
-         * @description Update an existing secret.
-         */
-        put: operations["update_secret_api_settings_secrets__key__put"];
-        post?: never;
-        /**
-         * Delete Secret
-         * @description Delete a secret.
-         */
-        delete: operations["delete_secret_api_settings_secrets__key__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2096,6 +2146,21 @@ export interface components {
              * @default
              */
             body: string | components["schemas"]["TextRef"];
+        };
+        /** EncryptedSecretPayload */
+        EncryptedSecretPayload: {
+            /** User Id */
+            user_id: string;
+            /** Key */
+            key: string;
+            /** Encrypted Value */
+            encrypted_value: string;
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /**
          * Error
@@ -3579,6 +3644,8 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /** Traceback */
+            traceback?: string | null;
         };
         /** LanguageModel */
         LanguageModel: {
@@ -3702,8 +3769,9 @@ export interface components {
             /**
              * Type
              * @default message
+             * @constant
              */
-            type: string;
+            type: "message";
             /** Id */
             id?: string | null;
             /** Workflow Id */
@@ -3755,8 +3823,9 @@ export interface components {
             /**
              * Type
              * @default message
+             * @constant
              */
-            type: string;
+            type: "message";
             /** Id */
             id?: string | null;
             /** Workflow Id */
@@ -4548,7 +4617,16 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "anthropic" | "replicate" | "ollama" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        /**
+         * ProviderInfo
+         * @description Information about a provider including its key and capabilities.
+         */
+        ProviderInfo: {
+            provider: components["schemas"]["Provider"];
+            /** Capabilities */
+            capabilities: string[];
+        };
         /** RepoPath */
         RepoPath: {
             /** Repo Id */
@@ -4813,17 +4891,22 @@ export interface components {
         /** SecretResponse */
         SecretResponse: {
             /** Id */
-            id: string;
+            id?: string | null;
             /** User Id */
-            user_id: string;
+            user_id?: string | null;
             /** Key */
             key: string;
             /** Description */
             description?: string | null;
             /** Created At */
-            created_at: string;
+            created_at?: string | null;
             /** Updated At */
-            updated_at: string;
+            updated_at?: string | null;
+            /**
+             * Is Configured
+             * @default false
+             */
+            is_configured: boolean;
         };
         /** SecretUpdateRequest */
         SecretUpdateRequest: {
@@ -4849,8 +4932,6 @@ export interface components {
             group: string;
             /** Description */
             description: string;
-            /** Is Secret */
-            is_secret: boolean;
             /** Enum */
             enum?: string[] | null;
             /** Value */
@@ -4901,11 +4982,11 @@ export interface components {
              */
             logs: components["schemas"]["LogEntry"][];
             /**
-             * Max Tool Calls
-             * @description The maximum number of tool calls for the subtask
-             * @default 10
+             * Tools
+             * @description The tools available to the subtask
+             * @default []
              */
-            max_tool_calls: number;
+            tools: string[];
             /**
              * Completed
              * @description Whether the subtask is completed
@@ -4948,6 +5029,23 @@ export interface components {
              * @default
              */
             output_schema: string;
+            /**
+             * Mode
+             * @description Optional execution mode hint (discover/process/aggregate).
+             */
+            mode?: ("discover" | "process" | "aggregate") | null;
+            /**
+             * Item Template
+             * @description The template for the item of the subtask. The template is a string with placeholders for the item. The placeholders are the fields of the item.
+             * @default
+             */
+            item_template: string;
+            /**
+             * Item Output Schema
+             * @description The JSON schema of the output of the item of the subtask.
+             * @default
+             */
+            item_output_schema: string;
         };
         /**
          * SubTaskResult
@@ -5230,7 +5328,7 @@ export interface components {
          * @description Enum for different task update event types.
          * @enum {string}
          */
-        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "max_iterations_reached" | "max_tool_calls_reached" | "subtask_completed" | "subtask_failed" | "task_completed";
+        TaskUpdateEvent: "task_created" | "subtask_started" | "entered_conclusion_stage" | "subtask_completed" | "subtask_failed" | "task_completed";
         /** TextRef */
         TextRef: {
             /**
@@ -5697,6 +5795,41 @@ export interface operations {
             };
         };
     };
+    import_secrets_admin_secrets_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EncryptedSecretPayload"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     index_api_assets__get: {
         parameters: {
             query?: {
@@ -5706,13 +5839,9 @@ export interface operations {
                 page_size?: number | null;
                 duration?: number | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -5739,13 +5868,9 @@ export interface operations {
     create_api_assets__post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: {
             content: {
@@ -5781,13 +5906,9 @@ export interface operations {
                 page_size?: number | null;
                 cursor?: string | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -5897,15 +6018,11 @@ export interface operations {
     get_api_assets__id__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -5932,15 +6049,11 @@ export interface operations {
     update_api_assets__id__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -5971,15 +6084,11 @@ export interface operations {
     delete_api_assets__id__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6006,13 +6115,9 @@ export interface operations {
     download_assets_api_assets_download_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6043,15 +6148,11 @@ export interface operations {
     get_assets_recursive_api_assets__folder_id__recursive_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 folder_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6078,15 +6179,11 @@ export interface operations {
     get_by_filename_api_assets_by_filename__filename__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 filename: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6118,13 +6215,9 @@ export interface operations {
                 cursor?: string | null;
                 limit?: number;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6151,13 +6244,9 @@ export interface operations {
     create_api_messages__post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6188,15 +6277,11 @@ export interface operations {
     get_api_messages__message_id__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 message_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6227,13 +6312,9 @@ export interface operations {
                 limit?: number;
                 reverse?: boolean;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6260,13 +6341,9 @@ export interface operations {
     create_api_threads__post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6297,15 +6374,11 @@ export interface operations {
     get_api_threads__thread_id__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 thread_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6332,15 +6405,11 @@ export interface operations {
     update_api_threads__thread_id__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 thread_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6371,15 +6440,11 @@ export interface operations {
     delete_api_threads__thread_id__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 thread_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6406,15 +6471,11 @@ export interface operations {
     summarize_thread_api_threads__thread_id__summarize_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 thread_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6442,16 +6503,12 @@ export interface operations {
             };
         };
     };
-    recommended_models_api_models_recommended_get: {
+    get_providers_endpoint_api_models_providers_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6461,30 +6518,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UnifiedModel"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ProviderInfo"][];
                 };
             };
         };
     };
-    get_all_models_api_models_all_get: {
+    recommended_models_endpoint_api_models_recommended_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6497,13 +6541,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnifiedModel"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
+        };
+    };
+    get_all_models_endpoint_api_models_all_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["UnifiedModel"][];
                 };
             };
         };
@@ -6511,13 +6566,9 @@ export interface operations {
     get_huggingface_models_api_models_huggingface_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6528,15 +6579,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnifiedModel"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6575,13 +6617,9 @@ export interface operations {
     get_ollama_models_endpoint_api_models_ollama_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6592,15 +6630,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlamaModel"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6636,16 +6665,14 @@ export interface operations {
             };
         };
     };
-    get_language_models_endpoint_api_models_llm_get: {
+    get_language_models_endpoint_api_models_llm__provider__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
             };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6669,16 +6696,14 @@ export interface operations {
             };
         };
     };
-    get_image_models_endpoint_api_models_image_get: {
+    get_image_models_endpoint_api_models_image__provider__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
             };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6702,16 +6727,14 @@ export interface operations {
             };
         };
     };
-    get_tts_models_endpoint_api_models_tts_get: {
+    get_tts_models_endpoint_api_models_tts__provider__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
             };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6735,16 +6758,14 @@ export interface operations {
             };
         };
     };
-    get_asr_models_endpoint_api_models_asr_get: {
+    get_asr_models_endpoint_api_models_asr__provider__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
             };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6768,16 +6789,14 @@ export interface operations {
             };
         };
     };
-    get_video_models_endpoint_api_models_video_get: {
+    get_video_models_endpoint_api_models_video__provider__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
             };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6806,13 +6825,9 @@ export interface operations {
             query: {
                 model_name: string;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6841,13 +6856,9 @@ export interface operations {
     try_cache_files_api_models_huggingface_try_cache_files_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6878,13 +6889,9 @@ export interface operations {
     try_cache_repos_api_models_huggingface_try_cache_repos_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -6915,13 +6922,9 @@ export interface operations {
     get_ollama_base_path_endpoint_api_models_ollama_base_path_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6934,15 +6937,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6950,13 +6944,9 @@ export interface operations {
     get_huggingface_base_path_endpoint_api_models_huggingface_base_path_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -6969,15 +6959,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6987,13 +6968,9 @@ export interface operations {
             query: {
                 model_name: string;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7022,13 +6999,9 @@ export interface operations {
             query: {
                 path: string;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7055,13 +7028,9 @@ export interface operations {
     get_huggingface_file_info_api_models_huggingface_file_info_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -7092,15 +7061,11 @@ export interface operations {
     index_api_models__model_type__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 model_type: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7205,13 +7170,9 @@ export interface operations {
                 columns?: string | null;
                 run_mode?: string | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7241,13 +7202,9 @@ export interface operations {
                 from_example_package?: string | null;
                 from_example_name?: string | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -7345,13 +7302,9 @@ export interface operations {
                 cursor?: string | null;
                 limit?: number;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7461,15 +7414,11 @@ export interface operations {
     get_workflow_api_workflows__id__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7496,15 +7445,11 @@ export interface operations {
     update_workflow_api_workflows__id__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -7535,15 +7480,11 @@ export interface operations {
     delete_workflow_api_workflows__id__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7609,14 +7550,11 @@ export interface operations {
             };
             header?: {
                 authentication?: string | null;
-                authorization?: string | null;
             };
             path: {
                 id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -7678,15 +7616,11 @@ export interface operations {
     update_api_storage__key__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7713,15 +7647,11 @@ export interface operations {
     delete_api_storage__key__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7810,15 +7740,11 @@ export interface operations {
     temp_update_api_storage_temp__key__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7845,15 +7771,11 @@ export interface operations {
     temp_delete_api_storage_temp__key__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -7968,13 +7890,9 @@ export interface operations {
                 limit?: number;
                 start_key?: string | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8001,15 +7919,11 @@ export interface operations {
     get_job_api_jobs__job_id__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8036,13 +7950,9 @@ export interface operations {
     list_running_jobs_api_jobs_running_all_get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8055,356 +7965,18 @@ export interface operations {
                     "application/json": components["schemas"]["BackgroundJobResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     cancel_job_api_jobs__job_id__cancel_post: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_files_api_files_list_get: {
-        parameters: {
-            query?: {
-                path?: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_file_api_files_info_get: {
-        parameters: {
-            query: {
-                path: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_file_api_files_download__path__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                path: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_file_api_files_upload__path__post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                path: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_file_api_files_upload__path__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_workspaces_api_files_workspaces_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_workspace_info_api_files_workspaces__workspace_id__info_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                workspace_id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_workspace_files_api_files_workspaces__workspace_id__list_get: {
-        parameters: {
-            query?: {
-                path?: string;
-            };
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                workspace_id: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileInfo"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                workspace_id: string;
-                file_path: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                workspace_id: string;
-                file_path: string;
-            };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
-            };
-        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8429,13 +8001,9 @@ export interface operations {
     get_settings_api_settings__get: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8448,27 +8016,14 @@ export interface operations {
                     "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     update_settings_api_settings__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -8504,13 +8059,9 @@ export interface operations {
                 limit?: number;
                 start_key?: string | null;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path?: never;
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8539,15 +8090,11 @@ export interface operations {
             query?: {
                 decrypt?: boolean;
             };
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8576,15 +8123,11 @@ export interface operations {
     update_secret_api_settings_secrets__key__put: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -8615,15 +8158,11 @@ export interface operations {
     delete_secret_api_settings_secrets__key__delete: {
         parameters: {
             query?: never;
-            header?: {
-                authorization?: string | null;
-            };
+            header?: never;
             path: {
                 key: string;
             };
-            cookie?: {
-                auth_cookie?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -8636,6 +8175,286 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_files_api_files_list_get: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file_api_files_info_get: {
+        parameters: {
+            query: {
+                path: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_file_api_files_download__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_file_api_files_upload__path__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_file_api_files_upload__path__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspaces_api_files_workspaces_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"][];
+                };
+            };
+        };
+    };
+    get_workspace_info_api_files_workspaces__workspace_id__info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_files_api_files_workspaces__workspace_id__list_get: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_workspace_file_api_files_workspaces__workspace_id__download__file_path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                file_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                file_path: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_workspace_file_api_files_workspaces__workspace_id__upload__file_path__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
