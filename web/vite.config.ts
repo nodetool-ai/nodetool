@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import svgr from "vite-plugin-svgr";
@@ -8,10 +8,39 @@ export default defineConfig(async ({ mode }) => {
     .default;
   const isDebug = mode === "debug";
 
+  const proxyConfig: Record<string, ProxyOptions> = {
+    "/api": {
+      target: "http://localhost:8000",
+      changeOrigin: true,
+      secure: false
+    },
+    "/predict": {
+      target: "http://localhost:8000",
+      ws: true,
+      changeOrigin: true
+    },
+    "/chat": {
+      target: "http://localhost:8000",
+      ws: true,
+      changeOrigin: true
+    },
+    "/hf/download": {
+      target: "http://localhost:8000",
+      ws: true,
+      changeOrigin: true
+    },
+    "/updates": {
+      target: "http://localhost:8000",
+      ws: true,
+      changeOrigin: true
+    }
+  };
+
   return {
     server: {
       allowedHosts: [".nodetool.ai"],
-      port: 3000
+      port: 3000,
+      proxy: proxyConfig
     },
     plugins: [
       react({
@@ -37,5 +66,5 @@ export default defineConfig(async ({ mode }) => {
             }
           })
     }
-  };
+  } satisfies UserConfig;
 });
