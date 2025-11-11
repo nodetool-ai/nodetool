@@ -6,24 +6,103 @@ import { BASE_URL } from "./BASE_URL";
 export { BASE_URL } from "./BASE_URL";
 
 /**
+ * Checks if localhost mode should be forced.
+ * Checks in order: environment variable, query parameter, localStorage.
+ */
+const getForcedLocalhost = (): boolean | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  // Check environment variable (build-time)
+  const envForce = import.meta.env.VITE_FORCE_LOCALHOST;
+  if (envForce === "true" || envForce === "1") {
+    return true;
+  }
+  if (envForce === "false" || envForce === "0") {
+    return false;
+  }
+
+  // Check query parameter (runtime override)
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryForce = urlParams.get("forceLocalhost");
+  if (queryForce === "true" || queryForce === "1") {
+    return true;
+  }
+  if (queryForce === "false" || queryForce === "0") {
+    return false;
+  }
+
+  // Check localStorage (persistent user preference)
+  try {
+    const stored = localStorage.getItem("forceLocalhost");
+    if (stored === "true" || stored === "1") {
+      return true;
+    }
+    if (stored === "false" || stored === "0") {
+      return false;
+    }
+  } catch {
+    // localStorage might not be available
+  }
+
+  return null;
+};
+
+/**
  * Checks if the current hostname indicates a local development environment.
  * Includes common localhost variations and specific local IPs.
+ * Can be overridden via VITE_FORCE_LOCALHOST env var, ?forceLocalhost query param, or localStorage.
  */
-export const isLocalhost =
-  typeof window !== "undefined" &&
-  (window.location.hostname.includes("dev.") ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "192.168.50.225");
+export const isLocalhost = ((): boolean => {
+  const forced = getForcedLocalhost();
+  if (forced !== null) {
+    return forced;
+  }
+
+  // Default behavior: check hostname
+  return (
+    typeof window !== "undefined" &&
+    (window.location.hostname.includes("dev.") ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "192.168.50.225")
+  );
+})();
 
 /** Flag indicating a development environment (synonym for isLocalhost). */
 export const isDevelopment = isLocalhost;
 /** Flag indicating a production environment. */
 export const isProduction = !isLocalhost;
 
+/**
+ * Programmatically set the force localhost preference in localStorage.
+ * This will persist across page reloads.
+ * 
+ * @param force - true to force localhost mode, false to force production mode, null to clear override
+ */
+export const setForceLocalhost = (force: boolean | null): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (force === null) {
+      localStorage.removeItem("forceLocalhost");
+    } else {
+      localStorage.setItem("forceLocalhost", force ? "true" : "false");
+    }
+    // Reload page to apply changes
+    window.location.reload();
+  } catch (error) {
+    log.warn("Failed to set forceLocalhost preference:", error);
+  }
+};
+
 // Expose production status globally for potential debugging or conditional logic
 if (typeof window !== "undefined") {
   (window as any)["isProduction"] = isProduction;
+  (window as any)["isLocalhost"] = isLocalhost;
+  (window as any)["setForceLocalhost"] = setForceLocalhost;
 }
 
 /**
