@@ -7,14 +7,16 @@ import {
   ListItemText,
   ListItemIcon,
   Tooltip,
-  ListSubheader
+  ListSubheader,
+  Box
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import { toTitleCase } from "../../utils/providerDisplay";
+import { toTitleCase, isHuggingFaceLocalProvider } from "../../utils/providerDisplay";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useTheme } from "@mui/material/styles";
 
 const listStyles = css({
   overflowY: "auto",
@@ -41,6 +43,7 @@ function FavoritesList<TModel extends ModelSelectorModel>({
   onSelect
 }: FavoritesListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
+  const theme = useTheme();
   // const secrets = useRemoteSettingsStore((s) => s.secrets);
 
   const availabilityMap = useMemo(() => {
@@ -104,9 +107,29 @@ function FavoritesList<TModel extends ModelSelectorModel>({
             <ListItemText
               primary={m.name}
               secondary={
-                available
-                  ? toTitleCase(m.provider || "")
-                  : `${toTitleCase(m.provider || "")} · Setup required`
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <span>
+                    {available
+                      ? toTitleCase(m.provider || "")
+                      : `${toTitleCase(m.provider || "")} · Setup required`}
+                  </span>
+                  {available && isHuggingFaceLocalProvider(m.provider) && (
+                    <span
+                      style={{
+                        padding: "1px 4px",
+                        fontSize: theme.vars.fontSizeTiny,
+                        lineHeight: 1.1,
+                        borderRadius: 3,
+                        background: "transparent",
+                        color: theme.vars.palette.c_provider_local,
+                        letterSpacing: 0.2,
+                        border: `1px solid ${theme.vars.palette.c_provider_local}`
+                      }}
+                    >
+                      Local
+                    </span>
+                  )}
+                </Box>
               }
               primaryTypographyProps={{
                 noWrap: true,

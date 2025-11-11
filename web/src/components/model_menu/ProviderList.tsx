@@ -24,6 +24,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   isHuggingFaceProvider,
+  isHuggingFaceLocalProvider,
   getProviderBaseName,
   formatGenericProviderName,
   getProviderUrl
@@ -138,13 +139,20 @@ const ProviderList: React.FC<ProviderListProps> = ({
           const available = providerEnabled && hasKey;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
-            let kind: "api" | "local" | "hf" = "api";
-            if (isHuggingFaceProvider(p)) kind = "hf";
-            else if (/ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p))
-              kind = "local";
-            badges.push({
-              label: kind === "hf" ? "HF" : kind === "local" ? "Local" : "API"
-            });
+            const isHF = isHuggingFaceProvider(p);
+            const isHFLocal = isHuggingFaceLocalProvider(p);
+            const isLocal = /ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p);
+            
+            if (isHF) {
+              badges.push({ label: "HF" });
+            }
+            if (isHFLocal || isLocal) {
+              badges.push({ label: "Local" });
+            }
+            if (!isHF && !isLocal && !isHFLocal) {
+              badges.push({ label: "API" });
+            }
+            
             return (
               <Box sx={{ display: "flex", gap: 0.5 }}>
                 {badges.map((b) => {

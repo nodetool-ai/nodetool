@@ -118,6 +118,7 @@ export type PlanningUpdate = components["schemas"]["PlanningUpdate"];
 export type SubTaskResult = components["schemas"]["SubTaskResult-Input"];
 export type InferenceProvider = components["schemas"]["InferenceProvider"];
 export type Provider = components["schemas"]["Provider"];
+export type ProviderInfo = components["schemas"]["ProviderInfo"];
 export type Thread = components["schemas"]["Thread"];
 export type ThreadCreateRequest = components["schemas"]["ThreadCreateRequest"];
 export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
@@ -128,6 +129,7 @@ export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
+
 
 // Job types
 export interface Job {

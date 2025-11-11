@@ -2,47 +2,27 @@ import React from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { VideoModel } from "../../stores/ApiTypes";
 import {
-  useVideoModelMenuStore,
-  type ModelSelectorModel
+  useVideoModelMenuStore
 } from "../../stores/ModelMenuStore";
+import { useVideoModelsByProvider } from "../../hooks/useModelsByProvider";
 
 export interface VideoModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
-  models?: VideoModel[];
-  isLoading?: boolean;
-  isError?: boolean;
   onModelChange?: (model: VideoModel) => void;
 }
 
 export default function VideoModelMenuDialog({
   open,
   onClose,
-  models,
-  isLoading,
-  isError,
   onModelChange
 }: VideoModelMenuDialogProps) {
-  // Type assertion to help TypeScript recognize VideoModel as part of ModelSelectorModel union
-  const DialogComponent = ModelMenuDialogBase as React.ComponentType<{
-    open: boolean;
-    onClose: () => void;
-    models?: VideoModel[];
-    isLoading?: boolean;
-    isError?: boolean;
-    onModelChange?: (model: VideoModel) => void;
-    title: string;
-    searchPlaceholder: string;
-    storeHook: typeof useVideoModelMenuStore;
-  }>;
-
   return (
-    <DialogComponent
+    // @ts-expect-error - TypeScript has trouble inferring VideoModel from hook, but it's correct
+    <ModelMenuDialogBase<VideoModel>
       open={open}
       onClose={onClose}
-      models={models}
-      isLoading={isLoading}
-      isError={isError}
+      useModelsHook={useVideoModelsByProvider as any}
       onModelChange={onModelChange}
       title="Select Video Model"
       searchPlaceholder="Search text-to-video models..."
