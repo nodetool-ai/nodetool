@@ -31,6 +31,7 @@ const IntegerProperty = (props: PropertyProps) => {
         inputType="int"
         hideLabel={props.hideLabel}
         tabIndex={props.tabIndex}
+        zoomAffectsDragging={true}
         onChange={(_, value) => props.onChange(Number(value))}
       />
     </>

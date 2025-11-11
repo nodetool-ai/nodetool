@@ -30,6 +30,7 @@ const FloatProperty = (props: PropertyProps) => {
         inputType="float"
         hideLabel={props.hideLabel}
         tabIndex={props.tabIndex}
+        zoomAffectsDragging={true}
         onChange={(_, value) => props.onChange(Number(value))}
       />
     </>
