@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   List,
   Typography,
@@ -15,6 +15,7 @@ import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
 import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
 import { isLocalhost } from "../../stores/ApiClient";
+import { checkHfCache } from "../../serverState/checkHfCache";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -27,6 +28,49 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const [downloadedMap, setDownloadedMap] = useState<Record<string, boolean>>({});
+
+  // Resolve download state for HF models by checking local cache
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const tasks = recommendedModels
+        .filter((m) => (m.type?.startsWith("hf") ?? false))
+        .map(async (model) => {
+          const id = model.id;
+          const repoId = model.repo_id || model.id;
+          const allowPattern = model.path || model.allow_patterns || null;
+          const ignorePattern = model.ignore_patterns || null;
+          if (!repoId || (!allowPattern && !ignorePattern)) {
+            return { id, downloaded: !!model.downloaded };
+          }
+          try {
+            const res = await checkHfCache({
+              repo_id: repoId,
+              allow_pattern: allowPattern as any,
+              ignore_pattern: ignorePattern as any
+            });
+            return { id, downloaded: res.all_present };
+          } catch {
+            return { id, downloaded: !!model.downloaded };
+          }
+        });
+
+      const results = await Promise.all(tasks);
+      if (cancelled) return;
+      setDownloadedMap((prev) => {
+        const next = { ...prev };
+        for (const r of results) next[r.id] = r.downloaded;
+        return next;
+      });
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [recommendedModels]);
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) return recommendedModels;
@@ -41,6 +85,13 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       return matches;
     });
   }, [recommendedModels, searchQuery]);
+
+  const displayModels = useMemo(() => {
+    return filteredModels.map((m) => ({
+      ...m,
+      downloaded: downloadedMap[m.id] ?? m.downloaded
+    }));
+  }, [filteredModels, downloadedMap]);
 
   if (!recommendedModels) {
     return <div>Loading...</div>;
@@ -91,7 +142,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         />
       </Box>
 
-      {filteredModels.length === 0 ? (
+      {displayModels.length === 0 ? (
         <Typography
           variant="body1"
           sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
@@ -100,7 +151,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         </Typography>
       ) : (
         <List>
-          {filteredModels.map((model) => {
+          {displayModels.map((model) => {
             return (
               <ModelListItem
                 compactView={true}
