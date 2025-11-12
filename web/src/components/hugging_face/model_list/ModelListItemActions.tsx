@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
+import { Button, Tooltip, Chip } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import DeleteButton from "../../buttons/DeleteButton";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -45,9 +45,23 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           Download
         </Button>
       )}
+      {downloaded && (
+        <Tooltip title={handleShowInExplorer ? "Show in Explorer" : "Downloaded"}>
+          <Chip
+            label="Downloaded"
+            color="success"
+            variant="outlined"
+            size="small"
+            icon={<Check fontSize="small" />}
+            sx={{ fontWeight: 600, cursor: handleShowInExplorer ? "pointer" : "default" }}
+            onClick={handleShowInExplorer ? () => handleShowInExplorer!(model.id) : undefined}
+            clickable={!!handleShowInExplorer}
+          />
+        </Tooltip>
+      )}
 
       <div className="model-actions">
-        {handleShowInExplorer && showFileExplorerButton && (
+        {handleShowInExplorer && showFileExplorerButton && !downloaded && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}
             disabled={isOllama ? false : !model.path}
