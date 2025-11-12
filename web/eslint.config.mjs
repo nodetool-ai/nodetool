@@ -29,41 +29,38 @@ export default [
       "jest.config.js",
       "vite.config.ts"
     ],
+  },
+  {
+    files: ["**/*.{ts,tsx,js,jsx}", "**/*.mts"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2021,
       sourceType: "module",
-
       parserOptions: {
         ecmaFeatures: {
           jsx: true
         },
         tsconfigRootDir: __dirname,
-        project: ["./tsconfig.json"]
+        project: null
       }
     },
-
     settings: {
       react: {
-        version: "detect"
+        version: "18.2"
       }
     },
-
     rules: {
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
-
       "react/no-unknown-property": [
         "error",
         {
           ignore: ["css"]
         }
       ],
-
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
-
       "no-console": "off",
       "react/jsx-uses-react": "off",
       "react/jsx-uses-vars": "warn",

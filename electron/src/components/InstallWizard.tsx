@@ -10,7 +10,6 @@ const moduleMapping = {
   huggingface: "nodetool-ai/nodetool-huggingface",
   ml: "nodetool-ai/nodetool-lib-ml",
   mlx: "nodetool-ai/nodetool-mlx",
-  network: "nodetool-ai/nodetool-lib-network",
   replicate: "nodetool-ai/nodetool-replicate",
 } as const;
 
@@ -54,10 +53,6 @@ const packageMeta: Record<
     title: "🔊 Audio Processing",
     description: "Apply audio effects and analyze audio",
   },
-  network: {
-    title: "🌐 Network",
-    description: "HTTP, IMAP and BeautifulSoup",
-  },
   // apple: {
   //   title: "🍎 Apple",
   //   description: "Automation for Apple Notes, Calendar, and more",
@@ -82,7 +77,7 @@ const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
   {
     key: "utilities",
     title: "Utilities",
-    items: ["audio", "network"],
+    items: ["audio"],
   },
   // { key: "integrations", title: "Integrations", items: ["apple", "comfy"] },
 ];

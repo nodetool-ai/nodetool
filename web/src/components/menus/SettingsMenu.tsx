@@ -27,18 +27,22 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { client, isLocalhost, isProduction } from "../../stores/ApiClient";
+import { client, isLocalhost } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent, {
   getRemoteSidebarSections as getApiServicesSidebarSections
 } from "./RemoteSettingsMenu";
 import FoldersSettings, {
   getFoldersSidebarSections
 } from "./FoldersSettingsMenu";
+import SecretsMenu, {
+  getSecretsSidebarSections
+} from "./SecretsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useSecretsStore from "../../stores/SecretsStore";
 
 export const settingsStyles = (theme: Theme): any =>
   css({
@@ -403,7 +407,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
+  const [, setSecretsUpdated] = useState({});
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+
+  // Subscribe to secrets store changes to update sidebar when secrets are modified
+  useEffect(() => {
+    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated({}));
+    return unsubscribe;
+  }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
@@ -594,8 +605,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   aria-label="settings tabs"
                 >
                   <Tab label="General" id="settings-tab-0" />
-                  <Tab label="API Services" id="settings-tab-1" />
+                  <Tab label="API Settings" id="settings-tab-1" />
                   <Tab label="Folders" id="settings-tab-2" />
+                  <Tab label="API Secrets" id="settings-tab-3" />
                 </Tabs>
               </div>
 
@@ -610,6 +622,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       ? getApiServicesSidebarSections()
                       : settingsTab === 2
                       ? getFoldersSidebarSections()
+                      : settingsTab === 3
+                      ? getSecretsSidebarSections()
                       : []
                   }
                   onSectionClick={scrollToSection}
@@ -898,26 +912,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 "1px solid" + theme.vars.palette.warning.main
                             }}
                           >
-                            {isProduction && (
-                              <>
-                                <FormControl>
-                                  <InputLabel>Nodetool API Token</InputLabel>
-                                </FormControl>
-                                <div className="description">
-                                  <Typography>
-                                    This token is used to authenticate your
-                                    account with the Nodetool API.
-                                  </Typography>
-                                  <div className="secrets">
-                                    <WarningIcon sx={{ color: "#ff9800" }} />
-                                    <Typography component="span">
-                                      Keep this token secure and do not share it
-                                      publicly
-                                    </Typography>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <FormControl>
+                              <InputLabel>Nodetool API Token</InputLabel>
+                            </FormControl>
+                            <div className="description">
+                              <Typography>
+                                This token is used to authenticate your
+                                account with the Nodetool API.
+                              </Typography>
+                              <div className="secrets">
+                                <WarningIcon sx={{ color: "#ff9800" }} />
+                                <Typography component="span">
+                                  Keep this token secure and do not share it
+                                  publicly
+                                </Typography>
+                              </div>
+                            </div>
                             <Tooltip title="Copy to clipboard">
                               <Button
                                 style={{ margin: ".5em 0" }}
@@ -936,10 +946,13 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </TabPanel>
 
                   <TabPanel value={settingsTab} index={1}>
-                    {!isProduction && <RemoteSettingsMenuComponent />}
+                    <RemoteSettingsMenuComponent />
                   </TabPanel>
                   <TabPanel value={settingsTab} index={2}>
-                    {!isProduction && <FoldersSettings />}
+                    <FoldersSettings />
+                  </TabPanel>
+                  <TabPanel value={settingsTab} index={3}>
+                    <SecretsMenu />
                   </TabPanel>
                 </div>
               </div>

@@ -29,10 +29,11 @@ export default [
       "dist-web/**/*",
       "jest.config.ts",
       "src/main.tsx",
-      "coverage/**/*",
+      "coverage/**/*"
     ],
   },
   {
+    files: ["**/*.{ts,tsx}", "**/*.mts"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2021,
@@ -43,7 +44,7 @@ export default [
           jsx: true,
         },
         tsconfigRootDir: __dirname,
-        project: ["./tsconfig.json", "./tsconfig.test.json"],
+        project: null,
       },
     },
 
@@ -61,18 +62,26 @@ export default [
     },
   },
   {
-    files: ["**/__tests__/**/*.ts", "**/__mocks__/**/*.ts"],
+    files: ["**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "no-undef": "off",
+      "no-console": "off",
+    },
     languageOptions: {
-      parser: tsParser,
-      ecmaVersion: 2021,
-      sourceType: "module",
-
+      sourceType: "commonjs",
       parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-        tsconfigRootDir: __dirname,
-        project: "./tsconfig.test.json",
+        project: null,
+      },
+      globals: {
+        __dirname: "readonly",
+        __filename: "readonly",
+        module: "readonly",
+        exports: "readonly",
+        require: "readonly",
+        console: "readonly",
+        URL: "readonly",
+        process: "readonly",
       },
     },
   },

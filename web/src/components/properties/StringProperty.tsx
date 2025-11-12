@@ -94,9 +94,13 @@ const StringProperty = ({
               <CopyToClipboardButton textToCopy={value || ""} size="small" />
             </div>
           )}
-          <div className="value-container">
+          <div 
+            className="value-container"
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <TextField
-              className={`string-value-input ${isFocused ? "nowheel" : ""}`}
+              className={`string-value-input nodrag ${isFocused ? "nowheel" : ""}`}
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)
@@ -107,6 +111,12 @@ const StringProperty = ({
               }}
               onBlur={() => {
                 setIsFocused(false);
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
               }}
               tabIndex={tabIndex}
               autoComplete="off"

@@ -31,10 +31,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
 
   const sortedModels = useMemo(() => {
     if (!ollamaModels || ollamaLoading || ollamaIsFetching || ollamaError)
-      return [] as Array<{ id: string; name: string; repo_id: string }>;
+      return [] as Array<{ name: string; repo_id: string }>;
 
     return ollamaModels
-      .map((m) => ({ id: m.id, name: m.name, repo_id: m.repo_id ?? "" }))
+      .map((m) => ({
+        name: m.name,
+        repo_id: m.repo_id ?? m.name
+      }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [ollamaModels, ollamaLoading, ollamaIsFetching, ollamaError]);
 
@@ -129,7 +132,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         ) : (
           sortedModels.map((model) => (
             <MenuItem
-              key={model.id}
+              key={model.repo_id}
               onClick={() => handleModelSelect(model.repo_id)}
               className={`model-item ${
                 value === model.repo_id ? "selected" : ""

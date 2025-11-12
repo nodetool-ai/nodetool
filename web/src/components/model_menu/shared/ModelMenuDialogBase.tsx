@@ -22,6 +22,7 @@ import ModelList from "../ModelList";
 import FavoritesList from "../FavoritesList";
 import RecentList from "../RecentList";
 import ModelMenuFooter from "../ModelMenuFooter";
+import ProviderApiKeyWarningBanner from "./ProviderApiKeyWarningBanner";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
@@ -50,28 +51,34 @@ const containerStyles = css({
 export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   open: boolean;
   onClose: () => void;
-  models?: TModel[];
-  isLoading?: boolean;
-  isError?: boolean;
+  useModelsHook: () => {
+    models: TModel[] | undefined;
+    isLoading: boolean;
+    error: unknown;
+  };
   onModelChange?: (model: TModel) => void;
   title?: string;
   searchPlaceholder?: string;
   storeHook: ModelMenuStoreHook<TModel>;
-  filterProviders?: string[];
 }
+
 
 export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
-  models,
-  isLoading,
-  isError,
+  useModelsHook,
   onModelChange,
   title = "Select Model",
   searchPlaceholder = "Search models...",
-  storeHook,
-  filterProviders
+  storeHook
 }: ModelMenuBaseProps<TModel>) {
+  const {
+    models,
+    isLoading,
+    error: fetchedError
+  } = useModelsHook();
+
+  const isError = !!fetchedError;
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const setSearch = storeHook((s) => s.setSearch);
@@ -79,6 +86,17 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const setActiveSidebarTab = storeHook((s) => s.setActiveSidebarTab);
 
   const [selectedModel, setSelectedModel] = useState<TModel | null>(null);
+
+  // Debug logging in development - log what we receive
+  if (process.env.NODE_ENV === "development" && open) {
+    console.log("ModelMenuDialogBase received:", {
+      modelsProp: models,
+      modelsLength: models?.length ?? 0,
+      modelsType: Array.isArray(models) ? "array" : typeof models,
+      isLoading,
+      isError
+    });
+  }
 
   const {
     providers,
@@ -88,12 +106,14 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     totalCount,
     filteredCount,
     totalActiveCount
-  } = useModelMenuData<TModel>(models, storeHook, filterProviders);
+  } = useModelMenuData<TModel>(models || [], storeHook);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   const families = useModelFiltersStore((s) => s.families);
+  const search = storeHook((s) => s.search);
+  const selectedProvider = storeHook((s) => s.selectedProvider);
 
   const { familiesList } = useMemo(() => {
     const idx = buildMetaIndex(filteredModels.length ? filteredModels : []);
@@ -111,6 +131,24 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     });
     return result;
   }, [filteredModels, selectedTypes, sizeBucket, families]);
+
+  // Debug logging in development
+  if (process.env.NODE_ENV === "development" && open) {
+    console.log("ModelMenuDialogBase:", {
+      modelsCount: models?.length ?? 0,
+      filteredModelsCount: filteredModels.length,
+      filteredModelsAdvancedCount: filteredModelsAdvanced.length,
+      providersCount: providers.length,
+      totalCount,
+      filteredCount,
+      totalActiveCount,
+      selectedProvider,
+      search,
+      selectedTypes,
+      sizeBucket,
+      families
+    });
+  }
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
@@ -196,6 +234,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           marginTop: theme.spacing(4)
         }}
       >
+        <ProviderApiKeyWarningBanner providers={providers} />
         <Box
           sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}
           className="model-menu__controls"

@@ -98,7 +98,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isDynamic }) => {
       `}
     >
       <HandleTooltip
-        type={output.type.type}
+        typeMetadata={output.type}
         paramName={output.name}
         className={classConnectable}
         handlePosition="right"

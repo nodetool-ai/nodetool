@@ -93,9 +93,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       borderBottom: `1px solid ${hexToRgba("#FFFFFF", 0.08)}`,
       backdropFilter: (theme as any).vars?.palette?.glass?.blur || "blur(24px)",
       WebkitBackdropFilter:
-        (theme as any).vars?.palette?.glass?.blur || "blur(24px)",
+        (theme as any).vars?.palette?.glass?.blur || "blur(12px)",
       // Remove top inner highlight to avoid double border effect with wrapper outline
-      boxShadow: `0 10px 24px -18px ${hexToRgba(tint, 0.6)}`,
+      // boxShadow: `0 10px 24px -18px ${hexToRgba(tint, 0.6)}`,
       borderRadius:
         "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0"
     } as React.CSSProperties;

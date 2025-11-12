@@ -6,6 +6,17 @@ export const isHuggingFaceProvider = (provider?: string): boolean => {
   );
 };
 
+/**
+ * Checks if a HuggingFace provider is local (runs models locally).
+ * The provider "huggingface" (without sub-org) is the local provider.
+ */
+export const isHuggingFaceLocalProvider = (provider?: string): boolean => {
+  if (!provider) return false;
+  const normalized = provider.toLowerCase().trim();
+  // "huggingface" without any sub-org suffix is local
+  return normalized === "huggingface";
+};
+
 const insertSpacesBeforeCapitals = (value: string): string => {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 };

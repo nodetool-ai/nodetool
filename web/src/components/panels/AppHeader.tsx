@@ -13,9 +13,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
-import AppsIcon from "@mui/icons-material/Apps";
 import Logo from "../Logo";
-import TitleBar from "../TitleBar";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ModelsButton from "../hugging_face/ModelsButton";
@@ -334,23 +332,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
-  const isWindows =
-    (typeof window !== "undefined" &&
-      (window as any)?.api?.platform === "win32") ||
-    (typeof navigator !== "undefined" &&
-      /Windows/i.test(navigator.userAgent || ""));
-  const isMac =
-    (typeof window !== "undefined" &&
-      (window as any)?.api?.platform === "darwin") ||
-    (typeof navigator !== "undefined" &&
-      /Macintosh|Mac OS X/i.test(navigator.userAgent || ""));
-  const isElectron =
-    typeof window !== "undefined" &&
-    (!!(window as any)?.api?.windowControls ||
-      (typeof navigator !== "undefined" &&
-        /electron/i.test(navigator.userAgent || "")));
-  const applyMacElectronOffset = isElectron && !isWindows && isMac;
-  const macToolbarPadding = applyMacElectronOffset ? 68 : 12;
 
   return (
     <div css={headerStyles} className="app-header">
@@ -358,11 +339,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
         variant="dense"
         className="toolbar"
         tabIndex={-1}
-        style={
-          applyMacElectronOffset
-            ? { paddingLeft: `${macToolbarPadding}px` }
-            : undefined
-        }
       >
         <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
           <div className="logo-container">
@@ -390,7 +366,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
           <RightSideButtons />
-          {isWindows && isElectron ? <TitleBar /> : null}
         </div>
       </Toolbar>
     </div>

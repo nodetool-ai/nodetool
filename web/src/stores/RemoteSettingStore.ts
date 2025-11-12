@@ -3,7 +3,7 @@ import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
 import { components } from "../api";
 
-type SettingWithValue = components["schemas"]["SettingWithValue"];
+export type SettingWithValue = components["schemas"]["SettingWithValue"];
 
 interface RemoteSettingsStore {
   settings: SettingWithValue[];
@@ -13,16 +13,14 @@ interface RemoteSettingsStore {
   fetchSettings: () => Promise<SettingWithValue[]>;
   updateSettings: (
     settings: Record<string, string>,
-    secrets: Record<string, string>
+    secrets?: Record<string, string>
   ) => Promise<void>;
   getSettingValue: (envVar: string) => string | undefined;
   setSettingValue: (envVar: string, value: string) => void;
-  secrets: Record<string, string>;
 }
 
 const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   settings: [],
-  secrets: {},
   settingsByGroup: new Map(),
   isLoading: false,
   error: null,
@@ -35,23 +33,18 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
     // Group settings by their group field
     const settingsByGroup = new Map<string, SettingWithValue[]>();
-    const secrets: Record<string, string> = {};
     data.settings.forEach((setting) => {
       const group = setting.group;
       if (!settingsByGroup.has(group)) {
         settingsByGroup.set(group, []);
       }
       settingsByGroup.get(group)!.push(setting);
-      if (setting.is_secret && setting.value !== null && setting.value !== undefined) {
-        secrets[setting.env_var] = String(setting.value);
-      }
     });
 
     set({
       settings: data.settings,
       settingsByGroup,
-      isLoading: false,
-      secrets
+      isLoading: false
     });
 
     return data.settings;
@@ -59,7 +52,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
   updateSettings: async (
     settings: Record<string, string>,
-    secrets: Record<string, string>
+    secrets: Record<string, string> = {}
   ) => {
     set({ isLoading: true, error: null });
     const { error, data } = await client.PUT("/api/settings/", {

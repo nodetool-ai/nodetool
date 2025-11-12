@@ -7,13 +7,15 @@ import {
   ListItemText,
   ListItemIcon,
   Tooltip,
-  ListSubheader
+  ListSubheader,
+  Box
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import { toTitleCase } from "../../utils/providerDisplay";
+import { toTitleCase, isHuggingFaceLocalProvider } from "../../utils/providerDisplay";
+import { useTheme } from "@mui/material/styles";
 
 const listStyles = css({
   overflowY: "auto",
@@ -40,19 +42,20 @@ function RecentList<TModel extends ModelSelectorModel>({
   onSelect
 }: RecentListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const theme = useTheme();
+  // const secrets = useRemoteSettingsStore((s) => s.secrets);
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
-      const env = requiredSecretForProvider(m.provider);
-      const ok =
-        !env ||
-        Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
-      map[`${m.provider}:${m.id}`] = ok;
+      // const env = requiredSecretForProvider(m.provider);
+      // const ok =
+      //   !env ||
+      //   Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+      map[`${m.provider}:${m.id}`] = true;
     });
     return map;
-  }, [models, secrets]);
+  }, [models]);
 
   if (models.length === 0) return null;
 
@@ -103,9 +106,29 @@ function RecentList<TModel extends ModelSelectorModel>({
             <ListItemText
               primary={m.name}
               secondary={
-                available
-                  ? toTitleCase(m.provider || "")
-                  : `${toTitleCase(m.provider || "")} · Setup required`
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <span>
+                    {available
+                      ? toTitleCase(m.provider || "")
+                      : `${toTitleCase(m.provider || "")} · Setup required`}
+                  </span>
+                  {available && isHuggingFaceLocalProvider(m.provider) && (
+                    <span
+                      style={{
+                        padding: "1px 4px",
+                        fontSize: theme.vars.fontSizeTiny,
+                        lineHeight: 1.1,
+                        borderRadius: 3,
+                        background: "transparent",
+                        color: theme.vars.palette.c_provider_local,
+                        letterSpacing: 0.2,
+                        border: `1px solid ${theme.vars.palette.c_provider_local}`
+                      }}
+                    >
+                      Local
+                    </span>
+                  )}
+                </Box>
               }
               primaryTypographyProps={{
                 noWrap: true,

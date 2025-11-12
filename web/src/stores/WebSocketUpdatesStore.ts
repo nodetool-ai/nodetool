@@ -2,6 +2,22 @@ import { create, StoreApi, UseBoundStore } from "zustand";
 import { SystemStats } from "./ApiTypes";
 import { BASE_URL } from "./BASE_URL";
 
+/**
+ * Helper function to get WebSocket URL from BASE_URL.
+ * When BASE_URL is empty (local dev), uses current origin with ws protocol.
+ */
+const getWebSocketUrl = (path: string): string => {
+  if (BASE_URL) {
+    return BASE_URL.replace(/^http/, "ws") + path;
+  }
+  // When BASE_URL is empty, use current origin with ws protocol
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}${path}`;
+  }
+  return `ws://localhost:3000${path}`;
+};
+
 interface WebSocketUpdatesState {
   systemStats: SystemStats | null;
   socket: WebSocket | null;
@@ -23,7 +39,7 @@ export const createWebSocketUpdatesStore = () =>
         return;
       }
 
-      const socket = new WebSocket(`${BASE_URL.replace("http", "ws")}/updates`);
+      const socket = new WebSocket(getWebSocketUrl("/updates"));
 
       socket.onopen = () => {
         console.log("WebSocket Updates: Connected");

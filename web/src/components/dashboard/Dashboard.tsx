@@ -234,6 +234,9 @@ const Dashboard: React.FC = () => {
       } else {
         applyDockviewLayoutSafely(api, defaultLayout);
       }
+
+      // Note: Welcome panel opening is handled in useEffect below
+      // to ensure it works even when layouts are loaded
     },
 
     []
@@ -262,6 +265,93 @@ const Dashboard: React.FC = () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Ensure welcome panel is shown when showWelcomeOnStartup is enabled
+  useEffect(() => {
+    if (!dockviewApi || !settings.showWelcomeOnStartup) return;
+
+    // Check if welcome panel already exists
+    if (dockviewApi.getPanel("welcome")) return;
+
+    // Small delay to ensure layout is fully applied
+    const timeoutId = setTimeout(() => {
+      if (!dockviewApi) return;
+
+      // Find the first panel to position welcome to its left
+      const panels = dockviewApi.panels;
+      const firstPanel = panels.length > 0 ? panels[0] : null;
+
+      if (firstPanel && firstPanel.id !== "welcome") {
+        // Position welcome panel to the left of the first panel
+        dockviewApi.addPanel({
+          id: "welcome",
+          component: "welcome",
+          title: PANEL_CONFIG.welcome.title,
+          params: {},
+          position: {
+            referencePanel: firstPanel.id,
+            direction: "left"
+          }
+        });
+      } else {
+        // Fallback: add as first panel if no panels exist
+        dockviewApi.addPanel({
+          id: "welcome",
+          component: "welcome",
+          title: PANEL_CONFIG.welcome.title,
+          params: {}
+        });
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [dockviewApi, settings.showWelcomeOnStartup]);
+
+  // Ensure setup panel is shown when showWelcomeOnStartup is enabled
+  useEffect(() => {
+    if (!dockviewApi || !settings.showWelcomeOnStartup) return;
+
+    // Check if setup panel already exists
+    if (dockviewApi.getPanel("setup")) return;
+
+    // Small delay to ensure layout is fully applied
+    const timeoutId = setTimeout(() => {
+      if (!dockviewApi) return;
+
+      // Find the welcome panel or first panel to position setup next to it
+      const welcomePanel = dockviewApi.getPanel("welcome");
+      const panels = dockviewApi.panels;
+      const referencePanel = welcomePanel || (panels.length > 0 ? panels[0] : null);
+
+      if (referencePanel && referencePanel.id !== "setup") {
+        // Position setup panel to the right of the reference panel
+        dockviewApi.addPanel({
+          id: "setup",
+          component: "setup",
+          title: PANEL_CONFIG.setup.title,
+          params: {},
+          position: {
+            referencePanel: referencePanel.id,
+            direction: "right"
+          }
+        });
+      } else {
+        // Fallback: add as first panel if no panels exist
+        dockviewApi.addPanel({
+          id: "setup",
+          component: "setup",
+          title: PANEL_CONFIG.setup.title,
+          params: {}
+        });
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [dockviewApi, settings.showWelcomeOnStartup]);
 
   useEffect(() => {
     if (!dockviewApi) return;
@@ -306,11 +396,54 @@ const Dashboard: React.FC = () => {
   const handleAddPanel = useCallback(
     (panelId: string) => {
       if (!dockviewApi) return;
+      
+      // Position welcome panel to the left of the first panel if it exists
+      if (panelId === "welcome") {
+        const panels = dockviewApi.panels;
+        const firstPanel = panels.length > 0 ? panels[0] : null;
+        
+        if (firstPanel && firstPanel.id !== "welcome") {
+          dockviewApi.addPanel({
+            id: panelId,
+            component: panelId,
+            title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
+            params: panelParams[panelId as keyof typeof panelParams] || {},
+            position: {
+              referencePanel: firstPanel.id,
+              direction: "left"
+            }
+          });
+          return;
+        }
+      }
+      
+      // Position setup panel to the right of welcome panel if it exists, otherwise right of first panel
+      if (panelId === "setup") {
+        const welcomePanel = dockviewApi.getPanel("welcome");
+        const panels = dockviewApi.panels;
+        const referencePanel = welcomePanel || (panels.length > 0 ? panels[0] : null);
+        
+        if (referencePanel && referencePanel.id !== "setup") {
+          dockviewApi.addPanel({
+            id: panelId,
+            component: panelId,
+            title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
+            params: panelParams[panelId as keyof typeof panelParams] || {},
+            position: {
+              referencePanel: referencePanel.id,
+              direction: "right"
+            }
+          });
+          return;
+        }
+      }
+      
+      // Default behavior for other panels
       dockviewApi.addPanel({
         id: panelId,
         component: panelId,
         title: PANEL_CONFIG[panelId as keyof typeof PANEL_CONFIG].title,
-        params: panelParams[panelId as keyof typeof panelParams]
+        params: panelParams[panelId as keyof typeof panelParams] || {}
       });
     },
     [dockviewApi, panelParams]

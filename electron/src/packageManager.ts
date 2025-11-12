@@ -98,7 +98,7 @@ function canonicalizePackageName(name: string): string {
 }
 
 function stripFileExtension(filename: string): string {
-  let base = filename.replace(/#.*/, "");
+  const base = filename.replace(/#.*/, "");
   if (base.toLowerCase().endsWith(".tar.gz")) {
     return base.slice(0, -7);
   }
@@ -616,7 +616,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 
     // Add extra index URL for CUDA packages on non-macOS platforms
     if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu121");
+      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
     }
 
     await runUvCommand(args);
@@ -691,7 +691,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 
     // Add extra index URL for CUDA packages on non-macOS platforms
     if (process.platform !== "darwin") {
-      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu121");
+      args.push("--extra-index-url", "https://download.pytorch.org/whl/cu126");
     }
 
     await runUvCommand(args);

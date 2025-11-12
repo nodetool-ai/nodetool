@@ -83,7 +83,8 @@ const mockNodeMetadata: NodeMetadata = {
   expose_as_tool: false,
   the_model_info: {},
   recommended_models: [],
-  basic_fields: []
+  basic_fields: [],
+  is_streaming_output: false
 };
 
 const mockDynamicNodeMetadata: NodeMetadata = {

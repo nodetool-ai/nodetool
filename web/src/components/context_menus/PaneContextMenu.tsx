@@ -196,12 +196,6 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       />
       <Divider />
       <ContextMenuItem
-        onClick={addAgentNode}
-        label="Add Agent"
-        IconComponent={<SupportAgentIcon />}
-        tooltip="Add an Agent node"
-      />
-      <ContextMenuItem
         onClick={addToolResultNode}
         label="Add Tool Result"
         IconComponent={<DataObjectIcon />}

@@ -191,8 +191,8 @@ const OutputContextMenu: React.FC = () => {
         {
           ...metadata,
           style: {
-            width: "160px",
-            height: "160px"
+            width: "400px",
+            height: "300px"
           }
         },
         position,
