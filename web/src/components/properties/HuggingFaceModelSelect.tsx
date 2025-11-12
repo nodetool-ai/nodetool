@@ -79,20 +79,12 @@ const HuggingFaceModelSelect = ({
           const model = hfModels?.find(
             (m) => m.repo_id === recommendedModel.repo_id
           );
-          if (model) {
-            const modelToCheck = {
+          if (model && model.downloaded) {
+            acc.push({
+              type: modelType,
               repo_id: model.repo_id || "",
-              path: recommendedModel.path || undefined,
-              allow_patterns: recommendedModel.allow_patterns
-            };
-            // Only include models that are downloaded
-            if (model.downloaded) {
-              acc.push({
-                type: modelType,
-                repo_id: model.repo_id || "",
-                path: recommendedModel.path || ""
-              });
-            }
+              path: recommendedModel.path || ""
+            });
           }
           return acc;
         }, [] as HuggingFaceModel[]) || []
