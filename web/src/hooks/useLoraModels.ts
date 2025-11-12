@@ -15,22 +15,36 @@ export const useLoraModels = ({ modelType, enabled = true }: UseLoraModelsParams
     enabled: enabled && modelType.startsWith("hf.lora_sd"),
     queryKey: ["lora-models", modelType],
     queryFn: async () => {
-      const loras = recommendedModels?.filter(
-        (model) => model.type === modelType
+      // Collect LoRA entries from recommendations
+      const loras = (recommendedModels || []).filter((m) => m.type === modelType);
+
+      // Build a deduplicated list of valid repo_id/path pairs
+      const pairs = Array.from(
+        new Map(
+          loras
+            .filter((l) => !!l.repo_id && !!l.path)
+            .map((l) => {
+              const key = `${l.repo_id}:${l.path}`;
+              return [key, { repo_id: l.repo_id!, path: l.path! }];
+            })
+        ).values()
       );
-      const loraPaths = loras?.map((lora) => ({
-        repo_id: lora.repo_id || "",
-        path: lora.path || "",
-        downloaded: false
-      }));
-      const loraModels = await tryCacheFiles(loraPaths || []);
-      return loraModels
-        ?.filter((m) => m.downloaded)
-        .map((lora) => ({
-          type: modelType,
-          repo_id: lora.repo_id,
-          path: lora.path
-        })) as HuggingFaceModel[];
+
+      if (pairs.length === 0) return [] as HuggingFaceModel[];
+
+      const results = await tryCacheFiles(
+        pairs.map((p) => ({ ...p, downloaded: false }))
+      );
+
+      return (
+        results
+          ?.filter((r) => r.downloaded)
+          .map((r) => ({
+            type: modelType,
+            repo_id: r.repo_id,
+            path: r.path
+          })) || []
+      ) as HuggingFaceModel[];
     }
   });
-}; 
+};
