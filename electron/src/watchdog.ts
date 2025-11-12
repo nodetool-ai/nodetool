@@ -30,9 +30,13 @@ export class Watchdog {
 
   async start(): Promise<void> {
     this.stopped = false;
+    logMessage(`${this.opts.name} watchdog: spawning process...`);
     await this.spawnProcess();
+    logMessage(`${this.opts.name} watchdog: process spawned, waiting for health check...`);
     await this.waitUntilHealthy();
+    logMessage(`${this.opts.name} watchdog: health check passed, starting monitor loop...`);
     this.startMonitorLoop();
+    logMessage(`${this.opts.name} watchdog: started successfully`);
   }
 
   async restart(): Promise<void> {
@@ -105,11 +109,46 @@ export class Watchdog {
 
   async waitUntilHealthy(timeoutMs: number = 300000): Promise<void> {
     const start = Date.now();
+    let checkCount = 0;
+    const logInterval = 5000; // Log every 5 seconds
+    let lastLogTime = start;
+    
     while (Date.now() - start < timeoutMs) {
-      if (await this.isHealthy()) return;
+      checkCount++;
+      const healthy = await this.isHealthy();
+      if (healthy) {
+        logMessage(
+          `${this.opts.name} watchdog: health check passed after ${checkCount} attempts (${Date.now() - start}ms)`
+        );
+        return;
+      }
+      
+      // Log progress every 5 seconds
+      const now = Date.now();
+      if (now - lastLogTime >= logInterval) {
+        const elapsed = Math.round((now - start) / 1000);
+        const remaining = Math.round((timeoutMs - (now - start)) / 1000);
+        logMessage(
+          `${this.opts.name} watchdog: waiting for health check... (${elapsed}s elapsed, ${remaining}s remaining, ${checkCount} attempts)`
+        );
+        lastLogTime = now;
+        
+        // Check if process is still alive
+        const pidAlive = await this.isPidAlive();
+        if (!pidAlive) {
+          throw new Error(
+            `${this.opts.name} watchdog: process died before becoming healthy (pid=${this.process?.pid})`
+          );
+        }
+      }
+      
       await new Promise((r) => setTimeout(r, 200));
     }
-    throw new Error(`${this.opts.name} watchdog: health check timed out`);
+    
+    const pidAlive = await this.isPidAlive();
+    throw new Error(
+      `${this.opts.name} watchdog: health check timed out after ${timeoutMs}ms (pidAlive=${pidAlive}, checkCount=${checkCount})`
+    );
   }
 
   private async spawnProcess(): Promise<void> {
@@ -117,6 +156,11 @@ export class Watchdog {
       `${this.opts.name} watchdog: starting: ${
         this.opts.command
       } ${this.opts.args.join(" ")}`
+    );
+    logMessage(
+      `${this.opts.name} watchdog: environment variables: ${JSON.stringify(
+        Object.keys(this.opts.env || {}).slice(0, 10)
+      )}...`
     );
 
     try {
@@ -128,6 +172,10 @@ export class Watchdog {
         windowsHide: true,
       });
     } catch (error) {
+      logMessage(
+        `${this.opts.name} watchdog: spawn failed with error: ${(error as Error).message}`,
+        "error"
+      );
       throw new Error(
         `${this.opts.name} watchdog: failed to spawn: ${
           (error as Error).message
@@ -135,13 +183,35 @@ export class Watchdog {
       );
     }
 
-    this.process.on("spawn", () => {
-      logMessage(
-        `${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`
-      );
-      if (this.process?.pid) {
-        this.writePidFile(this.process.pid).catch(() => {});
-      }
+    // Wait for spawn event or timeout
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(
+          new Error(
+            `${this.opts.name} watchdog: spawn timeout - process did not spawn within 5 seconds`
+          )
+        );
+      }, 5000);
+
+      this.process!.on("spawn", () => {
+        clearTimeout(timeout);
+        logMessage(
+          `${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`
+        );
+        if (this.process?.pid) {
+          this.writePidFile(this.process.pid).catch(() => {});
+        }
+        resolve();
+      });
+
+      this.process!.on("error", (error) => {
+        clearTimeout(timeout);
+        logMessage(
+          `${this.opts.name} watchdog: process error during spawn: ${error.message}`,
+          "error"
+        );
+        reject(error);
+      });
     });
 
     this.process.stdout?.on("data", (buf) => this.handleOutput(buf));

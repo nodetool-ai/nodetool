@@ -30,7 +30,6 @@ import WidgetsIcon from "@mui/icons-material/Widgets";
 import { overviewContents, Section } from "./OverviewContent";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import welcomeStyles from "./Welcome.styles";
-import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import ModelDownloadList from "../../hugging_face/ModelDownloadList";
@@ -149,7 +148,8 @@ const recommendedModels: FeaturedModel[] = [
       "Open‑weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.",
     note: "We strongly recommend this model to enable agentic workflows.",
     reasoning: true,
-    vision: false
+    vision: false,
+    downloaded: false
   },
   {
     id: "gemma3:4b",
@@ -163,7 +163,8 @@ const recommendedModels: FeaturedModel[] = [
     description:
       "Lightweight, multimodal (text, images, short video), long 128K context, designed for single‑GPU/TPU. Ideal for on‑device apps, multimodal QA/summarization, and multilingual use.",
     reasoning: true,
-    vision: true
+    vision: true,
+    downloaded: false
   },
   {
     id: "deepseek-r1:7b",
@@ -177,7 +178,8 @@ const recommendedModels: FeaturedModel[] = [
     description:
       "Compact models distilled from DeepSeek‑R1 with strong math and logic performance in smaller footprints. Great when compute is limited but reasoning quality matters; permissive MIT license.",
     reasoning: true,
-    vision: false
+    vision: false,
+    downloaded: false
   },
   {
     id: "qwen3:4b",
@@ -191,7 +193,8 @@ const recommendedModels: FeaturedModel[] = [
     description:
       "Hybrid reasoning (thinking and fast modes), strong multilingual support. Best for balanced reasoning + speed, agentic workflows, and multilingual apps.",
     reasoning: true,
-    vision: false
+    vision: false,
+    downloaded: false
   },
   {
     id: "nomic-embed-text",
@@ -204,7 +207,8 @@ const recommendedModels: FeaturedModel[] = [
     defaultVariant: "latest",
     description: "Embeddings model for retrieval and semantic search.",
     reasoning: false,
-    vision: false
+    vision: false,
+    downloaded: false
   }
 ];
 
@@ -229,16 +233,8 @@ const Welcome = () => {
     originalContent: section.content
   }));
   const { settings, updateSettings } = useSettingsStore();
-  const { secrets } = useRemoteSettingsStore();
   const theme = useTheme();
-  const hasSetupKeysNow = !!(
-    secrets.OPENAI_API_KEY &&
-    secrets.REPLICATE_API_TOKEN &&
-    secrets.ANTHROPIC_API_KEY
-  );
-  const [tabValue, setTabValue] = useState<TabValue>(
-    hasSetupKeysNow ? TabValue.Overview : TabValue.Setup
-  );
+  const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);

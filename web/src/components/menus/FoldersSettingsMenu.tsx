@@ -93,8 +93,13 @@ const FoldersSettings = () => {
   }, [data, storeSettingsByGroup]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: ({ settings, secrets }: { settings: any; secrets: any }) =>
-      updateSettings(settings, secrets),
+    mutationFn: ({
+      settings,
+      secrets
+    }: {
+      settings: Record<string, string>;
+      secrets: Record<string, string>;
+    }) => updateSettings(settings, secrets),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
     }

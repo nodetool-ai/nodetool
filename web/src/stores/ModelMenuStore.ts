@@ -4,6 +4,7 @@ import Fuse from "fuse.js";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
+import { useSecrets } from "../hooks/useSecrets";
 
 export type SidebarTab = "favorites" | "recent";
 
@@ -30,30 +31,11 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("openai")) return "OPENAI_API_KEY";
   if (p.includes("anthropic")) return "ANTHROPIC_API_KEY";
   if (p.includes("gemini") || p.includes("google")) return "GEMINI_API_KEY";
+  if (p.includes("huggingface") || p.includes("hf_")) return "HF_TOKEN";
   if (p.includes("replicate")) return "REPLICATE_API_TOKEN";
   if (p.includes("fal")) return "FAL_API_KEY";
   if (p.includes("aime")) return "AIME_API_KEY";
-  if (
-    p.includes("llama_cpp") ||
-    p.includes("llama-cpp") ||
-    p.includes("llamacpp")
-  )
-    return null;
   return null;
-};
-
-export const isProviderAvailable = (
-  provider?: string,
-  secrets?: Record<string, string>,
-  enabledProviders?: EnabledProvidersMap
-): boolean => {
-  if (!provider) return false;
-  const p = (provider || "").toLowerCase();
-  const enabled = enabledProviders?.[p] !== false;
-  const env = requiredSecretForProvider(provider);
-  const hasKey =
-    !env || Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
-  return enabled && hasKey;
 };
 
 export const ALL_PROVIDERS = [
@@ -79,8 +61,7 @@ export const ALL_PROVIDERS = [
 export const IMAGE_PROVIDERS = ALL_PROVIDERS;
 
 export const computeProvidersList = <TModel extends ModelSelectorModel>(
-  models: TModel[] | undefined,
-  filterProviders?: string[]
+  models: TModel[] | undefined
 ): string[] => {
   const providerCounts = new Map<string, number>();
   (models ?? []).forEach((m) => {
@@ -88,14 +69,12 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
     providerCounts.set(provider, (providerCounts.get(provider) ?? 0) + 1);
   });
 
-  let list = Array.from(providerCounts.entries())
+  const list = Array.from(providerCounts.entries())
     .filter(([, count]) => count > 0)
     .map(([provider]) => provider)
     .sort((a, b) => a.localeCompare(b));
 
-  if (filterProviders && filterProviders.length > 0) {
-    list = list.filter((p) => filterProviders.includes(p));
-  }
+  // Provider filtering removed - all providers from API are now shown
 
   return list;
 };
@@ -107,6 +86,23 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
   enabledProviders: EnabledProvidersMap | undefined
 ): TModel[] => {
   let list = models ?? [];
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === "development" && models && models.length > 0) {
+    const providerCounts = new Map<string, number>();
+    models.forEach((m) => {
+      const p = m.provider || "unknown";
+      providerCounts.set(p, (providerCounts.get(p) || 0) + 1);
+    });
+    console.log("filterModelsList:", {
+      inputCount: models.length,
+      selectedProvider,
+      search,
+      enabledProviders,
+      providerCounts: Object.fromEntries(providerCounts)
+    });
+  }
+  
   if (selectedProvider) {
     if (/gemini|google/i.test(selectedProvider)) {
       list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
@@ -115,7 +111,27 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
     }
   }
   if (!selectedProvider) {
-    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
+    // Filter by enabled providers: missing key means enabled (default true)
+    // Only filter out if explicitly set to false
+    const beforeFilter = list.length;
+    list = list.filter((m) => {
+      const providerKey = String(m.provider || "");
+      const isEnabled = enabledProviders?.[providerKey] !== false;
+      return isEnabled;
+    });
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === "development" && beforeFilter > 0) {
+      const filteredOut = beforeFilter - list.length;
+      if (filteredOut > 0) {
+        console.log(`filterModelsList: Filtered out ${filteredOut} models by enabledProviders`, {
+          beforeFilter,
+          afterFilter: list.length,
+          enabledProviders,
+          sampleProviders: list.slice(0, 5).map((m) => m.provider)
+        });
+      }
+    }
   }
   const term = search.trim();
   if (term.length > 0) {
@@ -159,10 +175,9 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
 
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
-  storeHook: ModelMenuStoreHook<TModel>,
-  filterProviders?: string[]
+  storeHook: ModelMenuStoreHook<TModel>
 ) => {
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
   const recentsList = useModelPreferencesStore((s) => s.recents);
@@ -170,8 +185,8 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
   const selectedProvider = storeHook((s) => s.selectedProvider);
 
   const providers = React.useMemo(
-    () => computeProvidersList(models, filterProviders),
-    [models, filterProviders]
+    () => computeProvidersList(models),
+    [models]
   );
 
   const filteredModels = React.useMemo(
@@ -204,14 +219,13 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
     const isEnvOk = (p?: string) => {
       const env = requiredSecretForProvider(p);
       if (!env) return true;
-      const v = secrets?.[env];
-      return Boolean(v && String(v).trim().length > 0);
+      return isApiKeySet(env);
     };
     return (
       models?.filter((m) => isEnabled(m.provider) && isEnvOk(m.provider))
         .length ?? 0
     );
-  }, [models, enabledProviders, secrets]);
+  }, [models, enabledProviders, isApiKeySet]);
 
   return {
     models,
@@ -245,8 +259,8 @@ export const createModelMenuSelector = <
   const store = createModelMenuStore<TModel>();
   return {
     useStore: store,
-    useData: (models?: TModel[], filterProviders?: string[]) =>
-      useModelMenuData<TModel>(models, store, filterProviders)
+    useData: (models?: TModel[]) =>
+      useModelMenuData<TModel>(models, store)
   };
 };
 

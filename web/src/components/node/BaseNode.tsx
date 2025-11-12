@@ -23,7 +23,6 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
 import ModelRecommendations from "./ModelRecommendations";
-import { isProduction } from "../../stores/ApiClient";
 import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
@@ -45,6 +44,7 @@ const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
+const isProduction = process.env.NODE_ENV === "production";
 
 const resizer = (
   <div className="node-resizer">
@@ -362,7 +362,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       {!isProduction && <ModelRecommendations nodeType={type} />}
-      {!isProduction && <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />}
+      <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <NodeContent
         id={id}
         nodeType={type}

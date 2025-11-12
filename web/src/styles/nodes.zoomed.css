@@ -4,7 +4,7 @@
 /* Zoomed-out container and simplifications       */
 /* --------------------------------------------- */
 .react-flow.zoomed-out .react-flow__node {
-  background-color: var(--palette-grey-800);
+  background-color: var(--palette-grey-900);
   min-width: 100px;
 }
 

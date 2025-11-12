@@ -14,20 +14,11 @@ export const defaultLayout: SerializedDockview = {
                 {
                   type: "leaf",
                   data: {
-                    views: ["templates"],
-                    activeView: "templates",
-                    id: "2"
-                  },
-                  size: 472
-                },
-                {
-                  type: "leaf",
-                  data: {
                     views: ["workflows"],
                     activeView: "workflows",
                     id: "3"
                   },
-                  size: 472
+                  size: 708
                 },
                 {
                   type: "leaf",
@@ -36,19 +27,10 @@ export const defaultLayout: SerializedDockview = {
                     activeView: "recent-chats",
                     id: "4"
                   },
-                  size: 473
+                  size: 709
                 }
               ],
               size: 1085
-            },
-            {
-              type: "leaf",
-              data: {
-                views: ["chat"],
-                activeView: "chat",
-                id: "1"
-              },
-              size: 120
             }
           ],
           size: 1417
@@ -61,11 +43,6 @@ export const defaultLayout: SerializedDockview = {
     orientation: Orientation.HORIZONTAL
   },
   panels: {
-    templates: {
-      id: "templates",
-      contentComponent: "templates",
-      title: "Templates"
-    },
     workflows: {
       id: "workflows",
       contentComponent: "workflows",
@@ -75,12 +52,7 @@ export const defaultLayout: SerializedDockview = {
       id: "recent-chats",
       contentComponent: "recent-chats",
       title: "Recent Chats"
-    },
-    chat: {
-      id: "chat",
-      contentComponent: "chat",
-      title: "Chat"
     }
   },
-  activeGroup: "1"
+  activeGroup: "3"
 };

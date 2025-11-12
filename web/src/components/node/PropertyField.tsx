@@ -85,7 +85,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           style={{ position: "absolute", left: "0" }}
         >
           <HandleTooltip
-            type={property.type.type}
+            typeMetadata={property.type}
             paramName={property.name}
             className={classConnectable}
             handlePosition="left"

@@ -24,6 +24,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   isHuggingFaceProvider,
+  isHuggingFaceLocalProvider,
   getProviderBaseName,
   formatGenericProviderName,
   getProviderUrl
@@ -34,6 +35,7 @@ import {
   requiredSecretForProvider,
   useLanguageModelMenuStore
 } from "../../stores/ModelMenuStore";
+import { useSecrets } from "../../hooks/useSecrets";
 
 const listStyles = css({
   overflowY: "auto",
@@ -65,7 +67,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const setProviderEnabled = useModelPreferencesStore(
     (s) => s.setProviderEnabled
   );
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const { isApiKeySet } = useSecrets();
   const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
@@ -133,19 +135,24 @@ const ProviderList: React.FC<ProviderListProps> = ({
           const env = requiredSecretForProvider(p);
           const normKey = /gemini|google/i.test(p) ? "gemini" : p;
           const providerEnabled = (enabledProviders || {})[normKey] !== false;
-          const hasKey =
-            !env ||
-            Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
+          const hasKey = env ? isApiKeySet(env) : true;
           const available = providerEnabled && hasKey;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
-            let kind: "api" | "local" | "hf" = "api";
-            if (isHuggingFaceProvider(p)) kind = "hf";
-            else if (/ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p))
-              kind = "local";
-            badges.push({
-              label: kind === "hf" ? "HF" : kind === "local" ? "Local" : "API"
-            });
+            const isHF = isHuggingFaceProvider(p);
+            const isHFLocal = isHuggingFaceLocalProvider(p);
+            const isLocal = /ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p);
+            
+            if (isHF) {
+              badges.push({ label: "HF" });
+            }
+            if (isHFLocal || isLocal) {
+              badges.push({ label: "Local" });
+            }
+            if (!isHF && !isLocal && !isHFLocal) {
+              badges.push({ label: "API" });
+            }
+            
             return (
               <Box sx={{ display: "flex", gap: 0.5 }}>
                 {badges.map((b) => {

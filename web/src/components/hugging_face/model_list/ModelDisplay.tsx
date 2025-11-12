@@ -20,7 +20,7 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
   handleDeleteClick
 }) => {
   const { modelSearchTerm } = useModelManagerStore();
-  const { handleShowInExplorer, ollamaBasePath } = useModels();
+  const { handleShowInExplorer } = useModels();
   const downloadStore = useModelDownloadStore();
 
   // react-window configuration
@@ -75,7 +75,6 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
                   model.downloaded ? handleShowInExplorer : undefined
                 }
                 showModelStats={true}
-                ollamaBasePath={ollamaBasePath}
               />
             </Box>
           );

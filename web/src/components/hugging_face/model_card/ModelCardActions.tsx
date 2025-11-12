@@ -5,7 +5,6 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import DeleteButton from "../../buttons/DeleteButton";
 import { Check } from "@mui/icons-material";
-import { isProduction } from "../../../stores/ApiClient";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme } from "@mui/material/styles";
 import { UnifiedModel } from "../../../stores/ApiTypes";
@@ -64,7 +63,7 @@ const ModelActions: React.FC<{
         )}
       </Box>
 
-      {handleModelDelete && !isProduction && (
+      {handleModelDelete && (
         <DeleteButton
           onClick={() => handleModelDelete(model.id)}
           className="delete-button"

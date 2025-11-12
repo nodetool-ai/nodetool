@@ -62,7 +62,8 @@ describe("ConnectionStore", () => {
     expose_as_tool: false,
     the_model_info: {},
     recommended_models: [],
-    basic_fields: []
+    basic_fields: [],
+    is_streaming_output: false
   });
 
   describe("initial state", () => {

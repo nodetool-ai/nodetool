@@ -245,6 +245,7 @@ async function startServer(): Promise<void> {
   let pythonExecutablePath: string;
   try {
     pythonExecutablePath = getPythonPath();
+    logMessage(`Resolved Python executable: ${pythonExecutablePath}`);
   } catch (error) {
     logMessage(
       `Could not resolve Python executable path. Ensure environment is installed. Error: ${error}`,
@@ -259,7 +260,9 @@ async function startServer(): Promise<void> {
 
   // Attempt to start Ollama, but continue even if it fails
   try {
+    logMessage("Starting Ollama server...");
     await startOllamaServer();
+    logMessage("Ollama server started successfully");
   } catch (error) {
     logMessage(
       `Failed to start Ollama server: ${(error as Error).message}. Continuing without Ollama.`,
@@ -272,9 +275,11 @@ async function startServer(): Promise<void> {
   }
 
   const basePort = 8000;
+  logMessage(`Finding available port starting from ${basePort}...`);
   const selectedPort = await findAvailablePort(basePort);
   serverState.serverPort = selectedPort;
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
+  logMessage(`Selected port: ${selectedPort}`);
 
   const args = [
     "-m",
@@ -288,7 +293,8 @@ async function startServer(): Promise<void> {
     appsPath,
   ];
 
-  logMessage(`Using command: ${pythonExecutablePath} ${args.join(" ")}`);
+  logMessage(`Starting backend server with command: ${pythonExecutablePath} ${args.join(" ")}`);
+  emitBootMessage("Starting backend server...");
 
   backendWatchdog = new Watchdog({
     name: "nodetool",
@@ -303,7 +309,19 @@ async function startServer(): Promise<void> {
     onOutput: (line) => handleServerOutput(Buffer.from(line)),
   });
 
-  await backendWatchdog.start();
+  try {
+    logMessage("Calling watchdog.start() - this will wait for server to become healthy...");
+    await backendWatchdog.start();
+    logMessage("Watchdog.start() completed - server is healthy");
+  } catch (error) {
+    logMessage(
+      `Watchdog failed to start server: ${(error as Error).message}`,
+      "error"
+    );
+    logMessage(`Error stack: ${(error as Error).stack}`, "error");
+    backendWatchdog = null;
+    throw error;
+  }
 }
 
 /**
@@ -402,30 +420,69 @@ async function handleMissingPythonModule(): Promise<void> {
 async function initializeBackendServer(): Promise<void> {
   logMessage("Initializing backend server");
   try {
+    // Quick check: if PID file exists, server might be running - do a fast health check
+    let pidFileExists = false;
     try {
-      const response = await fetch(
-        `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
-      );
-      if (response.ok) {
-        logMessage("Server already running and healthy, connecting...");
-        emitServerStarted();
-        await updateTrayMenu();
-        return;
-      }
-    } catch (error) {
-      logMessage("Health check failed, proceeding with server startup");
+      await fs.access(PID_FILE_PATH);
+      pidFileExists = true;
+    } catch {
+      // PID file doesn't exist, server definitely not running - skip HTTP check
     }
 
+    if (pidFileExists) {
+      // PID file exists, do a quick health check (500ms timeout for fast failure)
+      try {
+        logMessage(`PID file found, checking if server is healthy on port ${serverState.serverPort ?? 8000}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for fast startup
+        
+        try {
+          const response = await fetch(
+            `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`,
+            { signal: controller.signal }
+          );
+          clearTimeout(timeoutId);
+          if (response.ok) {
+            logMessage("Server already running and healthy, connecting...");
+            emitServerStarted();
+            await updateTrayMenu();
+            return;
+          }
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            logMessage("Health check timed out (server may have crashed), proceeding with server startup");
+          } else {
+            logMessage(`Health check failed: ${fetchError.message}, proceeding with server startup`);
+          }
+        }
+      } catch (error) {
+        logMessage("Health check failed, proceeding with server startup");
+      }
+    } else {
+      logMessage("No PID file found, server not running - skipping health check");
+    }
+
+    // Check if watchdog thinks server is running
     if (await isServerRunning()) {
-      logMessage("Server already running, connecting...");
+      logMessage("Watchdog indicates server is running, waiting for health check...");
       await waitForServer();
       return;
     }
 
+    logMessage("No existing server found, starting new server...");
     await killExistingServer();
+    logMessage("Starting server process...");
     await startServer();
+    logMessage("Server process started, waiting for health check...");
     await waitForServer();
+    logMessage("Backend server initialization complete");
   } catch (error) {
+    logMessage(
+      `Critical error starting server: ${(error as Error).message}`,
+      "error"
+    );
+    logMessage(`Error stack: ${(error as Error).stack}`, "error");
     forceQuit(`Critical error starting server: ${(error as Error).message}`);
   }
 }
@@ -439,21 +496,35 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`
-      );
-      if (response.ok) {
-        logMessage(
-          `Server endpoint is available at http://127.0.0.1:${
-            serverState.serverPort ?? 8000
-          }/health`
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout per request (faster polling)
+      
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:${serverState.serverPort ?? 8000}/health`,
+          { signal: controller.signal }
         );
-        emitServerStarted();
-        return;
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          logMessage(
+            `Server endpoint is available at http://127.0.0.1:${
+              serverState.serverPort ?? 8000
+            }/health`
+          );
+          emitServerStarted();
+          return;
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name !== 'AbortError') {
+          // Only log non-timeout errors
+          logMessage(`Health check error: ${fetchError.message}`);
+        }
       }
     } catch (error) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Fallback error handling
     }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error("Server failed to become available");
 }

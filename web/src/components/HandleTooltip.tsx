@@ -5,6 +5,7 @@ import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
+import { TypeMetadata } from "../stores/ApiTypes";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
@@ -23,8 +24,31 @@ const tooltipStyles = css`
   }
 `;
 
+/**
+ * Checks if a TypeMetadata is a union of float and int (in any order)
+ * and returns "number" if so, otherwise returns the formatted type string.
+ */
+const formatTypeString = (typeMetadata: TypeMetadata): string => {
+  // Check if it's a union type with exactly 2 type args
+  if (
+    typeMetadata.type === "union" &&
+    typeMetadata.type_args &&
+    typeMetadata.type_args.length === 2
+  ) {
+    const typeArgs = typeMetadata.type_args;
+    const types = [typeArgs[0].type, typeArgs[1].type].sort();
+    
+    // Check if it's a union of float and int (in any order)
+    if (types[0] === "float" && types[1] === "int") {
+      return "number";
+    }
+  }
+  
+  return typeToString(typeMetadata);
+};
+
 type HandleTooltipProps = {
-  type: string;
+  typeMetadata: TypeMetadata;
   paramName: string;
   className?: string;
   children: React.ReactNode;
@@ -32,7 +56,7 @@ type HandleTooltipProps = {
 };
 
 const HandleTooltip = memo(function HandleTooltip({
-  type,
+  typeMetadata,
   paramName,
   className = "",
   children,
@@ -57,6 +81,11 @@ const HandleTooltip = memo(function HandleTooltip({
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+  
+  const displayType = formatTypeString(typeMetadata);
+  // Use "float" for color when displaying "number" (float|int union), 
+  // since both float and int use the same color
+  const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
@@ -95,8 +124,8 @@ const HandleTooltip = memo(function HandleTooltip({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colorForType(type),
-          color: textColorForType(type),
+          backgroundColor: colorForType(typeString),
+          color: textColorForType(typeString),
           borderRadius: ".5em",
           textAlign: "center",
           padding: "0.4em",
@@ -134,7 +163,7 @@ const HandleTooltip = memo(function HandleTooltip({
             lineHeight: 1
           }}
         >
-          {typeToString({ type, optional: false, type_args: [] })}
+          {displayType}
         </div>
       </div>
     </div>

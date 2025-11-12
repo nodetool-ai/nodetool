@@ -18,10 +18,10 @@ import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
   toTitleCase,
-  formatGenericProviderName
+  formatGenericProviderName,
+  isHuggingFaceLocalProvider
 } from "../../utils/providerDisplay";
 import {
-  isProviderAvailable,
   requiredSecretForProvider,
   ModelSelectorModel,
   useLanguageModelMenuStore
@@ -32,6 +32,7 @@ import {
   FixedSizeList as VirtualList,
   ListChildComponentProps
 } from "react-window";
+import { useSecrets } from "../../hooks/useSecrets";
 
 const listStyles = css({
   overflowY: "auto",
@@ -50,9 +51,17 @@ function ModelList<TModel extends ModelSelectorModel>({
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
-  const secrets = useRemoteSettingsStore((s) => s.secrets);
+  const { isApiKeySet } = useSecrets();
   const theme = useTheme();
   const searchTerm = useLanguageModelMenuStore((s) => s.search);
+
+  // Debug logging in development
+  if (process.env.NODE_ENV === "development") {
+    console.log("ModelList:", {
+      modelsCount: models.length,
+      firstModel: models[0] ? { id: models[0].id, name: models[0].name, provider: models[0].provider } : null
+    });
+  }
 
   const renderRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
@@ -63,9 +72,7 @@ function ModelList<TModel extends ModelSelectorModel>({
         ? "gemini"
         : m.provider || "";
       const providerEnabled = enabledProviders?.[normKey] !== false;
-      const hasKey = env
-        ? Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0)
-        : true;
+      const hasKey = env ? isApiKeySet(env) : true;
       const available = providerEnabled && hasKey;
       const tooltipTitle =
         !providerEnabled && !hasKey
@@ -91,11 +98,31 @@ function ModelList<TModel extends ModelSelectorModel>({
               <ListItemText
                 primary={m.name}
                 secondary={
-                  available
-                    ? formatGenericProviderName(m.provider || "")
-                    : `${toTitleCase(
-                        m.provider || ""
-                      )} · Activate provider & setup`
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <span>
+                      {available
+                        ? formatGenericProviderName(m.provider || "")
+                        : `${toTitleCase(
+                            m.provider || ""
+                          )} · Activate provider & setup`}
+                    </span>
+                    {available && isHuggingFaceLocalProvider(m.provider) && (
+                      <span
+                        style={{
+                          padding: "1px 4px",
+                          fontSize: theme.vars.fontSizeTiny,
+                          lineHeight: 1.1,
+                          borderRadius: 3,
+                          background: "transparent",
+                          color: theme.vars.palette.c_provider_local,
+                          letterSpacing: 0.2,
+                          border: `1px solid ${theme.vars.palette.c_provider_local}`
+                        }}
+                      >
+                        Local
+                      </span>
+                    )}
+                  </Box>
                 }
                 primaryTypographyProps={{
                   noWrap: true,
@@ -112,7 +139,7 @@ function ModelList<TModel extends ModelSelectorModel>({
         </div>
       );
     },
-    [models, isFavorite, enabledProviders, secrets, onSelect]
+    [models, isFavorite, enabledProviders, isApiKeySet, onSelect]
   );
 
   return (

@@ -62,14 +62,20 @@ export function migrateDockviewLayout(
 
       // Ensure at least one valid view remains
       if (filteredViews.length === 0) {
-        filteredViews.push("templates");
+        const fallbackPanel =
+          ["templates", "workflows"].find((panelId) => panelIds.has(panelId)) ||
+          Array.from(panelIds)[0];
+        if (fallbackPanel) {
+          filteredViews.push(fallbackPanel);
+        }
       }
 
-      let activeView = updatedViews.includes(node.data.activeView)
-        ? node.data.activeView
-        : filteredViews[0];
-      if (!panelIds.has(activeView)) {
-        activeView = filteredViews[0];
+      let activeView =
+        updatedViews.includes(node.data.activeView) && panelIds.has(node.data.activeView)
+          ? node.data.activeView
+          : filteredViews[0];
+      if (!activeView && filteredViews.length > 0) {
+        [activeView] = filteredViews;
       }
 
       return {

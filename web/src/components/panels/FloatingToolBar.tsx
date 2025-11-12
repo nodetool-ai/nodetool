@@ -34,7 +34,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import LaunchIcon from "@mui/icons-material/Launch";
+import AppsIcon from "@mui/icons-material/Apps";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -134,14 +134,54 @@ const styles = (theme: Theme) =>
         boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px var(--palette-primary-main)30`,
         transform: "scale(1.06)"
       },
-      // lean on base shine overlay
-      "&::before": {},
       "&.running": {
-        animation:
-          "pulse-glow 1.8s ease-in-out infinite, theme-shift 6s ease infinite",
-        background: `radial-gradient(circle at center, ${theme.vars.palette.primary.dark} 0%, ${theme.vars.palette.primary.light} 100%)`,
-        boxShadow:
-          "0 0 18px var(--palette-primary-main)60, 0 0 36px var(--palette-secondary-main)40, inset 0 0 12px var(--palette-primary-main)40"
+        position: "relative",
+        overflow: "hidden",
+        background: `radial-gradient(circle at 50% 50%, ${theme.vars.palette.primary.light} 0%, ${theme.vars.palette.primary.main} 40%, ${theme.vars.palette.primary.dark} 100%) !important`,
+        boxShadow: `
+          0 0 30px ${theme.vars.palette.primary.main}80,
+          0 0 50px ${theme.vars.palette.primary.main}40,
+          inset 0 -15px 30px ${theme.vars.palette.primary.dark}60,
+          inset 0 -5px 15px ${theme.vars.palette.primary.dark}80,
+          inset 0 15px 30px ${theme.vars.palette.primary.light}30
+        `,
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: "10%",
+          left: "15%",
+          right: "40%",
+          height: "35%",
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
+          filter: "blur(3px)",
+          pointerEvents: "none",
+          zIndex: 3,
+          animation: "highlight-shift 4s ease-in-out infinite !important"
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          borderRadius: "50%",
+          background: `conic-gradient(from 0deg at 50% 50%,
+            ${theme.vars.palette.primary.light} 0deg,
+            ${theme.vars.palette.secondary.light} 90deg,
+            ${theme.vars.palette.primary.main} 180deg,
+            ${theme.vars.palette.secondary.main} 270deg,
+            ${theme.vars.palette.primary.light} 360deg)`,
+          animation: "energy-swirl 3s linear infinite !important",
+          pointerEvents: "none",
+          opacity: 0.5,
+          mixBlendMode: "overlay",
+          zIndex: 1
+        },
+        "& .MuiSvgIcon-root": {
+          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+          position: "relative",
+          zIndex: 10,
+          transform: "none !important"
+        }
       }
     },
 
@@ -190,9 +230,112 @@ const styles = (theme: Theme) =>
       }
     },
 
+    /* Mini app button: vibrant inviting color */
+    ".floating-action-button.mini-app": {
+      backgroundColor: "#00BCD4",
+      color: "#0b1220",
+      borderColor: "#00BCD4",
+      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)`,
+      filter: "saturate(1.1)",
+      "&:hover": {
+        backgroundColor: "#00ACC1",
+        borderColor: "#00ACC1",
+        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
+        transform: "scale(1.06)"
+      },
+      "&::before": {}
+    },
+
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },
       "100%": { transform: "rotate(360deg)" }
+    },
+    "@keyframes core-pulse": {
+      "0%": {
+        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+      },
+      "50%": {
+        boxShadow: "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
+      },
+      "100%": {
+        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+      }
+    },
+    "@keyframes glass-ball-pulse": {
+      "0%": {
+        boxShadow: `
+          0 0 30px var(--palette-primary-main)80,
+          0 0 50px var(--palette-primary-main)40,
+          inset 0 -15px 30px var(--palette-primary-dark)60,
+          inset 0 -5px 15px var(--palette-primary-dark)80,
+          inset 0 15px 30px var(--palette-primary-light)30
+        `
+      },
+      "50%": {
+        boxShadow: `
+          0 0 40px var(--palette-primary-main)100,
+          0 0 70px var(--palette-primary-main)60,
+          inset 0 -20px 40px var(--palette-primary-dark)80,
+          inset 0 -8px 20px var(--palette-primary-dark)100,
+          inset 0 20px 40px var(--palette-primary-light)50
+        `
+      },
+      "100%": {
+        boxShadow: `
+          0 0 30px var(--palette-primary-main)80,
+          0 0 50px var(--palette-primary-main)40,
+          inset 0 -15px 30px var(--palette-primary-dark)60,
+          inset 0 -5px 15px var(--palette-primary-dark)80,
+          inset 0 15px 30px var(--palette-primary-light)30
+        `
+      }
+    },
+    "@keyframes energy-swirl": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
+    },
+    "@keyframes icon-float": {
+      "0%": {
+        transform: "translateY(0px) scale(1)",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))"
+      },
+      "50%": {
+        transform: "translateY(-3px) scale(1.05)",
+        filter: "drop-shadow(0 5px 8px rgba(0,0,0,0.3))"
+      },
+      "100%": {
+        transform: "translateY(0px) scale(1)",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))"
+      }
+    },
+    "@keyframes highlight-shift": {
+      "0%": {
+        transform: "scale(1)",
+        opacity: 1
+      },
+      "50%": {
+        transform: "scale(2)",
+        opacity: 0.3
+      },
+      "100%": {
+        transform: "scale(1)",
+        opacity: 1
+      }
+    },
+    "@keyframes energy-ring-spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
+    },
+    "@keyframes icon-glow": {
+      "0%": {
+        filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))"
+      },
+      "50%": {
+        filter: "drop-shadow(0 0 8px rgba(255,255,255,1))"
+      },
+      "100%": {
+        filter: "drop-shadow(0 0 4px rgba(255,255,255,0.8))"
+      }
     },
     "@keyframes pulse-glow": {
       "0%": { boxShadow: `0 0 14px ${"var(--palette-primary-main)"}60` },
@@ -454,11 +597,11 @@ const FloatingToolBar: React.FC<{
           placement="top"
         >
           <Fab
-            className={`floating-action-button subtle`}
+            className={`floating-action-button mini-app`}
             onClick={handleOpenInMiniApp}
             aria-label="Open mini app view"
           >
-            <LaunchIcon />
+            <AppsIcon />
           </Fab>
         </Tooltip>
         <Tooltip
@@ -492,7 +635,7 @@ const FloatingToolBar: React.FC<{
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
-          <span>
+          <span style={{ backgroundColor: "transparent", display: "inline-block" }}>
             <Fab
               className={`floating-action-button run-workflow ${
                 isWorkflowRunning ? "running" : ""

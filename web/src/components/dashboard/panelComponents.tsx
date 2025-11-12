@@ -5,6 +5,8 @@ import ChatView from "../chat/containers/ChatView";
 import ExamplesList from "./ExamplesList";
 import WorkflowsList from "./WorkflowsList";
 import RecentChats from "./RecentChats";
+import WelcomePanel from "./WelcomePanel";
+import SetupPanel from "./SetupPanel";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { PanelProps } from "./panelConfig";
 
@@ -66,5 +68,15 @@ export const createPanelComponents = () => ({
       currentPlanningUpdate={props.params?.currentPlanningUpdate || null}
       currentTaskUpdate={props.params?.currentTaskUpdate || null}
     />
+  ),
+  welcome: (props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <WelcomePanel />
+    </Box>
+  ),
+  setup: (props: IDockviewPanelProps<PanelProps>) => (
+    <Box sx={{ overflow: "auto", height: "100%" }}>
+      <SetupPanel />
+    </Box>
   )
 });
