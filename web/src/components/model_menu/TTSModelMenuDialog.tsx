@@ -18,10 +18,10 @@ export default function TTSModelMenuDialog({
   onModelChange
 }: TTSModelMenuDialogProps) {
   return (
-    // @ts-expect-error - TypeScript has trouble inferring TTSModel from hook, but it's correct
     <ModelMenuDialogBase<TTSModel>
       open={open}
       onClose={onClose}
+      // @ts-expect-error - generic inference between hooks differs
       useModelsHook={useTTSModelsByProvider as any}
       onModelChange={onModelChange}
       title="Select TTS Model"

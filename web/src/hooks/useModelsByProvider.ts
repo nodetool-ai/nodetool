@@ -63,7 +63,7 @@ export const useLanguageModelsByProvider = () => {
  * Note: Always includes MLX provider even if it's not in the providers list,
  * as MLX models can be discovered from cache even if the provider isn't fully installed.
  */
-export const useImageModelsByProvider = () => {
+export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "image_to_image" }) => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
   // Ensure MLX is always queried, even if not in providers list
@@ -113,9 +113,15 @@ export const useImageModelsByProvider = () => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = providersError || queries.find((q) => q.error)?.error;
 
-  const allModels = queries
+  let allModels = queries
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
+
+  // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
+  if (opts?.task) {
+    const task = opts.task;
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+  }
 
   // Debug logging
   if (process.env.NODE_ENV === "development") {
@@ -250,7 +256,7 @@ export const useASRModelsByProvider = () => {
  * Hook to fetch video models from all providers that support video generation.
  * Queries each provider in parallel for better performance.
  */
-export const useVideoModelsByProvider = () => {
+export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "image_to_video" }) => {
   const { providers, isLoading: providersLoading } = useVideoProviders();
 
   const queries = useQueries({
@@ -281,9 +287,14 @@ export const useVideoModelsByProvider = () => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
+  let allModels = queries
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
+
+  if (opts?.task) {
+    const task = opts.task;
+    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
+  }
 
   return {
     models: allModels || [],
@@ -293,3 +304,23 @@ export const useVideoModelsByProvider = () => {
   };
 };
 
+/**
+ * Hook to fetch HuggingFace image models by filtering ImageModel results.
+ * This filters models to only include HuggingFace providers.
+ */
+export const useHuggingFaceImageModelsByProvider = (opts?: { task?: "text_to_image" | "image_to_image" }) => {
+  const { models, isLoading, isFetching, error } = useImageModelsByProvider(opts);
+  
+  // Filter to only HuggingFace providers
+  const huggingFaceModels = models.filter((m) => {
+    const provider = (m.provider || "").toLowerCase();
+    return provider === "huggingface" || provider.startsWith("huggingface");
+  });
+
+  return {
+    models: huggingFaceModels,
+    isLoading,
+    isFetching,
+    error
+  };
+};

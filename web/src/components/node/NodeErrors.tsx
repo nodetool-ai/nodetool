@@ -17,19 +17,22 @@ export const errorStyles = (theme: Theme) =>
     padding: "10px",
     transition: "background-color 0.2s",
     display: "flex",
-    maxWidth: "240px",
+    width: "100%",
+    maxWidth: "100%",
 
     ".error-text": {
       width: "100%",
-      maxHeight: "6em",
+      maxHeight: "18em",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[1000],
       cursor: "auto",
       userSelect: "text",
-      lineHeight: "1.1em",
+      lineHeight: "1.2em",
       padding: "0.5em .2em 0 0",
-      overflowX: "hidden",
+      whiteSpace: "pre-wrap",
+      overflowWrap: "anywhere",
+      wordBreak: "break-word",
       overflowY: "auto",
       "&::selection": {
         backgroundColor: theme.vars.palette.grey[0]
