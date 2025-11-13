@@ -18,10 +18,10 @@ export default function ASRModelMenuDialog({
   onModelChange
 }: ASRModelMenuDialogProps) {
   return (
-    // @ts-expect-error - TypeScript has trouble inferring ASRModel from hook, but it's correct
     <ModelMenuDialogBase<ASRModel>
       open={open}
       onClose={onClose}
+      // @ts-expect-error - generic inference between hooks differs
       useModelsHook={useASRModelsByProvider as any}
       onModelChange={onModelChange}
       title="Select ASR Model"
