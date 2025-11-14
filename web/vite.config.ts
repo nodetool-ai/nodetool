@@ -38,7 +38,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     server: {
-      allowedHosts: [".nodetool.ai"],
+      allowedHosts: [".nodetool.ai", "localhost"],
       port: 3000,
       proxy: proxyConfig
     },
