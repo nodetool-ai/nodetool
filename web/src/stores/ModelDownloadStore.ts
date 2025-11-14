@@ -103,7 +103,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             message: data.message
           });
           if (data.status === "completed") {
-            get().queryClient?.invalidateQueries({ queryKey: ["allModels"] });
+            const queryClient = get().queryClient;
+            queryClient?.invalidateQueries({ queryKey: ["allModels"] });
+            queryClient?.invalidateQueries({ queryKey: ["image-models"] });
           }
         }
       };
@@ -240,7 +242,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         }
 
         get().updateDownload(id, { status: "completed" });
-        get().queryClient?.invalidateQueries({ queryKey: ["allModels"] });
+        const queryClient = get().queryClient;
+        queryClient?.invalidateQueries({ queryKey: ["allModels"] });
+        queryClient?.invalidateQueries({ queryKey: ["image-models"] });
       } catch (error) {
         if (axios.isCancel(error)) {
           get().updateDownload(id, { status: "cancelled" });

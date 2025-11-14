@@ -16,6 +16,7 @@ import { FolderOutlined } from "@mui/icons-material";
 import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
 import { isLocalhost } from "../../stores/ApiClient";
 import { checkHfCache } from "../../serverState/checkHfCache";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
@@ -29,6 +30,15 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadedMap, setDownloadedMap] = useState<Record<string, boolean>>({});
+  const downloads = useModelDownloadStore((state) => state.downloads);
+
+  const completedDownloadsKey = useMemo(() => {
+    return Object.values(downloads)
+      .filter((download) => download.status === "completed")
+      .map((download) => download.id)
+      .sort()
+      .join("|");
+  }, [downloads]);
 
   // Resolve download state for HF models by checking local cache
   useEffect(() => {
@@ -70,7 +80,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [recommendedModels]);
+  }, [recommendedModels, completedDownloadsKey]);
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) return recommendedModels;
