@@ -1,46 +1,70 @@
 ______________________________________________________________________
 
-## layout: default title: Getting Started
+---
+layout: default
+title: Getting Started
+---
 
-Getting Started
+# Getting Started
 
-Welcome to **NodeTool**! This quick guide shows you how to build your first workflow and discover some handy tips along
-the way.
+Welcome to **NodeTool**! Follow the checklist below to install the app, download your first models, and run a simple workflow in just a few minutes.
+
+## Before You Begin
+
+- **Supported platforms:** Windows, macOS, and Linux (x86_64). ARM builds are experimental.
+- **Hardware:** 16 GB RAM and a GPU with ≥8 GB VRAM are recommended for local model inference.
+- **Disk space:** Keep at least 20 GB free for base models and caches.
+- **Accounts:** Optional API keys for OpenAI, Anthropic, Gemini, or other cloud providers if you plan to run remote models.
+
+> **Tip:** NodeTool is local-first—no project data leaves your machine unless you configure a cloud provider or explicitly upload assets.
 
 ## 1. Install NodeTool
 
-If you haven't already, grab the latest release from [nodetool.ai](https://nodetool.ai) and run the installer. Check out
-[Installing NodeTool](installation.md) for full details.
+1. Download the latest installer from [nodetool.ai](https://nodetool.ai) or the [GitHub Releases page](https://github.com/nodetool-ai/nodetool/releases).
+2. Run the installer and launch NodeTool. The desktop app bundles both the UI and the background server process, so no extra services are required.
+3. Need a detailed walkthrough? Visit the dedicated [Installation](installation.md) guide for platform-specific instructions and troubleshooting tips.
 
 ## 2. Install Models
 
-Open NodeTool, which will start up the server and show a setup screen.
+When NodeTool starts for the first time it shows the **Model Setup** screen.
 
-1. The screen shows download links for models. We recommend GPT - OSS to enable agentic workflows and Flux for image
-   generation. Ensure 20GB+ free disk space.
-1. Optional: Use cloud providers. Open Settings to add API keys (OpenAI, Anthropic, Hugging Face, Gemini), and install
-   Packs like Replicate, Fal.ai, or ElevenLabs from the Packs menu.
+1. Choose a **recommended text model** (GPT-OSS or another open-source LLM) for agent workflows and a **vision/image model** (Flux, Stable Diffusion, etc.) if you plan to generate media.
+2. Click **Download**. Large models can take several minutes—keep the window open until the progress bar completes.
+3. Optional: Open **Settings → Providers** to add API keys for OpenAI, Anthropic, Hugging Face, Gemini, Together, Groq, and more.
+4. Optional: Browse the **Packs** menu to install Node Packs such as Replicate, Fal.ai, or ElevenLabs for specialized tasks.
 
-Tip: Your data stays local unless you explicitly use cloud providers. You can also use the "Recommended Models" button
-on compatible nodes to quickly pick the right model.
+> **Reminder:** You can always click **Recommended Models** inside compatible nodes to auto-select a suitable model if you’re unsure which one to use.
 
-## 3. Create a Workflow
+## 3. Build Your First Workflow
 
-1. Click **New Workflow** or click on **Templates** to browse through helpful workflows.
-1. Open the NodeMenu with the **Space Key** or double click the canvas. To find nodes, browse the namespaces on the left
-   or use the search.
-1. Right-click the Canvas and create a String Input node. Enter a value.
-1. Now drag a connection from the output and drop it on the canvase. A menu pops up and select "Create Preview Node"
-1. Hit the **Play Button in the bottom right corner** or press (<kbd>Ctrl + Enter</kbd> | <kbd>⌘ + Enter</kbd>) to run
-   the workflow.
+1. From the home screen, click **New Workflow** or open the **Templates** gallery if you prefer to start from an example.
+2. Inside the canvas, press the **Space bar** or double-click to open the **Node Menu**. Search for “String Input” and add it to the canvas.
+3. Enter a short prompt into the String Input node (for example, “Write a welcome message for new users”).
+4. Drag a connection from the String Input output port, drop it on the canvas, and pick **Create Preview Node** to visualize the text.
+5. Connect additional nodes (LLM, Image Generator, Document Loader, etc.) by repeating the same drag-and-drop flow.
 
-## 4. Explore More Features
+> **Keyboard shortcut:** Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> (or <kbd>⌘</kbd> + <kbd>Enter</kbd> on macOS) to run the entire workflow without touching the mouse.
 
-- **Use local models** for maximum privacy or connect to cloud providers when you need extra power.
-- **Index your own documents** and ask questions about them with Retrieval-Augmented Generation.
-- **Run any node or workflow from the chat** and use any support LLM locally or from a cloud provider.
+## 4. Run & Inspect Results
 
-## 5. Next Steps
+1. Click the **Run** button in the bottom-right corner (play icon) to execute the workflow.
+2. Watch the status indicators on each node—green checkmarks signal success, while red badges contain error details.
+3. Use the **Preview node** or the **Global Chat** sidebar to inspect outputs, ask follow-up questions, or rerun a specific node with new parameters.
+4. Save your project so you can reopen it from the **Recent Workflows** list later.
 
-Browse the other pages in this documentation to dive deeper. Join our [Discord community](https://discord.gg/26m5xBwe)
-to share tips and get help.
+## 5. Explore More Features
+
+- **Local vs. cloud models:** Mix and match local inference for privacy with cloud providers when you need extra power or proprietary capabilities.
+- **Document indexing:** Use Retrieval-Augmented Generation to chat with PDFs, text files, and websites you’ve indexed in the Asset Manager.
+- **Chat-driven workflows:** Trigger any workflow directly from the Global Chat, combining conversations with tool or agent execution.
+- **Mini-apps & Packs:** Package workflows into standalone apps or extend NodeTool with Packs from the registry.
+
+## 6. Next Steps
+
+Browse the rest of the documentation to dive deeper into specific features:
+
+- [Workflow Editor](workflow-editor.md) for advanced node tips.
+- [Base Nodes](base-nodes.md) for a catalog of every built-in node.
+- [Tips & Tricks](tips-and-tricks.md) for productivity shortcuts.
+
+Need help? Join the [Discord community](https://discord.gg/26m5xBwe) to meet other builders, share templates, and get support from the NodeTool team.
