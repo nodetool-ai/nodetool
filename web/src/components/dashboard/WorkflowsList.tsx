@@ -167,7 +167,10 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
               startIcon={<AddIcon />}
               onClick={handleCreateNewWorkflow}
               size="small"
-            ></Button>
+              aria-label="Create New Workflow"
+            >
+              New Workflow
+            </Button>
           </Tooltip>
         </Box>
       </Box>
