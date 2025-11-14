@@ -1,6 +1,9 @@
-______________________________________________________________________
+---
+layout: default
+title: Supported Models
+---
 
-## layout: default title: Supported Models
+______________________________________________________________________
 
 # Supported Models
 

@@ -1,8 +1,11 @@
+---
+layout: default
+title: Getting Started
+---
+
 ______________________________________________________________________
 
-## layout: default title: Getting Started
-
-Getting Started
+# Getting Started
 
 Welcome to **NodeTool**! This quick guide shows you how to build your first workflow and discover some handy tips along
 the way.
@@ -30,7 +33,7 @@ on compatible nodes to quickly pick the right model.
 1. Open the NodeMenu with the **Space Key** or double click the canvas. To find nodes, browse the namespaces on the left
    or use the search.
 1. Right-click the Canvas and create a String Input node. Enter a value.
-1. Now drag a connection from the output and drop it on the canvase. A menu pops up and select "Create Preview Node"
+1. Now drag a connection from the output and drop it on the canvas. A menu pops up and select "Create Preview Node".
 1. Hit the **Play Button in the bottom right corner** or press (<kbd>Ctrl + Enter</kbd> | <kbd>⌘ + Enter</kbd>) to run
    the workflow.
 
