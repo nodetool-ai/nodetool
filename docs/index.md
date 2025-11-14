@@ -1,8 +1,11 @@
+---
+layout: default
+title: NodeTool
+---
+
 ______________________________________________________________________
 
-## layout: default title: NodeTool
-
-# Nodetool - Documentation
+# NodeTool - Documentation
 
 NodeTool is an open‑source, local‑first platform for building AI agents and workflows visually. Design, run, and deploy
 powerful AI systems using drag‑and‑drop nodes that connect models, tools, data, and your everyday apps.
@@ -36,7 +39,7 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 - **[Installation](installation.md)** – Download and install NodeTool
 - **[Getting Started](getting-started.md)** – Your first workflow and basic concepts
 - **[Tips and Tricks](tips-and-tricks.md)** – Shortcuts and workflow ideas
-- \*\*[Cookbook](cookbook.md) - Cookbook for workflows
+- **[Cookbook](cookbook.md)** – Recipe collection for workflows
 
 ### Core Features
 

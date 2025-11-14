@@ -1,6 +1,9 @@
-______________________________________________________________________
+---
+layout: default
+title: User Interface
+---
 
-## layout: default title: User Interface
+______________________________________________________________________
 
 # NodeTool User Interface
 
