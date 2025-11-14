@@ -18,26 +18,32 @@
 > **🎯 Privacy by design** • **🔓 Own your stack** • **🚀 Production ready**
 
 Nodetool lets you design agents that work with your data. Use any model to analyze data, generate visuals, or automate
-workdlows.
+workflows.
 
 ## Table of Contents
 
-- [Vision](#vision)
-- [Mission](#mission)
 - [How It Works](#how-it-works)
 - [Principles](#principles)
-- [What NodeTool Is](#what-nodetool-is-today)
-- [What NodeTool Is Not](#what-nodetool-is-not-today)
+- [What NodeTool Is (today)](#what-nodetool-is-today)
+- [What NodeTool Is Not (today)](#what-nodetool-is-not-today)
 - [Who It’s For](#who-its-for)
 - [Roadmap](#roadmap)
-- [Promise](#promise)
 - [Quick Start](#quick-start)
+  - [Hardware Requirements](#hardware-requirements)
+  - [First Steps](#first-steps)
 - [Bring Your Own Providers](#bring-your-own-providers)
+- [Supported Models](#supported-models)
 - [Install Node Packs in the App](#install-node-packs-in-the-app)
 - [Community](#community)
-- [🛠️ Development Setup](#development-setup)
-- [Run Backend & Web UI](#4-run-nodetool-backend--web-ui)
+- [Development Setup](#development-setup)
+  - [Prerequisites](#prerequisites)
+  - [1. Set Up Conda Environment](#1-set-up-conda-environment)
+  - [2. Install Core Python Dependencies](#2-install-core-python-dependencies)
+  - [3. Install Optional Node Packs (As Needed)](#3-install-optional-node-packs-as-needed)
+  - [Windows & Linux (NVIDIA GPUs)](#windows--linux-nvidia-gpus)
+  - [4. Run NodeTool Backend & Web UI](#4-run-nodetool-backend--web-ui)
 - [Testing](#testing)
+- [Code Quality & Pre-Commit Hooks](#code-quality--pre-commit-hooks)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -131,7 +137,7 @@ Set provider API keys in Settings → Providers.
 <summary>Text Generation</summary>
 
 - **Ollama**
-- **Huggingface** Llama.cpp and GGUF
+- **Hugging Face** Llama.cpp and GGUF
 - **HuggingFace Hub** Inference providers
 - **OpenAI**
 - **Gemini**
@@ -389,7 +395,7 @@ Install and manage packs directly from the desktop app.
 
 ______________________________________________________________________
 
-## 🛠️ Development Setup
+## Development Setup
 
 Follow these steps to set up a local development environment for the entire NodeTool platform, including the UI, backend
 services, and the core library (`nodetool-core`). If you are primarily interested in contributing to the core library
