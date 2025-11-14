@@ -18,7 +18,7 @@
 > **🎯 Privacy by design** • **🔓 Own your stack** • **🚀 Production ready**
 
 Nodetool lets you design agents that work with your data. Use any model to analyze data, generate visuals, or automate
-workdlows.
+workflows.
 
 ## Table of Contents
 
