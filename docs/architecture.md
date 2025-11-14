@@ -5,7 +5,7 @@ title: Architecture Overview
 
 # Architecture Overview
 
-This page explains how the pieces of NodeTool fit together. The codebase is split into multiple packages that interact through a simple client‑server design.
+This page explains how the pieces of NodeTool fit together. The codebase in this repository contains the client-facing pieces that interact with the backend service over a simple client‑server design. The backend (FastAPI server + WebSocket runner) is distributed separately and is **not** included in this repo.
 
 ## High Level Diagram
 
@@ -47,12 +47,12 @@ graph TD
 - **`examples/`** – Node.js scripts demonstrating how to call the API.
 - **`scripts/`** – Helper scripts for building and releasing NodeTool.
 
-The Python backend lives inside the main repository and exposes a FastAPI server plus a WebSocket runner. Workers connect locally or remotely to execute nodes with CPU or GPU models.
+> **Note:** The FastAPI server and WebSocket runner that power workflow execution live outside this repository. This repo ships the UI surfaces and static assets that talk to that backend.
 
 ## Data Flow
 
-1. The **Web UI** communicates with the API server over HTTP for management tasks (saving workflows, listing assets, etc.).
-2. During execution, the UI and other clients connect to the **WebSocket Runner** to receive live updates.
+1. The **Web UI** communicates with the external API server over HTTP for management tasks (saving workflows, listing assets, etc.).
+2. During execution, the UI and other clients connect to the **WebSocket Runner** (hosted alongside the backend) to receive live updates.
 3. **Workers** run the individual nodes in a workflow. They can call external AI APIs such as OpenAI or Hugging Face when configured.
 4. Results are streamed back through the runner to the frontends in real time.
 
