@@ -14,7 +14,6 @@ type EndpointSuffix =
   | "image/image-to-image"
   | "video/text-to-video"
   | "video/image-to-video"
-  | "language/text-generation"
   | "language/embedding"
   | "asr"
   | "tts"
@@ -30,8 +29,6 @@ const mapNodeTypeToEndpoint = (nodeType: string): EndpointSuffix => {
       return "video/text-to-video";
     case "nodetool.video.ImageToVideo":
       return "video/image-to-video";
-    case "nodetool.agents.Agent":
-      return "language/text-generation";
     case "nodetool.text.AutomaticSpeechRecognition":
       return "asr";
     case "nodetool.audio.TextToSpeech":

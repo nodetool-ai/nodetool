@@ -6,7 +6,6 @@
 
 import { create } from "zustand";
 import { UnifiedModel, NodeMetadata } from "./ApiTypes";
-import { useSettingsStore } from "./SettingsStore";
 import { NodeTypes } from "@xyflow/react";
 
 type MetadataStore = {
