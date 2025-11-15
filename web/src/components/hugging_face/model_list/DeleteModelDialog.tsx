@@ -11,7 +11,12 @@ import {
 } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
-import { openHuggingfacePath, openOllamaPath, openInExplorer } from "../../../utils/fileExplorer";
+import {
+  isFileExplorerAvailable,
+  openHuggingfacePath,
+  openOllamaPath,
+  openInExplorer
+} from "../../../utils/fileExplorer";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useState } from "react";
@@ -32,6 +37,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     (state) => state.addNotification
   );
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
+  const fileExplorerAvailable = isFileExplorerAvailable();
 
   const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
@@ -115,6 +121,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     : null;
 
   const isExplorerDisabled =
+    !fileExplorerAvailable ||
     !modelId ||
     !modelForExplorer ||
     (modelForExplorer.type !== "llama_model" && !modelForExplorer.path);

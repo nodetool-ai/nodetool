@@ -250,46 +250,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const WindowControls = () => {
-  const handleMinimize = () => (window as any).api?.windowControls?.minimize();
-  const handleMaximize = () => (window as any).api?.windowControls?.maximize();
-  const handleClose = () => (window as any).api?.windowControls?.close();
-
-  if (!(window as any).api?.windowControls) {
-    console.warn(
-      "[TabsNodeEditor] window.api.windowControls not found. Window controls will not function."
-    );
-    return null;
-  }
-
-  return (
-    <div className="window-controls">
-      <button
-        className="window-control-button"
-        onClick={handleMinimize}
-        title="Minimize"
-      >
-        &#x2014;
-      </button>
-      <button
-        className="window-control-button"
-        onClick={handleMaximize}
-        title="Maximize"
-      >
-        &#x2610;
-      </button>
-      <button
-        className="window-control-button"
-        id="close-button"
-        onClick={handleClose}
-        title="Close"
-      >
-        &#x2715;
-      </button>
-    </div>
-  );
-};
-
 type TabsNodeEditorProps = {
   hideContent?: boolean;
 };
@@ -309,7 +269,8 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const electronDetectionDetails = getIsElectronDetails();
   const isElectron = electronDetectionDetails.isElectron;
   const platform = window.navigator.platform;
-  const isMac = platform.toLowerCase().includes("mac");
+  const normalizedPlatform = platform.toLowerCase();
+  const isMac = normalizedPlatform.includes("mac");
 
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
@@ -422,7 +383,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
             workflows={tabsToRender}
             currentWorkflowId={currentWorkflowId!}
           />
-          {!isMac && isElectron && <WindowControls />}
         </div>
         {!hideContent && (
           <div
