@@ -31,6 +31,9 @@ const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
+const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
+const DEFAULT_MAMBA_HOME_DIR = ".mamba";
 
 interface InstallationPreferences {
   location: string;
@@ -124,6 +127,94 @@ function getMicromambaBinDir(): string {
 
 function getMicromambaExecutablePath(): string {
   return path.join(getMicromambaBinDir(), MICROMAMBA_EXECUTABLE_NAME);
+}
+
+function getPotentialMicromambaRootPrefixes(): string[] {
+  const prefixes = new Set<string>();
+  prefixes.add(getMicromambaRootPrefix());
+
+  const envPrefix = process.env.MAMBA_ROOT_PREFIX?.trim();
+  if (envPrefix) {
+    prefixes.add(envPrefix);
+  }
+
+  const homeDir = os.homedir();
+  if (homeDir) {
+    prefixes.add(path.join(homeDir, DEFAULT_MAMBA_HOME_DIR));
+  }
+
+  return Array.from(prefixes);
+}
+
+function getMicromambaLockPaths(): string[] {
+  return getPotentialMicromambaRootPrefixes().map((prefix) =>
+    path.join(prefix, "pkgs", "pkgs.lock")
+  );
+}
+
+async function removeStaleMicromambaLock(
+  lockPath: string,
+  options?: { force?: boolean }
+): Promise<void> {
+  let stats: fs.Stats | null = null;
+
+  try {
+    stats = await fs.stat(lockPath);
+  } catch (error: any) {
+    if (error?.code === "ENOENT") {
+      return;
+    }
+    logMessage(
+      `Failed to inspect micromamba lock at ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "warn"
+    );
+    if (!options?.force) {
+      return;
+    }
+  }
+
+  if (!options?.force && stats) {
+    const lockAgeMs = Date.now() - stats.mtimeMs;
+    if (lockAgeMs < MICROMAMBA_LOCK_STALE_THRESHOLD_MS) {
+      return;
+    }
+  }
+
+  try {
+    await fs.rm(lockPath, { force: true });
+    if (options?.force) {
+      if (stats) {
+        const ageSeconds = Math.round((Date.now() - stats.mtimeMs) / 1000);
+        logMessage(
+          `Force-removed micromamba lock (${ageSeconds}s old) at ${lockPath}`,
+          "warn"
+        );
+      } else {
+        logMessage(`Force-removed micromamba lock at ${lockPath}`, "warn");
+      }
+    } else if (stats) {
+      const ageSeconds = Math.round((Date.now() - stats.mtimeMs) / 1000);
+      logMessage(
+        `Removed stale micromamba lock (${ageSeconds}s old) at ${lockPath}`
+      );
+    }
+  } catch (error) {
+    logMessage(
+      `Failed to remove micromamba lock at ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "warn"
+    );
+  }
+}
+
+async function cleanupMicromambaLocks(force = false): Promise<void> {
+  const lockPaths = getMicromambaLockPaths();
+  for (const lockPath of lockPaths) {
+    await removeStaleMicromambaLock(lockPath, { force });
+  }
 }
 
 function sanitizeProcessEnv(): NodeJS.ProcessEnv {
@@ -462,17 +553,56 @@ async function runMicromambaCommand(
     }
   }
 
-  logMessage(
-    `Running micromamba command: ${micromambaExecutable} ${args.join(" ")}`
-  );
+  const runOnce = async (): Promise<void> => {
+    logMessage(
+      `Running micromamba command: ${micromambaExecutable} ${args.join(" ")}`
+    );
 
-  emitBootMessage(`${progressAction}...`);
-  emitUpdateProgress("Python environment", 10, progressAction, "Resolving");
+    emitBootMessage(`${progressAction}...`);
+    emitUpdateProgress("Python environment", 10, progressAction, "Resolving");
 
+    await cleanupMicromambaLocks(true);
+
+    await executeMicromambaCommand(
+      micromambaExecutable,
+      args,
+      env,
+      progressAction
+    );
+  };
+
+  try {
+    await runOnce();
+  } catch (error) {
+    if ((error as MicromambaCommandError)?.lockErrorDetected) {
+      logMessage(
+        "micromamba reported a lock error, forcing lock cleanup and retrying",
+        "warn"
+      );
+      await cleanupMicromambaLocks(true);
+      await runOnce();
+    } else {
+      throw error;
+    }
+  }
+}
+
+interface MicromambaCommandError extends Error {
+  lockErrorDetected?: boolean;
+}
+
+async function executeMicromambaCommand(
+  micromambaExecutable: string,
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  progressAction: string
+): Promise<void> {
   const micromambaProcess = spawn(micromambaExecutable, args, {
     env,
     stdio: "pipe",
   });
+
+  let lockErrorDetected = false;
 
   return new Promise<void>((resolve, reject) => {
     micromambaProcess.stdout?.on("data", (data: Buffer) => {
@@ -486,6 +616,9 @@ async function runMicromambaCommand(
       const message = data.toString().trim();
       if (message) {
         logMessage(`micromamba stderr: ${message}`, "error");
+        if (MICROMAMBA_LOCK_ERROR_PATTERN.test(message)) {
+          lockErrorDetected = true;
+        }
       }
     });
 
@@ -494,7 +627,13 @@ async function runMicromambaCommand(
         emitUpdateProgress("Python environment", 100, progressAction, "Done");
         resolve();
       } else {
-        reject(new Error(`micromamba exited with code ${code}`));
+        const error: MicromambaCommandError = new Error(
+          `micromamba exited with code ${code}`
+        );
+        if (lockErrorDetected) {
+          error.lockErrorDetected = true;
+        }
+        reject(error);
       }
     });
 
