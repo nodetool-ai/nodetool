@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import axios, { CancelTokenSource } from "axios";
 import { DOWNLOAD_URL } from "./BASE_URL";
 import { BASE_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
@@ -28,7 +27,7 @@ interface Download {
   message?: string;
   speed: number | null;
   speedHistory: SpeedDataPoint[];
-  cancelTokenSource?: CancelTokenSource;
+  abortController?: AbortController;
 }
 
 interface ModelDownloadStore {
@@ -197,7 +196,15 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
     const id = path ? repoId + "/" + path : repoId;
 
-    get().addDownload(id);
+    const additionalProps: Partial<Download> = {};
+    let abortController: AbortController | undefined;
+
+    if (modelType === "llama_model") {
+      abortController = new AbortController();
+      additionalProps.abortController = abortController;
+    }
+
+    get().addDownload(id, additionalProps);
 
     if (modelType === "llama_model") {
       try {
@@ -207,7 +214,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             method: "POST",
             headers: {
               "Content-Type": "application/json"
-            }
+            },
+            signal: abortController?.signal
           }
         );
 
@@ -246,11 +254,16 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         queryClient?.invalidateQueries({ queryKey: ["allModels"] });
         queryClient?.invalidateQueries({ queryKey: ["image-models"] });
       } catch (error) {
-        if (axios.isCancel(error)) {
+        const aborted =
+          (error instanceof DOMException && error.name === "AbortError") ||
+          (error as { name?: string }).name === "AbortError";
+        if (aborted) {
           get().updateDownload(id, { status: "cancelled" });
         } else {
           get().updateDownload(id, { status: "error" });
         }
+      } finally {
+        get().updateDownload(id, { abortController: undefined });
       }
     } else {
       const ws = await get().connectWebSocket();
@@ -267,6 +280,13 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   },
 
   cancelDownload: async (id) => {
+    const download = get().downloads[id];
+    if (download?.abortController) {
+      download.abortController.abort();
+      get().updateDownload(id, { status: "cancelled" });
+      return;
+    }
+
     const ws = await get().connectWebSocket();
     ws.send(JSON.stringify({ command: "cancel_download", id: id }));
     get().updateDownload(id, { status: "cancelled" });
