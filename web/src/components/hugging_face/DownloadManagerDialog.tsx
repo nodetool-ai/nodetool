@@ -23,7 +23,11 @@ import { isEqual } from "lodash";
 import { FolderOutlined } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadingIcon from "@mui/icons-material/Downloading";
-import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
+import {
+  isFileExplorerAvailable,
+  openHuggingfacePath,
+  openOllamaPath
+} from "../../utils/fileExplorer";
 import { isLocalhost } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
@@ -156,7 +160,7 @@ const DownloadManagerDialog: React.FC = () => {
             </Box>
           )}
         </Box>
-        {isLocalhost && (
+        {isLocalhost && isFileExplorerAvailable() && (
           <>
             <Divider sx={{ my: 2 }} />
             <Box className="folders-row">

@@ -13,7 +13,11 @@ import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import { FolderOutlined } from "@mui/icons-material";
-import { openHuggingfacePath, openOllamaPath } from "../../utils/fileExplorer";
+import {
+  isFileExplorerAvailable,
+  openHuggingfacePath,
+  openOllamaPath
+} from "../../utils/fileExplorer";
 import { isLocalhost } from "../../stores/ApiClient";
 import { checkHfCache } from "../../serverState/checkHfCache";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -190,7 +194,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       </Typography>
 
       {/* Open folder buttons */}
-      {isLocalhost && (
+      {isLocalhost && isFileExplorerAvailable() && (
         <Box mt={2} sx={{ display: "flex", gap: 2 }}>
           <Button
             variant="outlined"

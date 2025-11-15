@@ -10,6 +10,10 @@ Key folders:
 - `assets/` – icons and other static resources used by Electron
 - `resources/` – templates and additional files bundled into the app
 
+## Native Integrations
+
+- File explorer bridge: IPC handlers (`file-explorer-open-path`, `file-explorer-open-directory`) expose safe OS paths such as the Hugging Face cache and Ollama models directories to the renderer via `window.api.openModelDirectory` / `openModelPath`.
+
 This app is built with React and Vite. In development you can launch the UI with
 hot reload using:
 

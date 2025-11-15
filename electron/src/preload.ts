@@ -33,6 +33,7 @@ import {
   UpdateProgressData,
   UpdateInfo,
   Workflow,
+  ModelDirectory,
 } from "./types.d";
 
 /**
@@ -93,6 +94,10 @@ contextBridge.exposeInMainWorld("api", {
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
   showItemInFolder: (fullPath: string) =>
     ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, fullPath),
+  openModelDirectory: (target: ModelDirectory) =>
+    ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY, target),
+  openModelPath: (path: string) =>
+    ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, { path }),
   installToLocation: (location: string, packages: PythonPackages) =>
     ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
   selectCustomInstallLocation: () =>
