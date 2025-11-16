@@ -150,7 +150,8 @@ const styles = (theme: Theme) =>
           right: "40%",
           height: "35%",
           borderRadius: "50%",
-          background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
+          background:
+            "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
           filter: "blur(3px)",
           pointerEvents: "none",
           zIndex: 3,
@@ -249,13 +250,16 @@ const styles = (theme: Theme) =>
     },
     "@keyframes core-pulse": {
       "0%": {
-        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+        boxShadow:
+          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
       },
       "50%": {
-        boxShadow: "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
+        boxShadow:
+          "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
       },
       "100%": {
-        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+        boxShadow:
+          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
       }
     },
     "@keyframes glass-ball-pulse": {
@@ -370,7 +374,6 @@ const FloatingToolBar: React.FC<{
   const [actionsMenuAnchor, setActionsMenuAnchor] =
     useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isLeftPanelVisible = usePanelStore((state) => state.panel.isVisible);
   const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
     (state) => ({
       isRightPanelVisible: state.panel.isVisible,
@@ -429,7 +432,7 @@ const FloatingToolBar: React.FC<{
     nodes,
     edges,
     getWorkflowById,
-    saveWorkflow,
+    saveWorkflow
     // Note: resource limits UI removed; using defaults
   ]);
 
@@ -525,8 +528,8 @@ const FloatingToolBar: React.FC<{
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
-  // Only show in editor view; keep visible when right panel is open
-  if (!path.startsWith("/editor") || isLeftPanelVisible) {
+  // Only show in editor view
+  if (!path.startsWith("/editor")) {
     return null;
   }
 
@@ -641,7 +644,9 @@ const FloatingToolBar: React.FC<{
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
-          <span style={{ backgroundColor: "transparent", display: "inline-block" }}>
+          <span
+            style={{ backgroundColor: "transparent", display: "inline-block" }}
+          >
             <Fab
               className={`floating-action-button run-workflow ${
                 isWorkflowRunning ? "running" : ""

@@ -24,6 +24,7 @@ import { createAssetFile } from "../../utils/createAssetFile";
 import JSZip from "jszip";
 import { isEqual } from "lodash";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { typeFor } from "./output";
 
 const styles = (theme: Theme) =>
   css([
@@ -192,24 +193,154 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const getOutputFromResult = (result: any) => {
     if (!result) return null;
 
+    // If result is an array
     if (Array.isArray(result)) {
-      const outputs = result.map((item: any) => item.output);
-      // If all outputs are strings, concatenate them
-      if (outputs.every((output: any) => typeof output === "string")) {
-        return outputs.join("\n");
+      // Check if array items have 'output' property
+      if (result.length > 0 && result[0]?.output !== undefined) {
+        const outputs = result.map((item: any) => item.output);
+        // If all outputs are strings, concatenate them
+        if (outputs.every((output: any) => typeof output === "string")) {
+          return outputs.join("\n");
+        }
+        // For non-string outputs, return the array of outputs
+        return outputs;
       }
-      // For non-string outputs, return the array of outputs
-      return outputs;
+      // If array items don't have 'output' property, return the array as-is
+      return result;
     }
 
-    return result.output;
+    // If result has an 'output' property, use it
+    if (result && typeof result === "object" && "output" in result) {
+      return result.output;
+    }
+
+    // Otherwise, result is already the output value
+    return result;
   };
 
   const handleAddToAssets = async () => {
+    log.debug("handleAddToAssets - result:", result);
+    
+    // Check if result exists
+    if (!result) {
+      log.warn("No result available to add to assets");
+      addNotification({
+        type: "warning",
+        content: "No preview result available. Please run the workflow first."
+      });
+      return;
+    }
+    
     const output = getOutputFromResult(result);
-    if (output) {
-      try {
-        const assetFiles = createAssetFile(output, props.id);
+    log.debug("handleAddToAssets - extracted output:", output);
+    
+    // Check if output is valid (not null, undefined, empty object, or empty array)
+    if (!output || 
+        (typeof output === "object" && !Array.isArray(output) && Object.keys(output).length === 0) ||
+        (Array.isArray(output) && output.length === 0)) {
+      log.warn("No valid output to add to assets. Result:", result, "Output:", output);
+      addNotification({
+        type: "warning",
+        content: "No content available to add to assets"
+      });
+      return;
+    }
+    
+    try {
+        // Normalize output structure to ensure it has 'type' property
+        const normalizeOutput = async (value: any): Promise<any> => {
+          if (Array.isArray(value)) {
+            return Promise.all(value.map(normalizeOutput));
+          }
+          // If it already has a type property, check if we need to fetch URI data
+          if (value && typeof value === "object" && "type" in value) {
+            // If it has a URI but no data, fetch the data
+            if (value.uri && !value.data && typeof value.uri === "string") {
+              // Handle data URIs (base64 encoded)
+              if (value.uri.startsWith("data:")) {
+                try {
+                  const base64Data = value.uri.split(",")[1];
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                  }
+                  return { ...value, data: bytes };
+                } catch (dataUriError) {
+                  log.error("Failed to parse data URI:", dataUriError);
+                  throw new Error("Failed to parse data URI");
+                }
+              } else {
+                // Fetch from HTTP/HTTPS URL
+                try {
+                  const response = await fetch(value.uri);
+                  const blob = await response.blob();
+                  const arrayBuffer = await blob.arrayBuffer();
+                  return { ...value, data: new Uint8Array(arrayBuffer) };
+                } catch (fetchError) {
+                  log.error("Failed to fetch data from URI:", fetchError);
+                  throw new Error("Failed to fetch data from URI");
+                }
+              }
+            }
+            return value;
+          }
+          // Otherwise, infer the type and wrap it
+          const type = typeFor(value);
+          // Handle ImageRef, AudioRef, VideoRef structures
+          if (type === "object" && (value?.uri || value?.data)) {
+            // Determine media type from content_type or URI
+            let mediaType = "image";
+            if (value?.content_type) {
+              if (value.content_type.includes("audio")) mediaType = "audio";
+              else if (value.content_type.includes("video")) mediaType = "video";
+              else if (value.content_type.includes("image")) mediaType = "image";
+            } else if (value?.uri) {
+              if (value.uri.includes("audio") || value.uri.match(/\.(mp3|wav|ogg)$/i)) {
+                mediaType = "audio";
+              } else if (value.uri.includes("video") || value.uri.match(/\.(mp4|webm|ogg)$/i)) {
+                mediaType = "video";
+              }
+            }
+            
+            // If we have a URI but no data, fetch it
+            if (value.uri && !value.data && typeof value.uri === "string") {
+              // Handle data URIs (base64 encoded)
+              if (value.uri.startsWith("data:")) {
+                try {
+                  const base64Data = value.uri.split(",")[1];
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                  }
+                  return { type: mediaType, data: bytes, uri: value.uri };
+                } catch (dataUriError) {
+                  log.error("Failed to parse data URI:", dataUriError);
+                  throw new Error(`Failed to parse ${mediaType} data URI`);
+                }
+              } else {
+                // Fetch from HTTP/HTTPS URL
+                try {
+                  const response = await fetch(value.uri);
+                  const blob = await response.blob();
+                  const arrayBuffer = await blob.arrayBuffer();
+                  return { type: mediaType, data: new Uint8Array(arrayBuffer), uri: value.uri };
+                } catch (fetchError) {
+                  log.error("Failed to fetch data from URI:", fetchError);
+                  throw new Error(`Failed to fetch ${mediaType} data from URI`);
+                }
+              }
+            }
+            
+            return { type: mediaType, data: value.data, uri: value.uri };
+          }
+          // For other types, wrap with inferred type
+          return { type, data: value };
+        };
+
+        const normalizedOutput = await normalizeOutput(output);
+        const assetFiles = createAssetFile(normalizedOutput, props.id);
         for (const { file } of assetFiles) {
           await createAsset(file);
         }
@@ -222,12 +353,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         log.error("Error in handleAddToAssets:", error);
         addNotification({
           type: "error",
-          content: "Failed to add preview to assets"
+          content: error instanceof Error ? error.message : "Failed to add preview to assets"
         });
       }
-    } else {
-      log.warn("No result output to add to assets");
-    }
   };
 
   const handleDownload = async () => {
