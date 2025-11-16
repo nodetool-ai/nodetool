@@ -100,11 +100,15 @@ const useDraggableScroll = () => {
 
 export type OutputRendererProps = {
   value: any;
+  showTextActions?: boolean;
 };
 
 // all helpers/styles/hooks moved to ./output/*
 
-const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
+const OutputRenderer: React.FC<OutputRendererProps> = ({
+  value,
+  showTextActions = true
+}) => {
   const shouldRender = !(
     value === undefined ||
     value === null ||
@@ -280,7 +284,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                   .filter((c) => !!c)
                   .map((c) => c.content)
                   .join("");
-                return <TextRenderer text={text} onCopy={copyToClipboard} />;
+                return (
+                  <TextRenderer
+                    text={text}
+                    onCopy={copyToClipboard}
+                    showActions={showTextActions}
+                  />
+                );
               }
               const audioChunks = chunks.filter(
                 (c) => c.content_type === "audio"
@@ -298,7 +308,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               return (
                 <Container>
                   {chunks.map((c, i) => (
-                    <OutputRenderer key={i} value={c} />
+                    <OutputRenderer
+                      key={i}
+                      value={c}
+                      showTextActions={showTextActions}
+                    />
                   ))}
                 </Container>
               );
@@ -318,7 +332,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               return (
                 <Container>
                   {value.map((v: any, i: number) => (
-                    <OutputRenderer key={i} value={v} />
+                    <OutputRenderer
+                      key={i}
+                      value={v}
+                      showTextActions={showTextActions}
+                    />
                   ))}
                 </Container>
               );
@@ -351,7 +369,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return (
           <Container>
             {value.map((v: any, i: number) => (
-              <OutputRenderer key={i} value={v} />
+              <OutputRenderer
+                key={i}
+                value={v}
+                showTextActions={showTextActions}
+              />
             ))}
           </Container>
         );
@@ -359,7 +381,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         return (
           <div>
             {Object.entries(value).map((v: any) => (
-              <OutputRenderer key={v[0]} value={v[1]} />
+              <OutputRenderer
+                key={v[0]}
+                value={v[1]}
+                showTextActions={showTextActions}
+              />
             ))}
           </div>
         );
@@ -387,6 +413,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           <TextRenderer
             text={value?.toString?.() ?? ""}
             onCopy={copyToClipboard}
+            showActions={showTextActions}
           />
         );
     }

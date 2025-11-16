@@ -7,7 +7,11 @@ import { outputStyles } from "./styles";
 import { Box, Collapse, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-type Props = { text: string; onCopy: (text: string) => void };
+type Props = {
+  text: string;
+  onCopy: (text: string) => void;
+  showActions?: boolean;
+};
 
 type Section = { type: "text" | "think"; content: string };
 
@@ -80,13 +84,17 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-export const TextRenderer: React.FC<Props> = ({ text, onCopy }) => {
+export const TextRenderer: React.FC<Props> = ({
+  text,
+  onCopy,
+  showActions = true
+}) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) return null;
   return (
     <div className="output value nodrag noscroll" css={outputStyles(theme)}>
-      <Actions onCopy={() => onCopy(text)} />
+      {showActions && <Actions onCopy={() => onCopy(text)} />}
       {sections.map((s, i) =>
         s.type === "think" ? (
           <ThinkBlock key={i} content={s.content} />
