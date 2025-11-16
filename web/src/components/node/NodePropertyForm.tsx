@@ -123,12 +123,12 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                     lineHeight: 1.2,
                     borderRadius: "4px",
                     background: `linear-gradient(135deg, ${alpha(
-                      theme.vars.palette.primary.main,
+                      theme.palette.primary.main,
                       0.15
-                    )}, ${alpha(theme.vars.palette.primary.dark, 0.1)})`,
+                    )}, ${alpha(theme.palette.primary.dark, 0.1)})`,
                     color: theme.vars.palette.primary.main,
                     border: `1px solid ${alpha(
-                      theme.vars.palette.primary.main,
+                      theme.palette.primary.main,
                       0.4
                     )}`,
                     letterSpacing: "0.02em",
@@ -138,13 +138,13 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                     outline: "none",
                     "&:hover": {
                       background: `linear-gradient(135deg, ${alpha(
-                        theme.vars.palette.primary.main,
+                        theme.palette.primary.main,
                         0.25
-                      )}, ${alpha(theme.vars.palette.primary.dark, 0.15)})`,
+                      )}, ${alpha(theme.palette.primary.dark, 0.15)})`,
                       borderColor: theme.vars.palette.primary.main,
                       transform: "translateY(-1px)",
                       boxShadow: `0 2px 4px ${alpha(
-                        theme.vars.palette.primary.main,
+                        theme.palette.primary.main,
                         0.2
                       )}`
                     },
