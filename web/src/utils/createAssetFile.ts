@@ -26,17 +26,61 @@ const createSingleAssetFile = (
 
   switch (type) {
     case "image":
-      content = new Uint8Array(Object.values(data));
+      // Handle different data formats
+      if (data instanceof Uint8Array) {
+        content = data;
+      } else if (Array.isArray(data)) {
+        content = new Uint8Array(data);
+      } else if (typeof data === "string") {
+        // Handle data URIs (base64 encoded)
+        if (data.startsWith("data:")) {
+          try {
+            const base64Data = data.split(",")[1];
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            content = bytes;
+          } catch (error) {
+            throw new Error("Failed to parse image data URI");
+          }
+        } else {
+          // Regular URL - should have been fetched before reaching here
+          throw new Error("Image data is a URL string. Cannot create file directly. Please fetch the data first.");
+        }
+      } else {
+        // Assume it's an object with numeric keys
+        content = new Uint8Array(Object.values(data));
+      }
       filename = `preview_${id}${suffix}.png`;
       mimeType = "image/png";
       break;
     case "video":
-      content = new Uint8Array(Object.values(data));
+      // Handle different data formats
+      if (data instanceof Uint8Array) {
+        content = data;
+      } else if (Array.isArray(data)) {
+        content = new Uint8Array(data);
+      } else if (typeof data === "string") {
+        throw new Error("Video data is a URI string. Cannot create file directly.");
+      } else {
+        content = new Uint8Array(Object.values(data));
+      }
       filename = `preview_${id}${suffix}.mp4`;
       mimeType = "video/mp4";
       break;
     case "audio":
-      content = new Uint8Array(Object.values(data));
+      // Handle different data formats
+      if (data instanceof Uint8Array) {
+        content = data;
+      } else if (Array.isArray(data)) {
+        content = new Uint8Array(data);
+      } else if (typeof data === "string") {
+        throw new Error("Audio data is a URI string. Cannot create file directly.");
+      } else {
+        content = new Uint8Array(Object.values(data));
+      }
       filename = `preview_${id}${suffix}.mp3`;
       mimeType = "audio/mp3";
       break;
