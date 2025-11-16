@@ -56,11 +56,14 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column"
       },
-      ".preview-node-content > .content": {
+      ".preview-node-content > .output": {
         flex: 1,
         minHeight: 0,
         height: 0,
         overflow: "hidden"
+      },
+      ".preview-node-content .content .output": {
+        fontSize: theme.vars.fontSizeSmaller + " !important"
       },
       ".preview-node-content > .content.scrollable": {
         overflowY: "auto",
@@ -463,7 +466,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           isConnectable={true}
         />
         <div
-          className={`content ${isScrollable ? "scrollable nowheel" : ""}`}
+          className={`content ${
+            isScrollable ? "scrollable nowheel" : "noscroll"
+          }`}
+          style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}

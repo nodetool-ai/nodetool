@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useState } from "react";
 import {
-  IconButton,
   Fab,
   Box,
   useMediaQuery,
@@ -39,11 +38,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { usePanelStore } from "../../stores/PanelStore";
-import { isLocalhost } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { Workflow } from "../../stores/ApiTypes";
-// keep existing colors; add only subtle shine overlays
 
 const styles = (theme: Theme) =>
   css({
@@ -51,7 +48,7 @@ const styles = (theme: Theme) =>
     bottom: "20px",
     left: "50%",
     transform: "translateX(-50%)",
-    zIndex: 21000,
+    zIndex: theme.zIndex.floating,
     display: "flex",
     flexDirection: "row",
     gap: "12px",
@@ -153,7 +150,8 @@ const styles = (theme: Theme) =>
           right: "40%",
           height: "35%",
           borderRadius: "50%",
-          background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
+          background:
+            "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.4) 50%, transparent 70%)",
           filter: "blur(3px)",
           pointerEvents: "none",
           zIndex: 3,
@@ -252,13 +250,16 @@ const styles = (theme: Theme) =>
     },
     "@keyframes core-pulse": {
       "0%": {
-        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+        boxShadow:
+          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
       },
       "50%": {
-        boxShadow: "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
+        boxShadow:
+          "0 0 30px var(--palette-primary-main)100, 0 0 60px var(--palette-primary-main)60, inset 0 0 30px var(--palette-primary-light)80"
       },
       "100%": {
-        boxShadow: "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
+        boxShadow:
+          "0 0 20px var(--palette-primary-main)80, 0 0 40px var(--palette-primary-main)40, inset 0 0 20px var(--palette-primary-light)60"
       }
     },
     "@keyframes glass-ball-pulse": {
@@ -635,7 +636,9 @@ const FloatingToolBar: React.FC<{
           enterDelay={TOOLTIP_ENTER_DELAY}
           placement="top"
         >
-          <span style={{ backgroundColor: "transparent", display: "inline-block" }}>
+          <span
+            style={{ backgroundColor: "transparent", display: "inline-block" }}
+          >
             <Fab
               className={`floating-action-button run-workflow ${
                 isWorkflowRunning ? "running" : ""

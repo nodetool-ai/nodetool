@@ -9,9 +9,11 @@ import rehypeRaw from "rehype-raw";
 import { usePanelStore } from "../stores/PanelStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Dialog, IconButton } from "@mui/material";
+import { Box, Dialog, IconButton, Tooltip } from "@mui/material";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import { TOOLTIP_ENTER_DELAY } from "../config/constants";
+import { getShortcutTooltip } from "../config/shortcuts";
 
 interface MarkdownRendererProps {
   content: string;
@@ -24,9 +26,11 @@ const styles = (theme: Theme) =>
       cursor: "text",
       userSelect: "text",
       width: "100%",
-      height: "100%",
-      padding: "1em 1em 2em 1em",
+      height: "fit-content",
+      padding: "0.25em 0.5em 2em 0.5em",
+      fontSize: theme.vars.fontSizeBig,
       fontWeight: "300",
+      lineHeight: "1.3",
       position: "relative"
     }
   });
@@ -73,7 +77,24 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         ref={containerRef}
         tabIndex={0}
       >
-        <Box css={styles(theme)}>
+        <Tooltip title="Enter fullscreen" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            className="fullscreen-button"
+            aria-label="Enter fullscreen"
+            onClick={() => setIsFullscreen(true)}
+            size="small"
+            sx={{
+              position: "fixed",
+              top: 8,
+              right: 24,
+              bgcolor: (t) => t.palette.action.hover,
+              "&:hover": { bgcolor: (t) => t.palette.action.selected }
+            }}
+          >
+            <FullscreenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Box>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -90,21 +111,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             {content || ""}
           </ReactMarkdown>
         </Box>
-
-        <IconButton
-          aria-label="Enter fullscreen"
-          onClick={() => setIsFullscreen(true)}
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            bgcolor: (t) => t.palette.action.hover,
-            "&:hover": { bgcolor: (t) => t.palette.action.selected }
-          }}
-        >
-          <FullscreenIcon fontSize="small" />
-        </IconButton>
       </div>
 
       <Dialog
@@ -114,7 +120,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         slotProps={{
           paper: {
             sx: {
-              bgcolor: theme.vars.palette.background.default
+              p: "1em",
+              bgcolor: theme.vars.palette.background.default,
+              backgroundImage: "none",
+              opacity: 1
             }
           }
         }}
@@ -126,25 +135,31 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             position: "relative",
             width: "100%",
             height: "100%",
-            overflow: "auto"
+            overflow: "auto",
+            marginBottom: "2em"
           }}
         >
-          <IconButton
-            aria-label="Exit fullscreen"
-            onClick={() => setIsFullscreen(false)}
-            size="small"
-            sx={{
-              position: "fixed",
-              top: 12,
-              right: 16,
-              zIndex: 1,
-              bgcolor: (t) => t.palette.action.hover,
-              "&:hover": { bgcolor: (t) => t.palette.action.selected }
-            }}
+          <Tooltip
+            title={getShortcutTooltip("exitFullscreen")}
+            enterDelay={TOOLTIP_ENTER_DELAY}
           >
-            <FullscreenExitIcon fontSize="small" />
-          </IconButton>
-
+            <IconButton
+              className="fullscreen-exit-button"
+              aria-label="Exit fullscreen"
+              onClick={() => setIsFullscreen(false)}
+              size="small"
+              sx={{
+                position: "fixed",
+                top: 12,
+                right: 16,
+                zIndex: 1,
+                bgcolor: (t) => t.palette.action.hover,
+                "&:hover": { bgcolor: (t) => t.palette.action.selected }
+              }}
+            >
+              <FullscreenExitIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}

@@ -148,7 +148,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "plotly_config":
         config = value as PlotlyConfig;
         return (
-          <div style={{ width: "100%", height: "100%" }}>
+          <div
+            className="render-content"
+            style={{ width: "100%", height: "100%" }}
+          >
             <Plot
               data={config.config.data as Plotly.Data[]}
               layout={config.config.layout as Partial<Plotly.Layout>}
@@ -424,7 +427,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     copyToClipboard,
     videoRef,
     handleMouseDown,
-    scrollRef
+    scrollRef,
+    showTextActions
   ]);
 
   if (!shouldRender) {

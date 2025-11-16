@@ -71,6 +71,7 @@ const ThemeNodetool = createTheme({
     popover: 10001,
     popover2: 99990,
     autocomplete: 10002,
+    floating: 10003,
     highest: 100000
   },
   components: {
