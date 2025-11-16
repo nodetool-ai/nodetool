@@ -13,12 +13,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  TextField,
-  Typography,
-  Divider,
-  FormControlLabel,
-  Switch,
-  Alert
+  Divider
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -32,6 +27,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -39,6 +35,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { isLocalhost } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -372,11 +369,6 @@ const FloatingToolBar: React.FC<{
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] =
     useState<null | HTMLElement>(null);
-  // Resource limits: optional, disabled by default to avoid issues with ulimit -v
-  const [enableResourceLimits, setEnableResourceLimits] =
-    useState<boolean>(false);
-  const [cpuLimit, setCpuLimit] = useState<number>(100);
-  const [memoryLimit, setMemoryLimit] = useState<number>(4096);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isLeftPanelVisible = usePanelStore((state) => state.panel.isVisible);
   const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
@@ -384,6 +376,13 @@ const FloatingToolBar: React.FC<{
       isRightPanelVisible: state.panel.isVisible,
       rightPanelSize: state.panel.panelSize
     })
+  );
+  const bottomPanelVisible = useBottomPanelStore(
+    (state) => state.panel.isVisible
+  );
+  const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
+  const toggleBottomPanel = useBottomPanelStore(
+    (state) => state.handleViewChange
   );
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
@@ -415,13 +414,7 @@ const FloatingToolBar: React.FC<{
 
   const handleRun = useCallback(() => {
     if (!isWorkflowRunning) {
-      const resource_limits = enableResourceLimits
-        ? {
-            cpu_percent: cpuLimit,
-            memory_mb: memoryLimit
-          }
-        : undefined;
-      run({}, workflow, nodes, edges, resource_limits);
+      run({}, workflow, nodes, edges, undefined);
     }
     setTimeout(() => {
       const w = getWorkflowById(workflow.id);
@@ -437,9 +430,7 @@ const FloatingToolBar: React.FC<{
     edges,
     getWorkflowById,
     saveWorkflow,
-    enableResourceLimits,
-    cpuLimit,
-    memoryLimit
+    // Note: resource limits UI removed; using defaults
   ]);
 
   const handleStop = useCallback(() => {
@@ -530,6 +521,10 @@ const FloatingToolBar: React.FC<{
     setActionsMenuAnchor(null);
   }, []);
 
+  const handleToggleTerminal = useCallback(() => {
+    toggleBottomPanel("terminal");
+  }, [toggleBottomPanel]);
+
   // Only show in editor view; keep visible when right panel is open
   if (!path.startsWith("/editor") || isLeftPanelVisible) {
     return null;
@@ -540,15 +535,26 @@ const FloatingToolBar: React.FC<{
       <Box
         css={styles(theme)}
         className="floating-toolbar"
-        style={
-          isRightPanelVisible
+        style={{
+          ...(isRightPanelVisible
             ? {
                 left: "auto",
                 transform: "none",
                 right: `${Math.max(rightPanelSize + 20, 72)}px`
               }
-            : undefined
-        }
+            : {}),
+          bottom: bottomPanelVisible
+            ? `${Math.max(
+                Math.min(
+                  bottomPanelSize,
+                  typeof window !== "undefined"
+                    ? Math.max(200, window.innerHeight * 0.6)
+                    : bottomPanelSize
+                ) + 20,
+                80
+              )}px`
+            : "20px"
+        }}
       >
         {isMobile && (
           <Tooltip
@@ -677,110 +683,23 @@ const FloatingToolBar: React.FC<{
         transformOrigin={{ vertical: "bottom", horizontal: "center" }}
         slotProps={{
           paper: {
-            sx: { minWidth: "320px", maxWidth: "400px" }
+            sx: { minWidth: "240px", maxWidth: "320px" }
           }
         }}
       >
-        <Box sx={{ px: 3, py: 2.5 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              mb: 2,
-              fontWeight: 600,
-              color: "text.secondary",
-              fontSize: "0.813rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px"
-            }}
-          >
-            Resource Limits
-          </Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={enableResourceLimits}
-                onChange={(e) => setEnableResourceLimits(e.target.checked)}
-                size="small"
-              />
-            }
-            label={
-              <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
-                Enable resource limits
-              </Typography>
-            }
-            sx={{ mb: enableResourceLimits ? 3 : 0.5, ml: 0 }}
+        <MenuItem
+          onClick={() => {
+            handleToggleTerminal();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <TerminalIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary={bottomPanelVisible ? "Hide terminal" : "Show terminal"}
           />
-          {enableResourceLimits && (
-            <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: "divider" }}>
-              <Alert
-                severity="info"
-                sx={{
-                  mb: 3,
-                  fontSize: "0.813rem",
-                  "& .MuiAlert-message": {
-                    lineHeight: 1.5
-                  }
-                }}
-              >
-                Subprocess execution with ulimit. Memory limits can be
-                restrictive for large workflows.
-              </Alert>
-              <TextField
-                label="CPU Limit"
-                type="number"
-                size="small"
-                value={cpuLimit}
-                onChange={(e) =>
-                  setCpuLimit(
-                    Math.max(1, Math.min(100, parseInt(e.target.value) || 100))
-                  )
-                }
-                inputProps={{ min: 1, max: 100, step: 1 }}
-                sx={{ mb: 2.5, width: "100%" }}
-                helperText="Percentage of CPU (1-100%)"
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <Typography
-                        variant="caption"
-                        sx={{ color: "text.secondary", mr: 1 }}
-                      >
-                        %
-                      </Typography>
-                    )
-                  }
-                }}
-              />
-              <TextField
-                label="Memory Limit"
-                type="number"
-                size="small"
-                value={memoryLimit}
-                onChange={(e) =>
-                  setMemoryLimit(
-                    Math.max(1024, parseInt(e.target.value) || 4096)
-                  )
-                }
-                inputProps={{ min: 1024, step: 512 }}
-                sx={{ mb: 0.5, width: "100%" }}
-                helperText="Virtual memory (minimum 1GB, recommend 4GB+)"
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <Typography
-                        variant="caption"
-                        sx={{ color: "text.secondary", mr: 1 }}
-                      >
-                        MB
-                      </Typography>
-                    )
-                  }
-                }}
-              />
-            </Box>
-          )}
-        </Box>
-        <Divider />
+        </MenuItem>
         <MenuItem
           onClick={() => {
             handleEditWorkflow();

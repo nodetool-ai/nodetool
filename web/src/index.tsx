@@ -23,6 +23,7 @@ import ErrorBoundary from "./ErrorBoundary";
 
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
+import PanelBottom from "./components/panels/PanelBottom";
 import { CircularProgress, useMediaQuery } from "@mui/material";
 import { ThemeProvider, useTheme } from "@mui/material/styles";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
@@ -127,6 +128,7 @@ function getRoutes() {
         <ProtectedRoute>
           <PanelLeft />
           <Dashboard />
+          <PanelBottom />
         </ProtectedRoute>
       )
     },
@@ -151,6 +153,7 @@ function getRoutes() {
             >
               <PanelLeft />
               <GlobalChat />
+              <PanelBottom />
             </div>
           </>
         </ProtectedRoute>
@@ -173,6 +176,7 @@ function getRoutes() {
               <div style={{ flex: 1, display: "flex" }}>
                 <MiniAppPage />
               </div>
+              <PanelBottom />
             </div>
           </>
         </ProtectedRoute>
@@ -227,6 +231,7 @@ function getRoutes() {
                 <PanelLeft />
                 <TabsNodeEditor />
                 <PanelRight />
+                <PanelBottom />
                 <Alert />
               </div>
             </>
