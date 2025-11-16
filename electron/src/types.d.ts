@@ -41,7 +41,9 @@ declare global {
       showPackageManager: (nodeSearch?: string) => void;
       installToLocation: (
         location: string,
-        packages: PythonPackages
+        packages: PythonPackages,
+        installOllama?: boolean,
+        installLlamaCpp?: boolean
       ) => Promise<void>;
       selectCustomInstallLocation: () => Promise<string | null>;
       windowControls: {
@@ -179,14 +181,14 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-    | "cut"
-    | "copy"
-    | "paste"
-    | "selectAll"
-    | "undo"
-    | "redo"
-    | "close"
-    | "fitView";
+  | "cut"
+  | "copy"
+  | "paste"
+  | "selectAll"
+  | "undo"
+  | "redo"
+  | "close"
+  | "fitView";
 }
 
 export type ModelDirectory = "huggingface" | "ollama";
@@ -243,6 +245,8 @@ export enum IpcChannels {
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
+  installOllama?: boolean;
+  installLlamaCpp?: boolean;
 }
 
 export interface FileExplorerPathRequest {

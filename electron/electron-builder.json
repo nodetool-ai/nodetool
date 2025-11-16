@@ -43,6 +43,11 @@
         {
             "from": "resources/environment-win-64.yml",
             "to": "environment-win-64.lock.yml"
+        },
+        {
+            "from": "resources/micromamba",
+            "to": "micromamba",
+            "filter": ["**/*"]
         }
     ],
     "publish": [

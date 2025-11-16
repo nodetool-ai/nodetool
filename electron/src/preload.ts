@@ -98,8 +98,19 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY, target),
   openModelPath: (path: string) =>
     ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_PATH, { path }),
-  installToLocation: (location: string, packages: PythonPackages) =>
-    ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, { location, packages }),
+  installToLocation: (
+    location: string,
+    packages: PythonPackages,
+    installOllama?: boolean,
+    installLlamaCpp?: boolean
+  ) => {
+    return ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
+      location,
+      packages,
+      installOllama,
+      installLlamaCpp,
+    });
+  },
   selectCustomInstallLocation: () =>
     ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
   continueToApp: () => ipcRenderer.invoke(IpcChannels.START_SERVER),

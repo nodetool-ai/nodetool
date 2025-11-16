@@ -1,5 +1,6 @@
 import { ChildProcess, spawn } from "child_process";
 import { promises as fs } from "fs";
+import path from "path";
 import { logMessage } from "./logger";
 
 export interface WatchdogOptions {
@@ -294,6 +295,8 @@ export class Watchdog {
 
   private async writePidFile(pid: number): Promise<void> {
     try {
+      const pidDir = path.dirname(this.opts.pidFilePath);
+      await fs.mkdir(pidDir, { recursive: true });
       await fs.writeFile(this.opts.pidFilePath, String(pid));
       logMessage(
         `${this.opts.name} watchdog: wrote PID ${pid} to ${this.opts.pidFilePath}`
