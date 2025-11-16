@@ -111,11 +111,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         fullScreen
         open={isFullscreen}
         onClose={() => setIsFullscreen(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: theme.vars
-              ? theme.vars.palette.background.default
-              : theme.vars.palette.background.default
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: theme.vars.palette.background.default
+            }
           }
         }}
       >
