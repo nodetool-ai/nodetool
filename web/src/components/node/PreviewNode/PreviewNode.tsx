@@ -257,7 +257,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const copyToClipboard = useCopyToClipboard();
   const hasParent = props.parentId !== undefined;
-  const [hasFocusWithin, setHasFocusWithin] = useState(false);
+  const [isContentFocused, setIsContentFocused] = useState(false);
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
@@ -366,19 +366,32 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     }
   }, [previewOutput, result, props.id, addNotification]);
 
-  const handleFocusIn = useCallback(() => {
-    setHasFocusWithin(true);
+  const handleContentFocus = useCallback(() => {
+    setIsContentFocused(true);
   }, []);
 
-  const handleFocusOut = useCallback(
+  const handleContentBlur = useCallback(
     (event: React.FocusEvent<HTMLDivElement>) => {
       const nextTarget = event.relatedTarget as HTMLElement | null;
       if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
-        setHasFocusWithin(false);
+        setIsContentFocused(false);
       }
     },
     []
   );
+
+  const handleContentPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      const target = event.currentTarget;
+      if (document.activeElement !== target) {
+        target.focus();
+      }
+    },
+    []
+  );
+
+  const isScrollable = isContentFocused;
 
   return (
     <Container
@@ -405,11 +418,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
               borderRadius: "var(--rounded-node)"
             })
       }}
-      onFocusCapture={handleFocusIn}
-      onBlurCapture={handleFocusOut}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
-      } ${hasFocusWithin ? "nowheel" : ""}`}
+      }`}
     >
       <div className={`preview-node-content `}>
         <Handle
@@ -451,7 +462,13 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           position={Position.Left}
           isConnectable={true}
         />
-        <div className={`content ${props.selected ? "scrollable" : ""}`}>
+        <div
+          className={`content ${isScrollable ? "scrollable nowheel" : ""}`}
+          tabIndex={0}
+          onFocus={handleContentFocus}
+          onBlur={handleContentBlur}
+          onPointerDown={handleContentPointerDown}
+        >
           {memoizedOutputRenderer}
         </div>
       </div>
