@@ -157,6 +157,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
           <DeleteButton<Asset>
             className="asset-delete"
             item={folder}
+            component="span"
             onClick={() => handleDelete()}
           />
         </ButtonGroup>

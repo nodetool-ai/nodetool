@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 
 import React from "react";
 import Button from "@mui/material/Button";
+import type { ButtonProps } from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 import { Tooltip } from "@mui/material";
 import {
@@ -29,7 +30,8 @@ interface DeleteButtonProps<T> {
     | "right-start"
     | "top-end"
     | "top-start";
-  onClick: (event: React.MouseEvent<HTMLButtonElement>, item: T) => void;
+  component?: ButtonProps["component"];
+  onClick: (event: React.MouseEvent<HTMLElement>, item: T) => void;
 }
 
 const styles = (theme: Theme) =>
@@ -51,6 +53,7 @@ function DeleteButton<T>({
   className = "",
   tooltip,
   tooltipPlacement,
+  component,
   onClick
 }: DeleteButtonProps<T>): JSX.Element {
   const theme = useTheme();
@@ -62,6 +65,7 @@ function DeleteButton<T>({
       placement={tooltipPlacement || "bottom"}
     >
       <Button
+        component={component}
         css={styles(theme)}
         className={`${className} delete-button`}
         tabIndex={-1}
