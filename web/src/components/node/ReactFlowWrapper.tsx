@@ -28,7 +28,7 @@ import OutputContextMenu from "../context_menus/OutputContextMenu";
 import InputContextMenu from "../context_menus/InputContextMenu";
 import EdgeContextMenu from "../context_menus/EdgeContextMenu";
 import CommentNode from "../node/CommentNode";
-import PreviewNode from "../node/PreviewNode";
+import PreviewNode from "../node/PreviewNode/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
 //utils
@@ -143,12 +143,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       cancelPlacement: state.cancelPlacement,
       placementLabel: state.label
     }));
-  const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
+  const [ghostPosition, setGhostPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
   const ghostTheme = useMemo(() => {
     const isDark = theme.palette.mode === "dark";
     return {
-      textColor: isDark ? "rgba(226, 232, 255, 0.95)" : "rgba(23, 37, 84, 0.95)",
+      textColor: isDark
+        ? "rgba(226, 232, 255, 0.95)"
+        : "rgba(23, 37, 84, 0.95)",
       accentColor: theme.vars.palette.primary.main,
       badgeBackground: isDark
         ? "linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(14, 165, 233, 0.22))"
