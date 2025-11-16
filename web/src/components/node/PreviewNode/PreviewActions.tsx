@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
+import { Button, Box, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -18,7 +18,17 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
   canCopy
 }) => {
   return (
-    <div className="actions">
+    <Box
+      className="actions"
+      sx={{
+        display: "flex",
+        gap: 1,
+        justifyContent: "flex-start",
+        alignItems: "start",
+        padding: 0,
+        margin: "0 0 .25em 0"
+      }}
+    >
       <Tooltip title="Download">
         <Button
           onClick={onDownload}
@@ -35,12 +45,12 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
       </Tooltip>
       {canCopy && (
         <Tooltip title="Copy to clipboard">
-          <Button onClick={onCopy} className="action-button copy" tabIndex={-1}>
+          <Button onClick={onCopy} className="action-button" tabIndex={-1}>
             <ContentCopyIcon fontSize="inherit" />
           </Button>
         </Tooltip>
       )}
-    </div>
+    </Box>
   );
 };
 

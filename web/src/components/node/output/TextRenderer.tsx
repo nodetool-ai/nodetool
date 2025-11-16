@@ -104,6 +104,9 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
           sx={{
             padding: "0 0.5em",
             margin: 0,
+            lineHeight: 1.2,
+            fontSize: theme.vars.fontSizeSmaller,
+            fontFamily: theme.vars.fontFamily2,
             color: theme.vars.palette.text.secondary
           }}
         >
