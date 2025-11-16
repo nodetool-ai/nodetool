@@ -115,7 +115,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           sx: {
             bgcolor: theme.vars
               ? theme.vars.palette.background.default
-              : theme.palette.background.default
+              : theme.vars.palette.background.default
           }
         }}
       >

@@ -97,7 +97,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 Insert into editor
               </button>
             )}
-            <CopyToClipboardButton textToCopy={codeContent} />
+            <CopyToClipboardButton copyValue={codeContent} />
           </div>
         </div>
         <SyntaxHighlighter

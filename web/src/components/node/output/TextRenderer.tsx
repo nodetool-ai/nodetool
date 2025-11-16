@@ -38,8 +38,25 @@ const parseThinkSections = (input: string): Section[] => {
 };
 
 const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
+  const theme = useTheme();
   const [open, setOpen] = useState(false);
-  const toggle = useCallback(() => setOpen((v) => !v), []);
+  const handleToggle = useCallback(() => {
+    setOpen((v) => !v);
+  }, []);
+  const handleContainerClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      handleToggle();
+    },
+    [handleToggle]
+  );
+  const handleIconClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      handleToggle();
+    },
+    [handleToggle]
+  );
   return (
     <Box
       sx={{
@@ -58,11 +75,11 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
           cursor: "pointer",
           userSelect: "none"
         }}
-        onClick={toggle}
+        onClick={handleContainerClick}
       >
         <IconButton
           size="small"
-          onClick={toggle}
+          onClick={handleIconClick}
           sx={{
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.2s"
@@ -71,14 +88,27 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
         >
           <ExpandMoreIcon fontSize="inherit" />
         </IconButton>
-        <Tooltip title={open ? "Hide reasoning" : "Show reasoning"}>
-          <Box component="span" sx={{ fontSize: 12, opacity: 0.8 }}>
-            Hidden reasoning
-          </Box>
-        </Tooltip>
+        <Box
+          component="span"
+          sx={{
+            fontSize: 12,
+            textTransform: "uppercase"
+          }}
+        >
+          {open ? "Hide reasoning" : "Show reasoning"}
+        </Box>
       </Box>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <MaybeMarkdown text={content} />
+        <Box
+          className="reasoning-content"
+          sx={{
+            padding: "0 0.5em",
+            margin: 0,
+            color: theme.vars.palette.text.secondary
+          }}
+        >
+          <MaybeMarkdown text={content} />
+        </Box>
       </Collapse>
     </Box>
   );
@@ -93,7 +123,7 @@ export const TextRenderer: React.FC<Props> = ({
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) return null;
   return (
-    <div className="output value nodrag noscroll" css={outputStyles(theme)}>
+    <div className="output value nodrag nowheel" css={outputStyles(theme)}>
       {showActions && <Actions onCopy={() => onCopy(text)} />}
       {sections.map((s, i) =>
         s.type === "think" ? (

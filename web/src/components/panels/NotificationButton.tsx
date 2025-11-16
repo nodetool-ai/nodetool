@@ -192,7 +192,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   {notification.timestamp.toLocaleString()}
                 </Typography>
                 <CopyToClipboardButton
-                  textToCopy={notification.content}
+                  copyValue={notification.content}
                   className="copy-button"
                   title="Copy to clipboard"
                 />

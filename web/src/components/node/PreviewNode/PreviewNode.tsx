@@ -15,6 +15,7 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
+import { serializeValue } from "../../../utils/serializeValue";
 import { hexToRgba } from "../../../utils/ColorUtils";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
@@ -33,7 +34,7 @@ const styles = (theme: Theme) =>
         width: "100%",
         height: "100%",
         minWidth: "150px",
-        maxWidth: "1000px",
+        maxWidth: "unset",
         minHeight: "150px",
         borderRadius: "var(--rounded-node)"
       },
@@ -177,26 +178,6 @@ const getOutputFromResult = (result: any) => {
   return result.output;
 };
 
-const toCopyText = (output: any): string | null => {
-  if (output === null || output === undefined) {
-    return null;
-  }
-
-  if (typeof output === "string") {
-    return output;
-  }
-
-  if (typeof output === "number" || typeof output === "boolean") {
-    return output.toString();
-  }
-
-  try {
-    return JSON.stringify(output, null, 2);
-  } catch {
-    return null;
-  }
-};
-
 interface PreviewNodeProps extends NodeProps {
   data: NodeData;
   id: string;
@@ -223,7 +204,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     ) : null;
   }, [result]);
 
-  const copyPayload = useMemo(() => toCopyText(previewOutput), [previewOutput]);
+  const copyPayload = useMemo(
+    () => serializeValue(previewOutput),
+    [previewOutput]
+  );
   const hasCopyableOutput = Boolean(copyPayload);
 
   const handleCopy = useCallback(() => {

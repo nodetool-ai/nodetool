@@ -32,12 +32,8 @@ const styles = (theme: Theme, gap: number) =>
       aspectRatio: "1 / 1",
       borderRadius: 6,
       overflow: "hidden",
-      background:
-        theme.vars?.palette?.background?.default ||
-        theme.palette.background.default,
-      border: `1px solid ${
-        theme.vars?.palette?.divider || theme.palette.divider
-      }`,
+      background: theme.vars.palette.background.default,
+      border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       transition: "transform 0.08s ease-out, box-shadow 0.08s ease-out",
       boxShadow: "none",
@@ -51,8 +47,7 @@ const styles = (theme: Theme, gap: number) =>
       height: "100%",
       objectFit: "cover" as const,
       display: "block",
-      backgroundColor:
-        theme.vars?.palette?.grey?.[900] || theme.palette.grey[900]
+      backgroundColor: theme.vars.palette.grey[900]
     },
     ".kind-badge": {
       position: "absolute",
@@ -72,7 +67,7 @@ const styles = (theme: Theme, gap: number) =>
       bottom: 0,
       padding: "4px 6px",
       fontSize: 11,
-      color: theme.vars?.palette?.text?.primary || theme.palette.text.primary,
+      color: theme.vars.palette.text.primary,
       background:
         "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)",
       WebkitLineClamp: 1,
@@ -88,9 +83,8 @@ const styles = (theme: Theme, gap: number) =>
       alignItems: "center",
       justifyContent: "center",
       fontSize: 12,
-      color:
-        theme.vars?.palette?.text?.secondary || theme.palette.text.secondary,
-      background: theme.vars?.palette?.grey?.[900] || theme.palette.grey[900]
+      color: theme.vars.palette.text.secondary,
+      background: theme.vars.palette.grey[900]
     }
   });
 
@@ -103,6 +97,14 @@ function revokeAll(urls: string[]) {
       console.error("Error revoking blob URL", u);
     }
   });
+}
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  const buffer = view.buffer as ArrayBuffer;
+  if (view.byteOffset === 0 && view.byteLength === buffer.byteLength) {
+    return buffer;
+  }
+  return buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
 }
 
 const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
@@ -130,7 +132,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
         const url =
           typeof img === "string"
             ? img
-            : URL.createObjectURL(new Blob([img], { type: "image/png" }));
+            : URL.createObjectURL(
+                new Blob([toArrayBuffer(img)], { type: "image/png" })
+              );
         map.set(img, url);
         changed = true;
       }

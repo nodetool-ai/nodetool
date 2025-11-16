@@ -223,7 +223,7 @@ const Alert: React.FC = () => {
               </MUIAlert>
               {(notification.dismissable || notification.type === "error") && (
                 <CopyToClipboardButton
-                  textToCopy={notification.content}
+                  copyValue={notification.content}
                   className="copy-button"
                   title="Copy to clipboard"
                 />

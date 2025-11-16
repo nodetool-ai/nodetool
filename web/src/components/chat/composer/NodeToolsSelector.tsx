@@ -253,8 +253,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 size="small"
                 label={selectedCount}
                 sx={{
-                  backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.grey[100],
+                  backgroundColor: theme.vars.palette.primary.light,
+                  color: theme.vars.palette.grey[100],
                   borderRadius: "6px",
                   height: "18px",
                   "& .MuiChip-label": {
