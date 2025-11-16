@@ -310,7 +310,7 @@ export const MessageView: React.FC<
         {!Array.isArray(message.tool_calls) && (
           <CopyToClipboardButton
             className="copy-button"
-            textToCopy={handleCopy()}
+            copyValue={handleCopy()}
             size="small"
             title="Copy to clipboard"
           />

@@ -91,7 +91,7 @@ const StringProperty = ({
                   <OpenInFullIcon />
                 </IconButton>
               </Tooltip>
-              <CopyToClipboardButton textToCopy={value || ""} size="small" />
+              <CopyToClipboardButton copyValue={value} size="small" />
             </div>
           )}
           <div 

@@ -577,8 +577,8 @@ _Usage: These utilities handle data transformation between backend API and React
      borderRadius: theme.spacing(1),
      padding: theme.spacing(1, 2),
      ...(variant === "primary" && {
-       backgroundColor: theme.palette.primary.main,
-       color: theme.palette.primary.contrastText,
+       backgroundColor: theme.vars.palette.primary.main,
+       color: theme.vars.palette.primary.contrastText,
      }),
    }));
    ```

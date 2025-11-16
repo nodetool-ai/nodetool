@@ -135,7 +135,7 @@ const ErrorBoundary: React.FC = () => {
         </Typography>
         <Box position="relative" width="100%" maxWidth="80vw">
           <CopyToClipboardButton
-            textToCopy={stackTrace || ""}
+            copyValue={stackTrace}
             tooltipPlacement="top"
             size="large"
             sx={{ position: "absolute", top: 25, right: 5 }}

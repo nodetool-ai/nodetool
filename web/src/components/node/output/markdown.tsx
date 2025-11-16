@@ -24,5 +24,5 @@ export const MaybeMarkdown: React.FC<{ text: string }> = ({ text }) =>
   isLikelyMarkdown(text) ? (
     <MarkdownRenderer content={text} />
   ) : (
-    <div style={{ padding: "1em", whiteSpace: "pre-wrap" }}>{text}</div>
+    <div style={{ padding: "0 0.5em", whiteSpace: "pre-wrap" }}>{text}</div>
   );

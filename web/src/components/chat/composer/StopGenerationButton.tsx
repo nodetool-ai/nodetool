@@ -36,7 +36,7 @@ export const StopGenerationButton = forwardRef<
       <StopIcon
         fontSize="small"
         sx={(theme) => ({
-          color: theme.palette.text.primary
+          color: theme.vars.palette.text.primary
         })}
       />
     </IconButton>

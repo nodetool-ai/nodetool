@@ -22,13 +22,13 @@ const styles = (theme: Theme) =>
     ".messages li .tool-call": {
       fontFamily: theme.fontFamily2,
       background: `linear-gradient(135deg, ${alpha(
-        theme.palette.primary.dark,
+        theme.vars.palette.primary.dark,
         0.35
-      )} 0%, ${alpha(theme.palette.primary.main, 0.12)} 100%)`,
-      border: `1px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+      )} 0%, ${alpha(theme.vars.palette.primary.main, 0.12)} 100%)`,
+      border: `1px solid ${alpha(theme.vars.palette.primary.main, 0.35)}`,
       borderRadius: "14px",
       padding: "0.9em 1.1em",
-      boxShadow: `0 8px 16px ${alpha(theme.palette.common.black, 0.18)}`,
+      boxShadow: `0 8px 16px ${alpha(theme.vars.palette.common.black, 0.18)}`,
       position: "relative",
       overflow: "hidden"
     },
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       inset: "0",
       background: `linear-gradient(140deg, ${alpha(
-        theme.palette.primary.main,
+        theme.vars.palette.primary.main,
         0.2
       )} 0%, transparent 60%)`,
       pointerEvents: "none"
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       fontWeight: 700,
       color: theme.vars.palette.primary.main,
-      backgroundColor: alpha(theme.palette.primary.main, 0.15),
+      backgroundColor: alpha(theme.vars.palette.primary.main, 0.15),
       padding: "0.2em 0.55em",
       borderRadius: "999px"
     },
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       zIndex: 1
     },
     ".messages li .tool-call__message pre": {
-      backgroundColor: alpha(theme.palette.common.black, 0.35),
+      backgroundColor: alpha(theme.vars.palette.common.black, 0.35),
       borderRadius: "10px",
       padding: "0.75em",
       marginTop: "0.8em",
@@ -125,7 +125,6 @@ const styles = (theme: Theme) =>
 type ChatViewProps = {
   messages: Array<Message>;
 };
-
 
 const formatToolName = (name?: string) => {
   if (!name) return "Agent Task";

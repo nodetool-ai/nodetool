@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { IconButton, IconButtonProps } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Tooltip } from "@mui/material";
+import { serializeValue } from "../../utils/serializeValue";
 
 const CHECKMARK_TIMEOUT = 2000;
 
 interface CopyToClipboardButtonProps extends Omit<IconButtonProps, "onClick"> {
-  textToCopy: string;
+  copyValue: unknown;
   onCopySuccess?: () => void;
   onCopyError?: (err: any) => void;
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
 }
 
 export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
-  textToCopy,
+  copyValue,
   onCopySuccess,
   onCopyError,
   title = "Copy to clipboard",
@@ -28,6 +29,15 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [showError, setShowError] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resolvedText = useMemo(() => {
+    if (typeof copyValue === "string") {
+      return copyValue;
+    }
+    return serializeValue(copyValue);
+  }, [copyValue]);
+  const sanitizedText = useMemo(() => {
+    return resolvedText?.replace(/\u00A0/g, " ") ?? null;
+  }, [resolvedText]);
 
   useEffect(() => {
     return () => {
@@ -46,7 +56,8 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
     setIsCopied(false);
     setShowError(false);
 
-    const hasTextToCopy = textToCopy && textToCopy.trim() !== "";
+    const hasTextToCopy =
+      sanitizedText !== null && sanitizedText.trim().length > 0;
 
     // Don't attempt to copy if there's nothing to copy
     if (!hasTextToCopy) {
@@ -57,8 +68,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       return;
     }
 
-    const sanitized = textToCopy.replace(/\u00A0/g, " ");
-    writeClipboard(sanitized, true)
+    writeClipboard(sanitizedText!, true)
       .then(() => {
         setIsCopied(true);
         if (onCopySuccess) {

@@ -16,7 +16,7 @@ export const chipSx = (
   tone: Tone,
   options?: { uppercase?: boolean; maxWidth?: number }
 ): SxProps<Theme> => {
-  const color = theme.palette[tone].main as string;
+  const color = theme.vars.palette[tone].main as string;
   const { uppercase = true, maxWidth = 200 } = options ?? {};
 
   return {
