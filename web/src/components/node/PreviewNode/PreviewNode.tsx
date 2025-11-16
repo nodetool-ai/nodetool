@@ -304,7 +304,26 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     }
 
     try {
-      const assetFiles = createAssetFile(previewOutput, props.id);
+      console.log("[PreviewNode] handleAddToAssets payload", {
+        nodeId: props.id,
+        outputType:
+          previewOutput && typeof previewOutput === "object"
+            ? previewOutput.type
+            : typeof previewOutput,
+        outputKeys:
+          previewOutput && typeof previewOutput === "object"
+            ? Object.keys(previewOutput as Record<string, unknown>)
+            : undefined
+      });
+      const assetFiles = await createAssetFile(previewOutput, props.id);
+      console.log("[PreviewNode] handleAddToAssets files", {
+        count: assetFiles.length,
+        files: assetFiles.map((entry) => ({
+          name: entry.filename,
+          type: entry.type,
+          size: entry.file.size
+        }))
+      });
       for (const { file } of assetFiles) {
         await createAsset(file);
       }
@@ -324,6 +343,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const handleDownload = useCallback(async () => {
     try {
+      console.log("[PreviewNode] handleDownload start", {
+        nodeId: props.id,
+        hasPreview: previewOutput !== undefined,
+        hasResult: result !== undefined
+      });
       await downloadPreviewAssets({
         nodeId: props.id,
         previewValue: previewOutput,

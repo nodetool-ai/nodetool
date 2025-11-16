@@ -29,7 +29,46 @@ export const downloadPreviewAssets = async ({
   rawResult
 }: DownloadOptions) => {
   const payload = getDownloadPayload({ previewValue, rawResult });
-  const assetFiles = createAssetFile(payload, nodeId);
+  console.log("[downloadPreviewAssets] payload summary", {
+    nodeId,
+    hasPreview: previewValue !== undefined,
+    hasRawResult: rawResult !== undefined,
+    payloadType: typeof payload,
+    payloadKeys:
+      payload && typeof payload === "object" ? Object.keys(payload) : undefined
+  });
+  let assetFiles: Awaited<ReturnType<typeof createAssetFile>>;
+  try {
+    assetFiles = await createAssetFile(payload, nodeId);
+  } catch (error) {
+    const uri =
+      typeof payload === "object" && payload && "uri" in payload
+        ? (payload as { uri?: string }).uri
+        : undefined;
+    if (uri) {
+      console.warn(
+        "[downloadPreviewAssets] Falling back to direct URI download due to error",
+        error
+      );
+      const anchor = document.createElement("a");
+      anchor.href = uri;
+      anchor.download = uri.split("/").pop() ?? "preview_download";
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      return;
+    }
+    throw error;
+  }
+  console.log("[downloadPreviewAssets] generated files", {
+    count: assetFiles.length,
+    files: assetFiles.map((entry) => ({
+      name: entry.filename,
+      type: entry.type,
+      size: entry.file.size
+    }))
+  });
   const electronApi = (window as any)?.electron || (window as any)?.api;
 
   if (!assetFiles.length) {
@@ -88,4 +127,3 @@ export const downloadPreviewAssets = async ({
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
 };
-
