@@ -11,20 +11,16 @@ export const createStyles = (theme: Theme) => ({
     marginRight: "20px",
     minHeight: 0
   }),
-  scrollableMessageWrapper: css({
+  messageWrapper: css({
     flex: 1,
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-start",
     alignItems: "center",
-    overflowY: "auto",
-    overflowX: "hidden",
+    overflow: "hidden",
     padding: "0 .5em",
     marginTop: ".2em",
-    // marginRight: "10px",
     position: "relative",
-    scrollbarWidth: "auto",
-    scrollbarColor: "var(--palette-grey-600) transparent",
 
     "&::-webkit-scrollbar": {
       width: "12px !important"

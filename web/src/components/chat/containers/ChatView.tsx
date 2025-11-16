@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Node,
   Edge,
@@ -123,6 +123,17 @@ const ChatView = ({
   runningToolMessage
 }: ChatViewProps) => {
   const theme = useTheme();
+  const chatThreadContainerRef = useRef<HTMLDivElement | null>(null);
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(
+    null
+  );
+  const handleChatThreadContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      chatThreadContainerRef.current = node;
+      setScrollContainer(node);
+    },
+    []
+  );
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -162,7 +173,10 @@ const ChatView = ({
 
   return (
     <div className="chat-view" css={styles(theme)}>
-      <div className="chat-thread-container">
+      <div
+        className="chat-thread-container"
+        ref={handleChatThreadContainerRef}
+      >
         {messages.length > 0 ? (
           <ChatThreadView
             messages={messages}
@@ -175,6 +189,7 @@ const ChatView = ({
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
             onInsertCode={onInsertCode}
+            scrollContainer={scrollContainer}
           />
         ) : (
           noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

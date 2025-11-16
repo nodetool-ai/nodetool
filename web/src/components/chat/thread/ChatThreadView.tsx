@@ -39,6 +39,7 @@ interface ChatThreadViewProps {
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
+  scrollContainer?: HTMLDivElement | null;
 }
 
 const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
@@ -46,7 +47,7 @@ const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
 
 // Define props for the memoized list content component
 interface MemoizedMessageListContentProps
-  extends Omit<ChatThreadViewProps, "theme"> {
+  extends Omit<ChatThreadViewProps, "scrollContainer"> {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   bottomRef: React.RefObject<HTMLDivElement>; // Pass the ref here
@@ -146,10 +147,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
-  onInsertCode
+  onInsertCode,
+  scrollContainer
 }) => {
   const theme = useTheme();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const internalScrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
@@ -160,6 +162,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
 
   const SCROLL_THRESHOLD = 50;
 
@@ -184,9 +187,17 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     lastUserScrollTimeRef.current = Date.now();
   }, []);
 
+  useEffect(() => {
+    if (scrollContainer) {
+      setScrollHost(scrollContainer);
+    } else if (internalScrollRef.current) {
+      setScrollHost(internalScrollRef.current);
+    }
+  }, [scrollContainer]);
+
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
-    const element = scrollRef.current;
+    const element = scrollHost;
     if (!element) return;
 
     const calculatedIsNearBottom =
@@ -207,7 +218,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         setShowScrollToBottomButton(shouldBeVisible);
       }
     }
-  }, [SCROLL_THRESHOLD, showScrollToBottomButton]);
+  }, [showScrollToBottomButton, scrollHost]);
+
+  useEffect(() => {
+    if (!scrollHost) {
+      return;
+    }
+    const handleScrollEvent = () => handleScroll();
+    scrollHost.addEventListener("scroll", handleScrollEvent);
+    return () => {
+      scrollHost.removeEventListener("scroll", handleScrollEvent);
+    };
+  }, [scrollHost, handleScroll]);
 
   const scrollToBottom = useCallback(() => {
     const el = bottomRef.current;
@@ -218,7 +240,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, []);
 
   useEffect(() => {
-    const scrollElement = scrollRef.current;
+    const scrollElement = scrollHost;
     const bottomElement = bottomRef.current;
     if (!scrollElement || !bottomElement) return;
 
@@ -242,7 +264,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [showScrollToBottomButton]);
+  }, [scrollHost, showScrollToBottomButton]);
 
   useEffect(() => {
     if (autoScrollTimeoutRef.current) {
@@ -293,10 +315,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       className="chat-thread-view-root"
     >
       <div
-        ref={scrollRef}
-        css={componentStyles.scrollableMessageWrapper}
+        ref={internalScrollRef}
+        css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
-        onScroll={handleScroll}
       >
         <MemoizedMessageListContent
           messages={messages}
