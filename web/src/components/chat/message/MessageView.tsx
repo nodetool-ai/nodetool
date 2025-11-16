@@ -162,7 +162,6 @@ export const MessageView: React.FC<
                   <ThoughtSection
                     key={key}
                     thoughtContent={parsedThought.thoughtContent}
-                    hasClosingTag={parsedThought.hasClosingTag}
                     isExpanded={isExpanded}
                     onToggle={() => onToggleThought(key)}
                     textBefore={parsedThought.textBeforeThought}
@@ -204,7 +203,6 @@ export const MessageView: React.FC<
       return (
         <ThoughtSection
           thoughtContent={parsedThought.thoughtContent}
-          hasClosingTag={parsedThought.hasClosingTag}
           isExpanded={isExpanded}
           onToggle={() => onToggleThought(key)}
           textBefore={parsedThought.textBeforeThought}
