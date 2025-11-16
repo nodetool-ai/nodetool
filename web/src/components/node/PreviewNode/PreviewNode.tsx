@@ -1,12 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import JSZip from "jszip";
 import log from "loglevel";
 import { isEqual } from "lodash";
 
@@ -23,6 +22,7 @@ import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { useCopyToClipboard } from "../output";
 import PreviewActions from "./PreviewActions";
+import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 
 const styles = (theme: Theme) =>
   css([
@@ -165,17 +165,83 @@ const styles = (theme: Theme) =>
   ]);
 
 const getOutputFromResult = (result: any) => {
-  if (!result) return null;
+  if (result === null || result === undefined) {
+    return null;
+  }
 
   if (Array.isArray(result)) {
-    const outputs = result.map((item: any) => item.output);
+    const outputs = result.map((item: any) => {
+      if (
+        item &&
+        typeof item === "object" &&
+        "output" in item &&
+        item.output !== undefined
+      ) {
+        return item.output;
+      }
+      return item;
+    });
+
     if (outputs.every((output: any) => typeof output === "string")) {
       return outputs.join("\n");
     }
     return outputs;
   }
 
-  return result.output;
+  if (
+    typeof result === "object" &&
+    result !== null &&
+    "output" in result &&
+    result.output !== undefined
+  ) {
+    return result.output;
+  }
+
+  return result;
+};
+
+const getCopySource = (value: any): any => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    const flattened = value.map((item) => getCopySource(item));
+    if (flattened.every((entry) => typeof entry === "string")) {
+      return flattened.join("\n");
+    }
+    return flattened;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    (value as any).type === "text" &&
+    typeof (value as any).data === "string"
+  ) {
+    return (value as any).data;
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "output" in value &&
+    (value as any).output !== undefined
+  ) {
+    return getCopySource((value as any).output);
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "value" in value &&
+    (value as any).value !== undefined
+  ) {
+    return getCopySource((value as any).value);
+  }
+
+  return value;
 };
 
 interface PreviewNodeProps extends NodeProps {
@@ -191,6 +257,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const copyToClipboard = useCopyToClipboard();
   const hasParent = props.parentId !== undefined;
+  const [hasFocusWithin, setHasFocusWithin] = useState(false);
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
@@ -204,11 +271,15 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     ) : null;
   }, [result]);
 
-  const copyPayload = useMemo(
-    () => serializeValue(previewOutput),
-    [previewOutput]
+  const copyPayloadSource = useMemo(
+    () => getCopySource(previewOutput ?? result ?? null),
+    [previewOutput, result]
   );
-  const hasCopyableOutput = Boolean(copyPayload);
+  const copyPayload = useMemo(
+    () => serializeValue(copyPayloadSource),
+    [copyPayloadSource]
+  );
+  const hasCopyableOutput = copyPayload !== null;
 
   const handleCopy = useCallback(() => {
     if (!copyPayload) {
@@ -227,7 +298,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   }, [copyPayload, copyToClipboard, addNotification]);
 
   const handleAddToAssets = useCallback(async () => {
-    if (!previewOutput) {
+    if (previewOutput === null || previewOutput === undefined) {
       log.warn("No result output to add to assets");
       return;
     }
@@ -252,67 +323,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   }, [previewOutput, props.id, createAsset, addNotification]);
 
   const handleDownload = useCallback(async () => {
-    if (!previewOutput) {
-      addNotification({
-        type: "warning",
-        content: "No content available to download"
-      });
-      return;
-    }
-
     try {
-      const assetFiles = createAssetFile(previewOutput, props.id);
-      const electronApi = (window as any).electron || (window as any).api;
-
-      if (assetFiles.length === 1) {
-        const { file, filename } = assetFiles[0];
-        const arrayBuffer = await file.arrayBuffer();
-
-        if (electronApi?.saveFile) {
-          const result = await electronApi.saveFile(arrayBuffer, filename, [
-            { name: "All Files", extensions: ["*"] }
-          ]);
-          if (!result.success && !result.canceled) {
-            throw new Error(result.error || "Failed to save file");
-          }
-        } else {
-          const url = URL.createObjectURL(file);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
-      } else {
-        const zip = new JSZip();
-        assetFiles.forEach(({ file, filename }) => {
-          zip.file(filename, file);
-        });
-        const content = await zip.generateAsync({ type: "arraybuffer" });
-        const zipName = `preview_${props.id}.zip`;
-
-        if (electronApi?.saveFile) {
-          const result = await electronApi.saveFile(content, zipName, [
-            { name: "ZIP Files", extensions: ["zip"] }
-          ]);
-          if (!result.success && !result.canceled) {
-            throw new Error(result.error || "Failed to save file");
-          }
-        } else {
-          const blob = new Blob([content], { type: "application/zip" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = zipName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
-      }
-
+      await downloadPreviewAssets({
+        nodeId: props.id,
+        previewValue: previewOutput,
+        rawResult: result
+      });
       addNotification({
         type: "success",
         content: "Download started successfully"
@@ -324,7 +340,21 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: "Failed to start download"
       });
     }
-  }, [previewOutput, props.id, addNotification]);
+  }, [previewOutput, result, props.id, addNotification]);
+
+  const handleFocusIn = useCallback(() => {
+    setHasFocusWithin(true);
+  }, []);
+
+  const handleFocusOut = useCallback(
+    (event: React.FocusEvent<HTMLDivElement>) => {
+      const nextTarget = event.relatedTarget as HTMLElement | null;
+      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+        setHasFocusWithin(false);
+      }
+    },
+    []
+  );
 
   return (
     <Container
@@ -351,9 +381,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
               borderRadius: "var(--rounded-node)"
             })
       }}
+      onFocusCapture={handleFocusIn}
+      onBlurCapture={handleFocusOut}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
-      } ${props.selected ? "nowheel" : ""}`}
+      } ${hasFocusWithin ? "nowheel" : ""}`}
     >
       <div className={`preview-node-content `}>
         <Handle
