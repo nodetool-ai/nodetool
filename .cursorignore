@@ -1,6 +1,5 @@
 build/
 dist/
-scripts/
 node_modules/
 # docs/
 examples/

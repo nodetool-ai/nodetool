@@ -15,7 +15,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import https from "https";
+import * as tar from "tar";
 import { pipeline } from "stream/promises";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
@@ -282,162 +282,45 @@ function getCandidateMicromambaResourceDirs(): string[] {
 
 async function findBundledMicromambaExecutable(): Promise<string | null> {
   const binaryName = MICROMAMBA_EXECUTABLE_NAME;
+  const platform = process.platform;
+  const arch = process.arch;
+  
+  // Map platform/arch to micromamba directory structure
+  let platformDir: string;
+  if (platform === "win32") {
+    platformDir = "win-64";
+  } else if (platform === "darwin") {
+    platformDir = arch === "arm64" ? "osx-arm64" : "osx-64";
+  } else if (platform === "linux") {
+    platformDir = arch === "arm64" ? "linux-aarch64" : "linux-64";
+  } else {
+    return null;
+  }
 
   for (const baseDir of getCandidateMicromambaResourceDirs()) {
-    const candidate = path.join(
+    // Check platform-specific directory first
+    const platformSpecificPath = path.join(
+      baseDir,
+      MICROMAMBA_BUNDLED_DIR_NAME,
+      platformDir,
+      platform === "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
+    );
+    if (await fileExists(platformSpecificPath)) {
+      return platformSpecificPath;
+    }
+    
+    // Fallback to old structure (for backward compatibility)
+    const legacyPath = path.join(
       baseDir,
       MICROMAMBA_BUNDLED_DIR_NAME,
       binaryName
     );
-    if (await fileExists(candidate)) {
-      return candidate;
+    if (await fileExists(legacyPath)) {
+      return legacyPath;
     }
   }
 
   return null;
-}
-
-function getMicromambaDownloadUrl(): string | null {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  if (platform === "darwin") {
-    if (arch === "arm64") {
-      return "https://micro.mamba.pm/api/micromamba/osx-arm64/latest";
-    }
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/osx-64/latest";
-    }
-    return null;
-  }
-
-  if (platform === "linux") {
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-64/latest";
-    }
-    if (arch === "arm64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-aarch64/latest";
-    }
-    if (arch === "ppc64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-ppc64le/latest";
-    }
-    return null;
-  }
-
-  if (platform === "win32") {
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/win-64/latest";
-    }
-    return null;
-  }
-
-  return null;
-}
-
-async function downloadFile(
-  url: string,
-  destinationPath: string
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const request = https.get(url, (response) => {
-      if (
-        response.statusCode &&
-        response.statusCode >= 300 &&
-        response.statusCode < 400 &&
-        response.headers.location
-      ) {
-        const redirectUrl = new URL(response.headers.location, url).toString();
-        response.destroy();
-        downloadFile(redirectUrl, destinationPath).then(resolve).catch(reject);
-        return;
-      }
-
-      if (response.statusCode !== 200) {
-        reject(
-          new Error(
-            `Failed to download micromamba (status ${response.statusCode})`
-          )
-        );
-        response.resume();
-        return;
-      }
-
-      const fileStream = createWriteStream(destinationPath);
-      pipeline(response, fileStream)
-        .then(resolve)
-        .catch((error) => reject(error));
-    });
-
-    request.on("error", (error) => {
-      reject(error);
-    });
-  });
-}
-
-async function extractMicromambaArchive(
-  archivePath: string,
-  destinationDir: string
-): Promise<void> {
-  await fs.mkdir(destinationDir, { recursive: true });
-
-  // Extract from tar.bz2 archive - Windows uses Library/bin/micromamba.exe, Unix uses bin/micromamba
-  const extractPath =
-    process.platform === "win32"
-      ? "Library/bin/micromamba.exe"
-      : "bin/micromamba";
-
-  const archiveForTar =
-    process.platform === "win32"
-      ? archivePath.replace(/\\/g, "/")
-      : archivePath;
-  const destinationForTar =
-    process.platform === "win32"
-      ? destinationDir.replace(/\\/g, "/")
-      : destinationDir;
-
-  const tarArgs = [
-    "-xvjf",
-    archiveForTar,
-    "-C",
-    destinationForTar,
-    extractPath,
-  ];
-
-  if (process.platform === "win32") {
-    tarArgs.unshift("--force-local");
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const tarProcess = spawn("tar", tarArgs, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    tarProcess.stdout?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`tar stdout: ${message}`);
-      }
-    });
-
-    tarProcess.stderr?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`tar stderr: ${message}`, "error");
-      }
-    });
-
-    tarProcess.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`tar exited with code ${code}`));
-      }
-    });
-
-    tarProcess.on("error", (error) => {
-      reject(error);
-    });
-  });
 }
 
 async function ensureMicromambaAvailable(): Promise<string> {
@@ -467,54 +350,11 @@ async function ensureMicromambaAvailable(): Promise<string> {
     return localExecutable;
   }
 
-  const downloadUrl = getMicromambaDownloadUrl();
-  if (!downloadUrl) {
-    throw new Error(
-      "Unable to locate micromamba and automatic download is not supported on this platform."
-    );
-  }
-
-  emitBootMessage("Downloading micromamba...");
-  logMessage(`Downloading micromamba from ${downloadUrl}`);
-
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "micromamba-"));
-  const archivePath = path.join(tempDir, "micromamba.tar.bz2");
-  let installedExecutable: string | null = null;
-
-  try {
-    await downloadFile(downloadUrl, archivePath);
-    emitBootMessage("Installing micromamba...");
-    await extractMicromambaArchive(archivePath, tempDir);
-
-    const extractedBinary =
-      process.platform === "win32"
-        ? path.join(tempDir, "Library", "bin", MICROMAMBA_EXECUTABLE_NAME)
-        : path.join(tempDir, "bin", "micromamba");
-
-    if (!(await fileExists(extractedBinary))) {
-      throw new Error("micromamba binary not found after extraction");
-    }
-
-    await fs.mkdir(getMicromambaBinDir(), { recursive: true });
-    await fs.copyFile(extractedBinary, localExecutable);
-
-    // Only chmod on Unix-like systems
-    if (process.platform !== "win32") {
-      await fs.chmod(localExecutable, 0o755);
-    }
-
-    process.env[MICROMAMBA_ENV_VAR] = localExecutable;
-    installedExecutable = localExecutable;
-    logMessage(`micromamba installed at ${localExecutable}`);
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  }
-
-  if (!installedExecutable) {
-    throw new Error("Failed to install micromamba");
-  }
-
-  return installedExecutable;
+  // No download fallback - require bundled micromamba or explicit configuration
+  throw new Error(
+    "micromamba not found. Please ensure micromamba is bundled in resources/micromamba/ " +
+    "or set the MICROMAMBA_EXE environment variable, or install micromamba system-wide."
+  );
 }
 
 async function runMicromambaCommand(
@@ -710,26 +550,8 @@ async function provisionPythonEnvironment(
   await installCondaPackages(micromambaExecutable, condaEnvPath);
   await ensureLlamaCppInstalled(condaEnvPath);
 
-  try {
-    emitBootMessage("Installing Playwright browsers...");
-    logMessage("Running Playwright install in Python environment");
-    const pythonPath = getPythonPath();
-    await runCommand([pythonPath, "-m", "playwright", "install"]);
-    logMessage("Playwright installation completed successfully");
-  } catch (err: any) {
-    logMessage(`Failed to install Playwright: ${err.message}`, "error");
-    throw err;
-  }
-
   logMessage("Python environment installation completed successfully");
   emitBootMessage("Python environment is ready");
-}
-
-async function repairCondaEnvironment(): Promise<void> {
-  const { location, packages } = readInstallationPreferences();
-  await provisionPythonEnvironment(location, packages, {
-    bootMessage: "Repairing Python environment...",
-  });
 }
 
 /**
@@ -937,4 +759,3 @@ async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
 // }
 
 export { promptForInstallLocation, installCondaEnvironment };
-export { repairCondaEnvironment };

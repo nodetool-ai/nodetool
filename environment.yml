@@ -19,7 +19,6 @@ dependencies:
   - libwebp
   - giflib
   - lame
-  - ollama
   - pandoc
   - uv
   - lua
