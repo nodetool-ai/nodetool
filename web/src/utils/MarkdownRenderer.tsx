@@ -68,7 +68,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <>
       <div
-        className="output markdown markdown-body nodrag noscroll"
+        className="output markdown markdown-body"
         css={styles(theme)}
         ref={containerRef}
         tabIndex={0}
@@ -120,7 +120,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         }}
       >
         <Box
-          className="output markdown markdown-body nodrag noscroll"
+          className="output markdown markdown-body"
           css={styles(theme)}
           sx={{
             position: "relative",

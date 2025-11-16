@@ -11,7 +11,7 @@ export const BooleanRenderer: React.FC<{
   const theme = useTheme();
   const boolStr = String(value).toUpperCase();
   return (
-    <div className="output value nodrag noscroll" css={outputStyles(theme)}>
+    <div className="output value" css={outputStyles(theme)}>
       <Actions onCopy={() => onCopy(boolStr)} />
       <p style={{ padding: "1em", color: "inherit" }}>{boolStr}</p>
     </div>

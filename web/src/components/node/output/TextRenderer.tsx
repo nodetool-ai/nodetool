@@ -126,7 +126,7 @@ export const TextRenderer: React.FC<Props> = ({
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) return null;
   return (
-    <div className="output value nodrag nowheel" css={outputStyles(theme)}>
+    <div className="output value" css={outputStyles(theme)}>
       {showActions && <Actions onCopy={() => onCopy(text)} />}
       {sections.map((s, i) =>
         s.type === "think" ? (

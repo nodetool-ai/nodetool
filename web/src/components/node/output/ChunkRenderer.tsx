@@ -37,7 +37,7 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk, onCopy }) => {
       );
     case "document":
       return (
-        <div className="output value nodrag noscroll" css={outputStyles(theme)}>
+        <div className="output value" css={outputStyles(theme)}>
           <a href={chunk.content as string} target="_blank" rel="noreferrer">
             Open document
           </a>
@@ -47,7 +47,7 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk, onCopy }) => {
     default: {
       const text = (chunk.content as string) ?? "";
       return (
-        <div className="output value nodrag noscroll" css={outputStyles(theme)}>
+        <div className="output value" css={outputStyles(theme)}>
           {text !== "" && (
             <>
               <Actions onCopy={() => onCopy(text)} />
