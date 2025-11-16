@@ -19,10 +19,10 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
 
   const buttonStyles = css({
     position: "fixed",
-    bottom: "60px",
+    bottom: "110px",
     left: "50%",
     transform: "translateX(-50%)",
-    zIndex: theme.vars.zIndex.action,
+    zIndex: theme.zIndex.appBar,
     width: "32px",
     height: "32px",
     borderRadius: "50%",

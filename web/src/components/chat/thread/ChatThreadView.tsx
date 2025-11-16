@@ -163,6 +163,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
+  const previousStatusRef = useRef(status);
+  const previousMessageCountRef = useRef(messages.length);
 
   const SCROLL_THRESHOLD = 50;
 
@@ -267,18 +269,32 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [scrollHost, showScrollToBottomButton]);
 
   useEffect(() => {
+    if (previousStatusRef.current === "streaming" && status !== "streaming") {
+      scrollToBottom();
+    }
+    previousStatusRef.current = status;
+  }, [status, scrollToBottom]);
+
+  useEffect(() => {
+    if (messages.length <= previousMessageCountRef.current) {
+      previousMessageCountRef.current = messages.length;
+      return;
+    }
+    previousMessageCountRef.current = messages.length;
+    const lastMessage =
+      messages.length > 0 ? messages[messages.length - 1] : null;
+    if (lastMessage?.role === "user") {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
     if (autoScrollTimeoutRef.current) {
       clearTimeout(autoScrollTimeoutRef.current);
     }
 
     const lastMessage =
       messages.length > 0 ? messages[messages.length - 1] : null;
-
-    if (lastMessage?.role === "user") {
-      scrollToBottom();
-      return;
-    }
-
     if (
       status === "streaming" ||
       (lastMessage && lastMessage.role !== "user")
