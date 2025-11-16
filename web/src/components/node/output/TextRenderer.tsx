@@ -4,10 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
-import { Box, Collapse, IconButton, Tooltip } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import LightbulbIcon from "@mui/icons-material/Lightbulb";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { Box, Collapse } from "@mui/material";
+import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {
   text: string;
@@ -45,20 +43,6 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   const handleToggle = useCallback(() => {
     setOpen((v) => !v);
   }, []);
-  const handleContainerClick = useCallback(
-    (event: React.MouseEvent) => {
-      event.stopPropagation();
-      handleToggle();
-    },
-    [handleToggle]
-  );
-  const handleIconClick = useCallback(
-    (event: React.MouseEvent) => {
-      event.stopPropagation();
-      handleToggle();
-    },
-    [handleToggle]
-  );
   return (
     <Box
       sx={{
@@ -67,57 +51,7 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
         overflow: "hidden"
       }}
     >
-      <Tooltip
-        title={open ? "Hide reasoning" : "Show reasoning"}
-        enterDelay={TOOLTIP_ENTER_DELAY}
-        placement="bottom-start"
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            px: 1,
-            py: 0.5,
-            cursor: "pointer",
-            userSelect: "none"
-          }}
-          onClick={handleContainerClick}
-        >
-          <IconButton
-            size="small"
-            onClick={handleIconClick}
-            sx={{
-              transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
-            }}
-            aria-label={open ? "Collapse reasoning" : "Expand reasoning"}
-          >
-            <ExpandMoreIcon fontSize="inherit" />
-          </IconButton>
-          <Box
-            component="span"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.25,
-              p: 0,
-              m: 0
-            }}
-          >
-            <LightbulbIcon
-              fontSize="inherit"
-              sx={{
-                mr: 0.25,
-                color: open
-                  ? theme.vars.palette.text.primary
-                  : theme.vars.palette.text.secondary
-              }}
-            />
-            {/* {open ? "Hide reasoning" : "Show reasoning"} */}
-          </Box>
-        </Box>
-      </Tooltip>
+      <ReasoningToggle isOpen={open} onToggle={handleToggle} />
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box
           className="reasoning-content"
