@@ -143,7 +143,6 @@ async function startOllamaServer(): Promise<void> {
 
   const ollamaExecutablePath = await getOllamaPath();
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
-  const healthUrl = `http://127.0.0.1:${selectedPort}/`;
   const modelsPath = getOllamaModelsPath();
   try {
     await fs.mkdir(modelsPath, { recursive: true });
@@ -167,7 +166,7 @@ async function startOllamaServer(): Promise<void> {
       OLLAMA_MODELS: modelsPath,
     },
     pidFilePath: OLLAMA_PID_FILE_PATH,
-    healthUrl,
+    healthUrl: `http://127.0.0.1:${selectedPort}/api/tags`, // Ollama health endpoint
     onOutput: (line) => emitServerLog(line),
   });
 
