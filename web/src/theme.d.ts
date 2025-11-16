@@ -117,6 +117,7 @@ declare module "@mui/material/styles" {
     popover: number;
     autocomplete: number;
     popover2: number;
+    floating: number;
     highest: number;
   }
 }

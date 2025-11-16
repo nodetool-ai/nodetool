@@ -6,6 +6,8 @@ import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
 import { Box, Collapse, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 type Props = {
   text: string;
@@ -65,39 +67,57 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
         overflow: "hidden"
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          px: 1,
-          py: 0.5,
-          cursor: "pointer",
-          userSelect: "none"
-        }}
-        onClick={handleContainerClick}
+      <Tooltip
+        title={open ? "Hide reasoning" : "Show reasoning"}
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        placement="bottom-start"
       >
-        <IconButton
-          size="small"
-          onClick={handleIconClick}
-          sx={{
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.2s"
-          }}
-          aria-label={open ? "Collapse reasoning" : "Expand reasoning"}
-        >
-          <ExpandMoreIcon fontSize="inherit" />
-        </IconButton>
         <Box
-          component="span"
           sx={{
-            fontSize: 12,
-            textTransform: "uppercase"
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1,
+            py: 0.5,
+            cursor: "pointer",
+            userSelect: "none"
           }}
+          onClick={handleContainerClick}
         >
-          {open ? "Hide reasoning" : "Show reasoning"}
+          <IconButton
+            size="small"
+            onClick={handleIconClick}
+            sx={{
+              transform: open ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s"
+            }}
+            aria-label={open ? "Collapse reasoning" : "Expand reasoning"}
+          >
+            <ExpandMoreIcon fontSize="inherit" />
+          </IconButton>
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.25,
+              p: 0,
+              m: 0
+            }}
+          >
+            <LightbulbIcon
+              fontSize="inherit"
+              sx={{
+                mr: 0.25,
+                color: open
+                  ? theme.vars.palette.text.primary
+                  : theme.vars.palette.text.secondary
+              }}
+            />
+            {/* {open ? "Hide reasoning" : "Show reasoning"} */}
+          </Box>
         </Box>
-      </Box>
+      </Tooltip>
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box
           className="reasoning-content"
@@ -126,7 +146,7 @@ export const TextRenderer: React.FC<Props> = ({
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) return null;
   return (
-    <div className="output value" css={outputStyles(theme)}>
+    <div className="output value noscroll" css={outputStyles(theme)}>
       {showActions && <Actions onCopy={() => onCopy(text)} />}
       {sections.map((s, i) =>
         s.type === "think" ? (

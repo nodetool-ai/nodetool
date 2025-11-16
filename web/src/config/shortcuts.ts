@@ -119,6 +119,9 @@ export const getShortcutTooltip = (
         return "←";
       case "arrowright":
         return "→";
+      case "escape":
+      case "esc":
+        return "ESC";
       default:
         return key.length === 1 ? key.toUpperCase() : key;
     }
@@ -184,6 +187,15 @@ export const getShortcutTooltip = (
  * The master list of all keyboard shortcuts available in the node editor and surrounding UI.
  */
 export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
+  // exit fullscreen with ESC key
+  {
+    title: "Exit Fullscreen",
+    slug: "exitFullscreen",
+    keyCombo: ["Escape"],
+    category: "editor",
+    description: "Exit fullscreen mode",
+    registerCombo: false
+  },
   // ---------- NODES -------------------------------------------------------
   {
     title: "Copy",
