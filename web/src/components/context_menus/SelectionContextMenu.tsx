@@ -35,9 +35,21 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
   const { selectedNodes } = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes()
   }));
+
+  // debug render logging
+  React.useEffect(() => {
+    // keep this lightweight
+    console.log("[SelectionContextMenu] render", {
+      menuPosition,
+      selectedCount: selectedNodes.length
+    });
+  }, [menuPosition, selectedNodes.length]);
 
   // any has parent
   const anyHasParent = useMemo(() => {
@@ -113,6 +125,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     <Menu
       className="context-menu selection-context-menu"
       open={menuPosition !== null}
+      onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       onClick={(e) => e.stopPropagation()}
       anchorReference="anchorPosition"
@@ -171,38 +184,38 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip=""
       /> */}
       {selectedNodes?.length > 1 && (
-        <>
-          <ContextMenuItem
-            onClick={() => {
-              alignNodes({ arrangeSpacing: false });
-            }}
-            label="Align"
-            IconComponent={<FormatAlignLeftIcon />}
-            tooltip={
-              <div className="tooltip-span">
-                <div className="tooltip-title">Align</div>
-                <div className="tooltip-key">
-                  <kbd>A</kbd>
-                </div>
+        <ContextMenuItem
+          onClick={() => {
+            alignNodes({ arrangeSpacing: false });
+          }}
+          label="Align"
+          IconComponent={<FormatAlignLeftIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Align</div>
+              <div className="tooltip-key">
+                <kbd>A</kbd>
               </div>
-            }
-          />
-          <ContextMenuItem
-            onClick={() => {
-              alignNodes({ arrangeSpacing: true });
-            }}
-            label="Arrange"
-            IconComponent={<FormatAlignLeftIcon />}
-            tooltip={
-              <div className="tooltip-span">
-                <div className="tooltip-title">Arrange</div>
-                <div className="tooltip-key">
-                  <kbd>SHIFT</kbd>+<kbd>A</kbd>
-                </div>
+            </div>
+          }
+        />
+      )}
+      {selectedNodes?.length > 1 && (
+        <ContextMenuItem
+          onClick={() => {
+            alignNodes({ arrangeSpacing: true });
+          }}
+          label="Arrange"
+          IconComponent={<FormatAlignLeftIcon />}
+          tooltip={
+            <div className="tooltip-span">
+              <div className="tooltip-title">Arrange</div>
+              <div className="tooltip-key">
+                <kbd>SHIFT</kbd>+<kbd>A</kbd>
               </div>
-            }
-          />
-        </>
+            </div>
+          }
+        />
       )}
 
       {!anyHasParent && (
