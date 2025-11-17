@@ -202,6 +202,21 @@ const OutputContextMenu: React.FC = () => {
     [getMetadata, createNodeWithEdge]
   );
 
+  const createRerouteNode = useCallback(
+    (event: React.MouseEvent) => {
+      const metadata = getMetadata("nodetool.control.Reroute");
+      if (!metadata) {
+        return;
+      }
+      const position = {
+        x: event.clientX - 140,
+        y: event.clientY - 60
+      };
+      createNodeWithEdge(metadata, position, "reroute", "input_value");
+    },
+    [getMetadata, createNodeWithEdge]
+  );
+
   const createToolResultNode = useCallback(
     (event: React.MouseEvent) => {
       const metadata = getMetadata("nodetool.workflows.base_node.ToolResult");
@@ -277,6 +292,15 @@ const OutputContextMenu: React.FC = () => {
       event.preventDefault();
       event.stopPropagation();
       createPreviewNode(event);
+    }
+    closeContextMenu();
+  };
+
+  const handleCreateRerouteNode = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      createRerouteNode(event as React.MouseEvent);
     }
     closeContextMenu();
   };
@@ -364,6 +388,12 @@ const OutputContextMenu: React.FC = () => {
             IconComponent={<LogoutIcon />}
           />
         )}
+        <ContextMenuItem
+          onClick={handleCreateRerouteNode}
+          label="Create Reroute Node"
+          addButtonClassName="create-reroute-node"
+          IconComponent={<LogoutIcon />}
+        />
         <ContextMenuItem
           onClick={handleCreateToolResultNode}
           label="Create Tool Result Node"
