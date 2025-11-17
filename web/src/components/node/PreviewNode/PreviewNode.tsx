@@ -156,13 +156,6 @@ const styles = (theme: Theme) =>
         maxHeight: "500px",
         overflowY: "auto",
         padding: "1em"
-      },
-      "& .node-header .node-title": {
-        textTransform: "uppercase",
-        fontSize: "var(--fontSizeTiny)",
-        fontFamily: "var(--fontFamily2)",
-        color: "var(--palette-grey-200) !important",
-        marginTop: "0.25em"
       }
     },
     tableStyles(theme)
@@ -395,7 +388,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     []
   );
 
-  const isScrollable = isContentFocused;
+  const isScrollable = isContentFocused && result !== undefined;
 
   return (
     <Container
@@ -445,6 +438,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             backgroundColor={theme.vars.palette.primary.main}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.primary.main}
+            showIcon={false}
           />
           {!result && (
             <Typography className="hint">
