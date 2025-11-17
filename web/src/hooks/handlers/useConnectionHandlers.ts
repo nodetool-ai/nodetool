@@ -1,13 +1,15 @@
 import { useCallback, useRef } from "react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { TypeName } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+
+const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
+const PREVIEW_VALUE_HANDLE = "value";
 
 /**
  * Find if an element or any of its parents has a class name
@@ -273,6 +275,22 @@ export default function useConnectionHandlers() {
           }
 
           handleOnConnect(newConnection);
+          endConnecting();
+          return;
+        }
+
+        // Allow preview nodes to auto-connect drops anywhere on the node body
+        if (
+          nodeMetadata.node_type === PREVIEW_NODE_TYPE &&
+          connectDirection === "source"
+        ) {
+          const previewConnection: Connection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: PREVIEW_VALUE_HANDLE
+          };
+          handleOnConnect(previewConnection);
           endConnecting();
           return;
         }
