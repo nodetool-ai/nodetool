@@ -1,48 +1,52 @@
 import React from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  afterEach,
+  jest
+} from "@jest/globals";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 
-vi.mock("../../../hooks/browser/useClipboard", () => ({
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
+
+jest.mock("../../../hooks/browser/useClipboard", () => ({
   useClipboard: () => ({
-    writeClipboard: vi.fn().mockResolvedValue(undefined)
+    writeClipboard: mockWriteClipboard
   })
 }));
 
-const mockedUseClipboard = require("../../../hooks/browser/useClipboard");
-
 describe("CopyToClipboardButton", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    mockedUseClipboard.useClipboard().writeClipboard.mockClear();
+    jest.useFakeTimers();
+    mockWriteClipboard.mockClear();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   it("serializes and copies values", async () => {
     render(<CopyToClipboardButton copyValue={{ foo: "bar" }} />);
     fireEvent.click(screen.getByRole("button"));
-    expect(
-      mockedUseClipboard.useClipboard().writeClipboard
-    ).toHaveBeenCalledWith('{\n  "foo": "bar"\n}', true);
+    await waitFor(() =>
+      expect(mockWriteClipboard).toHaveBeenCalledWith('{\n  "foo": "bar"\n}', true)
+    );
   });
 
   it("shows error when value is empty", () => {
     render(<CopyToClipboardButton copyValue={""} />);
     fireEvent.click(screen.getByRole("button"));
-    expect(screen.getByTitle("Nothing to copy")).toBeInTheDocument();
-    expect(
-      mockedUseClipboard.useClipboard().writeClipboard
-    ).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Nothing to copy")).toBeInTheDocument();
+    expect(mockWriteClipboard).not.toHaveBeenCalled();
   });
 
-  it("calls success callback", () => {
-    const onCopySuccess = vi.fn();
+  it("calls success callback", async () => {
+    const onCopySuccess = jest.fn();
     render(<CopyToClipboardButton copyValue={"data"} onCopySuccess={onCopySuccess} />);
     fireEvent.click(screen.getByRole("button"));
-    expect(onCopySuccess).toHaveBeenCalled();
+    await waitFor(() => expect(onCopySuccess).toHaveBeenCalled());
   });
 });
-

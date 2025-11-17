@@ -61,11 +61,21 @@ export function ContextMenuProvider({
         closeContextMenu();
         return;
       }
+
+      const shouldIgnoreClassClick =
+        className &&
+        className !== "body" &&
+        target.closest(`.${className}`) !== null;
+      if (shouldIgnoreClassClick) {
+        return;
+      }
+
       // Do not close when interacting inside any context menu
       const insideContextMenu = target.closest(".context-menu") !== null;
       if (insideContextMenu) {
         return;
       }
+
       // Otherwise, close the context menu
       closeContextMenu();
     },

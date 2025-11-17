@@ -161,7 +161,16 @@ function ModelList<TModel extends ModelSelectorModel>({
         </div>
       );
     },
-    [models, isFavorite, enabledProviders, isApiKeySet, onSelect]
+    [
+      models,
+      isFavorite,
+      enabledProviders,
+      isApiKeySet,
+      onSelect,
+      theme.vars.fontSizeTiny,
+      theme.vars.palette.c_provider_local,
+      theme.vars.palette.text.secondary
+    ]
   );
 
   return (

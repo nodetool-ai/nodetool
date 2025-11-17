@@ -19,12 +19,12 @@ export default function VideoModelMenuDialog({
   onModelChange,
   task
 }: VideoModelMenuDialogProps) {
+  const modelData = useVideoModelsByProvider({ task });
   return (
-    // @ts-expect-error - TypeScript has trouble inferring VideoModel from hook, but it's correct
     <ModelMenuDialogBase<VideoModel>
       open={open}
       onClose={onClose}
-      useModelsHook={() => useVideoModelsByProvider({ task }) as any}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select Video Model"
       searchPlaceholder="Search text-to-video models..."
