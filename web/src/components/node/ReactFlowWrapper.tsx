@@ -111,7 +111,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     viewport: storedViewport,
     setViewport,
     createNode,
-    addNode
+    addNode,
+    deleteEdge
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -125,7 +126,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     viewport: state.viewport,
     setViewport: state.setViewport,
     createNode: state.createNode,
-    addNode: state.addNode
+    addNode: state.addNode,
+    deleteEdge: state.deleteEdge
   }));
 
   const [isVisible, setIsVisible] = useState(true);
@@ -196,6 +198,40 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   /* REACTFLOW */
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
+  useEffect(() => {
+    const container = ref.current;
+    if (!container) {
+      return;
+    }
+
+    const handleAuxClick = (event: MouseEvent) => {
+      if (event.button !== 1) {
+        return;
+      }
+
+      const edgeElement = (event.target as HTMLElement | null)?.closest(
+        ".react-flow__edge"
+      ) as HTMLElement | null;
+      if (!edgeElement) {
+        return;
+      }
+
+      const edgeId = edgeElement.getAttribute("data-id");
+      if (!edgeId) {
+        return;
+      }
+
+      console.log("[ReactFlowWrapper] middle click delete edge", { edgeId });
+      deleteEdge(edgeId);
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    container.addEventListener("auxclick", handleAuxClick);
+    return () => {
+      container.removeEventListener("auxclick", handleAuxClick);
+    };
+  }, [deleteEdge]);
 
   /* USE STORE */
   const { close: closeSelect } = useSelect();
@@ -441,7 +477,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateEnd,
-    onEdgeUpdateStart
+    onEdgeUpdateStart,
+    onEdgeClick
   } = useEdgeHandlers();
 
   // DRAG HANDLER
@@ -598,6 +635,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         // triggering edge changes
         // onEdgeMouseLeave={onEdgeMouseLeave}
         onEdgeContextMenu={onEdgeContextMenu}
+        onEdgeClick={onEdgeClick}
         connectionMode={ConnectionMode.Strict}
         onConnect={handleOnConnect}
         onConnectStart={onConnectStart}

@@ -9,14 +9,13 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import ChatIcon from "@mui/icons-material/Chat";
-import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
 import DatasetIcon from "@mui/icons-material/Dataset";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ModelsButton from "../hugging_face/ModelsButton";
+import { IconForType } from "../../config/data_types";
 
 const styles = (theme: Theme) =>
   css({
@@ -52,11 +51,16 @@ const styles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"
       },
-      "& svg": {
+      "& svg, & .icon-container svg": {
         display: "block",
         width: "18px",
         height: "18px",
         fontSize: "18px",
+        marginRight: "4px"
+      },
+      "& .icon-container": {
+        width: "18px",
+        height: "18px",
         marginRight: "4px"
       }
     },
@@ -84,11 +88,14 @@ const styles = (theme: Theme) =>
       "& svg": {
         marginRight: "6px"
       },
+      "& .icon-container": {
+        marginRight: "6px"
+      },
       position: "relative",
       "&.active": {
         color: theme.vars.palette.primary.main,
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}55 inset, 0 6px 22px ${theme.vars.palette.primary.main}10`,
-        "& svg": {
+        "& svg, & .icon-container svg": {
           color: theme.vars.palette.primary.main
         }
       },
@@ -224,7 +231,7 @@ const ChatButton = memo(function ChatButton({
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
-        <ChatIcon />
+        <IconForType iconName="message" showTooltip={false} />
         <span className="nav-button-text">Chat</span>
       </IconButton>
     </Tooltip>
@@ -290,7 +297,7 @@ const AssetsButton = memo(function AssetsButton({
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
-        <FolderIcon />
+        <IconForType iconName="asset" showTooltip={false} />
         <span className="nav-button-text">Assets</span>
       </IconButton>
     </Tooltip>

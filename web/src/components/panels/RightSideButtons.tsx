@@ -13,8 +13,6 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { IconForType } from "../../config/data_types";
-import ModelsManager from "../hugging_face/ModelsManager";
 
 const styles = (theme: Theme) =>
   css({
