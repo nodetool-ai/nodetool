@@ -117,7 +117,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
         </Tooltip>
         {/* New Workflow button moved to WorkflowList header */}
 
-        <Tooltip title="Search workflows by name">
+        <Tooltip title="Search workflows by name" enterDelay={TOOLTIP_ENTER_DELAY}>
           <div>
             <SearchInput
               onSearchChange={handleSearchChange}
@@ -126,7 +126,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </div>
         </Tooltip>
 
-        <Tooltip title="Filter workflows by tag">
+        <Tooltip title="Filter workflows by tag" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Select
             sx={{
               padding: "0 0.5em"
@@ -153,6 +153,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             title={`Delete ${selectedWorkflowsCount} selected workflow${
               selectedWorkflowsCount > 1 ? "s" : ""
             }`}
+            enterDelay={TOOLTIP_ENTER_DELAY}
           >
             <Button
               variant="outlined"

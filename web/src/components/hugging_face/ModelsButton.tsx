@@ -1,8 +1,8 @@
 import React, { memo, useState, useCallback } from "react";
 import { Tooltip, IconButton } from "@mui/material";
-import HubIcon from "@mui/icons-material/Hub";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ModelsManager from "./ModelsManager";
+import { IconForType } from "../../config/data_types";
 
 const ModelsButton: React.FC = memo(function ModelsButton() {
   const [open, setOpen] = useState(false);
@@ -23,7 +23,7 @@ const ModelsButton: React.FC = memo(function ModelsButton() {
           onClick={handleOpen}
           tabIndex={-1}
         >
-          <HubIcon />
+          <IconForType iconName="language_model" showTooltip={false} />
           <span className="nav-button-text">Models</span>
         </IconButton>
       </Tooltip>
