@@ -29,6 +29,9 @@ const styles = (theme: Theme) =>
       left: "64px",
       top: "64px"
     },
+    ".asset-explorer .asset-content-wrapper .asset-grid-content": {
+      width: "calc(100% - 60px) !important"
+    },
     ".asset-menu": {
       marginLeft: "1em",
       marginBottom: "1em"

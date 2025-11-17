@@ -357,13 +357,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
             />
           </div>
           <div className="nav-group">
-            <DashboardButton isActive={path.startsWith("/dashboard")} />
             <EditorButton isActive={path.startsWith("/editor")} />
             <ChatButton isActive={path.startsWith("/chat")} />
             <AssetsButton isActive={path.startsWith("/assets")} />
-            <CollectionsButton isActive={path.startsWith("/collections")} />
-            <TemplatesButton isActive={path.startsWith("/templates")} />
             <ModelsButton />
+            <TemplatesButton isActive={path.startsWith("/templates")} />
+            <CollectionsButton isActive={path.startsWith("/collections")} />
+            <DashboardButton isActive={path.startsWith("/dashboard")} />
           </div>
           <Box sx={{ flexGrow: 0.02 }} />
         </div>
