@@ -94,6 +94,37 @@ const mockDynamicNodeMetadata: NodeMetadata = {
   supports_dynamic_outputs: true
 };
 
+const previewNodeMetadata: NodeMetadata = {
+  node_type: "nodetool.workflows.base_node.Preview",
+  title: "Preview",
+  description: "Preview node",
+  namespace: "default",
+  layout: "default",
+  outputs: [],
+  properties: [
+    {
+      name: "value",
+      type: {
+        type: "any",
+        optional: true,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      default: undefined,
+      title: "Value",
+      description: "Preview value"
+    }
+  ],
+  is_dynamic: false,
+  supports_dynamic_outputs: false,
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_streaming_output: false
+};
+
 const createMockNode = (id: string, type: string = "test.node") => ({
   id,
   type,
@@ -610,6 +641,90 @@ describe("useConnectionHandlers", () => {
         ...connection,
         className: "bool"
       });
+    });
+  });
+
+  describe("onConnectEnd", () => {
+    it("auto connects when dropping onto a Preview node body", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      const previewNode = createMockNode(
+        "previewNode",
+        "nodetool.workflows.base_node.Preview"
+      );
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "previewNode") {
+          return previewNode;
+        }
+        return undefined;
+      });
+
+      mockGetMetadata.mockImplementation((type: string) => {
+        if (type === "nodetool.workflows.base_node.Preview") {
+          return previewNodeMetadata;
+        }
+        return mockNodeMetadata;
+      });
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue({
+        name: "value",
+        type: previewNodeMetadata.properties[0].type,
+        isDynamic: false
+      });
+
+      const mockNodeElement = { dataset: { id: "previewNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any);
+
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "sourceNode",
+        target: "previewNode",
+        sourceHandle: "output",
+        targetHandle: "value",
+        className: "str"
+      });
+      expect(mockEndConnecting).toHaveBeenCalled();
     });
   });
 });
