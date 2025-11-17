@@ -48,6 +48,7 @@ const ConnectionMatchMenu: React.FC = () => {
     <Menu
       className="context-menu connection-match-menu"
       open
+      onClose={closeContextMenu}
       sx={{
         "& .MuiList-root": {
           maxWidth: "300px"
