@@ -72,6 +72,10 @@ const equalType = (a: TypeMetadata, b: TypeMetadata): boolean => {
   return true;
 };
 
+export const typesAreEqual = (a: TypeMetadata, b: TypeMetadata): boolean => {
+  return equalType(a, b);
+};
+
 /**
  * Checks if two enum types are connectable. This is the case if the values of
  * the first enum type are a subset of the values of the second enum type.

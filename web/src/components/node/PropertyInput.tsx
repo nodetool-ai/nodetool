@@ -239,6 +239,7 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  onValueChange?: (value: any) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -251,7 +252,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   controlKeyPressed,
   tabIndex,
   isDynamicProperty,
-  isInspector
+  isInspector,
+  onValueChange
 }: PropertyInputProps) => {
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
@@ -264,6 +266,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const onChange = useCallback(
     (value: any) => {
+      if (onValueChange) {
+        onValueChange(value);
+        return;
+      }
       if (isDynamicProperty) {
         const node = findNode(id);
         if (!node || !node.data) return;
@@ -281,9 +287,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       }
     },
     [
-      isDynamicProperty,
       findNode,
       id,
+      isDynamicProperty,
+      onValueChange,
       property.name,
       updateNodeData,
       updateNodeProperties
