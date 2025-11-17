@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState, useEffect } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -32,6 +32,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
@@ -262,13 +263,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
   });
-  const connectedEdges = useNodes((state) =>
-    state.edges.filter((edge) => edge.source === id || edge.target === id)
-  );
-  const findNode = useNodes((state) => state.findNode);
-  const setEdgeSelectionState = useNodes(
-    (state) => state.setEdgeSelectionState
-  );
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -333,28 +327,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     setShowAdvancedFields(!showAdvancedFields);
   }, [showAdvancedFields]);
 
-  useEffect(() => {
-    if (!connectedEdges.length) {
-      return;
-    }
-
-    const selectionUpdates: Record<string, boolean> = {};
-
-    for (const edge of connectedEdges) {
-      const otherNodeId = edge.source === id ? edge.target : edge.source;
-      const otherNodeSelected = Boolean(findNode(otherNodeId)?.selected);
-      const shouldSelect = selected || otherNodeSelected;
-      const isEdgeSelected = Boolean(edge.selected);
-
-      if (isEdgeSelected !== shouldSelect) {
-        selectionUpdates[edge.id] = shouldSelect;
-      }
-    }
-
-    if (Object.keys(selectionUpdates).length > 0) {
-      setEdgeSelectionState(selectionUpdates);
-    }
-  }, [connectedEdges, findNode, id, selected, setEdgeSelectionState]);
+  useSyncEdgeSelection(id, Boolean(selected));
 
   return (
     <Container

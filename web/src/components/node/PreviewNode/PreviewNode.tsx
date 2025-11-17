@@ -23,6 +23,7 @@ import NodeResizeHandle from "../NodeResizeHandle";
 import { useCopyToClipboard } from "../output";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
+import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 
 const styles = (theme: Theme) =>
   css([
@@ -389,6 +390,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   );
 
   const isScrollable = isContentFocused && result !== undefined;
+
+  useSyncEdgeSelection(props.id, Boolean(props.selected));
 
   return (
     <Container

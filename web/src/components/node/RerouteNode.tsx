@@ -12,6 +12,7 @@ import { hexToRgba } from "../../utils/ColorUtils";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
+import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 
 const styles = (theme: Theme) =>
   css({
@@ -84,6 +85,8 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
     if (match) return { slug: match.slug, color: match.color };
     return fallback;
   }, [edges, findNode, id]);
+
+  useSyncEdgeSelection(id, Boolean(selected));
 
   return (
     <Container
