@@ -133,8 +133,36 @@ NodeTool follows a client-server architecture with multiple components:
 1. **Web UI Tests:**
    ```bash
    cd web
-   npm test
+   npm test                    # Run all tests
+   npm run test:watch          # Watch mode for development
+   npm run test:coverage       # Generate coverage report
+   npm run test:summary        # Summary output only
    ```
+
+2. **Test Documentation:**
+   - See `/web/TESTING.md` for comprehensive testing guide
+   - See `/web/TEST_HELPERS.md` for test utilities and patterns
+   - See `.github/copilot-instructions.md` for AI-specific guidelines
+
+3. **Test Structure:**
+   - Component tests: `src/components/__tests__/`
+   - Store tests: `src/stores/__tests__/`
+   - Hook tests: `src/hooks/__tests__/`
+   - Utility tests: `src/utils/__tests__/`
+
+4. **Testing Framework:**
+   - Jest 29.7 with ts-jest for TypeScript support
+   - React Testing Library 16.1 for component testing
+   - @testing-library/user-event for user interactions
+   - @testing-library/jest-dom for DOM matchers
+
+5. **Key Testing Principles:**
+   - Test behavior, not implementation details
+   - Use accessible queries (getByRole, getByLabelText)
+   - Use userEvent for realistic user interactions
+   - Mock external dependencies and API calls
+   - Keep tests independent and isolated
+   - Follow existing test patterns in the codebase
 
 ## Development Workflow
 
