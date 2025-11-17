@@ -8,6 +8,7 @@ import DataArrayIcon from "@mui/icons-material/DataArray";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
+import FilterListIcon from "@mui/icons-material/FilterList";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
@@ -40,8 +41,9 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
-  const { updateNodeData } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData
+  const { updateNodeData, selectNodesByType } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData,
+    selectNodesByType: state.selectNodesByType
   }));
 
   const currentSyncMode = (nodeData?.sync_mode as string) || "on_any";
@@ -75,6 +77,13 @@ const NodeContextMenu: React.FC = () => {
     // Navigate to templates with the node type as a search parameter
     navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
     closeContextMenu();
+  };
+
+  const handleSelectAllSameType = () => {
+    if (node?.type) {
+      selectNodesByType(node.type);
+      closeContextMenu();
+    }
   };
 
   return (
@@ -120,6 +129,12 @@ const NodeContextMenu: React.FC = () => {
         label="Show Templates"
         IconComponent={<SearchIcon />}
         tooltip="Find Templates using this node"
+      />
+      <ContextMenuItem
+        onClick={handleSelectAllSameType}
+        label={`Select all ${metadata?.title || node?.type || ""} nodes`}
+        IconComponent={<FilterListIcon />}
+        tooltip="Select all nodes of the same type"
       />
       {/* Sync mode selection moved to header icon menu */}
       <ContextMenuItem
