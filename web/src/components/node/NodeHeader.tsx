@@ -26,6 +26,7 @@ export interface NodeHeaderProps {
   selected?: boolean;
   iconType?: string;
   iconBaseColor?: string;
+  showIcon?: boolean;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -37,7 +38,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showMenu = true,
   selected,
   iconType,
-  iconBaseColor
+  iconBaseColor,
+  showIcon = true
 }: NodeHeaderProps) => {
   const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -206,8 +208,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           padding: "6px 4px"
         }}
       >
-        {hasIcon && (
+        {hasIcon && showIcon && (
           <div
+            className="node-icon"
             style={{
               width: 28,
               height: 28,
