@@ -182,6 +182,7 @@ export interface NodeStoreState {
   setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   getSelectedNodeIds: () => string[];
   setEdgeUpdateSuccessful: (value: boolean) => void;
+  setEdgeSelectionState: (edgeSelections: Record<string, boolean>) => void;
   onNodesChange: OnNodesChange<Node<NodeData>>;
   onEdgesChange: OnEdgesChange;
   onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => void;
@@ -522,6 +523,32 @@ export const createNodeStore = (
             // Only mark as dirty if there are actual edge modifications, not just selection changes
             if (!isOnlySelectionChanges) {
               get().setWorkflowDirty(true);
+            }
+          },
+          setEdgeSelectionState: (
+            edgeSelections: Record<string, boolean>
+          ): void => {
+            const selectionEntries = Object.entries(edgeSelections);
+            if (selectionEntries.length === 0) {
+              return;
+            }
+
+            const currentEdges = get().edges;
+            let changed = false;
+            const updatedEdges = currentEdges.map((edge) => {
+              if (edge.id in edgeSelections) {
+                const shouldSelect = edgeSelections[edge.id];
+                const isSelected = Boolean(edge.selected);
+                if (isSelected !== shouldSelect) {
+                  changed = true;
+                  return { ...edge, selected: shouldSelect };
+                }
+              }
+              return edge;
+            });
+
+            if (changed) {
+              set({ edges: updatedEdges });
             }
           },
           onEdgeUpdate: (oldEdge: Edge, newConnection: Connection): void => {

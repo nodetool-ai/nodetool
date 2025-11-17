@@ -76,7 +76,6 @@ const styles = (theme: Theme) =>
       gap: "6px",
       padding: "2px 4px",
       borderRadius: "10px"
-      // boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`
     },
     ".nav-button": {
       padding: "0px 8px",
@@ -93,26 +92,30 @@ const styles = (theme: Theme) =>
       },
       position: "relative",
       "&.active": {
+        border: `1px solid ${theme.vars.palette.primary.main}`,
+        borderRadius: 0,
         color: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}55 inset, 0 6px 22px ${theme.vars.palette.primary.main}10`,
         "& svg, & .icon-container svg": {
           color: theme.vars.palette.primary.main
         }
-      },
-      "&.active::after": {
-        content: '""',
-        position: "absolute",
-        left: "10%",
-        right: "10%",
-        bottom: "-6px",
-        height: "2px",
-        borderRadius: "2px",
-        background: theme.vars.palette.primary.main,
-        opacity: 0.85
       }
+      // "&.active::after": {
+      //   content: '""',
+      //   position: "absolute",
+      //   left: "10%",
+      //   right: "10%",
+      //   bottom: "-6px",
+      //   height: "2px",
+      //   borderRadius: "2px",
+      //   background: theme.vars.palette.primary.main,
+      //   opacity: 0.85
+      // }
     },
     ".nav-button-text": {
-      display: "inline"
+      display: "inline",
+      fontSize: theme.vars.fontSizeSmall,
+      textTransform: "uppercase",
+      fontWeight: 300
     },
     ".logo-container": {
       display: "flex",
@@ -342,11 +345,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
 
   return (
     <div css={headerStyles} className="app-header">
-      <Toolbar
-        variant="dense"
-        className="toolbar"
-        tabIndex={-1}
-      >
+      <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
         <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
           <div className="logo-container">
             <Logo
