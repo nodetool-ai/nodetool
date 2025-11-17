@@ -13,9 +13,16 @@ jest.mock("../../../stores/ConnectionStore");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../contexts/NodeContext");
+const mockOpenContextMenu = jest.fn();
+
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
-  default: jest.fn(() => ({ openContextMenu: jest.fn() }))
+  default: jest.fn(() => ({
+    openContextMenu: mockOpenContextMenu,
+    closeContextMenu: jest.fn(),
+    menuPosition: null,
+    openMenuType: null
+  }))
 }));
 
 // Mock the centralized handle functions
@@ -193,6 +200,7 @@ describe("useConnectionHandlers", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOpenContextMenu.mockReset();
 
     // Mock useConnectionStore
     (useConnectionStore as unknown as jest.Mock).mockReturnValue({
@@ -932,6 +940,176 @@ describe("useConnectionHandlers", () => {
         className: "str"
       });
       expect(mockEndConnecting).toHaveBeenCalled();
+    });
+
+    it("opens selection menu when multiple compatible inputs exist", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      const targetNode = createMockNode("targetNode", "test.node");
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "targetNode") {
+          return targetNode;
+        }
+        return undefined;
+      });
+
+      const multiInputMetadata: NodeMetadata = {
+        ...mockNodeMetadata,
+        properties: [
+          ...mockNodeMetadata.properties,
+          {
+            ...mockNodeMetadata.properties[0],
+            name: "input_two",
+            title: "Input Two"
+          }
+        ]
+      };
+
+      mockGetMetadata.mockImplementation(() => multiInputMetadata);
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue({
+        name: "input",
+        type: mockNodeMetadata.properties[0].type,
+        isDynamic: false
+      });
+
+      const mockNodeElement = { dataset: { id: "targetNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any);
+
+      expect(mockOnConnect).not.toHaveBeenCalled();
+      expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);
+      expect(mockOpenContextMenu.mock.calls[0][0]).toBe(
+        "connection-match-menu"
+      );
+      const payload = mockOpenContextMenu.mock.calls[0][9];
+      expect(payload.options).toHaveLength(2);
+    });
+
+    it("opens selection menu when multiple compatible outputs exist", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "target",
+        connectNodeId: "targetNode",
+        connectHandleId: "input",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      const targetNode = createMockNode("targetNode", "test.node");
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "targetNode") {
+          return targetNode;
+        }
+        return undefined;
+      });
+
+      const multiOutputMetadata: NodeMetadata = {
+        ...mockNodeMetadata,
+        outputs: [
+          ...mockNodeMetadata.outputs,
+          {
+            ...mockNodeMetadata.outputs[0],
+            name: "output_two",
+            title: "Output Two"
+          }
+        ]
+      };
+
+      mockGetMetadata.mockImplementation(() => multiOutputMetadata);
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue({
+        name: "input",
+        type: mockNodeMetadata.properties[0].type,
+        isDynamic: false
+      });
+
+      const mockNodeElement = { dataset: { id: "sourceNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any);
+
+      expect(mockOnConnect).not.toHaveBeenCalled();
+      expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);
+      expect(mockOpenContextMenu.mock.calls[0][0]).toBe(
+        "connection-match-menu"
+      );
+      const payload = mockOpenContextMenu.mock.calls[0][9];
+      expect(payload.options).toHaveLength(2);
     });
   });
 });

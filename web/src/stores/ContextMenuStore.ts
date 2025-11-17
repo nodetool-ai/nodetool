@@ -17,6 +17,7 @@ export interface ContextMenuState {
   handleId: string | null;
   description?: string;
   isDynamicProperty?: boolean;
+  payload?: unknown;
 }
 
 export interface ContextMenuContextType extends ContextMenuState {
@@ -29,7 +30,8 @@ export interface ContextMenuContextType extends ContextMenuState {
     type?: TypeMetadata,
     handleId?: string,
     description?: string,
-    isDynamicProperty?: boolean
+    isDynamicProperty?: boolean,
+    payload?: unknown
   ) => void;
   closeContextMenu: () => void;
 }
