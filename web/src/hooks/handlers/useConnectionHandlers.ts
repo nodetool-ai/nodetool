@@ -2,11 +2,15 @@ import { useCallback, useRef } from "react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import useContextMenu from "../../stores/ContextMenuStore";
-import { isConnectable, Slugify } from "../../utils/TypeHandler";
+import { isConnectable, Slugify, typeToString } from "../../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import {
+  ConnectionMatchMenuPayload,
+  ConnectionMatchOption
+} from "../../components/context_menus/ConnectionMatchMenu";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -173,6 +177,43 @@ export default function useConnectionHandlers() {
     [findNode, getMetadata, onConnect, addNotification]
   );
 
+  const openHandleSelectionMenu = useCallback(
+    (
+      event: MouseEvent,
+      anchorNodeId: string,
+      options: ConnectionMatchOption[]
+    ) => {
+      if (!options.length) {
+        return false;
+      }
+
+      const payload: ConnectionMatchMenuPayload = {
+        options,
+        onSelect: (option) => {
+          handleOnConnect(option.connection);
+        }
+      };
+
+      openContextMenu(
+        "connection-match-menu",
+        anchorNodeId,
+        event.clientX,
+        event.clientY,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        payload
+      );
+      connectionCreated.current = true;
+      setConnectionAttempted(false);
+      endConnecting();
+      return true;
+    },
+    [openContextMenu, handleOnConnect, setConnectionAttempted, endConnecting]
+  );
+
   /* CONNECT END */
   const onConnectEnd = useCallback(
     (event: any) => {
@@ -324,6 +365,89 @@ export default function useConnectionHandlers() {
           endConnecting();
           return;
         }
+
+        // Generic fallback: pick compatible handle(s)
+        if (connectType) {
+          if (connectDirection === "source") {
+            const matchingInputs =
+              (nodeMetadata.properties || []).filter(
+                (property) =>
+                  property?.type &&
+                  isConnectable(connectType, property.type, true)
+              ) ?? [];
+
+            if (matchingInputs.length === 1) {
+              const matchingInput = matchingInputs[0];
+              const autoConnection: Connection = {
+                source: connectNodeId || "",
+                sourceHandle: connectHandleId || "",
+                target: nodeId,
+                targetHandle: matchingInput.name
+              };
+              handleOnConnect(autoConnection);
+              endConnecting();
+              return;
+            }
+
+            if (matchingInputs.length > 1) {
+              const options: ConnectionMatchOption[] = matchingInputs.map(
+                (property) => ({
+                  id: property.name,
+                  label: property.title || property.name,
+                  description: property.description || undefined,
+                  typeLabel: typeToString(property.type),
+                  connection: {
+                    source: connectNodeId || "",
+                    sourceHandle: connectHandleId || "",
+                    target: nodeId,
+                    targetHandle: property.name
+                  }
+                })
+              );
+              if (openHandleSelectionMenu(event, nodeId, options)) {
+                return;
+              }
+            }
+          } else if (connectDirection === "target") {
+            const matchingOutputs =
+              (nodeMetadata.outputs || []).filter(
+                (output) =>
+                  output?.type && isConnectable(output.type, connectType, true)
+              ) ?? [];
+
+            if (matchingOutputs.length === 1) {
+              const matchingOutput = matchingOutputs[0];
+              const autoConnection: Connection = {
+                source: nodeId,
+                sourceHandle: matchingOutput.name,
+                target: connectNodeId || "",
+                targetHandle: connectHandleId || ""
+              };
+              handleOnConnect(autoConnection);
+              endConnecting();
+              return;
+            }
+
+            if (matchingOutputs.length > 1) {
+              const options: ConnectionMatchOption[] = matchingOutputs.map(
+                (output) => ({
+                  id: output.name,
+                  label: output.name,
+                  typeLabel: typeToString(output.type),
+                  connection: {
+                    source: nodeId,
+                    sourceHandle: output.name,
+                    target: connectNodeId || "",
+                    targetHandle: connectHandleId || ""
+                  }
+                })
+              );
+              if (openHandleSelectionMenu(event, nodeId, options)) {
+                return;
+              }
+            }
+          }
+        }
       }
 
       // targetIsPane: open context menu for output
@@ -364,7 +488,8 @@ export default function useConnectionHandlers() {
       handleOnConnect,
       openContextMenu,
       updateNodeData,
-      onConnect
+      onConnect,
+      openHandleSelectionMenu
     ]
   );
 

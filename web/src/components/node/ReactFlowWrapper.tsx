@@ -27,6 +27,7 @@ import PropertyContextMenu from "../context_menus/PropertyContextMenu";
 import OutputContextMenu from "../context_menus/OutputContextMenu";
 import InputContextMenu from "../context_menus/InputContextMenu";
 import EdgeContextMenu from "../context_menus/EdgeContextMenu";
+import ConnectionMatchMenu from "../context_menus/ConnectionMatchMenu";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
@@ -87,6 +88,7 @@ const ContextMenus = memo(function ContextMenus() {
       {openMenuType === "output-context-menu" && <OutputContextMenu />}
       {openMenuType === "input-context-menu" && <InputContextMenu />}
       {openMenuType === "edge-context-menu" && <EdgeContextMenu />}
+      {openMenuType === "connection-match-menu" && <ConnectionMatchMenu />}
     </>
   );
 });

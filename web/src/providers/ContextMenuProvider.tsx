@@ -28,7 +28,8 @@ export function ContextMenuProvider({
     type: null,
     handleId: null,
     description: undefined,
-    isDynamicProperty: undefined
+    isDynamicProperty: undefined,
+    payload: undefined
   });
 
   const closeContextMenu = useCallback(() => {
@@ -47,7 +48,8 @@ export function ContextMenuProvider({
         type: null,
         handleId: null,
         description: undefined,
-        isDynamicProperty: undefined
+        isDynamicProperty: undefined,
+        payload: undefined
       });
     }, 50);
   }, []);
@@ -81,7 +83,8 @@ export function ContextMenuProvider({
       type?: TypeMetadata,
       handleId?: string,
       description?: string,
-      isDynamicProperty?: boolean
+      isDynamicProperty?: boolean,
+      payload?: unknown
     ) => {
       if (!active) {
         return;
@@ -109,7 +112,8 @@ export function ContextMenuProvider({
           type: type ?? null,
           handleId: handleId ?? null,
           description: description,
-          isDynamicProperty: isDynamicProperty
+          isDynamicProperty: isDynamicProperty,
+          payload
         });
 
         setTimeout(() => {
