@@ -1,0 +1,280 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Box,
+  Button,
+  List,
+  ListItem,
+  ListItemButton,
+  TextField,
+  Typography
+} from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { useNodes } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
+import type { Node } from "@xyflow/react";
+import type { NodeData } from "../../stores/NodeData";
+import NorthEastIcon from "@mui/icons-material/NorthEast";
+
+type ExplorerEntry = {
+  node: Node<NodeData>;
+  title: string;
+  subtitle: string;
+  searchableText: string;
+  accentColor: string;
+};
+
+const styles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75em",
+    height: "100%",
+    ".explorer-header": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.25em",
+      userSelect: "none"
+    },
+    ".explorer-header h5": {
+      margin: ".5em 0 .5em 0"
+    },
+    ".filter-input": {
+      width: "100%"
+    },
+    ".node-list": {
+      flex: 1,
+      overflowY: "auto",
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.vars.palette.background.default,
+      padding: 0
+    },
+    ".node-item": {
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      display: "flex",
+      alignItems: "stretch",
+      "&:last-of-type": {
+        borderBottom: "none"
+      }
+    },
+    ".node-body": {
+      flex: 1,
+      padding: "0.3em .25em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.75em",
+      transition: "background-color 0.2s ease, transform 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[700]
+      },
+      ".node-text": {
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.2em",
+        overflow: "hidden"
+      },
+      ".node-title": {
+        fontWeight: 300,
+        color: theme.vars.palette.text.primary,
+        fontSize: theme.fontSizeSmall,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      },
+      ".node-subtitle": {
+        color: theme.vars.palette.text.secondary,
+        fontWeight: 300,
+        fontSize: theme.fontSizeSmaller,
+        textTransform: "uppercase",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    },
+    ".node-edit-button": {
+      margin: "auto 0",
+      marginRight: "0.75em",
+      height: "32px",
+      minWidth: "32px",
+      padding: "0.25em",
+      outline: "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    ".empty-state": {
+      flex: 1,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: theme.vars.palette.text.secondary,
+      textAlign: "center",
+      padding: "1em"
+    }
+  });
+
+const NodeExplorer: React.FC = () => {
+  const theme = useTheme();
+  const explorerStyles = styles(theme);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const { nodes, setSelectedNodes } = useNodes((state) => ({
+    nodes: state.nodes,
+    setSelectedNodes: state.setSelectedNodes
+  }));
+  const setActiveView = useRightPanelStore((state) => state.setActiveView);
+  const setPanelVisible = useRightPanelStore((state) => state.setVisibility);
+  const [filter, setFilter] = useState("");
+
+  const entries = useMemo<ExplorerEntry[]>(() => {
+    const normalizedFilter = filter.trim().toLowerCase();
+
+    const toEntry = (node: Node<NodeData>): ExplorerEntry => {
+      const metadata = node.type ? getMetadata(node.type as string) : null;
+      const title =
+        node.data?.title?.trim() ||
+        (metadata?.title ?? "") ||
+        node.data?.properties?.name ||
+        node.id;
+
+      const subtitleParts = [
+        metadata?.namespace || node.type || "",
+        metadata?.title && metadata?.title !== title ? metadata.title : ""
+      ].filter(Boolean);
+
+      const searchableText = [
+        title,
+        node.id,
+        node.type,
+        metadata?.namespace,
+        metadata?.title,
+        node.id
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const metadataBadgeColor = (metadata as any)?.badge_color;
+      const accentColor =
+        node.data?.color ||
+        metadataBadgeColor ||
+        theme.vars.palette.primary.main;
+
+      return {
+        node,
+        title,
+        subtitle: subtitleParts.join(" • "),
+        searchableText,
+        accentColor
+      };
+    };
+
+    const allEntries = nodes.map(toEntry);
+
+    const filteredEntries =
+      normalizedFilter.length === 0
+        ? allEntries
+        : allEntries.filter((entry) =>
+            entry.searchableText.includes(normalizedFilter)
+          );
+
+    return filteredEntries.sort((a, b) =>
+      a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+    );
+  }, [nodes, getMetadata, filter, theme]);
+
+  const handleNodeFocus = useCallback((nodeId: string) => {
+    window.dispatchEvent(
+      new CustomEvent("nodetool:fit-node", { detail: { nodeId } })
+    );
+  }, []);
+
+  const handleNodeEdit = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        return;
+      }
+      setSelectedNodes([node]);
+      setActiveView("inspector");
+      setPanelVisible(true);
+    },
+    [nodes, setSelectedNodes, setActiveView, setPanelVisible]
+  );
+
+  return (
+    <Box className="node-explorer" css={explorerStyles}>
+      <div className="explorer-header">
+        <Typography variant="h5">Node Explorer</Typography>
+      </div>
+      <TextField
+        className="filter-input"
+        size="medium"
+        placeholder="Filter by name or type"
+        label=""
+        value={filter}
+        onChange={(event) => setFilter(event.target.value)}
+        variant="outlined"
+        sx={{
+          "& .MuiInputBase-root": {
+            height: "32px",
+            fontSize: theme.fontSizeSmall,
+            fontWeight: 300,
+            padding: "1em !important"
+          }
+        }}
+      />
+      {entries.length === 0 ? (
+        <Box className="empty-state">
+          <Typography variant="body2">
+            {nodes.length === 0
+              ? "No nodes in this workflow yet."
+              : "No nodes match your filter."}
+          </Typography>
+        </Box>
+      ) : (
+        <List className="node-list" dense disablePadding>
+          {entries.map((entry) => (
+            <ListItem key={entry.node.id} className="node-item" disablePadding>
+              <ListItemButton
+                className="node-body"
+                onClick={() => handleNodeFocus(entry.node.id)}
+                onContextMenu={(event) => {
+                  //TODO: open node context menu
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                <div className="node-text">
+                  <Typography className="node-title" variant="body1">
+                    {entry.title}
+                  </Typography>
+                  {entry.subtitle && (
+                    <Typography className="node-subtitle" variant="body2">
+                      {entry.subtitle}
+                    </Typography>
+                  )}
+                </div>
+              </ListItemButton>
+              <Button
+                className="node-edit-button"
+                size="small"
+                aria-label="Edit node"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleNodeEdit(entry.node.id);
+                }}
+              >
+                <NorthEastIcon fontSize="small" />
+              </Button>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </Box>
+  );
+};
+
+export default NodeExplorer;

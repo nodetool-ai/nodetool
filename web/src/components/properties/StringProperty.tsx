@@ -129,7 +129,7 @@ const StringProperty = ({
               fullWidth
               size="small"
               variant="outlined"
-              autoFocus
+              autoFocus={false}
             />
           </div>
         </div>

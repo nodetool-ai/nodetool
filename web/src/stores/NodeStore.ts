@@ -180,6 +180,7 @@ export interface NodeStoreState {
   getSelection: () => NodeSelection;
   getSelectedNodes: () => Node<NodeData>[];
   setSelectedNodes: (nodes: Node<NodeData>[]) => void;
+  selectNodesByType: (nodeType: string) => void;
   getSelectedNodeIds: () => string[];
   setEdgeUpdateSuccessful: (value: boolean) => void;
   setEdgeSelectionState: (edgeSelections: Record<string, boolean>) => void;
@@ -229,7 +230,8 @@ export interface NodeStoreState {
   clearMissingRepos: () => void;
   workflowIsDirty: boolean;
   shouldFitToScreen: boolean;
-  setShouldFitToScreen: (value: boolean) => void;
+  fitViewTargetNodeIds: string[] | null;
+  setShouldFitToScreen: (value: boolean, nodeIds?: string[] | null) => void;
   selectAllNodes: () => void;
   cleanup: () => void;
 }
@@ -449,6 +451,7 @@ export const createNodeStore = (
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
           shouldFitToScreen: state?.shouldFitToScreen ?? true,
+          fitViewTargetNodeIds: state?.fitViewTargetNodeIds ?? null,
           connectionAttempted: false,
           setConnectionAttempted: (value: boolean): void =>
             set({ connectionAttempted: value }),
@@ -485,6 +488,45 @@ export const createNodeStore = (
                 ...node,
                 selected: nodes.includes(node)
               }))
+            });
+          },
+          selectNodesByType: (nodeType: string): void => {
+            const nodes = get().nodes;
+            const matchingCount = nodes.filter((node) => {
+              const currentType = node.type;
+              const originalType = node.data?.originalType;
+              return (
+                currentType === nodeType ||
+                (!!originalType && originalType === nodeType)
+              );
+            }).length;
+            log.info(
+              "[NodeStore] selectNodesByType",
+              nodeType,
+              "matching",
+              matchingCount
+            );
+            console.info(
+              "[NodeStore] selectNodesByType",
+              nodeType,
+              "matching",
+              matchingCount
+            );
+            if (matchingCount === 0) {
+              return;
+            }
+            set({
+              nodes: nodes.map((node) => {
+                const currentType = node.type;
+                const originalType = node.data?.originalType;
+                const isMatch =
+                  currentType === nodeType ||
+                  (!!originalType && originalType === nodeType);
+                return {
+                  ...node,
+                  selected: isMatch
+                };
+              })
             });
           },
           getSelectedNodeIds: (): string[] =>
@@ -913,8 +955,14 @@ export const createNodeStore = (
           clearMissingRepos: (): void => {
             set({ missingModelRepos: [] });
           },
-          setShouldFitToScreen: (value: boolean): void => {
-            set({ shouldFitToScreen: value });
+          setShouldFitToScreen: (
+            value: boolean,
+            nodeIds?: string[] | null
+          ): void => {
+            set({
+              shouldFitToScreen: value,
+              fitViewTargetNodeIds: nodeIds ?? null
+            });
           },
           setNodes: (
             nodesOrCallback:

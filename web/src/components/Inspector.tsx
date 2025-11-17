@@ -2,17 +2,19 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import NodeDescription from "./node/NodeDescription";
+import NodeExplorer from "./node/NodeExplorer";
 import allNodeStyles from "../node_styles/node-styles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
 import { isEqual } from "lodash";
 
@@ -43,13 +45,13 @@ const styles = (theme: Theme) =>
       gap: "10px",
       width: "100%",
       height: "100%",
-      // width: "calc(100% / 1.4)",
-      // height: "calc(100% / 1.4)",
       padding: "0.5em",
       overflowY: "auto",
       overflowX: "hidden",
-      // transform: "scale(1.4)",
       transformOrigin: "top left"
+    },
+    ".inspector-header h5": {
+      margin: ".5em 0 .5em 0"
     },
     ".bottom": {
       position: "relative",
@@ -111,10 +113,15 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: "0.5em",
       width: "100%",
-      borderBottom: "1px solid " + theme.vars.palette.grey[400],
-      borderTop: "1px solid " + theme.vars.palette.grey[400],
-      padding: "0.5em 0",
+      padding: "0 0 0.5em 0",
+      margin: 0,
       marginBottom: "1em"
+    },
+    ".inspector-header .header-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "0.5em"
     },
     ".title": {
       width: "100%",
@@ -145,24 +152,40 @@ const styles = (theme: Theme) =>
     },
     ".multi-property-row": {
       display: "flex",
+      position: "relative",
       alignItems: "flex-start",
       gap: "0.5em"
     },
     ".mixed-indicator": {
-      color: theme.vars.palette.warning.main,
-      marginTop: "0.35em"
+      display: "inline-flex",
+      position: "absolute",
+      zIndex: theme.zIndex.tooltip,
+      right: "2em",
+      top: "-0.1em",
+      alignItems: "center",
+      color: theme.vars.palette.warning.main
+    },
+    ".close-button": {
+      position: "absolute",
+      right: "0.5em",
+      top: "0.5em"
     }
   });
 
 const Inspector: React.FC = () => {
-  const { selectedNodes, edges, findNode, updateNodeProperties } = useNodes(
-    (state) => ({
-      selectedNodes: state.getSelectedNodes(),
-      edges: state.edges,
-      findNode: state.findNode,
-      updateNodeProperties: state.updateNodeProperties
-    })
-  );
+  const {
+    selectedNodes,
+    edges,
+    findNode,
+    updateNodeProperties,
+    setSelectedNodes
+  } = useNodes((state) => ({
+    selectedNodes: state.getSelectedNodes(),
+    edges: state.edges,
+    findNode: state.findNode,
+    updateNodeProperties: state.updateNodeProperties,
+    setSelectedNodes: state.setSelectedNodes
+  }));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
@@ -187,6 +210,9 @@ const Inspector: React.FC = () => {
   const isMultiSelect = selectedNodes.length > 1;
   const metadataCoverageMatches =
     nodesWithMetadata.length === selectedNodes.length;
+  const handleInspectorClose = useCallback(() => {
+    setSelectedNodes([]);
+  }, [setSelectedNodes]);
   const sharedProperties = useMemo(() => {
     if (!isMultiSelect || nodesWithMetadata.length === 0) {
       return [];
@@ -239,15 +265,8 @@ const Inspector: React.FC = () => {
     return (
       <Box className="inspector" css={inspectorStyles}>
         <Box className="top">
-          <Box className="top-content">
-            <Box className="inspector-header">
-              <div
-                className="title"
-                style={{ color: "var(--palette-grey-400)" }}
-              >
-                Select a node to edit
-              </div>
-            </Box>
+          <Box className="top-content" css={allNodeStyles(theme)}>
+            <NodeExplorer />
           </Box>
         </Box>
         <Box className="bottom"></Box>
@@ -275,7 +294,18 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <Box className="top-content" css={allNodeStyles(theme)}>
             <div className="inspector-header">
-              <div className="title">{`Editing ${selectedNodes.length} nodes`}</div>
+              <Typography variant="h5">Inspector</Typography>
+              <IconButton
+                className="close-button"
+                aria-label="Close inspector"
+                size="small"
+                onClick={handleInspectorClose}
+              >
+                <CloseRoundedIcon fontSize="small" />
+              </IconButton>
+              <div className="title">
+                {`Editing ${selectedNodes.length} nodes`}
+              </div>
             </div>
             {multiPropertyEntries.length > 0 ? (
               multiPropertyEntries.map(({ property, value, isMixed }) => (
@@ -285,10 +315,12 @@ const Inspector: React.FC = () => {
                 >
                   {isMixed && (
                     <Tooltip
-                      title="Multiple values selected"
+                      title="Mixed values across the selected nodes"
                       placement="top-start"
                     >
-                      <WarningAmberOutlinedIcon className="mixed-indicator" />
+                      <span className="mixed-indicator">
+                        <WarningAmberOutlinedIcon fontSize="small" />
+                      </span>
                     </Tooltip>
                   )}
                   <PropertyField
@@ -334,12 +366,10 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <Box className="top-content">
             <Box className="inspector-header">
-              <div
-                className="title"
-                style={{ color: "var(--palette-grey-400)" }}
-              >
-                Select a node to edit
-              </div>
+              <Typography variant="h4">Inspector</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Select nodes to edit
+              </Typography>
             </Box>
           </Box>
         </Box>
@@ -373,7 +403,18 @@ const Inspector: React.FC = () => {
       <Box className="top">
         <Box className="top-content" css={allNodeStyles(theme)}>
           <div className="inspector-header">
-            <div className="title">{metadata.title}</div>
+            <Typography variant="h5">Inspector</Typography>
+            <IconButton
+              className="close-button"
+              aria-label="Close inspector"
+              size="small"
+              onClick={handleInspectorClose}
+            >
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+            <div className="header-row">
+              <div className="title">{metadata.title}</div>
+            </div>
           </div>
           {/* Base properties */}
           {metadata.properties.map((property, index) => (
