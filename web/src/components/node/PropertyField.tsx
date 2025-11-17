@@ -25,6 +25,7 @@ export type PropertyFieldProps = {
   tabIndex?: number;
   isDynamicProperty?: boolean;
   data: NodeData;
+  onValueChange?: (value: any) => void;
 };
 
 /**
@@ -41,7 +42,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   tabIndex,
   isDynamicProperty,
-  data
+  data,
+  onValueChange
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
@@ -115,6 +117,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
             data={data}
+            onValueChange={onValueChange}
           />
         </>
       ) : (
