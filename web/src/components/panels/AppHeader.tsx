@@ -16,6 +16,7 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import ModelsButton from "../hugging_face/ModelsButton";
 import { IconForType } from "../../config/data_types";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -342,6 +343,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const theme = useTheme();
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
+  const { handleOpenHelp } = useAppHeaderStore();
 
   return (
     <div css={headerStyles} className="app-header">
@@ -354,6 +356,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
               height="20px"
               fontSize="1em"
               borderRadius="4px"
+              onClick={handleOpenHelp}
             />
           </div>
           <div className="nav-group">
