@@ -96,26 +96,42 @@ function ModelList<TModel extends ModelSelectorModel>({
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
               </ListItemIcon>
               <ListItemText
-                primary={m.name}
-                secondary={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <span>
-                      {available
-                        ? formatGenericProviderName(m.provider || "")
-                        : `${toTitleCase(
-                            m.provider || ""
-                          )} · Activate provider & setup`}
-                    </span>
+                primary={
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 0.75,
+                      overflow: "hidden",
+                      minWidth: 0,
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      className="model-name"
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        minWidth: 0,
+                        flex: "1 1 auto",
+                      }}
+                    >
+                      {m.name}
+                    </div>
                     {available && isHuggingFaceLocalProvider(m.provider) && (
                       <span
+                        className="badge-local"
                         style={{
-                          padding: "1px 4px",
+                          flex: "0 0 auto",
+                          padding: "1px 6px",
                           fontSize: theme.vars.fontSizeTiny,
-                          lineHeight: 1.1,
-                          borderRadius: 3,
+                          lineHeight: 1.2,
+                          borderRadius: 4,
                           background: "transparent",
                           color: theme.vars.palette.c_provider_local,
-                          letterSpacing: 0.2,
+                          letterSpacing: 0.3,
                           border: `1px solid ${theme.vars.palette.c_provider_local}`
                         }}
                       >
@@ -124,14 +140,20 @@ function ModelList<TModel extends ModelSelectorModel>({
                     )}
                   </Box>
                 }
+                secondary={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    {m.path && (
+                      <div style={{
+                        fontSize: theme.vars.fontSizeTiny,
+                        color: theme.vars.palette.text.secondary,
+                      }}>
+                        {m.path}
+                      </div>
+                    )}
+                  </Box>
+                }
                 primaryTypographyProps={{
                   noWrap: true,
-                  sx: {
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: "100%"
-                  }
                 }}
               />
             </ListItemButton>

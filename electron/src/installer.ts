@@ -15,7 +15,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import https from "https";
+import * as tar from "tar";
 import { pipeline } from "stream/promises";
 
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
@@ -31,6 +31,9 @@ const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
 const PYTHON_PACKAGES_SETTING_KEY = "PYTHON_PACKAGES";
+const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
+const DEFAULT_MAMBA_HOME_DIR = ".mamba";
 
 interface InstallationPreferences {
   location: string;
@@ -126,6 +129,94 @@ function getMicromambaExecutablePath(): string {
   return path.join(getMicromambaBinDir(), MICROMAMBA_EXECUTABLE_NAME);
 }
 
+function getPotentialMicromambaRootPrefixes(): string[] {
+  const prefixes = new Set<string>();
+  prefixes.add(getMicromambaRootPrefix());
+
+  const envPrefix = process.env.MAMBA_ROOT_PREFIX?.trim();
+  if (envPrefix) {
+    prefixes.add(envPrefix);
+  }
+
+  const homeDir = os.homedir();
+  if (homeDir) {
+    prefixes.add(path.join(homeDir, DEFAULT_MAMBA_HOME_DIR));
+  }
+
+  return Array.from(prefixes);
+}
+
+function getMicromambaLockPaths(): string[] {
+  return getPotentialMicromambaRootPrefixes().map((prefix) =>
+    path.join(prefix, "pkgs", "pkgs.lock")
+  );
+}
+
+async function removeStaleMicromambaLock(
+  lockPath: string,
+  options?: { force?: boolean }
+): Promise<void> {
+  let stats: fs.Stats | null = null;
+
+  try {
+    stats = await fs.stat(lockPath);
+  } catch (error: any) {
+    if (error?.code === "ENOENT") {
+      return;
+    }
+    logMessage(
+      `Failed to inspect micromamba lock at ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "warn"
+    );
+    if (!options?.force) {
+      return;
+    }
+  }
+
+  if (!options?.force && stats) {
+    const lockAgeMs = Date.now() - stats.mtimeMs;
+    if (lockAgeMs < MICROMAMBA_LOCK_STALE_THRESHOLD_MS) {
+      return;
+    }
+  }
+
+  try {
+    await fs.rm(lockPath, { force: true });
+    if (options?.force) {
+      if (stats) {
+        const ageSeconds = Math.round((Date.now() - stats.mtimeMs) / 1000);
+        logMessage(
+          `Force-removed micromamba lock (${ageSeconds}s old) at ${lockPath}`,
+          "warn"
+        );
+      } else {
+        logMessage(`Force-removed micromamba lock at ${lockPath}`, "warn");
+      }
+    } else if (stats) {
+      const ageSeconds = Math.round((Date.now() - stats.mtimeMs) / 1000);
+      logMessage(
+        `Removed stale micromamba lock (${ageSeconds}s old) at ${lockPath}`
+      );
+    }
+  } catch (error) {
+    logMessage(
+      `Failed to remove micromamba lock at ${lockPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "warn"
+    );
+  }
+}
+
+async function cleanupMicromambaLocks(force = false): Promise<void> {
+  const lockPaths = getMicromambaLockPaths();
+  for (const lockPath of lockPaths) {
+    await removeStaleMicromambaLock(lockPath, { force });
+  }
+}
+
 function sanitizeProcessEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -191,162 +282,45 @@ function getCandidateMicromambaResourceDirs(): string[] {
 
 async function findBundledMicromambaExecutable(): Promise<string | null> {
   const binaryName = MICROMAMBA_EXECUTABLE_NAME;
+  const platform = process.platform;
+  const arch = process.arch;
+  
+  // Map platform/arch to micromamba directory structure
+  let platformDir: string;
+  if (platform === "win32") {
+    platformDir = "win-64";
+  } else if (platform === "darwin") {
+    platformDir = arch === "arm64" ? "osx-arm64" : "osx-64";
+  } else if (platform === "linux") {
+    platformDir = arch === "arm64" ? "linux-aarch64" : "linux-64";
+  } else {
+    return null;
+  }
 
   for (const baseDir of getCandidateMicromambaResourceDirs()) {
-    const candidate = path.join(
+    // Check platform-specific directory first
+    const platformSpecificPath = path.join(
+      baseDir,
+      MICROMAMBA_BUNDLED_DIR_NAME,
+      platformDir,
+      platform === "win32" ? "Library/bin/micromamba.exe" : "bin/micromamba"
+    );
+    if (await fileExists(platformSpecificPath)) {
+      return platformSpecificPath;
+    }
+    
+    // Fallback to old structure (for backward compatibility)
+    const legacyPath = path.join(
       baseDir,
       MICROMAMBA_BUNDLED_DIR_NAME,
       binaryName
     );
-    if (await fileExists(candidate)) {
-      return candidate;
+    if (await fileExists(legacyPath)) {
+      return legacyPath;
     }
   }
 
   return null;
-}
-
-function getMicromambaDownloadUrl(): string | null {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  if (platform === "darwin") {
-    if (arch === "arm64") {
-      return "https://micro.mamba.pm/api/micromamba/osx-arm64/latest";
-    }
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/osx-64/latest";
-    }
-    return null;
-  }
-
-  if (platform === "linux") {
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-64/latest";
-    }
-    if (arch === "arm64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-aarch64/latest";
-    }
-    if (arch === "ppc64") {
-      return "https://micro.mamba.pm/api/micromamba/linux-ppc64le/latest";
-    }
-    return null;
-  }
-
-  if (platform === "win32") {
-    if (arch === "x64") {
-      return "https://micro.mamba.pm/api/micromamba/win-64/latest";
-    }
-    return null;
-  }
-
-  return null;
-}
-
-async function downloadFile(
-  url: string,
-  destinationPath: string
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const request = https.get(url, (response) => {
-      if (
-        response.statusCode &&
-        response.statusCode >= 300 &&
-        response.statusCode < 400 &&
-        response.headers.location
-      ) {
-        const redirectUrl = new URL(response.headers.location, url).toString();
-        response.destroy();
-        downloadFile(redirectUrl, destinationPath).then(resolve).catch(reject);
-        return;
-      }
-
-      if (response.statusCode !== 200) {
-        reject(
-          new Error(
-            `Failed to download micromamba (status ${response.statusCode})`
-          )
-        );
-        response.resume();
-        return;
-      }
-
-      const fileStream = createWriteStream(destinationPath);
-      pipeline(response, fileStream)
-        .then(resolve)
-        .catch((error) => reject(error));
-    });
-
-    request.on("error", (error) => {
-      reject(error);
-    });
-  });
-}
-
-async function extractMicromambaArchive(
-  archivePath: string,
-  destinationDir: string
-): Promise<void> {
-  await fs.mkdir(destinationDir, { recursive: true });
-
-  // Extract from tar.bz2 archive - Windows uses Library/bin/micromamba.exe, Unix uses bin/micromamba
-  const extractPath =
-    process.platform === "win32"
-      ? "Library/bin/micromamba.exe"
-      : "bin/micromamba";
-
-  const archiveForTar =
-    process.platform === "win32"
-      ? archivePath.replace(/\\/g, "/")
-      : archivePath;
-  const destinationForTar =
-    process.platform === "win32"
-      ? destinationDir.replace(/\\/g, "/")
-      : destinationDir;
-
-  const tarArgs = [
-    "-xvjf",
-    archiveForTar,
-    "-C",
-    destinationForTar,
-    extractPath,
-  ];
-
-  if (process.platform === "win32") {
-    tarArgs.unshift("--force-local");
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const tarProcess = spawn("tar", tarArgs, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    tarProcess.stdout?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`tar stdout: ${message}`);
-      }
-    });
-
-    tarProcess.stderr?.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        logMessage(`tar stderr: ${message}`, "error");
-      }
-    });
-
-    tarProcess.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`tar exited with code ${code}`));
-      }
-    });
-
-    tarProcess.on("error", (error) => {
-      reject(error);
-    });
-  });
 }
 
 async function ensureMicromambaAvailable(): Promise<string> {
@@ -376,54 +350,11 @@ async function ensureMicromambaAvailable(): Promise<string> {
     return localExecutable;
   }
 
-  const downloadUrl = getMicromambaDownloadUrl();
-  if (!downloadUrl) {
-    throw new Error(
-      "Unable to locate micromamba and automatic download is not supported on this platform."
-    );
-  }
-
-  emitBootMessage("Downloading micromamba...");
-  logMessage(`Downloading micromamba from ${downloadUrl}`);
-
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "micromamba-"));
-  const archivePath = path.join(tempDir, "micromamba.tar.bz2");
-  let installedExecutable: string | null = null;
-
-  try {
-    await downloadFile(downloadUrl, archivePath);
-    emitBootMessage("Installing micromamba...");
-    await extractMicromambaArchive(archivePath, tempDir);
-
-    const extractedBinary =
-      process.platform === "win32"
-        ? path.join(tempDir, "Library", "bin", MICROMAMBA_EXECUTABLE_NAME)
-        : path.join(tempDir, "bin", "micromamba");
-
-    if (!(await fileExists(extractedBinary))) {
-      throw new Error("micromamba binary not found after extraction");
-    }
-
-    await fs.mkdir(getMicromambaBinDir(), { recursive: true });
-    await fs.copyFile(extractedBinary, localExecutable);
-
-    // Only chmod on Unix-like systems
-    if (process.platform !== "win32") {
-      await fs.chmod(localExecutable, 0o755);
-    }
-
-    process.env[MICROMAMBA_ENV_VAR] = localExecutable;
-    installedExecutable = localExecutable;
-    logMessage(`micromamba installed at ${localExecutable}`);
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  }
-
-  if (!installedExecutable) {
-    throw new Error("Failed to install micromamba");
-  }
-
-  return installedExecutable;
+  // No download fallback - require bundled micromamba or explicit configuration
+  throw new Error(
+    "micromamba not found. Please ensure micromamba is bundled in resources/micromamba/ " +
+    "or set the MICROMAMBA_EXE environment variable, or install micromamba system-wide."
+  );
 }
 
 async function runMicromambaCommand(
@@ -462,17 +393,56 @@ async function runMicromambaCommand(
     }
   }
 
-  logMessage(
-    `Running micromamba command: ${micromambaExecutable} ${args.join(" ")}`
-  );
+  const runOnce = async (): Promise<void> => {
+    logMessage(
+      `Running micromamba command: ${micromambaExecutable} ${args.join(" ")}`
+    );
 
-  emitBootMessage(`${progressAction}...`);
-  emitUpdateProgress("Python environment", 10, progressAction, "Resolving");
+    emitBootMessage(`${progressAction}...`);
+    emitUpdateProgress("Python environment", 10, progressAction, "Resolving");
 
+    await cleanupMicromambaLocks(true);
+
+    await executeMicromambaCommand(
+      micromambaExecutable,
+      args,
+      env,
+      progressAction
+    );
+  };
+
+  try {
+    await runOnce();
+  } catch (error) {
+    if ((error as MicromambaCommandError)?.lockErrorDetected) {
+      logMessage(
+        "micromamba reported a lock error, forcing lock cleanup and retrying",
+        "warn"
+      );
+      await cleanupMicromambaLocks(true);
+      await runOnce();
+    } else {
+      throw error;
+    }
+  }
+}
+
+interface MicromambaCommandError extends Error {
+  lockErrorDetected?: boolean;
+}
+
+async function executeMicromambaCommand(
+  micromambaExecutable: string,
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  progressAction: string
+): Promise<void> {
   const micromambaProcess = spawn(micromambaExecutable, args, {
     env,
     stdio: "pipe",
   });
+
+  let lockErrorDetected = false;
 
   return new Promise<void>((resolve, reject) => {
     micromambaProcess.stdout?.on("data", (data: Buffer) => {
@@ -486,6 +456,9 @@ async function runMicromambaCommand(
       const message = data.toString().trim();
       if (message) {
         logMessage(`micromamba stderr: ${message}`, "error");
+        if (MICROMAMBA_LOCK_ERROR_PATTERN.test(message)) {
+          lockErrorDetected = true;
+        }
       }
     });
 
@@ -494,7 +467,13 @@ async function runMicromambaCommand(
         emitUpdateProgress("Python environment", 100, progressAction, "Done");
         resolve();
       } else {
-        reject(new Error(`micromamba exited with code ${code}`));
+        const error: MicromambaCommandError = new Error(
+          `micromamba exited with code ${code}`
+        );
+        if (lockErrorDetected) {
+          error.lockErrorDetected = true;
+        }
+        reject(error);
       }
     });
 
@@ -571,26 +550,8 @@ async function provisionPythonEnvironment(
   await installCondaPackages(micromambaExecutable, condaEnvPath);
   await ensureLlamaCppInstalled(condaEnvPath);
 
-  try {
-    emitBootMessage("Installing Playwright browsers...");
-    logMessage("Running Playwright install in Python environment");
-    const pythonPath = getPythonPath();
-    await runCommand([pythonPath, "-m", "playwright", "install"]);
-    logMessage("Playwright installation completed successfully");
-  } catch (err: any) {
-    logMessage(`Failed to install Playwright: ${err.message}`, "error");
-    throw err;
-  }
-
   logMessage("Python environment installation completed successfully");
   emitBootMessage("Python environment is ready");
-}
-
-async function repairCondaEnvironment(): Promise<void> {
-  const { location, packages } = readInstallationPreferences();
-  await provisionPythonEnvironment(location, packages, {
-    bootMessage: "Repairing Python environment...",
-  });
 }
 
 /**
@@ -798,4 +759,3 @@ async function ensureLlamaCppInstalled(envPrefix: string): Promise<void> {
 // }
 
 export { promptForInstallLocation, installCondaEnvironment };
-export { repairCondaEnvironment };

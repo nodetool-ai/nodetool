@@ -292,3 +292,8 @@ export const VIDEO_PROVIDERS = ALL_PROVIDERS;
 const videoModelMenu = createModelMenuSelector<VideoModel>();
 export const useVideoModelMenuStore = videoModelMenu.useStore;
 export const useVideoModelMenuData = videoModelMenu.useData;
+
+// HuggingFace image models use ImageModel type
+const huggingFaceImageModelMenu = createModelMenuSelector<ImageModel>();
+export const useHuggingFaceImageModelMenuStore = huggingFaceImageModelMenu.useStore;
+export const useHuggingFaceImageModelMenuData = huggingFaceImageModelMenu.useData;

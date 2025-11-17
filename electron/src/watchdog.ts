@@ -1,5 +1,7 @@
 import { ChildProcess, spawn } from "child_process";
 import { promises as fs } from "fs";
+import path from "path";
+import net from "net";
 import { logMessage } from "./logger";
 
 export interface WatchdogOptions {
@@ -8,7 +10,9 @@ export interface WatchdogOptions {
   args: string[];
   env?: NodeJS.ProcessEnv;
   pidFilePath: string;
-  healthUrl: string;
+  healthUrl: string; // HTTP endpoint for health checks (e.g., "http://127.0.0.1:8000/health")
+  healthPort?: number; // Port to check for TCP connectivity during startup (optional, extracted from healthUrl if not provided)
+  healthHost?: string; // Host to check for TCP connectivity (defaults to '127.0.0.1')
   healthCheckIntervalMs?: number;
   gracefulStopTimeoutMs?: number;
   onOutput?: (line: string) => void;
@@ -20,9 +24,41 @@ export class Watchdog {
   private intervalId: NodeJS.Timeout | null = null;
   private stopped = false;
 
+  private healthPort: number;
+  private healthHost: string;
+
   constructor(options: WatchdogOptions) {
+    // Extract port and host from healthUrl if not explicitly provided
+    let healthPort = options.healthPort;
+    let healthHost = options.healthHost || "127.0.0.1";
+
+    if (!healthPort) {
+      try {
+        const url = new URL(options.healthUrl);
+        healthPort = parseInt(url.port, 10);
+        if (isNaN(healthPort)) {
+          // Default ports based on protocol
+          healthPort = url.protocol === "https:" ? 443 : 80;
+        }
+        healthHost = url.hostname;
+      } catch {
+        // If URL parsing fails, try to extract port from common patterns
+        const portMatch = options.healthUrl.match(/:(\d+)/);
+        if (portMatch) {
+          healthPort = parseInt(portMatch[1], 10);
+        } else {
+          throw new Error(
+            `${options.name} watchdog: Could not extract port from healthUrl: ${options.healthUrl}`
+          );
+        }
+      }
+    }
+
+    this.healthPort = healthPort;
+    this.healthHost = healthHost;
+
     this.opts = {
-      healthCheckIntervalMs: 10000,
+      healthCheckIntervalMs: 30000, // 30 seconds - reasonable frequency for health checks
       gracefulStopTimeoutMs: 30000,
       ...options,
     };
@@ -56,8 +92,7 @@ export class Watchdog {
       this.process.kill("SIGTERM");
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: error sending SIGTERM: ${
-          (error as Error).message
+        `${this.opts.name} watchdog: error sending SIGTERM: ${(error as Error).message
         }`
       );
     }
@@ -75,8 +110,7 @@ export class Watchdog {
         this.process.kill("SIGKILL");
       } catch (error) {
         logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${
-            (error as Error).message
+          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message
           }`
         );
       }
@@ -97,8 +131,7 @@ export class Watchdog {
         this.process.kill("SIGKILL");
       } catch (error) {
         logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${
-            (error as Error).message
+          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message
           }`
         );
       }
@@ -110,41 +143,86 @@ export class Watchdog {
   async waitUntilHealthy(timeoutMs: number = 300000): Promise<void> {
     const start = Date.now();
     let checkCount = 0;
+    let reachableCheckCount = 0;
     const logInterval = 5000; // Log every 5 seconds
     let lastLogTime = start;
-    
+    let isReachable = false;
+
+    // Phase 1: Wait for TCP connectivity (server is starting to listen)
     while (Date.now() - start < timeoutMs) {
-      checkCount++;
-      const healthy = await this.isHealthy();
-      if (healthy) {
+      reachableCheckCount++;
+      const reachable = await this.isReachable();
+      if (reachable) {
+        isReachable = true;
         logMessage(
-          `${this.opts.name} watchdog: health check passed after ${checkCount} attempts (${Date.now() - start}ms)`
+          `${this.opts.name} watchdog: TCP connectivity established after ${reachableCheckCount} attempts (${Date.now() - start}ms)`
         );
-        return;
+        break;
       }
-      
+
       // Log progress every 5 seconds
       const now = Date.now();
       if (now - lastLogTime >= logInterval) {
         const elapsed = Math.round((now - start) / 1000);
         const remaining = Math.round((timeoutMs - (now - start)) / 1000);
         logMessage(
-          `${this.opts.name} watchdog: waiting for health check... (${elapsed}s elapsed, ${remaining}s remaining, ${checkCount} attempts)`
+          `${this.opts.name} watchdog: waiting for TCP connectivity... (${elapsed}s elapsed, ${remaining}s remaining, ${reachableCheckCount} attempts)`
         );
         lastLogTime = now;
-        
+
         // Check if process is still alive
         const pidAlive = await this.isPidAlive();
         if (!pidAlive) {
           throw new Error(
-            `${this.opts.name} watchdog: process died before becoming healthy (pid=${this.process?.pid})`
+            `${this.opts.name} watchdog: process died before becoming reachable (pid=${this.process?.pid})`
           );
         }
       }
-      
+
       await new Promise((r) => setTimeout(r, 200));
     }
-    
+
+    if (!isReachable) {
+      const pidAlive = await this.isPidAlive();
+      throw new Error(
+        `${this.opts.name} watchdog: TCP connectivity check timed out after ${timeoutMs}ms (pidAlive=${pidAlive}, checkCount=${reachableCheckCount})`
+      );
+    }
+
+    // Phase 2: Wait for HTTP health endpoint to respond (server is fully ready)
+    lastLogTime = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      checkCount++;
+      const healthy = await this.isHealthy();
+      if (healthy) {
+        logMessage(
+          `${this.opts.name} watchdog: health check passed after ${checkCount} attempts (${Date.now() - start}ms total)`
+        );
+        return;
+      }
+
+      // Log progress every 5 seconds
+      const now = Date.now();
+      if (now - lastLogTime >= logInterval) {
+        const elapsed = Math.round((now - start) / 1000);
+        const remaining = Math.round((timeoutMs - (now - start)) / 1000);
+        logMessage(
+          `${this.opts.name} watchdog: waiting for health endpoint... (${elapsed}s elapsed, ${remaining}s remaining, ${checkCount} attempts)`
+        );
+        lastLogTime = now;
+
+        // Check if process is still alive
+        const pidAlive = await this.isPidAlive();
+        if (!pidAlive) {
+          throw new Error(
+            `${this.opts.name} watchdog: process died before health check passed (pid=${this.process?.pid})`
+          );
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
     const pidAlive = await this.isPidAlive();
     throw new Error(
       `${this.opts.name} watchdog: health check timed out after ${timeoutMs}ms (pidAlive=${pidAlive}, checkCount=${checkCount})`
@@ -153,8 +231,7 @@ export class Watchdog {
 
   private async spawnProcess(): Promise<void> {
     logMessage(
-      `${this.opts.name} watchdog: starting: ${
-        this.opts.command
+      `${this.opts.name} watchdog: starting: ${this.opts.command
       } ${this.opts.args.join(" ")}`
     );
     logMessage(
@@ -177,8 +254,7 @@ export class Watchdog {
         "error"
       );
       throw new Error(
-        `${this.opts.name} watchdog: failed to spawn: ${
-          (error as Error).message
+        `${this.opts.name} watchdog: failed to spawn: ${(error as Error).message
         }`
       );
     }
@@ -199,7 +275,7 @@ export class Watchdog {
           `${this.opts.name} watchdog: process spawned (pid=${this.process?.pid})`
         );
         if (this.process?.pid) {
-          this.writePidFile(this.process.pid).catch(() => {});
+          this.writePidFile(this.process.pid).catch(() => { });
         }
         resolve();
       });
@@ -255,8 +331,7 @@ export class Watchdog {
           await this.restart();
         } catch (error) {
           logMessage(
-            `${this.opts.name} watchdog: restart failed: ${
-              (error as Error).message
+            `${this.opts.name} watchdog: restart failed: ${(error as Error).message
             }`,
             "error"
           );
@@ -276,9 +351,50 @@ export class Watchdog {
     }
   }
 
+  /**
+   * Checks TCP connectivity to the server port.
+   * Used during startup to detect when the server becomes reachable.
+   */
+  private async isReachable(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const socket = new net.Socket();
+      const timeout = 2000; // 2 second timeout for TCP connection
+      let resolved = false;
+
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true;
+          socket.destroy();
+        }
+      };
+
+      socket.setTimeout(timeout);
+      socket.once("timeout", () => {
+        cleanup();
+        resolve(false);
+      });
+
+      socket.once("error", () => {
+        cleanup();
+        resolve(false);
+      });
+
+      socket.once("connect", () => {
+        cleanup();
+        resolve(true);
+      });
+
+      socket.connect(this.healthPort, this.healthHost);
+    });
+  }
+
+  /**
+   * Checks HTTP health endpoint to verify the server is fully operational.
+   * Used for ongoing health monitoring.
+   */
   private async isHealthy(): Promise<boolean> {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 30000);
+    const id = setTimeout(() => controller.abort(), 5000); // 5 second timeout
     try {
       const res = await fetch(this.opts.healthUrl, {
         method: "GET",
@@ -294,14 +410,15 @@ export class Watchdog {
 
   private async writePidFile(pid: number): Promise<void> {
     try {
+      const pidDir = path.dirname(this.opts.pidFilePath);
+      await fs.mkdir(pidDir, { recursive: true });
       await fs.writeFile(this.opts.pidFilePath, String(pid));
       logMessage(
         `${this.opts.name} watchdog: wrote PID ${pid} to ${this.opts.pidFilePath}`
       );
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: failed to write PID file: ${
-          (error as Error).message
+        `${this.opts.name} watchdog: failed to write PID file: ${(error as Error).message
         }`,
         "error"
       );

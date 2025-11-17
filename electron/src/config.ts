@@ -18,7 +18,8 @@ const appsPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "apps")
   : path.join(__dirname, "..", "..", "apps", "dist");
 
-const PID_FILE_PATH: string = path.join(app.getPath("userData"), "server.pid");
+const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
+const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 
 const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
   Record<NodeJS.Platform, Record<string, string>>
@@ -283,6 +284,7 @@ export {
   getSystemDataPath,
   srcPath,
   PID_FILE_PATH,
+  PID_DIRECTORY,
   webPath,
   appsPath,
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 
 const moduleMapping = {
   // apple: "nodetool-ai/nodetool-apple",
@@ -87,6 +87,9 @@ interface InstallWizardProps {
   onComplete: () => void;
   defaultSelectedModules?: string[];
 }
+
+// Add runtime selection type
+type RuntimeOption = "ollama" | "llamacpp" | "skip";
 
 interface PackageOptionProps {
   name: string;
@@ -177,11 +180,15 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     [allowedModuleKeys]
   );
 
+  // Update step type to include licensing step
   const [currentStep, setCurrentStep] = useState<
-    "welcome" | "location" | "packages"
+    "welcome" | "location" | "runtime" | "packages" | "licensing"
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
+  const [selectedRuntime, setSelectedRuntime] =
+    useState<RuntimeOption>("ollama");
   const LOCAL_STORAGE_KEY = "installer.selectedModules";
+  const RUNTIME_STORAGE_KEY = "installer.selectedRuntime";
   const [pathError, setPathError] = useState<string | null>(null);
   const validatePath = useCallback((path: string) => {
     if (!path) {
@@ -192,6 +199,19 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     }
     return null;
   }, []);
+
+  // Load runtime preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(RUNTIME_STORAGE_KEY);
+      if (saved && ["ollama", "llamacpp", "skip"].includes(saved)) {
+        setSelectedRuntime(saved as RuntimeOption);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const applyPathSelection = useCallback(
     (path: string) => {
       setSelectedPath(path);
@@ -202,11 +222,62 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
         return false;
       }
       setPathError(null);
-      setCurrentStep("packages");
+      setCurrentStep("runtime");
       return true;
     },
     [validatePath]
   );
+
+  // Update handleRuntimeSelection to go to licensing step instead of packages
+  const handleRuntimeSelection = (runtime: RuntimeOption) => {
+    setSelectedRuntime(runtime);
+    try {
+      localStorage.setItem(RUNTIME_STORAGE_KEY, runtime);
+    } catch {
+      // ignore
+    }
+    setCurrentStep("licensing"); // Changed from "packages"
+  };
+
+  // Update handleBack to include licensing step
+  const handleBack = () => {
+    if (currentStep === "packages") {
+      setCurrentStep("licensing");
+    } else if (currentStep === "licensing") {
+      setCurrentStep("runtime");
+    } else if (currentStep === "runtime") {
+      setCurrentStep("location");
+    } else if (currentStep === "location") {
+      setCurrentStep("welcome");
+    }
+  };
+
+  const handleInstall = async () => {
+    const error = validatePath(selectedPath);
+    if (error) {
+      setPathError(error);
+      setCurrentStep("location");
+      return;
+    }
+    const sanitizedSelection = sanitizeSelection(selectedModules);
+    if (sanitizedSelection.length !== selectedModules.length) {
+      persist(sanitizedSelection);
+      setSelectedModules(sanitizedSelection);
+    }
+
+    // Determine what to install based on runtime selection
+    const installOllama = selectedRuntime === "ollama";
+    const installLlamaCpp = selectedRuntime === "llamacpp";
+
+    await window.api.installToLocation(
+      selectedPath,
+      sanitizedSelection,
+      installOllama,
+      installLlamaCpp
+    );
+    onComplete();
+  };
+
   const [selectedModules, setSelectedModules] = useState<string[]>(() => {
     const normalizedDefaults = sanitizeSelection(defaultSelectedModules);
     try {
@@ -261,30 +332,6 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     }
   };
 
-  const handleBack = () => {
-    if (currentStep === "packages") {
-      setCurrentStep("location");
-    } else if (currentStep === "location") {
-      setCurrentStep("welcome");
-    }
-  };
-
-  const handleInstall = async () => {
-    const error = validatePath(selectedPath);
-    if (error) {
-      setPathError(error);
-      setCurrentStep("location");
-      return;
-    }
-    const sanitizedSelection = sanitizeSelection(selectedModules);
-    if (sanitizedSelection.length !== selectedModules.length) {
-      persist(sanitizedSelection);
-      setSelectedModules(sanitizedSelection);
-    }
-    await window.api.installToLocation(selectedPath, sanitizedSelection);
-    onComplete();
-  };
-
   const selectedCount = selectedModules.length;
 
   const toggleGroup = (items: ModuleKey[], select: boolean) => {
@@ -334,7 +381,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
             {[
               { key: "welcome", label: "Welcome" },
               { key: "location", label: "Step 1: Location" },
-              { key: "packages", label: "Step 2: Packages" },
+              { key: "runtime", label: "Step 2: AI Runtime" },
+              { key: "licensing", label: "Step 3: Licensing" },
+              { key: "packages", label: "Step 4: Packages" },
             ].map((step, index) => (
               <div
                 key={step.key}
@@ -428,11 +477,382 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
               </div>
             )}
 
-            {/* Step 2: Package Selection */}
+            {/* Step 2: Runtime Selection */}
+            {currentStep === "runtime" && (
+              <div id="step-runtime" className="setup-step active">
+                <div className="step-header">
+                  <h3>Step 2: Choose AI Runtime</h3>
+                  <p>Select the AI runtime you'd like to install:</p>
+                  <p role="note" style={{ marginTop: 8, color: "#7a7a7a" }}>
+                    Installing to: <code>{selectedPath}</code>
+                  </p>
+                </div>
+                <div
+                  className="runtime-selection"
+                  style={{ marginTop: "24px" }}
+                >
+                  <label
+                    className="runtime-option"
+                    style={{
+                      display: "block",
+                      marginBottom: "16px",
+                      padding: "16px",
+                      border:
+                        selectedRuntime === "ollama"
+                          ? "2px solid rgba(74, 158, 255, 0.6)"
+                          : "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      backgroundColor:
+                        selectedRuntime === "ollama"
+                          ? "rgba(74, 158, 255, 0.1)"
+                          : "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start" }}>
+                      <input
+                        type="radio"
+                        name="runtime"
+                        value="ollama"
+                        checked={selectedRuntime === "ollama"}
+                        onChange={() => handleRuntimeSelection("ollama")}
+                        style={{ marginRight: "12px", marginTop: "2px" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          <h4 style={{ margin: 0 }}>Ollama</h4>
+                          <span
+                            className="recommended-badge"
+                            style={{
+                              marginLeft: "8px",
+                              padding: "2px 8px",
+                              fontSize: "12px",
+                              backgroundColor: "#4a9eff",
+                              color: "white",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            Recommended
+                          </span>
+                        </div>
+                        <p
+                          style={{
+                            margin: "4px 0 0 0",
+                            color: "#666",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Easy to use, recommended for most users. Includes
+                          model management and a simple API.
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    className="runtime-option"
+                    style={{
+                      display: "block",
+                      marginBottom: "16px",
+                      padding: "16px",
+                      border:
+                        selectedRuntime === "llamacpp"
+                          ? "2px solid rgba(74, 158, 255, 0.6)"
+                          : "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      backgroundColor:
+                        selectedRuntime === "llamacpp"
+                          ? "rgba(74, 158, 255, 0.1)"
+                          : "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start" }}>
+                      <input
+                        type="radio"
+                        name="runtime"
+                        value="llamacpp"
+                        checked={selectedRuntime === "llamacpp"}
+                        onChange={() => handleRuntimeSelection("llamacpp")}
+                        style={{ marginRight: "12px", marginTop: "2px" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: 0 }}>llama.cpp</h4>
+                        <p
+                          style={{
+                            margin: "4px 0 0 0",
+                            color: "#666",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Better performance with GPU acceleration. Requires
+                          manual model management and configuration.
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    className="runtime-option"
+                    style={{
+                      display: "block",
+                      marginBottom: "16px",
+                      padding: "16px",
+                      border:
+                        selectedRuntime === "skip"
+                          ? "2px solid rgba(74, 158, 255, 0.6)"
+                          : "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      backgroundColor:
+                        selectedRuntime === "skip"
+                          ? "rgba(74, 158, 255, 0.1)"
+                          : "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start" }}>
+                      <input
+                        type="radio"
+                        name="runtime"
+                        value="skip"
+                        checked={selectedRuntime === "skip"}
+                        onChange={() => handleRuntimeSelection("skip")}
+                        style={{ marginRight: "12px", marginTop: "2px" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: 0 }}>Skip</h4>
+                        <p
+                          style={{
+                            margin: "4px 0 0 0",
+                            color: "#666",
+                            fontSize: "14px",
+                          }}
+                        >
+                          I have Ollama installed separately or don't need an AI
+                          runtime right now.
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div
+                  className="navigation-buttons"
+                  style={{ marginTop: "24px" }}
+                >
+                  <button className="nav-button back" onClick={handleBack}>
+                    ← Back
+                  </button>
+                  <button
+                    className="nav-button next"
+                    onClick={() => setCurrentStep("packages")}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Licensing Notice */}
+            {currentStep === "licensing" && (
+              <div id="step-licensing" className="setup-step active">
+                <div className="step-header">
+                  <h3>Required Licensing Notice</h3>
+                  <p>
+                    Please review the following licensing information before
+                    proceeding with installation.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "24px",
+                    padding: "20px",
+                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    maxHeight: "400px",
+                    overflowY: "auto",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      lineHeight: "1.6",
+                      color: "var(--c_text_secondary)",
+                    }}
+                  >
+                    <p style={{ marginTop: 0, marginBottom: "16px" }}>
+                      <strong style={{ color: "var(--c_text_primary)" }}>
+                        This installer includes components from the Anaconda
+                        Distribution.
+                      </strong>{" "}
+                      Use of these components is governed by the{" "}
+                      <a
+                        href="https://www.anaconda.com/terms-of-service"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "var(--c_link)" }}
+                      >
+                        Anaconda Terms of Service
+                      </a>
+                      . NodeTool does not provide or transfer a license for
+                      Anaconda components. Users are responsible for ensuring
+                      that their use complies with Anaconda's licensing rules.
+                    </p>
+
+                    <p style={{ marginBottom: "16px" }}>
+                      <strong style={{ color: "var(--c_text_primary)" }}>
+                        Organisations with 200 or more employees require a
+                        commercial Anaconda license
+                      </strong>{" "}
+                      for any use of the bundled Anaconda components.
+                    </p>
+
+                    <p style={{ marginBottom: "16px" }}>
+                      <strong style={{ color: "var(--c_text_primary)" }}>
+                        Channel Information:
+                      </strong>{" "}
+                      This installation uses the <strong>conda-forge</strong>{" "}
+                      channel (not Anaconda's default channel) for package
+                      resolution via micromamba. Conda-forge packages are
+                      community-maintained and do not require Anaconda
+                      commercial licensing.
+                    </p>
+
+                    <div
+                      style={{
+                        marginTop: "20px",
+                        paddingTop: "16px",
+                        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <p style={{ marginBottom: "12px" }}>
+                        <strong style={{ color: "var(--c_text_primary)" }}>
+                          AI Runtime Components:
+                        </strong>
+                      </p>
+                      <p style={{ marginBottom: "12px" }}>
+                        <strong>Ollama</strong> and <strong>llama.cpp</strong>{" "}
+                        are optional AI runtime components that may be installed
+                        with this application. These components are provided
+                        under their respective open source licenses:
+                      </p>
+                      <ul
+                        style={{
+                          margin: "8px 0 16px 20px",
+                          paddingLeft: "20px",
+                        }}
+                      >
+                        <li>
+                          <strong>Ollama:</strong> MIT License (
+                          <a
+                            href="https://github.com/ollama/ollama/blob/main/LICENSE"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "var(--c_link)" }}
+                          >
+                            view license
+                          </a>
+                          )
+                        </li>
+                        <li>
+                          <strong>llama.cpp:</strong> MIT License (
+                          <a
+                            href="https://github.com/ggerganov/llama.cpp/blob/master/LICENSE"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "var(--c_link)" }}
+                          >
+                            view license
+                          </a>
+                          )
+                        </li>
+                      </ul>
+                      <p
+                        style={{
+                          marginBottom: "16px",
+                          fontSize: "12px",
+                          color: "var(--c_text_tertiary)",
+                        }}
+                      >
+                        NodeTool does not provide or transfer licenses for
+                        Ollama or llama.cpp. Users are responsible for
+                        compliance with their respective license terms. These
+                        components are optional and may be skipped during
+                        installation if you prefer to use external
+                        installations.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "20px",
+                        paddingTop: "16px",
+                        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <p style={{ marginBottom: "8px" }}>
+                        <strong style={{ color: "var(--c_text_primary)" }}>
+                          Open Source Licenses:
+                        </strong>
+                      </p>
+                      <ul style={{ margin: "8px 0", paddingLeft: "20px" }}>
+                        <li>
+                          <strong>Micromamba:</strong> Apache 2.0 License
+                        </li>
+                        <li>
+                          <strong>NodeTool:</strong> AGPL-3.0 License
+                        </li>
+                        <li>
+                          <strong>Ollama:</strong> MIT License
+                        </li>
+                        <li>
+                          <strong>llama.cpp:</strong> MIT License
+                        </li>
+                      </ul>
+                      <p
+                        style={{
+                          marginTop: "12px",
+                          fontSize: "12px",
+                          color: "var(--c_text_tertiary)",
+                        }}
+                      >
+                        Full license texts are available in the application's
+                        LICENSE and NOTICE files.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="navigation-buttons"
+                  style={{ marginTop: "24px" }}
+                >
+                  <button className="nav-button back" onClick={handleBack}>
+                    ← Back
+                  </button>
+                  <button
+                    className="nav-button next"
+                    onClick={() => setCurrentStep("packages")}
+                  >
+                    I Understand, Continue →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Package Selection */}
             {currentStep === "packages" && (
               <div id="step-packages" className="setup-step active">
                 <div className="step-header">
-                  <h3>Step 2: Choose Packages</h3>
+                  <h3>Step 4: Choose Packages</h3>
                   <p>Select the packages you'd like to install:</p>
                   <p
                     role="note"

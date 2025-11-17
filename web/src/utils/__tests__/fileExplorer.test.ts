@@ -1,23 +1,44 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import { openInExplorer, isPathValid } from "../fileExplorer";
-import { client } from "../../stores/ApiClient";
+import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
+import {
+  openInExplorer,
+  isPathValid,
+  openHuggingfacePath,
+  openOllamaPath,
+  isFileExplorerAvailable
+} from "../fileExplorer";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
-// Mock the ApiClient
-jest.mock("../../stores/ApiClient", () => ({
-  client: {
-    POST: jest.fn()
-  }
-}));
+const createMockApi = () => ({
+  openModelPath: jest.fn(),
+  openModelDirectory: jest.fn()
+});
 
 describe("fileExplorer", () => {
+  const originalWindow = global.window;
+  const addNotification = jest.fn();
+  const mockApi = createMockApi();
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, "warn").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
+    (useNotificationStore.setState as any)((state: any) => ({
+      ...state,
+      addNotification
+    }));
+    (global as any).window = {
+      api: mockApi
+    };
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    mockApi.openModelPath.mockReset();
+    mockApi.openModelDirectory.mockReset();
+    addNotification.mockReset();
+    if (originalWindow) {
+      (global as any).window = originalWindow;
+    }
   });
 
   describe("isPathValid", () => {
@@ -78,87 +99,108 @@ describe("fileExplorer", () => {
     });
   });
 
+  describe("electron integration", () => {
+    it("isFileExplorerAvailable reflects window api presence", () => {
+      expect(isFileExplorerAvailable()).toBe(true);
+      delete (global as any).window.api;
+      expect(isFileExplorerAvailable()).toBe(false);
+    });
+  });
+
   describe("openInExplorer", () => {
-    it("should call API for valid paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-      mockPost.mockResolvedValueOnce({ data: { success: true } } as any);
+    it("should invoke Electron bridge for valid paths", async () => {
+      mockApi.openModelPath.mockResolvedValue({ status: "success" });
 
       await openInExplorer("/home/user/documents");
 
-      expect(mockPost).toHaveBeenCalledWith("/api/models/open_in_explorer", {
-        params: { query: { path: "/home/user/documents" } }
-      });
+      expect(mockApi.openModelPath).toHaveBeenCalledWith("/home/user/documents");
       expect(console.warn).not.toHaveBeenCalled();
       expect(console.error).not.toHaveBeenCalled();
     });
 
     it("should warn and return early for empty paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-
       await openInExplorer("");
-
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(mockApi.openModelPath).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledWith(
         "[fileExplorer] Tried to open an empty path in explorer."
       );
     });
 
     it("should warn and return early for invalid paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-
       await openInExplorer("../etc/passwd");
 
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(mockApi.openModelPath).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledWith(
         "[fileExplorer] Invalid path supplied, refusing to open explorer:",
         "../etc/passwd"
       );
     });
 
-    it("should handle API errors gracefully", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-      const error = new Error("Network error");
-      mockPost.mockRejectedValueOnce(error);
+    it("should handle Electron errors gracefully", async () => {
+      const error = new Error("IPC failure");
+      mockApi.openModelPath.mockRejectedValueOnce(error);
 
       await openInExplorer("/home/user/documents");
 
-      expect(mockPost).toHaveBeenCalled();
+      expect(mockApi.openModelPath).toHaveBeenCalled();
       expect(console.error).toHaveBeenCalledWith(
         "[fileExplorer] Failed to open path in explorer:",
         error
       );
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: "Could not open folder in file explorer."
+        })
+      );
     });
 
     it("should work with Windows paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-      mockPost.mockResolvedValueOnce({ data: { success: true } } as any);
+      mockApi.openModelPath.mockResolvedValue({ status: "success" });
 
       await openInExplorer("C:\\Users\\Documents");
 
-      expect(mockPost).toHaveBeenCalledWith("/api/models/open_in_explorer", {
-        params: { query: { path: "C:\\Users\\Documents" } }
-      });
+      expect(mockApi.openModelPath).toHaveBeenCalledWith("C:\\Users\\Documents");
     });
 
     it("should work with home-relative paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-      mockPost.mockResolvedValueOnce({ data: { success: true } } as any);
+      mockApi.openModelPath.mockResolvedValue({ status: "success" });
 
       await openInExplorer("~/Downloads");
 
-      expect(mockPost).toHaveBeenCalledWith("/api/models/open_in_explorer", {
-        params: { query: { path: "~/Downloads" } }
-      });
+      expect(mockApi.openModelPath).toHaveBeenCalledWith("~/Downloads");
     });
 
     it("should handle null/undefined paths", async () => {
-      const mockPost = client.POST as jest.MockedFunction<typeof client.POST>;
-
       await openInExplorer(null as any);
       await openInExplorer(undefined as any);
 
-      expect(mockPost).not.toHaveBeenCalled();
+      expect(mockApi.openModelPath).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledTimes(2);
+    });
+
+    it("should notify when bridge unavailable", async () => {
+      delete (global as any).window.api;
+      await openInExplorer("/home/user/documents");
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning"
+        })
+      );
+    });
+  });
+
+  describe("open directory helpers", () => {
+    it("opens HuggingFace folder through bridge", async () => {
+      mockApi.openModelDirectory.mockResolvedValue({ status: "success" });
+      await openHuggingfacePath();
+      expect(mockApi.openModelDirectory).toHaveBeenCalledWith("huggingface");
+    });
+
+    it("opens Ollama folder through bridge", async () => {
+      mockApi.openModelDirectory.mockResolvedValue({ status: "success" });
+      await openOllamaPath();
+      expect(mockApi.openModelDirectory).toHaveBeenCalledWith("ollama");
     });
   });
 });

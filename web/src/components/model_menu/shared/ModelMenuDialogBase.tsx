@@ -152,6 +152,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
+      console.log("handleSelectModel:", model);
       setSelectedModel(model);
       onModelChange?.(model);
     },

@@ -1,5 +1,71 @@
-import { client } from "../stores/ApiClient";
 import { useNotificationStore } from "../stores/NotificationStore";
+
+type ModelDirectory = "huggingface" | "ollama";
+
+interface FileExplorerResult {
+  status: "success" | "error";
+  path?: string;
+  message?: string;
+}
+
+type ExplorerBridge = {
+  openModelDirectory: (
+    target: ModelDirectory
+  ) => Promise<FileExplorerResult | void>;
+  openModelPath: (path: string) => Promise<FileExplorerResult | void>;
+};
+
+const explorerUnavailableMessage =
+  "Unable to open folders because the desktop bridge is not available.";
+
+function getExplorerBridge(): ExplorerBridge | null {
+  if (
+    typeof window === "undefined" ||
+    typeof window.api?.openModelDirectory !== "function" ||
+    typeof window.api?.openModelPath !== "function"
+  ) {
+    return null;
+  }
+  return window.api as ExplorerBridge;
+}
+
+function notify(
+  type: "error" | "warning",
+  content: string,
+  dismissable = true
+): void {
+  useNotificationStore.getState().addNotification({
+    type,
+    content,
+    dismissable
+  });
+}
+
+function handleExplorerResult(
+  result: FileExplorerResult | void,
+  fallbackMessage: string
+): void {
+  if (!result) {
+    return;
+  }
+  if (result.status === "error") {
+    const message = result.message ?? fallbackMessage;
+    notify("error", message);
+  }
+}
+
+function ensureExplorerAvailable(): ExplorerBridge | null {
+  const explorer = getExplorerBridge();
+  if (!explorer) {
+    console.warn("[fileExplorer] Desktop bridge not available.");
+    notify("warning", explorerUnavailableMessage);
+  }
+  return explorer;
+}
+
+export function isFileExplorerAvailable(): boolean {
+  return getExplorerBridge() !== null;
+}
 
 /**
  * Ask the backend to open the given path in the user's file explorer.
@@ -21,92 +87,53 @@ export async function openInExplorer(path: string): Promise<void> {
     return;
   }
 
+  const explorer = ensureExplorerAvailable();
+  if (!explorer) {
+    return;
+  }
+
   try {
-    await client.POST("/api/models/open_in_explorer", {
-      params: { query: { path } }
-    });
+    const result = await explorer.openModelPath(path);
+    handleExplorerResult(result, "Unable to open the requested path.");
   } catch (error) {
     console.error("[fileExplorer] Failed to open path in explorer:", error);
+    notify("error", "Could not open folder in file explorer.");
   }
 }
 
 /**
- * Fetch the HuggingFace model base path and open it in the file explorer.
- * The backend provides the path through `/api/models/huggingface_base_path`.
+ * Ask the Electron main process to open the HuggingFace cache directory.
  */
 export async function openHuggingfacePath(): Promise<void> {
+  const explorer = ensureExplorerAvailable();
+  if (!explorer) {
+    return;
+  }
+
   try {
-    const { data, error } = await client.GET("/api/models/huggingface_base_path", {});
-
-    if (error) {
-      console.error("[fileExplorer] Failed to fetch HuggingFace base path:", error);
-      useNotificationStore.getState().addNotification({
-        type: "error",
-        content: "Could not fetch HuggingFace folder location",
-        dismissable: true
-      });
-      return;
-    }
-
-    const path = typeof data?.path === "string" ? data.path : null;
-    if (!path) {
-      console.warn("[fileExplorer] HuggingFace base path is not available");
-      useNotificationStore.getState().addNotification({
-        type: "warning",
-        content: "HuggingFace folder location not found",
-        dismissable: true
-      });
-      return;
-    }
-
-    await openInExplorer(path);
+    const result = await explorer.openModelDirectory("huggingface");
+    handleExplorerResult(result, "Could not open HuggingFace folder.");
   } catch (error) {
     console.error("[fileExplorer] Failed to open HuggingFace path:", error);
-    useNotificationStore.getState().addNotification({
-      type: "error",
-      content: "Could not open HuggingFace folder",
-      dismissable: true
-    });
+    notify("error", "Could not open HuggingFace folder.");
   }
 }
 
 /**
- * Fetch the Ollama model base path and open it in the file explorer.
- * The backend provides the path through `/api/models/ollama_base_path`.
+ * Ask the Electron main process to open the Ollama models directory.
  */
 export async function openOllamaPath(): Promise<void> {
+  const explorer = ensureExplorerAvailable();
+  if (!explorer) {
+    return;
+  }
+
   try {
-    const { data, error } = await client.GET("/api/models/ollama_base_path", {});
-
-    if (error) {
-      console.error("[fileExplorer] Failed to fetch Ollama base path:", error);
-      useNotificationStore.getState().addNotification({
-        type: "error",
-        content: "Could not fetch Ollama folder location",
-        dismissable: true
-      });
-      return;
-    }
-
-    const path = typeof data?.path === "string" ? data.path : null;
-    if (!path) {
-      console.warn("[fileExplorer] Ollama base path is not available");
-      useNotificationStore.getState().addNotification({
-        type: "warning",
-        content: "Ollama folder location not found",
-        dismissable: true
-      });
-      return;
-    }
-
-    await openInExplorer(path);
+    const result = await explorer.openModelDirectory("ollama");
+    handleExplorerResult(result, "Could not open Ollama folder.");
   } catch (error) {
     console.error("[fileExplorer] Failed to open Ollama path:", error);
-    useNotificationStore.getState().addNotification({
-      type: "error",
-      content: "Could not open Ollama folder",
-      dismissable: true
-    });
+    notify("error", "Could not open Ollama folder.");
   }
 }
 
