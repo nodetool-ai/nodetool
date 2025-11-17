@@ -146,7 +146,18 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = () => {
         onClick={handleDeleteEdge}
         IconComponent={<DeleteIcon />}
         label="Delete Edge"
-        tooltip="Delete this connection"
+        tooltip={
+          <span
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}
+          >
+            <span>Delete this connection</span>
+            <span>[Middle Mouse Button]</span>
+          </span>
+        }
       />
     </Menu>
   );
