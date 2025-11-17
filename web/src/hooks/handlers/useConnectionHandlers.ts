@@ -10,6 +10,9 @@ import { useNodes } from "../../contexts/NodeContext";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
+const REROUTE_NODE_TYPE = "nodetool.control.Reroute";
+const REROUTE_INPUT_HANDLE = "input_value";
+const REROUTE_OUTPUT_HANDLE = "output";
 
 /**
  * Find if an element or any of its parents has a class name
@@ -277,6 +280,33 @@ export default function useConnectionHandlers() {
           handleOnConnect(newConnection);
           endConnecting();
           return;
+        }
+
+        // Auto-connect for reroute nodes regardless of drop location
+        if (nodeMetadata.node_type === REROUTE_NODE_TYPE) {
+          if (connectDirection === "source") {
+            const rerouteConnection: Connection = {
+              source: connectNodeId || "",
+              sourceHandle: connectHandleId || "",
+              target: nodeId,
+              targetHandle: REROUTE_INPUT_HANDLE
+            };
+            handleOnConnect(rerouteConnection);
+            endConnecting();
+            return;
+          }
+
+          if (connectDirection === "target") {
+            const rerouteConnection: Connection = {
+              source: nodeId,
+              sourceHandle: REROUTE_OUTPUT_HANDLE,
+              target: connectNodeId || "",
+              targetHandle: connectHandleId || ""
+            };
+            handleOnConnect(rerouteConnection);
+            endConnecting();
+            return;
+          }
         }
 
         // Allow preview nodes to auto-connect drops anywhere on the node body

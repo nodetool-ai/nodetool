@@ -97,11 +97,28 @@ export default function useEdgeHandlers() {
     [edgeUpdateSuccessful, setEdgeUpdateSuccessful, deleteEdge]
   );
 
+  const onEdgeClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => {
+      console.log("[useEdgeHandlers] onEdgeClick", {
+        button: event.button,
+        edgeId: edge.id
+      });
+      if (event.button !== 1) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      deleteEdge(edge.id);
+    },
+    [deleteEdge]
+  );
+
   return {
     onEdgeMouseEnter,
     onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateStart,
-    onEdgeUpdateEnd
+    onEdgeUpdateEnd,
+    onEdgeClick
   };
 }
