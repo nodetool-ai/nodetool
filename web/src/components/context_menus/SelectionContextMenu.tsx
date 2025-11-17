@@ -170,42 +170,40 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         IconComponent={<UnfoldMoreIcon />}
         tooltip=""
       /> */}
-      <ContextMenuItem
-        onClick={() => {
-          alignNodes({ arrangeSpacing: false });
-        }}
-        label="Align"
-        IconComponent={<FormatAlignLeftIcon />}
-        tooltip={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Align</div>
-            <div className="tooltip-key">
-              <kbd>A</kbd>
-            </div>
-          </div>
-        }
-        addButtonClassName={`action ${
-          (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
-        }`}
-      />
-      <ContextMenuItem
-        onClick={() => {
-          alignNodes({ arrangeSpacing: true });
-        }}
-        label="Arrange"
-        IconComponent={<FormatAlignLeftIcon />}
-        tooltip={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Arrange</div>
-            <div className="tooltip-key">
-              <kbd>SHIFT</kbd>+<kbd>A</kbd>
-            </div>
-          </div>
-        }
-        addButtonClassName={`action ${
-          (selectedNodes?.length || 0) <= 1 ? "disabled" : ""
-        }`}
-      />
+      {selectedNodes?.length > 1 && (
+        <>
+          <ContextMenuItem
+            onClick={() => {
+              alignNodes({ arrangeSpacing: false });
+            }}
+            label="Align"
+            IconComponent={<FormatAlignLeftIcon />}
+            tooltip={
+              <div className="tooltip-span">
+                <div className="tooltip-title">Align</div>
+                <div className="tooltip-key">
+                  <kbd>A</kbd>
+                </div>
+              </div>
+            }
+          />
+          <ContextMenuItem
+            onClick={() => {
+              alignNodes({ arrangeSpacing: true });
+            }}
+            label="Arrange"
+            IconComponent={<FormatAlignLeftIcon />}
+            tooltip={
+              <div className="tooltip-span">
+                <div className="tooltip-title">Arrange</div>
+                <div className="tooltip-key">
+                  <kbd>SHIFT</kbd>+<kbd>A</kbd>
+                </div>
+              </div>
+            }
+          />
+        </>
+      )}
 
       {!anyHasParent && (
         <ContextMenuItem
