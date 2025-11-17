@@ -449,14 +449,25 @@ interface IconForTypeProps extends IconProps {
   containerStyle?: React.CSSProperties;
   bgStyle?: React.CSSProperties;
   svgProps?: React.SVGProps<SVGSVGElement>;
+  iconSize?: IconSizeOption;
 }
+
+type IconSizeOption = "small" | "normal" | "medium" | "large";
+
+const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
+  small: 16,
+  normal: 24,
+  medium: 32,
+  large: 40
+};
 
 export const IconForType = memo(function IconForType({
   iconName,
   containerStyle,
   bgStyle,
   svgProps,
-  showTooltip = true
+  showTooltip = true,
+  iconSize = "normal"
 }: IconForTypeProps) {
   const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
@@ -465,11 +476,16 @@ export const IconForType = memo(function IconForType({
   const IconComponent = name
     ? iconMap[name] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
+  const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
   return (
     <div
       css={iconStyles(theme)}
-      style={containerStyle}
+      style={{
+        width: resolvedSize,
+        height: resolvedSize,
+        ...containerStyle
+      }}
       className="icon-container"
     >
       <Tooltip

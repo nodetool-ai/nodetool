@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useEffect } from "react";
 import {
   Node,
   NodeProps,
@@ -190,7 +190,11 @@ const getNodeColors = (metadata: any): string[] => {
   return allColors.slice(0, 5) as string[];
 };
 
-const getHeaderColors = (metadata: NodeMetadata, theme: Theme, nodeType: string) => {
+const getHeaderColors = (
+  metadata: NodeMetadata,
+  theme: Theme,
+  nodeType: string
+) => {
   // Override colors for input and output nodes
   if (nodeType.startsWith("nodetool.input.")) {
     const baseColor = "#4caf50"; // Green for input nodes
@@ -258,6 +262,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       ? hexToRgba("#222", GROUP_COLOR_OPACITY)
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY);
   });
+  const connectedEdges = useNodes((state) =>
+    state.edges.filter((edge) => edge.source === id || edge.target === id)
+  );
+  const findNode = useNodes((state) => state.findNode);
+  const setEdgeSelectionState = useNodes(
+    (state) => state.setEdgeSelectionState
+  );
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -321,6 +332,29 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
   }, [showAdvancedFields]);
+
+  useEffect(() => {
+    if (!connectedEdges.length) {
+      return;
+    }
+
+    const selectionUpdates: Record<string, boolean> = {};
+
+    for (const edge of connectedEdges) {
+      const otherNodeId = edge.source === id ? edge.target : edge.source;
+      const otherNodeSelected = Boolean(findNode(otherNodeId)?.selected);
+      const shouldSelect = selected || otherNodeSelected;
+      const isEdgeSelected = Boolean(edge.selected);
+
+      if (isEdgeSelected !== shouldSelect) {
+        selectionUpdates[edge.id] = shouldSelect;
+      }
+    }
+
+    if (Object.keys(selectionUpdates).length > 0) {
+      setEdgeSelectionState(selectionUpdates);
+    }
+  }, [connectedEdges, findNode, id, selected, setEdgeSelectionState]);
 
   return (
     <Container
