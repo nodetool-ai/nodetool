@@ -17,8 +17,15 @@
 
 > **🎯 Privacy by design** • **🔓 Own your stack** • **🚀 Production ready**
 
-Nodetool lets you design agents that work with your data. Use any model to analyze data, generate visuals, or automate
-workdlows.
+NodeTool lets you design agents that work with your data. Use local runtimes (Llama.cpp, MLX, vLLM, Hugging Face) or cloud providers (OpenAI, Anthropic, Replicate, FAL, RunPod, and more) to analyze data, generate visuals, or automate workflows.
+
+## Vision
+
+AI should be yours. Agents run locally, beside your data. They are transparent, portable, and under your control.
+
+## Mission
+
+Ship an open-source system to design and run agents as graphs on your machines. Cloud is opt-in.
 
 ## Table of Contents
 
@@ -86,13 +93,17 @@ own pipelines.
 - Render Queue & A/B: batch runs and seeded comparisons.
 - Packaging: one‑click bundles for sharing with collaborators/clients; community packs registry.
 
+## Promise
+
+Open core. Local-first. Own the runtime, the workflows, and the outputs.
+
 ## Quick Start
 
 | Platform    | Download                                  | Requirements                            |
 | ----------- | ----------------------------------------- | --------------------------------------- |
-| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS**   | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon                       |
-| **Linux**   | [Download AppImage](https://nodetool.ai)  | Nvidia GPU recommended                  |
+| **Windows** | [Download Installer](https://github.com/nodetool-ai/nodetool/releases/latest) | Nvidia GPU recommended, 20GB free space |
+| **macOS**   | [Download Installer](https://github.com/nodetool-ai/nodetool/releases/latest) | M1+ Apple Silicon                       |
+| **Linux**   | [Download AppImage](https://github.com/nodetool-ai/nodetool/releases/latest)  | Nvidia GPU recommended                  |
 
 ### Hardware Requirements
 
