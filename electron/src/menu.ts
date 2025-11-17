@@ -1,7 +1,7 @@
 import { Menu, shell } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow } from "./window";
+import { createPackageManagerWindow, createLogViewerWindow } from "./window";
 
 /**
  * Builds the application menu
@@ -218,6 +218,10 @@ const buildMenu = () => {
         {
           label: "Package Manager",
           click: () => createPackageManagerWindow(),
+        },
+        {
+          label: "Log Viewer",
+          click: () => createLogViewerWindow(),
         },
       ],
     },

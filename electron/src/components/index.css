@@ -1693,13 +1693,16 @@ body::before {
 }
 
 .nav-button.next {
-  background: linear-gradient(135deg, var(--c_accent), var(--c_success_light));
+  background: linear-gradient(135deg, var(--c_success_dark), var(--c_success));
   border: none;
+  color: var(--c_text_primary);
+  font-weight: 600;
 }
 
 .nav-button.next:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(80, 250, 123, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--c_success_light_rgb), 0.4);
+  background: linear-gradient(135deg, var(--c_success), var(--c_success_light));
 }
 
 .nav-button.back {

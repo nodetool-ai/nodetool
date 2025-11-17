@@ -47,7 +47,10 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeBig)",
       overflowX: "hidden",
       overflowY: "auto",
-      maxHeight: "80px"
+      maxHeight: "300px",
+      wordWrap: "break-word",
+      overflowWrap: "break-word",
+      whiteSpace: "pre-wrap"
     },
     ".MuiIconButton-root svg": {
       color: "var(--palette-grey-100)"

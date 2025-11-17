@@ -30,6 +30,19 @@ const ModelProperty = (props: PropertyProps) => {
   );
 
   const renderModelSelect = () => {
+    // Map node type to task-specific filters for generic nodes
+    const imageTask =
+      props.nodeType === "nodetool.image.TextToImage"
+        ? ("text_to_image" as const)
+        : props.nodeType === "nodetool.image.ImageToImage"
+        ? ("image_to_image" as const)
+        : undefined;
+    const videoTask =
+      props.nodeType === "nodetool.video.TextToVideo"
+        ? ("text_to_video" as const)
+        : props.nodeType === "nodetool.video.ImageToVideo"
+        ? ("image_to_video" as const)
+        : undefined;
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
@@ -52,6 +65,7 @@ const ModelProperty = (props: PropertyProps) => {
         <ImageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          task={imageTask}
         />
       );
     } else if (modelType === "tts_model") {
@@ -73,6 +87,7 @@ const ModelProperty = (props: PropertyProps) => {
         <VideoModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          task={videoTask}
         />
       );
     } else if (modelType === "llama_model") {

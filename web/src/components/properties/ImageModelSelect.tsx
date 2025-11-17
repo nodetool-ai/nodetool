@@ -11,12 +11,14 @@ import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 interface ImageModelSelectProps {
   onChange: (value: any) => void;
   value: string;
+  task?: "text_to_image" | "image_to_image";
 }
 
 
 const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   onChange,
-  value
+  value,
+  task
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -45,13 +47,15 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         type: "image_model" as const,
         id: model.id,
         provider: model.provider,
-        name: model.name || ""
+        name: model.name || "",
+        path: model.path || ""
       };
       onChange(modelToPass);
       addRecent({
         provider: model.provider || "",
         id: model.id || "",
-        name: model.name || ""
+        name: model.name || "",
+        path: model.path || ""
       });
       setDialogOpen(false);
     },
@@ -116,6 +120,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         open={dialogOpen}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
+        task={task}
       />
     </>
   );

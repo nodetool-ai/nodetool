@@ -17,6 +17,7 @@ import { client } from "../../stores/ApiClient";
 interface VideoModelSelectProps {
   onChange: (value: any) => void;
   value: string;
+  task?: "text_to_video" | "image_to_video";
 }
 
 interface GroupedModels {
@@ -59,7 +60,8 @@ const renderProviderLabel = (provider: string): React.ReactNode => {
 
 const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   onChange,
-  value
+  value,
+  task
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -209,10 +211,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
       <VideoModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
-        models={models}
-        isLoading={isLoading}
-        isError={isError}
         onModelChange={handleDialogModelSelect}
+        task={task}
       />
     </>
   );

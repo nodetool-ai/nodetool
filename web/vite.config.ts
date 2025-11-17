@@ -33,12 +33,17 @@ export default defineConfig(async ({ mode }) => {
       target: "http://localhost:8000",
       ws: true,
       changeOrigin: true
+    },
+    "/terminal": {
+      target: "http://localhost:8000",
+      ws: true,
+      changeOrigin: true
     }
   };
 
   return {
     server: {
-      allowedHosts: [".nodetool.ai"],
+      allowedHosts: [".nodetool.ai", "localhost"],
       port: 3000,
       proxy: proxyConfig
     },

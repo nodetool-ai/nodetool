@@ -4,6 +4,14 @@ interface WindowControls {
   close: () => void;
 }
 
+type ModelDirectory = "huggingface" | "ollama";
+
+interface FileExplorerResult {
+  status: "success" | "error";
+  path?: string;
+  message?: string;
+}
+
 declare global {
   interface Window {
     api: {
@@ -13,6 +21,12 @@ declare global {
       openFolder: (fullPath: string) => void;
       openLogFile: () => void;
       showItemInFolder: (fullPath: string) => void;
+      openModelDirectory?: (
+        target: ModelDirectory
+      ) => Promise<FileExplorerResult | void>;
+      openModelPath?: (
+        path: string
+      ) => Promise<FileExplorerResult | void>;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: any) => void) => void;
       onCreateWorkflow: (workflow: Workflow) => void;

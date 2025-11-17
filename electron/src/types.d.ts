@@ -8,6 +8,10 @@ declare global {
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openExternal: (url: string) => void;
+      openModelDirectory: (
+        target: ModelDirectory
+      ) => Promise<FileExplorerResult>;
+      openModelPath: (path: string) => Promise<FileExplorerResult>;
       onUpdateProgress: (
         callback: (data: {
           componentName: string;
@@ -37,7 +41,9 @@ declare global {
       showPackageManager: (nodeSearch?: string) => void;
       installToLocation: (
         location: string,
-        packages: PythonPackages
+        packages: PythonPackages,
+        installOllama?: boolean,
+        installLlamaCpp?: boolean
       ) => Promise<void>;
       selectCustomInstallLocation: () => Promise<string | null>;
       windowControls: {
@@ -175,14 +181,22 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-    | "cut"
-    | "copy"
-    | "paste"
-    | "selectAll"
-    | "undo"
-    | "redo"
-    | "close"
-    | "fitView";
+  | "cut"
+  | "copy"
+  | "paste"
+  | "selectAll"
+  | "undo"
+  | "redo"
+  | "close"
+  | "fitView";
+}
+
+export type ModelDirectory = "huggingface" | "ollama";
+
+export interface FileExplorerResult {
+  status: "success" | "error";
+  path?: string;
+  message?: string;
 }
 
 // IPC Channel names as const enum for type safety
@@ -190,6 +204,8 @@ export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
   OPEN_LOG_FILE = "open-log-file",
   SHOW_ITEM_IN_FOLDER = "show-item-in-folder",
+  FILE_EXPLORER_OPEN_PATH = "file-explorer-open-path",
+  FILE_EXPLORER_OPEN_DIRECTORY = "file-explorer-open-directory",
   INSTALL_TO_LOCATION = "install-to-location",
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
@@ -229,6 +245,12 @@ export enum IpcChannels {
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
+  installOllama?: boolean;
+  installLlamaCpp?: boolean;
+}
+
+export interface FileExplorerPathRequest {
+  path: string;
 }
 
 // Request/Response types for each IPC channel
@@ -236,6 +258,8 @@ export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
   [IpcChannels.OPEN_LOG_FILE]: void;
   [IpcChannels.SHOW_ITEM_IN_FOLDER]: string; // full path
+  [IpcChannels.FILE_EXPLORER_OPEN_PATH]: FileExplorerPathRequest;
+  [IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY]: ModelDirectory;
   [IpcChannels.INSTALL_TO_LOCATION]: InstallToLocationData;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
@@ -267,6 +291,8 @@ export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
   [IpcChannels.OPEN_LOG_FILE]: void;
   [IpcChannels.SHOW_ITEM_IN_FOLDER]: void;
+  [IpcChannels.FILE_EXPLORER_OPEN_PATH]: FileExplorerResult;
+  [IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY]: FileExplorerResult;
   [IpcChannels.INSTALL_TO_LOCATION]: void;
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;

@@ -7,6 +7,7 @@ import {
   getOllamaModelsPath,
   getProcessEnv,
   PID_FILE_PATH,
+  PID_DIRECTORY,
   webPath,
   appsPath,
   getCondaEnvPath,
@@ -20,13 +21,11 @@ import path from "path";
 import { updateTrayMenu } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
-import { repairCondaEnvironment } from "./installer";
 import { Watchdog } from "./watchdog";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
-const OLLAMA_PID_FILE_PATH = path.join(app.getPath("userData"), "ollama.pid");
-let environmentRepairAttempted = false;
+const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
 
 /**
  * Server Management Module
@@ -144,7 +143,6 @@ async function startOllamaServer(): Promise<void> {
 
   const ollamaExecutablePath = await getOllamaPath();
   const args = ["serve"]; // OLLAMA_HOST controls bind address/port
-  const healthUrl = `http://127.0.0.1:${selectedPort}/`;
   const modelsPath = getOllamaModelsPath();
   try {
     await fs.mkdir(modelsPath, { recursive: true });
@@ -168,7 +166,7 @@ async function startOllamaServer(): Promise<void> {
       OLLAMA_MODELS: modelsPath,
     },
     pidFilePath: OLLAMA_PID_FILE_PATH,
-    healthUrl,
+    healthUrl: `http://127.0.0.1:${selectedPort}/api/tags`, // Ollama health endpoint
     onOutput: (line) => emitServerLog(line),
   });
 
@@ -314,11 +312,13 @@ async function startServer(): Promise<void> {
     await backendWatchdog.start();
     logMessage("Watchdog.start() completed - server is healthy");
   } catch (error) {
+    const errorMessage = (error as Error).message;
     logMessage(
-      `Watchdog failed to start server: ${(error as Error).message}`,
+      `Watchdog failed to start server: ${errorMessage}`,
       "error"
     );
     logMessage(`Error stack: ${(error as Error).stack}`, "error");
+    
     backendWatchdog = null;
     throw error;
   }
@@ -344,11 +344,6 @@ function handleServerOutput(data: Buffer): void {
     app.quit();
   }
 
-  if (output.includes("ModuleNotFoundError")) {
-    logMessage("Python module not found error", "error");
-    void handleMissingPythonModule();
-  }
-
   if (output.includes("Application startup complete.")) {
     logMessage("Server startup complete");
     emitBootMessage("Loading application...");
@@ -372,45 +367,6 @@ async function isServerRunning(): Promise<boolean> {
  */
 function isOllamaRunning(): boolean {
   return ollamaWatchdog !== null;
-}
-
-async function handleMissingPythonModule(): Promise<void> {
-  if (environmentRepairAttempted) {
-    dialog.showErrorBox(
-      "Server Error",
-      "Failed to start server due to missing Python module. Please try reinstalling the application."
-    );
-    app.quit();
-    return;
-  }
-
-  environmentRepairAttempted = true;
-  emitBootMessage("Repairing Python environment...");
-
-  try {
-    await stopServer();
-  } catch (error) {
-    logMessage(
-      `Failed to stop server before repair: ${(error as Error).message}`,
-      "warn"
-    );
-  }
-
-  try {
-    await repairCondaEnvironment();
-    environmentRepairAttempted = false;
-    await startServer();
-  } catch (error) {
-    logMessage(
-      `Automatic environment repair failed: ${(error as Error).message}`,
-      "error"
-    );
-    dialog.showErrorBox(
-      "Server Error",
-      "Failed to repair Python environment automatically. Please reinstall the application."
-    );
-    app.quit();
-  }
 }
 
 /**

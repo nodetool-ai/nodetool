@@ -38,6 +38,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import { useNodes } from "../../contexts/NodeContext";
+import { getIsElectronDetails } from "../../utils/browser";
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -361,7 +362,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
-      {!isProduction && <ModelRecommendations nodeType={type} />}
+      {(getIsElectronDetails().isElectron || !isProduction) && (
+        <ModelRecommendations nodeType={type} />
+      )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <NodeContent
         id={id}

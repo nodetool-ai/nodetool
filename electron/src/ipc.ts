@@ -28,6 +28,7 @@ import {
   validateRepoId,
   searchNodes,
 } from "./packageManager";
+import { openModelDirectory, openPathInExplorer } from "./fileExplorer";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -120,6 +121,20 @@ export function initializeIpcHandlers(): void {
     IpcChannels.SHOW_ITEM_IN_FOLDER,
     async (_event, fullPath) => {
       showItemInFolder(fullPath);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.FILE_EXPLORER_OPEN_PATH,
+    async (_event, request) => {
+      return openPathInExplorer(request.path);
+    }
+  );
+
+  createIpcMainHandler(
+    IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY,
+    async (_event, target) => {
+      return openModelDirectory(target);
     }
   );
   // Continue to app handler

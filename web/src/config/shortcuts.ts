@@ -399,14 +399,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
-  {
-    title: "Keyboard Shortcuts",
-    slug: "showKeyboardShortcuts",
-    keyCombo: ["K"],
-    category: "panel",
-    description: "Show Keyboard Shortcuts",
-    registerCombo: true
-  },
+  // K is conflicting with CommandMenu shortcut
+  // {
+  //   title: "Keyboard Shortcuts",
+  //   slug: "showKeyboardShortcuts",
+  //   keyCombo: ["K"],
+  //   category: "panel",
+  //   description: "Show Keyboard Shortcuts",
+  //   registerCombo: true
+  // },
 
   // ---------- WORKFLOW ----------------------------------------------------
   {

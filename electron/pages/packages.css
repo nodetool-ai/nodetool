@@ -31,17 +31,19 @@ h1 {
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 50px); /* account for h1 title + some padding */
-  padding-top: 36px; /* account for title bar on Windows */
-  overflow: hidden;
+  height: calc(100vh - 50px);
+  padding: 8px 16px 16px;
+  gap: 12px;
+  overflow-y: auto;
 }
 
 .search-container {
-  padding: 14px 16px 12px;
+  padding: 12px 16px;
   background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.0));
   border-bottom: 1px solid #2e2e2e;
+  border-radius: 12px;
   position: sticky;
-  top: 36px; /* under title bar */
+  top: 0;
   z-index: 10;
   backdrop-filter: blur(4px);
   display: grid;
@@ -91,14 +93,14 @@ h1 {
 
 .package-list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
-  padding: 8px 12px 16px;
+  padding: 0 0 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
   align-content: start;
-  min-height: 0; /* Allow flex item to shrink below content size */
+  min-height: 0;
 }
 
 /* Scrollbar styling for webkit browsers */

@@ -36,3 +36,6 @@ export const CHAT_URL = getWebSocketUrl("/chat");
 
 /** WebSocket URL for the HuggingFace model download endpoint. */
 export const DOWNLOAD_URL = getWebSocketUrl("/hf/download");
+
+/** WebSocket URL for the terminal endpoint. */
+export const TERMINAL_URL = getWebSocketUrl("/terminal");
