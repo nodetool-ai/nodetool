@@ -56,19 +56,18 @@ export function ContextMenuProvider({
 
   const clickOutsideHandler = useCallback(
     (className: string) => (event: MouseEvent) => {
-      let element = event.target as HTMLElement;
-      let shouldCloseMenu = true;
-      while (element && element.parentElement) {
-        if (element.classList.contains(className)) {
-          shouldCloseMenu = false;
-          break;
-        }
-        element = element.parentElement;
-      }
-
-      if (shouldCloseMenu) {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
         closeContextMenu();
+        return;
       }
+      // Do not close when interacting inside any context menu
+      const insideContextMenu = target.closest(".context-menu") !== null;
+      if (insideContextMenu) {
+        return;
+      }
+      // Otherwise, close the context menu
+      closeContextMenu();
     },
     [closeContextMenu]
   );

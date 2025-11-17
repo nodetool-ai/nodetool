@@ -440,6 +440,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const handleSelectionContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
+      event.stopPropagation();
       openContextMenu(
         "selection-context-menu",
         "",

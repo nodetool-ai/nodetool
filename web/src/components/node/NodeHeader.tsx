@@ -65,6 +65,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const handleHeaderContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       event.preventDefault();
+      event.stopPropagation();
       openContextMenu(
         "node-context-menu",
         id,
