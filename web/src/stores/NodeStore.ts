@@ -535,6 +535,7 @@ export const createNodeStore = (
 
             const currentEdges = get().edges;
             let changed = false;
+
             const updatedEdges = currentEdges.map((edge) => {
               if (edge.id in edgeSelections) {
                 const shouldSelect = edgeSelections[edge.id];
@@ -1029,9 +1030,10 @@ export const createNodeStore = (
             }
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
-            
+
             // Set default size for Preview nodes
-            const isPreviewNode = metadata.node_type === "nodetool.workflows.base_node.Preview";
+            const isPreviewNode =
+              metadata.node_type === "nodetool.workflows.base_node.Preview";
             const defaultStyle = isPreviewNode
               ? {
                   width: 400,
@@ -1040,7 +1042,7 @@ export const createNodeStore = (
               : {
                   width: DEFAULT_NODE_WIDTH
                 };
-            
+
             return {
               id: nodeId,
               type: metadata.node_type,
