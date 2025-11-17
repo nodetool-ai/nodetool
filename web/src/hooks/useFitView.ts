@@ -51,16 +51,24 @@ export const useFitView = () => {
   const FIT_BOUNDS_DELAY_DEFAULT = 20;
 
   return useCallback(
-    (options?: { padding?: number }) => {
+    (options?: { padding?: number; nodeIds?: string[] }) => {
       const padding = options?.padding ?? 0.1;
-      const nodesToFit = selectedNodes.length > 0 ? selectedNodes : nodes;
+      const explicitNodeIds = options?.nodeIds ?? [];
+
+      const nodesToFit =
+        explicitNodeIds.length > 0
+          ? nodes.filter((n) => explicitNodeIds.includes(n.id))
+          : selectedNodes.length > 0
+          ? selectedNodes
+          : nodes;
 
       if (nodesToFit.length === 0) {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
         return;
       }
 
-      if (selectedNodes.length > 0) {
+      // Only auto-deselect if we're using selected nodes (not explicit nodeIds)
+      if (!explicitNodeIds.length && selectedNodes.length > 0) {
         setTimeout(() => {
           setSelectedNodes([]);
         }, TRANSITION_DURATION - 300);
@@ -106,7 +114,7 @@ export const useFitView = () => {
               padding: padding
             });
           },
-          selectedNodes.length > 0
+          explicitNodeIds.length > 0 || selectedNodes.length > 0
             ? FIT_BOUNDS_DELAY_SELECTED
             : FIT_BOUNDS_DELAY_DEFAULT
         );

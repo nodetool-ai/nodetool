@@ -185,11 +185,58 @@ const NodeExplorer: React.FC = () => {
     );
   }, [nodes, getMetadata, filter, theme]);
 
-  const handleNodeFocus = useCallback((nodeId: string) => {
-    window.dispatchEvent(
-      new CustomEvent("nodetool:fit-node", { detail: { nodeId } })
-    );
-  }, []);
+  const handleNodeFocus = useCallback(
+    (nodeId: string) => {
+      console.log("[NodeExplorer] handleNodeFocus START", {
+        nodeId,
+        totalNodes: nodes.length
+      });
+
+      const node = nodes.find((candidate) => candidate.id === nodeId);
+      console.log("[NodeExplorer] node lookup", {
+        nodeId,
+        found: !!node,
+        node: node
+          ? {
+              id: node.id,
+              type: node.type,
+              position: node.position,
+              measured: node.measured
+            }
+          : null,
+        allNodeIds: nodes.map((n) => n.id)
+      });
+
+      if (!node) {
+        console.warn("[NodeExplorer] node not found", { nodeId });
+        return;
+      }
+
+      // setSelectedNodes([node]);
+      requestAnimationFrame(() => {
+        console.log("[NodeExplorer] requestAnimationFrame callback", {
+          nodeId,
+          node: {
+            id: node.id,
+            type: node.type,
+            position: node.position,
+            measured: node.measured
+          }
+        });
+
+        console.log(
+          "[NodeExplorer] dispatching custom event nodetool:fit-node",
+          { nodeId, node }
+        );
+        window.dispatchEvent(
+          new CustomEvent("nodetool:fit-node", {
+            detail: { nodeId, node }
+          })
+        );
+      });
+    },
+    [nodes]
+  );
 
   const handleNodeEdit = useCallback(
     (nodeId: string) => {
