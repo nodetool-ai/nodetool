@@ -51,7 +51,7 @@ function downloadFile(url, dest) {
         // Resolve relative URLs
         try {
           absoluteUrl = new URL(requestUrl, currentUrl).href;
-        } catch (e) {
+        } catch {
           absoluteUrl = `https://${requestUrl}`;
         }
       }
@@ -187,7 +187,7 @@ async function downloadMicromamba(platform, config) {
     if (fs.existsSync(finalPath)) {
       try {
         fs.unlinkSync(finalPath);
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors
       }
     }

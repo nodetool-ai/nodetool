@@ -15,18 +15,51 @@ type ExplorerBridge = {
   openModelPath: (path: string) => Promise<FileExplorerResult | void>;
 };
 
+type ExplorerWindow = Window & {
+  api?: ExplorerBridge;
+};
+
 const explorerUnavailableMessage =
   "Unable to open folders because the desktop bridge is not available.";
 
 function getExplorerBridge(): ExplorerBridge | null {
+  const currentWindow = resolveExplorerWindow();
+
   if (
-    typeof window === "undefined" ||
-    typeof window.api?.openModelDirectory !== "function" ||
-    typeof window.api?.openModelPath !== "function"
+    !currentWindow ||
+    typeof currentWindow.api?.openModelDirectory !== "function" ||
+    typeof currentWindow.api?.openModelPath !== "function"
   ) {
     return null;
   }
-  return window.api as ExplorerBridge;
+  return currentWindow.api as ExplorerBridge;
+}
+
+function resolveExplorerWindow(): ExplorerWindow | null {
+  const candidateGetters: Array<() => ExplorerWindow | undefined> = [
+    () => (typeof window !== "undefined" ? (window as ExplorerWindow) : undefined),
+    () =>
+      typeof global !== "undefined"
+        ? (global as unknown as { window?: ExplorerWindow }).window
+        : undefined,
+    () =>
+      typeof globalThis !== "undefined"
+        ? (globalThis as unknown as { window?: ExplorerWindow }).window
+        : undefined,
+    () =>
+      typeof globalThis !== "undefined"
+        ? (globalThis as ExplorerWindow)
+        : undefined
+  ];
+
+  for (const getCandidate of candidateGetters) {
+    const candidate = getCandidate();
+    if (candidate && candidate.api) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 function notify(

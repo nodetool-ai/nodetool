@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "@jest/globals";
 import { serializeValue } from "../serializeValue";
 
 describe("serializeValue", () => {
@@ -31,4 +31,3 @@ describe("serializeValue", () => {
     expect(serializeValue(circular)).toBeNull();
   });
 });
-

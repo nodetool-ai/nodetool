@@ -17,12 +17,12 @@ export default function ASRModelMenuDialog({
   onClose,
   onModelChange
 }: ASRModelMenuDialogProps) {
+  const modelData = useASRModelsByProvider();
   return (
     <ModelMenuDialogBase<ASRModel>
       open={open}
       onClose={onClose}
-      // @ts-expect-error - generic inference between hooks differs
-      useModelsHook={useASRModelsByProvider as any}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select ASR Model"
       searchPlaceholder="Search speech-to-text models..."

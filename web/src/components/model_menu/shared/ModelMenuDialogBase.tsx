@@ -51,7 +51,7 @@ const containerStyles = css({
 export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   open: boolean;
   onClose: () => void;
-  useModelsHook: () => {
+  modelData: {
     models: TModel[] | undefined;
     isLoading: boolean;
     error: unknown;
@@ -66,17 +66,13 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
 export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
-  useModelsHook,
+  modelData,
   onModelChange,
   title = "Select Model",
   searchPlaceholder = "Search models...",
   storeHook
 }: ModelMenuBaseProps<TModel>) {
-  const {
-    models,
-    isLoading,
-    error: fetchedError
-  } = useModelsHook();
+  const { models, isLoading, error: fetchedError } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
