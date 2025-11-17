@@ -17,11 +17,12 @@ export default function HuggingFaceModelMenuDialog({
   onModelChange,
   task
 }: HuggingFaceModelMenuDialogProps) {
+  const modelData = useHuggingFaceImageModelsByProvider({ task });
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
       onClose={onClose}
-      useModelsHook={() => useHuggingFaceImageModelsByProvider({ task })}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select HuggingFace Model"
       searchPlaceholder="Search HuggingFace models..."
@@ -29,4 +30,3 @@ export default function HuggingFaceModelMenuDialog({
     />
   );
 }
-

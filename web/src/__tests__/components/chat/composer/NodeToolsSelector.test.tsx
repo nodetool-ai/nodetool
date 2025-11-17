@@ -184,6 +184,7 @@ jest.mock("@mui/material/styles", () => ({
     },
     vars: {
       palette: {
+        primary: { light: "#90caf9" },
         grey: {
           0: "#ffffff",
           100: "#f5f5f5",

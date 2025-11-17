@@ -14,7 +14,7 @@ const createMockApi = () => ({
 });
 
 describe("fileExplorer", () => {
-  const originalWindow = global.window;
+  const originalWindow = (globalThis as unknown as { window?: Window }).window;
   const addNotification = jest.fn();
   const mockApi = createMockApi();
 
@@ -26,9 +26,16 @@ describe("fileExplorer", () => {
       ...state,
       addNotification
     }));
-    (global as any).window = {
-      api: mockApi
-    };
+    if (originalWindow) {
+      (global as any).window = originalWindow;
+      (globalThis as any).window = originalWindow;
+      (originalWindow as any).api = mockApi;
+    } else {
+      (global as any).window = {
+        api: mockApi
+      };
+      (globalThis as any).window = (global as any).window;
+    }
   });
 
   afterEach(() => {
@@ -37,7 +44,9 @@ describe("fileExplorer", () => {
     mockApi.openModelDirectory.mockReset();
     addNotification.mockReset();
     if (originalWindow) {
+      delete (originalWindow as any).api;
       (global as any).window = originalWindow;
+      (globalThis as any).window = originalWindow;
     }
   });
 

@@ -17,12 +17,12 @@ export default function TTSModelMenuDialog({
   onClose,
   onModelChange
 }: TTSModelMenuDialogProps) {
+  const modelData = useTTSModelsByProvider();
   return (
     <ModelMenuDialogBase<TTSModel>
       open={open}
       onClose={onClose}
-      // @ts-expect-error - generic inference between hooks differs
-      useModelsHook={useTTSModelsByProvider as any}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select TTS Model"
       searchPlaceholder="Search text-to-speech models..."

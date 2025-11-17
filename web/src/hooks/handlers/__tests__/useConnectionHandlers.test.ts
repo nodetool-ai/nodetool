@@ -34,7 +34,8 @@ jest.mock("../../../utils/handleUtils", () => ({
 // Mock TypeHandler utilities
 jest.mock("../../../utils/TypeHandler", () => ({
   isConnectable: jest.fn(),
-  Slugify: jest.fn((str) => str)
+  Slugify: jest.fn((str) => str),
+  typeToString: jest.fn((type) => type?.type ?? "unknown")
 }));
 
 import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
