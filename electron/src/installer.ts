@@ -1,4 +1,5 @@
-import { createWriteStream, promises as fs } from "fs";
+import { promises as fs } from "fs";
+import type { Stats } from "fs";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
@@ -15,9 +16,6 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
-import * as tar from "tar";
-import { pipeline } from "stream/promises";
-
 import { InstallToLocationData, IpcChannels, PythonPackages } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 
@@ -156,7 +154,7 @@ async function removeStaleMicromambaLock(
   lockPath: string,
   options?: { force?: boolean }
 ): Promise<void> {
-  let stats: fs.Stats | null = null;
+  let stats: Stats | null = null;
 
   try {
     stats = await fs.stat(lockPath);

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -88,7 +88,6 @@ export const Terminal: React.FC = () => {
     dims?: { cols: number; rows: number } | null,
     prev?: { cols: number; rows: number } | null
   ) => {
-    // eslint-disable-next-line no-console
     console.log("[Terminal] resize", label, { dims, prev });
   };
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
@@ -244,7 +243,7 @@ export const Terminal: React.FC = () => {
     };
   }, []);
 
-  const sendMessage = (msg: TerminalMessage) => {
+  const sendMessage = useCallback((msg: TerminalMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       try {
         if (msg.type === "resize") {
@@ -256,7 +255,7 @@ export const Terminal: React.FC = () => {
         log.error("Failed to send message:", err);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isTerminalReady || !xtermRef.current) return;
@@ -401,7 +400,7 @@ export const Terminal: React.FC = () => {
         wsRef.current = null;
       }
     };
-  }, [isTerminalReady]);
+  }, [isTerminalReady, sendMessage]);
 
   const handleReconnect = () => {
     // Force re-render to trigger reconnection

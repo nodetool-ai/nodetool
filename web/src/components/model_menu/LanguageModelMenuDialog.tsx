@@ -15,11 +15,12 @@ export default function LanguageModelMenuDialog({
   onClose,
   onModelChange
 }: LanguageModelMenuDialogProps) {
+  const modelData = useLanguageModelsByProvider();
   return (
     <ModelMenuDialogBase<LanguageModel>
       open={open}
       onClose={onClose}
-      useModelsHook={useLanguageModelsByProvider}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select Language Model"
       searchPlaceholder="Search language models..."
@@ -27,5 +28,4 @@ export default function LanguageModelMenuDialog({
     />
   );
 }
-
 

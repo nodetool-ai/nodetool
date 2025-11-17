@@ -17,11 +17,12 @@ export default function ImageModelMenuDialog({
   onModelChange,
   task
 }: ImageModelMenuDialogProps) {
+  const modelData = useImageModelsByProvider({ task });
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
       onClose={onClose}
-      useModelsHook={() => useImageModelsByProvider({ task })}
+      modelData={modelData}
       onModelChange={onModelChange}
       title="Select Image Model"
       searchPlaceholder="Search image models..."
