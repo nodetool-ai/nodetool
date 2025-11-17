@@ -23,6 +23,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme) =>
   css({
@@ -280,7 +281,7 @@ const WorkflowList = () => {
         />
       )}
       <div css={styles(theme)}>
-        <Tooltip title="Create a new workflow">
+        <Tooltip title="Create a new workflow" enterDelay={TOOLTIP_ENTER_DELAY}>
           <Fab
             variant="extended"
             onClick={handleCreateWorkflowTop}

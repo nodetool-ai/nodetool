@@ -16,7 +16,10 @@ export const chipSx = (
   tone: Tone,
   options?: { uppercase?: boolean; maxWidth?: number }
 ): SxProps<Theme> => {
-  const color = theme.vars.palette[tone].main as string;
+  const color = theme.palette[tone].main;
+  const channel = theme.vars?.palette?.[tone]?.mainChannel;
+  const translucent = (opacity: number) =>
+    channel ? `rgba(${channel} / ${opacity})` : alpha(color, opacity);
   const { uppercase = true, maxWidth = 200 } = options ?? {};
 
   return {
@@ -31,8 +34,8 @@ export const chipSx = (
     px: 0.5,
     textTransform: uppercase ? "uppercase" : "none",
     color,
-    bgcolor: alpha(color, 0.08),
-    borderColor: alpha(color, 0.28),
+    bgcolor: translucent(0.08),
+    borderColor: translucent(0.28),
     "& .MuiChip-label": {
       overflow: "hidden",
       textOverflow: "ellipsis",
