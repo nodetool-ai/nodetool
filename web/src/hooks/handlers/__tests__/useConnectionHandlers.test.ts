@@ -125,6 +125,49 @@ const previewNodeMetadata: NodeMetadata = {
   is_streaming_output: false
 };
 
+const rerouteNodeMetadata: NodeMetadata = {
+  node_type: "nodetool.control.Reroute",
+  title: "Reroute",
+  description: "Reroute node",
+  namespace: "control",
+  layout: "default",
+  outputs: [
+    {
+      name: "output",
+      type: {
+        type: "str",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      stream: false
+    }
+  ],
+  properties: [
+    {
+      name: "input_value",
+      type: {
+        type: "str",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      default: "",
+      title: "Input value",
+      description: "Reroute input"
+    }
+  ],
+  is_dynamic: false,
+  supports_dynamic_outputs: false,
+  expose_as_tool: false,
+  the_model_info: {},
+  recommended_models: [],
+  basic_fields: [],
+  is_streaming_output: false
+};
+
 const createMockNode = (id: string, type: string = "test.node") => ({
   id,
   type,
@@ -722,6 +765,170 @@ describe("useConnectionHandlers", () => {
         target: "previewNode",
         sourceHandle: "output",
         targetHandle: "value",
+        className: "str"
+      });
+      expect(mockEndConnecting).toHaveBeenCalled();
+    });
+
+    it("auto connects to reroute input when dragging from a source handle", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      const rerouteNode = createMockNode(
+        "rerouteNode",
+        "nodetool.control.Reroute"
+      );
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "rerouteNode") {
+          return rerouteNode;
+        }
+        return undefined;
+      });
+
+      mockGetMetadata.mockImplementation((type: string) => {
+        if (type === "nodetool.control.Reroute") {
+          return rerouteNodeMetadata;
+        }
+        return mockNodeMetadata;
+      });
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue({
+        name: "input_value",
+        type: rerouteNodeMetadata.properties[0].type,
+        isDynamic: false
+      });
+
+      const mockNodeElement = { dataset: { id: "rerouteNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any);
+
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "sourceNode",
+        target: "rerouteNode",
+        sourceHandle: "output",
+        targetHandle: "input_value",
+        className: "str"
+      });
+      expect(mockEndConnecting).toHaveBeenCalled();
+    });
+
+    it("auto connects from reroute output when dragging towards an input handle", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "target",
+        connectNodeId: "targetNode",
+        connectHandleId: "input",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const rerouteNode = createMockNode(
+        "rerouteNode",
+        "nodetool.control.Reroute"
+      );
+      const targetNode = createMockNode("targetNode", "test.node");
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "rerouteNode") {
+          return rerouteNode;
+        }
+        if (id === "targetNode") {
+          return targetNode;
+        }
+        return undefined;
+      });
+
+      mockGetMetadata.mockImplementation((type: string) => {
+        if (type === "nodetool.control.Reroute") {
+          return rerouteNodeMetadata;
+        }
+        return mockNodeMetadata;
+      });
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: rerouteNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+
+      mockFindInputHandle.mockReturnValue({
+        name: "input",
+        type: mockNodeMetadata.properties[0].type,
+        isDynamic: false
+      });
+
+      const mockNodeElement = { dataset: { id: "rerouteNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any);
+
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "rerouteNode",
+        target: "targetNode",
+        sourceHandle: "output",
+        targetHandle: "input",
         className: "str"
       });
       expect(mockEndConnecting).toHaveBeenCalled();
