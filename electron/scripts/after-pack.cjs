@@ -1,13 +1,11 @@
 const fs = require("fs");
 const fsp = fs.promises;
 const path = require("path");
-const os = require("os");
 const https = require("https");
-const { pipeline } = require("stream/promises");
-const tar = require("tar-fs");
-const bz2 = require("unbzip2-stream");
+const http = require("http");
 
-const MICROMAMBA_API_BASE = "https://micro.mamba.pm/api/micromamba";
+const MICROMAMBA_VERSION = "2.3.3-0";
+const MICROMAMBA_BASE_URL = `https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}`;
 const MICROMAMBA_DIR_NAME = "micromamba";
 const MICROMAMBA_BINARY_NAME = {
   win32: "micromamba.exe",
@@ -29,32 +27,32 @@ function getArchName(arch) {
   return ARCH_MAPPING[arch] || "";
 }
 
-function resolveMicromambaTarget(platform, arch) {
+function resolveMicromambaUrl(platform, arch) {
   const archName = getArchName(arch);
 
   if (platform === "darwin") {
     if (archName === "arm64") {
-      return "osx-arm64";
+      return `${MICROMAMBA_BASE_URL}/micromamba-osx-arm64`;
     }
     if (archName === "x64") {
-      return "osx-64";
+      return `${MICROMAMBA_BASE_URL}/micromamba-osx-64`;
     }
     return null;
   }
 
   if (platform === "linux") {
     if (archName === "x64") {
-      return "linux-64";
+      return `${MICROMAMBA_BASE_URL}/micromamba-linux-64`;
     }
     if (archName === "arm64") {
-      return "linux-aarch64";
+      return `${MICROMAMBA_BASE_URL}/micromamba-linux-aarch64`;
     }
     return null;
   }
 
   if (platform === "win32") {
     if (archName === "x64") {
-      return "win-64";
+      return `${MICROMAMBA_BASE_URL}/micromamba-win-64.exe`;
     }
     return null;
   }
@@ -62,71 +60,122 @@ function resolveMicromambaTarget(platform, arch) {
   return null;
 }
 
-function downloadFile(url, destinationPath) {
+function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, (response) => {
-      if (
-        response.statusCode &&
-        response.statusCode >= 300 &&
-        response.statusCode < 400 &&
-        response.headers.location
-      ) {
-        const redirectUrl = new URL(response.headers.location, url).toString();
-        response.destroy();
-        downloadFile(redirectUrl, destinationPath).then(resolve).catch(reject);
-        return;
+    let currentUrl = url;
+    let resolved = false;
+    let req = null;
+    
+    const makeRequest = (requestUrl) => {
+      // Resolve protocol-relative URLs (//example.com -> https://example.com)
+      let absoluteUrl = requestUrl;
+      if (requestUrl.startsWith("//")) {
+        absoluteUrl = `https:${requestUrl}`;
+      } else if (!requestUrl.startsWith("http://") && !requestUrl.startsWith("https://")) {
+        // Resolve relative URLs
+        try {
+          absoluteUrl = new URL(requestUrl, currentUrl).href;
+        } catch {
+          absoluteUrl = `https://${requestUrl}`;
+        }
       }
-
-      if (response.statusCode !== 200) {
-        reject(
-          new Error(
-            `Failed to download micromamba (status ${response.statusCode})`
-          )
-        );
-        response.resume();
-        return;
+      
+      const protocol = absoluteUrl.startsWith("https") ? https : http;
+      
+      // Destroy previous request if it exists (from redirect)
+      if (req) {
+        req.destroy();
       }
-
-      const fileStream = fs.createWriteStream(destinationPath);
-      pipeline(response, fileStream)
-        .then(resolve)
-        .catch((error) => reject(error));
-    });
-
-    request.on("error", (error) => {
-      reject(error);
-    });
+      
+      req = protocol.get(absoluteUrl, (res) => {
+        // Handle all redirect status codes: 301, 302, 307, 308
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          // Follow redirect - destroy current response
+          res.destroy();
+          currentUrl = absoluteUrl;
+          return makeRequest(res.headers.location);
+        }
+        
+        if (res.statusCode !== 200) {
+          res.destroy();
+          if (!resolved) {
+            resolved = true;
+            reject(new Error(`Failed to download: ${res.statusCode} ${res.statusMessage}`));
+          }
+          return;
+        }
+        
+        // Collect all data chunks into a buffer
+        const chunks = [];
+        let totalLength = 0;
+        
+        res.on("data", (chunk) => {
+          chunks.push(chunk);
+          totalLength += chunk.length;
+        });
+        
+        res.on("end", () => {
+          if (resolved) return;
+          
+          // Write all data to file at once
+          try {
+            const buffer = Buffer.concat(chunks, totalLength);
+            fs.writeFileSync(dest, buffer);
+            resolved = true;
+            // Destroy request and response to free resources
+            res.destroy();
+            if (req) {
+              req.destroy();
+            }
+            resolve();
+          } catch (err) {
+            res.destroy();
+            if (fs.existsSync(dest)) {
+              fs.unlinkSync(dest);
+            }
+            resolved = true;
+            reject(err);
+          }
+        });
+        
+        res.on("error", (err) => {
+          res.destroy();
+          if (!resolved) {
+            resolved = true;
+            reject(err);
+          }
+        });
+      });
+      
+      req.on("error", (err) => {
+        if (req) {
+          req.destroy();
+        }
+        if (!resolved) {
+          resolved = true;
+          reject(err);
+        }
+      });
+      
+      // Set timeout (30 seconds)
+      req.setTimeout(30000, () => {
+        if (req) {
+          req.destroy();
+        }
+        if (fs.existsSync(dest)) {
+          fs.unlinkSync(dest);
+        }
+        if (!resolved) {
+          resolved = true;
+          reject(new Error("Download timeout"));
+        }
+      });
+    };
+    
+    makeRequest(url);
   });
 }
 
-async function extractArchive(archivePath, destinationDir) {
-  await fsp.mkdir(destinationDir, { recursive: true });
-  const extractStream = tar.extract(destinationDir);
-  await pipeline(fs.createReadStream(archivePath), bz2(), extractStream);
-}
-
-async function findBinary(startDir, binaryName) {
-  const stack = [startDir];
-
-  while (stack.length > 0) {
-    const currentDir = stack.pop();
-    if (!currentDir) {
-      continue;
-    }
-
-    const entries = await fsp.readdir(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-      } else if (entry.isFile() && entry.name === binaryName) {
-        return fullPath;
-      }
-    }
-  }
-
-  return null;
-}
 
 function resolveResourcesDir(context) {
   const { electronPlatformName, appOutDir, packager } = context;
@@ -140,9 +189,9 @@ function resolveResourcesDir(context) {
 
 async function ensureMicromambaBundled(context) {
   const { electronPlatformName, arch } = context;
-  const target = resolveMicromambaTarget(electronPlatformName, arch);
+  const downloadUrl = resolveMicromambaUrl(electronPlatformName, arch);
 
-  if (!target) {
+  if (!downloadUrl) {
     console.warn(
       `Skipping micromamba bundling for unsupported target ${electronPlatformName}-${getArchName(
         arch
@@ -169,35 +218,28 @@ async function ensureMicromambaBundled(context) {
   console.info(
     `Bundling micromamba for ${electronPlatformName}-${getArchName(
       arch
-    )} from ${MICROMAMBA_API_BASE}/${target}/latest`
+    )} from ${downloadUrl}`
   );
 
-  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "micromamba-build-"));
-  const archivePath = path.join(tempDir, "micromamba.tar.bz2");
-  const extractDir = path.join(tempDir, "extracted");
-
   try {
-    await downloadFile(
-      `${MICROMAMBA_API_BASE}/${target}/latest`,
-      archivePath
-    );
-    await extractArchive(archivePath, extractDir);
-
-    const binaryPath = await findBinary(extractDir, binaryName);
-    if (!binaryPath) {
-      throw new Error("Micromamba binary not found after extraction");
-    }
-
     await fsp.mkdir(micromambaDir, { recursive: true });
-    await fsp.copyFile(binaryPath, targetPath);
+    await downloadFile(downloadUrl, targetPath);
 
     if (electronPlatformName !== "win32") {
       await fsp.chmod(targetPath, 0o755);
     }
 
     console.info(`micromamba bundled to ${targetPath}`);
-  } finally {
-    await fsp.rm(tempDir, { recursive: true, force: true });
+  } catch (error) {
+    // Cleanup on error
+    if (fs.existsSync(targetPath)) {
+      try {
+        await fsp.unlink(targetPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+    throw error;
   }
 }
 

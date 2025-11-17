@@ -82,6 +82,7 @@ type LogoProps = {
   small: boolean;
   singleLine?: boolean;
   enableText?: boolean;
+  onClick?: () => void;
 };
 
 const Logo = ({
@@ -91,7 +92,8 @@ const Logo = ({
   borderRadius,
   small,
   singleLine,
-  enableText = false
+  enableText = false,
+  onClick
 }: LogoProps) => {
   const [rdt, setRdt] = useState(randomDatatype());
   const [hoverColor, setHoverColor] = useState(rdt.color);
@@ -126,6 +128,8 @@ const Logo = ({
         small,
         mode === "light"
       )}
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (
         <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
