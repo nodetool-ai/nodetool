@@ -42,6 +42,7 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import useSelect from "../../hooks/nodes/useSelect";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitView } from "../../hooks/useFitView";
+import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 // constants
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -176,6 +177,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [theme.palette.mode, theme.vars.palette.primary.main]);
 
   const fitView = useFitView();
+  useFitNodeEvent();
 
   // When the user stops moving the canvas, save the new viewport.
   const handleMoveEnd = useCallback(
