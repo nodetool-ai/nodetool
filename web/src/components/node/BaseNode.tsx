@@ -15,7 +15,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container, Box, Tooltip, Button } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -31,7 +31,6 @@ import { darkenHexColor, hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
-import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";

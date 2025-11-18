@@ -1,8 +1,3 @@
----
-layout: default
-title: Installing NodeTool
----
-
 # Installing NodeTool
 
 NodeTool includes a small setup process the first time you run it. Follow these steps to get started.
@@ -21,6 +16,8 @@ When NodeTool starts it asks where to keep its Python environment. You can:
 
 Select your preferred option to continue.
 
+The Python environment may reach 15–25 GB depending on which models you install. Use a fast disk (SSD recommended).
+
 ## Select extra packages
 
 Next you can choose optional features such as cloud AI services, document tools, and audio or image processing. Tick the boxes you need now. You can add more later.
@@ -30,3 +27,7 @@ Next you can choose optional features such as cloud AI services, document tools,
 After you click **Install**, NodeTool downloads and unpacks everything it needs. This may take a few minutes depending on your connection. Progress is shown onscreen.
 
 Once the download completes, NodeTool opens automatically and you can start building workflows.
+
+On first run, the Web UI opens in your browser or desktop app. If macOS or Windows asks for firewall permission, approve it so the local backend can run.
+
+After installation, open the app and select models using the Models button in the header.

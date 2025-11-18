@@ -1,2 +1,89 @@
-theme: jekyll-theme-minimal
+# Site settings
 title: NodeTool Documentation
+description: >-
+  Local-first visual environment for building and running AI workflows.
+  Build agents visually, deploy anywhere, privacy by design.
+baseurl: "/docs" # the subpath of your site, e.g. /docs
+url: "" # the base hostname & protocol for your site
+
+# Build settings
+markdown: kramdown
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+
+# Plugin settings
+relative_links:
+  enabled: true
+  collections: false
+
+optional_front_matter:
+  remove_originals: false
+
+readme_index:
+  enabled: true
+  remove_originals: false
+
+titles_from_headings:
+  enabled: true
+  strip_title: false
+  collections: false
+
+# Navigation
+header_pages:
+  - index.md
+  - installation.md
+  - getting-started.md
+  - workflow-editor.md
+  - global-chat.md
+  - models.md
+  - providers.md
+  - asset-management.md
+  - base-nodes.md
+  - architecture.md
+  - cookbook.md
+  - tips-and-tricks.md
+
+# Collections (optional, for organizing docs)
+# collections:
+#   guides:
+#     output: true
+#     permalink: /:collection/:name
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+
+# Minima theme settings
+minima:
+  skin: auto
+  social_links:
+    - platform: github
+      user_url: "https://github.com/nodetool-ai/nodetool"
+    - platform: discord
+      user_url: "https://discord.gg/WmQTWZRcYE"
+
+# Kramdown settings
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
