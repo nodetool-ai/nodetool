@@ -153,7 +153,7 @@ export const useWorkflowRunner = create<WorkflowRunnerState>((set, get) => ({
         });
       } else if (data.type === "chunk") {
         const chunk = data as Chunk;
-        // set({ chunks: [...get().chunks, chunk.content] });
+        set({ chunks: [...get().chunks, chunk.content] });
       } else if (data.type === "node_update") {
         const update = data as NodeUpdate;
         if (update.error) {
