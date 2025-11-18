@@ -207,6 +207,7 @@ const InputContextMenu: React.FC = () => {
       <Menu
         className="context-menu input-context-menu"
         open={menuPosition !== null}
+        onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
         anchorReference="anchorPosition"
         anchorPosition={

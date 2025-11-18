@@ -359,6 +359,7 @@ const OutputContextMenu: React.FC = () => {
       <Menu
         className="context-menu output-context-menu"
         open={menuPosition !== null}
+        onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
         anchorReference="anchorPosition"
         anchorPosition={
