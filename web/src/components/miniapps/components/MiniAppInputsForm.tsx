@@ -12,6 +12,7 @@ import IntegerProperty from "../../properties/IntegerProperty";
 import FloatProperty from "../../properties/FloatProperty";
 import BoolProperty from "../../properties/BoolProperty";
 import ImageProperty from "../../properties/ImageProperty";
+import FilePathProperty from "../../properties/FilePathProperty";
 import {
   MiniAppInputDefinition,
   MiniAppInputKind,
@@ -36,7 +37,8 @@ const KIND_TO_PROPERTY_TYPE: Record<
   integer: "int",
   float: "float",
   boolean: "bool",
-  image: "image"
+  image: "image",
+  file_path: "str"
 };
 
 const PROPERTY_COMPONENT_MAP: Partial<
@@ -47,6 +49,12 @@ const PROPERTY_COMPONENT_MAP: Partial<
   float: FloatProperty,
   bool: BoolProperty,
   image: ImageProperty
+};
+
+const JSON_SCHEMA_EXTRA_TYPE_MAP: Partial<
+  Record<string, React.ComponentType<PropertyProps>>
+> = {
+  file_path: FilePathProperty
 };
 
 const createPropertyFromDefinition = (
@@ -61,6 +69,7 @@ const createPropertyFromDefinition = (
     }
     switch (definition.kind) {
       case "string":
+      case "file_path":
         return "";
       case "boolean":
         return false;
@@ -69,7 +78,7 @@ const createPropertyFromDefinition = (
     }
   })();
 
-  return {
+  const property: Property = {
     name: definition.data.name,
     type: {
       type: KIND_TO_PROPERTY_TYPE[definition.kind],
@@ -89,7 +98,14 @@ const createPropertyFromDefinition = (
       definition.kind === "integer" || definition.kind === "float"
         ? definition.data.max ?? null
         : null
-  } satisfies Property;
+  };
+
+  // Set json_schema_extra for file_path to trigger FilePathProperty component
+  if (definition.kind === "file_path") {
+    property.json_schema_extra = { type: "file_path" };
+  }
+
+  return property;
 };
 
 const resolveInputValue = (
@@ -107,6 +123,7 @@ const resolveInputValue = (
 
   switch (definition.kind) {
     case "string":
+    case "file_path":
       return "";
     case "boolean":
       return false;
@@ -137,7 +154,18 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
       inputDefinitions
         .map((definition, index) => {
           const property = createPropertyFromDefinition(definition);
-          const Component = PROPERTY_COMPONENT_MAP[property.type.type];
+          
+          // Check json_schema_extra first (like PropertyInput.tsx does)
+          let Component: React.ComponentType<PropertyProps> | undefined;
+          if (property.json_schema_extra?.type) {
+            Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type];
+          }
+          
+          // Fall back to type-based mapping
+          if (!Component) {
+            Component = PROPERTY_COMPONENT_MAP[property.type.type];
+          }
+          
           if (!Component) {
             return null;
           }
