@@ -28,7 +28,7 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 
 ## What You Can Do
 
-![Workflow Editor](assets/workflow.png)
+![Workflow Editor](/docs/assets/workflow.png)
 
 - **Visual workflow editor** – link nodes to process text, images, audio or video.
 - **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate,
