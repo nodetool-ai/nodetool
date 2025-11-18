@@ -141,6 +141,7 @@ export const createStyles = (theme: Theme) => {
       gap: theme.spacing(3),
       alignItems: "stretch",
       gridTemplateColumns: "minmax(0, 1fr)",
+      minHeight: 0,
 
       [theme.breakpoints.up("lg")]: {
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2.25fr)"
@@ -156,7 +157,9 @@ export const createStyles = (theme: Theme) => {
       flexDirection: "column",
       padding: theme.spacing(3),
       minHeight: 420,
+      height: "100%",
       gap: theme.spacing(2),
+      overflow: "hidden",
 
       [theme.breakpoints.down("sm")]: {
         padding: theme.spacing(2),
@@ -187,8 +190,21 @@ export const createStyles = (theme: Theme) => {
       flexDirection: "column",
       gap: theme.spacing(2),
       overflowY: "auto",
+      overflowX: "hidden",
       paddingRight: theme.spacing(0.75),
-      paddingBottom: theme.spacing(1.5)
+      paddingBottom: theme.spacing(1.5),
+      minHeight: 0
+    },
+
+    "@keyframes resultCardEnter": {
+      "0%": {
+        opacity: 0,
+        transform: "translateY(10px) scale(0.98)"
+      },
+      "100%": {
+        opacity: 1,
+        transform: "translateY(0) scale(1)"
+      }
     },
 
     ".result-card": {
@@ -197,7 +213,9 @@ export const createStyles = (theme: Theme) => {
       padding: theme.spacing(2),
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.5)
+      gap: theme.spacing(1.5),
+      animation: "resultCardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+      opacity: 0
     },
 
     ".result-card-header": {
@@ -211,7 +229,8 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(1),
-      overflowX: "auto"
+      overflowX: "auto",
+      position: "relative"
     },
 
     ".result-placeholder": {
