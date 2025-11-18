@@ -1,7 +1,3 @@
-______________________________________________________________________
-
-## layout: default title: NodeTool
-
 # NodeTool - Documentation
 
 ## What is NodeTool?
@@ -31,6 +27,8 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 - Models Manager: model downloads, filtering and README access
 
 ## What You Can Do
+
+![Workflow Editor](assets/workflow.png)
 
 - **Visual workflow editor** – link nodes to process text, images, audio or video.
 - **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate,

@@ -1,8 +1,4 @@
-______________________________________________________________________
-
-## layout: default title: Getting Started
-
-Getting Started
+# Getting Started
 
 Welcome to **NodeTool**! This quick guide shows you how to build your first workflow and discover some handy tips along
 the way.

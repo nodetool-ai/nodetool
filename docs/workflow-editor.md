@@ -1,7 +1,4 @@
----
-layout: default
-title: Workflow Editor
----
+# Workflow Editor
 
 The workflow editor is where you design and run AI pipelines. Nodes represent tasks and edges define how data flows between them.
 

@@ -1,8 +1,3 @@
----
-layout: default
-title: Installing NodeTool
----
-
 # Installing NodeTool
 
 NodeTool includes a small setup process the first time you run it. Follow these steps to get started.
