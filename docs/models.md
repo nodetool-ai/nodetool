@@ -1,11 +1,10 @@
-______________________________________________________________________
-
-## layout: default title: Supported Models
-
 # Supported Models
 
 NodeTool provides extensive support for AI models across multiple providers, from cutting-edge proprietary models to
 open-source alternatives. This comprehensive guide covers all supported models and their capabilities.
+
+All providers are accessible through generic nodes (TextToImage, Agent, RealtimeAgent, etc.).
+Switching providers does not require editing the workflow structure.
 
 ## Provider Overview
 
@@ -532,6 +531,8 @@ result = pipe("Once upon a time...")
 - **Customization**: Full control over model selection, parameters, and fine-tuning
 - **Offline**: Works without internet connectivity
 - **Low Latency**: No network round-trips for faster response times
+
+Local models are stored inside the NodeTool workspace folder under `.nodetool/models/`.
 
 ## Model Capabilities
 

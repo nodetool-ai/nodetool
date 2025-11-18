@@ -22,6 +22,7 @@ import { createStyles } from "./styles";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
+import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
@@ -61,6 +62,8 @@ const MiniAppPage: React.FC = () => {
     progress,
     resetWorkflowState
   } = useMiniAppRunner(workflow);
+
+  const clearResults = useMiniAppsStore((state) => state.clearResults);
 
   const { nodes: workflowNodes, edges: workflowEdges } = useMemo(() => {
     if (!workflow?.graph) {
@@ -202,7 +205,7 @@ const MiniAppPage: React.FC = () => {
                 onSubmit={handleSubmit}
                 onError={setSubmitError}
               />
-              <Box display="flex" flexDirection="column" gap={1}>
+              <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (
                   <Typography
                     variant="body2"
@@ -254,7 +257,16 @@ const MiniAppPage: React.FC = () => {
                     value={(progress.current * 100.0) / progress.total}
                   />
                 ) : null}
-                <MiniAppResults results={results} />
+                <Box flex={1} minHeight={0} sx={{ height: 0 }}>
+                  <MiniAppResults
+                    results={results}
+                    onClear={
+                      workflow?.id
+                        ? () => clearResults(workflow.id)
+                        : undefined
+                    }
+                  />
+                </Box>
               </Box>
             </div>
           </>

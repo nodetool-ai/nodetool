@@ -12,7 +12,8 @@
       "mcp__playwright__browser_resize",
       "Bash(ls:*)",
       "Read(//Users/mg/workspace/**)",
-      "Bash(npm test -- packageManager)"
+      "Bash(npm test -- packageManager)",
+      "Bash(bundle install:*)"
     ],
     "deny": [],
     "ask": []

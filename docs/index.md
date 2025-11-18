@@ -1,8 +1,10 @@
-______________________________________________________________________
+# NodeTool - Documentation
 
-## layout: default title: NodeTool
+## What is NodeTool?
 
-# Nodetool - Documentation
+NodeTool is a local-first visual environment for building and running AI workflows.
+It combines a node-based editor, a powerful chat assistant, asset management,
+local + cloud model integration, and real-time execution through WebSockets.
 
 NodeTool is an open‑source, local‑first platform for building AI agents and workflows visually. Design, run, and deploy
 powerful AI systems using drag‑and‑drop nodes that connect models, tools, data, and your everyday apps.
@@ -15,7 +17,18 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 1. ⚡ Run — Test locally; your data stays on your machine by default.
 1. 🚀 Deploy — Ship to your own cloud or provider when ready.
 
+### Core UI screens
+
+- Dashboard: workspace with dockable panels
+- Workflow Editor: node-based graph builder
+- Global Chat: agentic assistant with tool use
+- Mini-Apps: form-style UI for workflows
+- Assets: file explorer with previews
+- Models Manager: model downloads, filtering and README access
+
 ## What You Can Do
+
+![Workflow Editor](/docs/assets/workflow.png)
 
 - **Visual workflow editor** – link nodes to process text, images, audio or video.
 - **Extensive model support** – use models from OpenAI, Anthropic, Google, Hugging Face, Groq, Together, Replicate,
@@ -29,6 +42,15 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 - **OpenAI‑compatible API & extensions** – connect NodeTool to other apps and services.
 - **Node Packs** – install extra nodes from the [NodeTool Packs Registry](node-packs.md).
 
+### Startup flow
+
+At launch NodeTool loads:
+
+1. Node metadata and types from `/api/nodes/metadata`
+2. Your open workflows and layout
+3. Provider settings and installed models
+4. Recent chat threads
+
 ## Documentation
 
 ### Getting Started
@@ -36,7 +58,8 @@ powerful AI systems using drag‑and‑drop nodes that connect models, tools, da
 - **[Installation](installation.md)** – Download and install NodeTool
 - **[Getting Started](getting-started.md)** – Your first workflow and basic concepts
 - **[Tips and Tricks](tips-and-tricks.md)** – Shortcuts and workflow ideas
-- \*\*[Cookbook](cookbook.md) - Cookbook for workflows
+- **[Cookbook](cookbook.md)** – Cookbook for workflows
+- **UI Overview** – Read [User Interface](user-interface.md) for a full map of the application.
 
 ### Core Features
 

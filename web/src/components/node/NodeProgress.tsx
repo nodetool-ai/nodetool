@@ -38,7 +38,7 @@ const NodeProgress = ({
   }
 
   return (
-    <div className="node-progress" style={{ margin: "0.5em 0" }}>
+    <div className="node-progress" style={{ margin: "0.75em 0 0.5em 0" }}>
       <LinearProgress
         variant="determinate"
         value={(progress.progress * 100) / progress.total}
@@ -48,7 +48,7 @@ const NodeProgress = ({
         variant="caption"
         component="div"
         color="textSecondary"
-        style={{ textAlign: "center", marginTop: "0.5em" }}
+        style={{ textAlign: "center", marginTop: "0.5em", minHeight: "1.2em" }}
       >
         {progress.progress} / {progress.total}
         {eta && ` (eta ${eta}s)`}

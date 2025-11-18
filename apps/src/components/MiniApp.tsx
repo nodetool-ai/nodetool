@@ -37,6 +37,8 @@ export const MiniApp: React.FC<MiniAppProps> = ({ workflowId, schema }) => {
     chunks,
   } = useWorkflowRunner();
 
+  console.log("results", results);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await run(workflowId, formData);

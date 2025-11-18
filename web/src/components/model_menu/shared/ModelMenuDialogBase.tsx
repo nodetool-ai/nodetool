@@ -36,7 +36,7 @@ import {
 
 const containerStyles = css({
   display: "grid",
-  gridTemplateColumns: "275px 360px 240px",
+  gridTemplateColumns: "250px 480px 220px",
   gap: 4,
   minHeight: 480,
   gridTemplateRows: "auto auto 1fr",
@@ -61,7 +61,6 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   searchPlaceholder?: string;
   storeHook: ModelMenuStoreHook<TModel>;
 }
-
 
 export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
@@ -175,7 +174,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         },
         paper: {
           style: {
-            maxWidth: "950px",
+            maxWidth: "1050px",
             borderRadius: theme.vars.rounded.dialog,
             background: theme.vars.palette.glass.backgroundDialogContent
           }
@@ -265,7 +264,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           <Box
             className="model-menu__model-list-container"
             sx={{
-              maxWidth: { xs: "100%", sm: 420 },
+              maxWidth: { xs: "100%", sm: 540 },
               height: "100%",
               minHeight: 320,
               overflow: "hidden"

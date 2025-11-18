@@ -1,13 +1,15 @@
----
-layout: default
-title: Tips and Tricks
----
+# Tips and Tricks
 
-Here are some tips and tricks for using NodeTool more effectively
+Here are some tips and tricks for using NodeTool more effectively:
 
-- **Recommended Models** –
+- **Recommended Models** – On compatible nodes, use the “Recommended Models” button in the inspector to quickly select models that match the node’s requirements.
 - **Quick Connections** – Drag from an output handle and release on empty space to open the Connection Menu, allowing you to create commonly used nodes directly. From there, you can also open the Node Menu with filtered nodes that fit your connection type.
 - **Duplicate Nodes** – Select nodes and press <kbd>Ctrl + D</kbd> or <kbd>⌘ + D</kbd> to create copies.
 - **Workflow History** – Use <kbd>Ctrl + Z</kbd> | <kbd>⌘ + Z</kbd> to Undo and <kbd>Ctrl + Shift + Z</kbd> | <kbd>⌘ + Shift + Z</kbd> to Redo changes to your workflow.
 - **Fit to Screen / Focus** - Press <kbd>F</kbd> to fit all nodes to screen, or focus on selected nodes.
 - **Command Menu** – Press <kbd>Alt + K</kbd> or <kbd>⌘ + K</kbd> to open the command palette and quickly jump between actions.
+- **Snap to Grid** – Enable grid snapping in the View menu for cleaner layouts.
+- **Panels Reset** – If a panel disappears or layout breaks: View → Reset Layout.
+- **Drag from Node Header** – Move nodes by grabbing the header bar.
+- **Open Node Docs Fast** – Select node, press Shift+?.
+- **Jump to Node** – Search nodes in the canvas using Ctrl/⌘+F (search by label).
