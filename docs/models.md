@@ -1,7 +1,3 @@
-______________________________________________________________________
-
-## layout: default title: Supported Models
-
 # Supported Models
 
 NodeTool provides extensive support for AI models across multiple providers, from cutting-edge proprietary models to

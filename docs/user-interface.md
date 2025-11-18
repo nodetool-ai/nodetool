@@ -1,8 +1,3 @@
----
-layout: default
-title: User Interface
----
-
 # NodeTool User Interface
 
 This handbook covers every visible part of the NodeTool app so new and advanced users can move quickly without guesswork. It links concepts to the actual screens you will see in the desktop and web builds. :contentReference[oaicite:1]{index=1}
