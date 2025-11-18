@@ -128,7 +128,7 @@ const CollectionList = () => {
             </Fab>
           </Box>
 
-          <CollectionHeader />
+          {collections?.collections.length ? <CollectionHeader /> : null}
           {error && (
             <Typography color="error" sx={{ mt: 2 }}>
               Error loading collections
