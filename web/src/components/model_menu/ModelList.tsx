@@ -59,7 +59,13 @@ function ModelList<TModel extends ModelSelectorModel>({
   if (process.env.NODE_ENV === "development") {
     console.log("ModelList:", {
       modelsCount: models.length,
-      firstModel: models[0] ? { id: models[0].id, name: models[0].name, provider: models[0].provider } : null
+      firstModel: models[0]
+        ? {
+            id: models[0].id,
+            name: models[0].name,
+            provider: models[0].provider
+          }
+        : null
     });
   }
 
@@ -105,7 +111,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                       gap: 0.75,
                       overflow: "hidden",
                       minWidth: 0,
-                      width: "100%",
+                      width: "100%"
                     }}
                   >
                     <div
@@ -115,10 +121,10 @@ function ModelList<TModel extends ModelSelectorModel>({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         minWidth: 0,
-                        flex: "1 1 auto",
+                        flex: "1 1 auto"
                       }}
                     >
-                      {m.name}
+                      {m.path || m.name}
                     </div>
                     {available && isHuggingFaceLocalProvider(m.provider) && (
                       <span
@@ -141,19 +147,23 @@ function ModelList<TModel extends ModelSelectorModel>({
                   </Box>
                 }
                 secondary={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {m.path && (
-                      <div style={{
-                        fontSize: theme.vars.fontSizeTiny,
-                        color: theme.vars.palette.text.secondary,
-                      }}>
-                        {m.path}
+                  m.path ? (
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <div
+                        style={{
+                          fontSize: theme.vars.fontSizeTiny,
+                          color: theme.vars.palette.text.secondary
+                        }}
+                      >
+                        {m.name}
                       </div>
-                    )}
-                  </Box>
+                    </Box>
+                  ) : undefined
                 }
                 primaryTypographyProps={{
-                  noWrap: true,
+                  noWrap: true
                 }}
               />
             </ListItemButton>

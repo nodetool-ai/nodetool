@@ -174,7 +174,7 @@ const styles = (theme: Theme) =>
           filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
           position: "relative",
           zIndex: 10,
-          transform: "none !important"
+          animation: "spin 2s linear infinite"
         }
       }
     },
