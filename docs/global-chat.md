@@ -18,6 +18,9 @@ Global Chat transforms NodeTool into a comprehensive AI workspace where you can:
 - Integrate with your workflows and assets seamlessly
 - Manage multiple conversation threads
 
+Chat maintains a persistent WebSocket connection. If the app reloads, it automatically reconnects and restores message
+streaming state.
+
 ## Getting Started
 
 ### Opening Global Chat
@@ -51,6 +54,11 @@ The Global Chat interface consists of:
 - **Rich Content**: Support for text, images, audio, and video messages
 - **Search**: Find specific messages within threads
 - **Export**: Save conversation history for external use
+
+Use the search bar to find messages inside the current thread. The search is exact match and supports timestamp
+filtering.
+
+Threads are stored locally and synced via the backend. After restarts, the last used thread reopens automatically.
 
 ## Agent Mode
 
@@ -89,3 +97,9 @@ During agent execution, you'll see:
 - **Active Task**: What the agent is currently working on
 - **Progress Updates**: Real-time status of task execution
 - **Reasoning**: The agent's thought process and decision-making
+
+When an agent creates or modifies a workflow, Global Chat sends `workflow_created` or `workflow_updated` events. Open
+editors update automatically through auto-layout.
+
+Frontend tools (`ui_add_node`, `ui_align_nodes`, etc.) allow the agent to manipulate the editor directly. You can
+inspect which tools are available by opening the Tools menu in the Chat input panel.

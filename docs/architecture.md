@@ -57,3 +57,10 @@ The Python backend lives inside the main repository and exposes a FastAPI server
 4. Results are streamed back through the runner to the frontends in real time.
 
 This modular approach keeps the core editor lightweight while enabling heavy computation on dedicated workers or in the cloud.
+
+Workflow execution and system stats use a shared GlobalWebSocketManager. Chat uses a dedicated WebSocket connection.
+
+The web app blocks route rendering until metadata for all node types is loaded. This ensures type compatibility and
+connection validation is correct.
+
+When running on localhost, auth and routing are bypassed and the app boots into `/dashboard`.

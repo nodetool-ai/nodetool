@@ -5,6 +5,9 @@ ______________________________________________________________________
 Node Packs extend NodeTool with additional nodes and integrations. Packs are distributed through the public registry and
 can be installed directly from the app.
 
+The Packs page is available from the desktop app under “Tools → Packs”. Installed packs automatically extend the Node
+Menu with new namespaces.
+
 ### Finding packs
 
 Install and manage packs directly from the desktop app.
@@ -19,6 +22,12 @@ Install and manage packs directly from the desktop app.
 - Click **Install** to add a pack. The pack will be installed as a pip package.
 - Use **Uninstall** to remove a pack you no longer need.
 - Packs can also be updated from the same screen when new versions are released.
+
+Packs can include:
+– new node definitions
+– python dependencies
+– workflow templates
+– tools accessible from Global Chat
 
 ### Command line alternative
 
