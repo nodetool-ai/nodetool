@@ -79,12 +79,18 @@ const ModelListItem: React.FC<
                         {owner}
                       </Typography>
                     ) : null}
-                    <Typography component="span" className="model-name">
-                      {repo}
-                    </Typography>
-                    {model.path && (
-                      <Typography component="span" className="model-path">
-                        {model.path}
+                    {model.path ? (
+                      <>
+                        <Typography component="span" className="model-name">
+                          {model.path}
+                        </Typography>
+                        <Typography component="span" className="model-path">
+                          {repo}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography component="span" className="model-name">
+                        {repo}
                       </Typography>
                     )}
                   </Link>
