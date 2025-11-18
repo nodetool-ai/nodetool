@@ -116,6 +116,12 @@ ______________________________________________________________________
 
 ## Workflow Patterns
 
+To build any example:
+– press Space to add nodes
+– drag connections
+– press Ctrl/⌘+Enter to run
+– add Preview nodes to inspect intermediate results
+
 ### Pattern 1: Simple Pipeline
 
 **Use Case**: Transform input → process → output

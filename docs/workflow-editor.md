@@ -17,12 +17,18 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 - Undo and redo changes using <kbd>Ctrl/⌘+Z</kbd> / <kbd>Ctrl/⌘+Shift+Z</kbd>.
 - Right‑click to open context menus for nodes, input + output handles, and the canvas.
 
+The Auto Layout button arranges nodes using ELK. The editor reruns Auto Layout automatically when workflows are created
+or updated by Global Chat.
+
 ### Running workflows
 
 - Click the **Run** button or press <kbd>Ctrl/⌘+Enter</kbd> to execute the workflow.
 - Click the **Stop** button or press <kbd>ESC</kbd> to cancel the execution.
 - Status updates and results stream back in real time.
 - Workflows can run locally or dispatch jobs to remote workers.
+
+Nodes that require models you haven't installed show a “Missing Models” prompt. Click it to open the Recommended Models
+dialog with one-click install.
 
 ### Tabs and panels
 
@@ -40,6 +46,7 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 ### Keyboard shortcuts
 
 - <kbd>F</kbd> fits the graph to the window or focuses on the selection.
+- <kbd>Ctrl/⌘+0</kbd> zooms the canvas to 100%.
 - <kbd>Ctrl/⌘+C</kbd>, <kbd>Ctrl/⌘+V</kbd> and <kbd>Ctrl/⌘+X</kbd> copy, paste or cut nodes.
 - <kbd>Ctrl/⌘+S</kbd> to save the current workflow.
 - <kbd>Ctrl/⌘+D</kbd> duplicates nodes horizontally; <kbd>Ctrl/⌘+Shift+D</kbd> stacks them vertically.
@@ -55,10 +62,15 @@ The workflow editor is where you design and run AI pipelines. Nodes represent ta
 
 - Right‑click on node headers, node parameters, input + output handles, or the canvas for extra options.
 - Release a connection on empty space to open a connection helper menu with auto-create options and to show compatible nodes.
+When dragging an edge and dropping onto empty canvas, the Connection Menu shows:
+– auto-create nodes that match the required type
+– compatible node list filtered by input/output type
 
 ### Documentation and help
 
 - Hover a node in the Node Menu to see its description, inputs and outputs.
 - Hover the ? at the bottom-right of a node on the canvas
+- Select a node and click the documentation icon (?) or open the draggable document panel. Many nodes include examples,
+  parameters, and best practices.
 
 For a quick introduction see the [Getting Started guide](getting-started.md).

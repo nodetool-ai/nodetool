@@ -15,6 +15,9 @@ requirements of different AI services. The system supports multiple modalities:
 - **Text-to-Speech (TTS)** - Convert text to natural speech audio
 - **Automatic Speech Recognition (ASR)** - Transcribe audio to text
 
+To select a provider, pick a model in the node property panel. Providers are grouped under model families: OpenAI,
+Anthropic, Gemini, Hugging Face, Ollama, vLLM.
+
 ## Architecture
 
 ### Provider Capabilities
@@ -135,6 +138,9 @@ Providers like Gemini support video generation capabilities through the unified 
 
 One of the most powerful features of the NodeTool provider system is **generic nodes**. These are special nodes that let
 you switch AI providers without modifying your workflow.
+
+Generic nodes support provider switching without altering the graph. This is the recommended way to design
+multi-provider workflows.
 
 ### What Are Generic Nodes?
 
@@ -260,6 +266,9 @@ TextToImageParams(
     scheduler="...",       # → HuggingFace-specific
 )
 ```
+
+If a provider does not support a parameter (e.g., negative prompt for DALL-E), NodeTool automatically ignores or
+remaps it.
 
 **TextToVideo mapping:**
 
