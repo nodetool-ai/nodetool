@@ -56,6 +56,8 @@ const styles = (theme: Theme) =>
         width: "100%",
         backgroundColor: "transparent",
         display: "flex",
+        position: "relative",
+        overflow: "hidden",
         flexDirection: "column"
       },
       ".preview-node-content > .output": {
