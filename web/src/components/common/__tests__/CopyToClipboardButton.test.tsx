@@ -1,4 +1,6 @@
+/// <reference types="@testing-library/jest-dom" />
 import React from "react";
+import "@testing-library/jest-dom";
 import {
   describe,
   expect,
@@ -10,7 +12,7 @@ import {
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
 
-const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
+const mockWriteClipboard = jest.fn<any>().mockResolvedValue(undefined);
 
 jest.mock("../../../hooks/browser/useClipboard", () => ({
   useClipboard: () => ({
@@ -39,7 +41,7 @@ describe("CopyToClipboardButton", () => {
   it("shows error when value is empty", () => {
     render(<CopyToClipboardButton copyValue={""} />);
     fireEvent.click(screen.getByRole("button"));
-    expect(screen.getByLabelText("Nothing to copy")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nothing to copy")).toBeTruthy();
     expect(mockWriteClipboard).not.toHaveBeenCalled();
   });
 

@@ -48,7 +48,7 @@ function resolveExplorerWindow(): ExplorerWindow | null {
         : undefined,
     () =>
       typeof globalThis !== "undefined"
-        ? (globalThis as ExplorerWindow)
+        ? (globalThis as unknown as ExplorerWindow)
         : undefined
   ];
 

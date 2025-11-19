@@ -1,7 +1,18 @@
-import type { LanguageModel, ImageModel } from "../stores/ApiTypes";
+import type {
+  LanguageModel,
+  ImageModel,
+  ASRModel,
+  TTSModel,
+  VideoModel
+} from "../stores/ApiTypes";
 import type { TypeTag, SizeBucket } from "../stores/ModelFiltersStore";
 
-export type ModelSelectorModel = LanguageModel | ImageModel;
+export type ModelSelectorModel =
+  | LanguageModel
+  | ImageModel
+  | ASRModel
+  | TTSModel
+  | VideoModel;
 
 export type NormalizedModelMeta = {
   sizeB?: number; // billions of params

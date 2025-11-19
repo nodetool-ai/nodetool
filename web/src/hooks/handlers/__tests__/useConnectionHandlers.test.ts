@@ -1064,8 +1064,7 @@ describe("useConnectionHandlers", () => {
           ...mockNodeMetadata.outputs,
           {
             ...mockNodeMetadata.outputs[0],
-            name: "output_two",
-            title: "Output Two"
+            name: "output_two"
           }
         ]
       };

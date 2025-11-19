@@ -15,24 +15,28 @@ const inferProvider = (m: UnifiedModel): string => {
 };
 
 const mapUnifiedToImageModel = (u: UnifiedModel): ImageModel => ({
+  type: "image_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
   provider: inferProvider(u) as any,
 });
 
 const mapUnifiedToLanguageModel = (u: UnifiedModel): LanguageModel => ({
+  type: "language_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
   provider: inferProvider(u) as any,
 });
 
 const mapUnifiedToASRModel = (u: UnifiedModel): ASRModel => ({
+  type: "asr_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
   provider: inferProvider(u) as any,
 });
 
 const mapUnifiedToTTSModel = (u: UnifiedModel): TTSModel => ({
+  type: "tts_model",
   id: u.id,
   name: u.name || u.repo_id || u.id,
   provider: inferProvider(u) as any,

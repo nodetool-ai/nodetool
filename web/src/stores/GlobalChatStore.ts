@@ -1449,7 +1449,7 @@ async function handleWebSocketMessage(
       currentTaskUpdate: null
     });
     log.info("Generation stopped:", stoppedData.message);
-  } else if (data.type === "error") {
+  } else if ((data as any).type === "error") {
     // Handle error messages
     const errorData = data as any;
     set({

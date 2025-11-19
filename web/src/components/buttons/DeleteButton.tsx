@@ -65,11 +65,11 @@ function DeleteButton<T>({
       placement={tooltipPlacement || "bottom"}
     >
       <Button
-        component={component}
+        component={component as any}
         css={styles(theme)}
         className={`${className} delete-button`}
         tabIndex={-1}
-        onClick={(e) => {
+        onClick={(e: React.MouseEvent<HTMLElement>) => {
           e.stopPropagation();
           onClick(e, item ? item : ({} as T));
         }}

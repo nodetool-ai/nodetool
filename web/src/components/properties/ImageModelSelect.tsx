@@ -54,8 +54,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
       addRecent({
         provider: model.provider || "",
         id: model.id || "",
-        name: model.name || "",
-        path: model.path || ""
+        name: model.name || ""
       });
       setDialogOpen(false);
     },
