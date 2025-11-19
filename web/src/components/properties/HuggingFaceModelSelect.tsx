@@ -79,7 +79,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
   // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useHuggingFaceImageModelsByProvider({
-    task
+    task,
+    modelType
   });
 
   // Sort models: recommended first, then alphabetically
@@ -279,6 +280,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}
+        modelType={modelType}
       />
     </>
   );
