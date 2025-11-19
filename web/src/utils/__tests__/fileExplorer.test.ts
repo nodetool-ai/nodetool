@@ -9,8 +9,8 @@ import {
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 const createMockApi = () => ({
-  openModelPath: jest.fn(),
-  openModelDirectory: jest.fn()
+  openModelPath: jest.fn<any>(),
+  openModelDirectory: jest.fn<any>()
 });
 
 describe("fileExplorer", () => {

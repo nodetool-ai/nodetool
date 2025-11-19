@@ -158,7 +158,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
           // Check json_schema_extra first (like PropertyInput.tsx does)
           let Component: React.ComponentType<PropertyProps> | undefined;
           if (property.json_schema_extra?.type) {
-            Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type];
+            Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type as string];
           }
           
           // Fall back to type-based mapping

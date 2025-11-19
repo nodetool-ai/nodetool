@@ -68,11 +68,13 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   const theme = useTheme();
 
   const loadTTSModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/tts", {});
+    const { data, error } = await client.GET("/api/models/{model_type}", {
+      params: { path: { model_type: "tts" } }
+    });
     if (error) {
       throw error;
     }
-    return data;
+    return data as unknown as TTSModel[];
   }, []);
 
   const {
@@ -86,12 +88,12 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
 
   const sortedModels = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return models.sort((a, b) => a.name.localeCompare(b.name));
+    return models.sort((a: TTSModel, b: TTSModel) => a.name.localeCompare(b.name));
   }, [models, isLoading, isError]);
 
   const groupedModels = useMemo(() => {
     if (!sortedModels || isLoading || isError) return {};
-    return sortedModels.reduce<GroupedModels>((acc, model) => {
+    return sortedModels.reduce<GroupedModels>((acc, model: TTSModel) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
         acc[provider] = [];
@@ -264,9 +266,6 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       <TTSModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
-        models={models}
-        isLoading={isLoading}
-        isError={isError}
         onModelChange={handleDialogModelSelect}
       />
     </div>

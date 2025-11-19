@@ -3,7 +3,9 @@ import { client } from "./ApiClient";
 import { createErrorMessage } from "../utils/errorHandling";
 import { components } from "../api";
 
-export type SettingWithValue = components["schemas"]["SettingWithValue"];
+export type SettingWithValue = components["schemas"]["SettingWithValue"] & {
+  is_secret: boolean;
+};
 
 interface RemoteSettingsStore {
   settings: SettingWithValue[];
@@ -33,7 +35,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
     // Group settings by their group field
     const settingsByGroup = new Map<string, SettingWithValue[]>();
-    data.settings.forEach((setting) => {
+    (data.settings as SettingWithValue[]).forEach((setting) => {
       const group = setting.group;
       if (!settingsByGroup.has(group)) {
         settingsByGroup.set(group, []);
@@ -42,12 +44,12 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
     });
 
     set({
-      settings: data.settings,
+      settings: data.settings as SettingWithValue[],
       settingsByGroup,
       isLoading: false
     });
 
-    return data.settings;
+    return data.settings as SettingWithValue[];
   },
 
   updateSettings: async (
@@ -68,18 +70,16 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   },
 
   getSettingValue: (envVar: string) => {
-    const setting = get().settings.find(s => s.env_var === envVar);
-    return setting?.value !== null && setting?.value !== undefined 
-      ? String(setting.value) 
+    const setting = get().settings.find((s) => s.env_var === envVar);
+    return setting?.value !== null && setting?.value !== undefined
+      ? String(setting.value)
       : undefined;
   },
 
   setSettingValue: (envVar: string, value: string) => {
-    set(state => ({
-      settings: state.settings.map(s => 
-        s.env_var === envVar 
-          ? { ...s, value } 
-          : s
+    set((state) => ({
+      settings: state.settings.map((s) =>
+        s.env_var === envVar ? { ...s, value } : s
       )
     }));
   }

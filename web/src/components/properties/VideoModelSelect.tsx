@@ -69,11 +69,13 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const theme = useTheme();
 
   const loadVideoModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/video", {});
+    const { data, error } = await client.GET("/api/models/{model_type}", {
+      params: { path: { model_type: "video" } }
+    });
     if (error) {
       throw error;
     }
-    return data;
+    return data as unknown as VideoModel[];
   }, []);
 
   const {
@@ -87,12 +89,12 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
 
   const sortedModels = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return models.sort((a, b) => a.name.localeCompare(b.name));
+    return models.sort((a: VideoModel, b: VideoModel) => a.name.localeCompare(b.name));
   }, [models, isLoading, isError]);
 
   const groupedModels = useMemo(() => {
     if (!sortedModels || isLoading || isError) return {};
-    return sortedModels.reduce<GroupedModels>((acc, model) => {
+    return sortedModels.reduce<GroupedModels>((acc, model: VideoModel) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
         acc[provider] = [];

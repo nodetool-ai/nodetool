@@ -67,11 +67,13 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
   const theme = useTheme();
 
   const loadASRModels = useCallback(async () => {
-    const { data, error } = await client.GET("/api/models/asr", {});
+    const { data, error } = await client.GET("/api/models/{model_type}", {
+      params: { path: { model_type: "asr" } }
+    });
     if (error) {
       throw error;
     }
-    return data;
+    return data as unknown as ASRModel[];
   }, []);
 
   const {
@@ -85,12 +87,12 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
 
   const sortedModels = useMemo(() => {
     if (!models || isLoading || isError) return [];
-    return models.sort((a, b) => a.name.localeCompare(b.name));
+    return models.sort((a: ASRModel, b: ASRModel) => a.name.localeCompare(b.name));
   }, [models, isLoading, isError]);
 
   const groupedModels = useMemo(() => {
     if (!sortedModels || isLoading || isError) return {};
-    return sortedModels.reduce<GroupedModels>((acc, model) => {
+    return sortedModels.reduce<GroupedModels>((acc, model: ASRModel) => {
       const provider = model.provider || "Other";
       if (!acc[provider]) {
         acc[provider] = [];
@@ -209,9 +211,6 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
       <ASRModelMenuDialog
         open={dialogOpen}
         onClose={handleClose}
-        models={models}
-        isLoading={isLoading}
-        isError={isError}
         onModelChange={handleDialogModelSelect}
       />
     </>
