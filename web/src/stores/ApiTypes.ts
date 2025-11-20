@@ -88,7 +88,12 @@ export type ASRModel = components["schemas"]["ASRModel"];
 export type VideoModel = components["schemas"]["VideoModel"];
 export type ModelFile = components["schemas"]["ModelFile"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
-export type UnifiedModel = components["schemas"]["UnifiedModel"];
+export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
+  artifact_family?: string | null;
+  artifact_component?: string | null;
+  artifact_confidence?: number | null;
+  artifact_evidence?: string[] | null;
+};
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
