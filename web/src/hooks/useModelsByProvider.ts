@@ -19,6 +19,22 @@ import {
 } from "./useProviders";
 
 /**
+ * Collection of React Query hooks that bridge the UI to backend model endpoints.
+ *
+ * Backend contract (nodetool-core/nodetool/api/model.py):
+ * - GET /api/models/llm/{provider}     → LanguageModel[]
+ * - GET /api/models/image/{provider}   → ImageModel[]
+ * - GET /api/models/tts/{provider}     → TTSModel[]
+ * - GET /api/models/asr/{provider}     → ASRModel[]
+ * - GET /api/models/video/{provider}   → VideoModel[]
+ * - GET /api/models/huggingface/search → UnifiedModel[] filtered client-side for image use cases
+ *
+ * Providers are enumerated via use*Providers hooks and fanned out into parallel
+ * queries to minimize latency. Each hook returns aggregated models along with
+ * loading/fetching/error state so pages can render incremental results safely.
+ */
+
+/**
  * Hook to fetch language models from all providers that support language models.
  * Queries each provider in parallel for better performance.
  */
@@ -373,6 +389,7 @@ const HF_SEARCH_TYPE_CONFIG: Record<string, HuggingFaceSearchConfig> = {
   "hf.stable_diffusion_xl_refiner": { tag: ["*refiner*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.stable_diffusion_3": { tag: ["*stable-diffusion-3*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.stable_diffusion_upscale": { tag: ["*upscale*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
+  // Flux repos should surface as a repo-level choice; filename patterns help discovery.
   "hf.flux": { tag: ["*flux*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.qwen_image": { tag: ["*qwen*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.qwen_image_edit": { pipeline_tag: ["image-to-image"], tag: ["*qwen*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
@@ -455,7 +472,6 @@ const HF_FILE_PATTERN_TYPES = new Set(
     "hf.stable_diffusion_xl",
     "hf.stable_diffusion_xl_refiner",
     "hf.stable_diffusion_3",
-    "hf.flux",
     "hf.qwen_image",
     "hf.qwen_image_edit",
     "hf.controlnet",
@@ -533,7 +549,6 @@ const useHuggingFaceModelSearch = (opts?: {
     enabled: !!normalizedConfig,
     queryFn: async () => fetchHfModelsBySearch(normalizedConfig!),
     staleTime: 0,
-    cacheTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: "always"
   });
@@ -543,7 +558,18 @@ const useHuggingFaceModelSearch = (opts?: {
       return [] as ImageModel[];
     }
     const filtered = query.data.filter((model) => matchesModelType(model, opts?.modelType));
-    return filtered.map((model) => convertUnifiedToImageModel(model));
+    const repoOnlyTypes = new Set(["hf.flux"]);
+    const repoPruned = filtered.filter((model) => {
+      if (!opts?.modelType) {
+        return true;
+      }
+      if (repoOnlyTypes.has(opts.modelType) && model.path) {
+        // Hide per-file entries for types that should surface as repo-level choices.
+        return false;
+      }
+      return true;
+    });
+    return repoPruned.map((model) => convertUnifiedToImageModel(model));
   }, [query.data, opts?.modelType]);
 
   return {
@@ -732,6 +758,16 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
       return false;
     }
   }
+
+  // Prefer explicit artifact detection metadata when available.
+  const artifactFamily = model.artifact_family?.toLowerCase?.();
+  const artifactComponent = model.artifact_component?.toLowerCase?.();
+  if (artifactFamily || artifactComponent) {
+    if (matchesArtifactDetection(normalizedType, artifactFamily, artifactComponent)) {
+      return true;
+    }
+  }
+
   const tags = (model.tags || []).map((tag) => (tag || "").toLowerCase());
   const repoId = (model.repo_id || "").toLowerCase();
   const keywords = HF_TYPE_KEYWORD_MATCHERS[normalizedType];
@@ -749,6 +785,34 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
     return true;
   }
   return false;
+};
+
+const matchesArtifactDetection = (
+  normalizedType: string,
+  artifactFamily?: string,
+  artifactComponent?: string
+): boolean => {
+  if (!artifactFamily && !artifactComponent) {
+    return false;
+  }
+  const fam = artifactFamily || "";
+  const comp = artifactComponent || "";
+  switch (normalizedType) {
+    case "hf.flux":
+      return fam.includes("flux");
+    case "hf.stable_diffusion":
+      return fam.startsWith("sd1") || fam.startsWith("sd2") || fam.includes("stable-diffusion");
+    case "hf.stable_diffusion_xl":
+      return fam.includes("sdxl");
+    case "hf.stable_diffusion_xl_refiner":
+      return fam.includes("refiner") || (fam.includes("sdxl") && comp === "unet");
+    case "hf.stable_diffusion_3":
+      return fam.includes("sd3") || fam.includes("stable-diffusion-3");
+    case "hf.qwen_image":
+      return fam.includes("qwen");
+    default:
+      return false;
+  }
 };
 
 const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {

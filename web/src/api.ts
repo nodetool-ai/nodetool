@@ -633,6 +633,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/models/huggingface/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Huggingface Models Endpoint
+         * @description Search cached Hugging Face repos by metadata and optional filename patterns.
+         */
+        get: operations["search_huggingface_models_endpoint_api_models_huggingface_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models/ollama": {
         parameters: {
             query?: never;
@@ -6893,6 +6913,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": boolean;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_huggingface_models_endpoint_api_models_huggingface_search_get: {
+        parameters: {
+            query?: {
+                repo_pattern?: string[] | null;
+                filename_pattern?: string[] | null;
+                pipeline_tag?: string[] | null;
+                tag?: string[] | null;
+                author?: string[] | null;
+                library_name?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnifiedModel"][];
                 };
             };
             /** @description Validation Error */
