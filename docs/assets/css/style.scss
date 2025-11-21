@@ -274,6 +274,10 @@ blockquote {
   transition: all var(--transition-base);
 }
 
+.logo-image {
+  width: 160px
+}
+
 .logo-bracket {
   color: var(--color-accent-cyan);
   font-weight: 900;
@@ -500,6 +504,8 @@ blockquote {
   flex: 1;
   padding: var(--spacing-2xl) var(--spacing-xl);
   max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .doc-page {
