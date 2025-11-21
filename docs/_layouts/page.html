@@ -1,0 +1,31 @@
+---
+layout: default
+---
+<article class="doc-page">
+  <div class="page-header">
+    <h1 class="page-title">{{ page.title | default: "Documentation" }}</h1>
+    {% if page.description %}
+    <p class="page-description">{{ page.description }}</p>
+    {% endif %}
+  </div>
+
+  <div class="page-content">
+    {{ content }}
+  </div>
+
+  <div class="page-navigation">
+    {% if page.previous %}
+    <a href="{{ page.previous.url | relative_url }}" class="nav-link prev">
+      <span class="nav-arrow">←</span>
+      <span class="nav-text">{{ page.previous.title }}</span>
+    </a>
+    {% endif %}
+
+    {% if page.next %}
+    <a href="{{ page.next.url | relative_url }}" class="nav-link next">
+      <span class="nav-text">{{ page.next.title }}</span>
+      <span class="nav-arrow">→</span>
+    </a>
+    {% endif %}
+  </div>
+</article>

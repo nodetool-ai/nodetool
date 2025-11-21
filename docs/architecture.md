@@ -1,4 +1,7 @@
-# Architecture Overview
+---
+layout: page
+title: "Architecture Overview"
+---
 
 This page explains how the pieces of NodeTool fit together. The codebase is split into multiple packages that interact through a simple client‑server design.
 

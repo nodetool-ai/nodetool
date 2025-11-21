@@ -1,4 +1,7 @@
-# Providers
+---
+layout: page
+title: "Providers"
+---
 
 The NodeTool provider system offers a unified interface for interacting with various AI service providers. This
 abstraction allows you to seamlessly switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)

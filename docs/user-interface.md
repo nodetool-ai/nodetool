@@ -1,4 +1,7 @@
-# NodeTool User Interface
+---
+layout: page
+title: "NodeTool User Interface"
+---
 
 This handbook covers every visible part of the NodeTool app so new and advanced users can move quickly without guesswork. It links concepts to the actual screens you will see in the desktop and web builds. :contentReference[oaicite:1]{index=1}
 
@@ -59,8 +62,6 @@ The Dashboard is the default workspace. It hosts panels such as **Workflows**, *
 - Create a new workflow or chat thread
 - Keep the chat panel visible while browsing
 - Save and restore panel layouts from the menu :contentReference[oaicite:7]{index=7}
-
-> Tip: If you run in local mode on `localhost`, the app navigates straight to `/dashboard`. Otherwise it decides between `/dashboard` and `/login` based on your auth state. :contentReference[oaicite:8]{index=8}
 
 ---
 

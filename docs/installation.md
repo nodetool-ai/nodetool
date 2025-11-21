@@ -1,4 +1,7 @@
-# Installing NodeTool
+---
+layout: page
+title: "Installing NodeTool"
+---
 
 NodeTool includes a small setup process the first time you run it. Follow these steps to get started.
 
