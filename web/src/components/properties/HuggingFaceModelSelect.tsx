@@ -237,6 +237,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
             height: displayInfo.path ? "auto" : "18px",
             minHeight: 0,
             padding: "0 0.5em !important",
+            maxWidth: "100%",
+            overflow: "hidden",
             "&:hover": {
               backgroundColor: "var(--palette-grey-500)"
             }
@@ -244,28 +246,34 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
           onClick={handleClick}
           size="small"
         >
-          <div className="model-label" style={{ textAlign: "left" }}>
-            <div className="model-label-repo-id" style={{ lineHeight: 1 }}>
+          <div className="model-label" style={{ textAlign: "left", maxWidth: "100%", overflow: "hidden" }}>
+            <div className="model-label-repo-id" style={{ lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
               <Typography
                 variant="body2"
                 sx={{
                   color: "var(--palette-grey-200)",
                   lineHeight: 1,
-                  display: "block"
+                  display: "block",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
                 }}
               >
                 {displayInfo.repoId}
               </Typography>
             </div>
             {displayInfo.path && (
-              <div className="model-label-path" style={{ lineHeight: 1 }}>
+              <div className="model-label-path" style={{ lineHeight: 1, maxWidth: "100%", overflow: "hidden" }}>
                 <Typography
                   variant="body2"
                   sx={{
                     color: "var(--palette-grey-400)",
                     lineHeight: 1,
                     display: "block",
-                    fontSize: "0.75em"
+                    fontSize: "0.75em",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
                   }}
                 >
                   {displayInfo.path}
