@@ -130,7 +130,7 @@ class Build:
     def __init__(
         self,
         clean_build: bool = False,
-        python_version: str = "3.11",
+        python_version: str = DEFAULT_PYTHON_VERSION,
     ):
         """Initialize the build configuration and computed paths.
 
