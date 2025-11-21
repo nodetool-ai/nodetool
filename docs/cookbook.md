@@ -1,4 +1,7 @@
-# NodeTool Workflow Cookbook
+---
+layout: page
+title: "NodeTool Workflow Cookbook"
+---
 
 *A comprehensive guide for building AI workflows with NodeTool*
 

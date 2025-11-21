@@ -8,7 +8,7 @@ url: "" # the base hostname & protocol for your site
 
 # Build settings
 markdown: kramdown
-theme: minima
+# Using custom theme - no remote theme
 
 # Plugins
 plugins:
@@ -71,14 +71,8 @@ exclude:
   - .jekyll-cache/
   - gemfiles/
 
-# Minima theme settings
-minima:
-  skin: auto
-  social_links:
-    - platform: github
-      user_url: "https://github.com/nodetool-ai/nodetool"
-    - platform: discord
-      user_url: "https://discord.gg/WmQTWZRcYE"
+# Custom theme settings
+# Using custom futuristic dark theme located in _layouts, _includes, and assets
 
 # Kramdown settings
 kramdown:
