@@ -3,8 +3,8 @@ title: NodeTool Documentation
 description: >-
   Local-first visual environment for building and running AI workflows.
   Build agents visually, deploy anywhere, privacy by design.
-baseurl: "/docs" # the subpath of your site, e.g. /docs
-url: "" # the base hostname & protocol for your site
+baseurl: "/" # the subpath of your site, e.g. /docs
+url: "https://docs.nodetool.ai" # the base hostname & protocol for your site
 
 # Build settings
 markdown: kramdown
