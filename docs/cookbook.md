@@ -131,18 +131,16 @@ To build any example:
 
 **Example**: Image Enhancement
 
-```dot
-digraph workflow {
-  comment [label="Comment"];
-  image_output [label="ImageOutput"];
-  image_input [label="ImageInput"];
-  sharpen [label="Sharpen"];
-  auto_contrast [label="AutoContrast"];
-  image_input -> sharpen;
-  sharpen -> auto_contrast;
-  auto_contrast -> image_output;
-}
-```
+{% mermaid %}
+graph TD
+  image_output["ImageOutput"]
+  image_input["ImageInput"]
+  sharpen["Sharpen"]
+  auto_contrast["AutoContrast"]
+  image_input --> sharpen
+  sharpen --> auto_contrast
+  auto_contrast --> image_output
+{% endmermaid %}
 
 **When to Use**:
 
@@ -158,18 +156,17 @@ ______________________________________________________________________
 
 **Example**: Image to Story
 
-```dot
-digraph workflow {
-  image_input [label="Image"];
-  agent_story [label="Agent (Story Generator)"];
-  preview_audio [label="Preview (Audio)"];
-  comment_workflow [label="Comment"];
-  text_to_speech [label="TextToSpeech"];
-  image_input -> agent_story;
-  agent_story -> text_to_speech;
-  text_to_speech -> preview_audio;
-}
-```
+{% mermaid %}
+graph TD
+  image_input["Image"]
+  agent_story["Agent (Story Generator)"]
+  preview_audio["Preview (Audio)"]
+  comment_workflow["Comment"]
+  text_to_speech["TextToSpeech"]
+  image_input --> agent_story
+  agent_story --> text_to_speech
+  text_to_speech --> preview_audio
+{% endmermaid %}
 
 **When to Use**:
 
@@ -191,34 +188,32 @@ ______________________________________________________________________
 
 **Example**: Movie Poster Generator
 
-```dot
-digraph workflow {
-  strategy_llm [label="Agent (Strategy)"];
-  strategy_template_prompt [label="String (Strategy Template)"];
-  strategy_preview [label="Preview (Strategy)"];
-  strategy_prompt_formatter [label="FormatText (Strategy)"];
-  movie_title_input [label="StringInput (Title)"];
-  genre_input [label="StringInput (Genre)"];
-  audience_input [label="StringInput (Audience)"];
-  image_preview [label="Preview (Image)"];
-  prompt_list_generator [label="ListGenerator"];
-  designer_instructions_prompt [label="String (Designer Instructions)"];
-  comment_overview [label="Comment"];
-  preview_prompts [label="Preview (Prompts)"];
-  mflux [label="MFlux"];
-  strategy_llm -> strategy_preview;
-  strategy_template_prompt -> strategy_prompt_formatter;
-  strategy_prompt_formatter -> strategy_llm;
-  strategy_llm -> prompt_list_generator;
-  designer_instructions_prompt -> prompt_list_generator;
-  audience_input -> strategy_prompt_formatter;
-  movie_title_input -> strategy_prompt_formatter;
-  genre_input -> strategy_prompt_formatter;
-  prompt_list_generator -> preview_prompts;
-  prompt_list_generator -> mflux;
-  mflux -> image_preview;
-}
-```
+{% mermaid %}
+graph TD
+  strategy_llm["Agent (Strategy)"]
+  strategy_template_prompt["String (Strategy Template)"]
+  strategy_preview["Preview (Strategy)"]
+  strategy_prompt_formatter["FormatText (Strategy)"]
+  movie_title_input["StringInput (Title)"]
+  genre_input["StringInput (Genre)"]
+  audience_input["StringInput (Audience)"]
+  image_preview["Preview (Image)"]
+  prompt_list_generator["ListGenerator"]
+  designer_instructions_prompt["String (Designer Instructions)"]
+  preview_prompts["Preview (Prompts)"]
+  mflux["MFlux"]
+  strategy_llm --> strategy_preview
+  strategy_template_prompt --> strategy_prompt_formatter
+  strategy_prompt_formatter --> strategy_llm
+  strategy_llm --> prompt_list_generator
+  designer_instructions_prompt --> prompt_list_generator
+  audience_input --> strategy_prompt_formatter
+  movie_title_input --> strategy_prompt_formatter
+  genre_input --> strategy_prompt_formatter
+  prompt_list_generator --> preview_prompts
+  prompt_list_generator --> mflux
+  mflux --> image_preview
+{% endmermaid %}
 
 **When to Use**:
 
@@ -241,23 +236,19 @@ ______________________________________________________________________
 
 **Example**: Chat with Docs
 
-```dot
-digraph workflow {
-  chat_input [label="ChatInput"];
-  string_output [label="StringOutput (Answer)"];
-  format_text [label="FormatText"];
-  hybrid_search [label="HybridSearch"];
-  comment_rag [label="Comment (RAG Info)"];
-  comment_chat_window [label="Comment (Chat Window)"];
-  comment_collection [label="Comment (Collection Setup)"];
-  llm_streaming [label="LLMStreaming"];
-  chat_input -> format_text;
-  chat_input -> hybrid_search;
-  hybrid_search -> format_text;
-  format_text -> llm_streaming;
-  llm_streaming -> string_output;
-}
-```
+{% mermaid %}
+graph TD
+  chat_input["ChatInput"]
+  string_output["StringOutput (Answer)"]
+  format_text["FormatText"]
+  hybrid_search["HybridSearch"]
+  llm_streaming["LLMStreaming"]
+  chat_input --> format_text
+  chat_input --> hybrid_search
+  hybrid_search --> format_text
+  format_text --> llm_streaming
+  llm_streaming --> string_output
+{% endmermaid %}
 
 **When to Use**:
 
@@ -273,25 +264,23 @@ digraph workflow {
 
 **Related Workflow**: Index PDFs
 
-```dot
-digraph workflow {
-  list_files [label="ListFiles"];
-  collection [label="Collection"];
-  load_document [label="LoadDocumentFile"];
-  extract_text [label="ExtractText"];
-  index_chunks [label="IndexTextChunks"];
-  sentence_splitter [label="SentenceSplitter"];
-  path_to_string [label="PathToString"];
-  comment_workflow [label="Comment"];
-  extract_text -> sentence_splitter;
-  load_document -> extract_text;
-  sentence_splitter -> index_chunks;
-  collection -> index_chunks;
-  list_files -> load_document;
-  list_files -> path_to_string;
-  path_to_string -> sentence_splitter;
-}
-```
+{% mermaid %}
+graph TD
+  list_files["ListFiles"]
+  collection["Collection"]
+  load_document["LoadDocumentFile"]
+  extract_text["ExtractText"]
+  index_chunks["IndexTextChunks"]
+  sentence_splitter["SentenceSplitter"]
+  path_to_string["PathToString"]
+  extract_text --> sentence_splitter
+  load_document --> extract_text
+  sentence_splitter --> index_chunks
+  collection --> index_chunks
+  list_files --> load_document
+  list_files --> path_to_string
+  path_to_string --> sentence_splitter
+{% endmermaid %}
 
 ______________________________________________________________________
 
@@ -301,24 +290,22 @@ ______________________________________________________________________
 
 **Example**: AI Flashcard Generator with SQLite
 
-```dot
-digraph workflow {
-  topic_input [label="StringInput (Topic)"];
-  create_table [label="CreateTable"];
-  format_prompt [label="FormatText"];
-  generate_flashcards [label="DataGenerator"];
-  insert_flashcard [label="Insert"];
-  query_all [label="Query"];
-  display_result [label="Preview"];
-  comment_workflow [label="Comment"];
-  topic_input -> format_prompt;
-  format_prompt -> generate_flashcards;
-  generate_flashcards -> insert_flashcard;
-  create_table -> query_all;
-  create_table -> insert_flashcard;
-  query_all -> display_result;
-}
-```
+{% mermaid %}
+graph TD
+  topic_input["StringInput (Topic)"]
+  create_table["CreateTable"]
+  format_prompt["FormatText"]
+  generate_flashcards["DataGenerator"]
+  insert_flashcard["Insert"]
+  query_all["Query"]
+  display_result["Preview"]
+  topic_input --> format_prompt
+  format_prompt --> generate_flashcards
+  generate_flashcards --> insert_flashcard
+  create_table --> query_all
+  create_table --> insert_flashcard
+  query_all --> display_result
+{% endmermaid %}
 
 **When to Use**:
 
@@ -349,20 +336,18 @@ ______________________________________________________________________
 
 **Example**: Summarize Newsletters
 
-```dot
-digraph workflow {
-  gmail_search [label="GmailSearch"];
-  email_fields [label="EmailFields"];
-  summarizer_streaming [label="SummarizerStreaming"];
-  preview_summary [label="Preview (Summary)"];
-  comment_workflow [label="Comment"];
-  preview_body [label="Preview (Body)"];
-  gmail_search -> email_fields;
-  email_fields -> summarizer_streaming;
-  summarizer_streaming -> preview_summary;
-  email_fields -> preview_body;
-}
-```
+{% mermaid %}
+graph TD
+  gmail_search["GmailSearch"]
+  email_fields["EmailFields"]
+  summarizer_streaming["SummarizerStreaming"]
+  preview_summary["Preview (Summary)"]
+  preview_body["Preview (Body)"]
+  gmail_search --> email_fields
+  email_fields --> summarizer_streaming
+  summarizer_streaming --> preview_summary
+  email_fields --> preview_body
+{% endmermaid %}
 
 **When to Use**:
 
@@ -385,16 +370,14 @@ ______________________________________________________________________
 
 **Example**: Realtime Agent
 
-```dot
-digraph workflow {
-  audio_input [label="RealtimeAudioInput"];
-  preview_output [label="Preview"];
-  realtime_agent [label="RealtimeAgent"];
-  comment_workflow [label="Comment"];
-  audio_input -> realtime_agent;
-  realtime_agent -> preview_output;
-}
-```
+{% mermaid %}
+graph TD
+  audio_input["RealtimeAudioInput"]
+  preview_output["Preview"]
+  realtime_agent["RealtimeAgent"]
+  audio_input --> realtime_agent
+  realtime_agent --> preview_output
+{% endmermaid %}
 
 **When to Use**:
 
@@ -417,18 +400,16 @@ ______________________________________________________________________
 
 **Example**: Audio to Image
 
-```dot
-digraph workflow {
-  comment [label="Comment"];
-  stable_diffusion [label="StableDiffusion"];
-  whisper [label="Whisper"];
-  audio_input [label="AudioInput"];
-  image_output [label="ImageOutput"];
-  whisper -> stable_diffusion;
-  audio_input -> whisper;
-  stable_diffusion -> image_output;
-}
-```
+{% mermaid %}
+graph TD
+  stable_diffusion["StableDiffusion"]
+  whisper["Whisper"]
+  audio_input["AudioInput"]
+  image_output["ImageOutput"]
+  whisper --> stable_diffusion
+  audio_input --> whisper
+  stable_diffusion --> image_output
+{% endmermaid %}
 
 **When to Use**:
 
@@ -450,28 +431,26 @@ ______________________________________________________________________
 
 **Example**: Style Transfer
 
-```dot
-digraph workflow {
-  comment [label="Comment"];
-  stable_diffusion_control_net_img2img [label="StableDiffusionControlNetImg2Img"];
-  image_input_1 [label="ImageInput"];
-  image_input_2 [label="ImageInput"];
-  image_output [label="ImageOutput"];
-  canny [label="Canny"];
-  image_to_text [label="ImageToText"];
-  fit_1 [label="Fit"];
-  fit_2 [label="Fit"];
-  stable_diffusion_control_net_img2img -> image_output;
-  canny -> stable_diffusion_control_net_img2img;
-  image_to_text -> stable_diffusion_control_net_img2img;
-  image_input_2 -> fit_1;
-  image_input_1 -> fit_2;
-  fit_2 -> canny;
-  fit_2 -> image_to_text;
-  image_input_2 -> stable_diffusion_control_net_img2img;
-  fit_2 -> stable_diffusion_control_net_img2img;
-}
-```
+{% mermaid %}
+graph TD
+  stable_diffusion_control_net_img2img["StableDiffusionControlNetImg2Img"]
+  image_input_1["ImageInput"]
+  image_input_2["ImageInput"]
+  image_output["ImageOutput"]
+  canny["Canny"]
+  image_to_text["ImageToText"]
+  fit_1["Fit"]
+  fit_2["Fit"]
+  stable_diffusion_control_net_img2img --> image_output
+  canny --> stable_diffusion_control_net_img2img
+  image_to_text --> stable_diffusion_control_net_img2img
+  image_input_2 --> fit_1
+  image_input_1 --> fit_2
+  fit_2 --> canny
+  fit_2 --> image_to_text
+  image_input_2 --> stable_diffusion_control_net_img2img
+  fit_2 --> stable_diffusion_control_net_img2img
+{% endmermaid %}
 
 **When to Use**:
 
@@ -493,22 +472,20 @@ ______________________________________________________________________
 
 **Example**: Data Visualization Pipeline
 
-```dot
-digraph workflow {
-  preview_1 [label="Preview"];
-  comment [label="Comment"];
-  get_request [label="GetRequest"];
-  import_c_s_v [label="ImportCSV"];
-  filter [label="Filter"];
-  chart_generator [label="ChartGenerator"];
-  preview_2 [label="Preview"];
-  get_request -> import_c_s_v;
-  import_c_s_v -> filter;
-  filter -> preview_1;
-  filter -> chart_generator;
-  chart_generator -> preview_2;
-}
-```
+{% mermaid %}
+graph TD
+  preview_1["Preview"]
+  get_request["GetRequest"]
+  import_c_s_v["ImportCSV"]
+  filter["Filter"]
+  chart_generator["ChartGenerator"]
+  preview_2["Preview"]
+  get_request --> import_c_s_v
+  import_c_s_v --> filter
+  filter --> preview_1
+  filter --> chart_generator
+  chart_generator --> preview_2
+{% endmermaid %}
 
 **When to Use**:
 
@@ -531,48 +508,42 @@ ______________________________________________________________________
 
 #### 1. Transcribe Audio
 
-```dot
-digraph workflow {
-  comment [label="Comment"];
-  whisper [label="Whisper"];
-  audio_input [label="AudioInput"];
-  string_output [label="StringOutput"];
-  audio_input -> whisper;
-  whisper -> string_output;
-}
-```
+{% mermaid %}
+graph TD
+  whisper["Whisper"]
+  audio_input["AudioInput"]
+  string_output["StringOutput"]
+  audio_input --> whisper
+  whisper --> string_output
+{% endmermaid %}
 
 **Use**: Convert speech to text with timestamps
 
 #### 2. Summarize Audio
 
-```dot
-digraph workflow {
-  comment_workflow [label="Comment"];
-  whisper [label="Whisper"];
-  audio_input [label="AudioInput"];
-  string_output [label="StringOutput (Summary)"];
-  llm [label="LLM"];
-  audio_input -> whisper;
-  llm -> string_output;
-  whisper -> llm;
-}
-```
+{% mermaid %}
+graph TD
+  whisper["Whisper"]
+  audio_input["AudioInput"]
+  string_output["StringOutput (Summary)"]
+  llm["LLM"]
+  audio_input --> whisper
+  llm --> string_output
+  whisper --> llm
+{% endmermaid %}
 
 **Use**: Transcribe + summarize in one workflow
 
 #### 3. Remove Silence
 
-```dot
-digraph workflow {
-  remove_silence [label="RemoveSilence"];
-  preview [label="Preview"];
-  comment [label="Comment"];
-  audio [label="Audio"];
-  remove_silence -> preview;
-  audio -> remove_silence;
-}
-```
+{% mermaid %}
+graph TD
+  remove_silence["RemoveSilence"]
+  preview["Preview"]
+  audio["Audio"]
+  remove_silence --> preview
+  audio --> remove_silence
+{% endmermaid %}
 
 **Use**: Clean audio by removing silent segments
 
@@ -582,44 +553,40 @@ ______________________________________________________________________
 
 #### 1. Add Subtitles to Video
 
-```dot
-digraph workflow {
-  extract_audio [label="ExtractAudio"];
-  whisper [label="Whisper"];
-  add_subtitles [label="AddSubtitles"];
-  preview_1 [label="Preview"];
-  preview_2 [label="Preview"];
-  comment [label="Comment"];
-  video [label="Video"];
-  extract_audio -> whisper;
-  video -> extract_audio;
-  add_subtitles -> preview_1;
-  whisper -> add_subtitles;
-  video -> add_subtitles;
-  whisper -> preview_2;
-}
-```
+{% mermaid %}
+graph TD
+  extract_audio["ExtractAudio"]
+  whisper["Whisper"]
+  add_subtitles["AddSubtitles"]
+  preview_1["Preview"]
+  preview_2["Preview"]
+  video["Video"]
+  extract_audio --> whisper
+  video --> extract_audio
+  add_subtitles --> preview_1
+  whisper --> add_subtitles
+  video --> add_subtitles
+  whisper --> preview_2
+{% endmermaid %}
 
 **Use**: Auto-generate and burn subtitles into video
 
 #### 2. Audio to Spectrogram
 
-```dot
-digraph workflow {
-  comment_workflow [label="Comment"];
-  img2img [label="StableDiffusionImg2Img"];
-  mel_spectrogram [label="MelSpectrogram"];
-  audio_input [label="AudioInput"];
-  resize [label="Resize"];
-  image_output [label="ImageOutput"];
-  convert_to_image [label="ConvertToImage"];
-  audio_input -> mel_spectrogram;
-  resize -> img2img;
-  img2img -> image_output;
-  mel_spectrogram -> convert_to_image;
-  convert_to_image -> resize;
-}
-```
+{% mermaid %}
+graph TD
+  img2img["StableDiffusionImg2Img"]
+  mel_spectrogram["MelSpectrogram"]
+  audio_input["AudioInput"]
+  resize["Resize"]
+  image_output["ImageOutput"]
+  convert_to_image["ConvertToImage"]
+  audio_input --> mel_spectrogram
+  resize --> img2img
+  img2img --> image_output
+  mel_spectrogram --> convert_to_image
+  convert_to_image --> resize
+{% endmermaid %}
 
 **Use**: Convert audio to visual spectrogram, then enhance with AI
 
@@ -629,89 +596,82 @@ ______________________________________________________________________
 
 #### 1. Upscaling
 
-```dot
-digraph workflow {
-  comment_workflow [label="Comment"];
-  real_esrgan [label="RealESRGAN"];
-  image_input [label="ImageInput"];
-  image_output [label="ImageOutput"];
-  image_input -> real_esrgan;
-  real_esrgan -> image_output;
-}
-```
+{% mermaid %}
+graph TD
+  real_esrgan["RealESRGAN"]
+  image_input["ImageInput"]
+  image_output["ImageOutput"]
+  image_input --> real_esrgan
+  real_esrgan --> image_output
+{% endmermaid %}
 
 **Use**: AI-powered image upscaling
 
 #### 2. Object Detection
 
-```dot
-digraph workflow {
-  preview [label="Preview"];
-  image [label="Image"];
-  object_detection [label="ObjectDetection"];
-  visualize_object_detection [label="VisualizeObjectDetection"];
-  comment [label="Comment"];
-  image -> object_detection;
-  object_detection -> visualize_object_detection;
-  image -> visualize_object_detection;
-  visualize_object_detection -> preview;
-}
-```
+{% mermaid %}
+graph TD
+  preview["Preview"]
+  image["Image"]
+  object_detection["ObjectDetection"]
+  visualize_object_detection["VisualizeObjectDetection"]
+  image --> object_detection
+  object_detection --> visualize_object_detection
+  image --> visualize_object_detection
+  visualize_object_detection --> preview
+{% endmermaid %}
 
 **Use**: Detect and visualize objects in images
 
 #### 3. Depth Estimation
 
-```dot
-digraph workflow {
-  depth_estimation [label="DepthEstimation"];
-  image [label="Image"];
-  preview [label="Preview"];
-  image -> depth_estimation;
-  depth_estimation -> preview;
-}
-```
+{% mermaid %}
+graph TD
+  depth_estimation["DepthEstimation"]
+  image["Image"]
+  preview["Preview"]
+  image --> depth_estimation
+  depth_estimation --> preview
+{% endmermaid %}
 
 **Use**: Estimate depth map from 2D image
 
 #### 4. Segmentation
 
-```dot
-digraph workflow {
-  image [label="Image"];
-  segmentation [label="Segmentation"];
-  visualize_segmentation [label="VisualizeSegmentation"];
-  preview_1 [label="Preview"];
-  preview_2 [label="Preview"];
-  image -> segmentation;
-  visualize_segmentation -> preview_1;
-  segmentation -> preview_2;
-  image -> visualize_segmentation;
-  segmentation -> visualize_segmentation;
-}
-```
+{% mermaid %}
+graph TD
+  image["Image"]
+  segmentation["Segmentation"]
+  visualize_segmentation["VisualizeSegmentation"]
+  preview_1["Preview"]
+  preview_2["Preview"]
+  image --> segmentation
+  visualize_segmentation --> preview_1
+  segmentation --> preview_2
+  image --> visualize_segmentation
+  segmentation --> visualize_segmentation
+{% endmermaid %}
 
 **Use**: Segment image into regions
 
 #### 5. Controlnet
 
-```dot
-digraph workflow {
-  stable_diffusion_control_net [label="StableDiffusionControlNet"];
-  preview [label="Preview"];
-  image [label="Image"];
-  canny [label="Canny"];
-  image_to_text [label="ImageToText"];
-  fit [label="Fit"];
-  comment [label="Comment"];
-  stable_diffusion_control_net -> preview;
-  canny -> stable_diffusion_control_net;
-  image_to_text -> stable_diffusion_control_net;
-  image -> fit;
-  fit -> canny;
-  fit -> image_to_text;
-}
-```
+{% mermaid %}
+graph TD
+  stable_diffusion_control_net["StableDiffusionControlNet"]
+  preview["Preview"]
+  image["Image"]
+  canny["Canny"]
+  image_to_text["ImageToText"]
+  fit["Fit"]
+  comment["Comment"]
+  stable_diffusion_control_net --> preview
+  canny --> stable_diffusion_control_net
+  image_to_text --> stable_diffusion_control_net
+  image --> fit
+  fit --> canny
+  fit --> image_to_text
+{% endmermaid %}
 
 **Use**: Generate images with edge-based guidance
 
@@ -721,76 +681,72 @@ ______________________________________________________________________
 
 #### 1. Categorize Mails
 
-```dot
-digraph workflow {
-  gmail_search [label="GmailSearch"];
-  email_fields [label="EmailFields"];
-  classifier [label="Classifier"];
-  preview [label="Preview"];
-  comment_workflow [label="Comment"];
-  gmail_search -> email_fields;
-  email_fields -> classifier;
-  classifier -> preview;
-}
-```
+{% mermaid %}
+graph TD
+  gmail_search["GmailSearch"]
+  email_fields["EmailFields"]
+  classifier["Classifier"]
+  preview["Preview"]
+  comment_workflow["Comment"]
+  gmail_search --> email_fields
+  email_fields --> classifier
+  classifier --> preview
+{% endmermaid %}
 
 **Use**: Automatically categorize emails with AI
 
 #### 2. Summarize Paper
 
-```dot
-digraph workflow {
-  load_document_file [label="LoadDocumentFile"];
-  extract_text [label="ExtractText"];
-  preview_summary [label="Preview (Summary)"];
-  summarizer [label="Summarizer"];
-  preview_text [label="Preview (Text)"];
-  comment_workflow [label="Comment"];
-  load_document_file -> extract_text;
-  extract_text -> summarizer;
-  extract_text -> preview_text;
-  summarizer -> preview_summary;
-}
-```
+{% mermaid %}
+graph TD
+  load_document_file["LoadDocumentFile"]
+  extract_text["ExtractText"]
+  preview_summary["Preview (Summary)"]
+  summarizer["Summarizer"]
+  preview_text["Preview (Text)"]
+  comment_workflow["Comment"]
+  load_document_file --> extract_text
+  extract_text --> summarizer
+  extract_text --> preview_text
+  summarizer --> preview_summary
+{% endmermaid %}
 
 **Use**: Extract and summarize research papers
 
 #### 3. Fetch Papers
 
-```dot
-digraph workflow {
-  get_request [label="GetRequest"];
-  markdown_splitter [label="MarkdownSplitter"];
-  filter [label="Filter"];
-  extract_links [label="ExtractLinks"];
-  download_file [label="DownloadFile"];
-  preview [label="Preview"];
-  comment_workflow [label="Comment"];
-  get_request -> markdown_splitter;
-  markdown_splitter -> extract_links;
-  extract_links -> filter;
-  filter -> download_file;
-  filter -> preview;
-}
-```
+{% mermaid %}
+graph TD
+  get_request["GetRequest"]
+  markdown_splitter["MarkdownSplitter"]
+  filter["Filter"]
+  extract_links["ExtractLinks"]
+  download_file["DownloadFile"]
+  preview["Preview"]
+  comment_workflow["Comment"]
+  get_request --> markdown_splitter
+  markdown_splitter --> extract_links
+  extract_links --> filter
+  filter --> download_file
+  filter --> preview
+{% endmermaid %}
 
 **Use**: Auto-download papers from web resources
 
 #### 4. Summarize RSS
 
-```dot
-digraph workflow {
-  fetch_r_s_s_feed [label="FetchRSSFeed"];
-  collect [label="Collect"];
-  summarizer [label="Summarizer"];
-  preview [label="Preview"];
-  string_output [label="StringOutput"];
-  fetch_r_s_s_feed -> collect;
-  collect -> summarizer;
-  summarizer -> preview;
-  summarizer -> string_output;
-}
-```
+{% mermaid %}
+graph TD
+  fetch_r_s_s_feed["FetchRSSFeed"]
+  collect["Collect"]
+  summarizer["Summarizer"]
+  preview["Preview"]
+  string_output["StringOutput"]
+  fetch_r_s_s_feed --> collect
+  collect --> summarizer
+  summarizer --> preview
+  summarizer --> string_output
+{% endmermaid %}
 
 **Use**: Monitor and summarize RSS feeds
 
@@ -800,58 +756,55 @@ ______________________________________________________________________
 
 #### 1. Pokemon Maker
 
-```dot
-digraph workflow {
-  animals_input [label="StringInput (Animals)"];
-  format_text [label="FormatText (Pokemon Prompt)"];
-  list_generator [label="ListGenerator"];
-  stable_diffusion [label="StableDiffusion"];
-  image_output [label="ImageOutput"];
-  preview_description [label="Preview (Description)"];
-  preview_image [label="Preview (Image)"];
-  format_text -> list_generator;
-  list_generator -> stable_diffusion;
-  stable_diffusion -> image_output;
-  animals_input -> format_text;
-  list_generator -> preview_description;
-  stable_diffusion -> preview_image;
-}
-```
+{% mermaid %}
+graph TD
+  animals_input["StringInput (Animals)"]
+  format_text["FormatText (Pokemon Prompt)"]
+  list_generator["ListGenerator"]
+  stable_diffusion["StableDiffusion"]
+  image_output["ImageOutput"]
+  preview_description["Preview (Description)"]
+  preview_image["Preview (Image)"]
+  format_text --> list_generator
+  list_generator --> stable_diffusion
+  stable_diffusion --> image_output
+  animals_input --> format_text
+  list_generator --> preview_description
+  stable_diffusion --> preview_image
+{% endmermaid %}
 
 **Use**: Generate Pokemon-style creatures from descriptions
 
 #### 2. Re-Imagine
 
-```dot
-digraph workflow {
-  comment_workflow [label="Comment"];
-  image_input [label="Image"];
-  fit [label="Fit"];
-  image_to_text [label="ImageToText"];
-  img2img [label="StableDiffusionImg2Img"];
-  image_preview [label="Preview"];
-  image_input -> fit;
-  fit -> image_to_text;
-  image_to_text -> img2img;
-  fit -> img2img;
-  img2img -> image_preview;
-}
-```
+{% mermaid %}
+graph TD
+  comment_workflow["Comment"]
+  image_input["Image"]
+  fit["Fit"]
+  image_to_text["ImageToText"]
+  img2img["StableDiffusionImg2Img"]
+  image_preview["Preview"]
+  image_input --> fit
+  fit --> image_to_text
+  image_to_text --> img2img
+  fit --> img2img
+  img2img --> image_preview
+{% endmermaid %}
 
 **Use**: Reimagine an image with AI
 
 #### 3. Img2Img
 
-```dot
-digraph workflow {
-  comment_workflow [label="Comment"];
-  image_input [label="Image"];
-  img2img [label="StableDiffusionImg2Img"];
-  image_preview [label="Preview"];
-  image_input -> img2img;
-  img2img -> image_preview;
-}
-```
+{% mermaid %}
+graph TD
+  comment_workflow["Comment"]
+  image_input["Image"]
+  img2img["StableDiffusionImg2Img"]
+  image_preview["Preview"]
+  image_input --> img2img
+  img2img --> image_preview
+{% endmermaid %}
 
 **Use**: Simple image-to-image transformation
 
@@ -861,14 +814,13 @@ ______________________________________________________________________
 
 #### 1. Data Generator
 
-```dot
-digraph workflow {
-  preview [label="Preview"];
-  data_generator [label="DataGenerator"];
-  comment [label="Comment"];
-  data_generator -> preview;
-}
-```
+{% mermaid %}
+graph TD
+  preview["Preview"]
+  data_generator["DataGenerator"]
+  comment["Comment"]
+  data_generator --> preview
+{% endmermaid %}
 
 **Use**: Generate structured datasets from natural language
 
