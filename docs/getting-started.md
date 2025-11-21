@@ -9,21 +9,7 @@ the way.
 ## 1. Install NodeTool
 
 If you haven't already, grab the latest release from [nodetool.ai](https://nodetool.ai) and run the installer. Check out
-[Installing NodeTool](installation.md) for full details.
-
-### How the Installer Works
-
-When you first launch NodeTool, the installer automatically sets up a Python environment that powers all workflow execution. Here's what happens behind the scenes:
-
-**Python Environment Setup:**
-- NodeTool takes care of setting up the Python environment for you—no tech skills needed.
-- You’ll simply choose where you want it installed (or go with the suggested spot).
-
-**What Gets Installed:**
-- **Python runtime** with all required dependencies
-- **Ollama** - for running local language models
-- **llama.cpp** - optimized inference engine (CUDA-enabled on Windows/Linux, CPU-only on macOS)
-- **Python packages** - all NodeTool dependencies are installed via pip
+[Installing NodeTool](installation.md) for full installation details.
 
 
 ## 2. Install Models
