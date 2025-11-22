@@ -22,6 +22,19 @@ type ExplorerWindow = Window & {
 const explorerUnavailableMessage =
   "Unable to open folders because the desktop bridge is not available.";
 
+const LOG_PREFIX = "[fileExplorer]";
+
+function debugLog(message: string, extra?: unknown): void {
+  if (typeof console === "undefined" || typeof console.debug !== "function") {
+    return;
+  }
+  if (typeof extra === "undefined") {
+    console.debug(LOG_PREFIX, message);
+  } else {
+    console.debug(LOG_PREFIX, message, extra);
+  }
+}
+
 function getExplorerBridge(): ExplorerBridge | null {
   const currentWindow = resolveExplorerWindow();
 
@@ -79,8 +92,10 @@ function handleExplorerResult(
   fallbackMessage: string
 ): void {
   if (!result) {
+    debugLog("Explorer bridge returned no result");
     return;
   }
+  debugLog("Explorer bridge returned result", result);
   if (result.status === "error") {
     const message = result.message ?? fallbackMessage;
     notify("error", message);
@@ -107,8 +122,10 @@ export function isFileExplorerAvailable(): boolean {
  * @param path Absolute or user-specific path to open.
  */
 export async function openInExplorer(path: string): Promise<void> {
+  debugLog("openInExplorer request", { path });
   if (!path) {
     console.warn("[fileExplorer] Tried to open an empty path in explorer.");
+    debugLog("openInExplorer aborted due to empty path");
     return;
   }
 
@@ -117,19 +134,24 @@ export async function openInExplorer(path: string): Promise<void> {
       "[fileExplorer] Invalid path supplied, refusing to open explorer:",
       path
     );
+    debugLog("openInExplorer aborted due to invalid path");
     return;
   }
 
   const explorer = ensureExplorerAvailable();
   if (!explorer) {
+    debugLog("openInExplorer aborted because explorer bridge is unavailable");
     return;
   }
 
   try {
+    debugLog("Calling explorer.openModelPath", { path });
     const result = await explorer.openModelPath(path);
     handleExplorerResult(result, "Unable to open the requested path.");
+    debugLog("openInExplorer completed");
   } catch (error) {
     console.error("[fileExplorer] Failed to open path in explorer:", error);
+    debugLog("openInExplorer threw", error);
     notify("error", "Could not open folder in file explorer.");
   }
 }
@@ -140,14 +162,18 @@ export async function openInExplorer(path: string): Promise<void> {
 export async function openHuggingfacePath(): Promise<void> {
   const explorer = ensureExplorerAvailable();
   if (!explorer) {
+    debugLog("openHuggingfacePath aborted because explorer bridge is unavailable");
     return;
   }
 
   try {
+    debugLog("Calling explorer.openModelDirectory for huggingface");
     const result = await explorer.openModelDirectory("huggingface");
     handleExplorerResult(result, "Could not open HuggingFace folder.");
+    debugLog("openHuggingfacePath completed");
   } catch (error) {
     console.error("[fileExplorer] Failed to open HuggingFace path:", error);
+    debugLog("openHuggingfacePath threw", error);
     notify("error", "Could not open HuggingFace folder.");
   }
 }
@@ -158,14 +184,18 @@ export async function openHuggingfacePath(): Promise<void> {
 export async function openOllamaPath(): Promise<void> {
   const explorer = ensureExplorerAvailable();
   if (!explorer) {
+    debugLog("openOllamaPath aborted because explorer bridge is unavailable");
     return;
   }
 
   try {
+    debugLog("Calling explorer.openModelDirectory for ollama");
     const result = await explorer.openModelDirectory("ollama");
     handleExplorerResult(result, "Could not open Ollama folder.");
+    debugLog("openOllamaPath completed");
   } catch (error) {
     console.error("[fileExplorer] Failed to open Ollama path:", error);
+    debugLog("openOllamaPath threw", error);
     notify("error", "Could not open Ollama folder.");
   }
 }

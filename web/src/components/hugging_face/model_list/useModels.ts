@@ -15,7 +15,7 @@ export const useModels = () => {
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
-    showDownloadedOnly
+    filterStatus
   } = useModelManagerStore();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -47,6 +47,10 @@ export const useModels = () => {
       const matchesText =
         model.name?.toLowerCase().includes(searchTerm) ||
         model.repo_id?.toLowerCase().includes(searchTerm);
+      // When counting "filtered" models, we do NOT filter by type here if "All" is selected,
+      // because the count logic is handled differently or we want the total count to reflect
+      // all models matching search/size/download status.
+      // HOWEVER, if the user selects a specific type, we DO filter by it.
       const typeMatches =
         selectedModelType === "All" || model.type === selectedModelType;
 
@@ -58,7 +62,10 @@ export const useModels = () => {
         model.size_on_disk > maxModelSizeGB * 1024 ** 3
       )
         return false;
-      if (showDownloadedOnly && !model.downloaded) return false;
+
+      if (filterStatus === "downloaded" && !model.downloaded) return false;
+      if (filterStatus === "not_downloaded" && model.downloaded) return false;
+
       return true;
     };
     return allModels?.filter(filterModel) || [];
@@ -67,7 +74,7 @@ export const useModels = () => {
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
-    showDownloadedOnly
+    filterStatus
   ]);
 
   const modelTypes = useMemo(() => {
@@ -84,7 +91,7 @@ export const useModels = () => {
     return sortModelTypes(Array.from(allTypes));
   }, [allModels]);
 
-  // Get available model types based on current filters (for sidebar visibility)
+    // Get available model types based on current filters (for sidebar visibility)
   const availableModelTypes = useMemo(() => {
     const types = new Set<string>();
     types.add("All");
@@ -104,7 +111,10 @@ export const useModels = () => {
           model.size_on_disk > maxModelSizeGB * 1024 ** 3
         )
           return false;
-        if (showDownloadedOnly && !model.downloaded) return false;
+
+        if (filterStatus === "downloaded" && !model.downloaded) return false;
+        if (filterStatus === "not_downloaded" && model.downloaded) return false;
+
         return true;
       }) || [];
 
@@ -115,7 +125,7 @@ export const useModels = () => {
     });
 
     return types;
-  }, [allModels, modelSearchTerm, maxModelSizeGB, showDownloadedOnly]);
+  }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus]);
 
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) return;

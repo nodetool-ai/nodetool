@@ -137,8 +137,20 @@ function isPathWithin(target: string, root: string): boolean {
 export async function openPathInExplorer(
   requestedPath: string
 ): Promise<FileExplorerResult> {
+  await logMessage(
+    `[fileExplorer] Received request to open path: ${requestedPath}`
+  );
   const safeRoots = getValidExplorableRoots();
+  await logMessage(
+    `[fileExplorer] Safe roots resolved: ${
+      safeRoots.length > 0 ? safeRoots.join(", ") : "<none>"
+    }`
+  );
   if (safeRoots.length === 0) {
+    await logMessage(
+      "[fileExplorer] Aborting openPathInExplorer because no safe roots were found",
+      "warn"
+    );
     return {
       status: "error",
       message:
@@ -149,6 +161,9 @@ export async function openPathInExplorer(
   let normalized: string;
   try {
     normalized = normalizePath(requestedPath);
+    await logMessage(
+      `[fileExplorer] Normalized requested path to: ${normalized}`
+    );
   } catch (error) {
     logMessage(
       `Failed to normalize path ${requestedPath}: ${String(error)}`,
@@ -162,7 +177,7 @@ export async function openPathInExplorer(
 
   const isSafe = safeRoots.some((root) => isPathWithin(normalized, root));
   if (!isSafe) {
-    logMessage(
+    await logMessage(
       `Path traversal attempt: ${normalized} is outside allowed directories ${safeRoots.join(
         ", "
       )}`,
@@ -175,13 +190,20 @@ export async function openPathInExplorer(
   }
 
   try {
+    await logMessage(
+      `[fileExplorer] Opening path via shell: ${normalized}`,
+      "info"
+    );
     const result = await shell.openPath(normalized);
     if (result) {
       throw new Error(result);
     }
+    await logMessage(
+      `[fileExplorer] Successfully opened path in explorer: ${normalized}`
+    );
     return { status: "success", path: normalized };
   } catch (error) {
-    logMessage(
+    await logMessage(
       `Failed to open path ${normalized} in explorer: ${String(error)}`,
       "error"
     );
@@ -196,17 +218,27 @@ export async function openPathInExplorer(
 export async function openModelDirectory(
   target: ModelDirectory
 ): Promise<FileExplorerResult> {
+  await logMessage(
+    `[fileExplorer] Request to open model directory: ${target}`
+  );
   const dir =
     target === "ollama" ? getOllamaModelsDir() : getHuggingFaceCacheDir();
 
   if (!dir) {
     const label =
       target === "ollama" ? "Ollama models" : "Hugging Face cache";
+    await logMessage(
+      `[fileExplorer] ${label} directory is unavailable; cannot open in explorer`,
+      "warn"
+    );
     return {
       status: "error",
       message: `${label} directory is not available on this system.`,
     };
   }
 
+  await logMessage(
+    `[fileExplorer] Resolved ${target} directory to: ${dir}. Forwarding to openPathInExplorer.`
+  );
   return openPathInExplorer(dir);
 }
