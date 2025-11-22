@@ -3,6 +3,7 @@ import { Button, Tooltip, Chip } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import DeleteButton from "../../buttons/DeleteButton";
 import DownloadIcon from "@mui/icons-material/Download";
+
 import {
   HuggingFaceLink,
   ModelShowInExplorerButton,
@@ -14,6 +15,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../../config/constants";
+import { isProduction, isElectron } from "../../../stores/ApiClient";
 
 interface ModelListItemActionsProps {
   model: UnifiedModel;
@@ -51,7 +53,11 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       )}
       {downloaded && (
         <Tooltip
-          title={handleShowInExplorer ? "Show in Explorer" : "Downloaded"}
+          title={
+            handleShowInExplorer && !isProduction && isElectron
+              ? "Show in Explorer"
+              : "Downloaded"
+          }
           enterDelay={TOOLTIP_ENTER_DELAY * 2}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
         >
@@ -76,7 +82,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       )}
 
       <div className="model-actions">
-        {canShowExplorerButton && (
+        {canShowExplorerButton && !isProduction && isElectron && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}
             disabled={explorerButtonDisabled}
