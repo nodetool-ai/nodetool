@@ -48,7 +48,7 @@ header_pages:
   - models.md
   - providers.md
   - asset-management.md
-  - base-nodes.md
+  - nodes/index.md
   - architecture.md
   - cookbook.md
   - workflows/index.md

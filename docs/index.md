@@ -121,7 +121,7 @@ For more details, see the [Node Packs Guide](node-packs.md).
 - **[Providers](providers.md)** – Provider configuration and API key setup
 - **[Models Manager](models-manager.md)** – Manage AI models and providers
 - **[Asset Management](asset-management.md)** – Handle files, images, and media
-- **[Base Nodes Reference](base-nodes.md)** – Complete reference for all available base nodes
+- **[Node Reference](nodes/)** – Complete reference for all available nodes
 
 ### Advanced Topics
 
