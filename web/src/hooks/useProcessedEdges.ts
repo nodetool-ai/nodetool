@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Edge, Node } from "@xyflow/react";
 import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
@@ -12,6 +12,8 @@ interface ProcessedEdgesOptions {
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   workflowId?: string;
   edgeStatuses?: Record<string, string>;
+  /** true while the selection rectangle is being dragged */
+  isSelecting?: boolean;
 }
 
 interface ProcessedEdgesResult {
@@ -25,10 +27,45 @@ export function useProcessedEdges({
   dataTypes,
   getMetadata,
   workflowId,
-  edgeStatuses
+  edgeStatuses,
+  isSelecting
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
+  // Keep latest nodes without making them a hard dependency of the memo
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
+  // Cache last result so we can reuse it during drag
+  const lastResultRef = useRef<ProcessedEdgesResult>({
+    processedEdges: [],
+    activeGradientKeys: new Set()
+  });
+
+  // Structural key: only things that affect edge typing / gradients
+  const nodesStructureKey = useMemo(() => {
+    if (isSelecting) return ""; // we’ll reuse cache while dragging
+    return nodes
+      .map((n) => {
+        const dynamicOutputs = n.data.dynamic_outputs
+          ? Object.keys(n.data.dynamic_outputs).join(",")
+          : "";
+        const dynamicProps = n.data.dynamic_properties
+          ? Object.keys(n.data.dynamic_properties).join(",")
+          : "";
+        return `${n.id}:${n.type}:${dynamicOutputs}:${dynamicProps}`;
+      })
+      .join("|");
+  }, [nodes, isSelecting]);
+
   return useMemo(() => {
-    const getNode = (id: string) => nodes.find((node) => node.id === id);
+    // While dragging the rectangle, just reuse the last processed edges
+    if (isSelecting && lastResultRef.current.processedEdges.length > 0) {
+      return lastResultRef.current;
+    }
+
+    const currentNodes = nodesRef.current;
+    const nodeMap = new Map(currentNodes.map((node) => [node.id, node]));
+    const getNode = (id: string) => nodeMap.get(id);
+
     const activeGradientKeys = new Set<string>();
 
     const REROUTE_TYPE = "nodetool.control.Reroute";
@@ -46,18 +83,16 @@ export function useProcessedEdges({
           color: anyType?.color || "#888"
         };
       }
-      const typeInfoFromDataTypes = dataTypes.find(
+      const t = dataTypes.find(
         (dt) =>
           dt.value === typeString ||
           dt.name === typeString ||
           dt.slug === typeString
       );
       return {
-        slug: typeInfoFromDataTypes?.slug || "any",
+        slug: t?.slug || "any",
         color:
-          typeInfoFromDataTypes?.color ||
-          dataTypes.find((dt) => dt.slug === "any")?.color ||
-          "#888"
+          t?.color || dataTypes.find((dt) => dt.slug === "any")?.color || "#888"
       };
     }
 
@@ -65,7 +100,6 @@ export function useProcessedEdges({
       startNodeId: string,
       startHandle: string | null | undefined
     ): { slug: string; color: string } {
-      // Walk upstream through chained reroute nodes to find the originating output type
       let currentNode = getNode(startNodeId);
       let currentHandle = startHandle || "";
       const visited = new Set<string>();
@@ -77,6 +111,7 @@ export function useProcessedEdges({
       ) {
         if (visited.has(currentNode.id)) break;
         visited.add(currentNode.id);
+
         const incoming = edges.find(
           (e) =>
             e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
@@ -94,7 +129,7 @@ export function useProcessedEdges({
             currentHandle,
             sourceMetadata
           );
-          if (outputHandle && outputHandle.type && outputHandle.type.type) {
+          if (outputHandle && outputHandle.type?.type) {
             return typeInfoFromTypeString(outputHandle.type.type);
           }
         }
@@ -111,7 +146,6 @@ export function useProcessedEdges({
         dataTypes.find((dt) => dt.slug === "any")?.color || "#888";
       let targetTypeSlug = "any";
 
-      // --- Source Type Detection (with reroute propagation) ---
       if (sourceNode && edge.sourceHandle) {
         const effective = getEffectiveSourceType(
           sourceNode.id,
@@ -121,13 +155,11 @@ export function useProcessedEdges({
         sourceColor = effective.color;
       }
 
-      // --- Target Type Detection (treat reroute input as passthrough) ---
       if (targetNode && edge.targetHandle) {
         if (
           targetNode.type === REROUTE_TYPE &&
           edge.targetHandle === REROUTE_INPUT
         ) {
-          // Ensure same color on incoming edge to reroute
           targetTypeSlug = sourceTypeSlug;
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
@@ -137,22 +169,23 @@ export function useProcessedEdges({
               edge.targetHandle,
               targetMetadata
             );
-            if (inputHandle && inputHandle.type && inputHandle.type.type) {
+            if (inputHandle?.type?.type) {
               const typeString = inputHandle.type.type;
-              const typeInfoFromDataTypes = dataTypes.find(
+              const t = dataTypes.find(
                 (dt) =>
                   dt.value === typeString ||
                   dt.name === typeString ||
                   dt.slug === typeString
               );
-              if (typeInfoFromDataTypes) {
-                targetTypeSlug = typeInfoFromDataTypes.slug;
+              if (t) {
+                targetTypeSlug = t.slug;
               }
             }
           }
         }
       }
-      let strokeStyle;
+
+      let strokeStyle: string;
       if (sourceTypeSlug === targetTypeSlug) {
         strokeStyle = sourceColor;
       } else {
@@ -161,13 +194,12 @@ export function useProcessedEdges({
         activeGradientKeys.add(gradientKey);
       }
 
-      // Build edge CSS class names (type slugs + transient statuses)
       const classes: string[] = [];
       if (sourceTypeSlug) classes.push(sourceTypeSlug);
-      if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug)
+      if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug) {
         classes.push(targetTypeSlug);
+      }
 
-      // If we have a status for this edge and it's a message_sent, tag it
       const statusKey =
         workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
       const status = statusKey ? edgeStatuses?.[statusKey] : undefined;
@@ -183,7 +215,6 @@ export function useProcessedEdges({
           stroke: strokeStyle,
           strokeWidth: 2
         },
-        // Add status to data to force React Flow to detect changes
         data: {
           ...edge.data,
           status: status || null
@@ -191,9 +222,8 @@ export function useProcessedEdges({
       };
     });
 
-    return { processedEdges: processedResultEdges, activeGradientKeys };
-    // `nodes` is a necessary dependency here to ensure correct edge type determination
-    // when workflows are loaded, as `getNode`'s output depends on the `nodes` array being
-    // fully populated.
-  }, [edges, nodes, dataTypes, getMetadata, workflowId, edgeStatuses]);
+    const result = { processedEdges: processedResultEdges, activeGradientKeys };
+    lastResultRef.current = result;
+    return result;
+  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, isSelecting]);
 }
