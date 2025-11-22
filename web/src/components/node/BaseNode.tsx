@@ -31,7 +31,6 @@ import { darkenHexColor, hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
 import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
-import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
@@ -325,8 +324,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
   }, [showAdvancedFields]);
-
-  useSyncEdgeSelection(id, Boolean(selected));
 
   return (
     <Container
