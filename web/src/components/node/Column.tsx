@@ -31,7 +31,7 @@ const Column: React.FC<ColumnProps> = ({
     <div className="item-name">
       <TextField
         inputRef={inputRef}
-        className="textfield"
+        className="textfield nodrag"
         margin="dense"
         value={field.name}
         onChange={(e) => handleNameChange(index, e.target.value)}
@@ -40,7 +40,7 @@ const Column: React.FC<ColumnProps> = ({
     {showDescription && (
       <div className="item-description">
         <TextField
-          className="textfield"
+          className="textfield nodrag"
           margin="dense"
           value={field.description}
           onChange={(e) => handleDescriptionChange(index, e.target.value)}
