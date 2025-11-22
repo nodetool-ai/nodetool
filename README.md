@@ -11,7 +11,7 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-# The Local‑First Agent Workbench
+# Create Powerful AI Workflows
 
 ![Screenshot](screenshot.png)
 
@@ -34,15 +34,7 @@ Visual workflow builder for local and cloud ML models. Build chatbots, automate 
 - [License](#license)
 - [Get in Touch](#get-in-touch)
 
-## How It Works
-
-1. **Build** — Connect nodes in a visual editor. 1000+ nodes for text, audio, video, image processing.
-2. **Run** — Execute workflows locally or via API. Your data stays on your machine.
-3. **Deploy** — Same workflow file runs on RunPod, Google Cloud, or your own infrastructure.
-
 ## What You Get
-
-**Your tools, your data, your way:**
 
 - **Local first** — Runs on your machine without vendor cloud infrastructure
 - **Open source** — Inspect, modify, self-host the entire stack

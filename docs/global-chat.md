@@ -1,4 +1,7 @@
-# Global Chat
+---
+layout: page
+title: "Global Chat"
+---
 
 Global Chat is NodeTool's powerful AI assistant interface that lets you interact with AI models from anywhere in the
 application. It provides a full-featured chat experience with advanced capabilities including autonomous agents,

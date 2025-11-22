@@ -1,4 +1,7 @@
-# Node Packs
+---
+layout: page
+title: "Node Packs"
+---
 
 Node Packs extend NodeTool with additional nodes and integrations. Packs are distributed through the public registry and
 can be installed directly from the app.

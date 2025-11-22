@@ -2,6 +2,8 @@
 
 This directory contains the markdown files for the NodeTool documentation. The site is built using [Jekyll](https://jekyllrb.com/), a static site generator that converts markdown files into a complete website.
 
+The documentation features a custom-built **futuristic dark theme** with cyberpunk aesthetics, neon accents, and smooth animations. See [THEME.md](THEME.md) for complete theme documentation.
+
 ## Prerequisites
 
 - **Ruby** 2.7 or higher (check with `ruby -v`)
@@ -52,25 +54,59 @@ The built site will be in the `_site/` directory.
 docs/
 ├── _config.yml          # Jekyll configuration
 ├── Gemfile              # Ruby dependencies
+├── _layouts/            # Custom theme layouts
+│   ├── default.html     # Base layout with cyber effects
+│   ├── page.html        # Documentation page layout
+│   └── home.html        # Homepage layout with hero
+├── _includes/           # Reusable components
+│   ├── header.html      # Site header and navigation
+│   ├── footer.html      # Site footer
+│   └── sidebar.html     # Documentation sidebar
+├── assets/              # Theme assets and media
+│   ├── css/
+│   │   └── style.scss   # Main theme stylesheet
+│   ├── js/
+│   │   └── theme.js     # Interactive features
+│   └── *.png, *.mp4     # Images and videos
 ├── index.md             # Homepage
-├── assets/              # Images and static files
-│   └── images/
 ├── *.md                 # Documentation pages
+├── 404.html             # Custom error page
+├── THEME.md             # Theme documentation
 └── _site/               # Generated site (git-ignored)
 ```
+
+## Theme Features
+
+The custom dark theme includes:
+
+- **Cyberpunk Aesthetics**: Dark backgrounds with vibrant neon accents (cyan, magenta, purple)
+- **Animated Effects**: Pulsing grid background, scanline effect, neon glows
+- **Typography**: Orbitron for headings, Inter for body, JetBrains Mono for code
+- **Interactive Elements**:
+  - Auto-generated copy buttons on code blocks
+  - Smooth scroll animations
+  - Active link highlighting
+  - Responsive mobile menu
+- **Layouts**:
+  - `home`: Homepage with hero section
+  - `page`: Documentation pages with sidebar navigation
+  - `default`: Base layout (rarely used directly)
+
+See [THEME.md](THEME.md) for detailed theme documentation and customization options.
 
 ## Adding New Pages
 
 1. Create a new markdown file (e.g., `new-feature.md`)
-2. Optionally add front matter at the top:
+2. Add front matter at the top:
    ```yaml
    ---
-   title: New Feature
-   layout: default
+   layout: page
+   title: "New Feature"
    ---
    ```
-3. Add the page to navigation in `_config.yml` under `header_pages` if desired
-4. Write your content using markdown
+3. Add the page to sidebar navigation in `_includes/sidebar.html`
+4. Optionally add to header in `_config.yml` under `header_pages`
+5. Write your content using markdown
 
 ## Configuration
 
@@ -78,7 +114,25 @@ Main configuration is in `_config.yml`:
 - **Site settings**: title, description, URLs
 - **Navigation**: page order in header
 - **Plugins**: enabled Jekyll plugins
-- **Theme settings**: Minima theme customization
+- **Custom theme**: Uses custom layouts in `_layouts/` and `_includes/`
+
+### Customizing the Theme
+
+To customize colors, edit CSS variables in `assets/css/style.scss`:
+
+```css
+:root {
+  --color-accent-cyan: #00d9ff;
+  --color-accent-magenta: #ff00ff;
+  --color-accent-purple: #bd00ff;
+  /* ... more variables */
+}
+```
+
+To modify navigation:
+- **Header**: Edit `_includes/header.html`
+- **Sidebar**: Edit `_includes/sidebar.html`
+- **Footer**: Edit `_includes/footer.html`
 
 ## Plugins
 
@@ -119,3 +173,27 @@ To configure GitHub Pages:
 4. Save
 
 The site will be available at `https://<username>.github.io/<repository>/docs`
+
+## Theme Development
+
+When working on the theme:
+
+1. **CSS Changes**: Edit `assets/css/style.scss`
+   - Uses SCSS with Jekyll front matter
+   - Organized with CSS variables for easy customization
+   - Includes responsive breakpoints
+
+2. **JavaScript**: Edit `assets/js/theme.js`
+   - Handles mobile menu, copy buttons, scroll animations
+   - Vanilla JavaScript, no dependencies
+
+3. **Layouts**: Edit files in `_layouts/` and `_includes/`
+   - Use Liquid templating syntax
+   - Include relative_url filter for proper path handling
+
+4. **Testing**: Always test locally before deploying
+   ```bash
+   bundle exec jekyll serve --livereload
+   ```
+
+For complete theme documentation, see [THEME.md](THEME.md).

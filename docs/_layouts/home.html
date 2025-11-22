@@ -1,0 +1,83 @@
+---
+layout: default
+---
+<div class="home-page">
+  <div class="hero-section">
+    <h1 class="hero-title">{{ page.title | default: site.title }}</h1>
+    <p class="hero-subtitle">{{ site.description }}</p>
+  </div>
+
+  <div class="home-content">
+    {{ content }}
+  </div>
+</div>
+
+<style>
+.home-page {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+}
+
+.hero-section {
+  text-align: center;
+  padding: var(--spacing-3xl) 0;
+  margin-bottom: var(--spacing-3xl);
+  position: relative;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-family: var(--font-heading);
+  background: linear-gradient(135deg, var(--color-accent-cyan), var(--color-accent-magenta), var(--color-accent-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-md);
+  animation: heroGlow 3s ease-in-out infinite;
+}
+
+@keyframes heroGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(0, 217, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(255, 0, 255, 0.5));
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.home-content {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--spacing-2xl);
+  box-shadow: 0 4px 20px rgba(0, 217, 255, 0.1);
+}
+
+.home-content h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .home-content {
+    padding: var(--spacing-lg);
+  }
+}
+</style>

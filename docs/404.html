@@ -1,0 +1,158 @@
+---
+layout: default
+title: "404 - Page Not Found"
+permalink: /404.html
+---
+
+<style>
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.error-code {
+  font-family: var(--font-heading);
+  font-size: 8rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--color-accent-cyan), var(--color-accent-magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  line-height: 1;
+  animation: glitch 3s infinite;
+  position: relative;
+}
+
+@keyframes glitch {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+  }
+  10% {
+    text-shadow:
+      2px 0 var(--color-accent-magenta),
+      -2px 0 var(--color-accent-cyan);
+  }
+  20% {
+    text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+  }
+  30% {
+    text-shadow:
+      -2px 0 var(--color-accent-magenta),
+      2px 0 var(--color-accent-cyan);
+  }
+  40%, 60%, 80% {
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+  }
+}
+
+.error-title {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  color: var(--color-accent-cyan);
+  margin: var(--spacing-xl) 0 var(--spacing-md);
+}
+
+.error-message {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin-bottom: var(--spacing-2xl);
+  line-height: 1.6;
+}
+
+.error-links {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.error-link {
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-cyan);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.error-link:hover {
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: var(--glow-cyan);
+  text-shadow: none;
+}
+
+.error-link.primary {
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+}
+
+.error-link.primary:hover {
+  background: var(--color-accent-magenta);
+  border-color: var(--color-accent-magenta);
+  box-shadow: var(--glow-magenta);
+}
+
+.link-arrow {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .error-code {
+    font-size: 5rem;
+  }
+
+  .error-title {
+    font-size: 1.5rem;
+  }
+
+  .error-links {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .error-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+<div class="error-page">
+  <h1 class="error-code">404</h1>
+  <h2 class="error-title">Page Not Found</h2>
+  <p class="error-message">
+    The page you're looking for seems to have been deleted or moved to another dimension.
+    Don't worry, we'll help you find your way back to the documentation.
+  </p>
+
+  <div class="error-links">
+    <a href="{{ '/' | relative_url }}" class="error-link primary">
+      <span class="link-arrow">←</span>
+      <span>Back to Home</span>
+    </a>
+    <a href="{{ '/getting-started' | relative_url }}" class="error-link">
+      <span>Getting Started</span>
+      <span class="link-arrow">→</span>
+    </a>
+    <a href="{{ '/workflow-editor' | relative_url }}" class="error-link">
+      <span>Workflow Editor</span>
+      <span class="link-arrow">→</span>
+    </a>
+  </div>
+</div>

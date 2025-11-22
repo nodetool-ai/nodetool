@@ -3,12 +3,12 @@ title: NodeTool Documentation
 description: >-
   Local-first visual environment for building and running AI workflows.
   Build agents visually, deploy anywhere, privacy by design.
-baseurl: "/docs" # the subpath of your site, e.g. /docs
-url: "" # the base hostname & protocol for your site
+baseurl: "/" # the subpath of your site, e.g. /docs
+url: "https://docs.nodetool.ai" # the base hostname & protocol for your site
 
 # Build settings
 markdown: kramdown
-theme: minima
+# Using custom theme - no remote theme
 
 # Plugins
 plugins:
@@ -19,6 +19,7 @@ plugins:
   - jekyll-optional-front-matter
   - jekyll-readme-index
   - jekyll-titles-from-headings
+  - jekyll-mermaid
 
 # Plugin settings
 relative_links:
@@ -71,14 +72,8 @@ exclude:
   - .jekyll-cache/
   - gemfiles/
 
-# Minima theme settings
-minima:
-  skin: auto
-  social_links:
-    - platform: github
-      user_url: "https://github.com/nodetool-ai/nodetool"
-    - platform: discord
-      user_url: "https://discord.gg/WmQTWZRcYE"
+# Custom theme settings
+# Using custom futuristic dark theme located in _layouts, _includes, and assets
 
 # Kramdown settings
 kramdown:
@@ -87,3 +82,6 @@ kramdown:
   syntax_highlighter_opts:
     block:
       line_numbers: false
+
+mermaid:
+  src: https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js
