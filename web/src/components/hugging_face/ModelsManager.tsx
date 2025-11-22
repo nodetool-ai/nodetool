@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       height: "100%",
       width: "100%",
       flex: 1,
-      overflow: "hidden"
+      overflowY: "visible"
     },
     ".dialog-title": {
       position: "sticky",
