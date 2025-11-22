@@ -149,3 +149,58 @@ export const getProviderUrl = (provider?: string): string | null => {
   // Unknown
   return null;
 };
+
+export const getModelUrl = (
+  provider?: string,
+  modelId?: string,
+  modelType?: string
+): string | null => {
+  if (!modelId) return null;
+  let p = (provider || "").toLowerCase();
+
+  // Use modelType to help infer provider if needed
+  if (modelType === "llama_model") {
+    p = "ollama";
+  }
+
+  // Inference logic if provider is unknown
+  if (!p) {
+    // Heuristic: Ollama models typically have ':' (e.g. gemma:2b), HF models have '/' (user/repo)
+    if (modelId.includes(":") && !modelId.includes("/")) {
+      p = "ollama";
+    } else {
+      // Default to Hugging Face for everything else
+      p = "huggingface";
+    }
+  }
+
+  if (p === "huggingface" || p.includes("hf_") || p.includes("huggingface_")) {
+    return `https://huggingface.co/${modelId}`;
+  }
+
+  if (p.includes("ollama")) {
+    // Strip tags like :latest if present, but Ollama URLs often handle them.
+    // Commonly ollama models are at https://ollama.com/library/<modelname>
+    // Ensure clean model name
+    const clean = modelId.split(":")[0];
+    return `https://ollama.com/library/${clean}`;
+  }
+
+  if (p.includes("openai")) {
+    return "https://platform.openai.com/docs/models";
+  }
+
+  if (p.includes("anthropic")) {
+    return "https://docs.anthropic.com/claude/docs/models-overview";
+  }
+
+  if (p.includes("gemini") || p.includes("google")) {
+    return "https://ai.google.dev/models";
+  }
+
+  if (p.includes("mistral")) {
+    return "https://docs.mistral.ai/getting-started/models/";
+  }
+
+  return null;
+};
