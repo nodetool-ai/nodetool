@@ -23,13 +23,13 @@ Calculate the exponential of each element in a array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | Input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| values | `np_array` | Input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(float | int | np_array)` |  |
 
 ## Metadata
 

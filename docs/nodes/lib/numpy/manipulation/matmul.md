@@ -23,14 +23,14 @@ Perform matrix multiplication on two input arrays.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` | First input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| b | `any` | Second input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| a | `np_array` | First input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| b | `np_array` | Second input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

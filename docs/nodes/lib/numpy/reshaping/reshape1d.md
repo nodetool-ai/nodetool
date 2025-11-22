@@ -23,14 +23,14 @@ Reshape an array to a 1D shape without changing its data.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to reshape | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| num_elements | `any` | The number of elements | `0` |
+| values | `np_array` | The input array to reshape | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| num_elements | `int` | The number of elements | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

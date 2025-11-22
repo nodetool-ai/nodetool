@@ -23,13 +23,13 @@ Convert a FilePath object to a string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| file_path | `any` | File path to convert to string | `` |
+| file_path | `str` | File path to convert to string | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

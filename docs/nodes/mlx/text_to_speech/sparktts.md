@@ -17,19 +17,19 @@ MLX Spark text-to-speech.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text content to synthesize into speech. | `Hello from MLX TTS.` |
-| speed | `any` | Spark speed preset (very_low, low, moderate, high, very_high). | `moderate` |
-| model | `any` | Spark model variant to load. | `mlx-community/Spark-TTS-0.5B-bf16` |
-| voice | `any` | Optional Spark voice preset. | - |
-| pitch | `any` | Spark pitch preset. | `moderate` |
-| gender | `any` | Spark voice gender. | `female` |
+| text | `str` | Text content to synthesize into speech. | `Hello from MLX TTS.` |
+| speed | `Enum['very_low', 'low', 'moderate', 'high', 'very_high']` | Spark speed preset (very_low, low, moderate, high, very_high). | `moderate` |
+| model | `Enum['mlx-community/Spark-TTS-0.5B-bf16', 'mlx-community/Spark-TTS-0.5B-8bit']` | Spark model variant to load. | `mlx-community/Spark-TTS-0.5B-bf16` |
+| voice | `Optional[str]` | Optional Spark voice preset. | - |
+| pitch | `Enum['very_low', 'low', 'moderate', 'high', 'very_high']` | Spark pitch preset. | `moderate` |
+| gender | `Enum['female', 'male']` | Spark voice gender. | `female` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
-| chunk | `any` |  |
+| audio | `audio` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

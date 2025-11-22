@@ -18,14 +18,14 @@ Peek at the documents in a collection.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to peek | `{'type': 'collection', 'name': ''}` |
-| limit | `any` | The limit of the documents to peek | `100` |
+| collection | `collection` | The collection to peek | `{'type': 'collection', 'name': ''}` |
+| limit | `int` | The limit of the documents to peek | `100` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[str]` |  |
 
 ## Metadata
 

@@ -24,13 +24,13 @@ Extract the base URL from a given URL.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to extract the base from | `` |
+| url | `str` | The URL to extract the base from | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

@@ -23,19 +23,19 @@ Create a new SQLite table with specified columns.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| database_name | `any` | Name of the SQLite database file | `memory.db` |
-| table_name | `any` | Name of the table to create | `flashcards` |
-| columns | `any` | Column definitions | `{'type': 'record_type', 'columns': []}` |
-| add_primary_key | `any` | Automatically make first integer column PRIMARY KEY AUTOINCREMENT | `True` |
-| if_not_exists | `any` | Only create table if it doesn't exist | `True` |
+| database_name | `str` | Name of the SQLite database file | `memory.db` |
+| table_name | `str` | Name of the table to create | `flashcards` |
+| columns | `record_type` | Column definitions | `{'type': 'record_type', 'columns': []}` |
+| add_primary_key | `bool` | Automatically make first integer column PRIMARY KEY AUTOINCREMENT | `True` |
+| if_not_exists | `bool` | Only create table if it doesn't exist | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| database_name | `any` |  |
-| table_name | `any` |  |
-| columns | `any` |  |
+| database_name | `str` |  |
+| table_name | `str` |  |
+| columns | `record_type` |  |
 
 ## Metadata
 

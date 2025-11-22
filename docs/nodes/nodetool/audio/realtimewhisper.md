@@ -23,23 +23,23 @@ Stream audio input to WhisperLive and emit real-time transcription.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | Whisper model size - larger models are more accurate but slower | `tiny` |
-| language | `any` | Language code for transcription, or 'auto' for automatic detection | `en` |
-| chunk | `any` | The audio chunk to transcribe | `{'type': 'chunk', 'node_id': None, 'content_type': 'text', 'content': '', 'content_metadata': {}, 'done': False}` |
-| temperature | `any` | Sampling temperature for transcription | `0.0` |
-| initial_prompt | `any` | Optional initial prompt to guide transcription style | `` |
+| model | `Enum['tiny', 'base', 'small', 'medium', 'large', 'large-v2', 'large-v3']` | Whisper model size - larger models are more accurate but slower | `tiny` |
+| language | `Enum['auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi', 'tr', 'pl', 'uk', 'vi']` | Language code for transcription, or 'auto' for automatic detection | `en` |
+| chunk | `chunk` | The audio chunk to transcribe | `{'type': 'chunk', 'node_id': None, 'content_type': 'text', 'content': '', 'content_metadata': {}, 'done': False}` |
+| temperature | `float` | Sampling temperature for transcription | `0.0` |
+| initial_prompt | `str` | Optional initial prompt to guide transcription style | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| start | `any` |  |
-| end | `any` |  |
-| text | `any` |  |
-| chunk | `any` |  |
-| speaker | `any` |  |
-| detected_language | `any` |  |
-| translation | `any` |  |
+| start | `float` |  |
+| end | `float` |  |
+| text | `str` |  |
+| chunk | `chunk` |  |
+| speaker | `int` |  |
+| detected_language | `str` |  |
+| translation | `str` |  |
 
 ## Metadata
 

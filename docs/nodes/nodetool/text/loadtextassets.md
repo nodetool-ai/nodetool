@@ -23,14 +23,14 @@ Load text files from an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | The asset folder to load the text files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to load the text files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| name | `any` |  |
+| text | `text` |  |
+| name | `str` |  |
 
 ## Metadata
 

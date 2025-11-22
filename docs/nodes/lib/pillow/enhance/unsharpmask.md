@@ -23,16 +23,16 @@ Sharpens images using the unsharp mask technique.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to unsharp mask. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| radius | `any` | Unsharp mask radius. | `2` |
-| percent | `any` | Unsharp mask percent. | `150` |
-| threshold | `any` | Unsharp mask threshold. | `3` |
+| image | `image` | The image to unsharp mask. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| radius | `int` | Unsharp mask radius. | `2` |
+| percent | `int` | Unsharp mask percent. | `150` |
+| threshold | `int` | Unsharp mask threshold. | `3` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

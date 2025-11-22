@@ -23,19 +23,19 @@ LLM Agent to create a dataframe based on a user prompt.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model to use for data generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| prompt | `any` | The user prompt | `` |
-| input_text | `any` | The input text to be analyzed by the agent. | `` |
-| max_tokens | `any` | The maximum number of tokens to generate. | `4096` |
-| columns | `any` | The columns to use in the dataframe. | `{'type': 'record_type', 'columns': []}` |
+| model | `language_model` | The model to use for data generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| prompt | `str` | The user prompt | `` |
+| input_text | `str` | The input text to be analyzed by the agent. | `` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
+| columns | `record_type` | The columns to use in the dataframe. | `{'type': 'record_type', 'columns': []}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| record | `any` |  |
-| dataframe | `any` |  |
-| index | `any` |  |
+| record | `Dict[Any, Any]` |  |
+| dataframe | `dataframe` |  |
+| index | `int` |  |
 
 ## Metadata
 

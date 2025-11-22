@@ -22,13 +22,13 @@ Convert CSV string to dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| csv_data | `any` | String input of CSV formatted text. | `` |
+| csv_data | `str` | String input of CSV formatted text. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

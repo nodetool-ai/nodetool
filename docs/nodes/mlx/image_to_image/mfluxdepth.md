@@ -23,22 +23,22 @@ Generate images with depth guidance via the MFlux depth pipeline using local MLX
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | Primary text prompt for the depth-guided generation. | `Highly detailed cinematic portrait with depth cues` |
-| image | `any` | Optional reference image used for depth extraction or as a content guide. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| depth_image | `any` | Optional depth map to guide geometry. If omitted, depth is inferred from the image when provided. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| model | `any` | Depth model weights compatible with the Flux depth pipeline. | `{'type': 'hf.flux_depth', 'repo_id': 'black-forest-labs/FLUX.1-Depth-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| quantize | `any` | Optional quantization level for model weights (reduces memory usage). | `4` |
-| steps | `any` | Number of denoising steps for the generation run. | `20` |
-| guidance | `any` | Classifier-free guidance scale. Defaults higher to encourage prompt adherence in depth mode. | `10.0` |
-| height | `any` | Height of the generated image in pixels. | `1024` |
-| width | `any` | Width of the generated image in pixels. | `1024` |
-| seed | `any` | Seed for deterministic generation. Leave 0 for random seed. | `0` |
+| prompt | `str` | Primary text prompt for the depth-guided generation. | `Highly detailed cinematic portrait with depth cues` |
+| image | `image` | Optional reference image used for depth extraction or as a content guide. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| depth_image | `image` | Optional depth map to guide geometry. If omitted, depth is inferred from the image when provided. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| model | `hf.flux_depth` | Depth model weights compatible with the Flux depth pipeline. | `{'type': 'hf.flux_depth', 'repo_id': 'black-forest-labs/FLUX.1-Depth-dev', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| quantize | `Optional[Enum[3, 4, 5, 6, 8]]` | Optional quantization level for model weights (reduces memory usage). | `4` |
+| steps | `int` | Number of denoising steps for the generation run. | `20` |
+| guidance | `Optional[float]` | Classifier-free guidance scale. Defaults higher to encourage prompt adherence in depth mode. | `10.0` |
+| height | `int` | Height of the generated image in pixels. | `1024` |
+| width | `int` | Width of the generated image in pixels. | `1024` |
+| seed | `int` | Seed for deterministic generation. Leave 0 for random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

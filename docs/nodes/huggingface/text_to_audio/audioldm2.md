@@ -24,18 +24,18 @@ Generates audio using the AudioLDM2 model based on text prompts.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | A text prompt describing the desired audio. | `The sound of a hammer hitting a wooden surface.` |
-| negative_prompt | `any` | A text prompt describing what you don't want in the audio. | `Low quality.` |
-| num_inference_steps | `any` | Number of denoising steps. More steps generally improve quality but increase generation time. | `200` |
-| audio_length_in_s | `any` | The desired duration of the generated audio in seconds. | `10.0` |
-| num_waveforms_per_prompt | `any` | Number of audio samples to generate per prompt. | `3` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `0` |
+| prompt | `str` | A text prompt describing the desired audio. | `The sound of a hammer hitting a wooden surface.` |
+| negative_prompt | `str` | A text prompt describing what you don't want in the audio. | `Low quality.` |
+| num_inference_steps | `int` | Number of denoising steps. More steps generally improve quality but increase generation time. | `200` |
+| audio_length_in_s | `float` | The desired duration of the generated audio in seconds. | `10.0` |
+| num_waveforms_per_prompt | `int` | Number of audio samples to generate per prompt. | `3` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

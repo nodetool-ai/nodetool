@@ -22,13 +22,13 @@ Finds the largest value in a list of numbers.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
+| values | `List[float]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `float` |  |
 
 ## Metadata
 

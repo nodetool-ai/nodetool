@@ -23,14 +23,14 @@ Generate a random floating point number within a range.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| minimum | `any` | Minimum value | `0.0` |
-| maximum | `any` | Maximum value | `1.0` |
+| minimum | `float` | Minimum value | `0.0` |
+| maximum | `float` | Maximum value | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `float` |  |
 
 ## Metadata
 

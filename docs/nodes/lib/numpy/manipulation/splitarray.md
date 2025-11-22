@@ -23,15 +23,15 @@ Split an array into multiple sub-arrays along a specified axis.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to split | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| num_splits | `any` | Number of equal splits to create | `0` |
-| axis | `any` | Axis along which to split | `0` |
+| values | `np_array` | The input array to split | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| num_splits | `int` | Number of equal splits to create | `0` |
+| axis | `int` | Axis along which to split | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[np_array]` |  |
 
 ## Metadata
 

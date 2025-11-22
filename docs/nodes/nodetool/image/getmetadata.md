@@ -23,17 +23,17 @@ Get metadata about the input image.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The input image. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| format | `any` |  |
-| mode | `any` |  |
-| width | `any` |  |
-| height | `any` |  |
-| channels | `any` |  |
+| format | `str` |  |
+| mode | `str` |  |
+| width | `int` |  |
+| height | `int` |  |
+| channels | `int` |  |
 
 ## Metadata
 

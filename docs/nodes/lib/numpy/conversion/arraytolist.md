@@ -23,13 +23,13 @@ Convert a array to a nested list structure.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | Array to convert to list | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| values | `np_array` | Array to convert to list | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ Generate a list of dates between start and end dates.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| start_date | `any` | Start date of the range | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
-| end_date | `any` | End date of the range | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
-| step_days | `any` | Number of days between each date | `1` |
+| start_date | `datetime` | Start date of the range | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| end_date | `datetime` | End date of the range | `{'type': 'datetime', 'year': 0, 'month': 0, 'day': 0, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0, 'tzinfo': 'UTC', 'utc_offset': 0}` |
+| step_days | `int` | Number of days between each date | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[datetime]` |  |
 
 ## Metadata
 

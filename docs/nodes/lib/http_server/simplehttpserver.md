@@ -21,19 +21,19 @@ Starts a simple HTTP server inside Docker and streams logs.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | Docker image to run the server in | `python:3.11-slim` |
-| container_port | `any` | Port the server listens on inside the container | `8000` |
-| command | `any` | Startup command. If empty, uses 'python -m http.server <container_port> --bind 0.0.0.0' | `` |
-| timeout_seconds | `any` | Max lifetime of the server container (seconds) | `600` |
-| ready_timeout_seconds | `any` | Seconds to wait for server readiness | `15` |
+| image | `str` | Docker image to run the server in | `python:3.11-slim` |
+| container_port | `int` | Port the server listens on inside the container | `8000` |
+| command | `str` | Startup command. If empty, uses 'python -m http.server <container_port> --bind 0.0.0.0' | `` |
+| timeout_seconds | `int` | Max lifetime of the server container (seconds) | `600` |
+| ready_timeout_seconds | `int` | Seconds to wait for server readiness | `15` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| endpoint | `any` |  |
-| stdout | `any` |  |
-| stderr | `any` |  |
+| endpoint | `str` |  |
+| stdout | `str` |  |
+| stderr | `str` |  |
 
 ## Metadata
 

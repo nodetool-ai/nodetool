@@ -23,14 +23,14 @@ Checks if text ends with a specified suffix.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| suffix | `any` |  | `` |
+| text | `str` |  | `` |
+| suffix | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

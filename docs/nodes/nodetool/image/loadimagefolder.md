@@ -23,17 +23,17 @@ Load all images from a folder, optionally including subfolders.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | Folder to scan for images | `` |
-| include_subdirectories | `any` | Include images in subfolders | `False` |
-| extensions | `any` | Image file extensions to include | `['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp', '.tiff']` |
-| pattern | `any` | Pattern to match image files | `` |
+| folder | `str` | Folder to scan for images | `` |
+| include_subdirectories | `bool` | Include images in subfolders | `False` |
+| extensions | `List[str]` | Image file extensions to include | `['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp', '.tiff']` |
+| pattern | `str` | Pattern to match image files | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| image | `any` |  |
-| path | `any` |  |
+| image | `image` |  |
+| path | `str` |  |
 
 ## Metadata
 

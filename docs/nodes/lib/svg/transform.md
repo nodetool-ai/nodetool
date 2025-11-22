@@ -23,18 +23,18 @@ Apply transformations to SVG elements.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| content | `any` | SVG element to transform | - |
-| translate_x | `any` | X translation | `0` |
-| translate_y | `any` | Y translation | `0` |
-| rotate | `any` | Rotation angle in degrees | `0` |
-| scale_x | `any` | X scale factor | `1` |
-| scale_y | `any` | Y scale factor | `1` |
+| content | `svg_element` | SVG element to transform | - |
+| translate_x | `float` | X translation | `0` |
+| translate_y | `float` | Y translation | `0` |
+| rotate | `float` | Rotation angle in degrees | `0` |
+| scale_x | `float` | X scale factor | `1` |
+| scale_y | `float` | Y scale factor | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Add vectors to a FAISS index.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| index | `any` | FAISS index | `{'type': 'faiss_index', 'index': None}` |
-| vectors | `any` | Vectors to add (n, d) | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| index | `faiss_index` | FAISS index | `{'type': 'faiss_index', 'index': None}` |
+| vectors | `np_array` | Vectors to add (n, d) | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `faiss_index` |  |
 
 ## Metadata
 

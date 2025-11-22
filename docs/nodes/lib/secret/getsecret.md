@@ -18,14 +18,14 @@ Get a secret value from configuration.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | Secret key name | `` |
-| default | `any` | Default value if not found | - |
+| name | `str` | Secret key name | `` |
+| default | `Optional[str]` | Default value if not found | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Optional[str]` |  |
 
 ## Metadata
 

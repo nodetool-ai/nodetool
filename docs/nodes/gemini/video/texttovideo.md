@@ -28,16 +28,16 @@ Generate videos from text prompts using Google's Veo models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | The text prompt describing the video to generate | `` |
-| model | `any` | The Veo model to use for video generation | `veo-3.0-generate-preview` |
-| aspect_ratio | `any` | The aspect ratio of the generated video | `16:9` |
-| negative_prompt | `any` | Negative prompt to guide what to avoid in the video | `` |
+| prompt | `str` | The text prompt describing the video to generate | `` |
+| model | `Enum['veo-3.0-generate-preview', 'veo-3.0-fast-generate-preview', 'veo-2.0-generate-001']` | The Veo model to use for video generation | `veo-3.0-generate-preview` |
+| aspect_ratio | `Enum['16:9', '9:16']` | The aspect ratio of the generated video | `16:9` |
+| negative_prompt | `str` | Negative prompt to guide what to avoid in the video | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

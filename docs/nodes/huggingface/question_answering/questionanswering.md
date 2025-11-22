@@ -24,18 +24,18 @@ Answers questions based on a given context.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for question answering | `{'type': 'hf.question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| context | `any` | The context or passage to answer questions from | `` |
-| question | `any` | The question to be answered based on the context | `` |
+| model | `hf.question_answering` | The model ID to use for question answering | `{'type': 'hf.question_answering', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| context | `str` | The context or passage to answer questions from | `` |
+| question | `str` | The question to be answered based on the context | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| answer | `any` |  |
-| score | `any` |  |
-| start | `any` |  |
-| end | `any` |  |
+| answer | `str` |  |
+| score | `float` |  |
+| start | `int` |  |
+| end | `int` |  |
 
 ## Metadata
 

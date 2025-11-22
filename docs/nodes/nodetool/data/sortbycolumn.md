@@ -23,14 +23,14 @@ Sort dataframe by specified column.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| df | `any` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| column | `any` | The column to sort the DataFrame by. | `` |
+| df | `dataframe` |  | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| column | `str` | The column to sort the DataFrame by. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

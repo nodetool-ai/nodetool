@@ -28,14 +28,14 @@ Template JSON strings with variable substitution.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| template | `any` | JSON template string with $variable placeholders | `` |
-| values | `any` | Dictionary of values to substitute into the template | `{}` |
+| template | `str` | JSON template string with $variable placeholders | `` |
+| values | `Dict[str, any]` | Dictionary of values to substitute into the template | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

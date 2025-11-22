@@ -23,13 +23,13 @@ Enhances fine details in images.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to detail. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The image to detail. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

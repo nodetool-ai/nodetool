@@ -24,14 +24,14 @@ Translates speech in audio to English text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file to translate. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
-| temperature | `any` | The temperature to use for the translation. | `0.0` |
+| audio | `audio` | The audio file to translate. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| temperature | `float` | The temperature to use for the translation. | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

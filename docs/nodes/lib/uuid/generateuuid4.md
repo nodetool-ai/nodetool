@@ -23,7 +23,7 @@ Generate a random UUID (version 4).
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

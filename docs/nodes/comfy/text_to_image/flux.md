@@ -20,26 +20,26 @@ Generates images from text prompts using the Flux model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| unet_model | `any` | The UNet/diffusion model to use. | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| clip_model | `any` | The primary Flux CLIP checkpoint (clip-l). | `{'type': 'hf.clip', 'repo_id': 'Comfy-Org/stable-diffusion-3.5-fp8', 'path': 'text_encoders/clip_l.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| clip_model_secondary | `any` | The secondary Flux CLIP checkpoint (t5xxl). | `{'type': 'hf.clip', 'repo_id': 'Comfy-Org/stable-diffusion-3.5-fp8', 'path': 'text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| vae_model | `any` | The Flux VAE checkpoint. | `{'type': 'hf.vae', 'repo_id': 'ffxvs/vae-flux', 'path': 'ae.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | The prompt to use. | `` |
-| negative_prompt | `any` | The negative prompt to use. | `` |
-| width | `any` |  | `1024` |
-| height | `any` |  | `1024` |
-| steps | `any` |  | `20` |
-| guidance_scale | `any` |  | `5.0` |
-| seed | `any` |  | `0` |
-| denoise | `any` |  | `1.0` |
-| scheduler | `any` |  | `simple` |
-| sampler | `any` |  | `euler` |
+| unet_model | `hf.text_to_image` | The UNet/diffusion model to use. | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| clip_model | `hf.clip` | The primary Flux CLIP checkpoint (clip-l). | `{'type': 'hf.clip', 'repo_id': 'Comfy-Org/stable-diffusion-3.5-fp8', 'path': 'text_encoders/clip_l.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| clip_model_secondary | `hf.clip` | The secondary Flux CLIP checkpoint (t5xxl). | `{'type': 'hf.clip', 'repo_id': 'Comfy-Org/stable-diffusion-3.5-fp8', 'path': 'text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| vae_model | `hf.vae` | The Flux VAE checkpoint. | `{'type': 'hf.vae', 'repo_id': 'ffxvs/vae-flux', 'path': 'ae.safetensors', 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | The prompt to use. | `` |
+| negative_prompt | `str` | The negative prompt to use. | `` |
+| width | `int` |  | `1024` |
+| height | `int` |  | `1024` |
+| steps | `int` |  | `20` |
+| guidance_scale | `float` |  | `5.0` |
+| seed | `int` |  | `0` |
+| denoise | `float` |  | `1.0` |
+| scheduler | `Enum['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform', 'beta', 'linear_quadratic']` |  | `simple` |
+| sampler | `Enum['ddim', 'ddpm', 'dpm_2', 'dpm_2_ancestral', 'dpm_adaptive', 'dpm_fast', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_sde_gpu', 'dpmpp_2s_ancestral', 'dpmpp_3m_sde', 'dpmpp_3m_sde_gpu', 'dpmpp_sde', 'dpmpp_sde_gpu', 'euler', 'euler_ancestral', 'heun', 'heunpp2', 'lcm', 'lms', 'uni_pc', 'uni_pc_bh2']` |  | `euler` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

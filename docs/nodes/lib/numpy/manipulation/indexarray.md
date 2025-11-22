@@ -23,15 +23,15 @@ Select specific indices from an array along a specified axis.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | The input array to index | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| indices | `any` | The comma separated indices to select | `` |
-| axis | `any` | Axis along which to index | `0` |
+| values | `np_array` | The input array to index | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| indices | `str` | The comma separated indices to select | `` |
+| axis | `int` | Axis along which to index | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

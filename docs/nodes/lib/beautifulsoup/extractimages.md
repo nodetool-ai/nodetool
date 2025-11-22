@@ -23,14 +23,14 @@ Extract images from HTML content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | The HTML content to extract images from. | `` |
-| base_url | `any` | The base URL of the page, used to resolve relative image URLs. | `` |
+| html | `str` | The HTML content to extract images from. | `` |
+| base_url | `str` | The base URL of the page, used to resolve relative image URLs. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| image | `any` |  |
+| image | `image` |  |
 
 ## Metadata
 

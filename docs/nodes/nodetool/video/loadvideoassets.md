@@ -24,14 +24,14 @@ Load video files from an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | The asset folder to load the video files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to load the video files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| video | `any` |  |
-| name | `any` |  |
+| video | `video` |  |
+| name | `str` |  |
 
 ## Metadata
 

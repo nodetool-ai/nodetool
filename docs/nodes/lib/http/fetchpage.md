@@ -23,16 +23,16 @@ Fetch a web page using Selenium and return its content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to fetch the page from. | `` |
-| wait_time | `any` | Maximum time to wait for page load (in seconds). | `10` |
+| url | `str` | The URL to fetch the page from. | `` |
+| wait_time | `int` | Maximum time to wait for page load (in seconds). | `10` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| html | `any` |  |
-| success | `any` |  |
-| error_message | `any` |  |
+| html | `str` |  |
+| success | `bool` |  |
+| error_message | `str` |  |
 
 ## Metadata
 

@@ -18,13 +18,13 @@ Load CSV file from file path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| file_path | `any` | The path to the CSV file to load. | `` |
+| file_path | `str` | The path to the CSV file to load. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

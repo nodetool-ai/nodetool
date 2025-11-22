@@ -23,17 +23,17 @@ Filters a list of dictionaries based on a numeric range for a specified key.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| key | `any` | The dictionary key to check for the range | `` |
-| min_value | `any` | The minimum value (inclusive) of the range | `0` |
-| max_value | `any` | The maximum value (inclusive) of the range | `0` |
-| inclusive | `any` | If True, includes the min and max values in the results | `True` |
+| values | `List[Dict[Any, Any]]` |  | `[]` |
+| key | `str` | The dictionary key to check for the range | `` |
+| min_value | `float` | The minimum value (inclusive) of the range | `0` |
+| max_value | `float` | The maximum value (inclusive) of the range | `0` |
+| inclusive | `bool` | If True, includes the min and max values in the results | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

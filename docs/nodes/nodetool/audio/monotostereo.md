@@ -22,13 +22,13 @@ Converts a mono audio signal to stereo.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The mono audio file to convert. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | The mono audio file to convert. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

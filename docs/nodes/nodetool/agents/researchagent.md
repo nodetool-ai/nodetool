@@ -31,9 +31,9 @@ Autonomous research agent that gathers information from the web and synthesizes 
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| objective | `any` | The research objective or question to investigate | `` |
-| model | `any` | Model to use for research and synthesis | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| system_prompt | `any` | System prompt guiding the agent's research behavior | `You are a research assistant.
+| objective | `str` | The research objective or question to investigate | `` |
+| model | `language_model` | Model to use for research and synthesis | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| system_prompt | `str` | System prompt guiding the agent's research behavior | `You are a research assistant.
 
 Goal
 - Conduct thorough research on the given objective
@@ -60,9 +60,9 @@ Output Format
 - Be thorough and cite sources where appropriate
 - Ensure all required fields are populated with accurate information
 ` |
-| tools | `any` | Additional research tools to enable (workspace tools are always included) | `[{'name': 'google_search'}, {'name': 'browser'}]` |
-| max_tokens | `any` | Maximum tokens for agent responses | `8192` |
-| context_window | `any` | Context window size | `8192` |
+| tools | `List[tool_name]` | Additional research tools to enable (workspace tools are always included) | `[{'name': 'google_search'}, {'name': 'browser'}]` |
+| max_tokens | `int` | Maximum tokens for agent responses | `8192` |
+| context_window | `int` | Context window size | `8192` |
 
 ## Metadata
 

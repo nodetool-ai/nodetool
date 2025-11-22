@@ -23,7 +23,7 @@ Parses a JSON string into a Python object.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
+| text | `str` |  | `` |
 
 ## Outputs
 

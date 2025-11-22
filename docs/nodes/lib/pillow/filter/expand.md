@@ -22,15 +22,15 @@ Add a border around an image to increase its size.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to expand. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| border | `any` | Border size. | `0` |
-| fill | `any` | Fill color. | `0` |
+| image | `image` | The image to expand. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| border | `int` | Border size. | `0` |
+| fill | `int` | Fill color. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

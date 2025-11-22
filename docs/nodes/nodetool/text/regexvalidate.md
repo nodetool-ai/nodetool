@@ -23,14 +23,14 @@ Check if text matches a regex pattern.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` | Text to validate | `` |
-| pattern | `any` | Regular expression pattern | `` |
+| text | `str` | Text to validate | `` |
+| pattern | `str` | Regular expression pattern | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

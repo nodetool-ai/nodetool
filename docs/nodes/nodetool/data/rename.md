@@ -23,14 +23,14 @@ Rename columns in dataframe.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe | `any` | The DataFrame to rename columns. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| rename_map | `any` | Column rename mapping in format: old1:new1,old2:new2 | `` |
+| dataframe | `dataframe` | The DataFrame to rename columns. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| rename_map | `str` | Column rename mapping in format: old1:new1,old2:new2 | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Get or create a collection.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The name of the collection to create | `` |
-| embedding_model | `any` | Model to use for embedding, search for nomic-embed-text and download it | `{'type': 'llama_model', 'name': '', 'repo_id': '', 'modified_at': '', 'size': 0, 'digest': '', 'details': {}}` |
+| name | `str` | The name of the collection to create | `` |
+| embedding_model | `llama_model` | Model to use for embedding, search for nomic-embed-text and download it | `{'type': 'llama_model', 'name': '', 'repo_id': '', 'modified_at': '', 'size': 0, 'digest': '', 'details': {}}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `collection` |  |
 
 ## Metadata
 

@@ -26,16 +26,16 @@ Generate speech audio from text using any supported TTS provider.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The text-to-speech model to use | `{'type': 'tts_model', 'provider': 'openai', 'id': 'tts-1', 'name': 'TTS 1', 'path': None, 'voices': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'], 'selected_voice': ''}` |
-| text | `any` | Text to convert to speech | `Hello! This is a text-to-speech demonstration.` |
-| speed | `any` | Speech speed multiplier (0.25 to 4.0) | `1.0` |
+| model | `tts_model` | The text-to-speech model to use | `{'type': 'tts_model', 'provider': 'openai', 'id': 'tts-1', 'name': 'TTS 1', 'path': None, 'voices': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'], 'selected_voice': ''}` |
+| text | `str` | Text to convert to speech | `Hello! This is a text-to-speech demonstration.` |
+| speed | `float` | Speech speed multiplier (0.25 to 4.0) | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
-| chunk | `any` |  |
+| audio | `audio` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

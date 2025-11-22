@@ -23,14 +23,14 @@ Removes a key-value pair from a dictionary.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dictionary | `any` |  | `{}` |
-| key | `any` |  | `` |
+| dictionary | `Dict[str, any]` |  | `{}` |
+| key | `str` |  | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, any]` |  |
 
 ## Metadata
 

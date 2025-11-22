@@ -24,16 +24,16 @@ Answers questions or follows instructions given both an image and text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The image-text-to-text model to use. | `{'type': 'hf.image_text_to_text', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The image to analyze. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| prompt | `any` | Instruction or question for the model about the image. | `Describe this image.` |
-| max_new_tokens | `any` | Maximum number of tokens to generate. | `256` |
+| model | `hf.image_text_to_text` | The image-text-to-text model to use. | `{'type': 'hf.image_text_to_text', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The image to analyze. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| prompt | `str` | Instruction or question for the model about the image. | `Describe this image.` |
+| max_new_tokens | `int` | Maximum number of tokens to generate. | `256` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

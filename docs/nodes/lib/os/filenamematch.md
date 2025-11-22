@@ -23,15 +23,15 @@ Match a filename against a pattern using Unix shell-style wildcards.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| filename | `any` | Filename to check | `` |
-| pattern | `any` | Pattern to match against (e.g. *.txt, data_*.csv) | `*` |
-| case_sensitive | `any` | Whether the pattern matching should be case-sensitive | `True` |
+| filename | `str` | Filename to check | `` |
+| pattern | `str` | Pattern to match against (e.g. *.txt, data_*.csv) | `*` |
+| case_sensitive | `bool` | Whether the pattern matching should be case-sensitive | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

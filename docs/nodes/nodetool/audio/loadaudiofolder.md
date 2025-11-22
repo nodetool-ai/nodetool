@@ -23,16 +23,16 @@ Load all audio files from a folder, optionally including subfolders.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | Folder to scan for audio files | `` |
-| include_subdirectories | `any` | Include audio in subfolders | `False` |
-| extensions | `any` | Audio file extensions to include | `['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac']` |
+| folder | `str` | Folder to scan for audio files | `` |
+| include_subdirectories | `bool` | Include audio in subfolders | `False` |
+| extensions | `List[str]` | Audio file extensions to include | `['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac']` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| audio | `any` |  |
-| path | `any` |  |
+| audio | `audio` |  |
+| path | `str` |  |
 
 ## Metadata
 

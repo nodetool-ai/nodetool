@@ -23,14 +23,14 @@ Splits a list into smaller chunks of specified size.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| chunk_size | `any` |  | `1` |
+| values | `List[any]` |  | `[]` |
+| chunk_size | `int` |  | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[List[any]]` |  |
 
 ## Metadata
 

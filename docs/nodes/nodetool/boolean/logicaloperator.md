@@ -23,15 +23,15 @@ Performs logical operations on two boolean inputs.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` | First boolean input | `False` |
-| b | `any` | Second boolean input | `False` |
-| operation | `any` | Logical operation to perform | `and` |
+| a | `bool` | First boolean input | `False` |
+| b | `bool` | Second boolean input | `False` |
+| operation | `Enum['and', 'or', 'xor', 'nand', 'nor']` | Logical operation to perform | `and` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

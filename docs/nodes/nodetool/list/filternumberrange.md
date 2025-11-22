@@ -23,16 +23,16 @@ Filters a list of numbers to find values within a specified range.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| min_value | `any` |  | `0` |
-| max_value | `any` |  | `0` |
-| inclusive | `any` |  | `True` |
+| values | `List[float]` |  | `[]` |
+| min_value | `float` |  | `0` |
+| max_value | `float` |  | `0` |
+| inclusive | `bool` |  | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[float]` |  |
 
 ## Metadata
 

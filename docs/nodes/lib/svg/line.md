@@ -18,18 +18,18 @@ Generate SVG line element.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| x1 | `any` | Start X coordinate | `0` |
-| y1 | `any` | Start Y coordinate | `0` |
-| x2 | `any` | End X coordinate | `100` |
-| y2 | `any` | End Y coordinate | `100` |
-| stroke | `any` | Stroke color | `{'type': 'color', 'value': '#000000'}` |
-| stroke_width | `any` | Stroke width | `1` |
+| x1 | `int` | Start X coordinate | `0` |
+| y1 | `int` | Start Y coordinate | `0` |
+| x2 | `int` | End X coordinate | `100` |
+| y2 | `int` | End Y coordinate | `100` |
+| stroke | `color` | Stroke color | `{'type': 'color', 'value': '#000000'}` |
+| stroke_width | `int` | Stroke width | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

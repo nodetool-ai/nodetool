@@ -23,15 +23,15 @@ Generates audio (music or sound effects) from text descriptions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the audio generation | `{'type': 'hf.text_to_audio', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | The input text to the model | `` |
-| max_new_tokens | `any` | The maximum number of tokens to generate | `1024` |
+| model | `hf.text_to_audio` | The model ID to use for the audio generation | `{'type': 'hf.text_to_audio', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | The input text to the model | `` |
+| max_new_tokens | `int` | The maximum number of tokens to generate | `1024` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

@@ -18,16 +18,16 @@ Generate SVG polygon element.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| points | `any` | Points in format 'x1,y1 x2,y2 x3,y3...' | - |
-| fill | `any` | Fill color | `{'type': 'color', 'value': '#000000'}` |
-| stroke | `any` | Stroke color | `{'type': 'color', 'value': 'none'}` |
-| stroke_width | `any` | Stroke width | `1` |
+| points | `str` | Points in format 'x1,y1 x2,y2 x3,y3...' | - |
+| fill | `color` | Fill color | `{'type': 'color', 'value': '#000000'}` |
+| stroke | `color` | Stroke color | `{'type': 'color', 'value': 'none'}` |
+| stroke_width | `int` | Stroke width | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

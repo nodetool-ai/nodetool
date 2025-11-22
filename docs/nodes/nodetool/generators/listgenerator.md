@@ -22,17 +22,17 @@ LLM Agent to create a stream of strings based on a user prompt.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model to use for string generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
-| prompt | `any` | The user prompt | `` |
-| input_text | `any` | The input text to be analyzed by the agent. | `` |
-| max_tokens | `any` | The maximum number of tokens to generate. | `4096` |
+| model | `language_model` | The model to use for string generation. | `{'type': 'language_model', 'provider': 'empty', 'id': '', 'name': '', 'path': None, 'supported_tasks': []}` |
+| prompt | `str` | The user prompt | `` |
+| input_text | `str` | The input text to be analyzed by the agent. | `` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| item | `any` |  |
-| index | `any` |  |
+| item | `str` |  |
+| index | `int` |  |
 
 ## Metadata
 

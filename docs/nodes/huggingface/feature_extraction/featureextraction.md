@@ -24,14 +24,14 @@ Extracts features from text using pre-trained models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for feature extraction | `{'type': 'hf.feature_extraction', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| inputs | `any` | The text to extract features from | `` |
+| model | `hf.feature_extraction` | The model ID to use for feature extraction | `{'type': 'hf.feature_extraction', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| inputs | `str` | The text to extract features from | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `np_array` |  |
 
 ## Metadata
 

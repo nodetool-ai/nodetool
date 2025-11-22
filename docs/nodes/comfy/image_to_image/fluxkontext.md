@@ -18,22 +18,22 @@ Transforms existing images based on text prompts using the Flux Kontext model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The Flux UNet checkpoint to use (e.g. flux1-dev or flux1-dev-kontext). | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| input_image | `any` | Reference image for Flux Kontext img2img. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| prompt | `any` | The prompt to use. | `` |
-| negative_prompt | `any` | The negative prompt to use (optional). | `` |
-| steps | `any` |  | `20` |
-| guidance_scale | `any` |  | `1.0` |
-| seed | `any` |  | `0` |
-| denoise | `any` |  | `1.0` |
-| scheduler | `any` |  | `simple` |
-| sampler | `any` |  | `euler` |
+| model | `hf.text_to_image` | The Flux UNet checkpoint to use (e.g. flux1-dev or flux1-dev-kontext). | `{'type': 'hf.text_to_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| input_image | `image` | Reference image for Flux Kontext img2img. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| prompt | `str` | The prompt to use. | `` |
+| negative_prompt | `str` | The negative prompt to use (optional). | `` |
+| steps | `int` |  | `20` |
+| guidance_scale | `float` |  | `1.0` |
+| seed | `int` |  | `0` |
+| denoise | `float` |  | `1.0` |
+| scheduler | `Enum['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform', 'beta', 'linear_quadratic']` |  | `simple` |
+| sampler | `Enum['ddim', 'ddpm', 'dpm_2', 'dpm_2_ancestral', 'dpm_adaptive', 'dpm_fast', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_sde_gpu', 'dpmpp_2s_ancestral', 'dpmpp_3m_sde', 'dpmpp_3m_sde_gpu', 'dpmpp_sde', 'dpmpp_sde_gpu', 'euler', 'euler_ancestral', 'heun', 'heunpp2', 'lcm', 'lms', 'uni_pc', 'uni_pc_bh2']` |  | `euler` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

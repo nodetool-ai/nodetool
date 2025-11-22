@@ -18,14 +18,14 @@ Concatenate multiple video files into a single video, including audio when avail
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| video_a | `any` | The first video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
-| video_b | `any` | The second video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| video_a | `video` | The first video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
+| video_b | `video` | The second video to concatenate. | `{'type': 'video', 'uri': '', 'asset_id': None, 'data': None, 'duration': None, 'format': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `video` |  |
 
 ## Metadata
 

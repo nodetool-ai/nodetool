@@ -23,14 +23,14 @@ Return a relative path to a target from a start directory.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| target_path | `any` | Target path to convert to relative | `` |
-| start_path | `any` | Start path for relative conversion | `.` |
+| target_path | `str` | Target path to convert to relative | `` |
+| start_path | `str` | Start path for relative conversion | `.` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

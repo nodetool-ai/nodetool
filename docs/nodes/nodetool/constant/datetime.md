@@ -18,21 +18,21 @@ Make a datetime object from year, month, day, hour, minute, second.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| year | `any` | Year of the datetime | `1900` |
-| month | `any` | Month of the datetime | `1` |
-| day | `any` | Day of the datetime | `1` |
-| hour | `any` | Hour of the datetime | `0` |
-| minute | `any` | Minute of the datetime | `0` |
-| second | `any` | Second of the datetime | `0` |
-| microsecond | `any` | Microsecond of the datetime | `0` |
-| tzinfo | `any` | Timezone of the datetime | `UTC` |
-| utc_offset | `any` | UTC offset of the datetime | `0` |
+| year | `int` | Year of the datetime | `1900` |
+| month | `int` | Month of the datetime | `1` |
+| day | `int` | Day of the datetime | `1` |
+| hour | `int` | Hour of the datetime | `0` |
+| minute | `int` | Minute of the datetime | `0` |
+| second | `int` | Second of the datetime | `0` |
+| microsecond | `int` | Microsecond of the datetime | `0` |
+| tzinfo | `str` | Timezone of the datetime | `UTC` |
+| utc_offset | `int` | UTC offset of the datetime | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `datetime` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Extract videos from HTML content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | The HTML content to extract videos from. | `` |
-| base_url | `any` | The base URL of the page, used to resolve relative video URLs. | `` |
+| html | `str` | The HTML content to extract videos from. | `` |
+| base_url | `str` | The base URL of the page, used to resolve relative video URLs. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| video | `any` |  |
+| video | `video` |  |
 
 ## Metadata
 

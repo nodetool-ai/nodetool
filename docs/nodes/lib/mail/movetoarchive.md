@@ -18,13 +18,13 @@ Moves specified emails to Gmail archive.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| message_id | `any` | Message ID to archive | `` |
+| message_id | `str` | Message ID to archive | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

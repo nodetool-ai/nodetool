@@ -23,13 +23,13 @@ Performs logical NOT operation on a boolean input.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| value | `any` | Boolean input to negate | `False` |
+| value | `bool` | Boolean input to negate | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

@@ -23,13 +23,13 @@ Parse a URL into its components using ``urllib.parse.urlparse``.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL to parse | `` |
+| url | `str` | URL to parse | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

@@ -23,15 +23,15 @@ Extract metadata from HTML content.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| html | `any` | The HTML content to extract metadata from. | `` |
+| html | `str` | The HTML content to extract metadata from. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| title | `any` |  |
-| description | `any` |  |
-| keywords | `any` |  |
+| title | `str` |  |
+| description | `str` |  |
+| keywords | `str` |  |
 
 ## Metadata
 

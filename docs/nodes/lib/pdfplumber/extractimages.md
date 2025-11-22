@@ -23,15 +23,15 @@ Extract images from a PDF file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| pdf | `any` | The PDF file to extract images from | - |
-| start_page | `any` | The start page to extract | `0` |
-| end_page | `any` | The end page to extract | `4` |
+| pdf | `document` | The PDF file to extract images from | - |
+| start_page | `int` | The start page to extract | `0` |
+| end_page | `int` | The end page to extract | `4` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[image]` |  |
 
 ## Metadata
 

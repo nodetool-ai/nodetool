@@ -23,15 +23,15 @@ Compute the cryptographic hash of a file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| file | `any` | The file to hash | `` |
-| algorithm | `any` | Hash algorithm name (e.g. md5, sha1, sha256) | `md5` |
-| chunk_size | `any` | Read size for hashing in bytes | `8192` |
+| file | `str` | The file to hash | `` |
+| algorithm | `str` | Hash algorithm name (e.g. md5, sha1, sha256) | `md5` |
+| chunk_size | `int` | Read size for hashing in bytes | `8192` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

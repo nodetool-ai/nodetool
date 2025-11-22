@@ -18,15 +18,15 @@ Accepts a color value as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` | The color to use as input. | `{'type': 'color', 'value': None}` |
-| description | `any` | The description of the input for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `color` | The color to use as input. | `{'type': 'color', 'value': None}` |
+| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `color` |  |
 
 ## Metadata
 

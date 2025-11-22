@@ -23,14 +23,14 @@ Delete a file or directory from the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Relative path to file or directory within workspace | `` |
-| recursive | `any` | Delete directories recursively | `False` |
+| path | `str` | Relative path to file or directory within workspace | `` |
+| recursive | `bool` | Delete directories recursively | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `none` |  |
 
 ## Metadata
 

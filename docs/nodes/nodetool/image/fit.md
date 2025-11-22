@@ -22,15 +22,15 @@ Resize an image to fit within specified dimensions while preserving aspect ratio
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to fit. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| width | `any` | Width to fit to. | `512` |
-| height | `any` | Height to fit to. | `512` |
+| image | `image` | The image to fit. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| width | `int` | Width to fit to. | `512` |
+| height | `int` | Height to fit to. | `512` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

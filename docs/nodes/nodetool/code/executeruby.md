@@ -18,17 +18,17 @@ Executes Ruby code with safety restrictions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| code | `any` | Ruby code to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'. | `` |
-| image | `any` | Docker image to use for execution | `ruby:3.3-alpine` |
-| execution_mode | `any` | Execution mode: 'docker' or 'subprocess' | `docker` |
-| stdin | `any` | String to write to process stdin before any streaming input. Use newlines to separate lines. | `` |
+| code | `str` | Ruby code to execute as-is. Dynamic inputs are provided as env vars. Stdout lines are emitted on 'stdout'; stderr lines on 'stderr'. | `` |
+| image | `Enum['ruby:3.3-alpine']` | Docker image to use for execution | `ruby:3.3-alpine` |
+| execution_mode | `Enum['docker', 'subprocess']` | Execution mode: 'docker' or 'subprocess' | `docker` |
+| stdin | `str` | String to write to process stdin before any streaming input. Use newlines to separate lines. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| stdout | `any` |  |
-| stderr | `any` |  |
+| stdout | `str` |  |
+| stderr | `str` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ Filter JSON array based on a key-value condition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| array | `any` | Array of JSON objects to filter | `[]` |
-| key | `any` | Key to filter on | `` |
+| array | `List[Dict[Any, Any]]` | Array of JSON objects to filter | `[]` |
+| key | `str` | Key to filter on | `` |
 | value | `any` | Value to match | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[Dict[Any, Any]]` |  |
 
 ## Metadata
 

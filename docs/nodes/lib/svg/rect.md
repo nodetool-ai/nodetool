@@ -18,19 +18,19 @@ Generate SVG rectangle element.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| x | `any` | X coordinate | `0` |
-| y | `any` | Y coordinate | `0` |
-| width | `any` | Width | `100` |
-| height | `any` | Height | `100` |
-| fill | `any` | Fill color | `{'type': 'color', 'value': '#000000'}` |
-| stroke | `any` | Stroke color | `{'type': 'color', 'value': 'none'}` |
-| stroke_width | `any` | Stroke width | `1` |
+| x | `int` | X coordinate | `0` |
+| y | `int` | Y coordinate | `0` |
+| width | `int` | Width | `100` |
+| height | `int` | Height | `100` |
+| fill | `color` | Fill color | `{'type': 'color', 'value': '#000000'}` |
+| stroke | `color` | Stroke color | `{'type': 'color', 'value': 'none'}` |
+| stroke_width | `int` | Stroke width | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `svg_element` |  |
 
 ## Metadata
 

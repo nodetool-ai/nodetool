@@ -23,13 +23,13 @@ Validate JSON data against a schema.
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
 | data | `any` | JSON data to validate | - |
-| json_schema | `any` | JSON schema for validation | `{}` |
+| json_schema | `Dict[Any, Any]` | JSON schema for validation | `{}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

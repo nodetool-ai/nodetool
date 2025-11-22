@@ -22,15 +22,15 @@ Reads an Excel worksheet into a pandas DataFrame.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| workbook | `any` | The Excel workbook to read from | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
-| sheet_name | `any` | Source worksheet name | `Sheet1` |
-| has_header | `any` | First row contains headers | `True` |
+| workbook | `excel` | The Excel workbook to read from | `{'type': 'excel', 'uri': '', 'asset_id': None, 'data': None}` |
+| sheet_name | `str` | Source worksheet name | `Sheet1` |
+| has_header | `bool` | First row contains headers | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

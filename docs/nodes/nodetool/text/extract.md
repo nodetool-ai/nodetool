@@ -23,15 +23,15 @@ Extracts a substring from input text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| start | `any` |  | `0` |
-| end | `any` |  | `0` |
+| text | `str` |  | `` |
+| start | `int` |  | `0` |
+| end | `int` |  | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

@@ -23,7 +23,7 @@ Conditionally executes one of two branches based on a condition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| condition | `any` | The condition to evaluate | `False` |
+| condition | `bool` | The condition to evaluate | `False` |
 | value | `any` | The value to pass to the next node | - |
 
 ## Outputs

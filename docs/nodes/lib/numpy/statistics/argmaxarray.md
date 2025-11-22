@@ -23,14 +23,14 @@ Find indices of maximum values along a specified axis of a array.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` | Input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
-| axis | `any` | Axis along which to find maximum indices | - |
+| values | `np_array` | Input array | `{'type': 'np_array', 'value': None, 'dtype': '<i8', 'shape': [1]}` |
+| axis | `Optional[int]` | Axis along which to find maximum indices | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(np_array | int)` |  |
 
 ## Metadata
 

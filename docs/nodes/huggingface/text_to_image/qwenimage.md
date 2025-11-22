@@ -24,24 +24,22 @@ Generates images from text prompts using Qwen-Image with support for GGUF quanti
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The Qwen-Image model to use for text-to-image generation. | `{'type': 'hf.qwen_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | A text prompt describing the desired image. | `A cat holding a sign that says hello world` |
-| negative_prompt | `any` | A text prompt describing what to avoid in the image. | `` |
-| true_cfg_scale | `any` | True CFG scale for Qwen-Image models. | `1.0` |
-| num_inference_steps | `any` | The number of denoising steps. | `50` |
-| height | `any` | The height of the generated image. | `1024` |
-| width | `any` | The width of the generated image. | `1024` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
-| enable_memory_efficient_attention | `any` | Enable memory efficient attention to reduce VRAM usage. | `True` |
-| enable_vae_tiling | `any` | Enable VAE tiling to reduce VRAM usage for large images. | `False` |
-| enable_vae_slicing | `any` | Enable VAE slicing to reduce VRAM usage. | `False` |
-| enable_cpu_offload | `any` | Enable CPU offload to reduce VRAM usage. | `True` |
+| model | `hf.qwen_image` | The Qwen-Image model to use for text-to-image generation. | `{'type': 'hf.qwen_image', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | A text prompt describing the desired image. | `A cat holding a sign that says hello world` |
+| negative_prompt | `str` | A text prompt describing what to avoid in the image. | `` |
+| true_cfg_scale | `float` | True CFG scale for Qwen-Image models. | `1.0` |
+| num_inference_steps | `int` | The number of denoising steps. | `50` |
+| height | `int` | The height of the generated image. | `1024` |
+| width | `int` | The width of the generated image. | `1024` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
+| enable_memory_efficient_attention | `bool` | Enable memory efficient attention to reduce VRAM usage. | `True` |
+| enable_cpu_offload | `bool` | Enable CPU offload to reduce VRAM usage. | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

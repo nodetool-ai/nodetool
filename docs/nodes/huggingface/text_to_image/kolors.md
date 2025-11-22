@@ -25,21 +25,21 @@ Generates images from text prompts using Kolors, a large-scale text-to-image gen
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | A text prompt describing the desired image. Supports both Chinese and English. | `A ladybug photo, macro, zoom, high quality, film, holding a sign that says "可图"` |
-| negative_prompt | `any` | A text prompt describing what to avoid in the image. | `` |
-| guidance_scale | `any` | The scale for classifier-free guidance. | `6.5` |
-| num_inference_steps | `any` | The number of denoising steps. | `25` |
-| width | `any` | The width of the generated image. | `1024` |
-| height | `any` | The height of the generated image. | `1024` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
-| max_sequence_length | `any` | Maximum sequence length for the prompt. | `256` |
-| use_dpm_solver | `any` | Whether to use DPMSolverMultistepScheduler with Karras sigmas for better quality. | `True` |
+| prompt | `str` | A text prompt describing the desired image. Supports both Chinese and English. | `A ladybug photo, macro, zoom, high quality, film, holding a sign that says "可图"` |
+| negative_prompt | `str` | A text prompt describing what to avoid in the image. | `` |
+| guidance_scale | `float` | The scale for classifier-free guidance. | `6.5` |
+| num_inference_steps | `int` | The number of denoising steps. | `25` |
+| width | `int` | The width of the generated image. | `1024` |
+| height | `int` | The height of the generated image. | `1024` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `-1` |
+| max_sequence_length | `int` | Maximum sequence length for the prompt. | `256` |
+| use_dpm_solver | `bool` | Whether to use DPMSolverMultistepScheduler with Karras sigmas for better quality. | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

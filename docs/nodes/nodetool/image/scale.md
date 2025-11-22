@@ -22,14 +22,14 @@ Enlarge or shrink an image by a scale factor.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to scale. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| scale | `any` | The scale factor. | `1.0` |
+| image | `image` | The image to scale. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| scale | `float` | The scale factor. | `1.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

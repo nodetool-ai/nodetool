@@ -23,13 +23,13 @@ Read an image file from disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to the image file to read | `` |
+| path | `str` | Path to the image file to read | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

@@ -22,15 +22,15 @@ list files in a directory matching a pattern.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | Directory to scan | `~` |
-| pattern | `any` | File pattern to match (e.g. *.txt) | `*` |
-| include_subdirectories | `any` | Search subdirectories | `False` |
+| folder | `str` | Directory to scan | `~` |
+| pattern | `str` | File pattern to match (e.g. *.txt) | `*` |
+| include_subdirectories | `bool` | Search subdirectories | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| file | `any` |  |
+| file | `str` |  |
 
 ## Metadata
 

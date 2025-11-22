@@ -23,14 +23,14 @@ Selects specific values from a list using index positions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| values | `any` |  | `[]` |
-| indices | `any` |  | `[]` |
+| values | `List[any]` |  | `[]` |
+| indices | `List[int]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

@@ -23,22 +23,22 @@ Generate text using locally cached MLX models on Apple Silicon.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | MLX language model to use for generation. The model must be available in the local Hugging Face cache. | `{'type': 'language_model', 'provider': 'mlx', 'id': 'mlx-community/Llama-3.2-3B-Instruct-4bit', 'name': 'Llama-3.2-3B Instruct (4-bit)', 'path': None, 'supported_tasks': []}` |
-| system_prompt | `any` | Optional system prompt used to steer the model. | `You are a helpful assistant.` |
-| prompt | `any` | The user prompt used for generation. | `` |
-| max_new_tokens | `any` | Maximum number of tokens the model should generate. | `256` |
-| temperature | `any` | Sampling temperature. Set to 0 for deterministic output. | `0.7` |
-| top_p | `any` | Nucleus sampling probability mass. | `0.95` |
-| top_k | `any` | Limits sampling to the top K tokens at each step. | `50` |
-| min_p | `any` | Minimum token probability threshold (0 disables). | `0.0` |
-| min_tokens_to_keep | `any` | Ensures at least this many tokens remain after filtering. | `1` |
+| model | `language_model` | MLX language model to use for generation. The model must be available in the local Hugging Face cache. | `{'type': 'language_model', 'provider': 'mlx', 'id': 'mlx-community/Llama-3.2-3B-Instruct-4bit', 'name': 'Llama-3.2-3B Instruct (4-bit)', 'path': None, 'supported_tasks': []}` |
+| system_prompt | `str` | Optional system prompt used to steer the model. | `You are a helpful assistant.` |
+| prompt | `str` | The user prompt used for generation. | `` |
+| max_new_tokens | `int` | Maximum number of tokens the model should generate. | `256` |
+| temperature | `float` | Sampling temperature. Set to 0 for deterministic output. | `0.7` |
+| top_p | `float` | Nucleus sampling probability mass. | `0.95` |
+| top_k | `int` | Limits sampling to the top K tokens at each step. | `50` |
+| min_p | `float` | Minimum token probability threshold (0 disables). | `0.0` |
+| min_tokens_to_keep | `int` | Ensures at least this many tokens remain after filtering. | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| chunk | `any` |  |
+| text | `str` |  |
+| chunk | `chunk` |  |
 
 ## Metadata
 

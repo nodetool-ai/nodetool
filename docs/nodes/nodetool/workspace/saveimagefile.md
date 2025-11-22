@@ -23,9 +23,9 @@ Save an image to a file in the workspace.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to save | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| folder | `any` | Relative folder path within workspace (use . for workspace root) | `.` |
-| filename | `any` | 
+| image | `image` | The image to save | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `str` | Relative folder path within workspace (use . for workspace root) | `.` |
+| filename | `str` | 
         The name of the image file.
         You can use time and date variables to create unique names:
         %Y - Year
@@ -35,13 +35,13 @@ Save an image to a file in the workspace.
         %M - Minute
         %S - Second
          | `image.png` |
-| overwrite | `any` | Overwrite the file if it already exists, otherwise file will be renamed | `False` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

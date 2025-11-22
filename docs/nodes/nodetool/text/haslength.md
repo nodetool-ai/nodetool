@@ -23,16 +23,16 @@ Checks if text length meets specified conditions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| min_length | `any` |  | - |
-| max_length | `any` |  | - |
-| exact_length | `any` |  | - |
+| text | `str` |  | `` |
+| min_length | `Optional[int]` |  | - |
+| max_length | `Optional[int]` |  | - |
+| exact_length | `Optional[int]` |  | - |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

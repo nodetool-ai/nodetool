@@ -23,13 +23,13 @@ Extracts metadata from an RSS feed.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | URL of the RSS feed | `` |
+| url | `str` | URL of the RSS feed | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[Any, Any]` |  |
 
 ## Metadata
 

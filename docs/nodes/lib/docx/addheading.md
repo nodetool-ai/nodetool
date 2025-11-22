@@ -18,15 +18,15 @@ Adds a heading to the document
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | The document to add the heading to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| text | `any` | The heading text | `` |
-| level | `any` | Heading level (1-9) | `1` |
+| document | `document` | The document to add the heading to | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| text | `str` | The heading text | `` |
+| level | `int` | Heading level (1-9) | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `document` |  |
 
 ## Metadata
 

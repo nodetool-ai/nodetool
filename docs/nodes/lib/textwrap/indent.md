@@ -18,14 +18,14 @@ Adds a prefix to the beginning of each line in the text.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| prefix | `any` |  | `    ` |
+| text | `str` |  | `` |
+| prefix | `str` |  | `    ` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

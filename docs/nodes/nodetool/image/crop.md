@@ -22,17 +22,17 @@ Crop an image to specified coordinates.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The image to crop. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
-| left | `any` | The left coordinate. | `0` |
-| top | `any` | The top coordinate. | `0` |
-| right | `any` | The right coordinate. | `512` |
-| bottom | `any` | The bottom coordinate. | `512` |
+| image | `image` | The image to crop. | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| left | `int` | The left coordinate. | `0` |
+| top | `int` | The top coordinate. | `0` |
+| right | `int` | The right coordinate. | `512` |
+| bottom | `int` | The bottom coordinate. | `512` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `image` |  |
 
 ## Metadata
 

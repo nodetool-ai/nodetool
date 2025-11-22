@@ -23,14 +23,14 @@ Append two dataframes along rows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| dataframe_a | `any` | First DataFrame to be appended. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| dataframe_b | `any` | Second DataFrame to be appended. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| dataframe_a | `dataframe` | First DataFrame to be appended. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| dataframe_b | `dataframe` | Second DataFrame to be appended. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

@@ -23,15 +23,15 @@ Checks if text contains a specified substring.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| text | `any` |  | `` |
-| substring | `any` |  | `` |
-| case_sensitive | `any` |  | `True` |
+| text | `str` |  | `` |
+| substring | `str` |  | `` |
+| case_sensitive | `bool` |  | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bool` |  |
 
 ## Metadata
 

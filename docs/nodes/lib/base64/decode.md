@@ -22,13 +22,13 @@ Decodes Base64 text to plain string.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| data | `any` | Base64 encoded text | `` |
+| data | `str` | Base64 encoded text | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

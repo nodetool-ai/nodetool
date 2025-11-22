@@ -31,14 +31,14 @@ Filter dataframe based on condition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| df | `any` | The DataFrame to filter. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
-| condition | `any` | The filtering condition to be applied to the DataFrame, e.g. column_name > 5. | `` |
+| df | `dataframe` | The DataFrame to filter. | `{'type': 'dataframe', 'uri': '', 'asset_id': None, 'data': None, 'columns': None}` |
+| condition | `str` | The filtering condition to be applied to the DataFrame, e.g. column_name > 5. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `dataframe` |  |
 
 ## Metadata
 

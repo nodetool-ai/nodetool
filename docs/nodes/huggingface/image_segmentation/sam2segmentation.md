@@ -24,13 +24,13 @@ Performs semantic segmentation on images using SAM2 (Segment Anything Model 2).
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| image | `any` | The input image to segment | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| image | `image` | The input image to segment | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[image]` |  |
 
 ## Metadata
 

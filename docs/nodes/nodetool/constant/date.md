@@ -18,15 +18,15 @@ Make a date object from year, month, day.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| year | `any` | Year of the date | `1900` |
-| month | `any` | Month of the date | `1` |
-| day | `any` | Day of the date | `1` |
+| year | `int` | Year of the date | `1900` |
+| month | `int` | Month of the date | `1` |
+| day | `int` | Day of the date | `1` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `date` |  |
 
 ## Metadata
 

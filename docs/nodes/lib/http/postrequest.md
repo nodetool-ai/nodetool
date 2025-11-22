@@ -24,14 +24,14 @@ Send data to a server using an HTTP POST request.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| url | `any` | The URL to make the request to. | `` |
-| data | `any` | The data to send in the POST request. | `` |
+| url | `str` | The URL to make the request to. | `` |
+| data | `str` | The data to send in the POST request. | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

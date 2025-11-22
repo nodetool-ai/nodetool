@@ -18,13 +18,13 @@ Index multiple text chunks at once with aggregated embeddings from Ollama.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| collection | `any` | The collection to index | `{'type': 'collection', 'name': ''}` |
-| document | `any` | The document to index | `` |
-| document_id | `any` | The document ID to associate with the text | `` |
-| metadata | `any` | The metadata to associate with the text | `{}` |
-| text_chunks | `any` | List of text chunks to index | `[]` |
-| context_window | `any` | The context window size to use for the model | `4096` |
-| aggregation | `any` | The aggregation method to use for the embeddings. | `mean` |
+| collection | `collection` | The collection to index | `{'type': 'collection', 'name': ''}` |
+| document | `str` | The document to index | `` |
+| document_id | `str` | The document ID to associate with the text | `` |
+| metadata | `Dict[Any, Any]` | The metadata to associate with the text | `{}` |
+| text_chunks | `List[(text_chunk | str)]` | List of text chunks to index | `[]` |
+| context_window | `int` | The context window size to use for the model | `4096` |
+| aggregation | `Enum['mean', 'max', 'min', 'sum']` | The aggregation method to use for the embeddings. | `mean` |
 
 ## Metadata
 

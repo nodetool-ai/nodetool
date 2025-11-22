@@ -23,16 +23,16 @@ Generates audio (music or sound effects) from text descriptions.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the audio generation | `{'type': 'hf.text_to_audio', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | The input text to the model | `` |
-| num_inference_steps | `any` | The number of inference steps to use for the generation | `10` |
-| audio_length_in_s | `any` | The length of the generated audio in seconds | `5.0` |
+| model | `hf.text_to_audio` | The model ID to use for the audio generation | `{'type': 'hf.text_to_audio', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | The input text to the model | `` |
+| num_inference_steps | `int` | The number of inference steps to use for the generation | `10` |
+| audio_length_in_s | `float` | The length of the generated audio in seconds | `5.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

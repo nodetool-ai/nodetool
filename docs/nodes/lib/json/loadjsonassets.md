@@ -18,14 +18,14 @@ Load JSON files from an asset folder.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| folder | `any` | The asset folder to load the JSON files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
+| folder | `folder` | The asset folder to load the JSON files from. | `{'type': 'folder', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| json | `any` |  |
-| name | `any` |  |
+| json | `Dict[Any, Any]` |  |
+| name | `str` |  |
 
 ## Metadata
 

@@ -18,14 +18,14 @@ Divides the first array by the second.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| a | `any` |  | `0.0` |
-| b | `any` |  | `0.0` |
+| a | `(int | float | np_array)` |  | `0.0` |
+| b | `(int | float | np_array)` |  | `0.0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `(int | float | np_array)` |  |
 
 ## Metadata
 

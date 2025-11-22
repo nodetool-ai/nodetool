@@ -22,13 +22,13 @@ Read raw bytes from a file on disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | Path to the file to read | `` |
+| path | `str` | Path to the file to read | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `bytes` |  |
 
 ## Metadata
 

@@ -23,14 +23,14 @@ Finds elements that exist in first list but not in second list.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| list1 | `any` |  | `[]` |
-| list2 | `any` |  | `[]` |
+| list1 | `List[any]` |  | `[]` |
+| list2 | `List[any]` |  | `[]` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

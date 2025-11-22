@@ -22,14 +22,14 @@ Classifies images into predefined categories.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the classification | `{'type': 'hf.image_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| image | `any` | The input image to classify | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
+| model | `hf.image_classification` | The model ID to use for the classification | `{'type': 'hf.image_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| image | `image` | The input image to classify | `{'type': 'image', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, float]` |  |
 
 ## Metadata
 

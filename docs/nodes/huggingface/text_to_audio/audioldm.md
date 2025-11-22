@@ -24,16 +24,16 @@ Generates audio using the AudioLDM model based on text prompts.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `any` | A text prompt describing the desired audio. | `Techno music with a strong, upbeat tempo and high melodic riffs` |
-| num_inference_steps | `any` | Number of denoising steps. More steps generally improve quality but increase generation time. | `10` |
-| audio_length_in_s | `any` | The desired duration of the generated audio in seconds. | `5.0` |
-| seed | `any` | Seed for the random number generator. Use -1 for a random seed. | `0` |
+| prompt | `str` | A text prompt describing the desired audio. | `Techno music with a strong, upbeat tempo and high melodic riffs` |
+| num_inference_steps | `int` | Number of denoising steps. More steps generally improve quality but increase generation time. | `10` |
+| audio_length_in_s | `float` | The desired duration of the generated audio in seconds. | `5.0` |
+| seed | `int` | Seed for the random number generator. Use -1 for a random seed. | `0` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

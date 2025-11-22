@@ -18,17 +18,17 @@ Split JSON content into semantic chunks.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| document | `any` | Document ID to associate with the JSON content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
-| include_metadata | `any` | Whether to include metadata in nodes | `True` |
-| include_prev_next_rel | `any` | Whether to include prev/next relationships | `True` |
+| document | `document` | Document ID to associate with the JSON content | `{'type': 'document', 'uri': '', 'asset_id': None, 'data': None}` |
+| include_metadata | `bool` | Whether to include metadata in nodes | `True` |
+| include_prev_next_rel | `bool` | Whether to include prev/next relationships | `True` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| text | `any` |  |
-| source_id | `any` |  |
-| start_index | `any` |  |
+| text | `str` |  |
+| source_id | `str` |  |
+| start_index | `int` |  |
 
 ## Metadata
 

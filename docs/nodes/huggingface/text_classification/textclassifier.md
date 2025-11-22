@@ -18,14 +18,14 @@ Classifies text into predefined categories using a Hugging Face model.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| model | `any` | The model ID to use for the classification | `{'type': 'hf.text_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
-| prompt | `any` | The input text to the model | `` |
+| model | `hf.text_classification` | The model ID to use for the classification | `{'type': 'hf.text_classification', 'repo_id': '', 'path': None, 'variant': None, 'allow_patterns': None, 'ignore_patterns': None}` |
+| prompt | `str` | The input text to the model | `` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `Dict[str, float]` |  |
 
 ## Metadata
 

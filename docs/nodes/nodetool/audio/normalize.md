@@ -22,13 +22,13 @@ Normalizes the volume of an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| audio | `any` | The audio file to normalize. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
+| audio | `audio` | The audio file to normalize. | `{'type': 'audio', 'uri': '', 'asset_id': None, 'data': None}` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `audio` |  |
 
 ## Metadata
 

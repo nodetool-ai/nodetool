@@ -29,7 +29,7 @@ Collect items until the end of the stream and return them as a list.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `List[any]` |  |
 
 ## Metadata
 

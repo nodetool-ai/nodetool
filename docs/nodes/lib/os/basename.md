@@ -23,14 +23,14 @@ Get the base name component of a file path.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| path | `any` | File path to get basename from | `` |
-| remove_extension | `any` | Remove file extension from basename | `False` |
+| path | `str` | File path to get basename from | `` |
+| remove_extension | `bool` | Remove file extension from basename | `False` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `any` |  |
+| output | `str` |  |
 
 ## Metadata
 

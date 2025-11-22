@@ -23,9 +23,9 @@ Output node for a single boolean value.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| name | `any` | The parameter name for the workflow. | `` |
-| value | `any` |  | `False` |
-| description | `any` | The description of the output for the workflow. | `` |
+| name | `str` | The parameter name for the workflow. | `` |
+| value | `bool` |  | `False` |
+| description | `str` | The description of the output for the workflow. | `` |
 
 ## Outputs
 
