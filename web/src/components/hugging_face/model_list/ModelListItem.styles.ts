@@ -74,7 +74,12 @@ const modelListItemStyles = (theme: Theme) =>
         textDecoration: "none",
         marginLeft: "0 !important",
         paddingBottom: "0.25em",
-        "&:hover": { textDecoration: "underline" }
+        "&:hover": { textDecoration: "underline" },
+        "&.no-link": {
+          color: theme.vars.palette.text.primary,
+          cursor: "default",
+          "&:hover": { textDecoration: "none" }
+        }
       },
 
       "& .model-owner": {

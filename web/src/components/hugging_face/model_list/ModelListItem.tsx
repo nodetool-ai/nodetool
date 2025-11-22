@@ -99,7 +99,7 @@ const ModelListItem: React.FC<
 
                 if (!modelUrl) {
                   return (
-                    <div className="model-name-link" title={full}>
+                    <div className="model-name-link no-link" title={full}>
                       {content}
                     </div>
                   );
