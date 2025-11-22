@@ -12,12 +12,30 @@ ______________________________________________________________________
 
 ## Table of Contents
 
+1. [Detailed Workflow Examples](#detailed-workflow-examples)
 1. [Core Concepts](#core-concepts)
 1. [Streaming Architecture](#streaming-architecture)
 1. [Workflow Patterns](#workflow-patterns)
 1. [Examples by Category](#examples-by-category)
 1. [Best Practices](#best-practices)
 1. [Node Reference](#node-reference)
+
+______________________________________________________________________
+
+## Detailed Workflow Examples
+
+For step-by-step guides with detailed explanations and Mermaid diagrams, browse our [Workflow Examples Gallery](/workflows/).
+
+**Highlighted Examples:**
+
+- [Image Enhance](/workflows/image-enhance.md) - Basic image enhancement workflow
+- [Transcribe Audio](/workflows/transcribe-audio.md) - Speech-to-text with Whisper
+- [Chat with Docs](/workflows/chat-with-docs.md) - RAG-based document Q&A
+- [Creative Story Ideas](/workflows/creative-story-ideas.md) - Beginner tutorial workflow
+- [Movie Posters](/workflows/movie-posters.md) - Multi-stage AI generation
+- [Data Visualization Pipeline](/workflows/data-visualization-pipeline.md) - Data fetching and visualization
+
+[View all 19+ workflow examples →](/workflows/)
 
 ______________________________________________________________________
 

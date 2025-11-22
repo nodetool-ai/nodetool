@@ -36,10 +36,15 @@ Visual workflow builder for local and cloud ML models. Build chatbots, automate 
 
 ## What You Get
 
-- **Local first** — Runs on your machine without vendor cloud infrastructure
-- **Open source** — Inspect, modify, self-host the entire stack
-- **Data stays yours** — Processes locally, never phones home or sends telemetry
-- **No lock-in** — One portable workflow format from laptop to deployment
+NodeTool is built on these core principles:
+
+- **Privacy by design** — Your data processes locally by default, with no telemetry or tracking
+- **Local-first development** — Run everything on your machine without requiring cloud infrastructure
+- **Open and transparent** — Full source code available to inspect, modify, and self-host
+- **Freedom to choose** — Use local models or any API provider, with portable workflows that run anywhere
+- **Community-driven** — Built collaboratively by makers, researchers, and developers
+
+> **License:** AGPL-3.0 — This project is free and open source software
 
 **Fast local inference:**
 
@@ -536,6 +541,18 @@ git commit --no-verify -m "Your message"
 
 ## Contributing
 
+NodeTool is developed in the open, and we welcome contributions of all kinds:
+
+- **Bug reports and feature requests** — Help us identify issues and prioritize improvements
+- **Code contributions** — Fix bugs, add features, or improve performance
+- **Documentation** — Clarify instructions, add examples, or fix typos
+- **Node development** — Create new nodes to extend NodeTool's capabilities
+- **Workflow sharing** — Share interesting workflows with the community
+
+**Pull requests are welcome!** For major changes, please open an issue first to discuss your ideas.
+
+### Development workflow:
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/name`)
 3. Commit changes (`git commit -m 'Add feature'`)
@@ -544,7 +561,7 @@ git commit --no-verify -m "Your message"
 
 ## License
 
-AGPL-3.0
+NodeTool is free and open source software, released under the [AGPL-3.0 license](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE).
 
 ## Get in Touch
 
