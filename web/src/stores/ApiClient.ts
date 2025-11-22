@@ -74,10 +74,29 @@ export const isDevelopment = isLocalhost;
 /** Flag indicating a production environment. */
 export const isProduction = !isLocalhost;
 
+const detectElectron = (): boolean => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const w = window as typeof window & {
+    process?: { type?: string; versions?: Record<string, unknown> };
+    api?: unknown;
+  };
+  const isElectronProcess =
+    Boolean(w.process?.type) || Boolean(w.process?.versions?.electron);
+  const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  const isElectronUA = userAgent.toLowerCase().includes("electron");
+  const hasElectronBridge = Boolean(w.api);
+  return isElectronProcess || isElectronUA || hasElectronBridge;
+};
+
+/** Flag indicating whether the app is running inside the Electron shell. */
+export const isElectron = detectElectron();
+
 /**
  * Programmatically set the force localhost preference in localStorage.
  * This will persist across page reloads.
- * 
+ *
  * @param force - true to force localhost mode, false to force production mode, null to clear override
  */
 export const setForceLocalhost = (force: boolean | null): void => {
@@ -101,6 +120,7 @@ export const setForceLocalhost = (force: boolean | null): void => {
 if (typeof window !== "undefined") {
   (window as any)["isProduction"] = isProduction;
   (window as any)["isLocalhost"] = isLocalhost;
+  (window as any)["isElectron"] = isElectron;
   (window as any)["setForceLocalhost"] = setForceLocalhost;
 }
 
