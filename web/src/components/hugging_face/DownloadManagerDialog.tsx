@@ -28,7 +28,7 @@ import {
   openHuggingfacePath,
   openOllamaPath
 } from "../../utils/fileExplorer";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isElectron, isLocalhost, isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: Theme) =>
   css({
@@ -160,27 +160,30 @@ const DownloadManagerDialog: React.FC = () => {
             </Box>
           )}
         </Box>
-        {isLocalhost && isFileExplorerAvailable() && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Box className="folders-row">
-              <Button
-                variant="outlined"
-                startIcon={<FolderOutlined />}
-                onClick={openHuggingfacePath}
-              >
-                Open HuggingFace folder
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<FolderOutlined />}
-                onClick={openOllamaPath}
-              >
-                Open Ollama folder
-              </Button>
-            </Box>
-          </>
-        )}
+        {isLocalhost &&
+          isFileExplorerAvailable() &&
+          !isProduction &&
+          isElectron && (
+            <>
+              <Divider sx={{ my: 2 }} />
+              <Box className="folders-row">
+                <Button
+                  variant="outlined"
+                  startIcon={<FolderOutlined />}
+                  onClick={openHuggingfacePath}
+                >
+                  Open HuggingFace folder
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<FolderOutlined />}
+                  onClick={openOllamaPath}
+                >
+                  Open Ollama folder
+                </Button>
+              </Box>
+            </>
+          )}
       </DialogContent>
       <DialogActions className="download-actions">
         <Typography
