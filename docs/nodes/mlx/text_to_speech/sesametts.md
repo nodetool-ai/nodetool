@@ -1,0 +1,37 @@
+---
+layout: page
+title: "Sesame TTS"
+node_type: "mlx.text_to_speech.SesameTTS"
+namespace: "mlx.text_to_speech"
+---
+
+**Type:** `mlx.text_to_speech.SesameTTS`
+
+**Namespace:** `mlx.text_to_speech`
+
+## Description
+
+MLX Sesame / CSM text-to-speech with reference audio cloning.
+
+## Properties
+
+| Property | Type | Description | Default |
+|----------|------|-------------|----------|
+| text | `any` | Text content to synthesize into speech. | `Hello from MLX TTS.` |
+| speed | `any` | Speech speed multiplier for Sesame (0.5–2.0). | `1.0` |
+| model | `any` | Sesame/CSM model variant to load. | `mlx-community/csm-1b` |
+| reference_audio | `any` | Reference audio clip used for voice cloning. | - |
+
+## Outputs
+
+| Output | Type | Description |
+|--------|------|-------------|
+| audio | `any` |  |
+| chunk | `any` |  |
+
+## Metadata
+
+## Related Nodes
+
+Browse other nodes in the [mlx.text_to_speech](../) namespace.
+
