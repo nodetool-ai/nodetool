@@ -17,24 +17,29 @@ import CloseIcon from "@mui/icons-material/Close";
 const styles = (theme: Theme) =>
   css({
     margin: "2em 0 4em 0",
-    "&.models-manager": {
+    ".models-manager": {
       display: "flex",
       gap: "1em",
-      padding: "1em"
+      padding: "1em",
+      height: "100%",
+      overflow: "hidden"
     },
     ".download-models-section": {
       display: "flex",
       width: "50%",
       flexDirection: "column",
       gap: "1em",
-      padding: "1em"
+      padding: "1em",
+      overflow: "auto"
     },
     ".existing-models-section": {
       width: "100%",
       display: "flex",
       flexDirection: "column",
       gap: "1em",
-      padding: "0.5em 0 0 0"
+      padding: "0.5em 0 0 0",
+      height: "100%",
+      overflow: "hidden"
     },
     ".models-search": {
       maxWidth: "600px",
@@ -56,8 +61,10 @@ const styles = (theme: Theme) =>
     },
     ".models-list-container": {
       position: "relative",
-      height: "80vh",
-      width: "100%"
+      height: "100%",
+      width: "100%",
+      flex: 1,
+      overflow: "hidden"
     },
     ".dialog-title": {
       position: "sticky",
@@ -108,6 +115,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
         "& .MuiDialog-paper": {
           width: "92%",
           maxWidth: "1200px",
+          height: "90vh",
+          maxHeight: "90vh",
           margin: "auto",
           borderRadius: (theme as any)?.rounded?.dialog ?? 6,
           border: `1px solid ${theme.vars.palette.grey[700]}`
@@ -128,7 +137,10 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       </DialogTitle>
       <DialogContent
         sx={{
-          pt: 2
+          pt: 2,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column"
         }}
       >
         <div className="models-manager">

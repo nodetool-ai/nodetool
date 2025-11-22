@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React from "react";
-import { Typography, Tooltip, Chip, Box, Link } from "@mui/material";
+import { Typography, Tooltip, Chip, Box, Link, Divider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -99,6 +99,23 @@ const ModelListItem: React.FC<
             </div>
 
             <div className="model-details">
+              <Tooltip title="Runs locally on your device">
+                <Chip
+                  label="Local"
+                  size="small"
+                  component="span"
+                  sx={{
+                    height: 20,
+                    fontSize: theme.vars.fontSizeTiny,
+                    color: theme.vars.palette.c_provider_local,
+                    borderColor: theme.vars.palette.c_provider_local,
+                    background: "transparent",
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    cursor: "help"
+                  }}
+                />
+              </Tooltip>
               {tags.map((tag) => (
                 <Chip
                   label={tag}

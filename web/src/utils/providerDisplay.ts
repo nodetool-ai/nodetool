@@ -17,6 +17,31 @@ export const isHuggingFaceLocalProvider = (provider?: string): boolean => {
   return normalized === "huggingface";
 };
 
+export const isLocalProvider = (provider?: string): boolean => {
+  if (!provider) return false;
+  const p = provider.toLowerCase().trim();
+  return (
+    p === "huggingface" ||
+    p.includes("ollama") ||
+    p.includes("llama_cpp") ||
+    p.includes("llama-cpp") ||
+    p.includes("llamacpp") ||
+    p === "mlx"
+  );
+};
+
+export const isCloudProvider = (provider?: string): boolean => {
+  if (!provider) return false;
+  // If it's not local, we assume it's an API/Cloud provider
+  return !isLocalProvider(provider);
+};
+
+export const isHuggingFaceInferenceProvider = (provider?: string): boolean => {
+  if (!provider) return false;
+  const p = provider.toLowerCase().trim();
+  return p.includes("hf_inference") || p.includes("huggingface_inference");
+};
+
 const insertSpacesBeforeCapitals = (value: string): string => {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 };
