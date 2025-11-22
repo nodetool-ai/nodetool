@@ -9,38 +9,36 @@
 /* === CSS Variables === */
 :root {
   /* Colors - Matching paletteDark.ts */
-  --color-bg-primary: #0F1115;
-  --color-bg-secondary: #161A22;
-  --color-bg-tertiary: #161A22;
-  --color-bg-elevated: #1C1F26;
+  --color-bg-primary: #0f1115;
+  --color-bg-secondary: #161a22;
+  --color-bg-tertiary: #161a22;
+  --color-bg-elevated: #1c1f26;
 
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #B9B9B4;
-  --color-text-muted: #94A3B8;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b9b9b4;
+  --color-text-muted: #94a3b8;
 
-  --color-accent-cyan: #60A5FA;
-  --color-accent-magenta: #E35BFF;
-  --color-accent-purple: #A78BFA;
-  --color-accent-blue: #93C5FD;
-  --color-accent-green: #50FA7B;
+  --color-accent-cyan: #60a5fa;
+  --color-accent-magenta: #e35bff;
+  --color-accent-purple: #a78bfa;
+  --color-accent-blue: #93c5fd;
+  --color-accent-green: #50fa7b;
 
   --color-border: #525865;
   --color-border-glow: rgba(96, 165, 250, 0.3);
 
   /* Neon Glows */
   --glow-cyan: 0 0 10px rgba(96, 165, 250, 0.5),
-                0 0 20px rgba(96, 165, 250, 0.3),
-                0 0 30px rgba(96, 165, 250, 0.1);
+    0 0 20px rgba(96, 165, 250, 0.3), 0 0 30px rgba(96, 165, 250, 0.1);
   --glow-magenta: 0 0 10px rgba(227, 91, 255, 0.5),
-                   0 0 20px rgba(227, 91, 255, 0.3),
-                   0 0 30px rgba(227, 91, 255, 0.1);
+    0 0 20px rgba(227, 91, 255, 0.3), 0 0 30px rgba(227, 91, 255, 0.1);
   --glow-purple: 0 0 10px rgba(167, 139, 250, 0.5),
-                  0 0 20px rgba(167, 139, 250, 0.3);
+    0 0 20px rgba(167, 139, 250, 0.3);
 
   /* Typography */
-  --font-heading: 'Roboto', sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-heading: "Roboto", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -91,46 +89,34 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image:
-    linear-gradient(rgba(96, 165, 250, 0.03) 1px, transparent 1px),
+  background-image: linear-gradient(
+      rgba(96, 165, 250, 0.03) 1px,
+      transparent 1px
+    ),
     linear-gradient(90deg, rgba(96, 165, 250, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: -1;
-  animation: gridPulse 8s ease-in-out infinite;
-}
-
-@keyframes gridPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
-}
-
-.scanline {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(96, 165, 250, 0.05) 50%,
-    transparent 100%
-  );
-  background-size: 100% 4px;
-  animation: scan 8s linear infinite;
-  pointer-events: none;
-  z-index: 1000;
   opacity: 0.4;
 }
 
-@keyframes scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+@keyframes gridPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* === Typography === */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   line-height: 1.3;
@@ -142,7 +128,11 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   font-size: 2.5rem;
-  background: linear-gradient(135deg, var(--color-accent-cyan), var(--color-accent-purple));
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-cyan),
+    var(--color-accent-purple)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -159,7 +149,7 @@ h2 {
 }
 
 h2::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 0;
@@ -275,7 +265,7 @@ blockquote {
 }
 
 .logo-image {
-  width: 160px
+  width: 160px;
 }
 
 .logo-bracket {
@@ -294,8 +284,13 @@ blockquote {
 }
 
 @keyframes bracket-pulse {
-  0%, 100% { transform: scaleX(1); }
-  50% { transform: scaleX(1.2); }
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.2);
+  }
 }
 
 .main-nav ul {
@@ -316,7 +311,7 @@ blockquote {
 }
 
 .nav-item::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -380,7 +375,7 @@ blockquote {
 
 .hamburger::before,
 .hamburger::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 25px;
   height: 2px;
@@ -452,8 +447,13 @@ blockquote {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .nav-section {
@@ -696,7 +696,6 @@ blockquote {
   margin-bottom: var(--spacing-2xl);
 }
 
-
 .footer-title {
   font-family: var(--font-heading);
   font-size: 1.3rem;
@@ -820,21 +819,39 @@ blockquote {
   border-left: 3px solid var(--color-accent-cyan);
 }
 
-.highlight .c { color: var(--color-text-muted); } /* Comment */
-.highlight .k { color: #FF5555; } /* Keyword - using error color */
-.highlight .s { color: var(--color-accent-blue); } /* String */
-.highlight .mi { color: var(--color-accent-cyan); } /* Number */
-.highlight .nf { color: var(--color-accent-purple); } /* Function */
-.highlight .nc { color: #FFB86C; } /* Class - using warning color */
-.highlight .o { color: #FF5555; } /* Operator - using error color */
+.highlight .c {
+  color: var(--color-text-muted);
+} /* Comment */
+.highlight .k {
+  color: #ff5555;
+} /* Keyword - using error color */
+.highlight .s {
+  color: var(--color-accent-blue);
+} /* String */
+.highlight .mi {
+  color: var(--color-accent-cyan);
+} /* Number */
+.highlight .nf {
+  color: var(--color-accent-purple);
+} /* Function */
+.highlight .nc {
+  color: #ffb86c;
+} /* Class - using warning color */
+.highlight .o {
+  color: #ff5555;
+} /* Operator - using error color */
 
 /* === Utility Classes === */
 .text-center {
   text-align: center;
 }
 
-.mt-0 { margin-top: 0; }
-.mb-0 { margin-bottom: 0; }
+.mt-0 {
+  margin-top: 0;
+}
+.mb-0 {
+  margin-bottom: 0;
+}
 
 /* === Print Styles === */
 @media print {
@@ -849,8 +866,7 @@ blockquote {
     max-width: 100%;
   }
 
-  .cyber-grid,
-  .scanline {
+  .cyber-grid {
     display: none;
   }
 }
