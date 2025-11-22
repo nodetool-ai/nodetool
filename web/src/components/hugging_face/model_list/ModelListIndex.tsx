@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       width: "80%",
       height: "95%",
       flexGrow: 1,
-      overflowY: "auto",
+      overflow: "hidden",
       padding: "0 0 4em 1em"
     },
     ".model-list-section": {
@@ -106,6 +106,7 @@ const ModelListIndex: React.FC = () => {
   const {
     modelTypes,
     filteredModels,
+    allModels,
     isLoading,
     isFetching,
     error,
@@ -201,7 +202,10 @@ const ModelListIndex: React.FC = () => {
   return (
     <Box className="model-list-container" css={styles(theme)}>
       <Box className="model-list-header">
-        <ModelListHeader />
+        <ModelListHeader
+          totalCount={allModels?.length || 0}
+          filteredCount={filteredModels.length}
+        />
       </Box>
       <Box className="main">
         <Box className="sidebar">
@@ -227,6 +231,7 @@ const ModelListIndex: React.FC = () => {
           )}
           {flattenedList.length > 0 ? (
             <VirtualList
+              className="model-list"
               key={`${selectedModelType}-${flattenedList.length}`}
               height={window.innerHeight - 200}
               width="100%"

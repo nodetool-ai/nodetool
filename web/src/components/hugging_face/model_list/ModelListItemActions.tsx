@@ -32,6 +32,10 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
 }) => {
   const { isHuggingFace, isOllama } = useModelInfo(model);
   const downloaded = model.downloaded ?? !!model.path;
+  const canShowExplorerButton = Boolean(
+    handleShowInExplorer && showFileExplorerButton
+  );
+  const explorerButtonDisabled = !isOllama && !model.path;
 
   return (
     <div className="actions-container">
@@ -46,25 +50,36 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
         </Button>
       )}
       {downloaded && (
-        <Tooltip title={handleShowInExplorer ? "Show in Explorer" : "Downloaded"}>
+        <Tooltip
+          title={handleShowInExplorer ? "Show in Explorer" : "Downloaded"}
+          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+        >
           <Chip
             label="Downloaded"
             color="success"
             variant="outlined"
             size="small"
             icon={<Check fontSize="small" />}
-            sx={{ fontWeight: 600, cursor: handleShowInExplorer ? "pointer" : "default" }}
-            onClick={handleShowInExplorer ? () => handleShowInExplorer!(model.id) : undefined}
+            sx={{
+              fontWeight: 600,
+              cursor: handleShowInExplorer ? "pointer" : "default"
+            }}
+            onClick={
+              handleShowInExplorer
+                ? () => handleShowInExplorer!(model.id)
+                : undefined
+            }
             clickable={!!handleShowInExplorer}
           />
         </Tooltip>
       )}
 
       <div className="model-actions">
-        {handleShowInExplorer && showFileExplorerButton && !downloaded && (
+        {canShowExplorerButton && (
           <ModelShowInExplorerButton
             onClick={() => handleShowInExplorer!(model.id)}
-            disabled={isOllama ? false : !model.path}
+            disabled={explorerButtonDisabled}
           />
         )}
         {handleModelDelete && (

@@ -7,16 +7,27 @@ import {
   Typography
 } from "@mui/material";
 import SearchInput from "../../search/SearchInput";
-import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import {
+  useModelManagerStore,
+  ModelFilterStatus
+} from "../../../stores/ModelManagerStore";
 
-const ModelListHeader: React.FC = () => {
+interface ModelListHeaderProps {
+  totalCount: number;
+  filteredCount: number;
+}
+
+const ModelListHeader: React.FC<ModelListHeaderProps> = ({
+  totalCount,
+  filteredCount
+}) => {
   const {
     modelSearchTerm,
     setModelSearchTerm,
     maxModelSizeGB,
     setMaxModelSizeGB,
-    showDownloadedOnly,
-    setShowDownloadedOnly
+    filterStatus,
+    setFilterStatus
   } = useModelManagerStore();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
@@ -26,10 +37,10 @@ const ModelListHeader: React.FC = () => {
 
   const handleToggleChange = (
     _: React.MouseEvent<HTMLElement>,
-    newValue: boolean
+    newValue: ModelFilterStatus
   ) => {
     if (newValue !== null) {
-      setShowDownloadedOnly(newValue);
+      setFilterStatus(newValue);
     }
   };
 
@@ -48,42 +59,70 @@ const ModelListHeader: React.FC = () => {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 3,
+          gap: 6,
           flex: 1,
           justifyContent: "flex-end",
           pr: 2
         }}
       >
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
+        >
+          {(() => {
+            if (filterStatus === "downloaded") {
+              return `${filteredCount} downloaded / ${totalCount} total`;
+            }
+            if (filterStatus === "not_downloaded") {
+              return `${filteredCount} available / ${totalCount} total`;
+            }
+            if (filteredCount !== totalCount) {
+              return `${filteredCount} of ${totalCount} models`;
+            }
+            return `${totalCount} models`;
+          })()}
+        </Typography>
+
         <ToggleButtonGroup
-          value={showDownloadedOnly}
+          value={filterStatus}
           exclusive
           onChange={handleToggleChange}
-          aria-label="show downloaded models only"
+          aria-label="filter models"
           size="small"
+          color="primary"
           sx={{ height: "32px" }}
         >
           <ToggleButton
-            value={false}
+            value="all"
             aria-label="show all models"
             sx={{ px: 2, minWidth: "60px" }}
           >
             All
           </ToggleButton>
           <ToggleButton
-            value={true}
+            value="downloaded"
             aria-label="show downloaded models only"
             sx={{ px: 2, minWidth: "100px" }}
           >
             Downloaded
           </ToggleButton>
+          <ToggleButton
+            value="not_downloaded"
+            aria-label="show available models only"
+            sx={{ px: 2, minWidth: "100px" }}
+          >
+            Available
+          </ToggleButton>
         </ToggleButtonGroup>
 
-        <Box sx={{ width: 200, minWidth: 200, mr: 2 }}>
+        <Box sx={{ width: 200, minWidth: 200, mr: 2, mt: 1 }}>
           <Slider
             aria-label="Max model size in GB"
             value={maxModelSizeGB}
             onChange={handleSliderChange}
-            valueLabelDisplay="off"
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => (value === 0 ? "All" : `${value} GB`)}
             step={1}
             min={0}
             max={50}
@@ -93,6 +132,11 @@ const ModelListHeader: React.FC = () => {
               { value: 15, label: "15G" },
               { value: 30, label: "30G" }
             ]}
+            sx={{
+              "& .MuiSlider-markLabel": {
+                fontSize: (theme) => theme.vars.fontSizeTiny
+              }
+            }}
           />
         </Box>
       </Box>
