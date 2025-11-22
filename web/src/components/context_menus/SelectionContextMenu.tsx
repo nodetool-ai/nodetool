@@ -261,7 +261,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       )}
       <Divider />
       <ContextMenuItem
-        onClick={() => handleDelete()}
+        onClick={() => {
+          handleDelete();
+          closeContextMenu();
+        }}
         label="Delete"
         IconComponent={<RemoveCircleIcon />}
         tooltip={
