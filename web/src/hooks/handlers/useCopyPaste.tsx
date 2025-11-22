@@ -11,10 +11,17 @@ import log from "loglevel";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
   const generateNodeIds = useNodes((state) => state.generateNodeIds);
+  const { setClipboardData, setIsClipboardValid } = useSessionStateStore(
+    (state) => ({
+      setClipboardData: state.setClipboardData,
+      setIsClipboardValid: state.setIsClipboardValid
+    })
+  );
 
   const { nodes, edges, setNodes, setEdges } = useNodes((state) => ({
     nodes: state.nodes,
@@ -57,9 +64,13 @@ export const useCopyPaste = () => {
         localStorage.setItem("copiedNodesData", serializedData);
       }
 
+      // Let UI know we have valid node data available for paste
+      setClipboardData(serializedData);
+      setIsClipboardValid(true);
+
       return { nodesToCopy, connectedEdges };
     },
-    [nodes, edges, selectedNodes]
+    [nodes, edges, selectedNodes, setClipboardData, setIsClipboardValid]
   );
 
   const handleCut = useCallback(
@@ -117,11 +128,15 @@ export const useCopyPaste = () => {
       mousePosition.y
     );
 
+    const isInActionElement =
+      !!elementUnderCursor &&
+      !!(elementUnderCursor as HTMLElement).closest(".action") &&
+      !document.activeElement?.classList.contains("MuiInputBase-input");
+
     if (
       elementUnderCursor?.classList.contains("react-flow__pane") ||
       elementUnderCursor?.classList.contains("loop-node") ||
-      (elementUnderCursor?.classList.contains("action") &&
-        !document.activeElement?.classList.contains("MuiInputBase-input"))
+      isInActionElement
     ) {
       const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
       const oldToNewIds = new Map<string, string>();

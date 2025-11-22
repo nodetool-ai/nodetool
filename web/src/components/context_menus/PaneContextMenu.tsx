@@ -164,6 +164,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       <ContextMenuItem
         onClick={() => {
           handlePaste();
+          closeContextMenu();
         }}
         label="Paste"
         addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
