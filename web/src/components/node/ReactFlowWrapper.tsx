@@ -115,7 +115,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     setViewport,
     createNode,
     addNode,
-    deleteEdge
+    deleteEdge,
+    setEdgeSelectionState
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
@@ -130,10 +131,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     setViewport: state.setViewport,
     createNode: state.createNode,
     addNode: state.addNode,
-    deleteEdge: state.deleteEdge
+    deleteEdge: state.deleteEdge,
+    setEdgeSelectionState: state.setEdgeSelectionState
   }));
 
   const [isVisible, setIsVisible] = useState(true);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   useEffect(() => {
     // When the workflow changes, determine initial visibility.
@@ -499,6 +502,40 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     onSelectionEnd
   } = useDragHandlers();
 
+  // We want to know when a selection rectangle is active so we can
+  // avoid doing heavy edge selection updates and edge styling work mid-drag.
+  const handleSelectionStart = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      setIsSelecting(true);
+      onSelectionStart(event);
+    },
+    [onSelectionStart]
+  );
+
+  const handleSelectionDragStart = useCallback(
+    (event: React.MouseEvent | MouseEvent, nodes: Node[]) => {
+      setIsSelecting(true);
+      onSelectionDragStart(event, nodes);
+    },
+    [onSelectionDragStart]
+  );
+
+  const handleSelectionDragStop = useCallback(
+    (event: React.MouseEvent | MouseEvent, nodes: Node[]) => {
+      onSelectionDragStop(event, nodes);
+      setIsSelecting(false);
+    },
+    [onSelectionDragStop]
+  );
+
+  const handleSelectionEnd = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      onSelectionEnd(event);
+      setIsSelecting(false);
+    },
+    [onSelectionEnd]
+  );
+
   const edgeStatuses = useResultsStore((state) => state.edges);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
@@ -506,12 +543,46 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     dataTypes: DATA_TYPES,
     getMetadata,
     workflowId,
-    edgeStatuses
+    edgeStatuses,
+    isSelecting
   });
   const activeGradientKeysArray = useMemo(
     () => Array.from(activeGradientKeys),
     [activeGradientKeys]
   );
+
+  // Keep edge selection in sync with node selection in a single place.
+  // An edge is selected when either of its endpoint nodes is selected.
+  useEffect(() => {
+    // During selection drag we keep the previous edge selection state
+    // and only recompute once the drag is finished. This avoids extra
+    // work on every small selection change.
+    if (isSelecting) {
+      return;
+    }
+
+    if (!nodes.length || !edges.length) {
+      return;
+    }
+
+    const selectedIds = new Set(
+      nodes.filter((node) => node.selected).map((node) => node.id)
+    );
+
+    const selectionUpdates: Record<string, boolean> = {};
+
+    for (const edge of edges) {
+      const shouldSelect =
+        selectedIds.has(edge.source) || selectedIds.has(edge.target);
+      if (Boolean(edge.selected) !== shouldSelect) {
+        selectionUpdates[edge.id] = shouldSelect;
+      }
+    }
+
+    if (Object.keys(selectionUpdates).length > 0) {
+      setEdgeSelectionState(selectionUpdates);
+    }
+  }, [nodes, edges, setEdgeSelectionState, isSelecting]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
@@ -627,11 +698,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}
-        onSelectionDragStart={onSelectionDragStart}
+        onSelectionDragStart={handleSelectionDragStart}
         onSelectionDrag={onSelectionDrag}
-        onSelectionDragStop={onSelectionDragStop}
-        onSelectionStart={onSelectionStart}
-        onSelectionEnd={onSelectionEnd}
+        onSelectionDragStop={handleSelectionDragStop}
+        onSelectionStart={handleSelectionStart}
+        onSelectionEnd={handleSelectionEnd}
         onSelectionContextMenu={handleSelectionContextMenu}
         selectionMode={settings.selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
