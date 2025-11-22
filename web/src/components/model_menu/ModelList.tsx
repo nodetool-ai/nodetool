@@ -19,7 +19,9 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import {
   toTitleCase,
   formatGenericProviderName,
-  isHuggingFaceLocalProvider
+  isLocalProvider,
+  isCloudProvider,
+  isHuggingFaceInferenceProvider
 } from "../../utils/providerDisplay";
 import {
   requiredSecretForProvider,
@@ -126,24 +128,93 @@ function ModelList<TModel extends ModelSelectorModel>({
                     >
                       {m.path || m.name}
                     </div>
-                    {available && isHuggingFaceLocalProvider(m.provider) && (
-                      <span
-                        className="badge-local"
-                        style={{
-                          flex: "0 0 auto",
-                          padding: "1px 6px",
-                          fontSize: theme.vars.fontSizeTiny,
-                          lineHeight: 1.2,
-                          borderRadius: 4,
-                          background: "transparent",
-                          color: theme.vars.palette.c_provider_local,
-                          letterSpacing: 0.3,
-                          border: `1px solid ${theme.vars.palette.c_provider_local}`
-                        }}
+                    {available && isLocalProvider(m.provider) && (
+                      <Tooltip
+                        title="Runs locally on your device"
+                        placement="top"
                       >
-                        Local
-                      </span>
+                        <span
+                          className="badge-local"
+                          style={{
+                            flex: "0 0 auto",
+                            padding: "1px 6px",
+                            fontSize: theme.vars.fontSizeTiny,
+                            lineHeight: 1.2,
+                            borderRadius: 4,
+                            background: "transparent",
+                            color: theme.vars.palette.c_provider_local,
+                            letterSpacing: 0.3,
+                            border: `1px solid ${theme.vars.palette.c_provider_local}`,
+                            cursor: "help"
+                          }}
+                        >
+                          Local
+                        </span>
+                      </Tooltip>
                     )}
+                    {available &&
+                      isHuggingFaceInferenceProvider(m.provider) && (
+                        <Tooltip
+                          title="Hugging Face Inference API (Paid)"
+                          placement="top"
+                        >
+                          <span
+                            className="badge-hf-api"
+                            style={{
+                              flex: "0 0 auto",
+                              padding: "1px 6px",
+                              fontSize: theme.vars.fontSizeTiny,
+                              lineHeight: 1.2,
+                              borderRadius: 4,
+                              background: "transparent",
+                              color: theme.vars.palette.c_provider_hf,
+                              letterSpacing: 0.3,
+                              border: `1px solid ${theme.vars.palette.c_provider_hf}`,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 2,
+                              cursor: "help"
+                            }}
+                          >
+                            HF API
+                            <span style={{ fontSize: "0.9em", opacity: 0.8 }}>
+                              $
+                            </span>
+                          </span>
+                        </Tooltip>
+                      )}
+                    {available &&
+                      isCloudProvider(m.provider) &&
+                      !isHuggingFaceInferenceProvider(m.provider) && (
+                        <Tooltip
+                          title="Paid API service (Remote)"
+                          placement="top"
+                        >
+                          <span
+                            className="badge-api"
+                            style={{
+                              flex: "0 0 auto",
+                              padding: "1px 6px",
+                              fontSize: theme.vars.fontSizeTiny,
+                              lineHeight: 1.2,
+                              borderRadius: 4,
+                              background: "transparent",
+                              color: theme.vars.palette.c_provider_api,
+                              letterSpacing: 0.3,
+                              border: `1px solid ${theme.vars.palette.c_provider_api}`,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 2,
+                              cursor: "help"
+                            }}
+                          >
+                            API
+                            <span style={{ fontSize: "0.9em", opacity: 0.8 }}>
+                              $
+                            </span>
+                          </span>
+                        </Tooltip>
+                      )}
                   </Box>
                 }
                 secondary={
@@ -179,6 +250,8 @@ function ModelList<TModel extends ModelSelectorModel>({
       onSelect,
       theme.vars.fontSizeTiny,
       theme.vars.palette.c_provider_local,
+      theme.vars.palette.c_provider_api,
+      theme.vars.palette.c_provider_hf,
       theme.vars.palette.text.secondary
     ]
   );
