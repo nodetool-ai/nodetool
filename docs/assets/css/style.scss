@@ -561,6 +561,16 @@ blockquote {
 .page-content li {
   margin-bottom: var(--spacing-sm);
   color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.page-content li svg {
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: 8px;
+  margin-top: -19px;
+  stroke: var(--color-accent-cyan);
 }
 
 .page-content li::marker {
