@@ -51,6 +51,7 @@ header_pages:
   - base-nodes.md
   - architecture.md
   - cookbook.md
+  - workflows/index.md
   - tips-and-tricks.md
 
 # Collections (optional, for organizing docs)

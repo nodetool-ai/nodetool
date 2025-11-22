@@ -3,9 +3,7 @@ layout: page
 title: NodeTool Documentation
 ---
 
-# NodeTool
-
-**A visual workflow builder for AI and machine learning**
+**Nodettol is a visual workflow builder for AI and machine learning**
 
 NodeTool is an open source platform for building AI workflows through visual, node-based programming. Whether you're exploring ML models, automating tasks, or building chatbots, NodeTool helps you experiment and iterate quickly.
 
