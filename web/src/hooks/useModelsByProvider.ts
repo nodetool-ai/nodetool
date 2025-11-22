@@ -27,7 +27,8 @@ import {
  * - GET /api/models/tts/{provider}     → TTSModel[]
  * - GET /api/models/asr/{provider}     → ASRModel[]
  * - GET /api/models/video/{provider}   → VideoModel[]
- * - GET /api/models/huggingface/search → UnifiedModel[] filtered client-side for image use cases
+ * - GET /api/models/huggingface/type/{model_type} → UnifiedModel[] filtered server-side by hf.* type
+ * - GET /api/models/huggingface/search → UnifiedModel[] filtered client-side for image use cases (fallback)
  *
  * Providers are enumerated via use*Providers hooks and fanned out into parallel
  * queries to minimize latency. Each hook returns aggregated models along with
@@ -371,6 +372,41 @@ const HF_DEFAULT_FILE_PATTERNS = [
 
 const HF_PTH_FILE_PATTERNS = ["*.pth", "*.pt"];
 
+const COMFY_REPO_PATTERNS = {
+  flux: ["Comfy-Org/flux1-dev", "Comfy-Org/flux1-schnell"],
+  fluxVae: ["ffxvs/vae-flux"],
+  qwenImage: ["Comfy-Org/Qwen-Image_ComfyUI", "city96/Qwen-Image-gguf"],
+  qwenImageEdit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
+  sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
+} as const;
+
+const COMFY_TYPE_REPO_MATCHERS: Record<string, string[]> = {
+  "hf.flux": [...COMFY_REPO_PATTERNS.flux],
+  "hf.stable_diffusion_3": [...COMFY_REPO_PATTERNS.sd35],
+  "hf.qwen_image": [
+    ...COMFY_REPO_PATTERNS.qwenImage,
+    ...COMFY_REPO_PATTERNS.qwenImageEdit
+  ],
+  "hf.qwen_image_edit": [...COMFY_REPO_PATTERNS.qwenImageEdit],
+  "hf.unet": [
+    ...COMFY_REPO_PATTERNS.flux,
+    ...COMFY_REPO_PATTERNS.qwenImage,
+    ...COMFY_REPO_PATTERNS.qwenImageEdit,
+    ...COMFY_REPO_PATTERNS.sd35
+  ],
+  "hf.vae": [
+    ...COMFY_REPO_PATTERNS.fluxVae,
+    ...COMFY_REPO_PATTERNS.qwenImage,
+    ...COMFY_REPO_PATTERNS.qwenImageEdit
+  ],
+  "hf.clip": [
+    ...COMFY_REPO_PATTERNS.sd35,
+    ...COMFY_REPO_PATTERNS.qwenImage,
+    ...COMFY_REPO_PATTERNS.qwenImageEdit
+  ],
+  "hf.t5": [...COMFY_REPO_PATTERNS.sd35]
+};
+
 const HF_SEARCH_TYPE_CONFIG: Record<string, HuggingFaceSearchConfig> = {
   "hf.image_text_to_text": { pipeline_tag: ["image-to-text", "text-to-image"], tag: ["*image-text*"] },
   "hf.visual_question_answering": { pipeline_tag: ["visual-question-answering"], tag: ["*vqa*"] },
@@ -387,43 +423,100 @@ const HF_SEARCH_TYPE_CONFIG: Record<string, HuggingFaceSearchConfig> = {
   "hf.stable_diffusion": { pipeline_tag: ["text-to-image"], tag: ["*stable-diffusion*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.stable_diffusion_xl": { tag: ["diffusers:StableDiffusionXLPipeline", "*stable-diffusion-xl*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.stable_diffusion_xl_refiner": { tag: ["*refiner*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
-  "hf.stable_diffusion_3": { tag: ["*stable-diffusion-3*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
+  "hf.stable_diffusion_3": { tag: ["*stable-diffusion-3*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS, repo_pattern: [...COMFY_REPO_PATTERNS.sd35] },
   "hf.stable_diffusion_upscale": { tag: ["*upscale*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   // Flux repos should surface as a repo-level choice; filename patterns help discovery.
-  "hf.flux": { tag: ["*flux*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
-  "hf.qwen_image": { tag: ["*qwen*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
-  "hf.qwen_image_edit": { pipeline_tag: ["image-to-image"], tag: ["*qwen*"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
+  "hf.flux": {
+    tag: ["*flux*"],
+    filename_pattern: HF_DEFAULT_FILE_PATTERNS,
+    repo_pattern: [...COMFY_REPO_PATTERNS.flux]
+  },
+  "hf.qwen_image": {
+    tag: ["*qwen*"],
+    filename_pattern: HF_DEFAULT_FILE_PATTERNS,
+    repo_pattern: [...COMFY_REPO_PATTERNS.qwenImage]
+  },
+  "hf.qwen_image_edit": {
+    pipeline_tag: ["image-to-image"],
+    tag: ["*qwen*"],
+    filename_pattern: HF_DEFAULT_FILE_PATTERNS,
+    repo_pattern: [...COMFY_REPO_PATTERNS.qwenImageEdit]
+  },
   "hf.controlnet": {
     repo_pattern: ["*control*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    pipeline_tag: []
   },
   "hf.controlnet_sdxl": {
     repo_pattern: ["*control*"],
     tag: ["*sdxl*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    pipeline_tag: []
   },
   "hf.controlnet_flux": {
     repo_pattern: ["*control*"],
     tag: ["*flux*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    pipeline_tag: []
   },
   "hf.ip_adapter": {
     repo_pattern: ["*IP-Adapter*"],
-    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS]
+    filename_pattern: [...HF_DEFAULT_FILE_PATTERNS, ...HF_PTH_FILE_PATTERNS],
+    pipeline_tag: []
   },
-  "hf.style_model": { tag: ["*style*"] },
-  "hf.lora_sd": { repo_pattern: ["*lora*"] },
-  "hf.lora_sdxl": { repo_pattern: ["*lora*sdxl*", "*sdxl*lora*"] },
-  "hf.lora_qwen_image": { repo_pattern: ["*lora*qwen*"] },
+  "hf.style_model": { tag: ["*style*"], pipeline_tag: [] },
+  "hf.lora_sd": { repo_pattern: ["*lora*"], pipeline_tag: [] },
+  "hf.lora_sdxl": { repo_pattern: ["*lora*sdxl*", "*sdxl*lora*"], pipeline_tag: [] },
+  "hf.lora_qwen_image": { repo_pattern: ["*lora*qwen*"], pipeline_tag: [] },
   "hf.image_to_text": { pipeline_tag: ["image-to-text"], tag: ["*caption*"] },
   "hf.image_to_image": { pipeline_tag: ["image-to-image"], filename_pattern: HF_DEFAULT_FILE_PATTERNS },
   "hf.inpainting": { pipeline_tag: ["image-inpainting"], tag: ["*inpaint*"] },
   "hf.outpainting": { tag: ["*outpaint*"] },
   "hf.image_to_video": { pipeline_tag: ["image-to-video"] },
   "hf.unconditional_image_generation": { pipeline_tag: ["unconditional-image-generation"], tag: ["*unconditional-image-generation*"] },
-  "hf.unet": { repo_pattern: ["*unet*"], filename_pattern: ["*.safetensors", "*.bin"] },
-  "hf.vae": { repo_pattern: ["*vae*"], filename_pattern: ["*.safetensors", "*.bin"] },
-  "hf.clip": { tag: ["*clip*"] },
+  "hf.unet": {
+    repo_pattern: [
+      ...COMFY_REPO_PATTERNS.flux,
+      ...COMFY_REPO_PATTERNS.qwenImage,
+      ...COMFY_REPO_PATTERNS.qwenImageEdit,
+      ...COMFY_REPO_PATTERNS.sd35,
+      "*unet*",
+      "*stable-diffusion*"
+    ],
+    filename_pattern: ["*unet*.safetensors", "*unet*.bin", "*unet*.ckpt"],
+    pipeline_tag: []
+  },
+  "hf.vae": {
+    repo_pattern: [
+      ...COMFY_REPO_PATTERNS.fluxVae,
+      ...COMFY_REPO_PATTERNS.qwenImage,
+      ...COMFY_REPO_PATTERNS.qwenImageEdit,
+      "*vae*",
+      "*stable-diffusion*"
+    ],
+    filename_pattern: ["*vae*.safetensors", "*vae*.bin", "*vae*.ckpt", "*vae*.pt"],
+    pipeline_tag: []
+  },
+  "hf.clip": {
+    repo_pattern: [
+      ...COMFY_REPO_PATTERNS.sd35,
+      ...COMFY_REPO_PATTERNS.qwenImage,
+      ...COMFY_REPO_PATTERNS.qwenImageEdit,
+      "*clip*",
+      "*flux*"
+    ],
+    filename_pattern: ["*clip*.safetensors", "*clip*.bin", "*clip*.gguf", "*clip*.ckpt"],
+    pipeline_tag: []
+  },
+  "hf.t5": {
+    repo_pattern: [
+      ...COMFY_REPO_PATTERNS.sd35,
+      "*t5*",
+      "*flux*"
+    ],
+    filename_pattern: ["*t5*.safetensors", "*t5*.bin", "*t5*.gguf", "*t5*.ckpt"],
+    pipeline_tag: []
+  },
   "hf.clip_vision": { tag: ["*clip-vision*", "*vision-encoder*"] },
   "hf.video_classification": { pipeline_tag: ["video-classification"] },
   "hf.text_to_video": { pipeline_tag: ["text-to-video"] },
@@ -485,6 +578,8 @@ const HF_FILE_PATTERN_TYPES = new Set(
     "hf.outpainting",
     "hf.vae",
     "hf.unet",
+    "hf.clip",
+    "hf.t5",
     "hf.image_to_video",
     "hf.text_to_video",
     "hf.text_to_speech",
@@ -512,18 +607,21 @@ const HF_TYPE_KEYWORD_MATCHERS: Record<string, string[]> = {
   "hf.lora_sdxl": ["lora", "sdxl"],
   "hf.lora_qwen_image": ["lora", "qwen"],
   "hf.vae": ["vae"],
-  "hf.unet": ["unet"]
+  "hf.unet": ["unet"],
+  "hf.clip": ["clip"],
+  "hf.t5": ["t5"]
 };
 
 /**
  * Internal hook responsible for translating `hf.*` model types
- * into calls to `/api/models/huggingface/search`.  Mirrors the backend
- * discovery flow (see `nodetool-core/.../huggingface_models.py`) so that the UI
- * can surface SD, Flux, Qwen, ControlNet, IP-Adapter, etc. consistently.
+ * into calls to the typed `/api/models/huggingface/type/{model_type}` endpoint,
+ * with a search fallback. Mirrors the backend discovery flow (see
+ * `nodetool-core/.../huggingface_models.py`) so that the UI can surface SD,
+ * Flux, Qwen, ControlNet, IP-Adapter, etc. consistently.
  * 
  * Steps:
- * 1. Map model type to repo/pipeline/file heuristics (see HF_SEARCH_TYPE_CONFIG).
- * 2. Serialize those heuristics into query params for the search endpoint.
+ * 1. Ask the backend for typed hf.* entries first.
+ * 2. Fall back to heuristic search (HF_SEARCH_TYPE_CONFIG) when needed.
  * 3. Fetch the resulting `UnifiedModel` entries and coerce them into ImageModels.
  * 4. Filter unsafe matches unless the backend returned a concrete `hf.*` type.
  */
@@ -545,9 +643,33 @@ const useHuggingFaceModelSearch = (opts?: {
   );
 
   const query = useQuery({
-    queryKey: ["hf-model-search", opts?.modelType ?? "all", opts?.task ?? "all", configKey],
-    enabled: !!normalizedConfig,
-    queryFn: async () => fetchHfModelsBySearch(normalizedConfig!),
+    queryKey: [
+      "hf-model-search",
+      opts?.modelType ?? "all",
+      opts?.task ?? "all",
+      configKey,
+      opts?.modelType ? "type-endpoint" : "search"
+    ],
+    enabled: !!opts?.modelType || !!normalizedConfig,
+    queryFn: async () => {
+      if (opts?.modelType) {
+        try {
+          const typedModels = await fetchHfModelsByType(opts.modelType, opts.task);
+          if (typedModels.length > 0 || !normalizedConfig) {
+            return typedModels;
+          }
+        } catch (err) {
+          console.error("Failed to fetch HF models by type, falling back to search", err);
+          if (!normalizedConfig) {
+            throw err;
+          }
+        }
+      }
+      if (!normalizedConfig) {
+        return [];
+      }
+      return fetchHfModelsBySearch(normalizedConfig);
+    },
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: "always"
@@ -569,11 +691,28 @@ const useHuggingFaceModelSearch = (opts?: {
       }
       return true;
     });
+    if (process.env.NODE_ENV === "development") {
+      console.log("useHuggingFaceModelSearch match summary", {
+        modelType: opts?.modelType,
+        task: opts?.task,
+        config: normalizedConfig,
+        fetched: query.data.length,
+        filteredCount: filtered.length,
+        repoPrunedCount: repoPruned.length,
+        matched: repoPruned.map((m) => ({
+          id: m.id,
+          repo_id: m.repo_id,
+          path: m.path,
+          type: m.type,
+          pipeline_tag: m.pipeline_tag
+        }))
+      });
+    }
     return repoPruned.map((model) => convertUnifiedToImageModel(model));
-  }, [query.data, opts?.modelType]);
+  }, [query.data, opts?.modelType, opts?.task, normalizedConfig]);
 
   return {
-    hasSearch: !!normalizedConfig,
+    hasSearch: !!opts?.modelType || !!normalizedConfig,
     models,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
@@ -737,6 +876,33 @@ const fetchHfModelsBySearch = async (
   return (await res.json()) as UnifiedModel[];
 };
 
+const fetchHfModelsByType = async (
+  modelType: string,
+  task?: "text_to_image" | "image_to_image"
+): Promise<UnifiedModel[]> => {
+  const params = new URLSearchParams();
+  if (task) {
+    params.append("task", task);
+  }
+  const encodedType = encodeURIComponent(modelType);
+  const url = `${BASE_URL}/api/models/huggingface/type/${encodedType}${
+    params.toString() ? `?${params.toString()}` : ""
+  }`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `Failed to fetch HuggingFace models for type ${modelType}: ${res.status} ${res.statusText} ${text}`
+    );
+  }
+  const normalizedType = modelType.startsWith("hf.")
+    ? modelType
+    : `hf.${modelType}`;
+  return ((await res.json()) as UnifiedModel[]).map((model) =>
+    model.type ? model : { ...model, type: normalizedType }
+  );
+};
+
 const GENERIC_HF_TYPES = new Set([
   "hf.text_to_image",
   "hf.image_to_image",
@@ -750,6 +916,8 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
   }
   const normalizedType = modelType.toLowerCase();
   const modelTypeLower = (model.type || "").toLowerCase();
+  const repoId = (model.repo_id || "").toLowerCase();
+  const repoIdFromId = (model.id || "").split(":")[0]?.toLowerCase?.() || "";
   if (modelTypeLower) {
     if (modelTypeLower === normalizedType) {
       return true;
@@ -757,6 +925,20 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
     if (!GENERIC_HF_TYPES.has(modelTypeLower)) {
       return false;
     }
+  }
+
+  if (matchesRepoForType(normalizedType, repoId, repoIdFromId)) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("matchesModelType repo match", {
+        matchType: normalizedType,
+        repoId,
+        repoIdFromId,
+        modelId: model.id,
+        modelType: model.type,
+        pipeline: model.pipeline_tag
+      });
+    }
+    return true;
   }
 
   // Prefer explicit artifact detection metadata when available.
@@ -769,7 +951,6 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
   }
 
   const tags = (model.tags || []).map((tag) => (tag || "").toLowerCase());
-  const repoId = (model.repo_id || "").toLowerCase();
   const keywords = HF_TYPE_KEYWORD_MATCHERS[normalizedType];
   if (keywords) {
     if (
@@ -785,6 +966,23 @@ const matchesModelType = (model: UnifiedModel, modelType?: string): boolean => {
     return true;
   }
   return false;
+};
+
+const matchesRepoForType = (
+  normalizedType: string,
+  repoId: string,
+  repoIdFromId: string
+): boolean => {
+  const matchers = COMFY_TYPE_REPO_MATCHERS[normalizedType];
+  if (!matchers) {
+    return false;
+  }
+  const repoLower = repoId.toLowerCase();
+  const repoFromIdLower = repoIdFromId.toLowerCase();
+  return matchers.some((candidate) => {
+    const candidateLower = candidate.toLowerCase();
+    return repoLower === candidateLower || repoFromIdLower === candidateLower;
+  });
 };
 
 const matchesArtifactDetection = (
