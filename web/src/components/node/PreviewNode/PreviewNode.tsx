@@ -57,8 +57,11 @@ const styles = (theme: Theme) =>
         backgroundColor: "transparent",
         display: "flex",
         position: "relative",
-        overflow: "visible",
+        overflow: "hidden",
         flexDirection: "column"
+      },
+      ".preview-node-content .content": {
+        overflow: "hidden"
       },
       ".preview-node-content > .output": {
         flex: 1,
@@ -83,6 +86,15 @@ const styles = (theme: Theme) =>
       ".preview-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"
       },
+      // table
+      ".preview-node-content .content .tabulator-cell": {
+        fontSize: theme.vars.fontSizeTiny + " !important"
+      },
+      ".preview-node-content .content .tabulator-col-resize-handle,.preview-node-content .content .tabulator-row":
+        {
+          height: "fit-content !important"
+        },
+      // header
       ".node-header": {
         width: "100%",
         minHeight: "unset",
