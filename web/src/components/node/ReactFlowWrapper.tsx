@@ -505,7 +505,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   // We want to know when a selection rectangle is active so we can
   // avoid doing heavy edge selection updates and edge styling work mid-drag.
   const handleSelectionStart = useCallback(
-    (event: React.MouseEvent | MouseEvent) => {
+    (event: any) => {
       setIsSelecting(true);
       onSelectionStart(event);
     },
@@ -513,7 +513,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const handleSelectionDragStart = useCallback(
-    (event: React.MouseEvent | MouseEvent, nodes: Node[]) => {
+    (event: any, nodes: any[]) => {
       setIsSelecting(true);
       onSelectionDragStart(event, nodes);
     },
@@ -521,7 +521,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const handleSelectionDragStop = useCallback(
-    (event: React.MouseEvent | MouseEvent, nodes: Node[]) => {
+    (event: any, nodes: any[]) => {
       onSelectionDragStop(event, nodes);
       setIsSelecting(false);
     },
@@ -529,7 +529,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const handleSelectionEnd = useCallback(
-    (event: React.MouseEvent | MouseEvent) => {
+    (event: any) => {
       onSelectionEnd(event);
       setIsSelecting(false);
     },
