@@ -16,6 +16,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../../config/constants";
 import { formatBytes } from "../../../utils/modelFormatting";
+import { getModelUrl } from "../../../utils/providerDisplay";
 
 const ModelListItem: React.FC<
   ModelComponentProps & {
@@ -66,14 +67,14 @@ const ModelListItem: React.FC<
                 const owner = lastSlash !== -1 ? full?.slice(0, lastSlash) : "";
                 const repo =
                   lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
-                return (
-                  <Link
-                    href={`https://huggingface.co/${model.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="model-name-link"
-                    title={full}
-                  >
+                const modelUrl = getModelUrl(
+                  (model as any).provider,
+                  model.id,
+                  model.type || undefined
+                );
+
+                const content = (
+                  <>
                     {owner ? (
                       <Typography component="div" className="model-owner">
                         {owner}
@@ -93,6 +94,26 @@ const ModelListItem: React.FC<
                         {repo}
                       </Typography>
                     )}
+                  </>
+                );
+
+                if (!modelUrl) {
+                  return (
+                    <div className="model-name-link" title={full}>
+                      {content}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    href={modelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="model-name-link"
+                    title={full}
+                  >
+                    {content}
                   </Link>
                 );
               })()}
