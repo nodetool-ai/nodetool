@@ -5,7 +5,8 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  Tooltip
+  Tooltip,
+  Theme
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
@@ -44,7 +45,8 @@ const ModelTypeSidebar: React.FC = () => {
               ? {
                   mb: 2,
                   pb: 1,
-                  borderBottom: (theme) => `1px solid ${theme.palette.divider}`
+                  borderBottom: (theme: Theme) =>
+                    `1px solid ${theme.palette.divider}`
                 }
               : undefined;
           return (
