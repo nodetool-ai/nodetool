@@ -94,13 +94,23 @@ const StringProperty = ({
               <CopyToClipboardButton copyValue={value} size="small" />
             </div>
           )}
-          <div 
+          <div
             className="value-container"
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <TextField
-              className={`string-value-input nodrag ${isFocused ? "nowheel" : ""}`}
+              className={`string-value-input nodrag ${
+                isFocused ? "nowheel" : ""
+              }`}
+              slotProps={{
+                input: {
+                  className: "nodrag"
+                },
+                htmlInput: {
+                  className: "nodrag"
+                }
+              }}
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 onChange(e.target.value)
